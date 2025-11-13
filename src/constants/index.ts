@@ -12,9 +12,9 @@ export const NAV_ITEMS = [
   { name: 'Objects', path: '/objects' },
   { name: 'Import', path: '/import' },
   { name: 'I/O Processes', path: '/processes' },
-  { name: 'Templates', path: '#', isDisabled: true },
-  { name: 'API Documentation', path: '#', isDisabled: true },
-  { name: 'Export Data', path: '#', isDisabled: true },
+  { name: 'Models', path: '/models' },
+  // { name: 'API Documentation', path: '#', isDisabled: true },
+  // { name: 'Export Data', path: '#', isDisabled: true },
 ]
 
 // Footer links

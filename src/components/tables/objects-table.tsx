@@ -15,14 +15,12 @@ import {
   CopyButton,
   TablePagination,
 } from '@/components/ui'
-import { cn } from '@/lib/utils'
-import { objectsData } from '@/lib/data'
-import { QRCodeModal, DeleteConfirmationDialog } from '@/components/modals'
+import { cn } from '@/lib'
 import { useUnifiedDelete } from '@/hooks'
+import { QRCodeModal, DeleteConfirmationDialog } from '@/components/modals'
 
 interface ObjectsTableProps {
   initialData?: any[]
-  showParentLink?: boolean
   fetching?: boolean // Loading state for pagination/refresh
   onViewObject?: (object: any) => void
   onObjectDoubleClick?: (object: any) => void
@@ -48,7 +46,6 @@ const isObjectDeleted = (object: any) => {
 
 export function ObjectsTable({
   initialData,
-  showParentLink = true,
   fetching = false,
   onViewObject,
   onObjectDoubleClick,
@@ -77,12 +74,12 @@ export function ObjectsTable({
     handleDeleteCancel,
   } = useUnifiedDelete()
 
-  // Load data from props or from the data file
+  // Load data from props
   useEffect(() => {
     if (initialData) {
       setData(initialData)
     } else {
-      setData(objectsData)
+      setData([])
     }
     setIsLoading(false)
   }, [initialData])

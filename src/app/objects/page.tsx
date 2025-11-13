@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation'
 import { PlusCircle, Search, X } from 'lucide-react'
 
 import { useViewData } from '@/hooks'
-import { Button, Badge } from '@/components/ui'
-import { isObjectDeleted } from '@/lib/object-utils'
+import { Button, Badge, DeletedFilter } from '@/components/ui'
+import { isObjectDeleted } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
-import { ObjectViewContainer } from '@/components/object-views'
 import { ViewSelector, ViewType } from '@/components/view-selector'
+import { ObjectViewContainer } from '@/components/object-view-container'
 import { ObjectDetailsSheet, ObjectAddSheet } from '@/components/object-sheets'
 import { useSearch } from '@/contexts/search-context'
 
@@ -18,6 +18,7 @@ function ObjectsPageContent() {
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
   const [isObjectEditSheetOpen, setIsObjectEditSheetOpen] = useState(false)
   const [selectedObject, setSelectedObject] = useState<any>(null)
+  const [showDeleted, setShowDeleted] = useState<boolean>(false)
 
   const router = useRouter()
   const {
@@ -71,6 +72,11 @@ function ObjectsPageContent() {
             <h1 className="text-2xl font-bold">Objects</h1>
           </div>
           <div className="flex items-center gap-4">
+            <DeletedFilter
+              showDeleted={showDeleted}
+              onShowDeletedChange={setShowDeleted}
+              label="Show deleted objects"
+            />
             <ViewSelector
               view={viewType}
               onChange={(value: ViewType) => {

@@ -134,9 +134,9 @@ importers:
       input-otp:
         specifier: 1.4.1
         version: 1.4.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      iob-client:
-        specifier: file:../iob-sdk
-        version: file:../iob-sdk(axios@1.11.0)
+      iom-sdk:
+        specifier: file:../iom-sdk
+        version: file:../iom-sdk(axios@1.11.0)
       ioredis:
         specifier: ^5.6.1
         version: 5.6.1
@@ -1968,8 +1968,8 @@ packages:
     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
     engines: {node: '>=12'}
 
-  iob-client@file:../iob-sdk:
-    resolution: {directory: ../iob-sdk, type: directory}
+  iom-sdk@file:../iom-sdk:
+    resolution: {directory: ../iom-sdk, type: directory}
     peerDependencies:
       axios: ^1.6.0
 
@@ -4785,7 +4785,7 @@ snapshots:
 
   internmap@2.0.3: {}
 
-  iob-client@file:../iob-sdk(axios@1.11.0):
+  iom-sdk@file:../iom-sdk(axios@1.11.0):
     dependencies:
       axios: 1.11.0
       isomorphic-unfetch: 4.0.2

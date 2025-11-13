@@ -1,10 +1,10 @@
 import { useMutation } from '@tanstack/react-query'
-import { AggregateFindDTO, AuthResponse } from 'iob-client'
+import type { AggregateFindDTO, AuthResponse } from 'iom-sdk'
 
-import { useIobClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/providers/query-provider'
 
 export function useCommonApi() {
-  const client = useIobClient()
+  const client = useIomSdkClient()
 
   // Request certificate authentication (both base and UUID auth)
   const useRequestCertificate = () => {

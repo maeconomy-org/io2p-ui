@@ -1,4 +1,3 @@
-// types/iom.ts
 export interface MaterialObject {
   uuid: string
   name: string

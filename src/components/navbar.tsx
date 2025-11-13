@@ -72,16 +72,13 @@ export default function Navbar() {
               {NAV_ITEMS.map((item) => (
                 <Link
                   key={item.name}
-                  href={item.isDisabled ? '#' : item.path}
-                  aria-disabled={item.isDisabled}
+                  href={item.path}
                   className={cn(
                     'text-sm font-medium transition-colors',
+                    'hover:cursor-pointer hover:text-primary',
                     pathname === item.path || pathname.startsWith(item.path)
                       ? 'text-primary'
-                      : 'text-muted-foreground',
-                    item.isDisabled
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'hover:cursor-pointer hover:text-primary'
+                      : 'text-muted-foreground'
                   )}
                 >
                   {item.name}

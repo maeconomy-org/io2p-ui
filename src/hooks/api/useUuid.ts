@@ -1,10 +1,10 @@
-import type { UUID } from 'iob-client'
+import type { UUID } from 'iom-sdk'
 import { useMutation, useQuery } from '@tanstack/react-query'
 
-import { useIobClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/providers/query-provider'
 
 export function useUuid() {
-  const client = useIobClient()
+  const client = useIomSdkClient()
 
   // Generate a new UUID
   const useGenerateUuid = () => {

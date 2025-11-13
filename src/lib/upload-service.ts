@@ -1,6 +1,4 @@
-import { toast } from 'sonner'
-
-import type { Attachment } from '@/components/object-sheets/utils/attachments'
+import type { Attachment } from '@/types'
 
 // Updated client type for new flow with uploadDirect and uploadByReference methods
 type ApiClient = {

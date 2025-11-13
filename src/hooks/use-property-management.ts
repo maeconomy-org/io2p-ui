@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import type { UUPropertyDTO, UUPropertyValueDTO } from 'iob-client'
+import type { UUPropertyDTO, UUPropertyValueDTO } from 'iom-sdk'
 
 import { useProperties } from './api'
 

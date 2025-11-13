@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { MaterialObject, MaterialRelationship } from '@/types'
-import { getStageColor } from '@/lib/sankey-layout'
+import { getStageColor } from '@/lib'
 
 interface NetworkDiagramProps {
   materials?: MaterialObject[]

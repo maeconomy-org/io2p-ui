@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { AggregateFindDTO } from 'iob-client'
+import type { AggregateFindDTO } from 'iom-sdk'
 
-import { useIobClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/providers/query-provider'
 import { useAuth } from '@/contexts/auth-context'
 
 export function useAggregate() {
-  const client = useIobClient()
+  const client = useIomSdkClient()
   const queryClient = useQueryClient()
   const { userUUID } = useAuth()
 
@@ -29,6 +29,21 @@ export function useAggregate() {
       queryKey: ['aggregates', params],
       queryFn: async () => {
         const response = await client.aggregate.getAggregateEntities(params)
+        return response.data
+      },
+      ...options,
+    })
+  }
+
+  const useModelEntities = (params?: AggregateFindDTO, options = {}) => {
+    return useQuery({
+      queryKey: ['aggregates', 'models', params],
+      queryFn: async () => {
+        const response = await client.aggregate.getAggregateEntities({
+          ...params,
+          // TODO: Uncomment when iom-sdk is updated
+          // isTemplate: true,
+        })
         return response.data
       },
       ...options,
@@ -140,6 +155,7 @@ export function useAggregate() {
   return {
     useAggregateByUUID,
     useAggregateEntities,
+    useModelEntities,
     useAllAggregateEntities,
     useUserAggregateEntities,
     useAggregateEntitiesWithHistory,

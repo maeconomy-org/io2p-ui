@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 
-import { useIobClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/providers/query-provider'
 import { useAuth } from '@/contexts/auth-context'
 
 /**
@@ -72,7 +72,7 @@ export interface ImportResult {
  * Hook for using the import API directly from client-side
  */
 export function useImportApi() {
-  const client = useIobClient()
+  const client = useIomSdkClient()
   const { userUUID } = useAuth()
 
   const importSingleObject = useMutation({

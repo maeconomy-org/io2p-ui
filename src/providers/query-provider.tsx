@@ -7,7 +7,7 @@ import {
   useState,
   useEffect,
 } from 'react'
-import { createClient } from 'iob-client'
+import { createClient } from 'iom-sdk'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
@@ -16,14 +16,16 @@ import { API_CONFIG } from '@/lib/api-config'
 // Global singleton cache
 let cachedClientPromise: ReturnType<typeof createClient> | null = null
 
-const IobClientContext = createContext<ReturnType<typeof createClient> | null>(
-  null
-)
+const IomSdkClientContext = createContext<ReturnType<
+  typeof createClient
+> | null>(null)
 
-export function useIobClient() {
-  const context = useContext(IobClientContext)
+export function useIomSdkClient() {
+  const context = useContext(IomSdkClientContext)
   if (!context) {
-    throw new Error('useIobClient must be used within an IobClientProvider')
+    throw new Error(
+      'useIomSdkClient must be used within an IomSdkClientProvider'
+    )
   }
   return context
 }
@@ -86,11 +88,11 @@ export function QueryProvider({ children }: PropsWithChildren) {
   }
 
   return (
-    <IobClientContext.Provider value={client}>
+    <IomSdkClientContext.Provider value={client}>
       <QueryClientProvider client={queryClient}>
         {children}
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
-    </IobClientContext.Provider>
+    </IomSdkClientContext.Provider>
   )
 }

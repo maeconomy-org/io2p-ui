@@ -32,8 +32,8 @@ A modern web application for tracking and managing building materials, component
 1. Clone the repository
 
    ```bash
-   git clone https://github.com/recheck-io/iob-ui.git
-   cd iob-ui
+   git clone https://github.com/maeconomy-org/iom-ui.git
+   cd iom-ui
    ```
 
 2. Install dependencies

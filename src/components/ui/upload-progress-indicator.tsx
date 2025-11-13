@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronUp, ChevronDown, Upload, AlertTriangle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { getUploadService } from '@/lib/upload-service'
-import { useIobClient } from '@/providers/query-provider'
+import { getUploadService } from '@/lib'
+import { useIomSdkClient } from '@/providers/query-provider'
+import { Button, Card, Progress } from '@/components/ui'
 
 export function UploadProgressIndicator() {
   const [isExpanded, setIsExpanded] = useState(true)
@@ -16,7 +14,7 @@ export function UploadProgressIndicator() {
     pending: 0,
     isProcessing: false,
   })
-  const client = useIobClient()
+  const client = useIomSdkClient()
 
   useEffect(() => {
     if (!client) return

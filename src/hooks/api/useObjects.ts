@@ -5,11 +5,11 @@ import type {
   ComplexObjectOutput,
   UUID,
   QueryParams,
-} from 'iob-client'
-import { useIobClient } from '@/providers/query-provider'
+} from 'iom-sdk'
+import { useIomSdkClient } from '@/providers/query-provider'
 
 export function useObjects() {
-  const client = useIobClient()
+  const client = useIomSdkClient()
   const queryClient = useQueryClient()
 
   // Get all objects using the new unified API

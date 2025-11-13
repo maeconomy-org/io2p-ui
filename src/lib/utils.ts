@@ -28,3 +28,7 @@ export function formatUUID(uuid: string) {
 export function toCapitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
+
+export const isObjectDeleted = (object: any): boolean => {
+  return object?.softDeleted === true
+}

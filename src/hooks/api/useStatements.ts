@@ -5,12 +5,12 @@ import type {
   UUID,
   UUStatementsProperty,
   Predicate,
-} from 'iob-client'
+} from 'iom-sdk'
 
-import { useIobClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/providers/query-provider'
 
 export function useStatements() {
-  const client = useIobClient()
+  const client = useIomSdkClient()
   const queryClient = useQueryClient()
 
   // Get all statements using the new unified API

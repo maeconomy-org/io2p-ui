@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useIobClient } from '@/providers/query-provider'
-import type { UUPropertyDTO, UUPropertyValueDTO, QueryParams } from 'iob-client'
+import { useIomSdkClient } from '@/providers/query-provider'
+import type { UUPropertyDTO, UUPropertyValueDTO, QueryParams } from 'iom-sdk'
 
 export function useProperties() {
-  const client = useIobClient()
+  const client = useIomSdkClient()
   const queryClient = useQueryClient()
 
   // Get all properties using the new unified API

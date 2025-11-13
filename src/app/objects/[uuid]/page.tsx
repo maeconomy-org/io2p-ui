@@ -7,7 +7,7 @@ import { PlusCircle, ArrowLeft } from 'lucide-react'
 import { useAggregate } from '@/hooks'
 import { Button } from '@/components/ui'
 import { ObjectsTable } from '@/components/tables'
-import { isObjectDeleted } from '@/lib/object-utils'
+import { isObjectDeleted } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
 import { ObjectDetailsSheet, ObjectAddSheet } from '@/components/object-sheets'
 
@@ -157,7 +157,6 @@ function ObjectChildrenPageContent() {
         {/* Children Table */}
         <ObjectsTable
           initialData={childrenData}
-          showParentLink={false}
           onViewObject={handleViewObject}
           onObjectDoubleClick={handleObjectDoubleClick}
           fetching={childrenLoading}

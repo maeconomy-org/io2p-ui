@@ -44,7 +44,6 @@ const MaterialFlowPage = () => {
 
   const handleProcessSave = async (newProcess: any) => {
     try {
-      // Save to real IoB backend using enhanced statements
       const result = await createProcessFlowMutation.mutateAsync({
         processName: newProcess.name,
         processType: newProcess.type,
@@ -60,7 +59,7 @@ const MaterialFlowPage = () => {
         })),
       })
 
-      console.log('Process flow saved to IoB backend:', result)
+      console.log('Process flow saved to backend:', result)
       setIsProcessFormOpen(false)
     } catch (error) {
       console.error('Failed to save process flow:', error)

@@ -3,8 +3,12 @@
 import { useMemo } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { MaterialObject, MaterialRelationship } from '@/types'
-import { createLayeredLayout, getStageColor } from '@/lib/sankey-layout'
-import { formatUUID, toCapitalize } from '@/lib/utils'
+import {
+  createLayeredLayout,
+  getStageColor,
+  formatUUID,
+  toCapitalize,
+} from '@/lib'
 
 interface SankeyDiagramProps {
   materials?: MaterialObject[]
