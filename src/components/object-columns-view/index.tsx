@@ -2,18 +2,15 @@
 
 import { FileText } from 'lucide-react'
 import { DeleteConfirmationDialog } from '@/components/modals'
-import { ObjectColumn } from './components'
-import { useColumnsData } from './use-columns-data'
+
 import { getColumnTitle } from './utils'
+import { ObjectColumn } from './components'
+import { useColumnsData } from './hooks/use-columns-data'
+import { useLoadChildren } from './hooks/use-load-children'
 
 interface ObjectColumnsViewProps {
   data: any[]
   fetching?: boolean
-  loadChildren?: (
-    parentUUID: string,
-    page?: number,
-    searchTerm?: string
-  ) => Promise<{ items: any[]; totalPages: number; totalItems: number }>
   rootPagination?: {
     currentPage: number
     totalPages: number
@@ -26,10 +23,11 @@ interface ObjectColumnsViewProps {
 export function ObjectColumnsView({
   data,
   fetching = false,
-  loadChildren,
   rootPagination,
   onViewObject,
 }: ObjectColumnsViewProps) {
+  // Create loadChildren function locally for columns view
+  const { loadChildren } = useLoadChildren()
   // Use the centralized columns data hook
   const {
     columns,
@@ -58,12 +56,6 @@ export function ObjectColumnsView({
     if (onViewObject) {
       onViewObject(item)
     }
-  }
-
-  // Handle double-click to navigate to children page
-  const handleObjectDoubleClick = (object: any) => {
-    // This could be implemented if needed
-    console.log('Double click on object:', object)
   }
 
   return (

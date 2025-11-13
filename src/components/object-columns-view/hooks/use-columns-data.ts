@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-  useColumnPagination,
-  useColumnSelection,
-  useUnifiedDelete,
-  useColumnSearch,
-} from '@/hooks'
+import { useUnifiedDelete } from '@/hooks'
+
+import { useColumnPagination } from './use-column-pagination'
+import { useColumnSelection } from './use-column-selection'
+import { useColumnSearch } from './use-column-search'
 
 interface UseColumnsDataProps {
   data: any[]

@@ -3,13 +3,12 @@
 import { ViewData } from '@/hooks'
 import { ObjectsTable } from '@/components/tables'
 import { ViewType } from '@/components/view-selector'
-import { ObjectColumnsView } from './columns-view'
+import { ObjectColumnsView } from '@/components/object-columns-view'
 
 interface ObjectViewContainerProps {
   viewType: ViewType
   viewData: ViewData
   onViewObject?: (object: any) => void
-  onEditObject?: (object: any) => void
   onObjectDoubleClick?: (object: any) => void
 }
 
@@ -17,7 +16,6 @@ export function ObjectViewContainer({
   viewType,
   viewData,
   onViewObject,
-  onEditObject,
   onObjectDoubleClick,
 }: ObjectViewContainerProps) {
   switch (viewType) {
@@ -59,12 +57,9 @@ export function ObjectViewContainer({
       return (
         <ObjectColumnsView
           data={viewData.rootObjects}
-          loading={viewData.loading}
           fetching={viewData.fetching}
-          loadChildren={viewData.loadChildren}
           rootPagination={viewData.rootPagination}
           onViewObject={onViewObject}
-          onEditObject={onEditObject}
         />
       )
     }

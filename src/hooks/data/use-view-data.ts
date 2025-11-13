@@ -6,9 +6,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAggregate } from '@/hooks'
 import { ViewType } from '@/components/view-selector'
 import { useSearch } from '@/contexts/search-context'
-import { useIobClient } from '@/providers/query-provider'
 
-import { usePagination } from './use-pagination'
+import { usePagination } from '@/hooks'
 
 // Interface for table view data with internal data fetching
 interface TableViewData {
@@ -31,17 +30,12 @@ interface TableViewData {
   }
 }
 
-// Interface for columns view data (enhanced for pagination)
+// Interface for columns view data (simplified - no loadChildren)
 interface ColumnsViewData {
   type: 'columns'
   rootObjects: any[]
   loading: boolean // Initial loading (full screen)
   fetching: boolean // Data refreshing (internal)
-  loadChildren: (
-    parentUUID: string,
-    page?: number,
-    searchTerm?: string
-  ) => Promise<{ items: any[]; totalPages: number; totalItems: number }>
   rootPagination: {
     currentPage: number
     totalPages: number
@@ -72,14 +66,12 @@ export function useViewData({
   const { useAggregateEntities } = useAggregate()
   const { isSearchMode, searchViewResults, searchPagination } = useSearch()
   const queryClient = useQueryClient()
-  const client = useIobClient() // TODO: Remove when loadChildren is refactored
 
   // Internal pagination state for table view
   const [currentPage, setCurrentPage] = useState(0)
 
   // Simple state for columns view (no more infinite scroll)
   const [columnsData, setColumnsData] = useState<any[]>([])
-  const [columnsLoading, setColumnsLoading] = useState(false)
 
   // Determine page size based on view type
   const pageSize = viewType === 'table' ? tablePageSize : columnsPageSize
@@ -182,69 +174,6 @@ export function useViewData({
     }
   }, [viewType, enhancedData])
 
-  // Children loading function for columns view with pagination and search
-  const loadChildren = async (
-    parentUUID: string,
-    page = 1,
-    searchTerm?: string
-  ): Promise<{ items: any[]; totalPages: number; totalItems: number }> => {
-    try {
-      // Convert from 1-based (UI) to 0-based (API) page numbering
-      const apiPage = page - 1
-
-      console.log(
-        `🔄 Loading children for parent: ${parentUUID}, page: ${page} (API page: ${apiPage}), search: "${searchTerm || 'none'}"`
-      )
-
-      // Always fetch fresh data to avoid stale cache issues
-      // When children are added/removed, we want to see the latest data
-      const response = await client.aggregate.getAggregateEntities({
-        parentUUID,
-        hasParentUUIDFilter: true,
-        page: apiPage,
-        size: 20,
-        ...(searchTerm &&
-          searchTerm.trim() && { searchTerm: searchTerm.trim() }),
-      })
-
-      // Cache the result with timestamp for better cache management
-      const queryKey = [
-        'aggregates',
-        {
-          parentUUID,
-          page: apiPage,
-          hasParentUUIDFilter: true,
-          ...(searchTerm && { searchTerm }),
-        },
-      ]
-      queryClient.setQueryData(queryKey, {
-        ...response.data,
-        _fetchedAt: Date.now(), // Add timestamp for cache debugging
-      })
-
-      // Transform and return the children data with pagination info
-      const content = response.data?.content || []
-      const items = content.map((obj: any) => ({
-        ...obj,
-        hasChildren: obj.children && obj.children.length > 0,
-        childCount: obj.children ? obj.children.length : 0,
-      }))
-
-      return {
-        items,
-        totalPages: response.data?.totalPages || 1,
-        totalItems: response.data?.totalElements || items.length,
-      }
-    } catch (error) {
-      console.error('Error loading children:', error)
-      return {
-        items: [],
-        totalPages: 1,
-        totalItems: 0,
-      }
-    }
-  }
-
   return useMemo(() => {
     if (viewType === 'table') {
       // Use search pagination when in search mode
@@ -300,13 +229,8 @@ export function useViewData({
       return {
         type: 'columns',
         rootObjects: dataToUse,
-        loading: isSearchMode
-          ? false
-          : columnsData.length === 0 && columnsLoading,
-        fetching: isSearchMode
-          ? false
-          : columnsLoading && columnsData.length > 0,
-        loadChildren,
+        loading: isSearchMode ? false : isLoading && columnsData.length === 0,
+        fetching: isSearchMode ? false : isFetching,
         rootPagination: rootPaginationToUse,
       }
     }
@@ -346,9 +270,7 @@ export function useViewData({
     isFetching,
     paginationInfo,
     paginationHandlers,
-    loadChildren,
     columnsData,
-    columnsLoading,
     isSearchMode,
     searchPagination, // Add search pagination to dependencies
   ])

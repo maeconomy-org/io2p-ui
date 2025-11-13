@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { UUStatementDTO } from 'iob-client'
+import type { UUStatementDTO } from 'iom-sdk'
 
 /**
  * Shared utility for processing relationship statements

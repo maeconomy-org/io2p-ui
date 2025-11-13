@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { UUStatementDTO, UUObjectDTO } from 'iob-client'
+import type { UUStatementDTO, UUObjectDTO } from 'iom-sdk'
 
 import { MaterialObject, MaterialRelationship } from '@/types'
 import { processRelationshipStatement } from '@/hooks'

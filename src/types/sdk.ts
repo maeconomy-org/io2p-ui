@@ -1,7 +1,7 @@
 /**
- * Local IoB Types
- * This file contains application-specific types that extend the iob-client package.
- * For base types, import directly from 'iob-client' instead of re-exporting here.
+ * Local IoM Types
+ * This file contains application-specific types that extend the iom-sdk package.
+ * For base types, import directly from 'iom-sdk' instead of re-exporting here.
  */
 
 import type {
@@ -10,7 +10,7 @@ import type {
   UUPropertyValueDTO,
   UUFileDTO,
   UUID,
-} from 'iob-client'
+} from 'iom-sdk'
 
 /**
  * Object update input type for the updateObject API
