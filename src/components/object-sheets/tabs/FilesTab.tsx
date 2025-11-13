@@ -2,10 +2,9 @@
 
 import { Plus } from 'lucide-react'
 
+import type { FileData, Attachment } from '@/types'
 import { Button, Label } from '@/components/ui'
-import { AttachmentModal } from './AttachmentModal'
-import { type Attachment } from '../utils/attachments'
-import { FileList, type FileData } from './FileDisplay'
+import { AttachmentModal, FileList } from '../components'
 
 // Helper function to convert API files to FileData format
 const convertApiFilesToFileData = (files: any[]): FileData[] => {
@@ -56,7 +55,9 @@ export function FilesTab({
       {/* Files Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <Label>Object Files</Label>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Object Files
+          </h3>
           {!isDeleted && (
             <Button
               variant="outline"

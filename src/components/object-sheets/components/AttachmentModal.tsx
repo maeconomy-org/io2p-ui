@@ -20,11 +20,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui'
-import { getUploadService } from '@/lib/upload-service'
-import { useIobClient } from '@/providers/query-provider'
+import type { Attachment } from '@/types'
+import { getUploadService } from '@/lib'
+import { useIomSdkClient } from '@/providers/query-provider'
 
 import { AttachmentSection } from './AttachmentSection'
-import type { Attachment } from '../utils/attachments'
 
 type AttachmentModalProps = {
   open: boolean
@@ -59,7 +59,7 @@ export function AttachmentModal({
 }: AttachmentModalProps) {
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([])
   const [showUploadConfirm, setShowUploadConfirm] = useState(false)
-  const client = useIobClient()
+  const client = useIomSdkClient()
   const initialAttachmentsRef = useRef<Attachment[]>([])
 
   // Capture initial state only when modal opens (not when attachments change)

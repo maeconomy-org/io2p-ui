@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
+import { Predicate } from 'iom-sdk'
 import { toast } from 'sonner'
-import { useStatements } from '@/hooks/api'
-import { Predicate } from 'iob-client'
 
-export interface ParentObject {
-  uuid: string
-}
+import { useStatements } from '@/hooks/api'
+import type { ParentObject } from '@/types'
 
 export interface UseParentManagementProps {
   initialParents?: string[]

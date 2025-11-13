@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Predicate } from 'iob-client'
+import { Predicate } from 'iom-sdk'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { getUploadService } from '@/lib/upload-service'
-import { useIobClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/providers/query-provider'
 import type { ImportObjectData } from '@/hooks/api/useImportApi'
 import { useImportApi, useObjects, useStatements } from '@/hooks'
 
-import type { Attachment } from '../utils/attachments'
+import type { Attachment } from '@/types'
 
 export interface UseObjectOperationsProps {
   initialObject?: any
@@ -51,7 +51,7 @@ export function useObjectOperations({
   // Get query client for manual invalidation
   const queryClient = useQueryClient()
 
-  const client = useIobClient()
+  const client = useIomSdkClient()
 
   useEffect(() => {
     if (initialObject && !isEditing) {

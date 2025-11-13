@@ -1,7 +1,7 @@
 'use client'
 
-import { FileList, type FileData } from './FileDisplay'
-import type { Attachment } from '../utils/attachments'
+import type { FileData, Attachment } from '@/types'
+import { FileList } from './FileDisplay'
 
 type AttachmentListProps = {
   attachments: Attachment[]

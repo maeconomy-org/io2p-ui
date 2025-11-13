@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type FormEvent } from 'react'
 import { Plus, Trash2, ArrowRight } from 'lucide-react'
-import type { UUObjectDTO } from 'iob-client'
+import type { UUObjectDTO } from 'iom-sdk'
 import {
   Button,
   Input,

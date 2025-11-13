@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Search, Package } from 'lucide-react'
-import type { UUObjectDTO } from 'iob-client'
+import type { UUObjectDTO } from 'iom-sdk'
 import {
   Dialog,
   DialogContent,
@@ -215,7 +215,11 @@ export function ObjectSelectionModal({
                 min="0.01"
                 step="0.01"
                 value={quantity || ''}
-                onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : undefined)}
+                onChange={(e) =>
+                  setQuantity(
+                    e.target.value ? Number(e.target.value) : undefined
+                  )
+                }
                 placeholder="Enter quantity"
               />
             </div>

@@ -22,17 +22,14 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
+  HereAddressAutocomplete,
 } from '@/components/ui'
+import type { ParentObject } from '@/types'
 import { PropertyField } from '@/components/forms'
-import { AttachmentModal } from './AttachmentModal'
-import { AttachmentList } from './AttachmentList'
 import { objectSchema, ObjectFormValues } from '@/lib/validations/object-model'
-import { HereAddressAutocomplete } from '@/components/ui'
-import { useObjectOperations, useParentLookup } from '../hooks'
-import { ParentSelector, type ParentObject } from './ParentSelector'
-
-// Import utilities
-import { createEmptyProperty } from '../utils'
+import { AttachmentList, AttachmentModal, ParentSelector } from './components'
+import { useObjectOperations, useParentLookup } from './hooks'
+import { createEmptyProperty } from './utils'
 
 interface ObjectAddSheetProps {
   isOpen: boolean

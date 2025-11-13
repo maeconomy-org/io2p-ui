@@ -17,6 +17,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from '@/components/ui'
+import { Attachment } from '@/types'
 import { useUnifiedDelete } from '@/hooks'
 
 import { DeleteConfirmationDialog } from '@/components/modals'
@@ -28,16 +29,15 @@ import {
   usePropertyEditor,
   useObjectOperations,
   useParentManagement,
-} from '../hooks'
-import { getObjectDisplayName } from '../utils'
-import { isExternalFileReference, type Attachment } from '../utils/attachments'
+} from './hooks'
+import { getObjectDisplayName, isExternalFileReference } from './utils'
 
 // Import tab components
-import { FilesTab } from './FilesTab'
-import { MetadataTab } from './MetadataTab'
-import { PropertiesTab } from './PropertiesTab'
-import { RelationshipsTab } from './RelationshipsTab'
-import { AttachmentModal } from './AttachmentModal'
+import { FilesTab } from './tabs/FilesTab'
+import { MetadataTab } from './tabs/MetadataTab'
+import { PropertiesTab } from './tabs/PropertiesTab'
+import { RelationshipsTab } from './tabs/RelationshipsTab'
+import { AttachmentModal } from './components/AttachmentModal'
 
 interface ObjectSheetProps {
   isOpen: boolean

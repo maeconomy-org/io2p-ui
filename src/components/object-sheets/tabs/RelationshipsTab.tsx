@@ -14,9 +14,9 @@ import {
   TableRow,
   Separator,
 } from '@/components/ui'
-import { useObjectProcesses } from '@/hooks/use-object-processes'
-import { ParentDisplay } from './ParentDisplay'
-import { ParentSelector } from './ParentSelector'
+import { useObjectProcesses } from '@/hooks'
+import { ParentDisplay } from '../components/ParentDisplay'
+import { ParentSelector } from '../components/ParentSelector'
 
 interface RelationshipsTabProps {
   object: any

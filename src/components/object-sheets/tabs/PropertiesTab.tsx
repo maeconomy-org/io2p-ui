@@ -1,24 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronRight, Upload, Calculator } from 'lucide-react'
+import { ChevronRight, Upload } from 'lucide-react'
 
-import {
-  Button,
-  EditableSection,
-  CopyButton,
-  Badge,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui'
+import { Button, EditableSection, CopyButton } from '@/components/ui'
 import { PropertySectionEditor } from '@/components/properties'
-import { FileList, type FileData } from './FileDisplay'
-import { AttachmentModal } from './AttachmentModal'
-import { type Attachment } from '../utils/attachments'
-import { FORMULA_TYPES } from '@/constants'
+import type { Attachment, FileData } from '@/types'
+
+import { AttachmentModal, FileList } from '../components'
 
 // Helper function to convert API files to FileData format
 const convertApiFilesToFileData = (files: any[]): FileData[] => {
@@ -249,39 +238,6 @@ export function PropertiesTab({
                                       <div className="font-medium text-sm">
                                         {value.value}
                                       </div>
-                                      {/* Formula indicator */}
-                                      {value.formula && (
-                                        <div className="flex items-center gap-1">
-                                          <Badge
-                                            variant="secondary"
-                                            className="text-xs"
-                                          >
-                                            <Calculator className="h-3 w-3 mr-1" />
-                                            Formula
-                                          </Badge>
-                                          <Select
-                                            disabled
-                                            value={value.formula}
-                                          >
-                                            <SelectTrigger className="h-6 w-32 text-xs">
-                                              <SelectValue placeholder="No formula" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {FORMULA_TYPES.map((formula) => (
-                                                <SelectItem
-                                                  key={formula.value}
-                                                  value={formula.value}
-                                                >
-                                                  <div className="flex items-center gap-2">
-                                                    <span>{formula.icon}</span>
-                                                    <span>{formula.label}</span>
-                                                  </div>
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {value.files &&

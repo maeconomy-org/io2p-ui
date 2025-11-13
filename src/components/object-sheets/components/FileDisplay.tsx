@@ -17,20 +17,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-import { isExternalFileReference } from '../utils/attachments'
 import { useFilesApi } from '@/hooks'
+import type { FileData } from '@/types'
 
-export interface FileData {
-  uuid: string
-  fileName: string
-  fileReference: string
-  label?: string
-  contentType?: string | null
-  size?: number
-  // Soft delete support
-  softDeleted?: boolean
-  softDeletedAt?: string | null
-}
+import { isExternalFileReference } from '../utils'
 
 interface FileDisplayProps {
   file: FileData
@@ -227,20 +217,22 @@ export function FileList({
   onRemoveFile,
   allowHardRemove = false,
 }: FileListProps) {
-  if (!files || files.length === 0) {
-    return null
-  }
-
   return (
     <div className={cn('space-y-1', className)}>
-      {files.map((file, index) => (
-        <FileDisplay
-          key={file.uuid || index}
-          file={file}
-          onRemove={onRemoveFile}
-          allowHardRemove={allowHardRemove}
-        />
-      ))}
+      {files && files.length > 0 ? (
+        files.map((file, index) => (
+          <FileDisplay
+            key={file.uuid || index}
+            file={file}
+            onRemove={onRemoveFile}
+            allowHardRemove={allowHardRemove}
+          />
+        ))
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          No files found for this object
+        </p>
+      )}
     </div>
   )
 }

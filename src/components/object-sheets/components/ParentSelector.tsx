@@ -17,10 +17,7 @@ import {
   CommandItem,
 } from '@/components/ui'
 import { useCommonApi } from '@/hooks/api/useCommonApi'
-
-export interface ParentObject {
-  uuid: string
-}
+import type { ParentObject } from '@/types'
 
 interface ParentSelectorProps {
   currentObjectUuid?: string

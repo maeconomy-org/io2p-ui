@@ -20,16 +20,11 @@ import {
   Textarea,
   Button,
 } from '@/components/ui'
-import { generateUUIDv7 } from '@/lib/utils'
-import { PropertyField } from '@/components/forms'
-import {
-  objectModelSchema,
-  ObjectModelFormValues,
-  Property,
-} from '@/lib/validations/object-model'
+import { objectModelSchema, ObjectModelFormValues, Property } from '@/lib'
+import { PropertyFieldTemplate } from '@/components/forms'
 
 interface ObjectModel {
-  uuid: string
+  uuid?: string // Optional for new models
   name: string
   abbreviation: string
   version: string
@@ -95,11 +90,9 @@ export function ObjectModelSheet({
   // Add a new property to the form
   const addProperty = () => {
     append({
-      uuid: generateUUIDv7(),
       key: '',
       values: [
         {
-          uuid: generateUUIDv7(),
           value: 'Variable',
           files: [],
         },
@@ -114,7 +107,7 @@ export function ObjectModelSheet({
 
     // Prepare the complete model object
     const completeModel: ObjectModel = {
-      uuid: model?.uuid || generateUUIDv7(),
+      uuid: model?.uuid, // Only include UUID if editing existing model
       ...values,
       creator: model?.creator || 'User',
       createdAt: model?.createdAt || timestamp,
@@ -130,12 +123,12 @@ export function ObjectModelSheet({
       <SheetContent className="sm:max-w-xl w-full overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
-            {isEditing ? 'Edit Object Model' : 'Add Object Model'}
+            {isEditing ? 'Edit Model' : 'Create New Model'}
           </SheetTitle>
           <SheetDescription>
             {isEditing
-              ? 'Update an existing object model and its properties.'
-              : 'Create a new object model by entering its details and properties.'}
+              ? 'Update this model template and its properties.'
+              : 'Create a new model template that can be used to generate objects.'}
           </SheetDescription>
         </SheetHeader>
 
@@ -224,7 +217,7 @@ export function ObjectModelSheet({
               </div>
 
               {fields.map((field, index) => (
-                <PropertyField
+                <PropertyFieldTemplate
                   key={field.uuid !== '' ? field.uuid : index}
                   control={form.control}
                   name={`properties.${index}`}
@@ -253,9 +246,17 @@ export function ObjectModelSheet({
             </div>
 
             {/* Footer with actions */}
-            <SheetFooter>
-              <Button type="submit">
+            <SheetFooter className="flex gap-2">
+              <Button type="submit" className="w-full">
                 {isEditing ? 'Update Model' : 'Create Model'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="w-full"
+              >
+                Cancel
               </Button>
             </SheetFooter>
           </form>

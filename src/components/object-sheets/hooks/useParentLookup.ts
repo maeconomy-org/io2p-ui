@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { useViewData } from '@/hooks'
-import type { ParentObject } from '../components/ParentSelector'
+import type { ParentObject } from '@/types'
 
 /**
  * Hook for looking up parent object details from UUIDs
+ * Used during object creation/editing to enrich UUID strings with object names
  */
 export function useParentLookup(parentUuids: string[]): ParentObject[] {
   const viewData = useViewData({ viewType: 'table' })
@@ -15,15 +16,12 @@ export function useParentLookup(parentUuids: string[]): ParentObject[] {
     }
 
     return parentUuids
-      .map((uuid) => {
-        // Handle the case where uuid might be empty or invalid
-        if (!uuid || typeof uuid !== 'string') {
-          return null
-        }
-
+      .filter((uuid) => uuid && typeof uuid === 'string')
+      .map((uuid): ParentObject => {
         const foundObject = availableObjects.find(
           (obj: any) => obj.uuid === uuid
         )
+
         if (foundObject) {
           return {
             uuid: foundObject.uuid,
@@ -39,6 +37,5 @@ export function useParentLookup(parentUuids: string[]): ParentObject[] {
           name: `Object: ${uuid.slice(0, 8)}...`, // Show truncated UUID for readability
         }
       })
-      .filter((parent): parent is ParentObject => parent !== null)
   }, [parentUuids, availableObjects])
 }

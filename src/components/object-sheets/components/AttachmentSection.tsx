@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { Link as LinkIcon, Upload } from 'lucide-react'
 
+import type { Attachment } from '@/types'
 import { FileDropzone, Button, Input, Separator } from '@/components/ui'
 
-import { getMaxUploadSizeMB, isOversize } from '../utils/attachments'
-import type { Attachment } from '../utils/attachments'
+import { getMaxUploadSizeMB, isOversize } from '../utils'
 import { AttachmentList } from './AttachmentList'
 
 type AttachmentSectionProps = {
