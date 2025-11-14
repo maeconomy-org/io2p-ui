@@ -1,17 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { ArrowRight } from 'lucide-react'
+
 import {
+  Badge,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
+  TablePagination,
 } from '@/components/ui'
-import { ArrowRight } from 'lucide-react'
-
-import { Badge } from '@/components/ui'
+import { usePagination } from '@/hooks'
 import { MaterialRelationship } from '@/types'
 
 interface RelationshipsTableProps {
@@ -19,6 +21,7 @@ interface RelationshipsTableProps {
   onRelationshipSelect?: (relationship: MaterialRelationship) => void
   selectedRelationship?: MaterialRelationship | null
   className?: string
+  pageSize?: number
 }
 
 export function RelationshipsTable({
@@ -26,24 +29,54 @@ export function RelationshipsTable({
   onRelationshipSelect,
   selectedRelationship,
   className = '',
+  pageSize = 10,
 }: RelationshipsTableProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(0)
 
-  const filteredRelationships = relationships.filter(
-    (rel) =>
-      rel.subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rel.object.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rel.processName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rel.unit.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredRelationships = useMemo(() => {
+    return relationships.filter(
+      (rel) =>
+        rel.subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.object.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.processName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.unit.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [relationships, searchTerm])
+
+  // Pagination logic
+  const paginationInfo = useMemo(() => {
+    const totalElements = filteredRelationships.length
+    const totalPages = Math.ceil(totalElements / pageSize)
+    return {
+      currentPage,
+      totalPages,
+      totalElements,
+      pageSize,
+      isFirstPage: currentPage === 0,
+      isLastPage: currentPage >= totalPages - 1,
+    }
+  }, [filteredRelationships.length, pageSize, currentPage])
+
+  const paginationHandlers = usePagination({
+    pagination: paginationInfo,
+    onPageChange: setCurrentPage,
+  })
+
+  // Get current page data
+  const paginatedRelationships = useMemo(() => {
+    const startIndex = currentPage * pageSize
+    const endIndex = startIndex + pageSize
+    return filteredRelationships.slice(startIndex, endIndex)
+  }, [filteredRelationships, currentPage, pageSize])
 
   const formatQuantity = (quantity: number, unit: string) => {
     return `${quantity.toLocaleString()} ${unit}`
   }
 
   return (
-    <>
-      <div className="rounded-md border mt-6">
+    <div className="flex flex-col">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -55,17 +88,16 @@ export function RelationshipsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRelationships.length === 0 ? (
+            {paginatedRelationships.length === 0 ? (
               <TableRow>
-                <TableCell
-                  // colSpan={6} // @ts-ignore
-                  className="text-center py-8 text-muted-foreground"
-                >
-                  No relationships found
+                <TableCell className="text-center py-8 text-muted-foreground">
+                  {filteredRelationships.length === 0
+                    ? 'No relationships found'
+                    : 'No relationships on this page'}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRelationships.map((relationship, index) => (
+              paginatedRelationships.map((relationship, index) => (
                 <TableRow
                   key={`${relationship.subject.uuid}-${relationship.object.uuid}-${relationship.processName}-${relationship.quantity}-${relationship.unit}-${index}`}
                   className={`cursor-pointer transition-colors ${
@@ -121,9 +153,23 @@ export function RelationshipsTable({
           </TableBody>
         </Table>
       </div>
-      <Badge variant="outline" className="mt-4">
-        {filteredRelationships.length} of {relationships.length}
-      </Badge>
-    </>
+
+      {/* Table Info and Pagination */}
+      {paginationInfo.totalPages > 1 && (
+        <TablePagination
+          currentPage={paginationInfo.currentPage} // Keep 0-based as expected by component
+          totalPages={paginationInfo.totalPages}
+          totalElements={paginationInfo.totalElements}
+          pageSize={paginationInfo.pageSize}
+          onPageChange={(page) => paginationHandlers.handlePageChange(page)} // Keep 0-based
+          onFirst={() => paginationHandlers.handleFirst()}
+          onPrevious={() => paginationHandlers.handlePrevious()}
+          onNext={() => paginationHandlers.handleNext()}
+          onLast={() => paginationHandlers.handleLast()}
+          isFirstPage={paginationInfo.isFirstPage}
+          isLastPage={paginationInfo.isLastPage}
+        />
+      )}
+    </div>
   )
 }

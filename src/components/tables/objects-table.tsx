@@ -98,14 +98,6 @@ export function ObjectsTable({
     setIsQRCodeModalOpen(true)
   }
 
-  const toggleRow = (uuid: string, e: MouseEvent) => {
-    e.stopPropagation()
-    setExpandedRows((prev) => ({
-      ...prev,
-      [uuid]: !prev[uuid],
-    }))
-  }
-
   const navigateToChildren = (object: any) => {
     if (object.children && object.children.length > 0) {
       router.push(`/objects/${object.uuid}`)

@@ -4,7 +4,7 @@ import {
   useFieldArray,
   useFormContext,
 } from 'react-hook-form'
-import { PlusIcon, UploadIcon, XIcon, Calculator } from 'lucide-react'
+import { PlusIcon, UploadIcon, XIcon } from 'lucide-react'
 
 import {
   AttachmentModal,
@@ -19,14 +19,7 @@ import {
   FormField,
   FormControl,
   FormMessage,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Badge,
 } from '@/components/ui'
-import { FORMULA_TYPES } from '@/constants'
 
 interface PropertyFieldProps {
   control: Control<any>
@@ -41,7 +34,6 @@ export function PropertyField({
   index,
   onRemove,
 }: PropertyFieldProps) {
-  const { setValue, getValues } = useFormContext()
   const valuesName = `${name}.values`
   const filesName = `${name}.files`
 
@@ -52,15 +44,6 @@ export function PropertyField({
   } = useFieldArray({
     control,
     name: valuesName,
-  })
-
-  const {
-    fields: fileFields,
-    append: appendFile,
-    remove: removeFile,
-  } = useFieldArray({
-    control,
-    name: filesName,
   })
 
   const handleAddValue = () => {

@@ -1,37 +1,43 @@
 'use client'
 
-import { useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { PlusCircle, Network, BarChart3, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { PlusCircle, Loader2, Filter, X } from 'lucide-react'
+import { toast } from 'sonner'
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  Button,
-} from '@/components/ui'
 import { MaterialRelationship } from '@/types'
 import { useStatements, useSankeyData } from '@/hooks'
-import { ProcessFormSheet } from '@/components/sheets'
 import { RelationshipsTable } from '@/components/tables'
-import { RelationshipDetailsSheet } from '@/components/sheets'
+import { LoadingState } from '@/components/loading-state'
+import { Card, CardContent, Button, Badge } from '@/components/ui'
 import { NetworkDiagram, SankeyDiagram } from '@/components/diagrams'
+import { ProcessViewSelector } from '@/components/process-view-selector'
+import { ProcessFormSheet, RelationshipDetailsSheet } from '@/components/sheets'
+import { ProcessViewType, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
 const MaterialFlowPage = () => {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const objectUuid = searchParams.get('objectUuid')
 
   const [selectedRelationship, setSelectedRelationship] =
     useState<MaterialRelationship | null>(null)
   const [isProcessFormOpen, setIsProcessFormOpen] = useState(false)
   const [isRelationshipSheetOpen, setIsRelationshipSheetOpen] = useState(false)
-  const [activeVisualization, setActiveVisualization] = useState<
-    'sankey' | 'network'
-  >('sankey')
+  const [activeView, setActiveView] = useState<ProcessViewType>('sankey')
+
+  // Load saved view preference from localStorage
+  useEffect(() => {
+    const savedView = localStorage.getItem('processView') as ProcessViewType
+    const validViews = ENABLED_PROCESS_VIEW_TYPES.map((type) => type.value)
+    if (savedView && validViews.includes(savedView)) {
+      setActiveView(savedView)
+    }
+  }, [])
+
+  const clearFilter = () => {
+    router.push('/processes')
+  }
 
   // Simplified data fetching using custom hook
   const { materials, relationships, isLoading } = useSankeyData({
@@ -44,6 +50,7 @@ const MaterialFlowPage = () => {
 
   const handleProcessSave = async (newProcess: any) => {
     try {
+      toast.loading('Creating process flow...', { id: 'create-process-flow' })
       const result = await createProcessFlowMutation.mutateAsync({
         processName: newProcess.name,
         processType: newProcess.type,
@@ -60,10 +67,15 @@ const MaterialFlowPage = () => {
       })
 
       console.log('Process flow saved to backend:', result)
+      toast.success('Process flow created successfully!', {
+        id: 'create-process-flow',
+      })
       setIsProcessFormOpen(false)
     } catch (error) {
       console.error('Failed to save process flow:', error)
-      // You might want to show an error toast here
+      toast.error('Failed to create process flow', {
+        id: 'create-process-flow',
+      })
     }
   }
 
@@ -76,17 +88,11 @@ const MaterialFlowPage = () => {
   // console.log('Processes data:', { materials, relationships })
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">I/O Processes</h1>
-          {objectUuid && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Filtered by object: {objectUuid.slice(-8)}...
-            </p>
-          )}
-        </div>
+    <div className="container mx-auto p-4">
+      <div className="mb-4 flex justify-between items-center">
+        <h1 className="text-2xl font-bold">I/O Processes</h1>
         <div className="flex items-center gap-4">
+          <ProcessViewSelector view={activeView} onChange={setActiveView} />
           <Button
             onClick={() => setIsProcessFormOpen(true)}
             className="flex-shrink-0"
@@ -102,76 +108,75 @@ const MaterialFlowPage = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="diagram" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="diagram">Diagram</TabsTrigger>
-          <TabsTrigger value="management">Table</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="diagram" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div></div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={
-                      activeVisualization === 'network' ? 'default' : 'outline'
-                    }
-                    size="sm"
-                    onClick={() => setActiveVisualization('network')}
-                    className="flex items-center gap-2"
-                  >
-                    <Network className="h-4 w-4" />
-                    Network
-                  </Button>
-                  <Button
-                    variant={
-                      activeVisualization === 'sankey' ? 'default' : 'outline'
-                    }
-                    size="sm"
-                    onClick={() => setActiveVisualization('sankey')}
-                    className="flex items-center gap-2"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    Sankey
-                  </Button>
-                </div>
+      {/* Filter Mode Indicator */}
+      {objectUuid && (
+        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                <span className="text-sm font-medium text-orange-900 truncate">
+                  Filtered by Object:
+                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              <LoadingState
-                isLoading={isLoading}
-                hasNoData={materials.length === 0 || relationships.length === 0}
-                objectUuid={objectUuid}
-                setIsProcessFormOpen={setIsProcessFormOpen}
-                variant="inline"
-              />
-              {!isLoading &&
-                materials.length > 0 &&
-                relationships.length > 0 &&
-                (activeVisualization === 'network' ? (
-                  <NetworkDiagram
-                    materials={materials}
-                    relationships={relationships}
-                    selectedRelationship={selectedRelationship}
-                    onLinkSelect={handleRelationshipSelect}
-                    className="bg-white"
-                  />
-                ) : (
-                  <SankeyDiagram
-                    materials={materials}
-                    relationships={relationships}
-                    selectedRelationship={selectedRelationship}
-                    onLinkSelect={handleRelationshipSelect}
-                    className="bg-white"
-                  />
-                ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              <Badge
+                variant="secondary"
+                className="bg-orange-100 text-orange-700 whitespace-nowrap font-mono"
+              >
+                {objectUuid}
+              </Badge>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilter}
+              className="text-orange-600 hover:text-orange-800 hover:bg-orange-100 flex-shrink-0"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear Filter
+            </Button>
+          </div>
+        </div>
+      )}
 
-        <TabsContent value="management" className="space-y-6">
+      {/* Diagram Views */}
+      {(activeView === 'sankey' || activeView === 'network') && (
+        <Card>
+          <CardContent>
+            <LoadingState
+              isLoading={isLoading}
+              hasNoData={materials.length === 0 || relationships.length === 0}
+              objectUuid={objectUuid}
+              setIsProcessFormOpen={setIsProcessFormOpen}
+              variant="inline"
+            />
+            {!isLoading &&
+              materials.length > 0 &&
+              relationships.length > 0 &&
+              (activeView === 'network' ? (
+                <NetworkDiagram
+                  materials={materials}
+                  relationships={relationships}
+                  selectedRelationship={selectedRelationship}
+                  onLinkSelect={handleRelationshipSelect}
+                  className="bg-white"
+                />
+              ) : (
+                <SankeyDiagram
+                  materials={materials}
+                  relationships={relationships}
+                  selectedRelationship={selectedRelationship}
+                  onLinkSelect={handleRelationshipSelect}
+                  className="bg-white"
+                />
+              ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Table View */}
+      {activeView === 'table' && (
+        <div className="space-y-6">
           <LoadingState
             isLoading={isLoading}
             hasNoData={relationships.length === 0}
@@ -184,10 +189,11 @@ const MaterialFlowPage = () => {
               relationships={relationships}
               selectedRelationship={selectedRelationship}
               onRelationshipSelect={handleRelationshipSelect}
+              pageSize={15}
             />
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {/* Process Form Sheet */}
       <ProcessFormSheet
@@ -207,80 +213,3 @@ const MaterialFlowPage = () => {
 }
 
 export default MaterialFlowPage
-
-function LoadingState({
-  isLoading,
-  hasNoData,
-  objectUuid,
-  setIsProcessFormOpen,
-  variant = 'card',
-}: {
-  isLoading: boolean
-  hasNoData: boolean
-  objectUuid: string | null
-  setIsProcessFormOpen: (isOpen: boolean) => void
-  variant?: 'card' | 'inline'
-}) {
-  if (isLoading) {
-    const loadingContent = (
-      <div className="flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Loading process data...</p>
-        </div>
-      </div>
-    )
-
-    if (variant === 'inline') {
-      return (
-        <div className="h-64 flex items-center justify-center">
-          {loadingContent}
-        </div>
-      )
-    }
-
-    return (
-      <Card>
-        <CardContent className="h-96 flex items-center justify-center p-8">
-          {loadingContent}
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (hasNoData) {
-    const emptyContent = (
-      <div className="text-center">
-        <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-          <BarChart3 className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-semibold mb-2">No I/O Processes</h3>
-        <p className="text-muted-foreground mb-4">
-          {objectUuid
-            ? 'No I/O processes found for the selected object.'
-            : 'No I/O processes have been created yet.'}
-        </p>
-        <Button onClick={() => setIsProcessFormOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create First Process
-        </Button>
-      </div>
-    )
-
-    if (variant === 'inline') {
-      return (
-        <div className="h-64 flex items-center justify-center">
-          {emptyContent}
-        </div>
-      )
-    }
-
-    return (
-      <Card>
-        <CardContent className="p-8">{emptyContent}</CardContent>
-      </Card>
-    )
-  }
-
-  return null
-}

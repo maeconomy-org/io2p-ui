@@ -65,12 +65,10 @@ function ObjectsPageContent() {
   }
 
   return (
-    <div className="container mx-auto py-4 px-4">
+    <div className="container mx-auto p-4">
       <div className="flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold">Objects</h1>
-          </div>
+          <h1 className="text-2xl font-bold">Objects</h1>
           <div className="flex items-center gap-4">
             <DeletedFilter
               showDeleted={showDeleted}
@@ -86,7 +84,7 @@ function ObjectsPageContent() {
             />
             <Button onClick={handleAddObject}>
               <PlusCircle className="h-4 w-4 mr-2" />
-              Add Object
+              Create Object
             </Button>
           </div>
         </div>

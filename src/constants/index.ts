@@ -10,9 +10,9 @@ export const AUTH_SESSION_TIMEOUT = 12 * 60 * 60 * 1000 // 12 hours in milliseco
 // Navigation
 export const NAV_ITEMS = [
   { name: 'Objects', path: '/objects' },
-  { name: 'Import', path: '/import' },
   { name: 'I/O Processes', path: '/processes' },
   { name: 'Models', path: '/models' },
+  { name: 'Import', path: '/import' },
   // { name: 'API Documentation', path: '#', isDisabled: true },
   // { name: 'Export Data', path: '#', isDisabled: true },
 ]
@@ -66,46 +66,4 @@ export const UNIT_CATEGORIES = {
   },
 }
 
-// -------------------------------------------------------
-// Formula-related constants
-// -------------------------------------------------------
-
-// Available formula types for property value calculations
-export const FORMULA_TYPES = [
-  {
-    value: 'sum',
-    label: 'Sum (A + B + C)',
-    description: 'Add multiple property values together',
-    icon: '➕',
-  },
-  {
-    value: 'multiply',
-    label: 'Multiply (A × B × C)',
-    description: 'Multiply property values together',
-    icon: '✖️',
-  },
-  {
-    value: 'percentage',
-    label: 'Percentage (A/B × 100)',
-    description: 'Calculate percentage from two values',
-    icon: '%',
-  },
-  {
-    value: 'ratio',
-    label: 'Ratio (A:B)',
-    description: 'Calculate ratio between two values',
-    icon: ':',
-  },
-  {
-    value: 'average',
-    label: 'Average (A + B + C) / n',
-    description: 'Calculate average of multiple values',
-    icon: '≈',
-  },
-  {
-    value: 'difference',
-    label: 'Difference (A - B)',
-    description: 'Calculate difference between two values',
-    icon: '➖',
-  },
-]
+export * from './view-types'

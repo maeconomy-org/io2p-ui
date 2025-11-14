@@ -1,6 +1,5 @@
 'use client'
 
-import { cn } from '@/lib'
 import {
   ToggleGroup,
   ToggleGroupItem,
@@ -9,16 +8,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui'
-import { ENABLED_OBJECT_VIEW_TYPES, ObjectViewType } from '@/constants'
+import { cn } from '@/lib'
+import {
+  ENABLED_PROCESS_VIEW_TYPES,
+  ProcessViewType,
+} from '@/constants/view-types'
 
-export type ViewType = ObjectViewType
+export type { ProcessViewType }
 
-interface ViewSelectorProps {
-  view: ViewType
-  onChange: (view: ViewType) => void
+interface ProcessViewSelectorProps {
+  view: ProcessViewType
+  onChange: (view: ProcessViewType) => void
 }
 
-export function ViewSelector({ view, onChange }: ViewSelectorProps) {
+export function ProcessViewSelector({
+  view,
+  onChange,
+}: ProcessViewSelectorProps) {
   return (
     <TooltipProvider>
       <ToggleGroup
@@ -26,12 +32,12 @@ export function ViewSelector({ view, onChange }: ViewSelectorProps) {
         value={view}
         onValueChange={(value) => {
           if (value) {
-            onChange(value as ViewType)
-            localStorage.setItem('view', value)
+            onChange(value as ProcessViewType)
+            localStorage.setItem('processView', value)
           }
         }}
       >
-        {ENABLED_OBJECT_VIEW_TYPES.map((viewType) => {
+        {ENABLED_PROCESS_VIEW_TYPES.map((viewType) => {
           const Icon = viewType.icon
           return (
             <Tooltip key={viewType.value}>
