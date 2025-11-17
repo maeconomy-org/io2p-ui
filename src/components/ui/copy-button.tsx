@@ -79,7 +79,7 @@ export function CopyButton({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger asChild tabIndex={-1}>
           <Button
             variant={variant}
             size={size}
