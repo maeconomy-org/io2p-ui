@@ -1,0 +1,637 @@
+// Dummy data for groups and objects - comprehensive dataset for testing
+import { v4 as uuidv4 } from 'uuid'
+
+// Generate consistent UUIDs for demo purposes
+const generateUUID = (seed: string) => {
+  // For demo purposes, we'll use a simple hash-based approach to get consistent UUIDs
+  // In real app, these would come from the API
+  const hash = seed.split('').reduce((a, b) => {
+    a = (a << 5) - a + b.charCodeAt(0)
+    return a & a
+  }, 0)
+
+  // Generate a UUID-like string based on the hash
+  const hex = Math.abs(hash).toString(16).padStart(8, '0')
+  return `${hex.slice(0, 8)}-${hex.slice(0, 4)}-4${hex.slice(1, 4)}-8${hex.slice(0, 3)}-${hex.slice(0, 12)}`
+}
+
+export interface Group {
+  uuid: string
+  name: string
+  description?: string
+  type: 'public' | 'private'
+  permissions: {
+    level: 'read' | 'write' // write includes read access
+  }
+  objectCount: number
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+  objects: string[]
+  isDeleted?: boolean
+}
+
+export interface GroupObject {
+  uuid: string
+  name: string
+  createdAt: string
+}
+
+// Comprehensive dummy groups data
+export const dummyGroups: Group[] = [
+  {
+    uuid: generateUUID('group-001'),
+    name: 'Building Alpha Project',
+    description:
+      'Main construction project for Building Alpha including all materials and components',
+    type: 'private',
+    permissions: { level: 'write' },
+    objectCount: 45,
+    createdBy: generateUUID('user-001'),
+    createdAt: '2024-01-15T10:30:00Z',
+    updatedAt: '2024-01-20T14:22:00Z',
+    objects: [
+      generateUUID('obj-001'),
+      generateUUID('obj-002'),
+      generateUUID('obj-003'),
+      generateUUID('obj-004'),
+      generateUUID('obj-005'),
+      generateUUID('obj-006'),
+      generateUUID('obj-007'),
+      generateUUID('obj-008'),
+      generateUUID('obj-009'),
+      generateUUID('obj-010'),
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-002'),
+    name: 'Public Materials Database',
+    description:
+      'Shared database of common building materials available for all users',
+    type: 'public',
+    permissions: { level: 'read' },
+    objectCount: 128,
+    createdBy: generateUUID('user-002'),
+    createdAt: '2024-01-10T09:15:00Z',
+    updatedAt: '2024-01-22T11:45:00Z',
+    objects: [
+      generateUUID('obj-011'),
+      generateUUID('obj-012'),
+      generateUUID('obj-013'),
+      generateUUID('obj-014'),
+      generateUUID('obj-015'),
+      generateUUID('obj-016'),
+      generateUUID('obj-017'),
+      generateUUID('obj-018'),
+      generateUUID('obj-019'),
+      generateUUID('obj-020'),
+      generateUUID('obj-021'),
+      generateUUID('obj-022'),
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-003'),
+    name: 'Research Collection',
+    description: 'Materials and components for ongoing research projects',
+    type: 'private',
+    permissions: { level: 'write' },
+    objectCount: 23,
+    createdBy: generateUUID('user-001'),
+    createdAt: '2024-01-18T16:20:00Z',
+    updatedAt: '2024-01-21T13:10:00Z',
+    objects: [
+      generateUUID('obj-023'),
+      generateUUID('obj-024'),
+      generateUUID('obj-025'),
+      generateUUID('obj-026'),
+      generateUUID('obj-027'),
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-004'),
+    name: 'Deleted Project Beta',
+    description: 'Completed project materials kept for reference',
+    type: 'private',
+    permissions: { level: 'write' },
+    objectCount: 67,
+    createdBy: generateUUID('user-003'),
+    createdAt: '2023-12-01T08:00:00Z',
+    updatedAt: '2024-01-05T10:30:00Z',
+    objects: ['obj-028', 'obj-029', 'obj-030', 'obj-031', 'obj-032', 'obj-033'],
+    isDeleted: true,
+  },
+  {
+    uuid: generateUUID('group-005'),
+    name: 'Sustainable Materials Initiative',
+    description:
+      'Collection of eco-friendly and sustainable building materials for green construction projects',
+    type: 'public',
+    permissions: { level: 'read' },
+    objectCount: 89,
+    createdBy: generateUUID('user-004'),
+    createdAt: '2024-01-05T14:30:00Z',
+    updatedAt: '2024-01-23T09:15:00Z',
+    objects: [
+      'obj-034',
+      'obj-035',
+      'obj-036',
+      'obj-037',
+      'obj-038',
+      'obj-039',
+      'obj-040',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-006'),
+    name: 'Steel Framework Components',
+    description:
+      'Comprehensive collection of steel beams, columns, and structural elements',
+    type: 'private',
+    permissions: { level: 'write' },
+    objectCount: 156,
+    createdBy: generateUUID('user-005'),
+    createdAt: '2024-01-12T11:45:00Z',
+    updatedAt: '2024-01-24T16:30:00Z',
+    objects: [
+      'obj-041',
+      'obj-042',
+      'obj-043',
+      'obj-044',
+      'obj-045',
+      'obj-046',
+      'obj-047',
+      'obj-048',
+      'obj-049',
+      'obj-050',
+      'obj-051',
+      'obj-052',
+      'obj-053',
+      'obj-054',
+      'obj-055',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-007'),
+    name: 'Concrete & Masonry',
+    description:
+      'Various concrete mixes, blocks, and masonry materials for foundation and structural work',
+    type: 'public',
+    permissions: { level: 'write' },
+    objectCount: 78,
+    createdBy: generateUUID('user-006'),
+    createdAt: '2024-01-08T13:20:00Z',
+    updatedAt: '2024-01-25T10:45:00Z',
+    objects: [
+      'obj-056',
+      'obj-057',
+      'obj-058',
+      'obj-059',
+      'obj-060',
+      'obj-061',
+      'obj-062',
+      'obj-063',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-008'),
+    name: 'HVAC Systems Database',
+    description:
+      'Heating, ventilation, and air conditioning components and systems',
+    type: 'private',
+    permissions: { level: 'read' },
+    objectCount: 234,
+    createdBy: generateUUID('user-007'),
+    createdAt: '2024-01-03T09:30:00Z',
+    updatedAt: '2024-01-26T14:15:00Z',
+    objects: [
+      'obj-064',
+      'obj-065',
+      'obj-066',
+      'obj-067',
+      'obj-068',
+      'obj-069',
+      'obj-070',
+      'obj-071',
+      'obj-072',
+      'obj-073',
+      'obj-074',
+      'obj-075',
+      'obj-076',
+      'obj-077',
+      'obj-078',
+      'obj-079',
+      'obj-080',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-009'),
+    name: 'Electrical Components',
+    description:
+      'Wiring, fixtures, panels, and electrical infrastructure materials',
+    type: 'public',
+    permissions: { level: 'write' },
+    objectCount: 145,
+    createdBy: generateUUID('user-008'),
+    createdAt: '2024-01-14T15:45:00Z',
+    updatedAt: '2024-01-27T11:30:00Z',
+    objects: [
+      'obj-081',
+      'obj-082',
+      'obj-083',
+      'obj-084',
+      'obj-085',
+      'obj-086',
+      'obj-087',
+      'obj-088',
+      'obj-089',
+      'obj-090',
+      'obj-091',
+      'obj-092',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-010'),
+    name: 'Plumbing & Water Systems',
+    description: 'Pipes, fittings, fixtures, and water management systems',
+    type: 'private',
+    permissions: { level: 'write' },
+    objectCount: 167,
+    createdBy: generateUUID('user-009'),
+    createdAt: '2024-01-07T12:15:00Z',
+    updatedAt: '2024-01-28T08:45:00Z',
+    objects: [
+      'obj-093',
+      'obj-094',
+      'obj-095',
+      'obj-096',
+      'obj-097',
+      'obj-098',
+      'obj-099',
+      'obj-100',
+      'obj-101',
+      'obj-102',
+      'obj-103',
+      'obj-104',
+      'obj-105',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-011'),
+    name: 'Insulation Materials',
+    description:
+      'Thermal and acoustic insulation materials for energy efficiency',
+    type: 'public',
+    permissions: { level: 'read' },
+    objectCount: 56,
+    createdBy: generateUUID('user-010'),
+    createdAt: '2024-01-16T10:00:00Z',
+    updatedAt: '2024-01-29T13:20:00Z',
+    objects: ['obj-106', 'obj-107', 'obj-108', 'obj-109', 'obj-110', 'obj-111'],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-012'),
+    name: 'Roofing Systems',
+    description: 'Shingles, membranes, gutters, and complete roofing solutions',
+    type: 'private',
+    permissions: { level: 'write' },
+    objectCount: 92,
+    createdBy: generateUUID('user-011'),
+    createdAt: '2024-01-11T14:30:00Z',
+    updatedAt: '2024-01-30T09:10:00Z',
+    objects: [
+      'obj-112',
+      'obj-113',
+      'obj-114',
+      'obj-115',
+      'obj-116',
+      'obj-117',
+      'obj-118',
+      'obj-119',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-013'),
+    name: 'Windows & Doors',
+    description: 'Various window types, door systems, and related hardware',
+    type: 'public',
+    permissions: { level: 'write' },
+    objectCount: 134,
+    createdBy: generateUUID('user-012'),
+    createdAt: '2024-01-09T16:45:00Z',
+    updatedAt: '2024-01-31T12:00:00Z',
+    objects: [
+      'obj-120',
+      'obj-121',
+      'obj-122',
+      'obj-123',
+      'obj-124',
+      'obj-125',
+      'obj-126',
+      'obj-127',
+      'obj-128',
+      'obj-129',
+      'obj-130',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-014'),
+    name: 'Flooring Solutions',
+    description: 'Hardwood, tile, carpet, and specialty flooring materials',
+    type: 'private',
+    permissions: { level: 'read' },
+    objectCount: 178,
+    createdBy: generateUUID('user-013'),
+    createdAt: '2024-01-13T11:15:00Z',
+    updatedAt: '2024-02-01T15:30:00Z',
+    objects: [
+      'obj-131',
+      'obj-132',
+      'obj-133',
+      'obj-134',
+      'obj-135',
+      'obj-136',
+      'obj-137',
+      'obj-138',
+      'obj-139',
+      'obj-140',
+      'obj-141',
+      'obj-142',
+      'obj-143',
+      'obj-144',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-015'),
+    name: 'Safety & Security Systems',
+    description: 'Fire safety, security systems, and emergency equipment',
+    type: 'public',
+    permissions: { level: 'write' },
+    objectCount: 87,
+    createdBy: generateUUID('user-014'),
+    createdAt: '2024-01-17T13:45:00Z',
+    updatedAt: '2024-02-02T10:20:00Z',
+    objects: [
+      'obj-145',
+      'obj-146',
+      'obj-147',
+      'obj-148',
+      'obj-149',
+      'obj-150',
+      'obj-151',
+      'obj-152',
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-016'),
+    name: 'Archived Legacy Project',
+    description: 'Old project materials from previous construction phases',
+    type: 'private',
+    permissions: { level: 'write' },
+    objectCount: 45,
+    createdBy: generateUUID('user-015'),
+    createdAt: '2023-11-15T09:00:00Z',
+    updatedAt: '2023-12-20T14:30:00Z',
+    objects: ['obj-153', 'obj-154', 'obj-155', 'obj-156'],
+    isDeleted: true,
+  },
+  {
+    uuid: generateUUID('group-017'),
+    name: 'Quick Tasks',
+    type: 'public' as const,
+    permissions: { level: 'read' as const },
+    createdBy: generateUUID('user-001'),
+    objectCount: 3,
+    createdAt: '2024-01-25T09:15:00Z',
+    updatedAt: '2024-01-25T09:15:00Z',
+    objects: [
+      generateUUID('obj-170'),
+      generateUUID('obj-171'),
+      generateUUID('obj-172'),
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-018'),
+    name: 'Archive',
+    type: 'private' as const,
+    permissions: { level: 'write' as const },
+    createdBy: generateUUID('user-002'),
+    objectCount: 12,
+    createdAt: '2024-01-26T14:20:00Z',
+    updatedAt: '2024-01-26T14:20:00Z',
+    objects: [
+      generateUUID('obj-173'),
+      generateUUID('obj-174'),
+      generateUUID('obj-175'),
+      generateUUID('obj-176'),
+      generateUUID('obj-177'),
+      generateUUID('obj-178'),
+      generateUUID('obj-179'),
+      generateUUID('obj-180'),
+      generateUUID('obj-181'),
+      generateUUID('obj-182'),
+      generateUUID('obj-183'),
+      generateUUID('obj-184'),
+    ],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-019'),
+    name: 'Temp Storage',
+    type: 'public' as const,
+    permissions: { level: 'write' as const },
+    createdBy: generateUUID('user-003'),
+    objectCount: 1,
+    createdAt: '2024-01-27T08:00:00Z',
+    updatedAt: '2024-01-27T08:00:00Z',
+    objects: [generateUUID('obj-185')],
+    isDeleted: false,
+  },
+  {
+    uuid: generateUUID('group-020'),
+    name: 'Long Description Test',
+    description:
+      'This is a very long description that should be truncated to test the UI behavior when descriptions exceed the character limit. It contains detailed information about the project scope, objectives, deliverables, and various technical specifications that would normally be too long to display in a card format without proper truncation handling.',
+    type: 'private' as const,
+    permissions: { level: 'read' as const },
+    createdBy: generateUUID('user-004'),
+    objectCount: 7,
+    createdAt: '2024-01-28T10:30:00Z',
+    updatedAt: '2024-01-28T10:30:00Z',
+    objects: [
+      generateUUID('obj-186'),
+      generateUUID('obj-187'),
+      generateUUID('obj-188'),
+      generateUUID('obj-189'),
+      generateUUID('obj-190'),
+      generateUUID('obj-191'),
+      generateUUID('obj-192'),
+    ],
+    isDeleted: false,
+  },
+]
+
+// Comprehensive dummy objects data
+export const dummyObjects: GroupObject[] = [
+  // Building Alpha Project objects
+  {
+    uuid: generateUUID('obj-001'),
+    name: 'Steel Beam A1-200x100',
+    createdAt: '2024-01-15T10:30:00Z',
+  },
+  {
+    uuid: generateUUID('obj-002'),
+    name: 'Concrete Foundation Block CF-001',
+    createdAt: '2024-01-16T14:20:00Z',
+  },
+  {
+    uuid: generateUUID('obj-003'),
+    name: 'Window Frame W1-Double Glazed',
+    createdAt: '2024-01-17T09:15:00Z',
+  },
+  {
+    uuid: generateUUID('obj-004'),
+    name: 'Insulation Panel IP-Thermal-50mm',
+    createdAt: '2024-01-18T11:45:00Z',
+  },
+  {
+    uuid: generateUUID('obj-005'),
+    name: 'Roofing Tile RT-Clay-Red',
+    createdAt: '2024-01-19T13:30:00Z',
+  },
+  {
+    uuid: generateUUID('obj-006'),
+    name: 'Door Frame DF-Oak-Standard',
+    createdAt: '2024-01-20T15:10:00Z',
+  },
+  {
+    uuid: generateUUID('obj-007'),
+    name: 'Electrical Panel EP-200A-Main',
+    createdAt: '2024-01-21T08:45:00Z',
+  },
+  {
+    uuid: generateUUID('obj-008'),
+    name: 'Plumbing Pipe PP-Copper-22mm',
+    createdAt: '2024-01-22T10:20:00Z',
+  },
+  {
+    uuid: generateUUID('obj-009'),
+    name: 'HVAC Unit HU-Central-5Ton',
+    createdAt: '2024-01-23T12:00:00Z',
+  },
+  {
+    uuid: generateUUID('obj-010'),
+    name: 'Safety Sensor SS-Smoke-Detector',
+    createdAt: '2024-01-24T14:15:00Z',
+  },
+
+  // Public Materials Database objects
+  {
+    uuid: generateUUID('obj-011'),
+    name: 'Standard Brick SB-Red-Common',
+    createdAt: '2024-01-10T09:15:00Z',
+  },
+  {
+    uuid: generateUUID('obj-012'),
+    name: 'Cement Mix CM-Portland-Type1',
+    createdAt: '2024-01-11T10:30:00Z',
+  },
+  {
+    uuid: generateUUID('obj-013'),
+    name: 'Sand Aggregate SA-Fine-Grade',
+    createdAt: '2024-01-12T11:45:00Z',
+  },
+  {
+    uuid: generateUUID('obj-014'),
+    name: 'Gravel Mix GM-Crushed-20mm',
+    createdAt: '2024-01-13T13:00:00Z',
+  },
+  {
+    uuid: generateUUID('obj-015'),
+    name: 'Rebar Steel RS-Grade60-12mm',
+    createdAt: '2024-01-14T14:15:00Z',
+  },
+  {
+    uuid: generateUUID('obj-016'),
+    name: 'Wire Mesh WM-Welded-150x150',
+    createdAt: '2024-01-15T15:30:00Z',
+  },
+  {
+    uuid: generateUUID('obj-017'),
+    name: 'Mortar Mix MM-Masonry-N-Type',
+    createdAt: '2024-01-16T16:45:00Z',
+  },
+  {
+    uuid: generateUUID('obj-018'),
+    name: 'Waterproof Membrane WM-EPDM',
+    createdAt: '2024-01-17T08:00:00Z',
+  },
+  {
+    uuid: generateUUID('obj-019'),
+    name: 'Vapor Barrier VB-Polyethylene',
+    createdAt: '2024-01-18T09:15:00Z',
+  },
+  {
+    uuid: generateUUID('obj-020'),
+    name: 'Sealant Compound SC-Silicone',
+    createdAt: '2024-01-19T10:30:00Z',
+  },
+  {
+    uuid: generateUUID('obj-021'),
+    name: 'Adhesive Glue AG-Construction',
+    createdAt: '2024-01-20T11:45:00Z',
+  },
+  {
+    uuid: generateUUID('obj-022'),
+    name: 'Paint Primer PP-Acrylic-White',
+    createdAt: '2024-01-21T13:00:00Z',
+  },
+
+  // Research Collection objects
+  {
+    uuid: generateUUID('obj-023'),
+    name: 'Experimental Composite EC-Carbon',
+    createdAt: '2024-01-18T16:20:00Z',
+  },
+  {
+    uuid: generateUUID('obj-024'),
+    name: 'Bio-based Material BM-Hemp-Fiber',
+    createdAt: '2024-01-19T17:35:00Z',
+  },
+  {
+    uuid: generateUUID('obj-025'),
+    name: 'Smart Sensor SS-IoT-Temperature',
+    createdAt: '2024-01-20T18:50:00Z',
+  },
+  {
+    uuid: generateUUID('obj-026'),
+    name: 'Nano Coating NC-Self-Cleaning',
+    createdAt: '2024-01-21T19:05:00Z',
+  },
+  {
+    uuid: generateUUID('obj-027'),
+    name: 'Phase Change Material PCM-28C',
+    createdAt: '2024-01-22T20:20:00Z',
+  },
+
+  // Additional objects for larger groups (continuing the pattern)
+  ...Array.from({ length: 130 }, (_, i) => ({
+    uuid: generateUUID(`obj-${String(i + 28).padStart(3, '0')}`),
+    name: `Material Component MC-${String(i + 1).padStart(3, '0')}`,
+    createdAt: new Date(2024, 0, (i % 30) + 1, i % 24, i % 60).toISOString(),
+  })),
+]

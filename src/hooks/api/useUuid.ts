@@ -1,7 +1,7 @@
 import type { UUID } from 'iom-sdk'
 import { useMutation, useQuery } from '@tanstack/react-query'
 
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 
 export function useUuid() {
   const client = useIomSdkClient()

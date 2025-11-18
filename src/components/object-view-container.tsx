@@ -10,6 +10,7 @@ interface ObjectViewContainerProps {
   viewData: ViewData
   onViewObject?: (object: any) => void
   onObjectDoubleClick?: (object: any) => void
+  showDeleted?: boolean
 }
 
 export function ObjectViewContainer({
@@ -17,6 +18,7 @@ export function ObjectViewContainer({
   viewData,
   onViewObject,
   onObjectDoubleClick,
+  showDeleted = false,
 }: ObjectViewContainerProps) {
   switch (viewType) {
     case 'table': {
@@ -60,6 +62,7 @@ export function ObjectViewContainer({
           fetching={viewData.fetching}
           rootPagination={viewData.rootPagination}
           onViewObject={onViewObject}
+          showDeleted={showDeleted}
         />
       )
     }

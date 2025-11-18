@@ -22,7 +22,7 @@ import {
 } from '@/components/ui'
 import type { Attachment } from '@/types'
 import { getUploadService } from '@/lib'
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 
 import { AttachmentSection } from './AttachmentSection'
 

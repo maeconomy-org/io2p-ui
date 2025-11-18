@@ -12,7 +12,8 @@ interface UseColumnsDataProps {
   loadChildren?: (
     parentUUID: string,
     page?: number,
-    searchTerm?: string
+    searchTerm?: string,
+    showDeleted?: boolean
   ) => Promise<{ items: any[]; totalPages: number; totalItems: number }>
   rootPagination?: {
     currentPage: number
@@ -21,6 +22,7 @@ interface UseColumnsDataProps {
     onPageChange: (page: number) => void
   }
   fetching?: boolean
+  showDeleted?: boolean
 }
 
 export function useColumnsData({
@@ -28,6 +30,7 @@ export function useColumnsData({
   loadChildren,
   rootPagination,
   fetching = false,
+  showDeleted = false,
 }: UseColumnsDataProps) {
   // Column management hooks
   const {
@@ -38,7 +41,7 @@ export function useColumnsData({
     clearAllPagination,
     getPaginationForColumn,
     isColumnLoading,
-  } = useColumnPagination({ loadChildren })
+  } = useColumnPagination({ loadChildren, showDeleted })
 
   const {
     columns,
@@ -49,6 +52,7 @@ export function useColumnsData({
     initializeWithData,
   } = useColumnSelection({
     loadChildren,
+    showDeleted,
     onPaginationSet: setPaginationForColumn,
     onPaginationRemove: removePaginationForColumn,
     onLoadingSet: (columnIndex: number, loading: boolean) => {
@@ -68,13 +72,13 @@ export function useColumnsData({
   // Server-side column search with debouncing (only if loadChildren is available)
   const searchEnabled = !!loadChildren
   const {
-    columnSearchTerms = {},
     handleColumnSearchChange: handleSearchChange = () => {},
     isColumnSearching = () => false,
     getColumnSearchTerm = () => '',
   } = searchEnabled
     ? useColumnSearch({
         loadChildren: loadChildren!,
+        showDeleted,
         onDataUpdate: updateColumnData,
         onPaginationUpdate: setPaginationForColumn,
       })

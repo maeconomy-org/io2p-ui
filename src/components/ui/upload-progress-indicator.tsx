@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronUp, ChevronDown, Upload, AlertTriangle } from 'lucide-react'
 import { getUploadService } from '@/lib'
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 import { Button, Card, Progress } from '@/components/ui'
 
 export function UploadProgressIndicator() {

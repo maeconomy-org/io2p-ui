@@ -1,7 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 
-import { useIomSdkClient } from '@/providers/query-provider'
-import { useAuth } from '@/contexts/auth-context'
+import { useIomSdkClient, useAuth } from '@/contexts'
 
 /**
  * Import API object structure based on the provided schema

@@ -6,12 +6,15 @@ interface UseColumnPaginationProps {
   loadChildren?: (
     parentUUID: string,
     page?: number,
-    searchTerm?: string
+    searchTerm?: string,
+    showDeleted?: boolean
   ) => Promise<{ items: any[]; totalPages: number; totalItems: number }>
+  showDeleted?: boolean
 }
 
 export function useColumnPagination({
   loadChildren,
+  showDeleted = false,
 }: UseColumnPaginationProps) {
   // Pagination state for each column (columnIndex -> { currentPage, totalPages, totalItems })
   const [columnPagination, setColumnPagination] = useState<
@@ -41,7 +44,12 @@ export function useColumnPagination({
       setLoadingColumns((prev) => new Set([...prev, columnIndex]))
 
       // Load new page
-      const result = await loadChildren(parentUUID, newPage)
+      const result = await loadChildren(
+        parentUUID,
+        newPage,
+        undefined,
+        showDeleted
+      )
 
       // Clear loading state
       setLoadingColumns((prev) => {

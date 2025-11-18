@@ -6,14 +6,14 @@ import { useAggregate, usePagination } from '@/hooks'
 
 interface UseModelDataProps {
   pageSize?: number
-  includeDeleted?: boolean
+  showDeleted?: boolean
 }
 
 /**
  * Hook for managing model (object model) data with pagination and filtering
  */
 export function useModelData({
-  includeDeleted = false,
+  showDeleted = false,
   pageSize = 15,
 }: UseModelDataProps = {}) {
   const { useModelEntities } = useAggregate()
@@ -28,6 +28,8 @@ export function useModelData({
     {
       page: currentPage,
       size: pageSize,
+      // Add softDeleted parameter for filtering deleted items
+      ...(showDeleted ? {} : { searchBy: { softDeleted: false } }),
       // TODO: Uncomment when iom-sdk is updated
       // isTemplate: true,
     },

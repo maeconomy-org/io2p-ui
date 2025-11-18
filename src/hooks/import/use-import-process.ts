@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
+import { useAuth } from '@/contexts'
 import { IMPORT_CHUNK_SIZE, SIZE_THRESHOLD_MB } from '@/constants'
-import { useAuth } from '@/contexts/auth-context'
 
 export interface ImportData {
   mappedData: any[]

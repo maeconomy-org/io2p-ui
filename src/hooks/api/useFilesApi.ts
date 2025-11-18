@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 import { toast } from 'sonner'
 
 export function useFilesApi() {

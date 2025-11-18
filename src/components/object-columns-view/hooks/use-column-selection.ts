@@ -8,8 +8,10 @@ interface UseColumnSelectionProps {
   loadChildren?: (
     parentUUID: string,
     page?: number,
-    searchTerm?: string
+    searchTerm?: string,
+    showDeleted?: boolean
   ) => Promise<{ items: any[]; totalPages: number; totalItems: number }>
+  showDeleted?: boolean
   onPaginationSet: (
     columnIndex: number,
     pagination: { currentPage: number; totalPages: number; totalItems: number }
@@ -20,6 +22,7 @@ interface UseColumnSelectionProps {
 
 export function useColumnSelection({
   loadChildren,
+  showDeleted = false,
   onPaginationSet,
   onPaginationRemove,
   onLoadingSet,
@@ -48,7 +51,7 @@ export function useColumnSelection({
         onLoadingSet(nextColumnIndex, true)
 
         // Load first page of children with pagination info
-        const result = await loadChildren(item.uuid, 1) // Page 1 (1-based)
+        const result = await loadChildren(item.uuid, 1, undefined, showDeleted) // Page 1 (1-based)
 
         // Clear loading state
         onLoadingSet(nextColumnIndex, false)

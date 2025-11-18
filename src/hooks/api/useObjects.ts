@@ -6,7 +6,7 @@ import type {
   UUID,
   QueryParams,
 } from 'iom-sdk'
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 
 export function useObjects() {
   const client = useIomSdkClient()

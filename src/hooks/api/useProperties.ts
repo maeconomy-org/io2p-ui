@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 import type { UUPropertyDTO, UUPropertyValueDTO, QueryParams } from 'iom-sdk'
 
 export function useProperties() {

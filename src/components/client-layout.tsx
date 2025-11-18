@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 
 import Navbar from '@/components/navbar'
-import { AuthProvider } from '@/contexts/auth-context'
+import { AuthProvider } from '@/contexts'
 
 export default function ClientLayout({
   children,

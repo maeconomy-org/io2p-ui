@@ -1,13 +1,10 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 
-import { useAggregate } from '@/hooks'
+import { useSearch } from '@/contexts'
+import { usePagination, useAggregate } from '@/hooks'
 import { ViewType } from '@/components/view-selector'
-import { useSearch } from '@/contexts/search-context'
-
-import { usePagination } from '@/hooks'
 
 // Interface for table view data with internal data fetching
 interface TableViewData {
@@ -52,6 +49,8 @@ interface UseViewDataProps {
   // Performance options
   tablePageSize?: number
   columnsPageSize?: number
+  // Filter options
+  showDeleted?: boolean
 }
 
 /**
@@ -62,10 +61,10 @@ export function useViewData({
   viewType,
   tablePageSize = 15, // Smaller for detailed table pagination
   columnsPageSize = 15, // Same as child pagination for consistency
+  showDeleted = false, // Default to not showing deleted items
 }: UseViewDataProps): ViewData {
   const { useAggregateEntities } = useAggregate()
   const { isSearchMode, searchViewResults, searchPagination } = useSearch()
-  const queryClient = useQueryClient()
 
   // Internal pagination state for table view
   const [currentPage, setCurrentPage] = useState(0)
@@ -76,25 +75,6 @@ export function useViewData({
   // Determine page size based on view type
   const pageSize = viewType === 'table' ? tablePageSize : columnsPageSize
 
-  // Function to invalidate children cache (can be called externally)
-  const invalidateChildrenCache = (parentUUID?: string) => {
-    if (parentUUID) {
-      // Invalidate specific parent's children
-      queryClient.invalidateQueries({
-        queryKey: ['aggregates', { parentUUID }],
-        exact: false,
-      })
-      console.log(`🗑️ Invalidated children cache for parent: ${parentUUID}`)
-    } else {
-      // Invalidate all children caches
-      queryClient.invalidateQueries({
-        queryKey: ['aggregates'],
-        exact: false,
-      })
-      console.log('🗑️ Invalidated all children caches')
-    }
-  }
-
   // Fetch root objects with performance optimizations (for table view)
   const {
     data: aggregateResponse,
@@ -104,7 +84,10 @@ export function useViewData({
     {
       page: currentPage,
       size: pageSize,
-      hasParentUUIDFilter: true, // Only root objects
+      // if we have only hasParentUUIDFilter then we are fetching root objects only no childrens if we add parentUUID then we are fetchins childrens only of this parent UUID if we skip both hasParentUUIDFilter and parentUUID then we are fetching all objects root and childrens together in one level
+      hasParentUUIDFilter: true, // No parent UUID filter
+      // Add softDeleted parameter for filtering deleted items
+      ...(showDeleted ? {} : { searchBy: { softDeleted: false } }),
     },
     {
       enabled: !isSearchMode, // Fetch for both table and columns view when not in search mode

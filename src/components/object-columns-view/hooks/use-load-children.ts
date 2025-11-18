@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 
 /**
  * Hook that provides the loadChildren function for columns view
@@ -14,7 +14,8 @@ export function useLoadChildren() {
   const loadChildren = async (
     parentUUID: string,
     page = 1,
-    searchTerm?: string
+    searchTerm?: string,
+    showDeleted = false
   ): Promise<{ items: any[]; totalPages: number; totalItems: number }> => {
     try {
       // Convert from 1-based (UI) to 0-based (API) page numbering
@@ -32,6 +33,8 @@ export function useLoadChildren() {
         size: 20,
         ...(searchTerm &&
           searchTerm.trim() && { searchTerm: searchTerm.trim() }),
+        // Add softDeleted parameter for filtering deleted items
+        ...(showDeleted ? {} : { searchBy: { softDeleted: false } }),
       }
 
       // Use queryClient.fetchQuery with the same query key and function as useAggregateEntities

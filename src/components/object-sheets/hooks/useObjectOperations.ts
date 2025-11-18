@@ -4,7 +4,7 @@ import { Predicate } from 'iom-sdk'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { getUploadService } from '@/lib/upload-service'
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 import type { ImportObjectData } from '@/hooks/api/useImportApi'
 import { useImportApi, useObjects, useStatements } from '@/hooks'
 

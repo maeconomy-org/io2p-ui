@@ -37,9 +37,8 @@ import {
   Input,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/contexts/auth-context'
+import { useAuth, useSearch } from '@/contexts'
 import { APP_ACRONYM, NAV_ITEMS } from '@/constants'
-import { useSearch } from '@/contexts/search-context'
 
 export default function Navbar() {
   const pathname = usePathname()

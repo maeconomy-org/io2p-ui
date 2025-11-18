@@ -23,7 +23,7 @@ export default function ObjectModelsPage() {
     fetching,
     pagination,
   } = useModelData({
-    includeDeleted: showDeleted,
+    showDeleted: showDeleted,
   })
 
   // Use unified delete hook

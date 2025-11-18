@@ -7,7 +7,7 @@ import type {
   Predicate,
 } from 'iom-sdk'
 
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 
 export function useStatements() {
   const client = useIomSdkClient()

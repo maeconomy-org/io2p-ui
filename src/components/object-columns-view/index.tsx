@@ -18,6 +18,7 @@ interface ObjectColumnsViewProps {
     onPageChange: (page: number) => void
   }
   onViewObject?: (object: any) => void
+  showDeleted?: boolean
 }
 
 export function ObjectColumnsView({
@@ -25,6 +26,7 @@ export function ObjectColumnsView({
   fetching = false,
   rootPagination,
   onViewObject,
+  showDeleted = false,
 }: ObjectColumnsViewProps) {
   // Create loadChildren function locally for columns view
   const { loadChildren } = useLoadChildren()
@@ -49,6 +51,7 @@ export function ObjectColumnsView({
     loadChildren,
     rootPagination,
     fetching,
+    showDeleted,
   })
 
   // Simple handler functions (delegating to props)

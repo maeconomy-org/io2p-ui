@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation'
 import { PlusCircle, Search, X } from 'lucide-react'
 
 import { useViewData } from '@/hooks'
-import { Button, Badge, DeletedFilter } from '@/components/ui'
+import { useSearch } from '@/contexts'
 import { isObjectDeleted } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
+import { Button, Badge, DeletedFilter } from '@/components/ui'
 import { ViewSelector, ViewType } from '@/components/view-selector'
 import { ObjectViewContainer } from '@/components/object-view-container'
 import { ObjectDetailsSheet, ObjectAddSheet } from '@/components/object-sheets'
-import { useSearch } from '@/contexts/search-context'
 
 function ObjectsPageContent() {
   const [viewType, setViewType] = useState<ViewType>('table')
@@ -30,7 +30,7 @@ function ObjectsPageContent() {
   } = useSearch()
 
   // Use the data adapter hook - handles all data fetching internally
-  const viewData = useViewData({ viewType })
+  const viewData = useViewData({ viewType, showDeleted })
 
   // Initialize view type from localStorage after the component mounts
   useEffect(() => {
@@ -127,6 +127,7 @@ function ObjectsPageContent() {
           viewData={viewData}
           onViewObject={handleViewObject}
           onObjectDoubleClick={handleObjectDoubleClick}
+          showDeleted={showDeleted}
         />
       </div>
 

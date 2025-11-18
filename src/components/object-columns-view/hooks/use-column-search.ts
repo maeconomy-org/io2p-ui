@@ -7,8 +7,10 @@ interface UseColumnSearchProps {
   loadChildren: (
     parentUUID: string,
     page?: number,
-    searchTerm?: string
+    searchTerm?: string,
+    showDeleted?: boolean
   ) => Promise<{ items: any[]; totalPages: number; totalItems: number }>
+  showDeleted?: boolean
   onDataUpdate: (columnIndex: number, items: any[]) => void
   onPaginationUpdate: (
     columnIndex: number,
@@ -22,6 +24,7 @@ interface UseColumnSearchProps {
 
 export function useColumnSearch({
   loadChildren,
+  showDeleted = false,
   onDataUpdate,
   onPaginationUpdate,
 }: UseColumnSearchProps) {
@@ -40,7 +43,12 @@ export function useColumnSearch({
         setSearchLoading((prev) => new Set([...prev, columnIndex]))
 
         // Search with first page and search term
-        const result = await loadChildren(parentUUID, 1, searchTerm.trim())
+        const result = await loadChildren(
+          parentUUID,
+          1,
+          searchTerm.trim(),
+          showDeleted
+        )
 
         setSearchLoading((prev) => {
           const newSet = new Set(prev)

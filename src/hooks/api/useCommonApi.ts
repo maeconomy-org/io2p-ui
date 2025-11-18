@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import type { AggregateFindDTO, AuthResponse } from 'iom-sdk'
 
-import { useIomSdkClient } from '@/providers/query-provider'
+import { useIomSdkClient } from '@/contexts'
 
 export function useCommonApi() {
   const client = useIomSdkClient()
