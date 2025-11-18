@@ -65,6 +65,7 @@ export function AttachmentList({
       files={files}
       onRemoveFile={handleFileRemove}
       allowHardRemove={allowHardRemove}
+      showEmptyState={false}
     />
   )
 }

@@ -20,7 +20,7 @@ import {
 import { useFilesApi } from '@/hooks'
 import type { FileData } from '@/types'
 
-import { isExternalFileReference } from '../utils'
+import { isExternalFileReference, truncateText } from '../utils'
 
 interface FileDisplayProps {
   file: FileData
@@ -150,7 +150,7 @@ export function FileDisplay({
             isSoftDeleted && 'line-through text-destructive'
           )}
         >
-          {displayName}
+          {truncateText(displayName, 50)}
         </span>
         <Badge variant="secondary" className="text-xs">
           {typeBadge}
@@ -209,6 +209,7 @@ interface FileListProps {
   className?: string
   onRemoveFile?: (file: FileData) => void // Callback for removing file from list
   allowHardRemove?: boolean // Allow hard removal (for non-uploaded files)
+  showEmptyState?: boolean // Show empty state if no files are found
 }
 
 export function FileList({
@@ -216,6 +217,7 @@ export function FileList({
   className,
   onRemoveFile,
   allowHardRemove = false,
+  showEmptyState = true,
 }: FileListProps) {
   return (
     <div className={cn('space-y-1', className)}>
@@ -228,11 +230,11 @@ export function FileList({
             allowHardRemove={allowHardRemove}
           />
         ))
-      ) : (
+      ) : showEmptyState ? (
         <p className="text-sm text-muted-foreground">
           No files found for this object
         </p>
-      )}
+      ) : null}
     </div>
   )
 }
