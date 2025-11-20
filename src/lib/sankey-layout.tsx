@@ -69,6 +69,9 @@ export function createLayeredLayout(
       } else {
         // Forward flow - safe for DAG
         processedLinks.push(rel)
+        console.log(
+          `Forward flow: ${rel.subject.name} (${sourceNode.layer}) → ${rel.object.name} (${targetNode.layer})`
+        )
         if (isRecyclingProcess) {
           recyclingFlows.push(rel)
         }
@@ -129,15 +132,43 @@ export function createLayeredLayout(
       return isRecycled ? 0.2 : 0
     }
 
-    // Stage 1-2: Processing/intermediate
+    // Stage 1-2: Processing/intermediate - Use dependency depth for better layering
     if (type === 'intermediate') {
       const inputCount = node?.inputs.size || 0
       const outputCount = node?.outputs.size || 0
 
-      // More complex processing stages based on connections
-      if (name.includes('reinforced') || inputCount > 2) return 2.2
-      if (outputCount > 2) return 1.8 // Intermediate with many outputs
-      return 1.5
+      // Calculate depth based on input materials
+      let depth = 1.0
+      
+      // If this intermediate has inputs, it should be positioned after them
+      if (inputCount > 0) {
+        // Find the maximum layer of input materials
+        let maxInputLayer = 0
+        relationships.forEach(rel => {
+          if (rel.object.uuid === material.uuid && rel.predicate === 'IS_INPUT_OF') {
+            const inputMaterial = materials.find(m => m.uuid === rel.subject.uuid)
+            if (inputMaterial) {
+              const inputType = inputMaterial.type?.toLowerCase() || ''
+              if (inputType === 'input') {
+                maxInputLayer = Math.max(maxInputLayer, 0.5)
+              } else if (inputType === 'intermediate') {
+                maxInputLayer = Math.max(maxInputLayer, 1.0)
+              }
+            }
+          }
+        })
+        depth = maxInputLayer + 0.5
+      }
+
+      // Specific material adjustments
+      if (name.includes('concrete')) return Math.max(depth, 1.0)
+      if (name.includes('lift') || name.includes('elevator')) return Math.max(depth, 1.8)
+      if (name.includes('stairs')) return Math.max(depth, 1.6)
+      if (name.includes('window')) return Math.max(depth, 1.4)
+      if (name.includes('reinforced') || inputCount > 2) return Math.max(depth, 2.2)
+      if (outputCount > 2) return Math.max(depth, 1.8) // Intermediate with many outputs
+      
+      return Math.max(depth, 1.5)
     }
 
     // Stage 3+: Outputs
@@ -151,7 +182,8 @@ export function createLayeredLayout(
       if (
         name.includes('foundation') ||
         name.includes('wall') ||
-        name.includes('floor')
+        name.includes('floor') ||
+        name.includes('roof')
       ) {
         return 3.2 // Building components
       }
@@ -189,6 +221,9 @@ export function createLayeredLayout(
     const isRecyclingRelated =
       material.name.toLowerCase().includes('recycled') ||
       material.name.toLowerCase().includes('reclaimed')
+
+    // Debug logging for layer assignment
+    console.log(`Material: ${material.name} (${material.type}) → Layer: ${layer}`)
 
     return {
       ...material,
