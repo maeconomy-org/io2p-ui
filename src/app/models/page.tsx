@@ -5,7 +5,7 @@ import { PlusCircle } from 'lucide-react'
 
 import { Button, DeletedFilter } from '@/components/ui'
 import { ObjectModelsTable } from '@/components/tables'
-import { ObjectModelSheet } from '@/components/sheets'
+import { ObjectModelSheet } from '@/components/object-sheets'
 import { useModelData, useUnifiedDelete } from '@/hooks'
 import { DeleteConfirmationDialog } from '@/components/modals'
 
@@ -49,16 +49,9 @@ export default function ObjectModelsPage() {
     setSheetOpen(true)
   }
 
-  // Handle saving a model (new or edited)
-  const handleSaveModel = (model: any) => {
-    // The API hooks will handle the actual saving and cache invalidation
-    console.log('Saving model:', model)
-    // TODO: Implement actual save logic with API hooks
-  }
-
   return (
-    <div className="flex flex-col flex-1">
-      <div className="container mx-auto py-6 px-4 flex-1">
+    <>
+      <div className="container mx-auto p-4 flex-1">
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold">Models</h2>
@@ -90,7 +83,6 @@ export default function ObjectModelsPage() {
       <ObjectModelSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        onSave={handleSaveModel}
         model={selectedModel}
         isEditing={isEditing}
       />
@@ -102,6 +94,6 @@ export default function ObjectModelsPage() {
         onDelete={handleDeleteConfirm}
         objectName={objectToDelete?.name || 'Model'}
       />
-    </div>
+    </>
   )
 }

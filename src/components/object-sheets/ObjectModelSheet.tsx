@@ -22,6 +22,8 @@ import {
 } from '@/components/ui'
 import { objectModelSchema, ObjectModelFormValues, Property } from '@/lib'
 import { PropertyFieldTemplate } from '@/components/forms'
+import { useObjectOperations } from './hooks'
+import { createEmptyProperty } from './utils'
 
 interface ObjectModel {
   uuid?: string // Optional for new models
@@ -38,7 +40,7 @@ interface ObjectModel {
 interface ObjectModelSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (model: ObjectModel) => void
+  onSave?: (model: ObjectModel) => void
   model?: ObjectModel | null
   isEditing?: boolean
 }
@@ -66,6 +68,15 @@ export function ObjectModelSheet({
     name: 'properties',
   })
 
+  // Use object operations hook for template creation/editing
+  const { createObject, saveMetadata, hasMetadataChanged, isCreating } =
+    useObjectOperations({
+      initialObject: model,
+      isEditing,
+      isTemplate: true, // This is always a template
+      onRefetch: onSave ? () => onSave({} as any) : undefined,
+    })
+
   // Initialize form when editing an existing model
   useEffect(() => {
     if (model && isEditing) {
@@ -89,33 +100,31 @@ export function ObjectModelSheet({
 
   // Add a new property to the form
   const addProperty = () => {
-    append({
-      key: '',
-      values: [
-        {
-          value: 'Variable',
-          files: [],
-        },
-      ],
-      files: [],
-    })
+    append(createEmptyProperty())
   }
 
   // Handle form submission
-  const onSubmit = (values: ObjectModelFormValues) => {
-    const timestamp = new Date().toISOString()
-
-    // Prepare the complete model object
-    const completeModel: ObjectModel = {
-      uuid: model?.uuid, // Only include UUID if editing existing model
-      ...values,
-      creator: model?.creator || 'User',
-      createdAt: model?.createdAt || timestamp,
-      updatedAt: timestamp,
+  const onSubmit = async (values: ObjectModelFormValues) => {
+    try {
+      if (isEditing && model) {
+        // For editing, use saveMetadata if there are changes
+        if (hasMetadataChanged) {
+          await saveMetadata()
+        }
+        // TODO: Handle property updates for existing templates
+        onOpenChange(false)
+      } else {
+        // For new templates, use createObject
+        const success = await createObject(values)
+        if (success) {
+          onOpenChange(false)
+          form.reset()
+        }
+      }
+    } catch (error) {
+      console.error('Error saving template:', error)
+      // Error is already handled by the hook with toast
     }
-
-    onSave(completeModel)
-    onOpenChange(false)
   }
 
   return (
@@ -247,14 +256,24 @@ export function ObjectModelSheet({
 
             {/* Footer with actions */}
             <SheetFooter className="flex gap-2">
-              <Button type="submit" className="w-full">
-                {isEditing ? 'Update Model' : 'Create Model'}
+              <Button type="submit" className="w-full" disabled={isCreating}>
+                {isCreating ? (
+                  <>
+                    <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
+                    {isEditing ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : isEditing ? (
+                  'Update Model'
+                ) : (
+                  'Create Model'
+                )}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="w-full"
+                disabled={isCreating}
               >
                 Cancel
               </Button>

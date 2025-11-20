@@ -1,4 +1,4 @@
-import { PencilIcon, TrashIcon, FileText } from 'lucide-react'
+import { PencilIcon, TrashIcon, FileText, RotateCcw } from 'lucide-react'
 
 import {
   Table,
@@ -10,11 +10,13 @@ import {
 } from '@/components/ui/table'
 import { Button, Badge, TablePagination } from '@/components/ui'
 import { isObjectDeleted } from '@/lib'
+import { useObjects } from '@/hooks'
 
 interface ObjectModelsTableProps {
   models: any[]
   onEdit: (model: any) => void
   onDelete: (object: { uuid: string; name: string }) => void
+  onRevert?: (model: any) => void
   loading?: boolean
   fetching?: boolean
   pagination?: {
@@ -36,10 +38,32 @@ export function ObjectModelsTable({
   models,
   onEdit,
   onDelete,
+  onRevert,
   loading = false,
   fetching = false,
   pagination,
 }: ObjectModelsTableProps) {
+  // Revert functionality
+  const { useRevertObject } = useObjects()
+  const revertObjectMutation = useRevertObject()
+
+  const handleRevertModel = async (model: any) => {
+    try {
+      await revertObjectMutation.mutateAsync({
+        uuid: model.uuid,
+        name: model.name,
+        abbreviation: model.abbreviation,
+        version: model.version,
+        description: model.description,
+        isTemplate: true, // Always true for models/templates
+      })
+      if (onRevert) {
+        onRevert(model)
+      }
+    } catch (error) {
+      console.error('Error reverting model:', error)
+    }
+  }
   // Loading state
   if (loading) {
     return (
@@ -161,16 +185,27 @@ export function ObjectModelsTable({
                         >
                           <PencilIcon className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            onDelete({ uuid: model.uuid, name: model.name })
-                          }
-                          disabled={deleted}
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
+                        {deleted ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRevertModel(model)}
+                            disabled={revertObjectMutation.isPending}
+                            title="Restore model"
+                          >
+                            <RotateCcw className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              onDelete({ uuid: model.uuid, name: model.name })
+                            }
+                          >
+                            <TrashIcon className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

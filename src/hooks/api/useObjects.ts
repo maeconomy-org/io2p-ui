@@ -248,6 +248,55 @@ export function useObjects() {
     })
   }
 
+  // Revert soft-deleted object mutation
+  const useRevertObject = () => {
+    return useMutation({
+      mutationFn: async ({
+        uuid,
+        name,
+        abbreviation,
+        version,
+        description,
+        isTemplate,
+      }: {
+        uuid: UUID
+        name: string
+        abbreviation?: string
+        version?: string
+        description?: string
+        isTemplate?: boolean
+      }) => {
+        // Use the create method to revert - this will restore the object
+        const response = await client.objects.create({
+          uuid,
+          name,
+          abbreviation,
+          version,
+          description,
+          isTemplate,
+        })
+        return response.data
+      },
+      onSuccess: (data) => {
+        if (data?.uuid) {
+          // Invalidate all relevant queries to refresh the UI
+          queryClient.invalidateQueries({
+            queryKey: ['object', data.uuid],
+          })
+          queryClient.invalidateQueries({
+            queryKey: ['object', data.uuid, 'withProperties'],
+          })
+          queryClient.invalidateQueries({
+            queryKey: ['object', data.uuid, 'full'],
+          })
+          queryClient.invalidateQueries({ queryKey: ['objects'] })
+          queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+          queryClient.invalidateQueries({ queryKey: ['aggregate', data.uuid] })
+        }
+      },
+    })
+  }
+
   return {
     useAllObjects,
     useObject,
@@ -256,5 +305,6 @@ export function useObjects() {
     useCreateFullObject,
     useUpdateObjectMetadata,
     useDeleteObject,
+    useRevertObject,
   }
 }

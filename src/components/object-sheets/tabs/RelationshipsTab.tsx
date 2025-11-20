@@ -111,8 +111,15 @@ export function RelationshipsTab({
         renderEdit={() => (
           <div className="space-y-4">
             <ParentSelector
-              selectedParents={parents}
-              onParentsChange={setParents}
+              initialParentUuids={parents.map((p) => p.uuid)}
+              onParentsChange={(parentUuids) => {
+                // Convert UUIDs back to ParentObjects, preserving existing names
+                const newParents = parentUuids.map((uuid) => {
+                  const existingParent = parents.find((p) => p.uuid === uuid)
+                  return existingParent || { uuid, name: undefined }
+                })
+                setParents(newParents)
+              }}
               placeholder="Search for parent objects..."
               maxSelections={50}
               currentObjectUuid={object?.uuid}

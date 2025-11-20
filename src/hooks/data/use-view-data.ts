@@ -87,7 +87,10 @@ export function useViewData({
       // if we have only hasParentUUIDFilter then we are fetching root objects only no childrens if we add parentUUID then we are fetchins childrens only of this parent UUID if we skip both hasParentUUIDFilter and parentUUID then we are fetching all objects root and childrens together in one level
       hasParentUUIDFilter: true, // No parent UUID filter
       // Add softDeleted parameter for filtering deleted items
-      ...(showDeleted ? {} : { searchBy: { softDeleted: false } }),
+      searchBy: {
+        isTemplate: false,
+        ...(showDeleted ? {} : { softDeleted: false }),
+      },
     },
     {
       enabled: !isSearchMode, // Fetch for both table and columns view when not in search mode

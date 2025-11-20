@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Plus, Loader2 } from 'lucide-react'
+import { X, Loader2, ChevronsUpDown, Users, Check } from 'lucide-react'
 import {
   Button,
   Badge,
@@ -9,20 +9,21 @@ import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-  ScrollArea,
   Command,
   CommandInput,
   CommandEmpty,
   CommandGroup,
   CommandItem,
+  CommandList,
 } from '@/components/ui'
+import { cn } from '@/lib/utils'
 import { useCommonApi } from '@/hooks/api/useCommonApi'
 import type { ParentObject } from '@/types'
 
 interface ParentSelectorProps {
   currentObjectUuid?: string
-  selectedParents: ParentObject[]
-  onParentsChange: (parents: ParentObject[]) => void
+  initialParentUuids?: string[]
+  onParentsChange: (parentUuids: string[]) => void
   placeholder?: string
   maxSelections?: number
   disabled?: boolean
@@ -30,7 +31,7 @@ interface ParentSelectorProps {
 
 export function ParentSelector({
   currentObjectUuid,
-  selectedParents,
+  initialParentUuids = [],
   onParentsChange,
   placeholder = 'Search for parent objects...',
   maxSelections = 10,
@@ -40,163 +41,251 @@ export function ParentSelector({
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [selectedParents, setSelectedParents] = useState<ParentObject[]>([])
+
+  // Initialize selected parents from UUIDs
+  useEffect(() => {
+    if (!isOpen) return
+
+    const parentObjects = initialParentUuids.map((uuid) => ({
+      uuid,
+      name: undefined, // Will be enriched from search results
+    }))
+    setSelectedParents(parentObjects)
+  }, [initialParentUuids])
 
   // Use the global search API
   const { useSearch } = useCommonApi()
   const searchMutation = useSearch()
 
-  // Execute search when query changes
-  useEffect(() => {
-    const executeSearch = async () => {
-      if (!searchQuery || searchQuery.length < 2) {
+  // Unified search function
+  const performSearch = async (query: string = '') => {
+    if (!isOpen) return
+
+    setIsSearching(true)
+    try {
+      const results = await searchMutation.mutateAsync({
+        searchBy: {
+          isTemplate: false,
+          softDeleted: false,
+        },
+        ...(query && { searchTerm: query.trim() }),
+        size: 50,
+        page: 0,
+      })
+
+      if (results && results.content) {
+        const filteredResults = results.content.filter(
+          (obj: any) => obj.uuid !== currentObjectUuid
+        )
+        setSearchResults(filteredResults)
+      } else {
         setSearchResults([])
+      }
+    } catch (error) {
+      console.error('Search failed:', error)
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  // Handle search logic (debounced)
+  useEffect(() => {
+    if (!isOpen) return
+
+    const timeoutId = setTimeout(() => {
+      if (!searchQuery || searchQuery.length < 2) {
+        // Load initial data only if we don't have any results yet
+        if (searchResults.length === 0) {
+          performSearch()
+        }
+      } else {
+        performSearch(searchQuery) // Search with query
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, isOpen, searchResults.length])
+
+  const handleSelectParent = (object: any) => {
+    // Check if already selected
+    const isAlreadySelected = selectedParents.some(
+      (parent) => parent.uuid === object.uuid
+    )
+
+    let newSelectedParents: ParentObject[]
+
+    if (isAlreadySelected) {
+      // Remove if already selected
+      newSelectedParents = selectedParents.filter((p) => p.uuid !== object.uuid)
+    } else {
+      // Add if not selected and under limit
+      if (selectedParents.length >= maxSelections) {
         return
       }
 
-      setIsSearching(true)
-      try {
-        const results = await searchMutation.mutateAsync({
-          searchTerm: searchQuery.trim(),
-          size: 10, // Limit results for better performance
-          page: 0,
-        })
-
-        if (results && results.content) {
-          // Filter out already selected parents
-          const filteredResults =
-            selectedParents.length > 0
-              ? results.content
-                  .filter(
-                    (obj: any) =>
-                      !selectedParents.some(
-                        (parent) => parent.uuid === obj.uuid
-                      )
-                  )
-                  .filter((obj: any) => obj.uuid !== currentObjectUuid)
-              : results.content
-
-          setSearchResults(filteredResults)
-        } else {
-          setSearchResults([])
-        }
-      } catch (error) {
-        console.error('Search failed:', error)
-        setSearchResults([])
-      } finally {
-        setIsSearching(false)
+      const newParent: ParentObject = {
+        uuid: object.uuid,
+        name: object.name, // Store name for display
       }
+
+      newSelectedParents = [...selectedParents, newParent]
     }
 
-    // Debounce search to avoid too many API calls
-    const timeoutId = setTimeout(executeSearch, 300)
-    return () => clearTimeout(timeoutId)
-  }, [searchQuery, selectedParents])
-
-  const handleSelectParent = (object: any) => {
-    if (selectedParents.length >= maxSelections) {
-      return
-    }
-
-    const newParent: ParentObject = {
-      uuid: object.uuid,
-    }
-
-    onParentsChange([...selectedParents, newParent])
-    setSearchQuery('')
-    setIsOpen(false)
+    setSelectedParents(newSelectedParents)
+    onParentsChange(newSelectedParents.map((p) => p.uuid))
   }
 
   const handleRemoveParent = (parentUuid: string) => {
-    onParentsChange(selectedParents.filter((p) => p.uuid !== parentUuid))
+    const newSelectedParents = selectedParents.filter(
+      (p) => p.uuid !== parentUuid
+    )
+    setSelectedParents(newSelectedParents)
+    onParentsChange(newSelectedParents.map((p) => p.uuid))
+  }
+
+  const handleClearAllParents = () => {
+    setSelectedParents([])
+    onParentsChange([])
+    setIsOpen(false)
   }
 
   return (
     <div className="space-y-2">
-      <Label>Parent Objects</Label>
+      <div className="flex items-center justify-between">
+        <Label>Parent Objects</Label>
+        {selectedParents.length > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleClearAllParents}
+            className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Clear all
+          </Button>
+        )}
+      </div>
+
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={isOpen}
+            className="w-full justify-between"
+            disabled={disabled}
+          >
+            {selectedParents.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span className="truncate">
+                  {selectedParents.length === 1
+                    ? '1 parent selected'
+                    : `${selectedParents.length} parents selected`}
+                </span>
+                {selectedParents.length >= maxSelections && (
+                  <Badge variant="secondary" className="text-xs">
+                    Max
+                  </Badge>
+                )}
+              </div>
+            ) : (
+              <span className="text-muted-foreground">{placeholder}</span>
+            )}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0"
+          align="start"
+        >
+          <Command shouldFilter={false}>
+            <div className="relative">
+              <CommandInput
+                placeholder="Search parent objects..."
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+              />
+              {isSearching && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
+              <CommandEmpty>
+                {isSearching
+                  ? 'Searching...'
+                  : searchQuery.length < 2 && searchResults.length === 0
+                    ? 'Start typing to search for objects'
+                    : 'No objects found.'}
+              </CommandEmpty>
+              <CommandGroup>
+                {searchResults.map((object: any) => {
+                  const isSelected = selectedParents.some(
+                    (parent) => parent.uuid === object.uuid
+                  )
+                  return (
+                    <CommandItem
+                      key={object.uuid}
+                      onSelect={() => handleSelectParent(object)}
+                      className="cursor-pointer flex items-center gap-2"
+                    >
+                      <Check
+                        className={cn(
+                          'h-4 w-4',
+                          isSelected ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                      <span className="font-medium truncate">
+                        {object.name || object.uuid}
+                      </span>
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
 
       {/* Selected Parents Display */}
       {selectedParents.length > 0 && (
         <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-md">
-          {selectedParents.map((parent) => (
-            <Badge
-              key={parent.uuid}
-              variant="secondary"
-              className="flex items-center gap-1 pr-1"
-            >
-              <span className="truncate max-w-32">{parent.uuid}</span>
-              {!disabled && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={() => handleRemoveParent(parent.uuid)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </Badge>
-          ))}
-        </div>
-      )}
+          {selectedParents.map((parent, index) => {
+            // Try to find the name from search results, fallback to stored name or UUID
+            const searchResult = searchResults.find(
+              (obj) => obj.uuid === parent.uuid
+            )
+            const displayName =
+              searchResult?.name ||
+              parent.name ||
+              `${parent.uuid.slice(0, 8)}...`
 
-      {/* Add Parent Button/Search */}
-      {!disabled && selectedParents.length < maxSelections && (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start"
-              disabled={isSearching}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {selectedParents.length === 0
-                ? 'Add parent objects'
-                : `Add another parent (${selectedParents.length}/${maxSelections})`}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="start">
-            <Command shouldFilter={false}>
-              <div className="relative">
-                <CommandInput
-                  placeholder={placeholder}
-                  value={searchQuery}
-                  onValueChange={setSearchQuery}
-                />
-                {isSearching && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  </div>
+            return (
+              <Badge
+                key={`${parent.uuid}-${index}`}
+                variant="secondary"
+                className="flex items-center gap-1 pr-1"
+                title={parent.uuid} // Show full UUID on hover
+              >
+                <span className="truncate max-w-32">{displayName}</span>
+                {!disabled && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => handleRemoveParent(parent.uuid)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 )}
-              </div>
-              <CommandEmpty>
-                {isSearching
-                  ? 'Searching...'
-                  : searchQuery.length < 2
-                    ? 'Type at least 2 characters to search'
-                    : 'No objects found.'}
-              </CommandEmpty>
-              <CommandGroup>
-                <ScrollArea className="h-72">
-                  {searchResults.map((object: any) => (
-                    <CommandItem
-                      key={object.uuid}
-                      onSelect={() => handleSelectParent(object)}
-                      className="cursor-pointer"
-                    >
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">{object.name}</span>
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {object.uuid}
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </ScrollArea>
-              </CommandGroup>
-            </Command>
-          </PopoverContent>
-        </Popover>
+              </Badge>
+            )
+          })}
+        </div>
       )}
 
       {/* Max selections reached message */}

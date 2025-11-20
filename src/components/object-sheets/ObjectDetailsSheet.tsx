@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Trash2, Loader2 } from 'lucide-react'
+import { Trash2, Loader2, FileText, RotateCcw } from 'lucide-react'
 
 import {
   Badge,
@@ -63,6 +63,9 @@ export function ObjectDetailsSheet({
   // File management state
   const [isObjectFilesModalOpen, setIsObjectFilesModalOpen] = useState(false)
   const [objectFiles, setObjectFiles] = useState<Attachment[]>([])
+
+  // Template creation state
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
 
   // Property and value attachment modal states
   const [attachmentModal, setAttachmentModal] = useState<{
@@ -149,9 +152,23 @@ export function ObjectDetailsSheet({
       isEditing: activeEditingSection === 'properties',
     })
 
-  const { editedObject, setEditedObject, saveMetadata } = useObjectOperations({
+  const {
+    editedObject,
+    setEditedObject,
+    saveMetadata,
+    revertObject,
+    isReverting,
+  } = useObjectOperations({
     initialObject: object,
     isEditing: activeEditingSection === 'metadata',
+    isTemplate: object?.isTemplate, // Pass template status from object data
+    onRefetch: refetchAggregate,
+  })
+
+  // Template creation hook
+  const { createObject: createTemplate } = useObjectOperations({
+    isEditing: false,
+    isTemplate: true,
     onRefetch: refetchAggregate,
   })
 
@@ -234,6 +251,66 @@ export function ObjectDetailsSheet({
     handleDelete({ uuid: objectId, name: objectName })
   }
 
+  // Handle creating a template from this object
+  const handleCreateTemplate = async () => {
+    if (!object) return
+
+    setIsCreatingTemplate(true)
+    try {
+      // Transform object data to template format (strip address, files, parents)
+      const templateData = {
+        name: `${object.name} Template`,
+        abbreviation: object.abbreviation || '',
+        version: '1.0',
+        description: `Template created from ${object.name}`,
+        properties:
+          properties?.map((prop: any) => ({
+            key: prop.key,
+            label: prop.label || prop.key,
+            type: prop.type || 'string',
+            values: prop.values?.map((val: any) => ({
+              value: 'Variable', // Reset values to placeholder
+              valueTypeCast: val.valueTypeCast || 'string',
+              files: [], // Don't copy files
+            })) || [
+              {
+                value: 'Variable',
+                valueTypeCast: 'string',
+                sourceType: 'manual',
+                files: [],
+              },
+            ],
+            files: [], // Don't copy files
+          })) || [],
+        files: [], // Don't copy object-level files
+        parents: [], // Don't copy parent relationships
+      }
+
+      const success = await createTemplate(templateData)
+      if (success) {
+        // Close the sheet after successful template creation
+        onClose()
+      }
+    } catch (error) {
+      console.error('Error creating template:', error)
+    } finally {
+      setIsCreatingTemplate(false)
+    }
+  }
+
+  // Handle reverting a soft-deleted object
+  const handleRevertObject = async () => {
+    if (!object) return
+
+    try {
+      await revertObject(object)
+      // Close the sheet after successful revert
+      onClose()
+    } catch (error) {
+      console.error('Error reverting object:', error)
+    }
+  }
+
   // Close sheet after successful delete
   useEffect(() => {
     if (!isDeleteModalOpen && objectToDelete) {
@@ -250,13 +327,54 @@ export function ObjectDetailsSheet({
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <SheetContent className="sm:max-w-xl overflow-y-auto">
           <SheetHeader>
-            <span className="flex items-center gap-2">
-              <SheetTitle>{objectName}</SheetTitle>
-              {(object?.softDeleted || isDeleted) && (
-                <Badge variant="destructive">Deleted</Badge>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <SheetTitle>{objectName}</SheetTitle>
+                {(object?.softDeleted || isDeleted) && (
+                  <Badge variant="destructive">Deleted</Badge>
+                )}
+              </span>
+              {object?.uuid && (
+                <div className="flex items-center gap-2">
+                  {isDeleted ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRevertObject}
+                      disabled={isReverting}
+                      className="text-muted-foreground hover:text-foreground"
+                      title="Restore this object"
+                    >
+                      {isReverting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCreateTemplate}
+                      disabled={isCreatingTemplate}
+                      className="text-muted-foreground hover:text-foreground"
+                      title="Create template from this object"
+                    >
+                      {isCreatingTemplate ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
               )}
-            </span>
-            <SheetDescription></SheetDescription>
+            </div>
+            <SheetDescription>
+              View and edit object properties, relationships, and files
+            </SheetDescription>
           </SheetHeader>
 
           {isLoading ? (
@@ -340,17 +458,43 @@ export function ObjectDetailsSheet({
               <Button type="button" onClick={onClose} className="w-full">
                 Close
               </Button>
-              {!isDeleted && object?.uuid && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleDeleteObject(object.uuid, object.name)}
-                  disabled={isDeleting}
-                  className="text-destructive w-full"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
+              {object?.uuid && (
+                <>
+                  {isDeleted ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleRevertObject}
+                      disabled={isReverting}
+                      className="w-full"
+                    >
+                      {isReverting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Restoring...
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="h-4 w-4 mr-2" />
+                          Restore
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        handleDeleteObject(object.uuid, object.name)
+                      }
+                      disabled={isDeleting}
+                      className="text-destructive w-full"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </SheetFooter>

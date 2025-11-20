@@ -45,6 +45,7 @@ export const objectSchema = z.object({
   properties: z.array(propertySchema),
   files: z.array(z.any()).optional(),
   modelUuid: z.string().optional(),
+  isTemplate: z.boolean().optional().default(false),
 })
 
 export type ObjectModelFormValues = z.infer<typeof objectModelSchema>

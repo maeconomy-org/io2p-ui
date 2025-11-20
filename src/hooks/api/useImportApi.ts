@@ -10,6 +10,7 @@ export interface ImportObjectData {
   abbreviation?: string
   version?: string
   description?: string
+  isTemplate?: boolean
   address?: {
     fullAddress: string
     street: string

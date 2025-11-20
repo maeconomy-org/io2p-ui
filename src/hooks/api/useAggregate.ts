@@ -38,10 +38,10 @@ export function useAggregate() {
       queryFn: async () => {
         const response = await client.aggregate.getAggregateEntities({
           ...params,
-          // TODO: Uncomment when iom-sdk is updated
-          // searchBy: {
-          // isTemplate: true,
-          // }
+          searchBy: {
+            ...params?.searchBy,
+            isTemplate: true,
+          },
         })
         return response.data
       },

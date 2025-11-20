@@ -28,10 +28,7 @@ export function useModelData({
     {
       page: currentPage,
       size: pageSize,
-      // Add softDeleted parameter for filtering deleted items
       ...(showDeleted ? {} : { searchBy: { softDeleted: false } }),
-      // TODO: Uncomment when iom-sdk is updated
-      // isTemplate: true,
     },
     {
       staleTime: 30000, // Cache for 30 seconds

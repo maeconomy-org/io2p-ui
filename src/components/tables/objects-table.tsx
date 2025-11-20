@@ -1,7 +1,7 @@
 'use client'
 
 import { MouseEvent, useState, useEffect } from 'react'
-import { FileText, Trash2, QrCode } from 'lucide-react'
+import { FileText, Trash2, QrCode, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -16,7 +16,7 @@ import {
   TablePagination,
 } from '@/components/ui'
 import { cn } from '@/lib'
-import { useUnifiedDelete } from '@/hooks'
+import { useUnifiedDelete, useObjects } from '@/hooks'
 import { QRCodeModal, DeleteConfirmationDialog } from '@/components/modals'
 
 interface ObjectsTableProps {
@@ -74,6 +74,10 @@ export function ObjectsTable({
     handleDeleteCancel,
   } = useUnifiedDelete()
 
+  // Revert functionality
+  const { useRevertObject } = useObjects()
+  const revertObjectMutation = useRevertObject()
+
   // Load data from props
   useEffect(() => {
     if (initialData) {
@@ -120,6 +124,20 @@ export function ObjectsTable({
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString()
+  }
+
+  const handleRevertObject = async (object: any) => {
+    try {
+      await revertObjectMutation.mutateAsync({
+        uuid: object.uuid,
+        name: object.name,
+        abbreviation: object.abbreviation,
+        version: object.version,
+        description: object.description,
+      })
+    } catch (error) {
+      console.error('Error reverting object:', error)
+    }
   }
 
   const renderRows = (objects: any[], level = 0) => {
@@ -196,7 +214,20 @@ export function ObjectsTable({
                 <FileText className="h-4 w-4" />
               </Button>
 
-              {!isDeleted && (
+              {isDeleted ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRevertObject(object)
+                  }}
+                  disabled={revertObjectMutation.isPending}
+                  title="Restore object"
+                >
+                  <RotateCcw className="h-4 w-4 text-blue-600" />
+                </Button>
+              ) : (
                 <Button
                   variant="ghost"
                   size="icon"
