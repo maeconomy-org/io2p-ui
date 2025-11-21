@@ -40,7 +40,9 @@ export function ParentSelector({
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
+  const [totalResultsCount, setTotalResultsCount] = useState<number>(0)
   const [isSearching, setIsSearching] = useState(false)
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
   const [selectedParents, setSelectedParents] = useState<ParentObject[]>([])
 
   // Initialize selected parents from UUIDs
@@ -70,17 +72,22 @@ export function ParentSelector({
           softDeleted: false,
         },
         ...(query && { searchTerm: query.trim() }),
-        size: 50,
+        size: 8,
         page: 0,
       })
 
       if (results && results.content) {
-        const filteredResults = results.content.filter(
+        const allFilteredResults = results.content.filter(
           (obj: any) => obj.uuid !== currentObjectUuid
         )
-        setSearchResults(filteredResults)
+
+        setSearchResults(allFilteredResults)
+        setTotalResultsCount(results.totalElements || allFilteredResults.length)
+        setHasInitiallyLoaded(true)
       } else {
         setSearchResults([])
+        setTotalResultsCount(0)
+        setHasInitiallyLoaded(true)
       }
     } catch (error) {
       console.error('Search failed:', error)
@@ -93,20 +100,18 @@ export function ParentSelector({
   // Handle search logic (debounced)
   useEffect(() => {
     if (!isOpen) return
-
     const timeoutId = setTimeout(() => {
       if (!searchQuery || searchQuery.length < 2) {
-        // Load initial data only if we don't have any results yet
-        if (searchResults.length === 0) {
+        if (!hasInitiallyLoaded || (hasInitiallyLoaded && searchQuery === '')) {
           performSearch()
         }
       } else {
-        performSearch(searchQuery) // Search with query
+        performSearch(searchQuery)
       }
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [searchQuery, isOpen, searchResults.length])
+  }, [searchQuery, isOpen])
 
   const handleSelectParent = (object: any) => {
     // Check if already selected
@@ -207,6 +212,7 @@ export function ParentSelector({
                 placeholder="Search parent objects..."
                 value={searchQuery}
                 onValueChange={setSearchQuery}
+                className="ml-2"
               />
               {isSearching && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -230,6 +236,7 @@ export function ParentSelector({
                   return (
                     <CommandItem
                       key={object.uuid}
+                      value={object.uuid}
                       onSelect={() => handleSelectParent(object)}
                       className="cursor-pointer flex items-center gap-2"
                     >
@@ -246,6 +253,13 @@ export function ParentSelector({
                   )
                 })}
               </CommandGroup>
+              {searchResults.length > 0 &&
+                totalResultsCount > searchResults.length && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground border-t bg-muted/20">
+                    Showing top {searchResults.length} of {totalResultsCount}{' '}
+                    result{totalResultsCount !== 1 ? 's' : ''} • Search to find more
+                  </div>
+                )}
             </CommandList>
           </Command>
         </PopoverContent>

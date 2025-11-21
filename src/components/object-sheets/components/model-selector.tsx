@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, ChevronsUpDown, FileText } from 'lucide-react'
+import { Check, ChevronsUpDown, FileText, Loader2 } from 'lucide-react'
 
 import {
   Button,
@@ -15,11 +15,9 @@ import {
   PopoverContent,
   PopoverTrigger,
   FormLabel,
-  Badge,
-  ScrollArea,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { useAggregate } from '@/hooks'
+import { useCommonApi } from '@/hooks/api/useCommonApi'
 
 export interface ModelOption {
   uuid: string
@@ -44,40 +42,77 @@ export function ModelSelector({
   disabled = false,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [models, setModels] = useState<ModelOption[]>([])
+  const [totalResultsCount, setTotalResultsCount] = useState<number>(0)
+  const [isSearching, setIsSearching] = useState(false)
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
 
-  const { useModelEntities } = useAggregate()
+  // Use the global search API
+  const { useSearch } = useCommonApi()
+  const searchMutation = useSearch()
 
-  // Only fetch when open and no models loaded yet
-  const { data: modelResponse, isLoading: queryLoading } = useModelEntities(
-    {
-      page: 0,
-      size: 100,
-      searchBy: { softDeleted: false },
-    },
-    {
-      enabled: open && models.length === 0, // Only fetch when open and no models
-      staleTime: 300000, // Cache for 5 minutes
+  // Unified search function
+  const performSearch = async (query: string = '') => {
+    if (!open) return
+
+    setIsSearching(true)
+    try {
+      const results = await searchMutation.mutateAsync({
+        searchBy: {
+          isTemplate: true, 
+          softDeleted: false,
+        },
+        ...(query && { searchTerm: query.trim() }),
+        size: 8,
+        page: 0,
+      })
+
+      if (results && results.content) {
+        const modelOptions: ModelOption[] = results.content.map(
+          (model: any) => ({
+            uuid: model.uuid,
+            name: model.name,
+            abbreviation: model.abbreviation,
+            version: model.version,
+            description: model.description,
+            properties: model.properties || [],
+          })
+        )
+
+        setModels(modelOptions)
+        setTotalResultsCount(results.totalElements || modelOptions.length)
+        setHasInitiallyLoaded(true)
+      } else {
+        setModels([])
+        setTotalResultsCount(0)
+        setHasInitiallyLoaded(true)
+      }
+    } catch (error) {
+      console.error('Model search failed:', error)
+      setModels([])
+      setTotalResultsCount(0)
+    } finally {
+      setIsSearching(false)
     }
-  )
+  }
 
-  const isLoading = queryLoading
-
+  // Handle search logic (debounced)
   useEffect(() => {
-    if (modelResponse?.content && open) {
-      const modelOptions: ModelOption[] = modelResponse.content.map(
-        (model: any) => ({
-          uuid: model.uuid,
-          name: model.name,
-          abbreviation: model.abbreviation,
-          version: model.version,
-          description: model.description,
-          properties: model.properties || [],
-        })
-      )
-      setModels(modelOptions)
-    }
-  }, [modelResponse, open])
+    if (!open) return
+
+    const timeoutId = setTimeout(() => {
+      if (!searchQuery || searchQuery.length < 2) {
+        if (!hasInitiallyLoaded || (hasInitiallyLoaded && searchQuery === '')) {
+          performSearch()
+        }
+      } else {
+        performSearch(searchQuery)
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, open])
 
   const handleModelSelect = (model: ModelOption) => {
     onModelSelect(model)
@@ -130,19 +165,35 @@ export function ModelSelector({
           className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0"
           align="start"
         >
-          <Command>
-            <CommandInput placeholder="Search models..." className="ml-2" />
-            <CommandList>
+          <Command shouldFilter={false}>
+            <div className="relative">
+              <CommandInput
+                placeholder="Search models..."
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+                className="ml-2"
+              />
+              {isSearching && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
               <CommandEmpty>
-                {isLoading ? 'Loading models...' : 'No models found.'}
+                {isSearching
+                  ? 'Searching...'
+                  : searchQuery.length < 2 && models.length === 0
+                    ? 'Start typing to search for models'
+                    : 'No models found.'}
               </CommandEmpty>
               <CommandGroup>
                 {models.map((model) => (
                   <CommandItem
                     key={model.uuid}
-                    value={`${model.name} ${model.abbreviation || ''} ${model.version || ''}`}
+                    value={model.uuid}
                     onSelect={() => handleModelSelect(model)}
-                    className="flex items-center gap-2"
+                    className="cursor-pointer flex items-center gap-2"
                   >
                     <Check
                       className={cn(
@@ -163,6 +214,13 @@ export function ModelSelector({
                   </CommandItem>
                 ))}
               </CommandGroup>
+              {models.length > 0 &&
+                totalResultsCount > models.length && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground border-t bg-muted/20">
+                    Showing top {models.length} of {totalResultsCount}{' '}
+                    result{totalResultsCount !== 1 ? 's' : ''} • Search to find more
+                  </div>
+                )}
             </CommandList>
           </Command>
         </PopoverContent>

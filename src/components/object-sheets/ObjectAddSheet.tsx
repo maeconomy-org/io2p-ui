@@ -164,94 +164,54 @@ export function ObjectAddSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-xl ">
-        <div className="overflow-y-auto max-h-[calc(100vh-4rem)]">
-          <Form {...form}>
-            <SheetHeader>
-              <SheetTitle>Add Object</SheetTitle>
-              <SheetDescription>
-                Create a new object with properties
-              </SheetDescription>
-            </SheetHeader>
-            <form
-              onSubmit={form.handleSubmit(handleSubmit)}
-              className="overflow-y-auto"
-            >
-              <div className="space-y-4 pt-6 pb-2 overflow-y-auto">
-                <div className="space-y-2">
-                  <ModelSelector
-                    selectedModel={selectedModel}
-                    onModelSelect={handleModelSelect}
-                    placeholder="Choose a model template (optional)..."
-                  />
+      <SheetContent className="sm:max-w-xl overflow-y-auto">
+        <Form {...form}>
+          <SheetHeader>
+            <SheetTitle>Add Object</SheetTitle>
+            <SheetDescription>
+              Create a new object with properties
+            </SheetDescription>
+          </SheetHeader>
+          <form onSubmit={form.handleSubmit(handleSubmit)}>
+            <div className="space-y-4 pt-6 pb-2">
+              <div className="space-y-2">
+                <ModelSelector
+                  selectedModel={selectedModel}
+                  onModelSelect={handleModelSelect}
+                  placeholder="Choose a model template (optional)..."
+                />
 
-                  <ParentSelector
-                    initialParentUuids={watchedParents}
-                    onParentsChange={handleParentsChange}
-                    placeholder="Search for parent objects..."
-                    maxSelections={10}
-                  />
+                <ParentSelector
+                  initialParentUuids={watchedParents}
+                  onParentsChange={handleParentsChange}
+                  placeholder="Search for parent objects..."
+                  maxSelections={10}
+                />
 
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter object name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="abbreviation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>Abbreviation</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter object name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="abbreviation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Abbreviation</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Abbreviation (optional)"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="version"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Version</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Version (optional)"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Enter object description"
-                            rows={3}
+                          <Input
+                            placeholder="Abbreviation (optional)"
                             {...field}
                           />
                         </FormControl>
@@ -259,154 +219,182 @@ export function ObjectAddSheet({
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <Separator />
-
-                {/* Address Section */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <FormLabel>Address</FormLabel>
-
-                    <HereAddressAutocomplete
-                      value={watchedAddress?.fullAddress || ''}
-                      placeholder="Search for building address..."
-                      onAddressSelect={(fullAddress, components) => {
-                        form.setValue('address', { fullAddress, components })
-                      }}
-                    />
-                  </div>
-
-                  {watchedAddress?.components && (
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                      <div>
-                        📍 {watchedAddress.components.street}{' '}
-                        {watchedAddress.components.houseNumber}
-                      </div>
-                      <div>
-                        🏘️ {watchedAddress.components.city},{' '}
-                        {watchedAddress.components.postalCode},{' '}
-                        {watchedAddress.components.country}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-
-                {/* Object-level attachments */}
-                <div className="space-y-2">
                   <FormField
                     control={form.control}
-                    name="files"
+                    name="version"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex justify-between items-center">
-                          <FormLabel>Files</FormLabel>
-                          <Button
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsObjectAttachmentsOpen(true)}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Attach File
-                          </Button>
-                        </div>
-
-                        <div className="space-y-2">
-                          <AttachmentList
-                            attachments={field.value || []}
-                            onRemoveAttachment={(att) => {
-                              const currentAttachments = field.value || []
-                              const attachmentIndex =
-                                currentAttachments.findIndex(
-                                  (a: any, index: number) =>
-                                    a.fileName === att.fileName &&
-                                    a.mode === att.mode &&
-                                    index === currentAttachments.indexOf(att)
-                                )
-                              if (attachmentIndex >= 0) {
-                                const next = [...currentAttachments]
-                                next.splice(attachmentIndex, 1)
-                                field.onChange(next)
-                              }
-                            }}
-                            allowHardRemove={true}
-                          />
-                          <AttachmentModal
-                            open={isObjectAttachmentsOpen}
-                            onOpenChange={setIsObjectAttachmentsOpen}
-                            attachments={field.value || []}
-                            onChange={field.onChange}
-                            title="Object Attachments"
-                          />
-                        </div>
+                        <FormLabel>Version</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Version (optional)" {...field} />
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
 
-                <Separator />
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <FormLabel>Properties</FormLabel>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addProperty}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Property
-                    </Button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {fields.map((field, index) => (
-                      <PropertyField
-                        key={field.id || `property-${index}`}
-                        control={form.control}
-                        name={`properties.${index}`}
-                        index={index}
-                        onRemove={() => remove(index)}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter object description"
+                          rows={3}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              <SheetFooter className="border-t pt-4">
-                <div className="flex w-full justify-between items-center gap-2">
+              <Separator />
+
+              {/* Address Section */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <FormLabel>Address</FormLabel>
+
+                  <HereAddressAutocomplete
+                    value={watchedAddress?.fullAddress || ''}
+                    placeholder="Search for building address..."
+                    onAddressSelect={(fullAddress, components) => {
+                      form.setValue('address', { fullAddress, components })
+                    }}
+                  />
+                </div>
+
+                {watchedAddress?.components && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                    <div>
+                      📍 {watchedAddress.components.street}{' '}
+                      {watchedAddress.components.houseNumber}
+                    </div>
+                    <div>
+                      🏘️ {watchedAddress.components.city},{' '}
+                      {watchedAddress.components.postalCode},{' '}
+                      {watchedAddress.components.country}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Object-level attachments */}
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="files"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Files</FormLabel>
+                        <Button
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsObjectAttachmentsOpen(true)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Attach File
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <AttachmentList
+                          attachments={field.value || []}
+                          onRemoveAttachment={(att) => {
+                            const currentAttachments = field.value || []
+                            const attachmentIndex =
+                              currentAttachments.findIndex(
+                                (a: any, index: number) =>
+                                  a.fileName === att.fileName &&
+                                  a.mode === att.mode &&
+                                  index === currentAttachments.indexOf(att)
+                              )
+                            if (attachmentIndex >= 0) {
+                              const next = [...currentAttachments]
+                              next.splice(attachmentIndex, 1)
+                              field.onChange(next)
+                            }
+                          }}
+                          allowHardRemove={true}
+                        />
+                        <AttachmentModal
+                          open={isObjectAttachmentsOpen}
+                          onOpenChange={setIsObjectAttachmentsOpen}
+                          attachments={field.value || []}
+                          onChange={field.onChange}
+                          title="Object Attachments"
+                        />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <FormLabel>Properties</FormLabel>
                   <Button
-                    className="w-full"
-                    type="submit"
-                    disabled={isCreating}
-                  >
-                    {isCreating ? (
-                      <>
-                        <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
-                        Creating...
-                      </>
-                    ) : (
-                      'Create'
-                    )}
-                  </Button>
-                  <Button
-                    className="w-full"
                     type="button"
                     variant="outline"
-                    onClick={onClose}
-                    disabled={isCreating}
+                    size="sm"
+                    onClick={addProperty}
                   >
-                    Cancel
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Property
                   </Button>
                 </div>
-              </SheetFooter>
-            </form>
-          </Form>
-        </div>
+
+                <div className="space-y-4">
+                  {fields.map((field, index) => (
+                    <PropertyField
+                      key={field.id || `property-${index}`}
+                      control={form.control}
+                      name={`properties.${index}`}
+                      index={index}
+                      onRemove={() => remove(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <SheetFooter className="border-t pt-4">
+              <div className="flex w-full justify-between items-center gap-2">
+                <Button className="w-full" type="submit" disabled={isCreating}>
+                  {isCreating ? (
+                    <>
+                      <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
+                      Creating...
+                    </>
+                  ) : (
+                    'Create'
+                  )}
+                </Button>
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </SheetFooter>
+          </form>
+        </Form>
       </SheetContent>
     </Sheet>
   )
