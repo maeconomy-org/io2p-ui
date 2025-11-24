@@ -1,8 +1,9 @@
+import { useState, useEffect } from 'react'
+
 import {
   Control,
   Controller,
   useFieldArray,
-  useFormContext,
 } from 'react-hook-form'
 import { PlusIcon, UploadIcon, XIcon } from 'lucide-react'
 
@@ -10,7 +11,6 @@ import {
   AttachmentModal,
   AttachmentList,
 } from '@/components/object-sheets/components'
-import { useState } from 'react'
 import {
   Button,
   Input,
@@ -57,6 +57,14 @@ export function PropertyField({
   // Modal state: value-level tracks which index is open; property-level separate
   const [openValueIndex, setOpenValueIndex] = useState<number | null>(null)
   const [isPropertyFilesOpen, setIsPropertyFilesOpen] = useState(false)
+  
+  // Version counter to force re-rendering when array changes
+  const [arrayVersion, setArrayVersion] = useState(0)
+  
+  // Force re-render when field array length changes
+  useEffect(() => {
+    setArrayVersion(prev => prev + 1)
+  }, [valueFields.length])
 
   return (
     <div className="border rounded-md p-3 space-y-4">
@@ -136,6 +144,7 @@ export function PropertyField({
             <div className="flex items-center space-x-2">
               <div className="flex items-center justify-between gap-2 w-full">
                 <FormField
+                  key={`${valueField.id}-${arrayVersion}`}
                   control={control}
                   name={`${valuesName}.${valueIndex}.value`}
                   render={({ field }) => (
@@ -172,6 +181,7 @@ export function PropertyField({
             </div>
 
             <Controller
+              key={`${valueField.id}-files-${arrayVersion}`}
               control={control}
               name={`${valuesName}.${valueIndex}.files`}
               render={({ field }) => (

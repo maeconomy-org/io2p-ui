@@ -206,7 +206,10 @@ const MaterialFlowPage = () => {
       <RelationshipDetailsSheet
         relationship={selectedRelationship}
         isOpen={isRelationshipSheetOpen}
-        onClose={() => setIsRelationshipSheetOpen(false)}
+        onClose={() => {
+          setIsRelationshipSheetOpen(false)
+          setSelectedRelationship(null)
+        }}
       />
     </div>
   )

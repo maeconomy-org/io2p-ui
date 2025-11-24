@@ -24,7 +24,7 @@ import { UNIT_CATEGORIES } from '@/constants'
 
 interface ObjectSelectionData {
   object: UUObjectDTO
-  quantity?: number
+  quantity: number
   unit?: string
 }
 
@@ -100,13 +100,13 @@ export function ObjectSelectionModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedObject) {
+    if (!selectedObject || !quantity) {
       return
     }
 
     onSave({
       object: selectedObject,
-      ...(quantity !== undefined && { quantity }),
+      quantity,
       ...(unit && { unit }),
     })
 
@@ -205,10 +205,10 @@ export function ObjectSelectionModal({
             </div>
           )}
 
-          {/* Quantity and Unit (Optional) */}
+          {/* Quantity (Required) and Unit (Optional) */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity (Optional)</Label>
+              <Label htmlFor="quantity">Quantity</Label>
               <Input
                 id="quantity"
                 type="number"
@@ -221,6 +221,7 @@ export function ObjectSelectionModal({
                   )
                 }
                 placeholder="Enter quantity"
+                required
               />
             </div>
 
