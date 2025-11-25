@@ -20,7 +20,7 @@ import {
 import { Attachment } from '@/types'
 import { useUnifiedDelete } from '@/hooks'
 
-import { DeleteConfirmationDialog } from '@/components/modals'
+import { DeleteConfirmationDialog, TemplateCreationDialog } from '@/components/modals'
 
 // Import our extracted hooks and utilities
 import {
@@ -66,6 +66,7 @@ export function ObjectDetailsSheet({
 
   // Template creation state
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
 
   // Property and value attachment modal states
   const [attachmentModal, setAttachmentModal] = useState<{
@@ -177,9 +178,11 @@ export function ObjectDetailsSheet({
     isDeleteModalOpen,
     objectToDelete,
     isDeleting,
+    wasDeleteSuccessful,
     handleDelete,
     handleDeleteConfirm,
     handleDeleteCancel,
+    resetDeleteSuccess,
   } = useUnifiedDelete()
 
   // File management handlers - now simplified since AttachmentModal handles uploads
@@ -251,18 +254,41 @@ export function ObjectDetailsSheet({
     handleDelete({ uuid: objectId, name: objectName })
   }
 
-  // Handle creating a template from this object
-  const handleCreateTemplate = async () => {
+  // Handle opening the template creation dialog
+  const handleCreateTemplate = () => {
+    if (!object) return
+    setIsTemplateDialogOpen(true)
+  }
+
+  // Get initial template data from the current object
+  const getInitialTemplateData = () => {
+    if (!object) return { name: '', abbreviation: '', version: '1.0', description: '' }
+    
+    return {
+      name: `${object.name} Template`,
+      abbreviation: object.abbreviation || '',
+      version: '1.0',
+      description: `Template created from ${object.name}`,
+    }
+  }
+
+  // Handle confirming template creation with user-provided data
+  const handleConfirmTemplateCreation = async (templateData: {
+    name: string
+    abbreviation: string
+    version: string
+    description: string
+  }) => {
     if (!object) return
 
     setIsCreatingTemplate(true)
     try {
       // Transform object data to template format (strip address, files, parents)
-      const templateData = {
-        name: `${object.name} Template`,
-        abbreviation: object.abbreviation || '',
-        version: '1.0',
-        description: `Template created from ${object.name}`,
+      const fullTemplateData = {
+        name: templateData.name,
+        abbreviation: templateData.abbreviation,
+        version: templateData.version,
+        description: templateData.description,
         properties:
           properties?.map((prop: any) => ({
             key: prop.key,
@@ -286,7 +312,7 @@ export function ObjectDetailsSheet({
         parents: [], // Don't copy parent relationships
       }
 
-      const success = await createTemplate(templateData)
+      const success = await createTemplate(fullTemplateData)
       if (success) {
         // Close the sheet after successful template creation
         onClose()
@@ -313,11 +339,11 @@ export function ObjectDetailsSheet({
 
   // Close sheet after successful delete
   useEffect(() => {
-    if (!isDeleteModalOpen && objectToDelete) {
-      // If modal was closed and we had an object to delete, close the sheet
+    if (wasDeleteSuccessful) {
       onClose()
+      resetDeleteSuccess() // Reset the success state for next time
     }
-  }, [isDeleteModalOpen, objectToDelete, onClose])
+  }, [wasDeleteSuccessful, onClose, resetDeleteSuccess])
 
   // Get computed values
   const objectName = getObjectDisplayName(object)
@@ -336,7 +362,7 @@ export function ObjectDetailsSheet({
               </span>
               {object?.uuid && (
                 <div className="flex items-center gap-2">
-                  {isDeleted ? (
+                  {isDeleted && (
                     <Button
                       type="button"
                       variant="ghost"
@@ -350,22 +376,6 @@ export function ObjectDetailsSheet({
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <RotateCcw className="h-4 w-4" />
-                      )}
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCreateTemplate}
-                      disabled={isCreatingTemplate}
-                      className="text-muted-foreground hover:text-foreground"
-                      title="Create template from this object"
-                    >
-                      {isCreatingTemplate ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <FileText className="h-4 w-4" />
                       )}
                     </Button>
                   )}
@@ -454,47 +464,70 @@ export function ObjectDetailsSheet({
           )}
 
           <SheetFooter className="border-t pt-4">
-            <div className="flex w-full items-center gap-2">
-              <Button type="button" onClick={onClose} className="w-full">
-                Close
-              </Button>
-              {object?.uuid && (
-                <>
-                  {isDeleted ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleRevertObject}
-                      disabled={isReverting}
-                      className="w-full"
-                    >
-                      {isReverting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Restoring...
-                        </>
-                      ) : (
-                        <>
-                          <RotateCcw className="h-4 w-4 mr-2" />
-                          Restore
-                        </>
-                      )}
-                    </Button>
+            <div className="flex w-full flex-col gap-2">
+              <div className="flex w-full items-center gap-2">
+                <Button type="button" onClick={onClose} className="w-full">
+                  Close
+                </Button>
+                {object?.uuid && (
+                  <>
+                    {isDeleted ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleRevertObject}
+                        disabled={isReverting}
+                        className="w-full"
+                      >
+                        {isReverting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Restoring...
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Restore
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() =>
+                          handleDeleteObject(object.uuid, object.name)
+                        }
+                        disabled={isDeleting}
+                        className="text-white w-full"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+              {object?.uuid  && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCreateTemplate}
+                  disabled={isCreatingTemplate}
+                  className="w-full"
+                >
+                  {isCreatingTemplate ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating Template...
+                    </>
                   ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        handleDeleteObject(object.uuid, object.name)
-                      }
-                      disabled={isDeleting}
-                      className="text-destructive w-full"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Create Template
+                    </>
                   )}
-                </>
+                </Button>
               )}
             </div>
           </SheetFooter>
@@ -555,6 +588,15 @@ export function ObjectDetailsSheet({
           }}
         />
       )}
+
+      {/* Template Creation Dialog */}
+      <TemplateCreationDialog
+        open={isTemplateDialogOpen}
+        onOpenChange={setIsTemplateDialogOpen}
+        initialData={getInitialTemplateData()}
+        onConfirm={handleConfirmTemplateCreation}
+        isCreating={isCreatingTemplate}
+      />
     </>
   )
 }

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { Button } from '@/components/ui/button'
 import { CollapsibleProperty } from './collapsible-property'
 
 interface PropertySectionEditorProps {
@@ -206,14 +206,7 @@ export function PropertySectionEditor({
         />
       ))}
 
-      {isEditable && (
-        <Button variant="outline" onClick={handleAddProperty} className="mt-2">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Property
-        </Button>
-      )}
-
-      {editedProperties.length === 0 && (
+      {editedProperties.length === 0 ? (
         <div className="text-center p-4 border rounded-md bg-muted/10">
           <p className="text-muted-foreground">No properties defined</p>
           {isEditable && (
@@ -228,6 +221,13 @@ export function PropertySectionEditor({
             </Button>
           )}
         </div>
+      ) : (
+        isEditable && (
+          <Button variant="outline" onClick={handleAddProperty} className="mt-2">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Property
+          </Button>
+        )
       )}
     </div>
   )

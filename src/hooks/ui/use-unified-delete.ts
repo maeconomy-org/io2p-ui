@@ -14,6 +14,7 @@ export function useUnifiedDelete() {
   const [objectToDelete, setObjectToDelete] = useState<ObjectToDelete | null>(
     null
   )
+  const [wasDeleteSuccessful, setWasDeleteSuccessful] = useState(false)
 
   const { useDeleteObject } = useObjects()
   const { mutateAsync: deleteObject, isPending: isDeleting } = useDeleteObject()
@@ -21,6 +22,7 @@ export function useUnifiedDelete() {
   const handleDelete = (object: ObjectToDelete) => {
     setObjectToDelete(object)
     setIsDeleteModalOpen(true)
+    setWasDeleteSuccessful(false)
   }
 
   const handleDeleteConfirm = async () => {
@@ -34,6 +36,7 @@ export function useUnifiedDelete() {
       toast.success('Object deleted successfully', { id: 'delete-object' })
       setIsDeleteModalOpen(false)
       setObjectToDelete(null)
+      setWasDeleteSuccessful(true)
     } catch (error) {
       console.error('Error deleting object:', error)
       toast.error('Failed to delete object', { id: 'delete-object' })
@@ -45,13 +48,19 @@ export function useUnifiedDelete() {
     setObjectToDelete(null)
   }
 
+  const resetDeleteSuccess = () => {
+    setWasDeleteSuccessful(false)
+  }
+
   return {
     isDeleteModalOpen,
     objectToDelete,
     isDeleting,
+    wasDeleteSuccessful,
     handleDelete,
     handleDeleteConfirm,
     handleDeleteCancel,
+    resetDeleteSuccess,
     setIsDeleteModalOpen,
   }
 }
