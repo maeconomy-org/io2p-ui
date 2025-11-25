@@ -103,7 +103,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   // Pagination handlers
   const handlePageChange = async (page: number) => {
     if (searchQuery) {
-      await executeSearchWithPagination(searchQuery, page - 1) // Convert from 1-based to 0-based
+      await executeSearchWithPagination(searchQuery, page) // page is already 0-based from TablePagination
     }
   }
 
