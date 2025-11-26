@@ -28,9 +28,9 @@ export const addressSchema = z.object({
 
 export const objectModelSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  abbreviation: z.string().min(1, 'Abbreviation is required'),
-  version: z.string().min(1, 'Version is required'),
-  description: z.string().min(1, 'Description is required'),
+  abbreviation: z.string().optional(),
+  version: z.string().optional(),
+  description: z.string().optional(),
   properties: z.array(propertySchema),
 })
 

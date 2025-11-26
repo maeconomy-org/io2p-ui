@@ -371,7 +371,16 @@ export function ObjectAddSheet({
             </div>
 
             <SheetFooter className="border-t pt-4">
-              <div className="flex w-full justify-between items-center gap-2">
+              <div className="flex flex-col-reverse sm:flex-row w-full justify-between items-center gap-2">
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
                 <Button className="w-full" type="submit" disabled={isCreating}>
                   {isCreating ? (
                     <>
@@ -381,15 +390,6 @@ export function ObjectAddSheet({
                   ) : (
                     'Create'
                   )}
-                </Button>
-                <Button
-                  className="w-full"
-                  type="button"
-                  variant="outline"
-                  onClick={onClose}
-                  disabled={isCreating}
-                >
-                  Cancel
                 </Button>
               </div>
             </SheetFooter>

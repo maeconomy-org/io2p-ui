@@ -170,7 +170,7 @@ export function ObjectModelSheet({
                     <FormItem>
                       <FormLabel>Abbreviation</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. SB" {...field} />
+                        <Input placeholder="e.g. SB (optional)" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -183,7 +183,7 @@ export function ObjectModelSheet({
                     <FormItem>
                       <FormLabel>Version</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. 1.0" {...field} />
+                        <Input placeholder="e.g. 1.0 (optional)" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -256,6 +256,15 @@ export function ObjectModelSheet({
 
             {/* Footer with actions */}
             <SheetFooter className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="w-full"
+                disabled={isCreating}
+              >
+                Cancel
+              </Button>
               <Button type="submit" className="w-full" disabled={isCreating}>
                 {isCreating ? (
                   <>
@@ -267,15 +276,6 @@ export function ObjectModelSheet({
                 ) : (
                   'Create Model'
                 )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="w-full"
-                disabled={isCreating}
-              >
-                Cancel
               </Button>
             </SheetFooter>
           </form>

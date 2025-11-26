@@ -206,7 +206,7 @@ export function ObjectSelectionModal({
           )}
 
           {/* Quantity (Required) and Unit (Optional) */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="quantity">Quantity</Label>
               <Input
@@ -252,11 +252,11 @@ export function ObjectSelectionModal({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleCancel}>
+          <div className="flex flex-col-reverse sm:flex-row w-full gap-4 sm:justify-end">
+            <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" disabled={!selectedObject}>
+            <Button type="submit" disabled={!selectedObject} className="flex-1">
               {initialData ? 'Update' : 'Add'} Material
             </Button>
           </div>

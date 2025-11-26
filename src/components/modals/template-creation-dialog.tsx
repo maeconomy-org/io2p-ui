@@ -130,12 +130,13 @@ export function TemplateCreationDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex w-full gap-2">
           <Button
             type="button"
             variant="outline"
             onClick={handleCancel}
             disabled={isCreating}
+            className="flex-1"
           >
             Cancel
           </Button>
@@ -143,6 +144,7 @@ export function TemplateCreationDialog({
             type="button"
             onClick={handleConfirm}
             disabled={isCreating || !templateData.name.trim()}
+            className="flex-1"
           >
             {isCreating ? (
               <>

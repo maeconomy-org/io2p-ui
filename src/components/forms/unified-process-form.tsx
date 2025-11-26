@@ -438,7 +438,7 @@ export default function UnifiedProcessForm({
             </Card>
           )}
         {/* Form Actions */}
-        <div className="flex gap-2 pt-4">
+        <div className="flex flex-col-reverse sm:flex-row w-full gap-2 pt-4">
           <Button
             type="button"
             variant="outline"

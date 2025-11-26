@@ -465,8 +465,8 @@ export function ObjectDetailsSheet({
 
           <SheetFooter className="border-t pt-4">
             <div className="flex w-full flex-col gap-2">
-              <div className="flex w-full items-center gap-2">
-                <Button type="button" onClick={onClose} className="w-full">
+              <div className="flex flex-col-reverse sm:flex-row w-full items-center gap-2">
+                <Button type="button" variant="outline" onClick={onClose} className="w-full">
                   Close
                 </Button>
                 {object?.uuid && (
@@ -474,7 +474,7 @@ export function ObjectDetailsSheet({
                     {isDeleted ? (
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="default"
                         onClick={handleRevertObject}
                         disabled={isReverting}
                         className="w-full"

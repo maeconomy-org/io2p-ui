@@ -31,10 +31,10 @@ export function DeleteConfirmationDialog({
             This will soft delete &quot;{objectName}&quot; and cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="flex w-full gap-2">
+          <AlertDialogCancel className="flex-1">Cancel</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive hover:bg-destructive/90"
+            className="bg-destructive hover:bg-destructive/90 flex-1"
             onClick={onDelete}
           >
             Delete
