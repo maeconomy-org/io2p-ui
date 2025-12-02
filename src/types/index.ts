@@ -1,4 +1,5 @@
 export * from './sdk'
 export * from './files'
 export * from './sankey'
+export * from './sankey-metadata'
 export * from './object'

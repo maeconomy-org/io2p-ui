@@ -6,11 +6,12 @@ import { PlusCircle, Loader2, Filter, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { MaterialRelationship } from '@/types'
-import { useStatements, useSankeyData } from '@/hooks'
+import type { UUID } from 'iom-sdk'
+import { useStatements, useSankeyDiagramData } from '@/hooks'
 import { RelationshipsTable } from '@/components/tables'
 import { LoadingState } from '@/components/loading-state'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
-import { NetworkDiagram, SankeyDiagram } from '@/components/diagrams'
+import { SankeyDiagram, NetworkDiagram } from '@/components/diagrams'
 import { ProcessViewSelector } from '@/components/process-view-selector'
 import { ProcessFormSheet, RelationshipDetailsSheet } from '@/components/sheets'
 import { ProcessViewType, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
@@ -39,10 +40,10 @@ const MaterialFlowPage = () => {
     router.push('/processes')
   }
 
-  // Simplified data fetching using custom hook
-  const { materials, relationships, isLoading } = useSankeyData({
-    objectUuid,
-  })
+  // Enhanced data fetching using new metadata-driven hook
+  const { materials, relationships, isLoading } = useSankeyDiagramData(
+    objectUuid as UUID | undefined
+  )
 
   // API hooks for mutations only
   const { useCreateProcessFlow } = useStatements()
@@ -52,17 +53,30 @@ const MaterialFlowPage = () => {
     try {
       toast.loading('Creating process flow...', { id: 'create-process-flow' })
       const result = await createProcessFlowMutation.mutateAsync({
-        processName: newProcess.name,
-        processType: newProcess.type,
+        processMetadata: {
+          processName: newProcess.name,
+          processType: newProcess.type,
+          quantity: 0,
+          unit: 'kg',
+          ...(newProcess.processMetadata || {}),
+        },
         inputMaterials: newProcess.inputMaterials.map((input: any) => ({
           uuid: input.object.uuid,
           quantity: input.quantity,
           unit: input.unit,
+          metadata: {
+            ...(input.metadata || {}),
+            ...(input.customProperties || {}), // Merge custom properties into metadata
+          },
         })),
         outputMaterials: newProcess.outputMaterials.map((output: any) => ({
           uuid: output.object.uuid,
           quantity: output.quantity,
           unit: output.unit,
+          metadata: {
+            ...(output.metadata || {}),
+            ...(output.customProperties || {}), // Merge custom properties into metadata
+          },
         })),
       })
 

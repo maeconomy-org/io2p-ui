@@ -18,14 +18,48 @@ import {
   SelectValue,
   Badge,
   ScrollArea,
+  Checkbox,
+  Textarea,
 } from '@/components/ui'
 import { useCommonApi } from '@/hooks/api'
 import { UNIT_CATEGORIES } from '@/constants'
+import { 
+  LifecycleStage, 
+  FlowCategory, 
+  QualityChangeCode, 
+  MaterialFlowMetadata,
+  DOMAIN_CATEGORY_CODES 
+} from '@/types/sankey-metadata'
+
+const LIFECYCLE_STAGES: LifecycleStage[] = [
+  'PRIMARY_INPUT',
+  'SECONDARY_INPUT',
+  'REUSED_COMPONENT',
+  'PROCESSING',
+  'COMPONENT',
+  'PRODUCT',
+  'USE_PHASE',
+  'WASTE',
+  'DISPOSAL'
+]
+
+const FLOW_CATEGORIES: FlowCategory[] = [
+  'STANDARD',
+  'RECYCLING',
+  'REUSE',
+  'DOWNCYCLING',
+  'CIRCULAR',
+  'WASTE_FLOW'
+]
+
+const QUALITY_CHANGE_CODES: QualityChangeCode[] = ['UP', 'SAME', 'DOWN']
 
 interface ObjectSelectionData {
   object: UUObjectDTO
   quantity: number
   unit?: string
+  metadata?: MaterialFlowMetadata
+  customProperties?: Record<string, string>
 }
 
 interface ObjectSelectionModalProps {
@@ -34,6 +68,8 @@ interface ObjectSelectionModalProps {
   onSave: (data: ObjectSelectionData) => void
   title?: string
   initialData?: ObjectSelectionData
+  materialType?: 'input' | 'output'
+  showMetadataFields?: boolean
 }
 
 export function ObjectSelectionModal({
@@ -42,11 +78,19 @@ export function ObjectSelectionModal({
   onSave,
   title = 'Select Object',
   initialData,
+  materialType = 'input',
+  showMetadataFields = true,
 }: ObjectSelectionModalProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedObject, setSelectedObject] = useState<UUObjectDTO | null>(null)
   const [quantity, setQuantity] = useState<number | undefined>(undefined)
   const [unit, setUnit] = useState<string>('')
+  
+  // Metadata fields
+  const [metadata, setMetadata] = useState<MaterialFlowMetadata>({})
+  const [customProperties, setCustomProperties] = useState<Record<string, string>>({})
+  const [newPropertyKey, setNewPropertyKey] = useState('')
+  const [newPropertyValue, setNewPropertyValue] = useState('')
 
   const { useSearch } = useCommonApi()
   const searchMutation = useSearch()
@@ -89,12 +133,18 @@ export function ObjectSelectionModal({
       setSelectedObject(initialData.object)
       setQuantity(initialData.quantity)
       setUnit(initialData.unit || '')
+      setMetadata(initialData.metadata || {})
+      setCustomProperties(initialData.customProperties || {})
     } else {
       setSelectedObject(null)
       setQuantity(undefined)
       setUnit('')
+      setMetadata({})
+      setCustomProperties({})
     }
     setSearchTerm('')
+    setNewPropertyKey('')
+    setNewPropertyValue('')
   }, [initialData, isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -108,14 +158,59 @@ export function ObjectSelectionModal({
       object: selectedObject,
       quantity,
       ...(unit && { unit }),
+      metadata: showMetadataFields ? metadata : undefined,
+      customProperties: Object.keys(customProperties).length > 0 ? customProperties : undefined,
     })
 
     // Reset form
     setSelectedObject(null)
     setQuantity(undefined)
     setUnit('')
+    setMetadata({})
+    setCustomProperties({})
+    setNewPropertyKey('')
+    setNewPropertyValue('')
     setSearchTerm('')
     setObjects([])
+  }
+
+  // Handle metadata updates
+  const updateMetadata = (field: keyof MaterialFlowMetadata, value: any) => {
+    setMetadata(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      }
+      
+      // Auto-determine material flags from lifecycle stage
+      if (field === 'inputLifecycleStage' || field === 'outputLifecycleStage') {
+        const stage = value as LifecycleStage
+        updated.isReusedInput = stage === 'REUSED_COMPONENT'
+        updated.isRecyclingMaterial = stage === 'SECONDARY_INPUT'
+      }
+      
+      return updated
+    })
+  }
+
+  // Handle custom properties
+  const addCustomProperty = () => {
+    if (newPropertyKey.trim() && newPropertyValue.trim()) {
+      setCustomProperties(prev => ({
+        ...prev,
+        [newPropertyKey.trim()]: newPropertyValue.trim()
+      }))
+      setNewPropertyKey('')
+      setNewPropertyValue('')
+    }
+  }
+
+  const removeCustomProperty = (key: string) => {
+    setCustomProperties(prev => {
+      const updated = { ...prev }
+      delete updated[key]
+      return updated
+    })
   }
 
   const handleCancel = () => {
@@ -129,18 +224,16 @@ export function ObjectSelectionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-blue-600" />
             {title}
           </DialogTitle>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit}
-          className="flex-1 flex flex-col space-y-4 mt-4"
-        >
+        <ScrollArea className="flex-1 overflow-auto">
+          <div className="space-y-4 p-1">
           {/* Search Objects */}
           <div className="space-y-2">
             <Label htmlFor="search">Search Objects</Label>
@@ -226,8 +319,8 @@ export function ObjectSelectionModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="unit">Unit (Optional)</Label>
-              <Select value={unit} onValueChange={setUnit}>
+              <Label htmlFor="unit">Unit</Label>
+              <Select value={unit} onValueChange={setUnit} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select unit" />
                 </SelectTrigger>
@@ -251,16 +344,207 @@ export function ObjectSelectionModal({
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-col-reverse sm:flex-row w-full gap-4 sm:justify-end">
-            <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!selectedObject} className="flex-1">
-              {initialData ? 'Update' : 'Add'} Material
-            </Button>
+          {/* Metadata Fields */}
+          {showMetadataFields && (
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700">Material Metadata</h3>
+              
+              {/* Lifecycle Stage */}
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="lifecycleStage">
+                    {materialType === 'input' ? 'Input' : 'Output'} Lifecycle Stage
+                  </Label>
+                  <Select 
+                    value={materialType === 'input' ? metadata.inputLifecycleStage || '' : metadata.outputLifecycleStage || ''} 
+                    onValueChange={(value) => updateMetadata(
+                      materialType === 'input' ? 'inputLifecycleStage' : 'outputLifecycleStage', 
+                      value as LifecycleStage
+                    )}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select lifecycle stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LIFECYCLE_STAGES.map((stage) => (
+                        <SelectItem key={stage} value={stage}>
+                          {stage.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="categoryCode">Material Category (Optional)</Label>
+                  <Select 
+                    value={materialType === 'input' ? metadata.inputCategoryCode || '' : metadata.outputCategoryCode || ''} 
+                    onValueChange={(value) => updateMetadata(
+                      materialType === 'input' ? 'inputCategoryCode' : 'outputCategoryCode', 
+                      value
+                    )}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(DOMAIN_CATEGORY_CODES).map(([key, value]) => (
+                        <SelectItem key={key} value={key}>
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="flowCategory">Flow Category</Label>
+                  <Select 
+                    value={metadata.flowCategory || ''} 
+                    onValueChange={(value) => updateMetadata('flowCategory', value as FlowCategory)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select flow type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FLOW_CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Impact Data */}
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="emissionsTotal">Emissions (Optional)</Label>
+                  <Input
+                    id="emissionsTotal"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={metadata.emissionsTotal || ''}
+                    onChange={(e) => updateMetadata('emissionsTotal', e.target.value ? Number(e.target.value) : undefined)}
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="materialLossPercent">Material Loss % (Optional)</Label>
+                  <Input
+                    id="materialLossPercent"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={metadata.materialLossPercent || ''}
+                    onChange={(e) => updateMetadata('materialLossPercent', e.target.value ? Number(e.target.value) : undefined)}
+                    placeholder="0.0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="qualityChange">Quality Change (Optional)</Label>
+                  <Select 
+                    value={metadata.qualityChangeCode || ''} 
+                    onValueChange={(value) => updateMetadata('qualityChangeCode', value as QualityChangeCode)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {QUALITY_CHANGE_CODES.map((code) => (
+                        <SelectItem key={code} value={code}>
+                          {code === 'UP' ? 'Upcycled' : code === 'DOWN' ? 'Downcycled' : 'Same Quality'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  value={metadata.notes || ''}
+                  onChange={(e) => updateMetadata('notes', e.target.value)}
+                  placeholder="Additional notes about this material flow..."
+                  rows={2}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Custom Properties */}
+          <div className="space-y-4 border-t pt-4">
+            <h3 className="text-sm font-semibold text-gray-700">Custom Properties (Optional)</h3>
+            
+            {/* Existing Custom Properties */}
+            {Object.entries(customProperties).length > 0 && (
+              <div className="space-y-2">
+                {Object.entries(customProperties).map(([key, value]) => (
+                  <div key={key} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <span className="font-medium text-sm">{key}:</span>
+                    <span className="text-sm flex-1">{value}</span>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => removeCustomProperty(key)}
+                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add New Custom Property */}
+            <div className="grid sm:grid-cols-3 gap-2">
+              <Input
+                placeholder="Property name"
+                value={newPropertyKey}
+                onChange={(e) => setNewPropertyKey(e.target.value)}
+              />
+              <Input
+                placeholder="Property value"
+                value={newPropertyValue}
+                onChange={(e) => setNewPropertyValue(e.target.value)}
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={addCustomProperty}
+                disabled={!newPropertyKey.trim() || !newPropertyValue.trim()}
+              >
+                Add Property
+              </Button>
+            </div>
           </div>
-        </form>
+
+          </div>
+        </ScrollArea>
+        
+        {/* Actions - Fixed at bottom */}
+        <div className="flex-shrink-0 flex flex-col-reverse sm:flex-row w-full gap-4 sm:justify-end pt-4 border-t">
+          <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
+            Cancel
+          </Button>
+          <Button 
+            type="button" 
+            onClick={handleSubmit}
+            disabled={!selectedObject || !quantity || quantity <= 0 || !unit}
+            className="flex-1"
+          >
+            {initialData ? 'Update' : 'Add'} Material
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   )

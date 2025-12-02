@@ -8,6 +8,7 @@ import type {
 } from 'iom-sdk'
 
 import { useIomSdkClient } from '@/contexts'
+import type { ProcessMetadata, MaterialFlowMetadata } from '@/types'
 
 export function useStatements() {
   const client = useIomSdkClient()
@@ -69,20 +70,17 @@ export function useStatements() {
         predicate,
         object,
         processMetadata,
+        materialMetadata,
       }: {
         subject: UUID
         predicate: Predicate
         object: UUID
-        processMetadata: {
-          processName: string
-          processType: string
-          quantity: number
-          unit: string
-          [key: string]: any // Allow additional metadata
-        }
+        processMetadata: ProcessMetadata
+        materialMetadata?: MaterialFlowMetadata
       }) => {
         // Create statement properties from process metadata
         const properties: UUStatementsProperty[] = [
+          // Core process properties
           {
             key: 'processName',
             values: [{ value: processMetadata.processName }],
@@ -99,19 +97,76 @@ export function useStatements() {
             key: 'unit',
             values: [{ value: processMetadata.unit }],
           },
-          // Add any additional metadata properties
-          ...Object.entries(processMetadata)
-            .filter(
-              ([key]) =>
-                !['processName', 'processType', 'quantity', 'unit'].includes(
-                  key
-                )
-            )
-            .map(([key, value]) => ({
-              key,
-              values: [{ value: String(value) }],
-            })),
         ]
+
+        // Add process-level lifecycle metadata
+        if (processMetadata.processCategory) {
+          properties.push({
+            key: 'processCategory',
+            values: [{ value: processMetadata.processCategory }],
+          })
+        }
+        if (processMetadata.isRecycling !== undefined) {
+          properties.push({
+            key: 'isRecycling',
+            values: [{ value: String(processMetadata.isRecycling) }],
+          })
+        }
+        if (processMetadata.isDeconstruction !== undefined) {
+          properties.push({
+            key: 'isDeconstruction',
+            values: [{ value: String(processMetadata.isDeconstruction) }],
+          })
+        }
+        if (processMetadata.sourceBuildingUuid) {
+          properties.push({
+            key: 'sourceBuildingUuid',
+            values: [{ value: processMetadata.sourceBuildingUuid }],
+          })
+        }
+        if (processMetadata.targetBuildingUuid) {
+          properties.push({
+            key: 'targetBuildingUuid',
+            values: [{ value: processMetadata.targetBuildingUuid }],
+          })
+        }
+
+        // Add material-level flow metadata if provided
+        if (materialMetadata) {
+          Object.entries(materialMetadata).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              properties.push({
+                key,
+                values: [{ value: String(value) }],
+              })
+            }
+          })
+        }
+
+        // Add any additional metadata properties not already handled
+        Object.entries(processMetadata)
+          .filter(
+            ([key]) =>
+              ![
+                'processName',
+                'processType', 
+                'quantity',
+                'unit',
+                'processCategory',
+                'isRecycling',
+                'isDeconstruction',
+                'sourceBuildingUuid',
+                'targetBuildingUuid'
+              ].includes(key)
+          )
+          .forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              properties.push({
+                key,
+                values: [{ value: String(value) }],
+              })
+            }
+          })
 
         // Create the statement with properties
         const statement = await createStatementMutation.mutateAsync({
@@ -136,15 +191,23 @@ export function useStatements() {
 
     return useMutation({
       mutationFn: async ({
-        processName,
-        processType,
+        processMetadata,
         inputMaterials,
         outputMaterials,
       }: {
-        processName: string
-        processType: string
-        inputMaterials: Array<{ uuid: UUID; quantity: number; unit: string }>
-        outputMaterials: Array<{ uuid: UUID; quantity: number; unit: string }>
+        processMetadata: ProcessMetadata
+        inputMaterials: Array<{ 
+          uuid: UUID
+          quantity: number
+          unit: string
+          metadata?: MaterialFlowMetadata
+        }>
+        outputMaterials: Array<{ 
+          uuid: UUID
+          quantity: number
+          unit: string
+          metadata?: MaterialFlowMetadata
+        }>
       }) => {
         const results = []
 
@@ -152,16 +215,22 @@ export function useStatements() {
         // This avoids creating redundant IS_OUTPUT_OF statements that cause cycles
         for (const input of inputMaterials) {
           for (const output of outputMaterials) {
+            // Merge input and output metadata for this specific flow
+            const flowMetadata: MaterialFlowMetadata = {
+              ...input.metadata,
+              ...output.metadata,
+            }
+
             const result = await createProcessStatementMutation.mutateAsync({
               subject: input.uuid,
               predicate: 'IS_INPUT_OF' as Predicate,
               object: output.uuid,
               processMetadata: {
-                processName,
-                processType,
+                ...processMetadata,
                 quantity: input.quantity,
                 unit: input.unit,
               },
+              materialMetadata: flowMetadata,
             })
             results.push(result)
           }

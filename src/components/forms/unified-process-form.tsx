@@ -12,16 +12,41 @@ import {
   CardHeader,
   CardTitle,
   Badge,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Checkbox,
 } from '@/components/ui'
 import { ObjectSelectionModal } from '@/components/modals'
 import type { MaterialRelationship } from '@/types'
+import { 
+  ProcessMetadata, 
+  MaterialFlowMetadata, 
+  ProcessCategory,
+  DOMAIN_CATEGORY_CODES 
+} from '@/types/sankey-metadata'
 import { PROCESS_TYPES } from '@/constants'
 
-// Material with quantity and unit for process flows
+const PROCESS_CATEGORIES: ProcessCategory[] = [
+  'CONSTRUCTION',
+  'DECONSTRUCTION', 
+  'SORTING',
+  'RECYCLING',
+  'REFURBISHMENT',
+  'TRANSPORT',
+  'DEMOLITION',
+  'DISPOSAL'
+]
+
+// Enhanced material with quantity, unit, and metadata for process flows
 interface ProcessMaterial {
   object: UUObjectDTO
   quantity?: number
   unit?: string
+  metadata?: MaterialFlowMetadata
+  customProperties?: Record<string, string>
 }
 
 interface ProcessFlowData {
@@ -32,6 +57,7 @@ interface ProcessFlowData {
   inputMaterials: ProcessMaterial[]
   outputMaterials: ProcessMaterial[]
   relationships: MaterialRelationship[]
+  processMetadata?: ProcessMetadata
   createdAt: string
   updatedAt: string
 }
@@ -55,6 +81,12 @@ export default function UnifiedProcessForm({
     inputMaterials: [],
     outputMaterials: [],
     relationships: [],
+    processMetadata: {
+      processName: '',
+      processType: 'processing',
+      quantity: 0,
+      unit: 'kg',
+    },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   })
@@ -83,6 +115,12 @@ export default function UnifiedProcessForm({
         inputMaterials: [],
         outputMaterials: [],
         relationships: [],
+        processMetadata: {
+          processName: '',
+          processType: 'processing',
+          quantity: 0,
+          unit: 'kg',
+        },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -114,11 +152,15 @@ export default function UnifiedProcessForm({
     object: UUObjectDTO
     quantity?: number
     unit?: string
+    metadata?: MaterialFlowMetadata
+    customProperties?: Record<string, string>
   }) => {
     const material: ProcessMaterial = {
       object: data.object,
       quantity: data.quantity,
       unit: data.unit,
+      metadata: data.metadata,
+      customProperties: data.customProperties,
     }
 
     if (editingMaterial) {
@@ -245,6 +287,35 @@ export default function UnifiedProcessForm({
               <p className="text-sm text-red-500">{errors.name}</p>
             )}
           </div>
+
+          {/* Process Metadata */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="processCategory">Process Category</Label>
+              <Select 
+                value={formData.processMetadata?.processCategory || ''} 
+                onValueChange={(value) => setFormData({
+                  ...formData,
+                  processMetadata: {
+                    ...formData.processMetadata!,
+                    processCategory: value as ProcessCategory
+                  }
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select process category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROCESS_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -288,6 +359,20 @@ export default function UnifiedProcessForm({
                               ? material.quantity
                               : ''}{' '}
                             {material.unit || ''}
+                          </div>
+                        )}
+                        {material.metadata && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {material.metadata.inputLifecycleStage && (
+                              <Badge variant="outline" className="text-xs">
+                                {material.metadata.inputLifecycleStage.replace('_', ' ')}
+                              </Badge>
+                            )}
+                            {material.metadata.flowCategory && material.metadata.flowCategory !== 'STANDARD' && (
+                              <Badge variant="secondary" className="text-xs">
+                                {material.metadata.flowCategory.replace('_', ' ')}
+                              </Badge>
+                            )}
                           </div>
                         )}
                       </div>
@@ -363,6 +448,25 @@ export default function UnifiedProcessForm({
                               ? material.quantity
                               : ''}{' '}
                             {material.unit || ''}
+                          </div>
+                        )}
+                        {material.metadata && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {material.metadata.outputLifecycleStage && (
+                              <Badge variant="outline" className="text-xs">
+                                {material.metadata.outputLifecycleStage.replace('_', ' ')}
+                              </Badge>
+                            )}
+                            {material.metadata.flowCategory && material.metadata.flowCategory !== 'STANDARD' && (
+                              <Badge variant="secondary" className="text-xs">
+                                {material.metadata.flowCategory.replace('_', ' ')}
+                              </Badge>
+                            )}
+                            {material.metadata.emissionsTotal && (
+                              <Badge variant="default" className="text-xs bg-orange-100 text-orange-800">
+                                {material.metadata.emissionsTotal} {material.metadata.emissionsUnit || 'kgCO2e'}
+                              </Badge>
+                            )}
                           </div>
                         )}
                       </div>
@@ -462,12 +566,16 @@ export default function UnifiedProcessForm({
           setEditingMaterial(null)
         }}
         onSave={handleObjectSave}
+        materialType={materialType}
+        showMetadataFields={true}
         initialData={
           editingMaterial
             ? {
                 object: editingMaterial.object,
                 quantity: editingMaterial.quantity,
                 unit: editingMaterial.unit,
+                metadata: editingMaterial.metadata,
+                customProperties: editingMaterial.customProperties,
               }
             : undefined
         }
