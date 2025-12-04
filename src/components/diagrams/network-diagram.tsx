@@ -232,7 +232,7 @@ export function NetworkDiagram({
     <div className={`w-full ${className}`}>
       {/* Network Statistics */}
       {stats && (
-        <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div className="my-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div className="bg-blue-50 p-4 rounded-lg">
             <div className="text-2xl font-bold text-blue-600">
               {stats.totalMaterials}

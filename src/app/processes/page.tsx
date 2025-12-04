@@ -6,6 +6,7 @@ import { PlusCircle, Loader2, Filter, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { MaterialRelationship } from '@/types'
+import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
 import type { UUID } from 'iom-sdk'
 import { useStatements, useSankeyDiagramData } from '@/hooks'
 import { RelationshipsTable } from '@/components/tables'
@@ -22,7 +23,7 @@ const MaterialFlowPage = () => {
   const objectUuid = searchParams.get('objectUuid')
 
   const [selectedRelationship, setSelectedRelationship] =
-    useState<MaterialRelationship | null>(null)
+    useState<EnhancedMaterialRelationship | null>(null)
   const [isProcessFormOpen, setIsProcessFormOpen] = useState(false)
   const [isRelationshipSheetOpen, setIsRelationshipSheetOpen] = useState(false)
   const [activeView, setActiveView] = useState<ProcessViewType>('sankey')
@@ -93,13 +94,11 @@ const MaterialFlowPage = () => {
     }
   }
 
-  const handleRelationshipSelect = (relationship: MaterialRelationship) => {
+  const handleRelationshipSelect = (relationship: EnhancedMaterialRelationship) => {
     setSelectedRelationship(relationship)
     setIsRelationshipSheetOpen(true)
   }
 
-  // Debug: Uncomment for troubleshooting
-  // console.log('Processes data:', { materials, relationships })
 
   return (
     <div className="container mx-auto p-4">

@@ -45,6 +45,16 @@ export function useSankeyDiagramData(objectUuid?: UUID): SankeyDiagramData & { l
     ? useObjectRelationships(objectUuid, { predicate: 'IS_INPUT_OF' })
     : useStatementsByPredicate('IS_INPUT_OF')
 
+  // Debug: Log raw API responses
+  console.log('Raw API responses:', {
+    objectUuid,
+    inputStatementsQuery: {
+      data: inputStatementsQuery.data,
+      isLoading: inputStatementsQuery.isLoading,
+      error: inputStatementsQuery.error
+    }
+  })
+
   // Extract participating object UUIDs
   const participatingUUIDs = useMemo(() => {
     const statements = objectUuid 
@@ -56,13 +66,17 @@ export function useSankeyDiagramData(objectUuid?: UUID): SankeyDiagramData & { l
       uuids.add(stmt.subject)
       uuids.add(stmt.object)
     })
+    
+    
     return Array.from(uuids)
   }, [inputStatementsQuery.data, objectUuid])
 
   // Fetch participating objects
   const objectsQuery = useObjectsByUUIDs(participatingUUIDs, {
     enabled: participatingUUIDs.length > 0,
+    includeDeleted: false,
   })
+
 
   // Process statements and objects into enhanced materials and relationships
   const processedData = useMemo(() => {
@@ -72,11 +86,22 @@ export function useSankeyDiagramData(objectUuid?: UUID): SankeyDiagramData & { l
     
     const objects = objectsQuery.data || []
 
+    console.log('Processing data:', { 
+      statementsCount: statements.length, 
+      objectsCount: objects.length,
+      objectUuid,
+      statements: statements.slice(0, 3), // First 3 statements for debugging
+      objects: objects.slice(0, 3) // First 3 objects for debugging
+    })
+
     if (!statements.length || !objects.length) {
+      console.log('No data to process:', { statementsCount: statements.length, objectsCount: objects.length })
       return { materials: [], relationships: [] }
     }
 
-    return processStatementsWithMetadata(statements, objects)
+    const result = processStatementsWithMetadata(statements, objects)
+    console.log('Processed result:', { materialsCount: result.materials.length, relationshipsCount: result.relationships.length })
+    return result
   }, [inputStatementsQuery.data, objectsQuery.data, objectUuid])
 
   // Compute layout data
@@ -204,12 +229,13 @@ function processStatementsWithMetadata(
     const quantity = parseFloat(getPropertyValue(statement, 'quantity') || '0')
     const unit = getPropertyValue(statement, 'unit') || ''
 
-    if (!processName || quantity <= 0) {
+    if (!processName || processName === 'Unknown Process' || quantity <= 0) {
       console.warn('Skipping relationship with invalid process data:', {
         processName,
         quantity,
         subject: subjectObj.name,
         object: objectObj.name,
+        statement: statement
       })
       return
     }
@@ -424,7 +450,8 @@ function getStageFromLifecycle(stage: LifecycleStage | undefined, fallbackType: 
 // Helper functions for extracting metadata from statement properties
 function getPropertyValue(statement: UUStatementDTO, key: string): string | undefined {
   const property = statement.properties?.find((prop) => prop.key === key)
-  return property?.values?.[0]?.value
+  const value = property?.values?.[0]?.value
+  return value
 }
 
 function getBooleanPropertyValue(statement: UUStatementDTO, key: string): boolean {

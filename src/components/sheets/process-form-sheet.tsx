@@ -1,7 +1,7 @@
 'use client'
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui'
-import UnifiedProcessForm from '@/components/forms/unified-process-form'
+import ProcessForm from '@/components/forms/process-form'
 
 interface ProcessFormSheetProps {
   isOpen: boolean
@@ -31,7 +31,7 @@ export function ProcessFormSheet({
         </SheetHeader>
 
         <div className="py-4">
-          <UnifiedProcessForm
+          <ProcessForm
             process={process}
             onSave={handleSave}
             onCancel={onClose}

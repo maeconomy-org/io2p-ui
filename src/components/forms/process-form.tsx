@@ -62,17 +62,17 @@ interface ProcessFlowData {
   updatedAt: string
 }
 
-interface UnifiedProcessFormProps {
+interface ProcessFormProps {
   process?: ProcessFlowData
   onSave: (process: ProcessFlowData) => void
   onCancel: () => void
 }
 
-export default function UnifiedProcessForm({
+export default function ProcessForm({
   process,
   onSave,
   onCancel,
-}: UnifiedProcessFormProps) {
+}: ProcessFormProps) {
   const [formData, setFormData] = useState<ProcessFlowData>({
     uuid: '',
     name: '',
@@ -143,9 +143,23 @@ export default function UnifiedProcessForm({
       newErrors.outputs = 'At least one output material is required'
     }
 
+    // Check for duplicate materials between inputs and outputs
+    const inputUuids = new Set(formData.inputMaterials.map(m => m.object.uuid))
+    const outputUuids = new Set(formData.outputMaterials.map(m => m.object.uuid))
+    const duplicateUuids = [...inputUuids].filter(uuid => outputUuids.has(uuid))
+    
+    if (duplicateUuids.length > 0) {
+      const duplicateMaterials = formData.inputMaterials
+        .filter(m => duplicateUuids.includes(m.object.uuid))
+        .map(m => m.object.name)
+      
+      newErrors.duplicates = `The following materials cannot be used as both input and output: ${duplicateMaterials.join(', ')}`
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
+
 
   // Handle object selection for materials
   const handleObjectSave = (data: {
@@ -183,6 +197,13 @@ export default function UnifiedProcessForm({
       })
     }
 
+    // Clear duplicate errors when materials are added/edited (might resolve conflicts)
+    if (errors.duplicates) {
+      const newErrors = { ...errors }
+      delete newErrors.duplicates
+      setErrors(newErrors)
+    }
+
     setEditingMaterial(null)
     setIsObjectModalOpen(false)
   }
@@ -200,6 +221,13 @@ export default function UnifiedProcessForm({
         (m) => m.object.uuid !== material.object.uuid
       ),
     })
+
+    // Clear duplicate errors when removing materials (might resolve the conflict)
+    if (errors.duplicates) {
+      const newErrors = { ...errors }
+      delete newErrors.duplicates
+      setErrors(newErrors)
+    }
   }
 
   // Edit material
@@ -254,8 +282,14 @@ export default function UnifiedProcessForm({
       return
     }
 
+    // Ensure processMetadata has the form name and type synced
     const processData: ProcessFlowData = {
       ...formData,
+      processMetadata: {
+        ...formData.processMetadata!,
+        processName: formData.name,
+        processType: formData.type,
+      },
       relationships: generateRelationships(),
       updatedAt: new Date().toISOString(),
     }
@@ -273,7 +307,7 @@ export default function UnifiedProcessForm({
         {/* Process Information */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Process Name *</Label>
+            <Label htmlFor="name">Process Name</Label>
             <Input
               id="name"
               value={formData.name}
@@ -291,7 +325,7 @@ export default function UnifiedProcessForm({
           {/* Process Metadata */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="processCategory">Process Category</Label>
+              <Label htmlFor="processCategory">Process Category (Optional)</Label>
               <Select 
                 value={formData.processMetadata?.processCategory || ''} 
                 onValueChange={(value) => setFormData({
@@ -502,6 +536,25 @@ export default function UnifiedProcessForm({
             </CardContent>
           </Card>
         </div>
+
+        {/* Duplicate Materials Error */}
+        {errors.duplicates && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-xs font-bold">!</span>
+              </div>
+              <div>
+                <h4 className="font-medium text-red-900 mb-1">Duplicate Materials Detected</h4>
+                <p className="text-sm text-red-700">{errors.duplicates}</p>
+                <p className="text-xs text-red-600 mt-1">
+                  Please remove duplicate materials or use different materials for inputs and outputs.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Process Summary */}
         {formData.inputMaterials.length > 0 &&
           formData.outputMaterials.length > 0 && (
@@ -572,8 +625,8 @@ export default function UnifiedProcessForm({
           editingMaterial
             ? {
                 object: editingMaterial.object,
-                quantity: editingMaterial.quantity,
-                unit: editingMaterial.unit,
+                quantity: editingMaterial.quantity || 0,
+                unit: editingMaterial.unit || 'kg',
                 metadata: editingMaterial.metadata,
                 customProperties: editingMaterial.customProperties,
               }

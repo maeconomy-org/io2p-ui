@@ -347,10 +347,10 @@ export function ObjectSelectionModal({
           {/* Metadata Fields */}
           {showMetadataFields && (
             <div className="space-y-4 border-t pt-4">
-              <h3 className="text-sm font-semibold text-gray-700">Material Metadata</h3>
+              <h3 className="text-sm font-semibold text-gray-700">Material Metadata (Optional)</h3>
               
               {/* Lifecycle Stage */}
-              <div className="grid sm:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="lifecycleStage">
                     {materialType === 'input' ? 'Input' : 'Output'} Lifecycle Stage
@@ -376,7 +376,7 @@ export function ObjectSelectionModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="categoryCode">Material Category (Optional)</Label>
+                  <Label htmlFor="categoryCode">Material Category</Label>
                   <Select 
                     value={materialType === 'input' ? metadata.inputCategoryCode || '' : metadata.outputCategoryCode || ''} 
                     onValueChange={(value) => updateMetadata(
@@ -415,39 +415,9 @@ export function ObjectSelectionModal({
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              {/* Impact Data */}
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="emissionsTotal">Emissions (Optional)</Label>
-                  <Input
-                    id="emissionsTotal"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={metadata.emissionsTotal || ''}
-                    onChange={(e) => updateMetadata('emissionsTotal', e.target.value ? Number(e.target.value) : undefined)}
-                    placeholder="0.00"
-                  />
-                </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="materialLossPercent">Material Loss % (Optional)</Label>
-                  <Input
-                    id="materialLossPercent"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={metadata.materialLossPercent || ''}
-                    onChange={(e) => updateMetadata('materialLossPercent', e.target.value ? Number(e.target.value) : undefined)}
-                    placeholder="0.0"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="qualityChange">Quality Change (Optional)</Label>
+                  <Label htmlFor="qualityChange">Quality Change</Label>
                   <Select 
                     value={metadata.qualityChangeCode || ''} 
                     onValueChange={(value) => updateMetadata('qualityChangeCode', value as QualityChangeCode)}
@@ -466,9 +436,39 @@ export function ObjectSelectionModal({
                 </div>
               </div>
 
+              {/* Impact Data */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="emissionsTotal">Emissions</Label>
+                  <Input
+                    id="emissionsTotal"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={metadata.emissionsTotal || ''}
+                    onChange={(e) => updateMetadata('emissionsTotal', e.target.value ? Number(e.target.value) : undefined)}
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="materialLossPercent">Material Loss %</Label>
+                  <Input
+                    id="materialLossPercent"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={metadata.materialLossPercent || ''}
+                    onChange={(e) => updateMetadata('materialLossPercent', e.target.value ? Number(e.target.value) : undefined)}
+                    placeholder="0.0"
+                  />
+                </div>
+              </div>
+
               {/* Notes */}
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Label htmlFor="notes">Notes</Label>
                 <Textarea
                   id="notes"
                   value={metadata.notes || ''}
