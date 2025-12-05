@@ -44,8 +44,18 @@ export interface ProcessMetadata {
   quantity: number
   unit: string
 
-  // NEW: Process-level lifecycle metadata
+  // Process-level lifecycle metadata
   processCategory?: ProcessCategory
+  flowCategory?: FlowCategory  // For diagram link styling
+  
+  // Impact data (process-level)
+  emissionsTotal?: number       // kgCO2e emitted
+  emissionsUnit?: string        // e.g. 'kgCO2e'
+  materialLossPercent?: number  // 0–100%
+  qualityChangeCode?: QualityChangeCode
+  notes?: string               // Process notes
+  
+  // Legacy fields (for backward compatibility)
   isRecycling?: boolean
   isDeconstruction?: boolean
   sourceBuildingUuid?: string  // building that materials are recovered from
@@ -60,29 +70,27 @@ export interface ProcessMetadata {
 /**
  * Material-level metadata (per input/output selection)
  * These are added as additional properties per statement
+ * Field names are simplified - namespace prefix (input_/output_) is added when storing
  */
 export interface MaterialFlowMetadata {
-  // Lifecycle metadata
+  // Simplified lifecycle metadata (namespace prefix added when storing)
+  lifecycleStage?: LifecycleStage
+  categoryCode?: string    // e.g. 'CONCRETE', 'WINDOW_UNIT', 'STEEL_BEAM'
+  
+  // Legacy field names (for backward compatibility with existing data)
   inputLifecycleStage?: LifecycleStage
   outputLifecycleStage?: LifecycleStage
-  inputCategoryCode?: string    // e.g. 'CONCRETE', 'WINDOW_UNIT', 'STEEL_BEAM'
+  inputCategoryCode?: string
   outputCategoryCode?: string
   
-  // Reuse and recycling flags
-  isReusedInput?: boolean
-  isRecyclingMaterial?: boolean
-  flowCategory?: FlowCategory
+  // Namespaced quantity/unit (added by useCreateProcessFlow)
+  input_quantity?: number
+  input_unit?: string
+  output_quantity?: number
+  output_unit?: string
   
-  // Impact data (user-provided, no automatic calculations)
-  emissionsTotal?: number       // e.g. total kgCO2e emitted for this flow
-  emissionsUnit?: string        // e.g. 'kgCO2e'
-  materialLossPercent?: number  // 0–100, % of input material lost in this flow
-  qualityChangeCode?: QualityChangeCode
-  notes?: string               // optional, free-text explanation
-  
-  // Waste/emission flags
-  isWaste?: boolean
-  isEmission?: boolean
+  // Allow additional metadata (for custom properties)
+  [key: string]: any
 }
 
 /**
@@ -108,14 +116,25 @@ export interface EnhancedMaterialObject {
 }
 
 /**
+ * Material-specific data structure
+ */
+export interface MaterialData {
+  quantity?: number
+  unit?: string
+  lifecycleStage?: string
+  categoryCode?: string
+  customProperties?: Record<string, string>
+}
+
+/**
  * Extended MaterialRelationship type for Sankey visualization
  */
 export interface EnhancedMaterialRelationship {
   predicate: 'IS_INPUT_OF' | 'IS_OUTPUT_OF'
   subject: { uuid: string; name: string }
   object: { uuid: string; name: string }
-  quantity: number
-  unit: string
+  quantity?: number  // Legacy field - use inputMaterial.quantity instead
+  unit?: string      // Legacy field - use inputMaterial.unit instead
   processName?: string
 
   // NEW: flow and impact metadata (derived from statement properties)
@@ -129,6 +148,13 @@ export interface EnhancedMaterialRelationship {
   materialLossPercent?: number
   qualityChangeCode?: QualityChangeCode
   notes?: string
+  
+  // LEGACY: custom properties from material metadata (for backward compatibility)
+  customProperties?: Record<string, string>
+  
+  // NEW: Separated input/output material data
+  inputMaterial?: MaterialData
+  outputMaterial?: MaterialData
 }
 
 /**

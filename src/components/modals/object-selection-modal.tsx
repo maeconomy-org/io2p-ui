@@ -349,18 +349,15 @@ export function ObjectSelectionModal({
             <div className="space-y-4 border-t pt-4">
               <h3 className="text-sm font-semibold text-gray-700">Material Metadata (Optional)</h3>
               
-              {/* Lifecycle Stage */}
+              {/* Lifecycle Stage and Category - simplified field names */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="lifecycleStage">
-                    {materialType === 'input' ? 'Input' : 'Output'} Lifecycle Stage
+                    Lifecycle Stage
                   </Label>
                   <Select 
-                    value={materialType === 'input' ? metadata.inputLifecycleStage || '' : metadata.outputLifecycleStage || ''} 
-                    onValueChange={(value) => updateMetadata(
-                      materialType === 'input' ? 'inputLifecycleStage' : 'outputLifecycleStage', 
-                      value as LifecycleStage
-                    )}
+                    value={metadata.lifecycleStage || ''} 
+                    onValueChange={(value) => updateMetadata('lifecycleStage', value as LifecycleStage)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select lifecycle stage" />
@@ -368,7 +365,7 @@ export function ObjectSelectionModal({
                     <SelectContent>
                       {LIFECYCLE_STAGES.map((stage) => (
                         <SelectItem key={stage} value={stage}>
-                          {stage.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                          {stage.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -378,11 +375,8 @@ export function ObjectSelectionModal({
                 <div className="space-y-2">
                   <Label htmlFor="categoryCode">Material Category</Label>
                   <Select 
-                    value={materialType === 'input' ? metadata.inputCategoryCode || '' : metadata.outputCategoryCode || ''} 
-                    onValueChange={(value) => updateMetadata(
-                      materialType === 'input' ? 'inputCategoryCode' : 'outputCategoryCode', 
-                      value
-                    )}
+                    value={metadata.categoryCode || ''} 
+                    onValueChange={(value) => updateMetadata('categoryCode', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -397,85 +391,6 @@ export function ObjectSelectionModal({
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="flowCategory">Flow Category</Label>
-                  <Select 
-                    value={metadata.flowCategory || ''} 
-                    onValueChange={(value) => updateMetadata('flowCategory', value as FlowCategory)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select flow type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FLOW_CATEGORIES.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="qualityChange">Quality Change</Label>
-                  <Select 
-                    value={metadata.qualityChangeCode || ''} 
-                    onValueChange={(value) => updateMetadata('qualityChangeCode', value as QualityChangeCode)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {QUALITY_CHANGE_CODES.map((code) => (
-                        <SelectItem key={code} value={code}>
-                          {code === 'UP' ? 'Upcycled' : code === 'DOWN' ? 'Downcycled' : 'Same Quality'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Impact Data */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="emissionsTotal">Emissions</Label>
-                  <Input
-                    id="emissionsTotal"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={metadata.emissionsTotal || ''}
-                    onChange={(e) => updateMetadata('emissionsTotal', e.target.value ? Number(e.target.value) : undefined)}
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="materialLossPercent">Material Loss %</Label>
-                  <Input
-                    id="materialLossPercent"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={metadata.materialLossPercent || ''}
-                    onChange={(e) => updateMetadata('materialLossPercent', e.target.value ? Number(e.target.value) : undefined)}
-                    placeholder="0.0"
-                  />
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={metadata.notes || ''}
-                  onChange={(e) => updateMetadata('notes', e.target.value)}
-                  placeholder="Additional notes about this material flow..."
-                  rows={2}
-                />
               </div>
             </div>
           )}

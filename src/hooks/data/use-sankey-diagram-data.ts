@@ -187,9 +187,16 @@ function processStatementsWithMetadata(
       )
 
       const lifecycleStage = extractLifecycleStage(relatedStatements, obj.uuid, type)
-      const isRecyclingMaterial = extractBooleanProperty(relatedStatements, 'isRecyclingMaterial')
-      const isReusedComponent = extractBooleanProperty(relatedStatements, 'isReusedInput')
-      const domainCategoryCode = extractStringProperty(relatedStatements, 'inputCategoryCode') ||
+      
+      // Derive recycling/reuse status from lifecycle stage (not separate properties)
+      const isRecyclingMaterial = lifecycleStage === 'SECONDARY_INPUT'
+      const isReusedComponent = lifecycleStage === 'REUSED_COMPONENT'
+      
+      // Extract category code - try namespaced first, then legacy
+      const firstStatement = relatedStatements[0]
+      const domainCategoryCode = (firstStatement ? getNamespacedPropertyValue(firstStatement, 'input', 'categoryCode') : undefined) ||
+                                (firstStatement ? getNamespacedPropertyValue(firstStatement, 'output', 'categoryCode') : undefined) ||
+                                extractStringProperty(relatedStatements, 'inputCategoryCode') ||
                                 extractStringProperty(relatedStatements, 'outputCategoryCode')
       const sourceBuildingUuid = extractStringProperty(relatedStatements, 'sourceBuildingUuid')
       const targetBuildingUuid = extractStringProperty(relatedStatements, 'targetBuildingUuid')
@@ -226,13 +233,19 @@ function processStatementsWithMetadata(
 
     // Extract process metadata
     const processName = getPropertyValue(statement, 'processName') || 'Unknown Process'
-    const quantity = parseFloat(getPropertyValue(statement, 'quantity') || '0')
-    const unit = getPropertyValue(statement, 'unit') || ''
+    
+    // Extract input material data (namespaced)
+    const inputQuantity = getNamespacedNumberValue(statement, 'input', 'quantity') || parseFloat(getPropertyValue(statement, 'quantity') || '0')
+    const inputUnit = getNamespacedPropertyValue(statement, 'input', 'unit') || getPropertyValue(statement, 'unit') || ''
+    
+    // Extract output material data (namespaced)
+    const outputQuantity = getNamespacedNumberValue(statement, 'output', 'quantity')
+    const outputUnit = getNamespacedPropertyValue(statement, 'output', 'unit')
 
-    if (!processName || processName === 'Unknown Process' || quantity <= 0) {
+    if (!processName || processName === 'Unknown Process' || inputQuantity <= 0) {
       console.warn('Skipping relationship with invalid process data:', {
         processName,
-        quantity,
+        inputQuantity,
         subject: subjectObj.name,
         object: objectObj.name,
         statement: statement
@@ -246,14 +259,35 @@ function processStatementsWithMetadata(
     const isCircular = getBooleanPropertyValue(statement, 'isRecycling') || 
                       getBooleanPropertyValue(statement, 'isDeconstruction')
 
-    // Extract impact metadata
+    // Extract impact metadata (process-level)
     const emissionsTotal = parseFloat(getPropertyValue(statement, 'emissionsTotal') || '0') || undefined
     const emissionsUnit = getPropertyValue(statement, 'emissionsUnit') || 'kgCO2e'
     const materialLossPercent = parseFloat(getPropertyValue(statement, 'materialLossPercent') || '0') || undefined
     const qualityChangeCode = getPropertyValue(statement, 'qualityChangeCode') as QualityChangeCode
     const notes = getPropertyValue(statement, 'notes')
 
-    const uniqueKey = `${statement.subject}-${statement.object}-${processName}-${quantity}-${unit}`
+    // Extract input and output material metadata (try new simplified names first, then legacy)
+    const inputLifecycleStage = 
+      getNamespacedPropertyValue(statement, 'input', 'lifecycleStage') ||  // New: input_lifecycleStage
+      getNamespacedPropertyValue(statement, 'input', 'inputLifecycleStage') ||  // Legacy: input_inputLifecycleStage
+      getPropertyValue(statement, 'inputLifecycleStage')  // Very old: inputLifecycleStage
+    const outputLifecycleStage = 
+      getNamespacedPropertyValue(statement, 'output', 'lifecycleStage') ||  // New: output_lifecycleStage
+      getNamespacedPropertyValue(statement, 'output', 'outputLifecycleStage') ||  // Legacy: output_outputLifecycleStage
+      getPropertyValue(statement, 'outputLifecycleStage')  // Very old: outputLifecycleStage
+    const inputCategoryCode = 
+      getNamespacedPropertyValue(statement, 'input', 'categoryCode') ||  // New: input_categoryCode
+      getNamespacedPropertyValue(statement, 'input', 'inputCategoryCode') ||  // Legacy: input_inputCategoryCode
+      getPropertyValue(statement, 'inputCategoryCode')  // Very old: inputCategoryCode
+    const outputCategoryCode = 
+      getNamespacedPropertyValue(statement, 'output', 'categoryCode') ||  // New: output_categoryCode
+      getNamespacedPropertyValue(statement, 'output', 'outputCategoryCode') ||  // Legacy: output_outputCategoryCode
+      getPropertyValue(statement, 'outputCategoryCode')  // Very old: outputCategoryCode
+
+    // Extract custom properties (separated by input/output)
+    const customProperties = extractCustomProperties(statement)
+
+    const uniqueKey = `${statement.subject}-${statement.object}-${processName}-${inputQuantity}-${inputUnit}`
 
     if (!relationshipMap.has(uniqueKey)) {
       relationshipMap.set(uniqueKey, {
@@ -266,8 +300,6 @@ function processStatementsWithMetadata(
           uuid: statement.object,
           name: objectObj.name || 'Unnamed Object',
         },
-        quantity,
-        unit,
         processName,
         processTypeCode,
         flowCategory,
@@ -277,6 +309,22 @@ function processStatementsWithMetadata(
         materialLossPercent,
         qualityChangeCode,
         notes,
+        customProperties,
+        // NEW: Separated input/output data
+        inputMaterial: {
+          quantity: inputQuantity,
+          unit: inputUnit,
+          lifecycleStage: inputLifecycleStage,
+          categoryCode: inputCategoryCode,
+          customProperties: customProperties.input,
+        },
+        outputMaterial: {
+          quantity: outputQuantity,
+          unit: outputUnit,
+          lifecycleStage: outputLifecycleStage,
+          categoryCode: outputCategoryCode,
+          customProperties: customProperties.output,
+        },
       })
     }
   })
@@ -457,6 +505,66 @@ function getPropertyValue(statement: UUStatementDTO, key: string): string | unde
 function getBooleanPropertyValue(statement: UUStatementDTO, key: string): boolean {
   const value = getPropertyValue(statement, key)
   return value === 'true'
+}
+
+function getNamespacedPropertyValue(statement: UUStatementDTO, namespace: 'input' | 'output', key: string): string | undefined {
+  // Try namespaced version first
+  const namespacedKey = `${namespace}_${key}`
+  const namespacedValue = getPropertyValue(statement, namespacedKey)
+  if (namespacedValue) return namespacedValue
+  
+  // Fall back to non-namespaced for backward compatibility
+  return getPropertyValue(statement, key)
+}
+
+function getNamespacedNumberValue(statement: UUStatementDTO, namespace: 'input' | 'output', key: string): number | undefined {
+  const value = getNamespacedPropertyValue(statement, namespace, key)
+  return value ? parseFloat(value) || undefined : undefined
+}
+
+function extractCustomProperties(statement: UUStatementDTO): { input: Record<string, string>, output: Record<string, string> } {
+  const inputCustomProperties: Record<string, string> = {}
+  const outputCustomProperties: Record<string, string> = {}
+  
+  // Known metadata keys that are not custom properties (including namespaced versions)
+  const knownKeys = new Set([
+    // Process-level fields
+    'processName', 'processType', 'quantity', 'unit', 'processCategory', 'flowCategory',
+    'isRecycling', 'isDeconstruction', 'sourceBuildingUuid', 'targetBuildingUuid',
+    'emissionsTotal', 'emissionsUnit', 'materialLossPercent', 'qualityChangeCode', 'notes',
+    // Legacy material-level fields
+    'inputLifecycleStage', 'outputLifecycleStage', 'inputCategoryCode', 'outputCategoryCode',
+    'isReusedInput', 'isRecyclingMaterial',
+    // Namespaced versions (new simplified names)
+    'input_quantity', 'input_unit', 'output_quantity', 'output_unit',
+    'input_lifecycleStage', 'input_categoryCode',
+    'output_lifecycleStage', 'output_categoryCode',
+    // Namespaced versions (legacy double-prefixed names)
+    'input_inputLifecycleStage', 'input_inputCategoryCode', 'input_isReusedInput', 'input_isRecyclingMaterial',
+    'output_outputLifecycleStage', 'output_outputCategoryCode', 'output_isReusedInput', 'output_isRecyclingMaterial'
+  ])
+  
+  statement.properties?.forEach((property) => {
+    const key = property.key
+    const value = property.values?.[0]?.value
+    
+    if (!value) return
+    
+    if (key.startsWith('input_') && !knownKeys.has(key)) {
+      // Remove "input_" prefix for display
+      const displayKey = key.substring(6)
+      inputCustomProperties[displayKey] = value
+    } else if (key.startsWith('output_') && !knownKeys.has(key)) {
+      // Remove "output_" prefix for display  
+      const displayKey = key.substring(7)
+      outputCustomProperties[displayKey] = value
+    } else if (!knownKeys.has(key) && !key.startsWith('input_') && !key.startsWith('output_')) {
+      // Legacy custom properties (not namespaced) - treat as input for backward compatibility
+      inputCustomProperties[key] = value
+    }
+  })
+  
+  return { input: inputCustomProperties, output: outputCustomProperties }
 }
 
 function extractStringProperty(statements: UUStatementDTO[], key: string): string | undefined {

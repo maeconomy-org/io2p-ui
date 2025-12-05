@@ -2,10 +2,11 @@
 
 import { useMemo } from 'react'
 import ReactECharts from 'echarts-for-react'
+import { Card, CardContent } from '@/components/ui'
+import { Package, Building2, Recycle, TrendingUp } from 'lucide-react'
 import type { 
   EnhancedMaterialObject, 
   EnhancedMaterialRelationship,
-  LifecycleStage,
   FlowCategory 
 } from '@/types'
 
@@ -31,21 +32,22 @@ export function NetworkDiagram({
       return { chartOptions: null, stats: null }
     }
 
-    // Create categories for building-centric network layout
+    // Simplified categories with better colors
     const categories = [
-      { name: 'Raw Materials', itemStyle: { color: '#1E40AF' } },
-      { name: 'Processed Materials', itemStyle: { color: '#8B5CF6' } },
-      { name: 'Existing Buildings', itemStyle: { color: '#047857' } },
-      { name: 'Reclaimed Materials', itemStyle: { color: '#06B6D4' } },
-      { name: 'Recycled Materials', itemStyle: { color: '#3B82F6' } },
-      { name: 'New Buildings', itemStyle: { color: '#059669' } },
-      { name: 'Recycling Facilities', itemStyle: { color: '#10B981' } },
-      { name: 'Waste & Disposal', itemStyle: { color: '#DC2626' } },
+      { name: 'Raw Materials', itemStyle: { color: '#3B82F6' } },      // Blue
+      { name: 'Processed', itemStyle: { color: '#8B5CF6' } },           // Purple
+      { name: 'Existing Buildings', itemStyle: { color: '#059669' } }, // Emerald
+      { name: 'Reclaimed', itemStyle: { color: '#06B6D4' } },          // Cyan
+      { name: 'Recycled', itemStyle: { color: '#10B981' } },           // Green
+      { name: 'New Buildings', itemStyle: { color: '#0891B2' } },      // Teal
+      { name: 'Recycling Hub', itemStyle: { color: '#F59E0B' } },      // Amber
+      { name: 'Waste', itemStyle: { color: '#EF4444' } },              // Red
     ]
 
-    // Create nodes with building-centric positioning
+    // Create nodes with positioning
     const nodes = materials.map((material) => {
-      const { category, symbolSize, symbol, fixed, x, y } = getNodeProperties(material, materials)
+      const { category, symbolSize, symbol, x, y } = getNodeProperties(material, materials)
+      const isBuilding = isBuildingNode(material)
       
       return {
         id: material.uuid,
@@ -53,29 +55,24 @@ export function NetworkDiagram({
         category,
         symbolSize,
         symbol,
-        fixed,
         x,
         y,
-        draggable: true, // Enable drag for all nodes
+        draggable: true,
         itemStyle: {
-          color: material.color,
-          borderColor: getNodeBorderColor(material),
-          borderWidth: getNodeBorderWidth(material),
-          borderType: getNodeBorderType(material),
-          shadowBlur: isBuildingNode(material) ? 15 : 8,
-          shadowColor: isBuildingNode(material) ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.15)',
-          shadowOffsetX: 2,
-          shadowOffsetY: 2,
+          color: material.color || categories[category]?.itemStyle.color,
+          borderColor: isBuilding ? '#1F2937' : '#E5E7EB',
+          borderWidth: isBuilding ? 2 : 1,
+          shadowBlur: isBuilding ? 12 : 4,
+          shadowColor: 'rgba(0, 0, 0, 0.1)',
         },
         label: {
           show: true,
-          position: getNodeLabelPosition(material),
-          fontSize: getBuildingNodeFontSize(material),
-          fontWeight: isBuildingNode(material) ? 'bold' : 'normal',
-          color: isBuildingNode(material) ? '#1F2937' : '#374151',
-          backgroundColor: isBuildingNode(material) ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-          padding: isBuildingNode(material) ? [4, 8] : [2, 4],
-          borderRadius: isBuildingNode(material) ? 4 : 0,
+          position: 'bottom',
+          distance: 8,
+          fontSize: isBuilding ? 12 : 10,
+          fontWeight: isBuilding ? '600' : '400',
+          color: '#374151',
+          formatter: '{b}',
         },
         tooltip: {
           formatter: createNodeTooltip(material),
@@ -84,7 +81,7 @@ export function NetworkDiagram({
       }
     })
 
-    // Create links with enhanced styling
+    // Create links
     const links = relationships.map((rel) => {
       const isSelected = 
         selectedRelationship?.subject.uuid === rel.subject.uuid &&
@@ -101,16 +98,12 @@ export function NetworkDiagram({
           width,
           type: lineType,
           opacity,
-          curveness: 0.15,
-          shadowBlur: 3,
-          shadowColor: 'rgba(0, 0, 0, 0.1)',
+          curveness: 0.2,
         },
         emphasis: {
           lineStyle: {
             width: width + 2,
             opacity: 1,
-            shadowBlur: 6,
-            shadowColor: 'rgba(0, 0, 0, 0.2)',
           },
         },
         tooltip: {
@@ -128,85 +121,56 @@ export function NetworkDiagram({
       rel.flowCategory === 'CIRCULAR' || 
       rel.flowCategory === 'REUSE'
     ).length
-    const recyclingRate = totalFlows > 0 ? Math.round((recyclingFlows / totalFlows) * 100) : 0
+    const circularRate = totalFlows > 0 ? Math.round((recyclingFlows / totalFlows) * 100) : 0
 
     const buildingCount = materials.filter(m => 
       m.lifecycleStage === 'PRODUCT' || 
       m.lifecycleStage === 'USE_PHASE'
     ).length
 
-    const reclaimedMaterials = materials.filter(m => m.isReusedComponent).length
-    const recycledMaterials = materials.filter(m => m.isRecyclingMaterial).length
-
     const options = {
       tooltip: {
         trigger: 'item',
         backgroundColor: 'rgba(255, 255, 255, 0.98)',
-        borderColor: '#D1D5DB',
+        borderColor: '#E5E7EB',
         borderWidth: 1,
         borderRadius: 8,
-        padding: [12, 16],
+        padding: [10, 14],
         textStyle: {
           fontSize: 12,
           color: '#374151',
         },
-        extraCssText: 'box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);',
+        extraCssText: 'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);',
       },
       legend: {
-        data: categories.map(cat => cat.name),
-        orient: 'horizontal',
-        left: 'center',
-        top: 20,
-        textStyle: {
-          fontSize: 13,
-          color: '#374151',
-          fontWeight: '500',
-        },
-        itemGap: 25,
-        itemWidth: 14,
-        itemHeight: 14,
+        show: false, // Hide default legend, we'll use custom
       },
-          series: [
+      series: [
         {
           type: 'graph',
-          layout: 'none', // Use fixed positioning for building-centric layout
+          layout: 'none',
           data: nodes,
           links: links,
           categories: categories,
           roam: true,
-          draggable: true, // Enable dragging
+          draggable: true,
           focusNodeAdjacency: true,
-          itemStyle: {
-            borderColor: '#fff',
-            borderWidth: 1,
-          },
-          label: {
-            position: 'bottom',
-            formatter: '{b}',
-            fontSize: 11,
-            fontWeight: 'normal',
-            color: '#374151',
-          },
           lineStyle: {
-            color: 'source',
-            curveness: 0.15,
+            curveness: 0.2,
           },
           emphasis: {
             focus: 'adjacency',
             lineStyle: {
               width: 4,
-              shadowBlur: 8,
-              shadowColor: 'rgba(0, 0, 0, 0.3)',
             },
             itemStyle: {
-              shadowBlur: 20,
-              shadowColor: 'rgba(0, 0, 0, 0.4)',
+              shadowBlur: 16,
+              shadowColor: 'rgba(0, 0, 0, 0.2)',
             },
           },
-          // Remove force layout since we're using fixed positioning
         },
       ],
-      animationDuration: 1500,
+      animationDuration: 800,
       animationEasing: 'cubicOut',
     }
 
@@ -216,10 +180,8 @@ export function NetworkDiagram({
         totalMaterials,
         totalFlows,
         recyclingFlows,
-        recyclingRate,
+        circularRate,
         buildingCount,
-        reclaimedMaterials,
-        recycledMaterials,
       },
     }
   }, [materials, relationships, selectedRelationship])
@@ -230,353 +192,322 @@ export function NetworkDiagram({
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Network Statistics */}
+      {/* Statistics */}
       {stats && (
-        <div className="my-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">
-              {stats.totalMaterials}
-            </div>
-            <div className="text-sm text-blue-800">Materials</div>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">
-              {stats.buildingCount}
-            </div>
-            <div className="text-sm text-green-800">Buildings</div>
-          </div>
-          <div className="bg-cyan-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-cyan-600">
-              {stats.reclaimedMaterials}
-            </div>
-            <div className="text-sm text-cyan-800">Reclaimed</div>
-          </div>
-          <div className="bg-emerald-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-emerald-600">
-              {stats.recyclingRate}%
-            </div>
-            <div className="text-sm text-emerald-800">Circular Rate</div>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <Package className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold">{stats.totalMaterials}</div>
+                  <div className="text-xs text-muted-foreground">Materials</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-100">
+                  <Building2 className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold">{stats.buildingCount}</div>
+                  <div className="text-xs text-muted-foreground">Buildings</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-cyan-100">
+                  <Recycle className="h-4 w-4 text-cyan-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold">{stats.recyclingFlows}</div>
+                  <div className="text-xs text-muted-foreground">Circular Flows</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold">{stats.circularRate}%</div>
+                  <div className="text-xs text-muted-foreground">Circular Rate</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Network Chart */}
-      <ReactECharts
-        option={chartOptions}
-        style={{ height: '700px', width: '100%' }}
-        onEvents={{
-          click: (params: any) => {
-            if (params.dataType === 'edge' && params.data?.relationship && onLinkSelect) {
-              onLinkSelect(params.data.relationship)
-            } else if (params.dataType === 'node' && params.data?.original && onNodeSelect) {
-              onNodeSelect(params.data.original)
-            }
-          },
-        }}
-        opts={{ renderer: 'canvas' }}
-      />
+      <Card>
+        <CardContent className="p-0">
+          <ReactECharts
+            option={chartOptions}
+            style={{ height: '600px', width: '100%' }}
+            onEvents={{
+              click: (params: any) => {
+                if (params.dataType === 'edge' && params.data?.relationship && onLinkSelect) {
+                  onLinkSelect(params.data.relationship)
+                } else if (params.dataType === 'node' && params.data?.original && onNodeSelect) {
+                  onNodeSelect(params.data.original)
+                }
+              },
+            }}
+            opts={{ renderer: 'canvas' }}
+          />
+        </CardContent>
+      </Card>
 
-      {/* Network Legend */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
-          Building-Centric Network Guide
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <h4 className="text-xs font-semibold text-gray-600 mb-2">Layout Structure</h4>
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: '#1E40AF' }}></div>
-                <span><strong>Top:</strong> Raw Materials</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: '#8B5CF6' }}></div>
-                <span><strong>Upper:</strong> Processed Materials</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: '#047857' }}></div>
-                <span><strong>Left:</strong> Existing Buildings</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: '#059669' }}></div>
-                <span><strong>Right:</strong> New Buildings</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: '#10B981' }}></div>
-                <span><strong>Center:</strong> Recycling Facilities</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: '#DC2626' }}></div>
-                <span><strong>Bottom:</strong> Waste & Disposal</span>
-              </div>
-            </div>
+      {/* Simplified Legend */}
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-4">
+          <span className="font-medium text-foreground">Flow Types:</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-0.5 bg-emerald-500" style={{ borderStyle: 'dashed', borderWidth: '2px', borderColor: '#059669' }}></div>
+            <span>Recycling</span>
           </div>
-          <div>
-            <h4 className="text-xs font-semibold text-gray-600 mb-2">Material Flow Paths</h4>
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-cyan-500 border-dashed rounded"></div>
-                <span>Direct Reuse (Building → Building)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-green-500 border-dashed rounded"></div>
-                <span>Recycling (Building → Facility → Building)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#F59E0B' }}></div>
-                <span>Waste Streams (Building → Disposal)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#1E40AF' }}></div>
-                <span>Virgin Materials (Raw → Building)</span>
-              </div>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-0.5 bg-cyan-500" style={{ borderStyle: 'dashed', borderWidth: '2px', borderColor: '#06B6D4' }}></div>
+            <span>Reuse</span>
           </div>
-          <div>
-            <h4 className="text-xs font-semibold text-gray-600 mb-2">Interactions</h4>
-            <div className="space-y-1 text-xs">
-              <div>• <strong>Drag any node</strong> to rearrange layout</div>
-              <div>• <strong>Click buildings</strong> to see all connected materials</div>
-              <div>• <strong>Click materials</strong> to see lifecycle details</div>
-              <div>• <strong>Click flows</strong> to see process information</div>
-              <div>• <strong>Hover</strong> to highlight material pathways</div>
-              <div>• <strong>Zoom & Pan</strong> to explore the network</div>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-0.5 bg-gray-400"></div>
+            <span>Standard</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-0.5 bg-amber-500" style={{ borderStyle: 'dotted', borderWidth: '2px', borderColor: '#F59E0B' }}></div>
+            <span>Waste</span>
           </div>
         </div>
-        
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-          <p className="text-xs text-blue-800">
-            <strong>💡 Building-Centric View:</strong> Each building acts as a hub with materials flowing in during construction 
-            and out during deconstruction. Follow the material paths to see how components move between buildings, 
-            get recycled, or become waste.
-          </p>
-        </div>
+        <span className="text-muted-foreground/50">•</span>
+        <span>Drag nodes to rearrange • Scroll to zoom • Click flows for details</span>
       </div>
     </div>
   )
 }
 
 /**
- * Get node properties with building-centric positioning
+ * Get node properties with positioning - spreads nodes evenly to avoid overlaps
  */
 function getNodeProperties(material: EnhancedMaterialObject, allMaterials: EnhancedMaterialObject[]) {
   let category = 0
-  let symbolSize = 40
+  let symbolSize = 35
   let symbol = 'circle'
-  let fixed = false
   let x = 0
   let y = 0
 
-  // Building-centric layout positioning
-  const buildings = allMaterials.filter(m => 
-    m.lifecycleStage === 'USE_PHASE' || m.lifecycleStage === 'PRODUCT'
-  )
+  // Group materials by lifecycle stage for even distribution
+  const primaryInputs = allMaterials.filter(m => m.lifecycleStage === 'PRIMARY_INPUT' || (!m.lifecycleStage && m.type === 'input'))
+  const processed = allMaterials.filter(m => m.lifecycleStage === 'PROCESSING')
+  const existingBuildings = allMaterials.filter(m => m.lifecycleStage === 'USE_PHASE')
+  const newBuildings = allMaterials.filter(m => m.lifecycleStage === 'PRODUCT')
+  const reused = allMaterials.filter(m => m.lifecycleStage === 'REUSED_COMPONENT')
+  const recycled = allMaterials.filter(m => m.lifecycleStage === 'SECONDARY_INPUT')
+  const waste = allMaterials.filter(m => m.lifecycleStage === 'WASTE' || m.lifecycleStage === 'DISPOSAL')
   
-  // Determine category and positioning based on lifecycle stage
+  // Chart dimensions
+  const chartWidth = 900
+  const chartHeight = 600
+  const padding = 80
+  
   switch (material.lifecycleStage) {
-    case 'PRIMARY_INPUT':
-      category = 0 // Raw Materials
-      symbolSize = 38 // Slightly larger for better visibility
+    case 'PRIMARY_INPUT': {
+      category = 0
+      symbolSize = 30
       symbol = 'circle'
-      // Position raw materials at the top
-      x = Math.random() * 800 + 100
-      y = 50
+      // Spread evenly across top row
+      const idx = primaryInputs.indexOf(material)
+      const count = primaryInputs.length
+      const spacing = (chartWidth - padding * 2) / Math.max(count, 1)
+      x = padding + (idx * spacing) + spacing / 2
+      y = 60
       break
+    }
       
-    case 'PROCESSING':
-      category = 1 // Processed Materials
-      symbolSize = 42 // Slightly larger
+    case 'PROCESSING': {
+      category = 1
+      symbolSize = 34
       symbol = 'rect'
-      // Position processed materials in upper area
-      x = Math.random() * 800 + 100
-      y = 150
+      // Spread in second row
+      const idx = processed.indexOf(material)
+      const count = processed.length
+      const spacing = (chartWidth - padding * 2) / Math.max(count, 1)
+      x = padding + (idx * spacing) + spacing / 2
+      y = 160
       break
+    }
       
-    case 'USE_PHASE':
-      category = 2 // Existing Buildings
-      symbolSize = 60 // Reduced size for better proportions
+    case 'USE_PHASE': {
+      category = 2
+      symbolSize = 48
       symbol = 'roundRect'
-      fixed = true // Fix building positions
-      // Position existing buildings in left-center area
-      const existingBuildingIndex = buildings.filter(b => b.lifecycleStage === 'USE_PHASE').indexOf(material)
-      x = 200
-      y = 300 + (existingBuildingIndex * 150)
+      // Left side, vertically distributed
+      const idx = existingBuildings.indexOf(material)
+      const count = existingBuildings.length
+      const verticalSpacing = Math.min(100, (chartHeight - 200) / Math.max(count, 1))
+      x = 120
+      y = 280 + (idx * verticalSpacing)
       break
+    }
       
-    case 'REUSED_COMPONENT':
-      category = 3 // Reclaimed Materials
-      symbolSize = 48 // Larger for emphasis
+    case 'REUSED_COMPONENT': {
+      category = 3
+      symbolSize = 38
       symbol = 'diamond'
-      // Position reclaimed materials between old and new buildings
-      x = 500
-      y = Math.random() * 400 + 250
+      // Center-left area
+      const idx = reused.indexOf(material)
+      const count = reused.length
+      const verticalSpacing = Math.min(80, 300 / Math.max(count, 1))
+      x = 350
+      y = 260 + (idx * verticalSpacing)
       break
+    }
       
-    case 'SECONDARY_INPUT':
-      category = 4 // Recycled Materials
-      symbolSize = 44 // Slightly larger
+    case 'SECONDARY_INPUT': {
+      category = 4
+      symbolSize = 36
       symbol = 'triangle'
-      // Position recycled materials in center-right area
-      x = 600
-      y = Math.random() * 200 + 350
+      // Center-right area
+      const idx = recycled.indexOf(material)
+      const count = recycled.length
+      const verticalSpacing = Math.min(80, 300 / Math.max(count, 1))
+      x = 550
+      y = 280 + (idx * verticalSpacing)
       break
+    }
       
-    case 'PRODUCT':
-      category = 5 // New Buildings
-      symbolSize = 60 // Reduced size for better proportions
+    case 'PRODUCT': {
+      category = 5
+      symbolSize = 48
       symbol = 'roundRect'
-      fixed = true // Fix building positions
-      // Position new buildings in right area
-      const newBuildingIndex = buildings.filter(b => b.lifecycleStage === 'PRODUCT').indexOf(material)
-      x = 800
-      y = 300 + (newBuildingIndex * 150)
+      // Right side, vertically distributed
+      const idx = newBuildings.indexOf(material)
+      const count = newBuildings.length
+      const verticalSpacing = Math.min(100, (chartHeight - 200) / Math.max(count, 1))
+      x = chartWidth - 120
+      y = 280 + (idx * verticalSpacing)
       break
+    }
       
-    case 'WASTE':
-      // Check if this is a recycling facility (processes waste)
-      if (material.name.toLowerCase().includes('waste') && 
-          allMaterials.some(m => m.lifecycleStage === 'SECONDARY_INPUT')) {
-        category = 6 // Recycling Facilities
-        symbolSize = 50
+    case 'WASTE': {
+      if (material.name.toLowerCase().includes('recycl')) {
+        category = 6
+        symbolSize = 40
         symbol = 'rect'
-        x = 500
-        y = 550
+        x = 450
+        y = 520
       } else {
-        category = 7 // Waste & Disposal
-        symbolSize = 30
+        category = 7
+        symbolSize = 26
         symbol = 'circle'
-        x = Math.random() * 200 + 700
-        y = 600
+        const idx = waste.filter(m => !m.name.toLowerCase().includes('recycl')).indexOf(material)
+        x = 650 + (idx * 60)
+        y = 540
       }
       break
+    }
       
-    case 'DISPOSAL':
-      category = 7 // Waste & Disposal
-      symbolSize = 35
+    case 'DISPOSAL': {
+      category = 7
+      symbolSize = 26
       symbol = 'circle'
-      // Position disposal at bottom-right
-      x = Math.random() * 200 + 700
-      y = 650
+      const idx = waste.indexOf(material)
+      x = 700 + (idx * 50)
+      y = 560
       break
+    }
       
-    default:
-      // Fallback positioning
+    default: {
+      // Fallback with better distribution
       if (material.type === 'input') {
         category = 0
-        x = Math.random() * 800 + 100
-        y = 100
+        const idx = primaryInputs.indexOf(material)
+        const count = primaryInputs.length || 1
+        x = padding + ((idx >= 0 ? idx : 0) * (chartWidth - padding * 2) / count) + 50
+        y = 80
       } else if (material.type === 'intermediate') {
         category = 1
-        x = Math.random() * 600 + 200
-        y = Math.random() * 400 + 200
-      } else if (material.type === 'output') {
+        x = 300 + (allMaterials.filter(m => m.type === 'intermediate').indexOf(material) * 80)
+        y = 300
+      } else {
         category = 5
-        x = Math.random() * 200 + 700
-        y = Math.random() * 400 + 200
+        const outputs = allMaterials.filter(m => m.type === 'output')
+        const idx = outputs.indexOf(material)
+        x = chartWidth - 150
+        y = 250 + (idx * 80)
       }
+    }
   }
 
-  return { category, symbolSize, symbol, fixed, x, y }
+  return { category, symbolSize, symbol, x, y }
 }
 
-/**
- * Check if node is a building
- */
 function isBuildingNode(material: EnhancedMaterialObject): boolean {
   return material.lifecycleStage === 'USE_PHASE' || material.lifecycleStage === 'PRODUCT'
 }
 
-/**
- * Get label position for different node types
- */
-function getNodeLabelPosition(material: EnhancedMaterialObject): string {
-  if (isBuildingNode(material)) {
-    return 'bottom' // Move building labels outside like other elements
-  }
-  return 'bottom'
-}
-
-/**
- * Get font size for building nodes
- */
-function getBuildingNodeFontSize(material: EnhancedMaterialObject): number {
-  if (isBuildingNode(material)) {
-    return 13 // Slightly larger font for buildings
-  }
-  return 10
-}
-
-/**
- * Get node border properties based on material characteristics
- */
-function getNodeBorderColor(material: EnhancedMaterialObject): string {
-  if (isBuildingNode(material)) return '#374151' // Subtle dark border for buildings
-  if (material.isReusedComponent) return '#06B6D4' // Cyan for reused
-  if (material.isRecyclingMaterial) return '#10B981' // Green for recycled
-  return '#E5E7EB' // Light gray border for others
-}
-
-function getNodeBorderWidth(material: EnhancedMaterialObject): number {
-  if (isBuildingNode(material)) return 2 // Reduced border width for buildings
-  if (material.isReusedComponent || material.isRecyclingMaterial) return 3
-  return 1
-}
-
-function getNodeBorderType(material: EnhancedMaterialObject): 'solid' | 'dashed' {
-  if (material.isReusedComponent || material.isRecyclingMaterial) return 'dashed'
-  return 'solid'
-}
-
-/**
- * Get link properties based on flow category and metadata
- */
 function getLinkProperties(rel: EnhancedMaterialRelationship, isSelected: boolean) {
-  let color = '#9CA3AF' // Softer default gray
+  let color = '#9CA3AF'
   let width = 2
   let type: 'solid' | 'dashed' | 'dotted' = 'solid'
-  let opacity = 0.7
+  let opacity = 0.6
+
+  const inputQuantity = rel.inputMaterial?.quantity || 1
+  const baseWidth = Math.max(1.5, Math.min(6, Math.log10(inputQuantity + 1) * 2))
 
   if (isSelected) {
-    color = '#EF4444' // Bright red for selected
-    width = 5
+    color = '#EF4444'
+    width = baseWidth + 2
     opacity = 1
   } else {
     switch (rel.flowCategory) {
       case 'RECYCLING':
-        color = '#059669' // Emerald green
-        width = 3
+        color = '#059669'
+        width = Math.max(baseWidth, 2.5)
         type = 'dashed'
         opacity = 0.8
         break
       case 'REUSE':
-        color = '#0891B2' // Sky blue
-        width = 4
+        color = '#06B6D4'
+        width = Math.max(baseWidth, 3)
         type = 'dashed'
-        opacity = 0.9
+        opacity = 0.85
         break
       case 'DOWNCYCLING':
-        color = '#2563EB' // Blue
-        width = 3
+        color = '#3B82F6'
+        width = Math.max(baseWidth, 2.5)
         type = 'dashed'
-        opacity = 0.8
+        opacity = 0.75
         break
       case 'CIRCULAR':
-        color = '#047857' // Dark green
-        width = 4
+        color = '#047857'
+        width = Math.max(baseWidth, 3)
         type = 'dotted'
         opacity = 0.8
         break
       case 'WASTE_FLOW':
-        color = '#D97706' // Amber
-        width = 2
+        color = '#F59E0B'
+        width = baseWidth
         type = 'dotted'
-        opacity = 0.7
+        opacity = 0.65
         break
-      case 'STANDARD':
-        color = '#6B7280' // Gray
-        width = 2
-        opacity = 0.6
+      default:
+        width = baseWidth
         break
     }
   }
@@ -584,9 +515,6 @@ function getLinkProperties(rel: EnhancedMaterialRelationship, isSelected: boolea
   return { color, width, type, opacity }
 }
 
-/**
- * Create enhanced node tooltip
- */
 function createNodeTooltip(material: EnhancedMaterialObject): string {
   const parts = [
     `<strong>${material.name}</strong>`,
@@ -594,86 +522,58 @@ function createNodeTooltip(material: EnhancedMaterialObject): string {
   ]
 
   if (material.lifecycleStage) {
-    parts.push(`Lifecycle: ${material.lifecycleStage.replace('_', ' ')}`)
-  }
-
-  if (material.isReusedComponent) {
-    parts.push(`🔄 <strong>Reused Component</strong>`)
-  }
-
-  if (material.isRecyclingMaterial) {
-    parts.push(`♻️ <strong>Recycled Material</strong>`)
+    parts.push(`Lifecycle: ${material.lifecycleStage.replace(/_/g, ' ')}`)
+    
+    if (material.lifecycleStage === 'SECONDARY_INPUT') {
+      parts.push(`♻️ Recycled Material`)
+    } else if (material.lifecycleStage === 'REUSED_COMPONENT') {
+      parts.push(`🔄 Reused Component`)
+    }
   }
 
   if (material.domainCategoryCode) {
     parts.push(`Category: ${material.domainCategoryCode}`)
   }
 
-  if (material.sourceBuildingUuid) {
-    parts.push(`Source: Building ${material.sourceBuildingUuid.slice(-8)}`)
-  }
-
-  if (material.targetBuildingUuid) {
-    parts.push(`Target: Building ${material.targetBuildingUuid.slice(-8)}`)
-  }
-
   return parts.join('<br/>')
 }
 
-/**
- * Create enhanced link tooltip
- */
 function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
   const parts = [
     `<strong>${rel.subject.name} → ${rel.object.name}</strong>`,
-    `Quantity: ${rel.quantity?.toLocaleString() || 0} ${rel.unit || ''}`,
   ]
 
   if (rel.processName) {
     parts.push(`Process: ${rel.processName}`)
   }
 
-  if (rel.flowCategory) {
-    const categoryLabel = rel.flowCategory.replace('_', ' ').toLowerCase()
+  if (rel.processTypeCode) {
+    parts.push(`Type: ${rel.processTypeCode.replace(/_/g, ' ')}`)
+  }
+
+  if (rel.flowCategory && rel.flowCategory !== 'STANDARD') {
     const emoji = getFlowCategoryEmoji(rel.flowCategory)
-    parts.push(`${emoji} Flow: ${categoryLabel}`)
+    parts.push(`${emoji} ${rel.flowCategory.replace(/_/g, ' ').toLowerCase()}`)
   }
 
   if (rel.emissionsTotal && rel.emissionsTotal > 0) {
-    parts.push(`🌍 Emissions: ${rel.emissionsTotal} ${rel.emissionsUnit || 'kgCO2e'}`)
+    parts.push(`Emissions: ${rel.emissionsTotal} ${rel.emissionsUnit || 'kgCO2e'}`)
   }
 
   if (rel.materialLossPercent && rel.materialLossPercent > 0) {
-    parts.push(`⚠️ Loss: ${rel.materialLossPercent}%`)
-  }
-
-  if (rel.qualityChangeCode) {
-    const qualityLabel = rel.qualityChangeCode === 'UP' ? 'Upcycled' : 
-                        rel.qualityChangeCode === 'DOWN' ? 'Downcycled' : 'Same Quality'
-    const qualityEmoji = rel.qualityChangeCode === 'UP' ? '⬆️' : 
-                        rel.qualityChangeCode === 'DOWN' ? '⬇️' : '➡️'
-    parts.push(`${qualityEmoji} Quality: ${qualityLabel}`)
+    parts.push(`Loss: ${rel.materialLossPercent}%`)
   }
 
   return parts.join('<br/>')
 }
 
-/**
- * Get emoji for flow category
- */
 function getFlowCategoryEmoji(category: FlowCategory): string {
   switch (category) {
-    case 'RECYCLING':
-      return '♻️'
-    case 'REUSE':
-      return '🔄'
-    case 'DOWNCYCLING':
-      return '⬇️'
-    case 'CIRCULAR':
-      return '🔄♻️'
-    case 'WASTE_FLOW':
-      return '🗑️'
-    default:
-      return '➡️'
+    case 'RECYCLING': return '♻️'
+    case 'REUSE': return '🔄'
+    case 'DOWNCYCLING': return '⬇️'
+    case 'CIRCULAR': return '🔄'
+    case 'WASTE_FLOW': return '🗑️'
+    default: return '→'
   }
 }

@@ -41,7 +41,8 @@ export function RelationshipsTable({
         rel.subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.object.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.processName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        rel.unit.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.inputMaterial?.unit?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.outputMaterial?.unit?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.processTypeCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.flowCategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.notes?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -74,8 +75,15 @@ export function RelationshipsTable({
     return filteredRelationships.slice(startIndex, endIndex)
   }, [filteredRelationships, currentPage, pageSize])
 
-  const formatQuantity = (quantity: number, unit: string) => {
-    return `${quantity.toLocaleString()} ${unit}`
+  const formatQuantity = (relationship: EnhancedMaterialRelationship) => {
+    // Use input material quantity/unit from the new structure
+    const quantity = relationship.inputMaterial?.quantity || relationship.quantity
+    const unit = relationship.inputMaterial?.unit || relationship.unit
+    
+    if (quantity && unit) {
+      return `${quantity.toLocaleString()} ${unit}`
+    }
+    return 'Not specified'
   }
 
   // Helper to get text for quality change
@@ -121,7 +129,7 @@ export function RelationshipsTable({
             ) : (
               paginatedRelationships.map((relationship, index) => (
                 <TableRow
-                  key={`${relationship.subject.uuid}-${relationship.object.uuid}-${relationship.processName}-${relationship.quantity}-${relationship.unit}-${index}`}
+                  key={`${relationship.subject.uuid}-${relationship.object.uuid}-${relationship.processName}-${relationship.inputMaterial?.quantity || 0}-${relationship.inputMaterial?.unit || ''}-${index}`}
                   className={`cursor-pointer transition-colors ${
                     selectedRelationship?.subject.uuid ===
                       relationship.subject.uuid &&
@@ -143,7 +151,7 @@ export function RelationshipsTable({
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     <Badge variant="secondary">
-                      {formatQuantity(relationship.quantity, relationship.unit)}
+                      {formatQuantity(relationship)}
                     </Badge>
                   </TableCell>
                   <TableCell>

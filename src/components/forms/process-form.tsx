@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
   Checkbox,
+  Textarea,
 } from '@/components/ui'
 import { ObjectSelectionModal } from '@/components/modals'
 import type { MaterialRelationship } from '@/types'
@@ -324,29 +325,141 @@ export default function ProcessForm({
 
           {/* Process Metadata */}
           <div className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="processCategory">Process Category</Label>
+                <Select 
+                  value={formData.processMetadata?.processCategory || ''} 
+                  onValueChange={(value) => setFormData({
+                    ...formData,
+                    processMetadata: {
+                      ...formData.processMetadata!,
+                      processCategory: value as ProcessCategory
+                    }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select process category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROCESS_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="flowCategory">Flow Type</Label>
+                <Select 
+                  value={formData.processMetadata?.flowCategory || ''} 
+                  onValueChange={(value) => setFormData({
+                    ...formData,
+                    processMetadata: {
+                      ...formData.processMetadata!,
+                      flowCategory: value
+                    }
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select flow type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STANDARD">Standard Flow</SelectItem>
+                    <SelectItem value="RECYCLING">Recycling</SelectItem>
+                    <SelectItem value="REUSE">Reuse</SelectItem>
+                    <SelectItem value="DOWNCYCLING">Downcycling</SelectItem>
+                    <SelectItem value="CIRCULAR">Circular Flow</SelectItem>
+                    <SelectItem value="WASTE_FLOW">Waste Flow</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Process Impact Data */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="emissionsTotal">Carbon Emissions (Optional)</Label>
+                <Input
+                  id="emissionsTotal"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.processMetadata?.emissionsTotal || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    processMetadata: {
+                      ...formData.processMetadata!,
+                      emissionsTotal: e.target.value ? Number(e.target.value) : undefined
+                    }
+                  })}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="materialLossPercent">Material Loss % (Optional)</Label>
+                <Input
+                  id="materialLossPercent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={formData.processMetadata?.materialLossPercent || ''}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    processMetadata: {
+                      ...formData.processMetadata!,
+                      materialLossPercent: e.target.value ? Number(e.target.value) : undefined
+                    }
+                  })}
+                  placeholder="0.0"
+                />
+              </div>
+            </div>
+
+            {/* Quality Change */}
             <div className="space-y-2">
-              <Label htmlFor="processCategory">Process Category (Optional)</Label>
+              <Label htmlFor="qualityChange">Quality Change (Optional)</Label>
               <Select 
-                value={formData.processMetadata?.processCategory || ''} 
+                value={formData.processMetadata?.qualityChangeCode || ''} 
                 onValueChange={(value) => setFormData({
                   ...formData,
                   processMetadata: {
                     ...formData.processMetadata!,
-                    processCategory: value as ProcessCategory
+                    qualityChangeCode: value as any
                   }
                 })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select process category" />
+                  <SelectValue placeholder="Select quality change" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PROCESS_CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="UPCYCLED">Upcycled (Improved Quality)</SelectItem>
+                  <SelectItem value="SAME">Same Quality</SelectItem>
+                  <SelectItem value="DOWNCYCLED">Downcycled (Reduced Quality)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Process Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="processNotes">Process Notes (Optional)</Label>
+              <Textarea
+                id="processNotes"
+                value={formData.processMetadata?.notes || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  processMetadata: {
+                    ...formData.processMetadata!,
+                    notes: e.target.value
+                  }
+                })}
+                placeholder="Additional notes about this process..."
+                rows={3}
+              />
             </div>
 
           </div>
@@ -397,14 +510,14 @@ export default function ProcessForm({
                         )}
                         {material.metadata && (
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {material.metadata.inputLifecycleStage && (
+                            {(material.metadata.lifecycleStage || material.metadata.inputLifecycleStage) && (
                               <Badge variant="outline" className="text-xs">
-                                {material.metadata.inputLifecycleStage.replace('_', ' ')}
+                                {(material.metadata.lifecycleStage || material.metadata.inputLifecycleStage)?.replace(/_/g, ' ')}
                               </Badge>
                             )}
-                            {material.metadata.flowCategory && material.metadata.flowCategory !== 'STANDARD' && (
+                            {material.metadata.categoryCode && (
                               <Badge variant="secondary" className="text-xs">
-                                {material.metadata.flowCategory.replace('_', ' ')}
+                                {material.metadata.categoryCode}
                               </Badge>
                             )}
                           </div>
@@ -486,19 +599,14 @@ export default function ProcessForm({
                         )}
                         {material.metadata && (
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {material.metadata.outputLifecycleStage && (
+                            {(material.metadata.lifecycleStage || material.metadata.outputLifecycleStage) && (
                               <Badge variant="outline" className="text-xs">
-                                {material.metadata.outputLifecycleStage.replace('_', ' ')}
+                                {(material.metadata.lifecycleStage || material.metadata.outputLifecycleStage)?.replace(/_/g, ' ')}
                               </Badge>
                             )}
-                            {material.metadata.flowCategory && material.metadata.flowCategory !== 'STANDARD' && (
+                            {material.metadata.categoryCode && (
                               <Badge variant="secondary" className="text-xs">
-                                {material.metadata.flowCategory.replace('_', ' ')}
-                              </Badge>
-                            )}
-                            {material.metadata.emissionsTotal && (
-                              <Badge variant="default" className="text-xs bg-orange-100 text-orange-800">
-                                {material.metadata.emissionsTotal} {material.metadata.emissionsUnit || 'kgCO2e'}
+                                {material.metadata.categoryCode}
                               </Badge>
                             )}
                           </div>

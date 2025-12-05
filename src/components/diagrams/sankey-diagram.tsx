@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react'
 import ReactECharts from 'echarts-for-react'
+import { Card, CardContent } from '@/components/ui'
+import { ArrowLeftRight, Recycle, TrendingUp, RefreshCw } from 'lucide-react'
 import type { 
   EnhancedMaterialObject, 
   EnhancedMaterialRelationship,
@@ -96,8 +98,8 @@ export function SankeyDiagram({
         selectedRelationship?.subject.uuid === rel.subject.uuid &&
         selectedRelationship?.object.uuid === rel.object.uuid &&
         selectedRelationship?.processName === rel.processName &&
-        selectedRelationship?.quantity === rel.quantity &&
-        selectedRelationship?.unit === rel.unit
+        selectedRelationship?.inputMaterial?.quantity === rel.inputMaterial?.quantity &&
+        selectedRelationship?.inputMaterial?.unit === rel.inputMaterial?.unit
 
       const inputNode = nodes.find((n) => n.uuid === rel.subject.uuid)
       const outputNode = nodes.find((n) => n.uuid === rel.object.uuid)
@@ -113,7 +115,7 @@ export function SankeyDiagram({
       return {
         source: rel.subject.uuid,
         target: rel.object.uuid,
-        value: rel.quantity || 1,
+        value: rel.inputMaterial?.quantity || 1,
         lineStyle: {
           color,
           width,
@@ -195,150 +197,112 @@ export function SankeyDiagram({
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Enhanced Stats Panel */}
+      {/* Statistics */}
       {recyclingInfo && (
-        <div className="my-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">
-              {recyclingInfo.stats.totalFlows || 0}
-            </div>
-            <div className="text-sm text-blue-800">Total Flows</div>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">
-              {recyclingInfo.stats.recyclingFlows || 0}
-            </div>
-            <div className="text-sm text-green-800">Circular Flows</div>
-          </div>
-          <div className="bg-emerald-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-emerald-600">
-              {recyclingInfo.stats.recyclingRate || 0}%
-            </div>
-            <div className="text-sm text-emerald-800">Circularity Rate</div>
-          </div>
-          <div className="bg-cyan-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-cyan-600">
-              {materials.filter((m) => m.isReusedComponent).length}
-            </div>
-            <div className="text-sm text-cyan-800">Reused Components</div>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <ArrowLeftRight className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold">{recyclingInfo.stats.totalFlows || 0}</div>
+                  <div className="text-xs text-muted-foreground">Total Flows</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-100">
+                  <Recycle className="h-4 w-4 text-emerald-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold">{recyclingInfo.stats.recyclingFlows || 0}</div>
+                  <div className="text-xs text-muted-foreground">Circular Flows</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold">{recyclingInfo.stats.recyclingRate || 0}%</div>
+                  <div className="text-xs text-muted-foreground">Circularity Rate</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-cyan-100">
+                  <RefreshCw className="h-4 w-4 text-cyan-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold">{materials.filter((m) => m.isReusedComponent).length}</div>
+                  <div className="text-xs text-muted-foreground">Reused Components</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Chart */}
-      <ReactECharts
-        option={chartOptions}
-        style={{ height: '700px', width: '100%' }}
-        onEvents={{
-          click: (params: any) => {
-            if (
-              params.dataType === 'edge' &&
-              params.data?.relationship &&
-              onLinkSelect
-            ) {
-              onLinkSelect(params.data.relationship)
-            }
-          },
-        }}
-        opts={{ renderer: 'canvas' }}
-      />
+      <Card>
+        <CardContent className="p-0">
+          <ReactECharts
+            option={chartOptions}
+            style={{ height: '600px', width: '100%' }}
+            onEvents={{
+              click: (params: any) => {
+                if (
+                  params.dataType === 'edge' &&
+                  params.data?.relationship &&
+                  onLinkSelect
+                ) {
+                  onLinkSelect(params.data.relationship)
+                }
+              },
+            }}
+            opts={{ renderer: 'canvas' }}
+          />
+        </CardContent>
+      </Card>
 
-      {/* Enhanced Legend */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
-          Material Lifecycle & Circular Economy Legend
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <h4 className="text-xs font-semibold text-gray-600 mb-2">
-              Lifecycle Stages
-            </h4>
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: '#1E40AF' }}></div>
-                <span>Primary Inputs</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: '#3B82F6' }}></div>
-                <span>Secondary Inputs (Recycled)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: '#06B6D4' }}></div>
-                <span>Reused Components</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: '#8B5CF6' }}></div>
-                <span>Processing</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: '#10B981' }}></div>
-                <span>Components</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: '#059669' }}></div>
-                <span>Products</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: '#F59E0B' }}></div>
-                <span>Waste</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: '#DC2626' }}></div>
-                <span>Disposal</span>
-              </div>
-            </div>
+      {/* Simplified Legend */}
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-4">
+          <span className="font-medium text-foreground">Flow Types:</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-0.5 bg-emerald-500" style={{ borderStyle: 'dashed', borderWidth: '2px', borderColor: '#059669' }}></div>
+            <span>Recycling</span>
           </div>
-          <div>
-            <h4 className="text-xs font-semibold text-gray-600 mb-2">
-              Flow Types
-            </h4>
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-0.5 bg-slate-500"></div>
-                <span>Standard Flow</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-0.5 bg-green-500 border-dashed border-t border-green-500"></div>
-                <span className="text-green-700 font-medium">♻️ Recycling</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-0.5 bg-cyan-500 border-dashed border-t border-cyan-500"></div>
-                <span className="text-cyan-700 font-medium">🔄 Direct Reuse</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-0.5 bg-blue-400 border-dashed border-t border-blue-400"></div>
-                <span className="text-blue-700 font-medium">⬇️ Downcycling</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-0.5 bg-amber-500"></div>
-                <span className="text-amber-700 font-medium">🗑️ Waste Flow</span>
-              </div>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-0.5 bg-cyan-500" style={{ borderStyle: 'dashed', borderWidth: '2px', borderColor: '#06B6D4' }}></div>
+            <span>Reuse</span>
           </div>
-          <div>
-            <h4 className="text-xs font-semibold text-gray-600 mb-2">
-              Material Indicators
-            </h4>
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-cyan-500 border-dashed rounded"></div>
-                <span className="text-cyan-700 font-medium">Reused Component</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-green-500 border-dashed rounded"></div>
-                <span className="text-green-700 font-medium">Recycled Material</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-blue-500 rounded"></div>
-                <span className="text-blue-700">Primary Material</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-red-500 rounded"></div>
-                <span className="text-red-700">Selected Item</span>
-              </div>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-0.5 bg-gray-400"></div>
+            <span>Standard</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-0.5 bg-amber-500" style={{ borderStyle: 'dotted', borderWidth: '2px', borderColor: '#F59E0B' }}></div>
+            <span>Waste</span>
           </div>
         </div>
+        <span className="text-muted-foreground/50">•</span>
+        <span>Click flows for details • Scroll to zoom</span>
       </div>
     </div>
   )
@@ -510,37 +474,27 @@ function getFlowOpacity(rel: EnhancedMaterialRelationship): number {
 }
 
 /**
- * Create enhanced node tooltip with lifecycle and reuse information
+ * Create enhanced node tooltip with lifecycle information (no quantities - those vary per relationship)
  */
 function createNodeTooltip(node: EnhancedMaterialObject, isRecyclingRelated: boolean): string {
   const parts = [
     `<strong>${node.name}</strong>`,
     `Type: ${toCapitalize(node.type)}`,
-    `UUID: ${formatUUID(node.uuid)}`,
   ]
 
   if (node.lifecycleStage) {
-    parts.push(`Lifecycle: ${node.lifecycleStage.replace('_', ' ')}`)
-  }
-
-  if (node.isReusedComponent) {
-    parts.push(`🔄 <strong>Reused Component</strong>`)
-  }
-
-  if (node.isRecyclingMaterial) {
-    parts.push(`♻️ <strong>Recycled Material</strong>`)
+    parts.push(`Lifecycle: ${node.lifecycleStage.replace(/_/g, ' ')}`)
+    
+    // Derive recycling/reuse status from lifecycle stage
+    if (node.lifecycleStage === 'SECONDARY_INPUT') {
+      parts.push(`♻️ <strong>Recycled Material</strong>`)
+    } else if (node.lifecycleStage === 'REUSED_COMPONENT') {
+      parts.push(`🔄 <strong>Reused Component</strong>`)
+    }
   }
 
   if (node.domainCategoryCode) {
     parts.push(`Category: ${node.domainCategoryCode}`)
-  }
-
-  if (node.sourceBuildingUuid) {
-    parts.push(`Source Building: ${formatUUID(node.sourceBuildingUuid)}`)
-  }
-
-  if (node.targetBuildingUuid) {
-    parts.push(`Target Building: ${formatUUID(node.targetBuildingUuid)}`)
   }
 
   if (isRecyclingRelated) {
@@ -551,22 +505,25 @@ function createNodeTooltip(node: EnhancedMaterialObject, isRecyclingRelated: boo
 }
 
 /**
- * Create enhanced link tooltip with impact data (emissions, losses)
+ * Create enhanced link tooltip with process-level data only (no material quantities)
  */
 function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
   const parts = [
     `<strong>${rel.subject.name} → ${rel.object.name}</strong>`,
-    `Quantity: ${rel.quantity?.toLocaleString() || 0} ${rel.unit || ''}`,
   ]
 
   if (rel.processName) {
     parts.push(`Process: ${rel.processName}`)
   }
 
+  if (rel.processTypeCode) {
+    parts.push(`Type: ${rel.processTypeCode.replace('_', ' ')}`)
+  }
+
   if (rel.flowCategory) {
     const categoryLabel = rel.flowCategory.replace('_', ' ').toLowerCase()
     const emoji = getFlowCategoryEmoji(rel.flowCategory)
-    parts.push(`${emoji} Flow Type: ${toCapitalize(categoryLabel)}`)
+    parts.push(`${emoji} Flow: ${toCapitalize(categoryLabel)}`)
   }
 
   // Impact data section

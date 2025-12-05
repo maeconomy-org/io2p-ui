@@ -215,10 +215,37 @@ export function useStatements() {
         // This avoids creating redundant IS_OUTPUT_OF statements that cause cycles
         for (const input of inputMaterials) {
           for (const output of outputMaterials) {
-            // Merge input and output metadata for this specific flow
-            const flowMetadata: MaterialFlowMetadata = {
-              ...input.metadata,
-              ...output.metadata,
+            // Create namespaced metadata to avoid conflicts
+            const namespacedMetadata: MaterialFlowMetadata = {}
+            
+            // Add input-specific properties with "input_" prefix
+            if (input.metadata) {
+              Object.entries(input.metadata).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                  (namespacedMetadata as any)[`input_${key}`] = value
+                }
+              })
+            }
+            
+            // Add output-specific properties with "output_" prefix  
+            if (output.metadata) {
+              Object.entries(output.metadata).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                  (namespacedMetadata as any)[`output_${key}`] = value
+                }
+              })
+            }
+            
+            // Add input quantity and unit with namespace
+            namespacedMetadata.input_quantity = input.quantity
+            namespacedMetadata.input_unit = input.unit
+            
+            // Add output quantity and unit with namespace (always store both)
+            if (output.quantity !== undefined) {
+              namespacedMetadata.output_quantity = output.quantity
+            }
+            if (output.unit) {
+              namespacedMetadata.output_unit = output.unit
             }
 
             const result = await createProcessStatementMutation.mutateAsync({
@@ -227,10 +254,9 @@ export function useStatements() {
               object: output.uuid,
               processMetadata: {
                 ...processMetadata,
-                quantity: input.quantity,
-                unit: input.unit,
+                // No legacy quantity/unit - use namespaced versions only
               },
-              materialMetadata: flowMetadata,
+              materialMetadata: namespacedMetadata,
             })
             results.push(result)
           }
