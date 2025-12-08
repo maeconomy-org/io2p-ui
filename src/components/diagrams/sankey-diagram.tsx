@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Card, CardContent } from '@/components/ui'
 import { ArrowLeftRight, Recycle, TrendingUp, RefreshCw } from 'lucide-react'
@@ -19,7 +19,7 @@ interface SankeyDiagramProps {
   className?: string
 }
 
-export function SankeyDiagram({
+export const SankeyDiagram = memo(function SankeyDiagram({
   materials = [],
   relationships = [],
   selectedRelationship = null,
@@ -302,11 +302,11 @@ export function SankeyDiagram({
           </div>
         </div>
         <span className="text-muted-foreground/50">•</span>
-        <span>Click flows for details • Scroll to zoom</span>
+        <span>Hover for details • Click flows for more details</span>
       </div>
     </div>
   )
-}
+})
 
 /**
  * Compute enhanced layout using metadata instead of name-based heuristics

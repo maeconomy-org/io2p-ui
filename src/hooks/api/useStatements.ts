@@ -60,8 +60,8 @@ export function useStatements() {
     })
   }
 
-  // Create process-enhanced statement with direct properties
-  const useCreateProcessStatement = () => {
+  // Create process-enhanced statement with direct properties (internal - no auto-invalidation)
+  const useCreateProcessStatement = (skipInvalidation = false) => {
     const createStatementMutation = useCreateStatement()
 
     return useMutation({
@@ -168,26 +168,29 @@ export function useStatements() {
             }
           })
 
-        // Create the statement with properties
-        const statement = await createStatementMutation.mutateAsync({
+        // Create the statement with properties - use direct client call to avoid invalidation
+        const statement = await client.statements.create({
           subject,
           predicate,
           object,
           properties,
         })
 
-        return statement
+        return statement.data
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['statements'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        // Only invalidate if not skipping (for batch operations)
+        if (!skipInvalidation) {
+          queryClient.invalidateQueries({ queryKey: ['statements'] })
+          queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        }
       },
     })
   }
 
   // Create batch process statements for a complete process flow
   const useCreateProcessFlow = () => {
-    const createProcessStatementMutation = useCreateProcessStatement()
+    const createProcessStatementMutation = useCreateProcessStatement(true) // Skip individual invalidations
 
     return useMutation({
       mutationFn: async ({
@@ -272,6 +275,7 @@ export function useStatements() {
         return results
       },
       onSuccess: () => {
+        // Only invalidate once after all statements are created
         queryClient.invalidateQueries({ queryKey: ['statements'] })
         queryClient.invalidateQueries({ queryKey: ['aggregates'] })
       },

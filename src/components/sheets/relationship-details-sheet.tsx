@@ -115,7 +115,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
           <div className="space-y-6 pb-4">
             
             {/* Visual Flow Diagram */}
-            <div className="bg-muted/30 rounded-lg p-5 border">
+            <div>
               <div className="flex items-center justify-between gap-4">
                 {/* Input */}
                 <div className="flex-1">

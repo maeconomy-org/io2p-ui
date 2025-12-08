@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Card, CardContent } from '@/components/ui'
 import { Package, Building2, Recycle, TrendingUp } from 'lucide-react'
@@ -19,7 +19,7 @@ interface NetworkDiagramProps {
   className?: string
 }
 
-export function NetworkDiagram({
+export const NetworkDiagram = memo(function NetworkDiagram({
   materials = [],
   relationships = [],
   selectedRelationship,
@@ -299,7 +299,7 @@ export function NetworkDiagram({
       </div>
     </div>
   )
-}
+})
 
 /**
  * Get node properties with positioning - spreads nodes evenly to avoid overlaps

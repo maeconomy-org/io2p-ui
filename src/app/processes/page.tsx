@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { PlusCircle, Loader2, Filter, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -37,9 +37,9 @@ const MaterialFlowPage = () => {
     }
   }, [])
 
-  const clearFilter = () => {
+  const clearFilter = useCallback(() => {
     router.push('/processes')
-  }
+  }, [router])
 
   // Enhanced data fetching using new metadata-driven hook
   const { materials, relationships, isLoading } = useSankeyDiagramData(
@@ -50,13 +50,13 @@ const MaterialFlowPage = () => {
   const { useCreateProcessFlow } = useStatements()
   const createProcessFlowMutation = useCreateProcessFlow()
 
-  const handleProcessSave = async (newProcess: any) => {
+  const handleProcessSave = useCallback(async (newProcess: any) => {
     try {
       toast.loading('Creating process flow...', { id: 'create-process-flow' })
       const result = await createProcessFlowMutation.mutateAsync({
         processMetadata: {
-          processName: newProcess.name,
-          processType: newProcess.type,
+        processName: newProcess.name,
+        processType: newProcess.type,
           quantity: 0,
           unit: 'kg',
           ...(newProcess.processMetadata || {}),
@@ -92,13 +92,65 @@ const MaterialFlowPage = () => {
         id: 'create-process-flow',
       })
     }
-  }
+  }, [createProcessFlowMutation])
 
-  const handleRelationshipSelect = (relationship: EnhancedMaterialRelationship) => {
-    setSelectedRelationship(relationship)
+  const handleRelationshipSelect = useCallback((relationship: EnhancedMaterialRelationship) => {
+    // Don't set selectedRelationship to avoid diagram re-render/flicker
+    // Just open the sheet with the relationship data
     setIsRelationshipSheetOpen(true)
-  }
+    // Set the relationship after a brief delay to avoid affecting the diagram
+    setTimeout(() => {
+      setSelectedRelationship(relationship)
+    }, 0)
+  }, [])
 
+  const handleCloseRelationshipSheet = useCallback(() => {
+    setIsRelationshipSheetOpen(false)
+    setSelectedRelationship(null)
+  }, [])
+
+  const handleCloseProcessForm = useCallback(() => {
+    setIsProcessFormOpen(false)
+  }, [])
+
+  const handleOpenProcessForm = useCallback(() => {
+    setIsProcessFormOpen(true)
+  }, [])
+
+
+  // Memoize diagram components to prevent unnecessary re-renders
+  // Remove selectedRelationship from dependencies to prevent flicker on selection
+  const diagramContent = useMemo(() => {
+    if (isLoading || materials.length === 0 || relationships.length === 0) {
+      return (
+        <LoadingState
+          isLoading={isLoading}
+          hasNoData={materials.length === 0 || relationships.length === 0}
+          objectUuid={objectUuid}
+          setIsProcessFormOpen={setIsProcessFormOpen}
+          variant="inline"
+        />
+      )
+    }
+
+    return activeView === 'network' ? (
+      <NetworkDiagram
+        materials={materials}
+        relationships={relationships}
+        selectedRelationship={null} // Always null to prevent visual selection
+        onLinkSelect={handleRelationshipSelect}
+        className="bg-white"
+      />
+    ) : (
+      <SankeyDiagram
+        materials={materials}
+        relationships={relationships}
+        selectedRelationship={null} // Always null to prevent visual selection
+        onLinkSelect={handleRelationshipSelect}
+        className="bg-white"
+      />
+    )
+  }, [materials, relationships, isLoading, activeView, objectUuid, handleRelationshipSelect])
 
   return (
     <div className="container mx-auto p-4">
@@ -107,7 +159,7 @@ const MaterialFlowPage = () => {
         <div className="flex items-center gap-4">
           <ProcessViewSelector view={activeView} onChange={setActiveView} />
           <Button
-            onClick={() => setIsProcessFormOpen(true)}
+            onClick={handleOpenProcessForm}
             className="flex-shrink-0"
             disabled={createProcessFlowMutation.isPending}
           >
@@ -156,33 +208,7 @@ const MaterialFlowPage = () => {
       {(activeView === 'sankey' || activeView === 'network') && (
         <Card>
           <CardContent>
-            <LoadingState
-              isLoading={isLoading}
-              hasNoData={materials.length === 0 || relationships.length === 0}
-              objectUuid={objectUuid}
-              setIsProcessFormOpen={setIsProcessFormOpen}
-              variant="inline"
-            />
-            {!isLoading &&
-              materials.length > 0 &&
-              relationships.length > 0 &&
-              (activeView === 'network' ? (
-                <NetworkDiagram
-                  materials={materials}
-                  relationships={relationships}
-                  selectedRelationship={selectedRelationship}
-                  onLinkSelect={handleRelationshipSelect}
-                  className="bg-white"
-                />
-              ) : (
-                <SankeyDiagram
-                  materials={materials}
-                  relationships={relationships}
-                  selectedRelationship={selectedRelationship}
-                  onLinkSelect={handleRelationshipSelect}
-                  className="bg-white"
-                />
-              ))}
+            {diagramContent}
           </CardContent>
         </Card>
       )}
@@ -200,7 +226,7 @@ const MaterialFlowPage = () => {
           {!isLoading && relationships.length > 0 && (
             <RelationshipsTable
               relationships={relationships}
-              selectedRelationship={selectedRelationship}
+              selectedRelationship={null} // Remove selection highlighting from table too
               onRelationshipSelect={handleRelationshipSelect}
               pageSize={15}
             />
@@ -211,7 +237,7 @@ const MaterialFlowPage = () => {
       {/* Process Form Sheet */}
       <ProcessFormSheet
         isOpen={isProcessFormOpen}
-        onClose={() => setIsProcessFormOpen(false)}
+        onClose={handleCloseProcessForm}
         onSave={handleProcessSave}
       />
 
@@ -219,10 +245,7 @@ const MaterialFlowPage = () => {
       <RelationshipDetailsSheet
         relationship={selectedRelationship}
         isOpen={isRelationshipSheetOpen}
-        onClose={() => {
-          setIsRelationshipSheetOpen(false)
-          setSelectedRelationship(null)
-        }}
+        onClose={handleCloseRelationshipSheet}
       />
     </div>
   )
