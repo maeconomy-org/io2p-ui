@@ -466,7 +466,7 @@ export default function UnifiedProcessForm({
           editingMaterial
             ? {
                 object: editingMaterial.object,
-                quantity: editingMaterial.quantity,
+                quantity: editingMaterial.quantity || 0,
                 unit: editingMaterial.unit,
               }
             : undefined

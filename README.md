@@ -42,15 +42,36 @@ A modern web application for tracking and managing building materials, component
    pnpm install
    ```
 
-3. Setup HTTPS certificates
+3. Setup environment variables
 
-4. Start the development server
+   Create a `.env.local` file in the root directory with the following variables:
+
+   ```bash
+   # Environment Configuration
+   NODE_ENV=development
+
+   # API Configuration
+   BASE_API_URL=https://api.example.com
+   UUID_API_URL=https://uuid-api.example.com
+
+   # Sentry Configuration (Optional)
+   SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+   SENTRY_ORG=your-organization-slug
+   SENTRY_PROJECT=your-project-name
+   SENTRY_ENABLED=false
+   SENTRY_DEBUG=false
+   SENTRY_RELEASE=1.0.0
+   ```
+
+4. Setup HTTPS certificates
+
+5. Start the development server
 
    ```bash
    pnpm dev
    ```
 
-5. Open your browser
+6. Open your browser
    Navigate to `https://localhost:3000`
 
 ## Project Structure
@@ -78,3 +99,13 @@ src/
 - `pnpm lint` - Run ESLint
 - `pnpm format` - Format code with Prettier
 - `pnpm format:check` - Check formatting with Prettier
+
+## Configuration
+
+### Docker Configuration
+
+The application supports Docker deployment with runtime configuration:
+
+- Environment variables are passed to the container at runtime
+- The `/api/config` endpoint serves client-side configuration
+- Single Docker image can be deployed to multiple environments

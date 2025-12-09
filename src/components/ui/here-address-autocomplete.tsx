@@ -54,18 +54,22 @@ export function HereAddressAutocomplete({
     setIsLoading(true)
 
     try {
-      fetch(
-        `https://autocomplete.search.hereapi.com/v1/autocomplete?q=${searchQuery}&apiKey=${process.env.NEXT_PUBLIC_HERE_API_KEY}`
-      )
+      // Use our API route to hide HERE API key
+      fetch(`/api/address?q=${encodeURIComponent(searchQuery)}`)
         .then((res) => res.json())
         .then((data) => {
-          console.log(data)
-          setSuggestions(data.items)
+          setSuggestions(data.items || [])
+        })
+        .catch((error) => {
+          console.error('Error searching addresses:', error)
+          setSuggestions([])
+        })
+        .finally(() => {
+          setIsLoading(false)
         })
     } catch (error) {
       console.error('Error searching addresses:', error)
       setSuggestions([])
-    } finally {
       setIsLoading(false)
     }
   }

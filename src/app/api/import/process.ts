@@ -1,4 +1,3 @@
-import { API_CONFIG } from '@/lib/api-config'
 import redis from '@/lib/redis'
 import {
   createCertificateAgent,
@@ -99,7 +98,7 @@ export async function processImportJob(jobId: string) {
 
         // Send batch to Java backend API using axios
         const response = await axiosInstance.post(
-          `${API_CONFIG.baseUrl}/api/Aggregate/Import`,
+          `${process.env.BASE_API_URL}/api/Aggregate/Import`,
           payload
         )
 

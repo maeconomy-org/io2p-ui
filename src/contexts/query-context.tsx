@@ -11,10 +11,8 @@ import { createClient } from 'iom-sdk'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
-import { API_CONFIG } from '@/lib/api-config'
-
 // Global singleton cache
-let cachedClientPromise: ReturnType<typeof createClient> | null = null
+let cachedClient: ReturnType<typeof createClient> | null = null
 
 const IomSdkClientContext = createContext<ReturnType<
   typeof createClient
@@ -52,12 +50,39 @@ export function QueryProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let isMounted = true
 
-    // Use cached promise or start new one
-    if (!cachedClientPromise) {
-      cachedClientPromise = createClient(API_CONFIG)
+    // Fetch runtime config from API then create SDK client
+    async function initClient() {
+      // Return cached client if already initialized
+      if (cachedClient) {
+        if (isMounted) setClient(cachedClient)
+        return
+      }
+
+      try {
+        const res = await fetch('/api/config')
+        const config = await res.json()
+
+        cachedClient = createClient({
+          baseUrl: config.baseApiUrl,
+          uuidServiceBaseUrl: config.uuidApiUrl,
+          debug: {
+            enabled: process.env.NODE_ENV === 'development',
+            logLevel: 'error',
+            logToConsole: true,
+          },
+        })
+
+        if (isMounted) setClient(cachedClient)
+      } catch (err) {
+        if (isMounted) {
+          setError(
+            err instanceof Error ? err : new Error('Failed to load config')
+          )
+        }
+      }
     }
 
-    if (isMounted) setClient(cachedClientPromise)
+    initClient()
 
     return () => {
       isMounted = false
@@ -71,7 +96,7 @@ export function QueryProvider({ children }: PropsWithChildren) {
         <p>{error.message}</p>
         <button
           onClick={() => {
-            cachedClientPromise = null
+            cachedClient = null
             window.location.reload()
           }}
           className="px-4 py-2 bg-primary text-white rounded-md"

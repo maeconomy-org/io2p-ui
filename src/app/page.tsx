@@ -11,7 +11,6 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
-import { useCommonApi } from '@/hooks/api'
 import { useAuth } from '@/contexts'
 import { APP_ACRONYM, APP_DESCRIPTION, APP_NAME } from '@/constants'
 import { Button, Card, Alert, AlertDescription } from '@/components/ui'
@@ -24,10 +23,6 @@ export default function AuthPage() {
   >('idle')
   const [error, setError] = useState<string | null>(null)
 
-  const { useRequestCertificate } = useCommonApi()
-  const requestCertificate = useRequestCertificate()
-
-  // Check if we're already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       setStatus('success')

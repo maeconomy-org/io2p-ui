@@ -1,0 +1,110 @@
+# =============================================================================
+# IoM UI Docker Compose - Production Deployment
+# =============================================================================
+# Two modes:
+#   1. With host nginx: Use only 'ui' service, proxy from host nginx
+#   2. Self-contained:  Use 'ui' + 'nginx' + 'certbot' services
+#
+# Commands:
+#   Start:    docker compose up -d
+#   Stop:     docker compose down
+#   Update:   ./deploy.sh update
+#   Logs:     docker compose logs -f
+#   Rollback: ./deploy.sh rollback
+
+services:
+  # ===========================================================================
+  # IoM UI Application
+  # ===========================================================================
+  ui:
+    image: ghcr.io/${GH_ORG:-maeconomy-org}/${APP_NAME:-iom-ui}:${IMAGE_TAG:-latest}
+    container_name: ${APP_NAME:-iom-ui}
+    restart: unless-stopped
+    env_file:
+      - .env
+
+    # Expose to host only if not using nginx container
+    # Comment this out if using nginx service below
+    ports:
+      - '${PORT:-3000}:3000'
+
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - BASE_API_URL=${BASE_API_URL}
+      - UUID_API_URL=${UUID_API_URL}
+      - CERTIFICATE_PATH=/app/certs/certificate.pem
+      - CERTIFICATE_PASSWORD=${CERTIFICATE_PASSWORD}
+      - VERIFY_CERTIFICATES=${VERIFY_CERTIFICATES:-true}
+      - HERE_API_KEY=${HERE_API_KEY}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - SENTRY_RELEASE=${IMAGE_TAG:-latest}
+
+    volumes:
+      - ./certs:/app/certs:ro
+      - ./logs:/app/logs:rw
+
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:3000/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '5'
+
+  # ===========================================================================
+  # Nginx Reverse Proxy (Optional - uncomment if no host nginx)
+  # ===========================================================================
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./certbot/conf:/etc/letsencrypt:ro
+  #     - ./certbot/www:/var/www/certbot:ro
+  #   depends_on:
+  #     - ui
+  #   command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+
+  # ===========================================================================
+  # Certbot SSL (Optional - uncomment with nginx)
+  # ===========================================================================
+  # certbot:
+  #   image: certbot/certbot
+  #   container_name: certbot
+  #   volumes:
+  #     - ./certbot/conf:/etc/letsencrypt:rw
+  #     - ./certbot/www:/var/www/certbot:rw
+  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+  # =========================================================================
+  # Security Hardening (uncomment to enable)
+  # =========================================================================
+  # security_opt:
+  #   - no-new-privileges:true
+  # cap_drop:
+  #   - ALL
+  # read_only: true
+  # tmpfs:
+  #   - /tmp:noexec,nosuid,size=100m
+
+  # =========================================================================
+  # Resource Limits (uncomment to enable)
+  # =========================================================================
+  # deploy:
+  #   resources:
+  #     limits:
+  #       cpus: '1.0'
+  #       memory: 1G
+  #     reservations:
+  #       cpus: '0.25'
+  #       memory: 256M
