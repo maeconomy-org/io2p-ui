@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { PlusCircle, Loader2, Filter, X } from 'lucide-react'
+import { PlusCircle, Loader2, Filter, X, Package } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { MaterialRelationship } from '@/types'
@@ -15,6 +15,7 @@ import { Card, CardContent, Button, Badge } from '@/components/ui'
 import { SankeyDiagram, NetworkDiagram } from '@/components/diagrams'
 import { ProcessViewSelector } from '@/components/process-view-selector'
 import { ProcessFormSheet, RelationshipDetailsSheet } from '@/components/sheets'
+import { ProcessDashboard } from '@/components/process-dashboard'
 import { ProcessViewType, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
 const MaterialFlowPage = () => {
@@ -26,7 +27,8 @@ const MaterialFlowPage = () => {
     useState<EnhancedMaterialRelationship | null>(null)
   const [isProcessFormOpen, setIsProcessFormOpen] = useState(false)
   const [isRelationshipSheetOpen, setIsRelationshipSheetOpen] = useState(false)
-  const [activeView, setActiveView] = useState<ProcessViewType>('sankey')
+  const [activeView, setActiveView] = useState<ProcessViewType>('dashboard')
+  const [selectedMaterialUuid, setSelectedMaterialUuid] = useState<string | null>(null)
 
   // Load saved view preference from localStorage
   useEffect(() => {
@@ -42,9 +44,34 @@ const MaterialFlowPage = () => {
   }, [router])
 
   // Enhanced data fetching using new metadata-driven hook
-  const { materials, relationships, isLoading } = useSankeyDiagramData(
+  const { materials: allMaterials, relationships: allRelationships, isLoading } = useSankeyDiagramData(
     objectUuid as UUID | undefined
   )
+
+  // Filter data based on selected material
+  const { materials, relationships } = useMemo(() => {
+    if (!selectedMaterialUuid) {
+      return { materials: allMaterials, relationships: allRelationships }
+    }
+
+    // Filter relationships that involve the selected material
+    const filteredRelationships = allRelationships.filter(rel => 
+      rel.subject.uuid === selectedMaterialUuid || rel.object.uuid === selectedMaterialUuid
+    )
+
+    // Get all materials involved in the filtered relationships
+    const involvedMaterialUuids = new Set<string>()
+    filteredRelationships.forEach(rel => {
+      involvedMaterialUuids.add(rel.subject.uuid)
+      involvedMaterialUuids.add(rel.object.uuid)
+    })
+
+    const filteredMaterials = allMaterials.filter(material => 
+      involvedMaterialUuids.has(material.uuid)
+    )
+
+    return { materials: filteredMaterials, relationships: filteredRelationships }
+  }, [allMaterials, allRelationships, selectedMaterialUuid])
 
   // API hooks for mutations only
   const { useCreateProcessFlow } = useStatements()
@@ -117,6 +144,10 @@ const MaterialFlowPage = () => {
     setIsProcessFormOpen(true)
   }, [])
 
+  const handleMaterialFilter = useCallback((materialUuid: string | null) => {
+    setSelectedMaterialUuid(materialUuid)
+  }, [])
+
 
   // Memoize diagram components to prevent unnecessary re-renders
   // Remove selectedRelationship from dependencies to prevent flicker on selection
@@ -173,35 +204,80 @@ const MaterialFlowPage = () => {
         </div>
       </div>
 
-      {/* Filter Mode Indicator */}
-      {objectUuid && (
-        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-orange-600 flex-shrink-0" />
-                <span className="text-sm font-medium text-orange-900 truncate">
-                  Filtered by Object:
-                </span>
+      {/* Filter Mode Indicators */}
+      {(objectUuid || selectedMaterialUuid) && (
+        <div className="mb-4 space-y-3">
+          {objectUuid && (
+            <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                    <span className="text-sm font-medium text-orange-900 truncate">
+                      Filtered by Object:
+                    </span>
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className="bg-orange-100 text-orange-700 whitespace-nowrap font-mono"
+                  >
+                    {objectUuid}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilter}
+                  className="text-orange-600 hover:text-orange-800 hover:bg-orange-100 flex-shrink-0"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear Filter
+                </Button>
               </div>
-              <Badge
-                variant="secondary"
-                className="bg-orange-100 text-orange-700 whitespace-nowrap font-mono"
-              >
-                {objectUuid}
-              </Badge>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilter}
-              className="text-orange-600 hover:text-orange-800 hover:bg-orange-100 flex-shrink-0"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Clear Filter
-            </Button>
-          </div>
+          )}
+          
+          {selectedMaterialUuid && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <span className="text-sm font-medium text-blue-900 truncate">
+                      Filtered by Material:
+                    </span>
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className="bg-blue-100 text-blue-700 whitespace-nowrap"
+                  >
+                    {allMaterials.find(m => m.uuid === selectedMaterialUuid)?.name || selectedMaterialUuid}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedMaterialUuid(null)}
+                  className="text-blue-600 hover:text-blue-800 hover:bg-blue-100 flex-shrink-0"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear Filter
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Dashboard View */}
+      {activeView === 'dashboard' && (
+        <ProcessDashboard
+          materials={allMaterials} // Use all materials for the materials box
+          relationships={relationships} // Use filtered relationships for analytics
+          onCreateProcess={handleOpenProcessForm}
+          onMaterialFilter={handleMaterialFilter}
+          selectedMaterialUuid={selectedMaterialUuid}
+        />
       )}
 
       {/* Diagram Views */}

@@ -1,4 +1,4 @@
-import { Table, Columns, BarChart3, Network } from 'lucide-react'
+import { Table, Columns, BarChart3, Network, LayoutDashboard } from 'lucide-react'
 
 // Object view types configuration
 export const OBJECT_VIEW_TYPES = [
@@ -18,6 +18,12 @@ export const OBJECT_VIEW_TYPES = [
 
 // Process view types configuration
 export const PROCESS_VIEW_TYPES = [
+  {
+    value: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    enabled: true,
+  },
   {
     value: 'sankey',
     label: 'Sankey Diagram',

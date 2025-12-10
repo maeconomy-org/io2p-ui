@@ -3,7 +3,6 @@
 import { useMemo, memo } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Card, CardContent } from '@/components/ui'
-import { Package, Building2, Recycle, TrendingUp } from 'lucide-react'
 import type { 
   EnhancedMaterialObject, 
   EnhancedMaterialRelationship,
@@ -27,7 +26,7 @@ export const NetworkDiagram = memo(function NetworkDiagram({
   onNodeSelect,
   className = '',
 }: NetworkDiagramProps) {
-  const { chartOptions, stats } = useMemo(() => {
+  const { chartOptions } = useMemo(() => {
     if (!materials || materials.length === 0) {
       return { chartOptions: null, stats: null }
     }
@@ -191,71 +190,8 @@ export const NetworkDiagram = memo(function NetworkDiagram({
   }
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* Statistics */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100">
-                  <Package className="h-4 w-4 text-blue-600" />
-                </div>
-                <div>
-                  <div className="text-2xl font-semibold">{stats.totalMaterials}</div>
-                  <div className="text-xs text-muted-foreground">Materials</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-100">
-                  <Building2 className="h-4 w-4 text-emerald-600" />
-                </div>
-                <div>
-                  <div className="text-2xl font-semibold">{stats.buildingCount}</div>
-                  <div className="text-xs text-muted-foreground">Buildings</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-cyan-100">
-                  <Recycle className="h-4 w-4 text-cyan-600" />
-                </div>
-                <div>
-                  <div className="text-2xl font-semibold">{stats.recyclingFlows}</div>
-                  <div className="text-xs text-muted-foreground">Circular Flows</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-100">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-2xl font-semibold">{stats.circularRate}%</div>
-                  <div className="text-xs text-muted-foreground">Circular Rate</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
+    <div className={`w-full pt-6 ${className}`}>
       {/* Network Chart */}
-      <Card>
-        <CardContent className="p-0">
           <ReactECharts
             option={chartOptions}
             style={{ height: '600px', width: '100%' }}
@@ -270,8 +206,6 @@ export const NetworkDiagram = memo(function NetworkDiagram({
             }}
             opts={{ renderer: 'canvas' }}
           />
-        </CardContent>
-      </Card>
 
       {/* Simplified Legend */}
       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">

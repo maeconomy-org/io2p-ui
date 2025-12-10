@@ -3,13 +3,12 @@
 import { useMemo, memo } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { Card, CardContent } from '@/components/ui'
-import { ArrowLeftRight, Recycle, TrendingUp, RefreshCw } from 'lucide-react'
-import type { 
-  EnhancedMaterialObject, 
+import type {
+  EnhancedMaterialObject,
   EnhancedMaterialRelationship,
-  FlowCategory 
+  FlowCategory
 } from '@/types'
-import { formatUUID, toCapitalize } from '@/lib'
+import { toCapitalize } from '@/lib'
 
 interface SankeyDiagramProps {
   materials?: EnhancedMaterialObject[]
@@ -23,10 +22,10 @@ export const SankeyDiagram = memo(function SankeyDiagram({
   materials = [],
   relationships = [],
   selectedRelationship = null,
-  onLinkSelect = () => {},
+  onLinkSelect = () => { },
   className = '',
 }: SankeyDiagramProps) {
-  const { chartOptions, recyclingInfo } = useMemo(() => {
+  const { chartOptions } = useMemo(() => {
     if (!materials || materials.length === 0) {
       return { chartOptions: null, recyclingInfo: null }
     }
@@ -43,7 +42,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
 
     // Create ECharts nodes with enhanced metadata visualization
     const chartNodes = nodes.map((node) => {
-      const isRecyclingRelated = 
+      const isRecyclingRelated =
         recyclingMaterialIds.has(node.uuid) ||
         !!node.isRecyclingMaterial ||
         !!node.isReusedComponent
@@ -106,9 +105,9 @@ export const SankeyDiagram = memo(function SankeyDiagram({
 
       // Determine flow type and styling based on metadata
       const { color, width, curveness, lineType } = getFlowStyling(
-        rel, 
-        inputNode?.layer || 0, 
-        outputNode?.layer || 0, 
+        rel,
+        inputNode?.layer || 0,
+        outputNode?.layer || 0,
         isSelected
       )
 
@@ -196,89 +195,24 @@ export const SankeyDiagram = memo(function SankeyDiagram({
   }
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* Statistics */}
-      {recyclingInfo && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100">
-                  <ArrowLeftRight className="h-4 w-4 text-blue-600" />
-                </div>
-                <div>
-                  <div className="text-2xl font-semibold">{recyclingInfo.stats.totalFlows || 0}</div>
-                  <div className="text-xs text-muted-foreground">Total Flows</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-100">
-                  <Recycle className="h-4 w-4 text-emerald-600" />
-                </div>
-                <div>
-                  <div className="text-2xl font-semibold">{recyclingInfo.stats.recyclingFlows || 0}</div>
-                  <div className="text-xs text-muted-foreground">Circular Flows</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-100">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-2xl font-semibold">{recyclingInfo.stats.recyclingRate || 0}%</div>
-                  <div className="text-xs text-muted-foreground">Circularity Rate</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-cyan-100">
-                  <RefreshCw className="h-4 w-4 text-cyan-600" />
-                </div>
-                <div>
-                  <div className="text-2xl font-semibold">{materials.filter((m) => m.isReusedComponent).length}</div>
-                  <div className="text-xs text-muted-foreground">Reused Components</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
+    <div className={`w-full pt-6 ${className}`}>
       {/* Chart */}
-      <Card>
-        <CardContent className="p-0">
-          <ReactECharts
-            option={chartOptions}
-            style={{ height: '600px', width: '100%' }}
-            onEvents={{
-              click: (params: any) => {
-                if (
-                  params.dataType === 'edge' &&
-                  params.data?.relationship &&
-                  onLinkSelect
-                ) {
-                  onLinkSelect(params.data.relationship)
-                }
-              },
-            }}
-            opts={{ renderer: 'canvas' }}
-          />
-        </CardContent>
-      </Card>
+      <ReactECharts
+        option={chartOptions}
+        style={{ height: '600px', width: '100%' }}
+        onEvents={{
+          click: (params: any) => {
+            if (
+              params.dataType === 'edge' &&
+              params.data?.relationship &&
+              onLinkSelect
+            ) {
+              onLinkSelect(params.data.relationship)
+            }
+          },
+        }}
+        opts={{ renderer: 'canvas' }}
+      />
 
       {/* Simplified Legend */}
       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
@@ -327,7 +261,7 @@ function computeEnhancedLayout(
   const standardFlows: EnhancedMaterialRelationship[] = []
 
   relationships.forEach((rel) => {
-    const isCircularFlow = 
+    const isCircularFlow =
       rel.flowCategory === 'RECYCLING' ||
       rel.flowCategory === 'CIRCULAR' ||
       rel.flowCategory === 'REUSE' ||
@@ -484,7 +418,7 @@ function createNodeTooltip(node: EnhancedMaterialObject, isRecyclingRelated: boo
 
   if (node.lifecycleStage) {
     parts.push(`Lifecycle: ${node.lifecycleStage.replace(/_/g, ' ')}`)
-    
+
     // Derive recycling/reuse status from lifecycle stage
     if (node.lifecycleStage === 'SECONDARY_INPUT') {
       parts.push(`♻️ <strong>Recycled Material</strong>`)
@@ -536,10 +470,10 @@ function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
   }
 
   if (rel.qualityChangeCode) {
-    const qualityLabel = rel.qualityChangeCode === 'UP' ? 'Upcycled' : 
-                        rel.qualityChangeCode === 'DOWN' ? 'Downcycled' : 'Same Quality'
-    const qualityEmoji = rel.qualityChangeCode === 'UP' ? '⬆️' : 
-                        rel.qualityChangeCode === 'DOWN' ? '⬇️' : '➡️'
+    const qualityLabel = rel.qualityChangeCode === 'UP' ? 'Upcycled' :
+      rel.qualityChangeCode === 'DOWN' ? 'Downcycled' : 'Same Quality'
+    const qualityEmoji = rel.qualityChangeCode === 'UP' ? '⬆️' :
+      rel.qualityChangeCode === 'DOWN' ? '⬇️' : '➡️'
     parts.push(`${qualityEmoji} Quality: ${qualityLabel}`)
   }
 
