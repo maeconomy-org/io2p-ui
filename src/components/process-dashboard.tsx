@@ -1,10 +1,10 @@
 'use client'
 
 import { useMemo } from 'react'
-import { 
-  ArrowLeftRight, 
-  Recycle, 
-  TrendingUp, 
+import {
+  ArrowLeftRight,
+  Recycle,
+  TrendingUp,
   RefreshCw,
   Package,
   Factory,
@@ -13,9 +13,9 @@ import {
   PieChart as PieChartIcon
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
-import { PieChart } from '@/components/charts/pie-chart'
-import type { 
-  EnhancedMaterialObject, 
+import { CountList } from '@/components/charts/count-list'
+import type {
+  EnhancedMaterialObject,
   EnhancedMaterialRelationship
 } from '@/types'
 
@@ -46,23 +46,19 @@ interface ProcessDashboardProps {
   materials?: EnhancedMaterialObject[]
   relationships?: EnhancedMaterialRelationship[]
   onCreateProcess?: () => void
-  onMaterialFilter?: (materialUuid: string | null) => void
-  selectedMaterialUuid?: string | null
 }
 
 export function ProcessDashboard({
   materials = [],
   relationships = [],
-  onCreateProcess = () => {},
-  onMaterialFilter = () => {},
-  selectedMaterialUuid = null
+  onCreateProcess = () => { }
 }: ProcessDashboardProps) {
   const dashboardData = useMemo(() => {
     // Calculate KPIs
     const totalFlows = relationships.length
-    const circularFlows = relationships.filter(rel => 
-      rel.flowCategory === 'RECYCLING' || 
-      rel.flowCategory === 'REUSE' || 
+    const circularFlows = relationships.filter(rel =>
+      rel.flowCategory === 'RECYCLING' ||
+      rel.flowCategory === 'REUSE' ||
       rel.flowCategory === 'CIRCULAR' ||
       rel.inputMaterial?.lifecycleStage === 'SECONDARY_INPUT' ||
       rel.outputMaterial?.lifecycleStage === 'SECONDARY_INPUT'
@@ -76,7 +72,7 @@ export function ProcessDashboard({
       uniqueMaterialUuids.add(rel.object.uuid)
     })
     const totalMaterials = uniqueMaterialUuids.size
-    
+
     // Process category breakdown
     const processCategoryStats = relationships.reduce((acc, rel) => {
       const category = rel.processTypeCode || 'UNKNOWN'
@@ -218,8 +214,45 @@ export function ProcessDashboard({
         </Card>
       </div>
 
-       {/* Environmental Impact Section - Full Width */}
-       <Card>
+       {/* Charts Section - Count Lists */}
+       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+         {/* Process Categories List */}
+         <Card>
+           <CardHeader className="pb-2">
+             <CardTitle className="flex items-center gap-2">
+               <PieChartIcon className="h-5 w-5" />
+               Process Categories
+             </CardTitle>
+           </CardHeader>
+           <CardContent className="p-4">
+             <CountList
+               data={dashboardData.breakdowns.processCategories}
+               maxItems={5}
+               emptyMessage="No process category data"
+             />
+           </CardContent>
+         </Card>
+
+         {/* Lifecycle Stages List */}
+         <Card>
+           <CardHeader className="pb-2">
+             <CardTitle className="flex items-center gap-2">
+               <PieChartIcon className="h-5 w-5" />
+               Lifecycle Stages
+             </CardTitle>
+           </CardHeader>
+           <CardContent className="p-4">
+             <CountList
+               data={dashboardData.breakdowns.lifecycleStages}
+               maxItems={5}
+               emptyMessage="No lifecycle stage data"
+             />
+           </CardContent>
+         </Card>
+       </div>
+
+      {/* Environmental Impact Section - Improved */}
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Leaf className="h-5 w-5" />
@@ -228,139 +261,114 @@ export function ProcessDashboard({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Leaf className="h-5 w-5 text-green-600" />
-                <span className="text-sm font-medium">Total CO₂ Emissions</span>
+            {/* CO₂ Emissions */}
+            <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Leaf className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-green-700">
+                    {dashboardData.environmental.totalEmissions.toFixed(1)}
+                  </div>
+                  <div className="text-xs text-green-600 font-medium">kg CO₂</div>
+                </div>
               </div>
-              <span className="text-xl font-semibold text-green-700">
-                {dashboardData.environmental.totalEmissions.toFixed(1)} kg
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-orange-600" />
-                <span className="text-sm font-medium">Material Loss</span>
-              </div>
-              <span className="text-xl font-semibold text-orange-700">
-                {dashboardData.environmental.totalMaterialLoss.toFixed(1)}%
-              </span>
+              <div className="text-sm text-green-600">Total Emissions</div>
             </div>
 
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-semibold text-blue-700">
-                {dashboardData.environmental.upcycledProcesses}
+            {/* Material Loss */}
+            <div className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-100">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-orange-700">
+                    {dashboardData.environmental.totalMaterialLoss.toFixed(1)}
+                  </div>
+                  <div className="text-xs text-orange-600 font-medium">%</div>
+                </div>
               </div>
-              <div className="text-sm text-blue-600">Upcycled Processes</div>
+              <div className="text-sm text-orange-600">Material Loss</div>
             </div>
-            
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <div className="text-2xl font-semibold text-red-700">
-                {dashboardData.environmental.downcycledProcesses}
+
+            {/* Upcycled Processes */}
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-700">
+                    {dashboardData.environmental.upcycledProcesses}
+                  </div>
+                  <div className="text-xs text-blue-600 font-medium">processes</div>
+                </div>
               </div>
-              <div className="text-sm text-red-600">Downcycled Processes</div>
+              <div className="text-sm text-blue-600">Upcycled</div>
+            </div>
+
+            {/* Downcycled Processes */}
+            <div className="p-4 bg-gradient-to-br from-red-50 to-rose-50 rounded-lg border border-red-100">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <RefreshCw className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-red-700">
+                    {dashboardData.environmental.downcycledProcesses}
+                  </div>
+                  <div className="text-xs text-red-600 font-medium">processes</div>
+                </div>
+              </div>
+              <div className="text-sm text-red-600">Downcycled</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Pie Charts Section - Two Charts Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Process Categories Pie Chart */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5" />
-              Process Categories
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <PieChart
-              data={dashboardData.breakdowns.processCategories}
-              colors={PROCESS_CATEGORY_COLORS}
-              height={350}
-              emptyMessage="No process category data"
-            />
-          </CardContent>
-        </Card>
-
-        {/* Lifecycle Stages Pie Chart */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5" />
-              Lifecycle Stages
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <PieChart
-              data={dashboardData.breakdowns.lifecycleStages}
-              colors={LIFECYCLE_STAGE_COLORS}
-              height={350}
-              emptyMessage="No lifecycle stage data"
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Materials Filter Box - Full Width */}
+      {/* Materials Display - Full Width */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Materials ({materials.length})
-            </div>
-            {selectedMaterialUuid && (
-              <button
-                onClick={() => onMaterialFilter(null)}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Clear Filter
-              </button>
-            )}
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Materials ({materials.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 max-h-64 overflow-y-auto">
             {materials.map((material) => {
-              const isSelected = selectedMaterialUuid === material.uuid
-              const materialFlowCount = relationships.filter(rel => 
+              const materialFlowCount = relationships.filter(rel =>
                 rel.subject.uuid === material.uuid || rel.object.uuid === material.uuid
               ).length
-              
+
               return (
-                <button
+                <div
                   key={material.uuid}
-                  onClick={() => onMaterialFilter(isSelected ? null : material.uuid)}
-                  className={`p-3 rounded-lg border text-left transition-all hover:shadow-md ${
-                    isSelected 
-                      ? 'border-blue-500 bg-blue-50 shadow-md' 
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
+                  className="p-3 rounded-lg border border-gray-200 bg-white"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className={`text-sm font-medium truncate ${
-                      isSelected ? 'text-blue-900' : 'text-gray-900'
-                    }`}>
+                    <span className="text-sm font-medium truncate text-gray-900">
                       {material.name || 'Unnamed Material'}
                     </span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ml-1 ${
-                      isSelected 
-                        ? 'bg-blue-200 text-blue-800' 
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
+                    <span className="text-xs px-1.5 py-0.5 rounded-full ml-1 bg-gray-100 text-gray-600">
                       {materialFlowCount}
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 truncate">
                     {material.lifecycleStage?.replace(/_/g, ' ').toLowerCase() || 'No stage'}
                   </div>
-                </button>
+                </div>
               )
             })}
           </div>
+          {materials.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Package className="mx-auto h-8 w-8 mb-2 opacity-50" />
+              <p>No materials available</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

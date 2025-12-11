@@ -14,6 +14,7 @@ interface PieChartProps {
   colors?: string[]
   height?: number
   emptyMessage?: string
+  maxItems?: number
 }
 
 // Default color palette
@@ -35,16 +36,29 @@ export function PieChart({
   title,
   colors = DEFAULT_COLORS,
   height = 200,
-  emptyMessage = 'No data available'
+  emptyMessage = 'No data available',
+  maxItems
 }: PieChartProps) {
   const chartOptions = useMemo(() => {
-    const chartData: PieChartData[] = Object.entries(data)
-      .sort(([,a], [,b]) => b - a)
-      .map(([name, value], index) => ({
-        name: name.toLowerCase().replace(/_/g, ' '),
-        value,
-        itemStyle: { color: colors[index % colors.length] }
-      }))
+    let sortedEntries = Object.entries(data).sort(([,a], [,b]) => b - a)
+    
+    // Limit to top N items if maxItems is specified
+    if (maxItems && sortedEntries.length > maxItems) {
+      const topEntries = sortedEntries.slice(0, maxItems)
+      const othersSum = sortedEntries.slice(maxItems).reduce((sum, [, value]) => sum + value, 0)
+      
+      if (othersSum > 0) {
+        topEntries.push(['others', othersSum])
+      }
+      
+      sortedEntries = topEntries
+    }
+    
+    const chartData: PieChartData[] = sortedEntries.map(([name, value], index) => ({
+      name: name.toLowerCase().replace(/_/g, ' '),
+      value,
+      itemStyle: { color: colors[index % colors.length] }
+    }))
 
     return {
       tooltip: {
