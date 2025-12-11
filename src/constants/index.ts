@@ -11,7 +11,7 @@ export const AUTH_SESSION_TIMEOUT = 12 * 60 * 60 * 1000 // 12 hours in milliseco
 export const NAV_ITEMS = [
   { name: 'Objects', path: '/objects' },
   { name: 'I/O Processes', path: '/processes' },
-  { name: 'Groups', path: '/groups' },
+  // { name: 'Groups', path: '/groups' },
   { name: 'Models', path: '/models' },
   { name: 'Import', path: '/import' },
   // { name: 'API Documentation', path: '#', isDisabled: true },
