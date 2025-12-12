@@ -5,12 +5,16 @@ import {
   ArrowLeftRight,
   Recycle,
   TrendingUp,
+  TrendingDown,
   RefreshCw,
   Package,
   Factory,
   Leaf,
   AlertTriangle,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  ListIcon,
+  RotateCcw,
+  Rows3
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { CountList } from '@/components/charts/count-list'
@@ -100,16 +104,25 @@ export function ProcessDashboard({
     // Environmental impact summary
     const environmentalImpact = relationships.reduce((acc, rel) => {
       if (rel.emissionsTotal) acc.totalEmissions += rel.emissionsTotal
-      if (rel.materialLossPercent) acc.totalMaterialLoss += rel.materialLossPercent
+      if (rel.materialLossPercent) {
+        acc.totalMaterialLoss += rel.materialLossPercent
+        acc.materialLossCount += 1
+      }
       if (rel.qualityChangeCode === 'UP') acc.upcycledProcesses += 1
       if (rel.qualityChangeCode === 'DOWN') acc.downcycledProcesses += 1
       return acc
     }, {
       totalEmissions: 0,
       totalMaterialLoss: 0,
+      materialLossCount: 0,
       upcycledProcesses: 0,
       downcycledProcesses: 0
     })
+
+    // Calculate average material loss percentage
+    const averageMaterialLoss = environmentalImpact.materialLossCount > 0 
+      ? environmentalImpact.totalMaterialLoss / environmentalImpact.materialLossCount 
+      : 0
 
     return {
       kpis: {
@@ -123,7 +136,10 @@ export function ProcessDashboard({
         processCategories: processCategoryStats,
         lifecycleStages: lifecycleStats
       },
-      environmental: environmentalImpact
+      environmental: {
+        ...environmentalImpact,
+        averageMaterialLoss
+      }
     }
   }, [materials, relationships])
 
@@ -152,7 +168,7 @@ export function ProcessDashboard({
   return (
     <div className="space-y-6">
       {/* KPI Cards - 4 per row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Flows */}
         <Card>
           <CardContent className="p-4">
@@ -220,7 +236,7 @@ export function ProcessDashboard({
          <Card>
            <CardHeader className="pb-2">
              <CardTitle className="flex items-center gap-2">
-               <PieChartIcon className="h-5 w-5" />
+               <Rows3 className="h-5 w-5" />
                Process Categories
              </CardTitle>
            </CardHeader>
@@ -229,6 +245,8 @@ export function ProcessDashboard({
                data={dashboardData.breakdowns.processCategories}
                maxItems={5}
                emptyMessage="No process category data"
+               colorPalette={PROCESS_CATEGORY_COLORS}
+               showTopIndicator={true}
              />
            </CardContent>
          </Card>
@@ -237,7 +255,7 @@ export function ProcessDashboard({
          <Card>
            <CardHeader className="pb-2">
              <CardTitle className="flex items-center gap-2">
-               <PieChartIcon className="h-5 w-5" />
+               <RotateCcw className="h-5 w-5" />
                Lifecycle Stages
              </CardTitle>
            </CardHeader>
@@ -246,6 +264,8 @@ export function ProcessDashboard({
                data={dashboardData.breakdowns.lifecycleStages}
                maxItems={5}
                emptyMessage="No lifecycle stage data"
+               colorPalette={LIFECYCLE_STAGE_COLORS}
+               showTopIndicator={true}
              />
            </CardContent>
          </Card>
@@ -260,69 +280,77 @@ export function ProcessDashboard({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* CO₂ Emissions */}
             <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Leaf className="h-5 w-5 text-green-600" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <Leaf className="h-4 w-4 text-green-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-700">
-                    {dashboardData.environmental.totalEmissions.toFixed(1)}
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-semibold text-green-700">
+                      {dashboardData.environmental.totalEmissions.toFixed(1)}
+                    </span>
+                    <span className="text-sm text-green-600 font-medium">kg CO₂</span>
                   </div>
-                  <div className="text-xs text-green-600 font-medium">kg CO₂</div>
+                  <div className="text-xs text-green-600">Total Emissions</div>
                 </div>
               </div>
-              <div className="text-sm text-green-600">Total Emissions</div>
             </div>
 
             {/* Material Loss */}
             <div className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-100">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-orange-700">
-                    {dashboardData.environmental.totalMaterialLoss.toFixed(1)}
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-semibold text-orange-700">
+                      {dashboardData.environmental.averageMaterialLoss.toFixed(1)}
+                    </span>
+                    <span className="text-sm text-orange-600 font-medium">%</span>
                   </div>
-                  <div className="text-xs text-orange-600 font-medium">%</div>
+                  <div className="text-xs text-orange-600">Avg Material Loss</div>
                 </div>
               </div>
-              <div className="text-sm text-orange-600">Material Loss</div>
             </div>
 
             {/* Upcycled Processes */}
             <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 rounded-lg border border-blue-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-blue-700">
-                    {dashboardData.environmental.upcycledProcesses}
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-semibold text-blue-700">
+                      {dashboardData.environmental.upcycledProcesses}
+                    </span>
+                    <span className="text-sm text-blue-600 font-medium">processes</span>
                   </div>
-                  <div className="text-xs text-blue-600 font-medium">processes</div>
+                  <div className="text-xs text-blue-600">Upcycled</div>
                 </div>
               </div>
-              <div className="text-sm text-blue-600">Upcycled</div>
             </div>
 
             {/* Downcycled Processes */}
             <div className="p-4 bg-gradient-to-br from-red-50 to-rose-50 rounded-lg border border-red-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <RefreshCw className="h-5 w-5 text-red-600" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-100">
+                  <TrendingDown className="h-4 w-4 text-red-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-red-700">
-                    {dashboardData.environmental.downcycledProcesses}
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-semibold text-red-700">
+                      {dashboardData.environmental.downcycledProcesses}
+                    </span>
+                    <span className="text-sm text-red-600 font-medium">processes</span>
                   </div>
-                  <div className="text-xs text-red-600 font-medium">processes</div>
+                  <div className="text-xs text-red-600">Downcycled</div>
                 </div>
               </div>
-              <div className="text-sm text-red-600">Downcycled</div>
             </div>
           </div>
         </CardContent>

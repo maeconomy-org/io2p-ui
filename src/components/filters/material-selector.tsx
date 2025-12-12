@@ -100,7 +100,7 @@ export function MaterialSelector({
             variant="outline"
             role="combobox"
             aria-expanded={isOpen}
-            className="w-[355px] justify-between"
+            className="w-[350px] mr-[2px] justify-between"
             disabled={disabled}
           >
             {selectedMaterials.length > 0 ? (

@@ -5,18 +5,24 @@ interface CountListProps {
   title?: string
   emptyMessage?: string
   maxItems?: number
+  colorPalette?: string[]
+  showTopIndicator?: boolean
 }
 
 export function CountList({
   data,
   title,
   emptyMessage = 'No data available',
-  maxItems
+  maxItems,
+  colorPalette = ['#3B82F6'], // Default blue color
+  showTopIndicator = true
 }: CountListProps) {
   let sortedEntries = Object.entries(data).sort(([,a], [,b]) => b - a)
+  const totalEntries = sortedEntries.length
+  const isLimited = maxItems && totalEntries > maxItems
   
   // Limit to top N items if maxItems is specified
-  if (maxItems && sortedEntries.length > maxItems) {
+  if (isLimited) {
     const topEntries = sortedEntries.slice(0, maxItems)
     const othersSum = sortedEntries.slice(maxItems).reduce((sum, [, value]) => sum + value, 0)
     
@@ -28,6 +34,7 @@ export function CountList({
   }
 
   const hasData = sortedEntries.length > 0
+  const shouldShowTopIndicator = showTopIndicator && isLimited
 
   if (!hasData) {
     return (
@@ -39,22 +46,39 @@ export function CountList({
 
   return (
     <div className="space-y-2">
-      {sortedEntries.map(([name, value]) => {
+      {shouldShowTopIndicator && (
+        <div className="text-xs text-gray-500 font-medium mb-3 pb-2 border-b border-gray-100">
+          Top {maxItems} of {totalEntries}
+        </div>
+      )}
+      {sortedEntries.map(([name, value], index) => {
         const displayName = name.toLowerCase().replace(/_/g, ' ')
         const formattedName = displayName.split(' ').map(word => 
           word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ')
         
+        // Get color from palette, cycling through if needed
+        const color = colorPalette[index % colorPalette.length]
+        
         return (
           <div key={name} className="flex items-center justify-between py-2 px-3 rounded-lg">
-            <span className="text-sm font-medium text-gray-700">
-              {formattedName}
-            </span>
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-sm font-medium text-gray-700">
+                {formattedName}
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <div className="w-16 bg-gray-200 rounded-full h-2">
                 <div 
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min((value / Math.max(...sortedEntries.map(([,v]) => v))) * 100, 100)}%` }}
+                  className="h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${Math.min((value / Math.max(...sortedEntries.map(([,v]) => v))) * 100, 100)}%`,
+                    backgroundColor: color
+                  }}
                 />
               </div>
               <span className="text-sm font-semibold text-gray-900 min-w-[2rem] text-right">

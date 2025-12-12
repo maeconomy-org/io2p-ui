@@ -17,7 +17,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Checkbox,
   Textarea,
 } from '@/components/ui'
 import { ObjectSelectionModal } from '@/components/modals'
@@ -26,7 +25,7 @@ import {
   ProcessMetadata, 
   MaterialFlowMetadata, 
   ProcessCategory,
-  DOMAIN_CATEGORY_CODES 
+  FlowCategory,
 } from '@/types/sankey-metadata'
 import { PROCESS_TYPES } from '@/constants'
 
@@ -359,7 +358,7 @@ export default function ProcessForm({
                     ...formData,
                     processMetadata: {
                       ...formData.processMetadata!,
-                      flowCategory: value
+                      flowCategory: value as FlowCategory
                     }
                   })}
                 >

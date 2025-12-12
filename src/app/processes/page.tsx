@@ -183,9 +183,9 @@ const MaterialFlowPage = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="mb-4 flex justify-between items-center">
+      <div className="mb-6 flex flex-wrap gap-6 justify-between items-center">
         <h1 className="text-2xl font-bold">I/O Processes</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           {/* Material Filter Selector */}
           <MaterialSelector
             materials={allMaterials}
