@@ -1,14 +1,16 @@
 #!/bin/bash
 
 # Dev release script for iom-ui
-# Creates a dev tag to trigger Docker build for dev branch
-# Usage: ./scripts/release-dev.sh
+# Bumps version and creates a dev tag to trigger Docker build
+# Usage: ./scripts/release-dev.sh [patch|minor|major]
 
 set -e
 
+VERSION_TYPE=${1:-patch}
 CURRENT_BRANCH=$(git branch --show-current)
 
 echo "Starting dev release..."
+echo "Version bump: $VERSION_TYPE"
 echo "Branch: $CURRENT_BRANCH"
 
 # Ensure we're on dev branch
@@ -28,20 +30,33 @@ fi
 echo "Pulling latest changes..."
 git pull origin $CURRENT_BRANCH
 
-# Get current version from package.json
-CURRENT_VERSION=$(node -p "require('./package.json').version")
-DEV_TAG="v${CURRENT_VERSION}-dev"
+# Bump version
+echo "Bumping version ($VERSION_TYPE)..."
+npm version $VERSION_TYPE --no-git-tag-version
 
-echo "Creating dev tag: $DEV_TAG"
+# Get the new version
+NEW_VERSION=$(node -p "require('./package.json').version")
+DEV_TAG="v${NEW_VERSION}-dev"
 
-# Delete existing dev tag if exists (locally and remote)
+echo "New version: $NEW_VERSION"
+echo "Dev tag: $DEV_TAG"
+
+# Commit the version change
+echo "Committing version change..."
+git add package.json pnpm-lock.yaml 2>/dev/null || git add package.json
+git commit -m "release: $DEV_TAG"
+
+# Delete existing dev tag with same version if exists
 git tag -d "$DEV_TAG" 2>/dev/null || true
 git push origin ":refs/tags/$DEV_TAG" 2>/dev/null || true
 
 # Create and push new dev tag
 git tag "$DEV_TAG"
+
+# Push commit and tag
+git push origin $CURRENT_BRANCH
 git push origin "$DEV_TAG"
 
 echo ""
 echo "Dev release $DEV_TAG created!"
-echo "Docker tags: ${CURRENT_VERSION}-dev, dev"
+echo "Docker tags: ${NEW_VERSION}-dev, dev, sha-xxx"
