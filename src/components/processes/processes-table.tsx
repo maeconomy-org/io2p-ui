@@ -14,12 +14,12 @@ import {
   TablePagination,
 } from '@/components/ui'
 import { usePagination } from '@/hooks'
-import { MaterialRelationship } from '@/types'
+import { EnhancedMaterialRelationship, QualityChangeCode } from '@/types/sankey-metadata'
 
 interface RelationshipsTableProps {
-  relationships: MaterialRelationship[]
-  onRelationshipSelect?: (relationship: MaterialRelationship) => void
-  selectedRelationship?: MaterialRelationship | null
+  relationships: EnhancedMaterialRelationship[]
+  onRelationshipSelect?: (relationship: EnhancedMaterialRelationship) => void
+  selectedRelationship?: EnhancedMaterialRelationship | null
   className?: string
   pageSize?: number
 }
@@ -40,7 +40,11 @@ export function RelationshipsTable({
         rel.subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.object.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.processName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        rel.unit.toLowerCase().includes(searchTerm.toLowerCase())
+        rel.inputMaterial?.unit?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.outputMaterial?.unit?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.processTypeCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.flowCategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.notes?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }, [relationships, searchTerm])
 
@@ -70,8 +74,29 @@ export function RelationshipsTable({
     return filteredRelationships.slice(startIndex, endIndex)
   }, [filteredRelationships, currentPage, pageSize])
 
-  const formatQuantity = (quantity: number, unit: string) => {
-    return `${quantity.toLocaleString()} ${unit}`
+  const formatQuantity = (relationship: EnhancedMaterialRelationship) => {
+    // Use input material quantity/unit from the new structure
+    const quantity = relationship.inputMaterial?.quantity || relationship.quantity
+    const unit = relationship.inputMaterial?.unit || relationship.unit
+    
+    if (quantity && unit) {
+      return `${quantity.toLocaleString()} ${unit}`
+    }
+    return 'Not specified'
+  }
+
+  // Helper to get text for quality change
+  const getQualityChangeText = (code?: QualityChangeCode) => {
+    switch (code) {
+      case 'UP':
+        return 'UPCYCLED'
+      case 'SAME':
+        return 'SAME'
+      case 'DOWN':
+        return 'DOWNCYCLED'
+      default:
+        return ''
+    }
   }
 
   return (
@@ -85,12 +110,16 @@ export function RelationshipsTable({
               <TableHead>Input Material</TableHead>
               <TableHead className="text-center w-12"></TableHead>
               <TableHead>Output Material</TableHead>
+              <TableHead className="text-center">Flow</TableHead>
+              <TableHead className="text-right">Emissions</TableHead>
+              <TableHead className="text-right">Loss %</TableHead>
+              <TableHead className="text-center">Quality</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedRelationships.length === 0 ? (
               <TableRow>
-                <TableCell className="text-center py-8 text-muted-foreground">
+                <TableCell className="text-center py-8 text-muted-foreground" {...{ colSpan: 9 }}>
                   {filteredRelationships.length === 0
                     ? 'No relationships found'
                     : 'No relationships on this page'}
@@ -99,7 +128,7 @@ export function RelationshipsTable({
             ) : (
               paginatedRelationships.map((relationship, index) => (
                 <TableRow
-                  key={`${relationship.subject.uuid}-${relationship.object.uuid}-${relationship.processName}-${relationship.quantity}-${relationship.unit}-${index}`}
+                  key={`${relationship.subject.uuid}-${relationship.object.uuid}-${relationship.processName}-${relationship.inputMaterial?.quantity || 0}-${relationship.inputMaterial?.unit || ''}-${index}`}
                   className={`cursor-pointer transition-colors ${
                     selectedRelationship?.subject.uuid ===
                       relationship.subject.uuid &&
@@ -121,7 +150,7 @@ export function RelationshipsTable({
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     <Badge variant="secondary">
-                      {formatQuantity(relationship.quantity, relationship.unit)}
+                      {formatQuantity(relationship)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -146,6 +175,44 @@ export function RelationshipsTable({
                         {relationship.object.uuid}
                       </div>
                     </div>
+                  </TableCell>
+                  
+                  <TableCell className="text-center">
+                    {relationship.flowCategory && (
+                      <Badge variant="secondary" className="text-xs">
+                        {relationship.flowCategory.replace('_', ' ')}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  
+                  <TableCell className="text-right">
+                    {relationship.emissionsTotal !== undefined ? (
+                      <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                        {relationship.emissionsTotal} {relationship.emissionsUnit || 'kgCO2e'}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  
+                  <TableCell className="text-right">
+                    {relationship.materialLossPercent !== undefined ? (
+                      <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                        {relationship.materialLossPercent}%
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  
+                  <TableCell className="text-center">
+                    {relationship.qualityChangeCode ? (
+                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                        {getQualityChangeText(relationship.qualityChangeCode)}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
