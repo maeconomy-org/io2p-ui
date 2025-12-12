@@ -1,4 +1,4 @@
-import redis from '@/lib/redis'
+import { getRedis } from '@/lib/redis'
 import {
   createCertificateAgent,
   getCertificateInfo,
@@ -6,6 +6,8 @@ import {
 import axios from 'axios'
 
 export async function processImportJob(jobId: string) {
+  const redis = getRedis()
+
   try {
     // Get job metadata
     const jobData = await redis.hgetall(`import:${jobId}`)

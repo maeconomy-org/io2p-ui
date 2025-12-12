@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 
-import redis from '@/lib/redis'
+import { getRedis } from '@/lib/redis'
 
 // Handle initial chunk upload and session start
 export async function POST(req: Request) {
@@ -50,6 +50,8 @@ export async function POST(req: Request) {
 
     // Generate or use session ID
     const jobId = sessionId || crypto.randomUUID()
+    const redis = getRedis()
+
     // If this is the first chunk, initialize the job
     if (chunkIndex === 0 && !sessionId) {
       await redis.hset(`import:${jobId}`, {
@@ -105,6 +107,8 @@ export async function POST(req: Request) {
 
 // Function to start processing in the background
 async function startProcessing(jobId: string) {
+  const redis = getRedis()
+
   // Set immediate to make it non-blocking
   setImmediate(async () => {
     try {

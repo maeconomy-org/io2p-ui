@@ -1,6 +1,6 @@
 // app/api/import/route.ts
 import { NextResponse } from 'next/server'
-import redis from '@/lib/redis'
+import { getRedis } from '@/lib/redis'
 import crypto from 'crypto'
 import { processImportJob } from './process'
 
@@ -25,6 +25,7 @@ export async function POST(req: Request) {
 
     // Generate a unique job ID early
     const jobId = crypto.randomUUID()
+    const redis = getRedis()
 
     // Parse request body to get user UUID and data
     const body = await req.json()
@@ -117,6 +118,8 @@ export async function POST(req: Request) {
 }
 // Function to start processing in the background
 async function startProcessing(jobId: string) {
+  const redis = getRedis()
+
   // Update job status to processing
   await redis.hset(`import:${jobId}`, { status: 'processing' })
 

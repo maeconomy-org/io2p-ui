@@ -41,3 +41,6 @@ docs/
 deploy/.env
 deploy/.previous
 deploy/certs/
+deploy/redis-data/
+deploy/logs/
+deploy/certbot/

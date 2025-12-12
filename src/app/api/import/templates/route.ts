@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import redis from '@/lib/redis'
+import { getRedis } from '@/lib/redis'
 
 // Template prefix for Redis keys
 const TEMPLATE_PREFIX = 'mapping_template:'
@@ -7,6 +7,8 @@ const TEMPLATE_PREFIX = 'mapping_template:'
 // Get all templates
 export async function GET() {
   try {
+    const redis = getRedis()
+
     // Get all template keys
     const keys = await redis.keys(`${TEMPLATE_PREFIX}*`)
 
@@ -47,6 +49,7 @@ export async function GET() {
 // Create a new template
 export async function POST(req: Request) {
   try {
+    const redis = getRedis()
     const { name, mapping } = await req.json()
 
     if (!name || !mapping) {
@@ -96,6 +99,7 @@ export async function POST(req: Request) {
 // Delete a template
 export async function DELETE(req: Request) {
   try {
+    const redis = getRedis()
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
 

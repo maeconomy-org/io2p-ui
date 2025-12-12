@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import redis from '@/lib/redis'
+import { getRedis } from '@/lib/redis'
 
 export async function GET(req: Request) {
   // Get job ID from the request
@@ -12,6 +12,7 @@ export async function GET(req: Request) {
 
   try {
     // Get job data from Redis
+    const redis = getRedis()
     const jobData = await redis.hgetall(`import:${jobId}`)
 
     if (!jobData || Object.keys(jobData).length === 0) {

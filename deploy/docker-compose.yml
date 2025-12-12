@@ -1,10 +1,3 @@
-# =============================================================================
-# IoM UI Docker Compose - Production Deployment
-# =============================================================================
-# Two modes:
-#   1. With host nginx: Use only 'ui' service, proxy from host nginx
-#   2. Self-contained:  Use 'ui' + 'nginx' + 'certbot' services
-#
 # Commands:
 #   Start:    docker compose up -d
 #   Stop:     docker compose down
@@ -14,42 +7,67 @@
 
 services:
   # ===========================================================================
+  # Redis - Required for import queue
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: iom-redis
+    restart: unless-stopped
+    # Security: Run redis with password and disable dangerous commands
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --rename-command FLUSHDB ""
+      --rename-command FLUSHALL ""
+      --rename-command DEBUG ""
+    volumes:
+      - ./redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # ===========================================================================
   # IoM UI Application
   # ===========================================================================
   ui:
-    image: ghcr.io/${GH_ORG:-maeconomy-org}/${APP_NAME:-iom-ui}:${IMAGE_TAG:-latest}
-    container_name: ${APP_NAME:-iom-ui}
+    image: ghcr.io/${GH_ORG}/${APP_NAME}:${IMAGE_TAG}
+    container_name: ${APP_NAME}
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     env_file:
       - .env
 
-    # Expose to host only if not using nginx container
-    # Comment this out if using nginx service below
     ports:
-      - '${PORT:-3000}:3000'
+      - '${PORT}:3000'
 
     environment:
-      - NODE_ENV=production
-      - PORT=3000
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
       - BASE_API_URL=${BASE_API_URL}
       - UUID_API_URL=${UUID_API_URL}
-      - CERTIFICATE_PATH=/app/certs/certificate.pem
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - CERTIFICATE_PATH=${CERTIFICATE_PATH}
       - CERTIFICATE_PASSWORD=${CERTIFICATE_PASSWORD}
-      - VERIFY_CERTIFICATES=${VERIFY_CERTIFICATES:-true}
+      - VERIFY_CERTIFICATES=${VERIFY_CERTIFICATES}
       - HERE_API_KEY=${HERE_API_KEY}
       - SENTRY_DSN=${SENTRY_DSN}
-      - SENTRY_RELEASE=${IMAGE_TAG:-latest}
+      - SENTRY_RELEASE=Docker-${IMAGE_TAG}
 
     volumes:
       - ./certs:/app/certs:ro
       - ./logs:/app/logs:rw
-
-    healthcheck:
-      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:3000/']
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
 
     logging:
       driver: 'json-file'
@@ -62,7 +80,7 @@ services:
   # ===========================================================================
   # nginx:
   #   image: nginx:alpine
-  #   container_name: nginx
+  #   container_name: iom-nginx
   #   restart: unless-stopped
   #   ports:
   #     - '80:80'
@@ -73,6 +91,7 @@ services:
   #     - ./certbot/www:/var/www/certbot:ro
   #   depends_on:
   #     - ui
+  #   # Auto-reload nginx every 6h to pick up cert renewals
   #   command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
 
   # ===========================================================================
@@ -80,10 +99,11 @@ services:
   # ===========================================================================
   # certbot:
   #   image: certbot/certbot
-  #   container_name: certbot
+  #   container_name: iom-certbot
   #   volumes:
   #     - ./certbot/conf:/etc/letsencrypt:rw
   #     - ./certbot/www:/var/www/certbot:rw
+  #   # Auto-renew certs every 12h
   #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
   # =========================================================================
