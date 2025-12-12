@@ -21,7 +21,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  Badge,
   ScrollArea,
   Card,
   CardContent,

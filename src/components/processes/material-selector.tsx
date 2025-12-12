@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Loader2, ChevronsUpDown, Package, Check } from 'lucide-react'
+import { ChevronsUpDown, Package, Check } from 'lucide-react'
 import {
   Button,
   Badge,
-  Label,
   Popover,
   PopoverTrigger,
   PopoverContent,

@@ -11,40 +11,17 @@ import {
   Factory,
   Leaf,
   AlertTriangle,
-  PieChart as PieChartIcon,
-  ListIcon,
   RotateCcw,
   Rows3
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
-import { CountList } from '@/components/charts/count-list'
+import { CountList } from './count-list'
 import type {
   EnhancedMaterialObject,
   EnhancedMaterialRelationship
 } from '@/types'
 
-// Color palettes for pie charts
-const PROCESS_CATEGORY_COLORS = [
-  '#3B82F6', // blue
-  '#10B981', // emerald
-  '#F59E0B', // amber
-  '#EF4444', // red
-  '#8B5CF6', // violet
-  '#06B6D4', // cyan
-  '#F97316', // orange
-  '#84CC16', // lime
-]
-
-const LIFECYCLE_STAGE_COLORS = [
-  '#10B981', // emerald
-  '#3B82F6', // blue
-  '#F59E0B', // amber
-  '#8B5CF6', // violet
-  '#EF4444', // red
-  '#06B6D4', // cyan
-  '#F97316', // orange
-  '#84CC16', // lime
-]
+import { PROCESS_CATEGORY_COLORS, LIFECYCLE_STAGE_COLORS } from './constants'
 
 interface ProcessDashboardProps {
   materials?: EnhancedMaterialObject[]

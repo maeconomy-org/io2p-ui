@@ -2,7 +2,6 @@
 
 import { useMemo, memo } from 'react'
 import ReactECharts from 'echarts-for-react'
-import { Card, CardContent } from '@/components/ui'
 import type {
   EnhancedMaterialObject,
   EnhancedMaterialRelationship,

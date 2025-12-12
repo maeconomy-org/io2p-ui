@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import type { UUID, UUStatementDTO, UUObjectDTO } from 'iom-sdk'
 
 import { useStatements, useObjects } from '@/hooks/api'
@@ -57,12 +56,19 @@ export function useSankeyDiagramData(objectUuid?: UUID): SankeyDiagramData & { l
 
   // Extract participating object UUIDs
   const participatingUUIDs = useMemo(() => {
-    const statements = objectUuid 
-      ? inputStatementsQuery.data?.combined || []
-      : inputStatementsQuery.data || []
+    let statements: UUStatementDTO[] = []
+    
+    if (objectUuid) {
+      const data = inputStatementsQuery.data
+      if (data && typeof data === 'object' && 'combined' in data) {
+        statements = data.combined
+      }
+    } else {
+      statements = Array.isArray(inputStatementsQuery.data) ? inputStatementsQuery.data : []
+    }
     
     const uuids = new Set<UUID>()
-    statements.forEach((stmt) => {
+    statements.forEach((stmt: UUStatementDTO) => {
       uuids.add(stmt.subject)
       uuids.add(stmt.object)
     })
@@ -80,9 +86,16 @@ export function useSankeyDiagramData(objectUuid?: UUID): SankeyDiagramData & { l
 
   // Process statements and objects into enhanced materials and relationships
   const processedData = useMemo(() => {
-    const statements = objectUuid 
-      ? inputStatementsQuery.data?.combined || []
-      : inputStatementsQuery.data || []
+    let statements: UUStatementDTO[] = []
+    
+    if (objectUuid) {
+      const data = inputStatementsQuery.data
+      if (data && typeof data === 'object' && 'combined' in data) {
+        statements = data.combined
+      }
+    } else {
+      statements = Array.isArray(inputStatementsQuery.data) ? inputStatementsQuery.data : []
+    }
     
     const objects = objectsQuery.data || []
 
@@ -117,7 +130,7 @@ export function useSankeyDiagramData(objectUuid?: UUID): SankeyDiagramData & { l
     relationships: processedData.relationships,
     layoutData,
     isLoading,
-    error: inputStatementsQuery.error || objectsQuery.error,
+    error: inputStatementsQuery.error || objectsQuery.error || undefined,
   }
 }
 
@@ -309,7 +322,7 @@ function processStatementsWithMetadata(
         materialLossPercent,
         qualityChangeCode,
         notes,
-        customProperties,
+        customProperties: customProperties.input, // Use input custom properties for backward compatibility
         // NEW: Separated input/output data
         inputMaterial: {
           quantity: inputQuantity,
@@ -548,7 +561,7 @@ function extractCustomProperties(statement: UUStatementDTO): { input: Record<str
     const key = property.key
     const value = property.values?.[0]?.value
     
-    if (!value) return
+    if (!value || !key) return
     
     if (key.startsWith('input_') && !knownKeys.has(key)) {
       // Remove "input_" prefix for display

@@ -14,8 +14,7 @@ import {
   TablePagination,
 } from '@/components/ui'
 import { usePagination } from '@/hooks'
-import { MaterialRelationship } from '@/types'
-import { EnhancedMaterialRelationship, FlowCategory, QualityChangeCode } from '@/types/sankey-metadata'
+import { EnhancedMaterialRelationship, QualityChangeCode } from '@/types/sankey-metadata'
 
 interface RelationshipsTableProps {
   relationships: EnhancedMaterialRelationship[]

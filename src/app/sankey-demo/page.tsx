@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui'
-import { SankeyDiagram, NetworkDiagram } from '@/components/diagrams'
+import { SankeyDiagram, NetworkDiagram } from '@/components/processes/diagrams'
 import type { 
   EnhancedMaterialObject, 
   EnhancedMaterialRelationship 

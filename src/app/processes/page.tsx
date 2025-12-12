@@ -8,15 +8,20 @@ import { toast } from 'sonner'
 import { MaterialRelationship } from '@/types'
 import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
 import type { UUID } from 'iom-sdk'
-import { useStatements, useSankeyDiagramData } from '@/hooks'
-import { RelationshipsTable } from '@/components/tables'
+import { useStatements } from '@/hooks'
 import { LoadingState } from '@/components/loading-state'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
-import { SankeyDiagram, NetworkDiagram } from '@/components/diagrams'
-import { ProcessViewSelector } from '@/components/process-view-selector'
-import { ProcessFormSheet, RelationshipDetailsSheet } from '@/components/sheets'
-import { ProcessDashboard } from '@/components/process-dashboard'
-import { MaterialSelector } from '@/components/filters/material-selector'
+import { 
+  SankeyDiagram, 
+  NetworkDiagram, 
+  ProcessViewSelector, 
+  ProcessFormSheet, 
+  RelationshipDetailsSheet, 
+  ProcessDashboard, 
+  MaterialSelector,
+  RelationshipsTable,
+  useSankeyDiagramData
+} from '@/components/processes'
 import { ProcessViewType, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
 const MaterialFlowPage = () => {
