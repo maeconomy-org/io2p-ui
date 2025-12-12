@@ -16,6 +16,22 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+      }
+    }
+    
+    // Suppress specific warnings
+    config.ignoreWarnings = [
+      /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
+    ]
+    
+    return config
+  },
 }
 
 // Only configure Sentry in production or when explicitly enabled
