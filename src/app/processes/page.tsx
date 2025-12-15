@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
 import type { UUID } from 'iom-sdk'
 import { useStatements } from '@/hooks'
-import { LoadingState } from '@/components/loading-state'
+import { LoadingState } from '@/components/processes/loading-state'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
 import { 
   SankeyDiagram, 
