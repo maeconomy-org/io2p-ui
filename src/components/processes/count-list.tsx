@@ -2,20 +2,16 @@
 
 interface CountListProps {
   data: Record<string, number>
-  title?: string
   emptyMessage?: string
   maxItems?: number
   colorPalette?: string[]
-  showTopIndicator?: boolean
 }
 
 export function CountList({
   data,
-  title,
   emptyMessage = 'No data available',
   maxItems,
   colorPalette = ['#3B82F6'], // Default blue color
-  showTopIndicator = true
 }: CountListProps) {
   let sortedEntries = Object.entries(data).sort(([,a], [,b]) => b - a)
   const totalEntries = sortedEntries.length

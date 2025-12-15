@@ -15,25 +15,25 @@ import {
   Rows3
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
-import { CountList } from './count-list'
+import { CountList } from '../count-list'
 import type {
   EnhancedMaterialObject,
   EnhancedMaterialRelationship
 } from '@/types'
 
-import { PROCESS_CATEGORY_COLORS, LIFECYCLE_STAGE_COLORS } from './constants'
+import { PROCESS_CATEGORY_COLORS, LIFECYCLE_STAGE_COLORS } from '../constants'
 
-interface ProcessDashboardProps {
+interface DashboardViewProps {
   materials?: EnhancedMaterialObject[]
   relationships?: EnhancedMaterialRelationship[]
   onCreateProcess?: () => void
 }
 
-export function ProcessDashboard({
+export function DashboardView({
   materials = [],
   relationships = [],
   onCreateProcess = () => { }
-}: ProcessDashboardProps) {
+}: DashboardViewProps) {
   const dashboardData = useMemo(() => {
     // Calculate KPIs
     const totalFlows = relationships.length
@@ -232,7 +232,6 @@ export function ProcessDashboard({
                maxItems={4}
                emptyMessage="No process category data"
                colorPalette={PROCESS_CATEGORY_COLORS}
-               showTopIndicator={false}
              />
            </CardContent>
          </Card>
@@ -258,7 +257,6 @@ export function ProcessDashboard({
                maxItems={4}
                emptyMessage="No lifecycle stage data"
                colorPalette={LIFECYCLE_STAGE_COLORS}
-               showTopIndicator={false}
              />
            </CardContent>
          </Card>

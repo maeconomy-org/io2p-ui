@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { PlusCircle, Loader2, Filter, X, Package } from 'lucide-react'
+import { PlusCircle, Loader2, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { MaterialRelationship } from '@/types'
 import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
 import type { UUID } from 'iom-sdk'
 import { useStatements } from '@/hooks'
@@ -15,13 +14,14 @@ import {
   SankeyDiagram, 
   NetworkDiagram, 
   ProcessViewSelector, 
-  ProcessFormSheet, 
+  ProcessCreateSheet, 
   RelationshipDetailsSheet, 
-  ProcessDashboard, 
+  DashboardView, 
   MaterialSelector,
-  RelationshipsTable,
+  ProcessTableView,
   useSankeyDiagramData
 } from '@/components/processes'
+
 import { ProcessViewType, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
 const MaterialFlowPage = () => {
@@ -302,7 +302,7 @@ const MaterialFlowPage = () => {
               variant="card"
             />
           ) : (
-            <ProcessDashboard
+            <DashboardView
               materials={materials} // Use filtered materials
               relationships={relationships} // Use filtered relationships for analytics
               onCreateProcess={handleOpenProcessForm}
@@ -331,7 +331,7 @@ const MaterialFlowPage = () => {
             variant="card"
           />
           {!isLoading && relationships.length > 0 && (
-            <RelationshipsTable
+            <ProcessTableView
               relationships={relationships}
               selectedRelationship={null} // Remove selection highlighting from table too
               onRelationshipSelect={handleRelationshipSelect}
@@ -342,7 +342,7 @@ const MaterialFlowPage = () => {
       )}
 
       {/* Process Form Sheet */}
-      <ProcessFormSheet
+      <ProcessCreateSheet
         isOpen={isProcessFormOpen}
         onClose={handleCloseProcessForm}
         onSave={handleProcessSave}

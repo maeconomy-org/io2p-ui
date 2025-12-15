@@ -35,28 +35,28 @@ import {
   PROCESS_CATEGORIES, 
   FLOW_CATEGORY_OPTIONS, 
   QUALITY_CHANGE_OPTIONS 
-} from './constants'
+} from '../constants'
 import { 
   ProcessMaterial, 
   ProcessFlowData, 
   generateRelationships, 
   validateProcessForm,
   formatCategoryName 
-} from './utils'
+} from '../utils'
 
-interface ProcessFormSheetProps {
+interface ProcessCreateSheetProps {
   isOpen: boolean
   onClose: () => void
   process?: ProcessFlowData
   onSave: (process: ProcessFlowData) => void
 }
 
-export function ProcessFormSheet({
+export function ProcessCreateSheet({
   isOpen,
   onClose,
   process,
   onSave,
-}: ProcessFormSheetProps) {
+}: ProcessCreateSheetProps) {
   const [formData, setFormData] = useState<ProcessFlowData>({
     uuid: '',
     name: '',

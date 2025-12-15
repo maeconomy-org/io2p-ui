@@ -16,7 +16,7 @@ import {
 import { usePagination } from '@/hooks'
 import { EnhancedMaterialRelationship, QualityChangeCode } from '@/types/sankey-metadata'
 
-interface RelationshipsTableProps {
+interface ProcessTableViewProps {
   relationships: EnhancedMaterialRelationship[]
   onRelationshipSelect?: (relationship: EnhancedMaterialRelationship) => void
   selectedRelationship?: EnhancedMaterialRelationship | null
@@ -24,13 +24,13 @@ interface RelationshipsTableProps {
   pageSize?: number
 }
 
-export function RelationshipsTable({
+export function ProcessTableView({
   relationships,
   onRelationshipSelect,
   selectedRelationship,
   className = '',
   pageSize = 10,
-}: RelationshipsTableProps) {
+}: ProcessTableViewProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
 
