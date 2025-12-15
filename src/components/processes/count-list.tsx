@@ -34,7 +34,6 @@ export function CountList({
   }
 
   const hasData = sortedEntries.length > 0
-  const shouldShowTopIndicator = showTopIndicator && isLimited
 
   if (!hasData) {
     return (
@@ -46,11 +45,6 @@ export function CountList({
 
   return (
     <div className="space-y-2">
-      {shouldShowTopIndicator && (
-        <div className="text-xs text-gray-500 font-medium mb-3 pb-2 border-b border-gray-100">
-          Top {maxItems} of {totalEntries}
-        </div>
-      )}
       {sortedEntries.map(([name, value], index) => {
         const displayName = name.toLowerCase().replace(/_/g, ' ')
         const formattedName = displayName.split(' ').map(word => 

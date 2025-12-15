@@ -85,17 +85,29 @@ export function RelationshipsTable({
     return 'Not specified'
   }
 
-  // Helper to get text for quality change
-  const getQualityChangeText = (code?: QualityChangeCode) => {
+  // Helper to get text and styling for quality change
+  const getQualityChangeInfo = (code?: QualityChangeCode) => {
     switch (code) {
-      case 'UP':
-        return 'UPCYCLED'
+      case 'UPCYCLED':
+        return { 
+          text: 'UPCYCLED', 
+          className: 'text-xs bg-emerald-50 text-emerald-700 border-emerald-200' 
+        }
       case 'SAME':
-        return 'SAME'
-      case 'DOWN':
-        return 'DOWNCYCLED'
+        return { 
+          text: 'SAME', 
+          className: 'text-xs bg-slate-50 text-slate-700 border-slate-200' 
+        }
+      case 'DOWNCYCLED':
+        return { 
+          text: 'DOWNCYCLED', 
+          className: 'text-xs bg-amber-50 text-amber-700 border-amber-200' 
+        }
       default:
-        return ''
+        return { 
+          text: '', 
+          className: 'text-xs bg-gray-50 text-gray-700 border-gray-200' 
+        }
     }
   }
 
@@ -207,9 +219,14 @@ export function RelationshipsTable({
                   
                   <TableCell className="text-center">
                     {relationship.qualityChangeCode ? (
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                        {getQualityChangeText(relationship.qualityChangeCode)}
-                      </Badge>
+                      (() => {
+                        const qualityInfo = getQualityChangeInfo(relationship.qualityChangeCode)
+                        return (
+                          <Badge variant="outline" className={qualityInfo.className}>
+                            {qualityInfo.text}
+                          </Badge>
+                        )
+                      })()
                     ) : (
                       <span className="text-xs text-muted-foreground">-</span>
                     )}

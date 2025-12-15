@@ -32,7 +32,7 @@ export type ProcessCategory =
   | 'DEMOLITION'
   | 'DISPOSAL'
 
-export type QualityChangeCode = 'UP' | 'SAME' | 'DOWN'
+export type QualityChangeCode = 'UPCYCLED' | 'SAME' | 'DOWNCYCLED'
 
 /**
  * Process-level metadata (applies to all I/O of a process instance)

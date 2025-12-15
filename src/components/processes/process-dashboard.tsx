@@ -85,8 +85,8 @@ export function ProcessDashboard({
         acc.totalMaterialLoss += rel.materialLossPercent
         acc.materialLossCount += 1
       }
-      if (rel.qualityChangeCode === 'UP') acc.upcycledProcesses += 1
-      if (rel.qualityChangeCode === 'DOWN') acc.downcycledProcesses += 1
+      if (rel.qualityChangeCode === 'UPCYCLED') acc.upcycledProcesses += 1
+      if (rel.qualityChangeCode === 'DOWNCYCLED') acc.downcycledProcesses += 1
       return acc
     }, {
       totalEmissions: 0,
@@ -111,7 +111,9 @@ export function ProcessDashboard({
       },
       breakdowns: {
         processCategories: processCategoryStats,
-        lifecycleStages: lifecycleStats
+        lifecycleStages: lifecycleStats,
+        processCategoriesTotal: Object.keys(processCategoryStats).length,
+        lifecycleStagesTotal: Object.keys(lifecycleStats).length
       },
       environmental: {
         ...environmentalImpact,
@@ -212,18 +214,25 @@ export function ProcessDashboard({
          {/* Process Categories List */}
          <Card>
            <CardHeader className="pb-2">
-             <CardTitle className="flex items-center gap-2">
-               <Rows3 className="h-5 w-5" />
-               Process Categories
-             </CardTitle>
+             <div className="flex items-center justify-between">
+               <CardTitle className="flex items-center gap-2">
+                 <Rows3 className="h-5 w-5" />
+                 Process Categories
+               </CardTitle>
+               {dashboardData.breakdowns.processCategoriesTotal > 5 && (
+                 <span className="text-xs text-gray-500 font-medium">
+                   Top 5 of {dashboardData.breakdowns.processCategoriesTotal}
+                 </span>
+               )}
+             </div>
            </CardHeader>
            <CardContent className="p-4">
              <CountList
                data={dashboardData.breakdowns.processCategories}
-               maxItems={5}
+               maxItems={4}
                emptyMessage="No process category data"
                colorPalette={PROCESS_CATEGORY_COLORS}
-               showTopIndicator={true}
+               showTopIndicator={false}
              />
            </CardContent>
          </Card>
@@ -231,18 +240,25 @@ export function ProcessDashboard({
          {/* Lifecycle Stages List */}
          <Card>
            <CardHeader className="pb-2">
-             <CardTitle className="flex items-center gap-2">
-               <RotateCcw className="h-5 w-5" />
-               Lifecycle Stages
-             </CardTitle>
+             <div className="flex items-center justify-between">
+               <CardTitle className="flex items-center gap-2">
+                 <RotateCcw className="h-5 w-5" />
+                 Lifecycle Stages
+               </CardTitle>
+               {dashboardData.breakdowns.lifecycleStagesTotal > 5 && (
+                 <span className="text-xs text-gray-500 font-medium">
+                   Top 5 of {dashboardData.breakdowns.lifecycleStagesTotal}
+                 </span>
+               )}
+             </div>
            </CardHeader>
            <CardContent className="p-4">
              <CountList
                data={dashboardData.breakdowns.lifecycleStages}
-               maxItems={5}
+               maxItems={4}
                emptyMessage="No lifecycle stage data"
                colorPalette={LIFECYCLE_STAGE_COLORS}
-               showTopIndicator={true}
+               showTopIndicator={false}
              />
            </CardContent>
          </Card>
@@ -342,7 +358,7 @@ export function ProcessDashboard({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 max-h-64 overflow-y-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6  gap-3 max-h-64 overflow-y-auto">
             {materials.map((material) => {
               const materialFlowCount = relationships.filter(rel =>
                 rel.subject.uuid === material.uuid || rel.object.uuid === material.uuid

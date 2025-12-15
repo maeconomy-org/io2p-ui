@@ -469,10 +469,10 @@ function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
   }
 
   if (rel.qualityChangeCode) {
-    const qualityLabel = rel.qualityChangeCode === 'UP' ? 'Upcycled' :
-      rel.qualityChangeCode === 'DOWN' ? 'Downcycled' : 'Same Quality'
-    const qualityEmoji = rel.qualityChangeCode === 'UP' ? '⬆️' :
-      rel.qualityChangeCode === 'DOWN' ? '⬇️' : '➡️'
+    const qualityLabel = rel.qualityChangeCode === 'UPCYCLED' ? 'Upcycled' :
+      rel.qualityChangeCode === 'DOWNCYCLED' ? 'Downcycled' : 'Same Quality'
+    const qualityEmoji = rel.qualityChangeCode === 'UPCYCLED' ? '⬆️' :
+      rel.qualityChangeCode === 'DOWNCYCLED' ? '⬇️' : '➡️'
     parts.push(`${qualityEmoji} Quality: ${qualityLabel}`)
   }
 

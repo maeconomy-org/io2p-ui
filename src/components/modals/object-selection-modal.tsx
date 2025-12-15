@@ -18,15 +18,11 @@ import {
   SelectValue,
   Badge,
   ScrollArea,
-  Checkbox,
-  Textarea,
 } from '@/components/ui'
 import { useCommonApi } from '@/hooks/api'
 import { UNIT_CATEGORIES } from '@/constants'
 import { 
   LifecycleStage, 
-  FlowCategory, 
-  QualityChangeCode, 
   MaterialFlowMetadata,
   DOMAIN_CATEGORY_CODES 
 } from '@/types/sankey-metadata'
@@ -42,17 +38,6 @@ const LIFECYCLE_STAGES: LifecycleStage[] = [
   'WASTE',
   'DISPOSAL'
 ]
-
-const FLOW_CATEGORIES: FlowCategory[] = [
-  'STANDARD',
-  'RECYCLING',
-  'REUSE',
-  'DOWNCYCLING',
-  'CIRCULAR',
-  'WASTE_FLOW'
-]
-
-const QUALITY_CHANGE_CODES: QualityChangeCode[] = ['UP', 'SAME', 'DOWN']
 
 interface ObjectSelectionData {
   object: UUObjectDTO

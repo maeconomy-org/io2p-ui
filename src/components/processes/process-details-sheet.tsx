@@ -51,9 +51,9 @@ const getFlowCategoryLabel = (category?: FlowCategory) => {
 // Quality change label and styling
 const getQualityInfo = (code?: QualityChangeCode) => {
   switch (code) {
-    case 'UP':
+    case 'UPCYCLED':
       return { label: 'Upcycled', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' }
-    case 'DOWN':
+    case 'DOWNCYCLED':
       return { label: 'Downcycled', icon: TrendingDown, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' }
     default:
       return { label: 'Same Quality', icon: Minus, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' }
