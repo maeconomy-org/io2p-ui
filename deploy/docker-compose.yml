@@ -63,7 +63,8 @@ services:
       - VERIFY_CERTIFICATES=${VERIFY_CERTIFICATES}
       - HERE_API_KEY=${HERE_API_KEY}
       - SENTRY_DSN=${SENTRY_DSN}
-      - SENTRY_RELEASE=Docker-${IMAGE_TAG}
+      - SENTRY_ENABLED=${SENTRY_ENABLED:-true}
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-Docker-${IMAGE_TAG}}
 
     volumes:
       - ./certs:/app/certs:ro

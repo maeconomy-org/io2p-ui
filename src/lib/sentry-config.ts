@@ -10,8 +10,11 @@ type SentryEvent = ErrorEvent
  * Common Sentry options shared across all runtimes
  */
 export const sharedSentryOptions = {
-  // Disable performance tracing - we only need error monitoring
-  tracesSampleRate: 0,
+  // Enable performance monitoring with 10% sampling (free tier friendly)
+  tracesSampleRate: 0.1,
+
+  // Enable session health tracking (crash rates, stability metrics)
+  autoSessionTracking: true,
 
   // Disable all default integrations to prevent auto-loading 40+ integrations
   defaultIntegrations: false,

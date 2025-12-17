@@ -24,6 +24,8 @@ if (shouldInit && process.env.SENTRY_DSN) {
     integrations: [
       Sentry.linkedErrorsIntegration(),
       Sentry.contextLinesIntegration(),
+      Sentry.dedupeIntegration(), // Remove duplicate errors
+      Sentry.extraErrorDataIntegration(), // Enhanced error context
       Sentry.onUncaughtExceptionIntegration(),
       Sentry.onUnhandledRejectionIntegration(),
       Sentry.consoleLoggingIntegration({ levels: [...consoleLevels] }),

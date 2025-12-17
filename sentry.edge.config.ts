@@ -23,6 +23,7 @@ if (shouldInit && process.env.SENTRY_DSN) {
     // Edge-specific integrations (limited runtime)
     integrations: [
       Sentry.linkedErrorsIntegration(),
+      Sentry.dedupeIntegration(), // Remove duplicate errors
       Sentry.consoleLoggingIntegration({ levels: [...consoleLevels] }),
     ],
 

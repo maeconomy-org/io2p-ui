@@ -31,6 +31,7 @@ async function initSentry() {
           Sentry.linkedErrorsIntegration(),
           Sentry.browserApiErrorsIntegration(),
           Sentry.globalHandlersIntegration(),
+          Sentry.dedupeIntegration(), // Remove duplicate errors
           Sentry.consoleLoggingIntegration({ levels: [...consoleLevels] }),
           // Breadcrumbs for debugging context (no PII)
           Sentry.breadcrumbsIntegration({

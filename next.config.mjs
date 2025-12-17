@@ -51,11 +51,19 @@ export default shouldUseSentry && process.env.SENTRY_ORG && process.env.SENTRY_P
       // Route browser requests through tunnel to bypass ad-blockers
       tunnelRoute: '/monitoring',
 
-      // Tree-shake Sentry logger statements in production
-      disableLogger: true,
+       // Use new webpack options instead of deprecated top-level options
+       webpack: {
+        treeshake: {
+          removeDebugLogging: true, // Replaces deprecated disableLogger
+        },
+        automaticVercelMonitors: false, // Replaces deprecated automaticVercelMonitors
+      },
 
-      // Disable OpenTelemetry - not needed for basic error monitoring
-      // We're running on Google Cloud VM, not Vercel
-      automaticVercelMonitors: false,
+      // Disable source map upload during build - we do runtime-only config
+      hideSourceMaps: true,
+      
+      // Disable release creation during build - we handle this at runtime
+      disableClientWebpackPlugin: false,
+      disableServerWebpackPlugin: false,
     })
   : nextConfig
