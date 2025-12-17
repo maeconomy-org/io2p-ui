@@ -2,10 +2,27 @@ import crypto from 'crypto'
 import { NextResponse } from 'next/server'
 
 import { getRedis } from '@/lib/redis'
+import { hsetWithTTL, setWithTTL } from '@/lib/redis-utils'
+import {
+  validateRequestBasics,
+  validateImportPayload,
+  checkImportRateLimit,
+  getClientIdentifier,
+  logSecurityEvent,
+} from '@/lib/security-utils'
 
 // Handle initial chunk upload and session start
 export async function POST(req: Request) {
   try {
+    // Validate basic request properties
+    const basicValidation = validateRequestBasics(req)
+    if (!basicValidation.valid) {
+      return NextResponse.json(
+        { error: basicValidation.error },
+        { status: 400 }
+      )
+    }
+
     // Parse the request body with new structure
     const body = await req.json()
     const {
@@ -26,9 +43,15 @@ export async function POST(req: Request) {
     }
 
     const userUUID = user.userUUID
+    const clientId = getClientIdentifier(req)
     const chunk = aggregateEntityList
 
     if (!Array.isArray(chunk) || chunk.length === 0) {
+      logSecurityEvent('invalid_chunk_format', {
+        userUUID,
+        clientId,
+        chunkIndex,
+      })
       return NextResponse.json(
         {
           error: 'Invalid chunk: aggregateEntityList must be a non-empty array',
@@ -48,26 +71,73 @@ export async function POST(req: Request) {
       )
     }
 
+    // Validate chunk payload
+    const chunkValidation = validateImportPayload(chunk)
+    if (!chunkValidation.valid) {
+      return NextResponse.json(
+        {
+          error: chunkValidation.error,
+          chunkIndex,
+          details: {
+            sizeMB: chunkValidation.size,
+            objectCount: chunkValidation.objectCount,
+          },
+        },
+        { status: 413 }
+      )
+    }
+
+    // Check rate limiting for chunk uploads (more lenient than full imports)
+    const rateLimitCheck = await checkImportRateLimit(
+      `chunk:${clientId}`,
+      userUUID
+    )
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: rateLimitCheck.error,
+          chunkIndex,
+          rateLimitInfo: rateLimitCheck.rateLimitInfo,
+        },
+        { status: 429 }
+      )
+    }
+
     // Generate or use session ID
     const jobId = sessionId || crypto.randomUUID()
     const redis = getRedis()
 
     // If this is the first chunk, initialize the job
     if (chunkIndex === 0 && !sessionId) {
-      await redis.hset(`import:${jobId}`, {
+      await hsetWithTTL(`import:${jobId}`, {
         status: 'receiving',
         userUUID: userUUID,
+        clientId: clientId,
         total: total.toString(),
         processed: '0',
         failed: '0',
         receivedChunks: '0',
         totalChunks: totalChunks.toString(),
         createdAt: Date.now().toString(),
+        chunkSizeMB: chunkValidation.size?.toFixed(2) || '0',
       })
+
+      // Log chunk upload start
+      logSecurityEvent(
+        'chunked_import_started',
+        {
+          jobId,
+          userUUID,
+          totalObjects: total,
+          totalChunks,
+          estimatedSizeMB: (chunkValidation.size || 0) * totalChunks,
+        },
+        'info'
+      )
     }
 
-    // Save this chunk
-    await redis.set(
+    // Save this chunk with TTL
+    await setWithTTL(
       `import:${jobId}:chunk:${chunkIndex}`,
       JSON.stringify(chunk)
     )
@@ -78,6 +148,22 @@ export async function POST(req: Request) {
       'receivedChunks',
       1
     )
+
+    // Log chunk progress
+    if (chunkIndex % 10 === 0 || chunkIndex === totalChunks - 1) {
+      logSecurityEvent(
+        'chunk_upload_progress',
+        {
+          jobId,
+          userUUID,
+          chunkIndex,
+          totalChunks,
+          receivedChunks,
+          progress: Math.round((receivedChunks / totalChunks) * 100),
+        },
+        'info'
+      )
+    }
 
     // Check if all chunks are received
     if (parseInt(receivedChunks.toString()) === totalChunks) {

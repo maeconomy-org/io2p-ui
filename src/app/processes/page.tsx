@@ -10,19 +10,20 @@ import type { UUID } from 'iom-sdk'
 import { useStatements } from '@/hooks'
 import { LoadingState } from '@/components/processes/loading-state'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
-import { 
-  SankeyDiagram, 
-  NetworkDiagram, 
-  ProcessViewSelector, 
-  ProcessCreateSheet, 
-  RelationshipDetailsSheet, 
-  DashboardView, 
+import {
+  SankeyDiagram,
+  NetworkDiagram,
+  ProcessViewSelector,
+  ProcessCreateSheet,
+  RelationshipDetailsSheet,
+  DashboardView,
   MaterialSelector,
   ProcessTableView,
-  useSankeyDiagramData
+  useSankeyDiagramData,
 } from '@/components/processes'
 
 import { ProcessViewType, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
+import { logger } from '@/lib'
 
 const MaterialFlowPage = () => {
   const searchParams = useSearchParams()
@@ -34,7 +35,9 @@ const MaterialFlowPage = () => {
   const [isProcessFormOpen, setIsProcessFormOpen] = useState(false)
   const [isRelationshipSheetOpen, setIsRelationshipSheetOpen] = useState(false)
   const [activeView, setActiveView] = useState<ProcessViewType>('dashboard')
-  const [selectedMaterialUuids, setSelectedMaterialUuids] = useState<string[]>([])
+  const [selectedMaterialUuids, setSelectedMaterialUuids] = useState<string[]>(
+    []
+  )
 
   // Load saved view preference from localStorage
   useEffect(() => {
@@ -50,9 +53,11 @@ const MaterialFlowPage = () => {
   }, [router])
 
   // Enhanced data fetching using new metadata-driven hook
-  const { materials: allMaterials, relationships: allRelationships, isLoading } = useSankeyDiagramData(
-    objectUuid as UUID | undefined
-  )
+  const {
+    materials: allMaterials,
+    relationships: allRelationships,
+    isLoading,
+  } = useSankeyDiagramData(objectUuid as UUID | undefined)
 
   // Filter data based on selected materials
   const { materials, relationships } = useMemo(() => {
@@ -61,81 +66,91 @@ const MaterialFlowPage = () => {
     }
 
     // Filter relationships that involve any of the selected materials
-    const filteredRelationships = allRelationships.filter(rel =>
-      selectedMaterialUuids.includes(rel.subject.uuid) || selectedMaterialUuids.includes(rel.object.uuid)
+    const filteredRelationships = allRelationships.filter(
+      (rel) =>
+        selectedMaterialUuids.includes(rel.subject.uuid) ||
+        selectedMaterialUuids.includes(rel.object.uuid)
     )
 
     // Get all materials involved in the filtered relationships
     const involvedMaterialUuids = new Set<string>()
-    filteredRelationships.forEach(rel => {
+    filteredRelationships.forEach((rel) => {
       involvedMaterialUuids.add(rel.subject.uuid)
       involvedMaterialUuids.add(rel.object.uuid)
     })
 
-    const filteredMaterials = allMaterials.filter(material =>
+    const filteredMaterials = allMaterials.filter((material) =>
       involvedMaterialUuids.has(material.uuid)
     )
 
-    return { materials: filteredMaterials, relationships: filteredRelationships }
+    return {
+      materials: filteredMaterials,
+      relationships: filteredRelationships,
+    }
   }, [allMaterials, allRelationships, selectedMaterialUuids])
 
   // API hooks for mutations only
   const { useCreateProcessFlow } = useStatements()
   const createProcessFlowMutation = useCreateProcessFlow()
 
-  const handleProcessSave = useCallback(async (newProcess: any) => {
-    try {
-      toast.loading('Creating process flow...', { id: 'create-process-flow' })
-      const result = await createProcessFlowMutation.mutateAsync({
-        processMetadata: {
-          processName: newProcess.name,
-          processType: newProcess.type,
-          quantity: 0,
-          unit: 'kg',
-          ...(newProcess.processMetadata || {}),
-        },
-        inputMaterials: newProcess.inputMaterials.map((input: any) => ({
-          uuid: input.object.uuid,
-          quantity: input.quantity,
-          unit: input.unit,
-          metadata: {
-            ...(input.metadata || {}),
-            ...(input.customProperties || {}), // Merge custom properties into metadata
+  const handleProcessSave = useCallback(
+    async (newProcess: any) => {
+      try {
+        toast.loading('Creating process flow...', { id: 'create-process-flow' })
+        const result = await createProcessFlowMutation.mutateAsync({
+          processMetadata: {
+            processName: newProcess.name,
+            processType: newProcess.type,
+            quantity: 0,
+            unit: 'kg',
+            ...(newProcess.processMetadata || {}),
           },
-        })),
-        outputMaterials: newProcess.outputMaterials.map((output: any) => ({
-          uuid: output.object.uuid,
-          quantity: output.quantity,
-          unit: output.unit,
-          metadata: {
-            ...(output.metadata || {}),
-            ...(output.customProperties || {}), // Merge custom properties into metadata
-          },
-        })),
-      })
+          inputMaterials: newProcess.inputMaterials.map((input: any) => ({
+            uuid: input.object.uuid,
+            quantity: input.quantity,
+            unit: input.unit,
+            metadata: {
+              ...(input.metadata || {}),
+              ...(input.customProperties || {}), // Merge custom properties into metadata
+            },
+          })),
+          outputMaterials: newProcess.outputMaterials.map((output: any) => ({
+            uuid: output.object.uuid,
+            quantity: output.quantity,
+            unit: output.unit,
+            metadata: {
+              ...(output.metadata || {}),
+              ...(output.customProperties || {}), // Merge custom properties into metadata
+            },
+          })),
+        })
 
-      console.log('Process flow saved to backend:', result)
-      toast.success('Process flow created successfully!', {
-        id: 'create-process-flow',
-      })
-      setIsProcessFormOpen(false)
-    } catch (error) {
-      console.error('Failed to save process flow:', error)
-      toast.error('Failed to create process flow', {
-        id: 'create-process-flow',
-      })
-    }
-  }, [createProcessFlowMutation])
+        toast.success('Process flow created successfully!', {
+          id: 'create-process-flow',
+        })
+        setIsProcessFormOpen(false)
+      } catch (error) {
+        logger.error('Failed to save process flow:', { error })
+        toast.error('Failed to create process flow', {
+          id: 'create-process-flow',
+        })
+      }
+    },
+    [createProcessFlowMutation]
+  )
 
-  const handleRelationshipSelect = useCallback((relationship: EnhancedMaterialRelationship) => {
-    // Don't set selectedRelationship to avoid diagram re-render/flicker
-    // Just open the sheet with the relationship data
-    setIsRelationshipSheetOpen(true)
-    // Set the relationship after a brief delay to avoid affecting the diagram
-    setTimeout(() => {
-      setSelectedRelationship(relationship)
-    }, 0)
-  }, [])
+  const handleRelationshipSelect = useCallback(
+    (relationship: EnhancedMaterialRelationship) => {
+      // Don't set selectedRelationship to avoid diagram re-render/flicker
+      // Just open the sheet with the relationship data
+      setIsRelationshipSheetOpen(true)
+      // Set the relationship after a brief delay to avoid affecting the diagram
+      setTimeout(() => {
+        setSelectedRelationship(relationship)
+      }, 0)
+    },
+    []
+  )
 
   const handleCloseRelationshipSheet = useCallback(() => {
     setIsRelationshipSheetOpen(false)
@@ -149,8 +164,6 @@ const MaterialFlowPage = () => {
   const handleOpenProcessForm = useCallback(() => {
     setIsProcessFormOpen(true)
   }, [])
-
-
 
   // Memoize diagram components to prevent unnecessary re-renders
   // Remove selectedRelationship from dependencies to prevent flicker on selection
@@ -184,7 +197,14 @@ const MaterialFlowPage = () => {
         className="bg-white"
       />
     )
-  }, [materials, relationships, isLoading, activeView, objectUuid, handleRelationshipSelect])
+  }, [
+    materials,
+    relationships,
+    isLoading,
+    activeView,
+    objectUuid,
+    handleRelationshipSelect,
+  ])
 
   return (
     <div className="container mx-auto p-4">
@@ -236,8 +256,8 @@ const MaterialFlowPage = () => {
                       Object: {objectUuid.slice(0, 8)}...
                     </Badge>
                   )}
-                  {selectedMaterialUuids.map(uuid => {
-                    const material = allMaterials.find(m => m.uuid === uuid)
+                  {selectedMaterialUuids.map((uuid) => {
+                    const material = allMaterials.find((m) => m.uuid === uuid)
                     return (
                       <Badge
                         key={uuid}
@@ -271,7 +291,7 @@ const MaterialFlowPage = () => {
                     Clear Object
                   </Button>
                 )}
-                {(objectUuid && selectedMaterialUuids.length > 0) && (
+                {objectUuid && selectedMaterialUuids.length > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -314,9 +334,7 @@ const MaterialFlowPage = () => {
       {/* Diagram Views */}
       {(activeView === 'sankey' || activeView === 'network') && (
         <Card>
-          <CardContent>
-            {diagramContent}
-          </CardContent>
+          <CardContent>{diagramContent}</CardContent>
         </Card>
       )}
 

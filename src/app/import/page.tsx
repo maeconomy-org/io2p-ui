@@ -14,12 +14,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  ImportLimitsInfo,
 } from '@/components/ui'
 import {
   IMPORT_HEADER_ROW_KEY,
   IMPORT_START_ROW_KEY,
   IMPORT_COLUMN_MAPPING_KEY,
 } from '@/constants'
+import { logger } from '@/lib'
 
 type ImportStep = 'upload' | 'map-columns' | 'preview'
 
@@ -37,7 +39,7 @@ export default function ImportPage() {
   const { isImporting, startImport } = useImportProcess({
     autoRedirect: true,
     onImportStarted: (jobId) => {
-      console.log(`Import job started: ${jobId}`)
+      logger.import(`Import job started: ${jobId}`, { jobId })
     },
   })
 
@@ -177,6 +179,19 @@ export default function ImportPage() {
           <Step title="Map Columns" />
           <Step title="Preview & Import" />
         </Steps>
+      </div>
+
+      {/* Show import limits info */}
+      <div className="mb-6">
+        <ImportLimitsInfo
+          currentObjectCount={mappedData.length}
+          currentSizeMB={
+            mappedData.length > 0
+              ? JSON.stringify(mappedData).length / (1024 * 1024)
+              : 0
+          }
+          showContactForLarge={true}
+        />
       </div>
 
       <div className="pt-6">

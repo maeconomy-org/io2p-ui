@@ -1,6 +1,7 @@
 import fs from 'fs'
 import https from 'https'
 import path from 'path'
+import { VERIFY_CERTIFICATES, ALLOW_INSECURE_FALLBACK } from '@/constants'
 
 export interface CertificateConfig {
   certPath?: string
@@ -21,8 +22,8 @@ export function createCertificateAgent(
     certPath = process.env.CERTIFICATE_PATH ||
       path.join(process.cwd(), './certs/uuprotocol_dev.pem'),
     password,
-    rejectUnauthorized = false,
-    fallbackToInsecure = true,
+    rejectUnauthorized = VERIFY_CERTIFICATES, // Use environment variable
+    fallbackToInsecure = ALLOW_INSECURE_FALLBACK, // Use environment variable
   } = config
 
   try {
@@ -111,9 +112,6 @@ export function createCertificateAgent(
         }
       }
 
-      console.log(
-        `Using certificate: ${path.basename(certPath)} (with ${hasPemKey ? 'private key' : 'cert only'})`
-      )
       const agent = new https.Agent(agentOptions)
       return agent
     } else {

@@ -1,4 +1,5 @@
 import type { Attachment } from '@/types'
+import { logger } from './logger'
 
 // Updated client type for new flow with uploadDirect and uploadByReference methods
 type ApiClient = {
@@ -90,7 +91,7 @@ export class FileUploadService {
         retries: 0,
       }))
 
-    console.log(`Queueing ${tasks.length} file uploads with context:`, tasks)
+    logger.info(`Queueing ${tasks.length} file uploads with context:`, tasks)
 
     this.uploadQueue.push(...tasks)
     await this.processQueue()
@@ -125,7 +126,7 @@ export class FileUploadService {
         retries: 0,
       }))
 
-    console.log(`Queueing ${tasks.length} file uploads:`, tasks)
+    logger.info(`Queueing ${tasks.length} file uploads:`, tasks)
 
     this.uploadQueue.push(...tasks)
     await this.processQueue()
@@ -165,8 +166,7 @@ export class FileUploadService {
       task.status = 'uploading'
       this.options.onProgress(task.id, 0)
 
-      console.log(`Processing file ${task.attachment.fileName}`)
-      console.log(task.attachment)
+      logger.info(`Processing file ${task.attachment.fileName}`)
 
       // Validate based on attachment mode
       if (task.attachment.mode === 'upload' && !task.attachment.blob) {
@@ -227,16 +227,13 @@ export class FileUploadService {
 
       task.status = 'completed'
       this.options.onComplete(task.id)
-
-      console.log(
-        `Successfully processed file ${task.attachment.fileName} for UUID ${uuidToAttach}`,
-        response.data
-      )
     } catch (error: any) {
       task.retries++
       task.error = error.message
 
-      console.error(`Upload failed for ${task.attachment.fileName}:`, error)
+      logger.error(`Upload failed for ${task.attachment.fileName}:`, {
+        error: error.message,
+      })
 
       if (task.retries < this.options.maxRetries) {
         task.status = 'pending'
@@ -327,13 +324,10 @@ export function getUploadService(client: ApiClient): FileUploadService {
       onProgress: (taskId, progress) => {
         // Could emit events here for UI updates
       },
-      onComplete: (taskId) => {
-        // Individual file success - we'll handle summary in the calling code
-        console.log(`File ${taskId} uploaded successfully`)
-      },
-      onError: (taskId, error) => {
+      onComplete: () => {},
+      onError: (taskId, error: string) => {
         // Individual file error - we'll handle summary in the calling code
-        console.error(`File ${taskId} upload failed:`, error)
+        logger.error(`File ${taskId} upload failed:`, { error: error })
       },
     })
   }

@@ -112,7 +112,6 @@ export function GroupViewSheet({
   const handleRemoveObject = (objectUuid: string) => {
     if (confirmingRemove === objectUuid) {
       // Second click - confirm removal
-      console.log('Removing object:', objectUuid)
       setConfirmingRemove(null)
       // In real implementation, this would call the API
     } else {

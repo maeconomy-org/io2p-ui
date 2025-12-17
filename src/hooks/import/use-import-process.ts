@@ -99,11 +99,49 @@ export function useImportProcess({
 
           if (!response.ok) {
             const errorData = await response.json()
+
+            // Handle rate limiting with user-friendly messages
+            if (response.status === 429) {
+              if (errorData.rateLimitInfo) {
+                const resetMinutes = Math.ceil(
+                  (errorData.rateLimitInfo.resetTime - Date.now()) / (1000 * 60)
+                )
+                throw new Error(
+                  `Rate limit exceeded. Please wait ${resetMinutes} minutes before trying again. ` +
+                    `You've made ${errorData.rateLimitInfo.current}/${errorData.rateLimitInfo.max} requests.`
+                )
+              }
+              throw new Error(
+                errorData.error || 'Too many requests. Please slow down.'
+              )
+            }
+
+            // Handle payload size limits
+            if (response.status === 413) {
+              throw new Error(
+                `Import too large: ${errorData.error}. ` +
+                  `Consider breaking your data into smaller chunks.`
+              )
+            }
+
             throw new Error(errorData.error || 'Failed to start import')
           }
 
           const data = await response.json()
           jobId = data.jobId
+
+          // Show warnings if any
+          if (data.warning) {
+            toast.warning(data.warning, {
+              duration: 8000, // Show longer for warnings
+            })
+          }
+
+          if (data.jobLimitWarning) {
+            toast.warning(data.jobLimitWarning, {
+              duration: 6000,
+            })
+          }
         }
 
         if (jobId) {
@@ -190,6 +228,30 @@ export function useImportProcess({
 
           if (!response.ok) {
             const errorData = await response.json()
+
+            // Handle rate limiting for chunks
+            if (response.status === 429) {
+              if (errorData.rateLimitInfo) {
+                const resetMinutes = Math.ceil(
+                  (errorData.rateLimitInfo.resetTime - Date.now()) / (1000 * 60)
+                )
+                throw new Error(
+                  `Upload rate limit exceeded at chunk ${chunkIndex + 1}. ` +
+                    `Please wait ${resetMinutes} minutes before retrying.`
+                )
+              }
+              throw new Error(
+                `Rate limit exceeded at chunk ${chunkIndex + 1}. Please slow down.`
+              )
+            }
+
+            // Handle chunk size limits
+            if (response.status === 413) {
+              throw new Error(
+                `Chunk ${chunkIndex + 1} is too large: ${errorData.error}`
+              )
+            }
+
             throw new Error(
               errorData.error || `Failed to upload chunk ${chunkIndex + 1}`
             )

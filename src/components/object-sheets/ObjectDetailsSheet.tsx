@@ -20,7 +20,10 @@ import {
 import { Attachment } from '@/types'
 import { useUnifiedDelete } from '@/hooks'
 
-import { DeleteConfirmationDialog, TemplateCreationDialog } from '@/components/modals'
+import {
+  DeleteConfirmationDialog,
+  TemplateCreationDialog,
+} from '@/components/modals'
 
 // Import our extracted hooks and utilities
 import {
@@ -262,8 +265,9 @@ export function ObjectDetailsSheet({
 
   // Get initial template data from the current object
   const getInitialTemplateData = () => {
-    if (!object) return { name: '', abbreviation: '', version: '1.0', description: '' }
-    
+    if (!object)
+      return { name: '', abbreviation: '', version: '1.0', description: '' }
+
     return {
       name: `${object.name} Template`,
       abbreviation: object.abbreviation || '',
@@ -466,7 +470,12 @@ export function ObjectDetailsSheet({
           <SheetFooter className="border-t pt-4">
             <div className="flex w-full flex-col gap-2">
               <div className="flex flex-col-reverse sm:flex-row w-full items-center gap-2">
-                <Button type="button" variant="outline" onClick={onClose} className="w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="w-full"
+                >
                   Close
                 </Button>
                 {object?.uuid && (
@@ -508,7 +517,7 @@ export function ObjectDetailsSheet({
                   </>
                 )}
               </div>
-              {object?.uuid  && (
+              {object?.uuid && (
                 <Button
                   type="button"
                   variant="outline"
@@ -564,7 +573,6 @@ export function ObjectDetailsSheet({
           onOpenChange={handleCloseAttachmentModal}
           attachments={attachmentModal.attachments || []} // Track modal-specific attachments
           onChange={(newAttachments: Attachment[]) => {
-            console.log('Attachments selected:', newAttachments)
             // Update the modal state to track selected attachments
             setAttachmentModal((prev) => ({
               ...prev,
@@ -582,7 +590,6 @@ export function ObjectDetailsSheet({
             valueUuid: attachmentModal.valueUuid,
           }}
           onUploadComplete={() => {
-            console.log('Upload completed, refreshing data')
             handleUploadComplete()
             handleCloseAttachmentModal()
           }}

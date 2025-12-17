@@ -7,11 +7,34 @@ export async function GET() {
     // API endpoints
     baseApiUrl: process.env.BASE_API_URL || '',
     uuidApiUrl: process.env.UUID_API_URL || '',
+
     // Sentry config (client-side)
     sentryDsn: process.env.SENTRY_DSN || '',
     sentryEnabled: process.env.SENTRY_ENABLED || 'false',
     sentryRelease: process.env.SENTRY_RELEASE || '',
+
     // Environment
     nodeEnv: process.env.NODE_ENV || 'development',
+
+    // App information (client-side needed)
+    appName: process.env.APP_NAME || 'Internet of Materials',
+    appDescription: process.env.APP_DESCRIPTION || 'Material Management System',
+    appAcronym: process.env.APP_ACRONYM || 'IoM',
+    contactUrl: process.env.CONTACT_URL || 'https://example.com/contact',
+    supportEmail:
+      process.env.SUPPORT_EMAIL || 'support@internetofmaterials.com',
+
+    // Import limits (client-side needed for UI)
+    maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '100'),
+    maxImportPayloadMB: parseInt(process.env.MAX_IMPORT_PAYLOAD_MB || '100'), // Should match or be less than file size
+    maxObjectsPerImport: parseInt(
+      process.env.MAX_OBJECTS_PER_IMPORT || '50000'
+    ),
+
+    // SDK logging config (client-side)
+    sdkDebugEnabled:
+      process.env.LOG_LEVEL === 'debug' || process.env.LOG_SDK === 'true',
+    sdkLogLevel: process.env.LOG_LEVEL || 'info',
+    sdkLogToConsole: process.env.LOG_SDK !== 'true', // Only log to console if not using SDK logging
   })
 }

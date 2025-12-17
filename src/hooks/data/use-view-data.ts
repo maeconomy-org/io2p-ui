@@ -103,9 +103,6 @@ export function useViewData({
   // Extract and enhance data - use search results if in search mode
   const enhancedData = useMemo(() => {
     if (isSearchMode) {
-      console.log(
-        `🔍 Using search results: ${searchViewResults.length} objects`
-      )
       return searchViewResults // Already enhanced in search context
     }
 

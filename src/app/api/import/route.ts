@@ -1,31 +1,40 @@
-// app/api/import/route.ts
 import { NextResponse } from 'next/server'
-import { getRedis } from '@/lib/redis'
 import crypto from 'crypto'
+
+import { getRedis } from '@/lib/redis'
+import { hsetWithTTL } from '@/lib/redis-utils'
+import {
+  validateRequestBasics,
+  validateImportPayload,
+  checkImportRateLimit,
+  checkConcurrentJobLimit,
+  trackUserJob,
+  getClientIdentifier,
+} from '@/lib/security-utils'
+import { logger } from '@/lib/logger'
+import { API_CHUNK_SIZE } from '@/constants'
+
 import { processImportJob } from './process'
 
 export const config = {
   api: {
-    bodyParser: false, // Disable the built-in body parser
-    responseLimit: false, // No response limit
+    bodyParser: {
+      sizeLimit: '100mb', // Set reasonable limit for import payloads
+    },
+    responseLimit: false, // No response limit for large responses
   },
 }
 
 export async function POST(req: Request) {
   try {
-    // Use a streaming approach for large payloads
-    const contentType = req.headers.get('content-type') || ''
-
-    if (!contentType.includes('application/json')) {
+    // Validate basic request properties
+    const basicValidation = validateRequestBasics(req)
+    if (!basicValidation.valid) {
       return NextResponse.json(
-        { error: 'Content type must be application/json' },
+        { error: basicValidation.error },
         { status: 400 }
       )
     }
-
-    // Generate a unique job ID early
-    const jobId = crypto.randomUUID()
-    const redis = getRedis()
 
     // Parse request body to get user UUID and data
     const body = await req.json()
@@ -39,20 +48,11 @@ export async function POST(req: Request) {
     }
 
     const userUUID = user.userUUID
+    const clientId = getClientIdentifier(req)
 
-    // Create initial job record
-    await redis.hset(`import:${jobId}`, {
-      status: 'receiving',
-      userUUID: userUUID,
-      createdAt: Date.now().toString(),
-    })
-
-    // Validate aggregateEntityList
+    // Validate aggregateEntityList format
     if (!aggregateEntityList || !Array.isArray(aggregateEntityList)) {
-      await redis.hset(`import:${jobId}`, {
-        status: 'failed',
-        error: 'Invalid data format: aggregateEntityList must be an array',
-      })
+      logger.security('invalid_payload_format', {})
       return NextResponse.json(
         { error: 'Invalid data format: aggregateEntityList must be an array' },
         { status: 400 }
@@ -60,56 +60,115 @@ export async function POST(req: Request) {
     }
 
     if (aggregateEntityList.length === 0) {
-      await redis.hset(`import:${jobId}`, {
-        status: 'failed',
-        error: 'Invalid data: aggregateEntityList cannot be empty',
-      })
       return NextResponse.json(
         { error: 'Invalid data: aggregateEntityList cannot be empty' },
         { status: 400 }
       )
     }
 
+    // Validate payload size and object count
+    const payloadValidation = validateImportPayload(aggregateEntityList)
+    if (!payloadValidation.valid) {
+      return NextResponse.json(
+        {
+          error: payloadValidation.error,
+          details: {
+            sizeMB: payloadValidation.size,
+            objectCount: payloadValidation.objectCount,
+          },
+        },
+        { status: 413 }
+      )
+    }
+
+    // Check rate limiting (soft warning approach)
+    const rateLimitCheck = await checkImportRateLimit(clientId, userUUID)
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: rateLimitCheck.error,
+          rateLimitInfo: rateLimitCheck.rateLimitInfo,
+        },
+        { status: 429 }
+      )
+    }
+
+    // Check concurrent job limits
+    const jobLimitCheck = await checkConcurrentJobLimit(userUUID)
+    if (!jobLimitCheck.allowed) {
+      return NextResponse.json({ error: jobLimitCheck.error }, { status: 429 })
+    }
+
+    // Generate a unique job ID
+    const jobId = crypto.randomUUID()
+    const redis = getRedis()
+
+    // Create initial job record with TTL
+    await hsetWithTTL(`import:${jobId}`, {
+      status: 'receiving',
+      userUUID: userUUID,
+      clientId: clientId,
+      createdAt: Date.now().toString(),
+      payloadSizeMB: payloadValidation.size?.toFixed(2) || '0',
+      objectCount: payloadValidation.objectCount?.toString() || '0',
+    })
+
+    // Track this job for the user
+    await trackUserJob(userUUID, jobId)
+
     const objects = aggregateEntityList
 
-    // Update job metadata
-    await redis.hset(`import:${jobId}`, {
+    // Update job metadata with TTL
+    await hsetWithTTL(`import:${jobId}`, {
       status: 'pending',
       total: objects.length,
       processed: 0,
       failed: 0,
     })
 
-    // Store objects in chunks to avoid memory issues
-    // Note: Objects are stored in chunks for memory efficiency,
-    // but will be processed one by one in the background process
-    const CHUNK_SIZE = 100
-    const totalChunks = Math.ceil(objects.length / CHUNK_SIZE)
+    // Store objects in chunks to avoid memory issues with TTL
+    const totalChunks = Math.ceil(objects.length / API_CHUNK_SIZE)
 
-    for (let i = 0; i < objects.length; i += CHUNK_SIZE) {
-      const chunk = objects.slice(i, i + CHUNK_SIZE)
-      await redis.set(
-        `import:${jobId}:chunk:${Math.floor(i / CHUNK_SIZE)}`,
+    for (let i = 0; i < objects.length; i += API_CHUNK_SIZE) {
+      const chunk = objects.slice(i, i + API_CHUNK_SIZE)
+      const chunkKey = `import:${jobId}:chunk:${Math.floor(i / API_CHUNK_SIZE)}`
+      await redis.setex(
+        chunkKey,
+        6 * 3600, // 6 hours TTL for chunks
         JSON.stringify(chunk)
       )
     }
 
-    // Save total chunks information
-    await redis.hset(`import:${jobId}`, {
+    // Save total chunks information with TTL
+    await hsetWithTTL(`import:${jobId}`, {
       totalChunks: totalChunks.toString(),
     })
+
+    // Import started successfully - no logging needed
 
     // Start background processing
     startProcessing(jobId)
 
-    return NextResponse.json({
+    // Include warnings in response if any
+    const response: any = {
       jobId,
       status: 'started',
       message: 'Import job started successfully',
       totalObjects: objects.length,
-    })
+    }
+
+    if (rateLimitCheck.warning) {
+      response.warning = rateLimitCheck.warning
+      response.rateLimitInfo = rateLimitCheck.rateLimitInfo
+    }
+
+    if (jobLimitCheck.warning) {
+      response.jobLimitWarning = jobLimitCheck.warning
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
-    console.error('Import error:', error)
+    logger.import('Import API failed', {}, 'error')
     return NextResponse.json(
       { error: 'Failed to start import job' },
       { status: 500 }
@@ -127,14 +186,16 @@ async function startProcessing(jobId: string) {
   // We're using setImmediate to make it non-blocking
   setImmediate(() => {
     processImportJob(jobId).catch((error) => {
-      console.error(`Error processing import job ${jobId}:`, error)
+      logger.import('Background job failed', { jobId }, 'error')
       // Update job status to failed
       redis
         .hset(`import:${jobId}`, {
           status: 'failed',
           error: error.message,
         })
-        .catch(console.error)
+        .catch(() =>
+          logger.import('Job status update failed', { jobId }, 'error')
+        )
     })
   })
 }

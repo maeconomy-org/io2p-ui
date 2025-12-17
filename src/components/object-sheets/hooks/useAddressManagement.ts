@@ -67,8 +67,6 @@ export function useAddressManagement({
     editedAddressData.district !== addressData.district
 
   const saveAddress = async (): Promise<void> => {
-    console.log('editedAddressData', editedAddressData)
-    console.log('initialAddressInfo', initialAddressInfo)
     if (!editedAddressData) {
       throw new Error('Missing required data for address update')
     }

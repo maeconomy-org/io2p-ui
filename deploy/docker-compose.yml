@@ -53,18 +53,11 @@ services:
       - '${PORT}:3000'
 
     environment:
-      - NODE_ENV=${NODE_ENV}
-      - PORT=${PORT}
-      - BASE_API_URL=${BASE_API_URL}
-      - UUID_API_URL=${UUID_API_URL}
+      # Override Redis URL for container networking (can't be in .env file)
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - CERTIFICATE_PATH=${CERTIFICATE_PATH}
-      - CERTIFICATE_PASSWORD=${CERTIFICATE_PASSWORD}
-      - VERIFY_CERTIFICATES=${VERIFY_CERTIFICATES}
-      - HERE_API_KEY=${HERE_API_KEY}
-      - SENTRY_DSN=${SENTRY_DSN}
-      - SENTRY_ENABLED=${SENTRY_ENABLED:-true}
+      # Docker-specific overrides
       - SENTRY_RELEASE=${SENTRY_RELEASE:-Docker-${IMAGE_TAG}}
+      # All other variables are loaded from .env file automatically
 
     volumes:
       - ./certs:/app/certs:ro

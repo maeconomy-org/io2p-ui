@@ -8,8 +8,11 @@ import {
   useEffect,
 } from 'react'
 import { createClient } from 'iom-sdk'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+import { logger } from '@/lib/logger'
+import { fetchClientConfig } from '@/constants'
 
 // Global singleton cache
 let cachedClient: ReturnType<typeof createClient> | null = null
@@ -59,18 +62,22 @@ export function QueryProvider({ children }: PropsWithChildren) {
       }
 
       try {
-        const res = await fetch('/api/config')
-        const config = await res.json()
+        const config = await fetchClientConfig()
 
         cachedClient = createClient({
           baseUrl: config.baseApiUrl,
           uuidServiceBaseUrl: config.uuidApiUrl,
           debug: {
-            enabled: process.env.NODE_ENV === 'development',
-            logLevel: 'error',
-            logToConsole: true,
+            enabled: config.sdkDebugEnabled,
+            logLevel: config.sdkLogLevel as 'error' | 'info',
+            logToConsole: config.sdkLogToConsole,
           },
         })
+
+        // Set SDK logger for our unified logging system
+        if (cachedClient && 'logger' in cachedClient) {
+          logger.setSdkLogger(cachedClient as any)
+        }
 
         if (isMounted) setClient(cachedClient)
       } catch (err) {

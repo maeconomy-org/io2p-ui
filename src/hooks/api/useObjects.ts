@@ -141,7 +141,6 @@ export function useObjects() {
   const useCreateFullObject = () => {
     return useMutation({
       mutationFn: async (objectData: ComplexObjectCreationInput) => {
-        console.log('Creating full object:', objectData)
         const response = await client.objects.createFullObject(objectData)
         return response.data
       },

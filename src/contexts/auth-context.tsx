@@ -118,7 +118,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       }
     } catch (e) {
-      console.error('Error reading auth status:', e)
+      // Auth status read error - silent fail for UX
     }
 
     setIsAuthenticated(false)
@@ -165,7 +165,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       // Initiate auth flow
       const response = await requestCertificate.mutateAsync()
-      console.log('Auth Response:', response)
 
       // Validate both base and UUID auth responses
       const baseAuth = response.base
@@ -239,7 +238,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       return { success: true }
     } catch (err) {
-      console.error('Authentication Error:', err)
+      // Authentication failed - error will be shown in UI
 
       // Provide specific error messages
       const errorMessage =

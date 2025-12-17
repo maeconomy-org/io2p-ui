@@ -1,5 +1,6 @@
 import { Predicate } from 'iom-sdk'
 import type { ImportObjectData } from '@/hooks/api/useImportApi'
+import { logger } from '@/lib'
 import type { Attachment } from '@/types'
 
 /**
@@ -156,10 +157,6 @@ export function mapFileContexts(
     valueUuid?: string
   }> = []
 
-  console.log('Mapping file contexts for object creation:', {
-    uploadFiles: uploadFiles.length,
-  })
-
   const objectUuid =
     aggregateResult?.uuid ||
     aggregateResult?.objectUuid ||
@@ -200,7 +197,7 @@ export function mapFileContexts(
     }
   }
 
-  console.log('File mapping completed:', {
+  logger.info('File mapping completed:', {
     total: fileContexts.length,
     object: fileContexts.filter((f) => f.attachment.context === 'object')
       .length,
@@ -249,11 +246,6 @@ export async function createParentRelationships(
   childUuid: string,
   createStatementMutation: any
 ): Promise<void> {
-  console.log('Creating parent relationships:', {
-    parents: parentUuids,
-    child: childUuid,
-  })
-
   // Create statements for each parent relationship
   for (const parentUuid of parentUuids) {
     // Create IS_PARENT_OF statement (parent -> child)
@@ -269,9 +261,5 @@ export async function createParentRelationships(
       predicate: Predicate.IS_CHILD_OF,
       object: parentUuid,
     })
-
-    console.log(`Created parent relationship: ${parentUuid} -> ${childUuid}`)
   }
-
-  console.log(`Successfully created ${parentUuids.length} parent relationships`)
 }

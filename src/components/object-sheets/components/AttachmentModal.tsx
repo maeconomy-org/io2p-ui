@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui'
 import type { Attachment } from '@/types'
-import { getUploadService } from '@/lib'
+import { getUploadService, logger } from '@/lib'
 import { useIomSdkClient } from '@/contexts'
 
 import { AttachmentSection } from './AttachmentSection'
@@ -128,7 +128,6 @@ export function AttachmentModal({
         // Wait for completion and show results
         setTimeout(async () => {
           const summary = uploadService.getUploadSummary()
-          console.log('Upload summary:', summary)
 
           if (summary.completed.length > 0) {
             toast.success(
@@ -148,7 +147,9 @@ export function AttachmentModal({
           onUploadComplete?.()
         }, 2000)
       } catch (error) {
-        console.error('Upload error:', error)
+        logger.error('Upload error:', {
+          error: error instanceof Error ? error.message : String(error),
+        })
         toast.error('Upload failed', { id: 'file-upload' })
       }
     }
@@ -191,9 +192,6 @@ export function AttachmentModal({
                   setShowUploadConfirm(true)
                 } else {
                   // No files to upload or no upload context, just close
-                  console.log(
-                    'No upload context (object creation mode) or no uploadable files, closing modal'
-                  )
                   onOpenChange(false)
                 }
               }}

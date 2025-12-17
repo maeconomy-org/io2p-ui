@@ -149,14 +149,14 @@ export function useStatements() {
             ([key]) =>
               ![
                 'processName',
-                'processType', 
+                'processType',
                 'quantity',
                 'unit',
                 'processCategory',
                 'isRecycling',
                 'isDeconstruction',
                 'sourceBuildingUuid',
-                'targetBuildingUuid'
+                'targetBuildingUuid',
               ].includes(key)
           )
           .forEach(([key, value]) => {
@@ -199,13 +199,13 @@ export function useStatements() {
         outputMaterials,
       }: {
         processMetadata: ProcessMetadata
-        inputMaterials: Array<{ 
+        inputMaterials: Array<{
           uuid: UUID
           quantity: number
           unit: string
           metadata?: MaterialFlowMetadata
         }>
-        outputMaterials: Array<{ 
+        outputMaterials: Array<{
           uuid: UUID
           quantity: number
           unit: string
@@ -220,29 +220,29 @@ export function useStatements() {
           for (const output of outputMaterials) {
             // Create namespaced metadata to avoid conflicts
             const namespacedMetadata: MaterialFlowMetadata = {}
-            
+
             // Add input-specific properties with "input_" prefix
             if (input.metadata) {
               Object.entries(input.metadata).forEach(([key, value]) => {
                 if (value !== undefined && value !== null) {
-                  (namespacedMetadata as any)[`input_${key}`] = value
+                  ;(namespacedMetadata as any)[`input_${key}`] = value
                 }
               })
             }
-            
-            // Add output-specific properties with "output_" prefix  
+
+            // Add output-specific properties with "output_" prefix
             if (output.metadata) {
               Object.entries(output.metadata).forEach(([key, value]) => {
                 if (value !== undefined && value !== null) {
-                  (namespacedMetadata as any)[`output_${key}`] = value
+                  ;(namespacedMetadata as any)[`output_${key}`] = value
                 }
               })
             }
-            
+
             // Add input quantity and unit with namespace
             namespacedMetadata.input_quantity = input.quantity
             namespacedMetadata.input_unit = input.unit
-            
+
             // Add output quantity and unit with namespace (always store both)
             if (output.quantity !== undefined) {
               namespacedMetadata.output_quantity = output.quantity
@@ -264,13 +264,6 @@ export function useStatements() {
             results.push(result)
           }
         }
-
-        console.log(
-          'Process flow created with',
-          results.length,
-          'statements:',
-          results
-        )
 
         return results
       },

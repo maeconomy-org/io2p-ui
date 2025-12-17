@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useIomSdkClient } from '@/contexts'
+import { logger } from '@/lib'
 
 /**
  * Hook that provides the loadChildren function for columns view
@@ -21,7 +22,7 @@ export function useLoadChildren() {
       // Convert from 1-based (UI) to 0-based (API) page numbering
       const apiPage = page - 1
 
-      console.log(
+      logger.info(
         `🔄 Loading children for parent: ${parentUUID}, page: ${page} (API page: ${apiPage}), search: "${searchTerm || 'none'}"`
       )
 

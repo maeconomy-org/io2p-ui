@@ -54,7 +54,6 @@ export function useFileProcessor({
       setIsProcessing(true)
       setError(null)
       updateProgress(0)
-      console.log(file)
 
       try {
         // Check file size
@@ -166,7 +165,6 @@ export function useFileProcessor({
       // Parse workbook
       const workbook = XLSX.read(buffer, { type: 'array' })
       updateProgress(70)
-      console.log(workbook)
 
       return extractSheetData(workbook)
     },

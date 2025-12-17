@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Globe, Lock, Save, X, Shield } from 'lucide-react'
+
 import {
   Button,
   Input,
@@ -23,8 +24,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  Checkbox,
 } from '@/components/ui'
+import { logger } from '@/lib'
 import { groupSchema, GroupFormValues } from '@/lib/validations'
 
 interface Group {
@@ -103,7 +104,7 @@ export function GroupCreateEditSheet({
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      console.log(isEditing ? 'Updating group:' : 'Creating group:', data)
+      logger.info(isEditing ? 'Updating group:' : 'Creating group:', data)
 
       // Close sheet on success
       onOpenChange(false)
@@ -111,7 +112,9 @@ export function GroupCreateEditSheet({
       // Reset form
       form.reset()
     } catch (error) {
-      console.error('Error saving group:', error)
+      logger.error('Error saving group:', {
+        error: error instanceof Error ? error.message : String(error),
+      })
     } finally {
       setIsSubmitting(false)
     }

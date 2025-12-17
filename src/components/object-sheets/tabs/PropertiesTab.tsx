@@ -319,7 +319,6 @@ export function PropertiesTab({
           onOpenChange={handleCloseAttachmentModal}
           attachments={attachmentModal.attachments || []} // Track modal-specific attachments
           onChange={(newAttachments) => {
-            console.log('Attachments selected:', newAttachments)
             // Update the modal state to track selected attachments
             setAttachmentModal((prev: any) => ({
               ...prev,
@@ -337,7 +336,6 @@ export function PropertiesTab({
             valueUuid: attachmentModal.valueUuid,
           }}
           onUploadComplete={() => {
-            console.log('Upload completed, refreshing data')
             onUploadComplete()
             handleCloseAttachmentModal()
           }}

@@ -1,4 +1,5 @@
 import { Redis } from 'ioredis'
+import { logger } from './logger'
 
 // Lazy-loaded Redis client singleton
 // Only connects when getRedis() is called, not at module load time
@@ -42,15 +43,15 @@ export function getRedis(): Redis {
     })
 
     redis.on('error', (error) => {
-      console.error('Redis connection error:', error.message)
+      logger.error('Redis connection error:', { error: error.message })
     })
 
     redis.on('connect', () => {
-      console.log('Redis connected')
+      logger.info('Redis connected')
     })
 
     redis.on('ready', () => {
-      console.log('Redis ready')
+      logger.info('Redis ready')
     })
   }
 
