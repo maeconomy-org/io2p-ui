@@ -23,7 +23,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui'
-import { ObjectSelectionModal } from '@/components/modals'
+import { ObjectSelectionModal } from '../modals/object-selection-modal'
 import type { MaterialRelationship } from '@/types'
 import { 
   MaterialFlowMetadata, 
