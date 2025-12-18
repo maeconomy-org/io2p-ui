@@ -8,6 +8,7 @@ import type {
   FlowCategory
 } from '@/types'
 import { toCapitalize } from '@/lib'
+import { detectAndRemoveCycles } from '../utils'
 
 interface SankeyDiagramProps {
   materials?: EnhancedMaterialObject[]
@@ -24,13 +25,13 @@ export const SankeyDiagram = memo(function SankeyDiagram({
   onLinkSelect = () => { },
   className = '',
 }: SankeyDiagramProps) {
-  const { chartOptions } = useMemo(() => {
+  const { chartOptions, cycleInfo } = useMemo(() => {
     if (!materials || materials.length === 0) {
-      return { chartOptions: null, recyclingInfo: null }
+      return { chartOptions: null, recyclingInfo: null, cycleInfo: null }
     }
 
     // Compute layout using metadata-driven approach
-    const { nodes, links, recyclingFlows, stats } = computeEnhancedLayout(materials, relationships)
+    const { nodes, links, recyclingFlows, removedFlows, cycleInfo, stats } = computeEnhancedLayout(materials, relationships)
 
     // Identify materials involved in recycling/reuse
     const recyclingMaterialIds = new Set<string>()
@@ -186,6 +187,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
     return {
       chartOptions: options,
       recyclingInfo: { recyclingFlows, stats },
+      cycleInfo,
     }
   }, [materials, relationships, selectedRelationship])
 
@@ -237,6 +239,37 @@ export const SankeyDiagram = memo(function SankeyDiagram({
         <span className="text-muted-foreground/50">•</span>
         <span>Hover for details • Click flows for more details</span>
       </div>
+
+      {/* Compact Cycle Detection Notice */}
+      {cycleInfo && cycleInfo.removedCount > 0 && (
+        <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
+          <div className="flex items-center gap-2 text-amber-700">
+            <span className="text-amber-600">⚠</span>
+            <span>
+              {cycleInfo.removedCount} circular flow{cycleInfo.removedCount > 1 ? 's' : ''} removed
+            </span>
+            {cycleInfo.cycles.length > 0 && (
+              <details className="inline">
+                <summary className="cursor-pointer text-amber-800 hover:text-amber-900 ml-1">
+                  ({cycleInfo.cycles.length} cycle{cycleInfo.cycles.length > 1 ? 's' : ''})
+                </summary>
+                <div className="mt-1.5 ml-4 space-y-0.5 text-[10px] font-mono text-amber-600">
+                  {cycleInfo.cycles.slice(0, 3).map((cycle, idx) => (
+                    <div key={idx}>
+                      {cycle.join(' → ')} → {cycle[0]}
+                    </div>
+                  ))}
+                  {cycleInfo.cycles.length > 3 && (
+                    <div className="text-amber-600/70">
+                      ... and {cycleInfo.cycles.length - 3} more
+                    </div>
+                  )}
+                </div>
+              </details>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 })
@@ -273,6 +306,9 @@ function computeEnhancedLayout(
     standardFlows.push(rel) // Include all flows in main diagram
   })
 
+  // Detect and remove cycles to ensure DAG compliance
+  const { validFlows, removedFlows, cycleInfo } = detectAndRemoveCycles(standardFlows)
+
   // Calculate statistics
   const totalQuantity = relationships.reduce((sum, rel) => sum + (rel.quantity || 0), 0)
   const recyclingQuantity = recyclingFlows.reduce((sum, rel) => sum + (rel.quantity || 0), 0)
@@ -280,14 +316,17 @@ function computeEnhancedLayout(
 
   return {
     nodes,
-    links: standardFlows,
+    links: validFlows,
     recyclingFlows,
+    removedFlows,
+    cycleInfo,
     stats: {
       totalFlows: relationships.length,
       recyclingFlows: recyclingFlows.length,
       recyclingRate,
       totalQuantity,
       recyclingQuantity,
+      removedCycles: removedFlows.length,
     },
   }
 }

@@ -23,25 +23,25 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui'
-import { ObjectSelectionModal } from '@/components/modals'
+import { ObjectSelectionModal } from '../modals/object-selection-modal'
 import type { MaterialRelationship } from '@/types'
-import { 
-  MaterialFlowMetadata, 
+import {
+  MaterialFlowMetadata,
   ProcessCategory,
   FlowCategory,
 } from '@/types/sankey-metadata'
 import { PROCESS_TYPES } from '@/constants'
-import { 
-  PROCESS_CATEGORIES, 
-  FLOW_CATEGORY_OPTIONS, 
-  QUALITY_CHANGE_OPTIONS 
+import {
+  PROCESS_CATEGORIES,
+  FLOW_CATEGORY_OPTIONS,
+  QUALITY_CHANGE_OPTIONS,
 } from '../constants'
-import { 
-  ProcessMaterial, 
-  ProcessFlowData, 
-  generateRelationships, 
+import {
+  ProcessMaterial,
+  ProcessFlowData,
+  generateRelationships,
   validateProcessForm,
-  formatCategoryName 
+  formatCategoryName,
 } from '../utils'
 
 interface ProcessCreateSheetProps {
@@ -85,31 +85,33 @@ export function ProcessCreateSheet({
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (process) {
-      setFormData({
-        ...process,
-        updatedAt: new Date().toISOString(),
-      })
-    } else {
-      setFormData({
-        uuid: '',
-        name: '',
-        type: 'processing',
-        description: '',
-        inputMaterials: [],
-        outputMaterials: [],
-        relationships: [],
-        processMetadata: {
-          processName: '',
-          processType: 'processing',
-          quantity: 0,
-          unit: 'kg',
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
+    if (isOpen) {
+      if (process) {
+        setFormData({
+          ...process,
+          updatedAt: new Date().toISOString(),
+        })
+      } else {
+        setFormData({
+          uuid: '',
+          name: '',
+          type: 'processing',
+          description: '',
+          inputMaterials: [],
+          outputMaterials: [],
+          relationships: [],
+          processMetadata: {
+            processName: '',
+            processType: 'processing',
+            quantity: 0,
+            unit: 'kg',
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
     }
-  }, [process])
+  }, [isOpen, process])
 
   // Validation
   const validateForm = () => {
@@ -206,7 +208,11 @@ export function ProcessCreateSheet({
 
   // Generate relationships from materials
   const handleGenerateRelationships = (): MaterialRelationship[] => {
-    return generateRelationships(formData.inputMaterials, formData.outputMaterials, formData.name)
+    return generateRelationships(
+      formData.inputMaterials,
+      formData.outputMaterials,
+      formData.name
+    )
   }
 
   // Handle form submission
@@ -272,15 +278,17 @@ export function ProcessCreateSheet({
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="processCategory">Process Category</Label>
-                      <Select 
-                        value={formData.processMetadata?.processCategory || ''} 
-                        onValueChange={(value) => setFormData({
-                          ...formData,
-                          processMetadata: {
-                            ...formData.processMetadata!,
-                            processCategory: value as ProcessCategory
-                          }
-                        })}
+                      <Select
+                        value={formData.processMetadata?.processCategory || ''}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            processMetadata: {
+                              ...formData.processMetadata!,
+                              processCategory: value as ProcessCategory,
+                            },
+                          })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select process category" />
@@ -297,15 +305,17 @@ export function ProcessCreateSheet({
 
                     <div className="space-y-2">
                       <Label htmlFor="flowCategory">Flow Type</Label>
-                      <Select 
-                        value={formData.processMetadata?.flowCategory || ''} 
-                        onValueChange={(value) => setFormData({
-                          ...formData,
-                          processMetadata: {
-                            ...formData.processMetadata!,
-                            flowCategory: value as FlowCategory
-                          }
-                        })}
+                      <Select
+                        value={formData.processMetadata?.flowCategory || ''}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            processMetadata: {
+                              ...formData.processMetadata!,
+                              flowCategory: value as FlowCategory,
+                            },
+                          })
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select flow type" />
@@ -324,40 +334,54 @@ export function ProcessCreateSheet({
                   {/* Process Impact Data */}
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="emissionsTotal">Carbon Emissions (Optional)</Label>
+                      <Label htmlFor="emissionsTotal">
+                        Carbon Emissions (Optional)
+                      </Label>
                       <Input
                         id="emissionsTotal"
                         type="number"
                         min="0"
                         step="0.01"
                         value={formData.processMetadata?.emissionsTotal || ''}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          processMetadata: {
-                            ...formData.processMetadata!,
-                            emissionsTotal: e.target.value ? Number(e.target.value) : undefined
-                          }
-                        })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            processMetadata: {
+                              ...formData.processMetadata!,
+                              emissionsTotal: e.target.value
+                                ? Number(e.target.value)
+                                : undefined,
+                            },
+                          })
+                        }
                         placeholder="0.00"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="materialLossPercent">Material Loss % (Optional)</Label>
+                      <Label htmlFor="materialLossPercent">
+                        Material Loss % (Optional)
+                      </Label>
                       <Input
                         id="materialLossPercent"
                         type="number"
                         min="0"
                         max="100"
                         step="0.1"
-                        value={formData.processMetadata?.materialLossPercent || ''}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          processMetadata: {
-                            ...formData.processMetadata!,
-                            materialLossPercent: e.target.value ? Number(e.target.value) : undefined
-                          }
-                        })}
+                        value={
+                          formData.processMetadata?.materialLossPercent || ''
+                        }
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            processMetadata: {
+                              ...formData.processMetadata!,
+                              materialLossPercent: e.target.value
+                                ? Number(e.target.value)
+                                : undefined,
+                            },
+                          })
+                        }
                         placeholder="0.0"
                       />
                     </div>
@@ -365,16 +389,20 @@ export function ProcessCreateSheet({
 
                   {/* Quality Change */}
                   <div className="space-y-2">
-                    <Label htmlFor="qualityChange">Quality Change (Optional)</Label>
-                    <Select 
-                      value={formData.processMetadata?.qualityChangeCode || ''} 
-                      onValueChange={(value) => setFormData({
-                        ...formData,
-                        processMetadata: {
-                          ...formData.processMetadata!,
-                          qualityChangeCode: value as any
-                        }
-                      })}
+                    <Label htmlFor="qualityChange">
+                      Quality Change (Optional)
+                    </Label>
+                    <Select
+                      value={formData.processMetadata?.qualityChangeCode || ''}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          processMetadata: {
+                            ...formData.processMetadata!,
+                            qualityChangeCode: value as any,
+                          },
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select quality change" />
@@ -391,17 +419,21 @@ export function ProcessCreateSheet({
 
                   {/* Process Notes */}
                   <div className="space-y-2">
-                    <Label htmlFor="processNotes">Process Notes (Optional)</Label>
+                    <Label htmlFor="processNotes">
+                      Process Notes (Optional)
+                    </Label>
                     <Textarea
                       id="processNotes"
                       value={formData.processMetadata?.notes || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        processMetadata: {
-                          ...formData.processMetadata!,
-                          notes: e.target.value
-                        }
-                      })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          processMetadata: {
+                            ...formData.processMetadata!,
+                            notes: e.target.value,
+                          },
+                        })
+                      }
                       placeholder="Additional notes about this process..."
                       rows={3}
                     />
@@ -444,7 +476,8 @@ export function ProcessCreateSheet({
                               <div className="font-medium">
                                 {material.object.name}
                               </div>
-                              {(material.quantity !== undefined || material.unit) && (
+                              {(material.quantity !== undefined ||
+                                material.unit) && (
                                 <div className="text-sm text-gray-500">
                                   {material.quantity !== undefined
                                     ? material.quantity
@@ -454,13 +487,23 @@ export function ProcessCreateSheet({
                               )}
                               {material.metadata && (
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                  {(material.metadata.lifecycleStage || material.metadata.inputLifecycleStage) && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {(material.metadata.lifecycleStage || material.metadata.inputLifecycleStage)?.replace(/_/g, ' ')}
+                                  {(material.metadata.lifecycleStage ||
+                                    material.metadata.inputLifecycleStage) && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {(
+                                        material.metadata.lifecycleStage ||
+                                        material.metadata.inputLifecycleStage
+                                      )?.replace(/_/g, ' ')}
                                     </Badge>
                                   )}
                                   {material.metadata.categoryCode && (
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
                                       {material.metadata.categoryCode}
                                     </Badge>
                                   )}
@@ -480,7 +523,9 @@ export function ProcessCreateSheet({
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeMaterial(material, 'input')}
+                                onClick={() =>
+                                  removeMaterial(material, 'input')
+                                }
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -494,7 +539,9 @@ export function ProcessCreateSheet({
                       </div>
                     )}
                     {errors.inputs && (
-                      <p className="text-sm text-red-500 mt-2">{errors.inputs}</p>
+                      <p className="text-sm text-red-500 mt-2">
+                        {errors.inputs}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -533,7 +580,8 @@ export function ProcessCreateSheet({
                               <div className="font-medium">
                                 {material.object.name}
                               </div>
-                              {(material.quantity !== undefined || material.unit) && (
+                              {(material.quantity !== undefined ||
+                                material.unit) && (
                                 <div className="text-sm text-gray-500">
                                   {material.quantity !== undefined
                                     ? material.quantity
@@ -543,13 +591,23 @@ export function ProcessCreateSheet({
                               )}
                               {material.metadata && (
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                  {(material.metadata.lifecycleStage || material.metadata.outputLifecycleStage) && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {(material.metadata.lifecycleStage || material.metadata.outputLifecycleStage)?.replace(/_/g, ' ')}
+                                  {(material.metadata.lifecycleStage ||
+                                    material.metadata.outputLifecycleStage) && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {(
+                                        material.metadata.lifecycleStage ||
+                                        material.metadata.outputLifecycleStage
+                                      )?.replace(/_/g, ' ')}
                                     </Badge>
                                   )}
                                   {material.metadata.categoryCode && (
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
                                       {material.metadata.categoryCode}
                                     </Badge>
                                   )}
@@ -569,7 +627,9 @@ export function ProcessCreateSheet({
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => removeMaterial(material, 'output')}
+                                onClick={() =>
+                                  removeMaterial(material, 'output')
+                                }
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -583,7 +643,9 @@ export function ProcessCreateSheet({
                       </div>
                     )}
                     {errors.outputs && (
-                      <p className="text-sm text-red-500 mt-2">{errors.outputs}</p>
+                      <p className="text-sm text-red-500 mt-2">
+                        {errors.outputs}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -597,10 +659,15 @@ export function ProcessCreateSheet({
                       <span className="text-white text-xs font-bold">!</span>
                     </div>
                     <div>
-                      <h4 className="font-medium text-red-900 mb-1">Duplicate Materials Detected</h4>
-                      <p className="text-sm text-red-700">{errors.duplicates}</p>
+                      <h4 className="font-medium text-red-900 mb-1">
+                        Duplicate Materials Detected
+                      </h4>
+                      <p className="text-sm text-red-700">
+                        {errors.duplicates}
+                      </p>
                       <p className="text-xs text-red-600 mt-1">
-                        Please remove duplicate materials or use different materials for inputs and outputs.
+                        Please remove duplicate materials or use different
+                        materials for inputs and outputs.
                       </p>
                     </div>
                   </div>
@@ -612,7 +679,9 @@ export function ProcessCreateSheet({
                 formData.outputMaterials.length > 0 && (
                   <Card className="bg-gray-50">
                     <CardHeader>
-                      <CardTitle className="text-sm">Process Flow Summary</CardTitle>
+                      <CardTitle className="text-sm">
+                        Process Flow Summary
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center justify-center gap-4 text-sm">
