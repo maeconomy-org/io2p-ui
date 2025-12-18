@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { useIomSdkClient } from '@/contexts'
-import { getUploadService } from '@/lib/upload-service'
+import { getUploadService, logger } from '@/lib'
 import { useImportApi, useObjects, useStatements } from '@/hooks'
 import {
   transformToImportFormat,
@@ -114,7 +114,7 @@ export function useObjectOperations({
         onRefetch()
       }
     } catch (error) {
-      console.error('Error saving metadata:', error)
+      logger.error('Error saving metadata:', error)
       toast.error('Failed to update object metadata')
       throw error
     }
@@ -132,7 +132,7 @@ export function useObjectOperations({
         error: 'Failed to delete object',
       })
     } catch (error) {
-      console.error('Error deleting object:', error)
+      logger.error('Error deleting object:', error)
       throw error
     }
   }
@@ -169,7 +169,7 @@ export function useObjectOperations({
         onRefetch()
       }
     } catch (error) {
-      console.error('Error reverting object:', error)
+      logger.error('Error reverting object:', error)
       toast.error(
         isTemplate ? 'Failed to restore template' : 'Failed to restore object',
         { id: 'revert-object' }
@@ -202,7 +202,7 @@ export function useObjectOperations({
             createStatementMutation
           )
         } catch (error) {
-          console.error('Error creating parent relationships:', error)
+          logger.error('Error creating parent relationships:', error)
         }
       }
 
@@ -259,7 +259,7 @@ export function useObjectOperations({
 
       return true
     } catch (error: any) {
-      console.error('Error creating object:', error)
+      logger.error('Error creating object:', error)
       toast.error('Failed to create object', {
         id: 'save-object',
         description: error.message,

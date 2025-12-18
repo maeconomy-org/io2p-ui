@@ -7,9 +7,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Button, Badge, TablePagination } from '@/components/ui'
-import { isObjectDeleted } from '@/lib'
+  Button,
+  Badge,
+  TablePagination,
+} from '@/components/ui'
+import { isObjectDeleted, logger } from '@/lib'
 import { useObjects } from '@/hooks'
 
 interface ObjectModelsTableProps {
@@ -61,7 +63,7 @@ export function ObjectModelsTable({
         onRevert(model)
       }
     } catch (error) {
-      console.error('Error reverting model:', error)
+      logger.error('Error reverting model:', error)
     }
   }
   // Loading state

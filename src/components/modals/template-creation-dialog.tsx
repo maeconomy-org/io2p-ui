@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { FileText, Loader2 } from 'lucide-react'
 
+import { logger } from '@/lib'
 import {
   Dialog,
   DialogContent,
@@ -60,7 +61,7 @@ export function TemplateCreationDialog({
       onOpenChange(false)
     } catch (error) {
       // Error handling is done in the parent component
-      console.error('Error creating template:', error)
+      logger.error('Error creating template:', error)
     }
   }
 
@@ -100,7 +101,9 @@ export function TemplateCreationDialog({
             <Input
               id="template-abbreviation"
               value={templateData.abbreviation}
-              onChange={(e) => handleInputChange('abbreviation', e.target.value)}
+              onChange={(e) =>
+                handleInputChange('abbreviation', e.target.value)
+              }
               placeholder="Enter abbreviation (optional)"
               disabled={isCreating}
             />
@@ -152,9 +155,7 @@ export function TemplateCreationDialog({
                 Creating...
               </>
             ) : (
-              <>
-                Create Template
-              </>
+              <>Create Template</>
             )}
           </Button>
         </DialogFooter>

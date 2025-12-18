@@ -16,8 +16,6 @@ export const NAV_ITEMS = [
   // { name: 'Groups', path: '/groups' },
   { name: 'Models', path: '/models' },
   { name: 'Import', path: '/import' },
-  // { name: 'API Documentation', path: '#', isDisabled: true },
-  // { name: 'Export Data', path: '#', isDisabled: true },
 ]
 
 // Footer links
@@ -102,16 +100,12 @@ export const VERIFY_CERTIFICATES = process.env.VERIFY_CERTIFICATES === 'true' //
 export const ALLOW_INSECURE_FALLBACK =
   process.env.ALLOW_INSECURE_FALLBACK !== 'false' // Allow insecure fallback (default true for dev)
 
-// Logging configuration
+// Logging configuration (simplified - see logger.ts for implementation)
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info' // Log level: debug, info, warn, error
-export const LOG_DESTINATIONS = process.env.LOG_DESTINATIONS || 'console,sentry' // Comma-separated: console,sentry,sdk
-export const LOG_CONSOLE = process.env.LOG_CONSOLE !== 'false' // Enable console logging
-export const LOG_SENTRY = process.env.LOG_SENTRY !== 'false' // Enable Sentry logging
-export const LOG_SDK = process.env.LOG_SDK === 'true' // Enable SDK logging
 
 // Health UI Configuration
 export const HEALTH_UI_ENABLED = process.env.HEALTH_UI_ENABLED !== 'false' // Enable health UI
-export const HEALTH_UI_ALLOWED_CERTS = process.env.HEALTH_UI_ALLOWED_CERTS || '' // Comma-separated cert fingerprints/serials
+export const HEALTH_ALLOWED_CERTS = process.env.HEALTH_ALLOWED_CERTS || '' // Comma-separated cert fingerprints/serials for health access
 
 // -------------------------------------------------------
 // Process-related constants

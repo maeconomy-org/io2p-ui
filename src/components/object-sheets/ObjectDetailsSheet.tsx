@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Trash2, Loader2, FileText, RotateCcw } from 'lucide-react'
 
+import { logger } from '@/lib'
 import {
   Badge,
   Button,
@@ -322,7 +323,7 @@ export function ObjectDetailsSheet({
         onClose()
       }
     } catch (error) {
-      console.error('Error creating template:', error)
+      logger.error('Error creating template:', error)
     } finally {
       setIsCreatingTemplate(false)
     }
@@ -337,7 +338,7 @@ export function ObjectDetailsSheet({
       // Close the sheet after successful revert
       onClose()
     } catch (error) {
-      console.error('Error reverting object:', error)
+      logger.error('Error reverting object:', error)
     }
   }
 

@@ -106,7 +106,7 @@ export function AttachmentModal({
     onOpenChange(false) // Close the main modal
 
     if (!client || !uploadContext) {
-      console.error('Missing client or upload context')
+      logger.error('Missing client or upload context')
       return
     }
 

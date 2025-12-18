@@ -2,7 +2,8 @@ import { ReactNode, useState } from 'react'
 import { Edit, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { Button } from '@/components/ui/button'
+import { logger } from '@/lib'
+import { Button } from '@/components/ui'
 
 interface EditableSectionProps {
   title: string
@@ -43,7 +44,7 @@ export function EditableSection({
         toast.success(successMessage)
       }
     } catch (error) {
-      console.error('Error saving section:', error)
+      logger.error('Error saving section:', error)
 
       // Always show error toasts
       toast.error('Failed to save changes. Please try again.')

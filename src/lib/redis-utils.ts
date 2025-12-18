@@ -1,5 +1,42 @@
-import { getRedis } from './redis'
 import { REDIS_JOB_TTL_HOURS, REDIS_CHUNK_TTL_HOURS } from '@/constants'
+import { logger } from './logger'
+import { getRedis } from './redis'
+
+// -------------------------------------------------------
+// Redis Key Patterns - centralized for consistency
+// -------------------------------------------------------
+export const REDIS_KEYS = {
+  job: (jobId: string) => `import:${jobId}`,
+  chunk: (jobId: string, chunkIndex: number) =>
+    `import:${jobId}:chunk:${chunkIndex}`,
+  failures: (jobId: string) => `import:${jobId}:failures`,
+  rateLimit: (identifier: string) => `ratelimit:${identifier}`,
+  concurrentJobs: (identifier: string) => `concurrent:${identifier}`,
+} as const
+
+/**
+ * Scan Redis keys using SCAN instead of KEYS (production-safe)
+ * KEYS is O(n) and blocks Redis, SCAN is incremental
+ */
+async function scanKeys(pattern: string): Promise<string[]> {
+  const redis = getRedis()
+  const keys: string[] = []
+  let cursor = '0'
+
+  do {
+    const [nextCursor, foundKeys] = await redis.scan(
+      cursor,
+      'MATCH',
+      pattern,
+      'COUNT',
+      100
+    )
+    cursor = nextCursor
+    keys.push(...foundKeys)
+  } while (cursor !== '0')
+
+  return keys
+}
 
 /**
  * Set a Redis key with automatic TTL based on key type
@@ -93,7 +130,7 @@ export async function getRedisMemoryInfo(): Promise<{
       keyCount: dbSize,
     }
   } catch (error) {
-    console.error('Failed to get Redis memory info:', error)
+    logger.error('Failed to get Redis memory info', { error })
     return {
       usedMemory: 0,
       maxMemory: 0,
@@ -113,14 +150,14 @@ export async function cleanupExpiredJobs(): Promise<{
   const redis = getRedis()
 
   try {
-    // Find all import job keys
-    const jobKeys = await redis.keys('import:*')
+    // Find all import job keys using SCAN (production-safe)
+    const jobKeys = await scanKeys('import:*')
     let jobsDeleted = 0
     let chunksDeleted = 0
 
     for (const jobKey of jobKeys) {
-      // Skip chunk keys, we'll handle them separately
-      if (jobKey.includes(':chunk:')) continue
+      // Skip chunk and failure keys
+      if (jobKey.includes(':chunk:') || jobKey.includes(':failures')) continue
 
       // Check if job is old enough to clean up
       const jobData = await redis.hgetall(jobKey)
@@ -130,25 +167,30 @@ export async function cleanupExpiredJobs(): Promise<{
       const ageHours = (Date.now() - createdAt) / (1000 * 60 * 60)
 
       // Clean up jobs older than TTL + 1 hour buffer
-      if (ageHours > REDIS_JOB_TTL_HOURS + 1) {
-        // Find and delete associated chunks
+      // Also clean up stuck "processing" jobs older than 2 hours
+      const isStuckProcessing = jobData.status === 'processing' && ageHours > 2
+      const isExpired = ageHours > REDIS_JOB_TTL_HOURS + 1
+
+      if (isExpired || isStuckProcessing) {
+        // Find and delete associated chunks and failures
         const jobId = jobKey.replace('import:', '')
-        const chunkKeys = await redis.keys(`import:${jobId}:chunk:*`)
+        const chunkKeys = await scanKeys(`import:${jobId}:chunk:*`)
+        const failureKey = REDIS_KEYS.failures(jobId)
 
         if (chunkKeys.length > 0) {
           await redis.del(...chunkKeys)
           chunksDeleted += chunkKeys.length
         }
 
-        // Delete job data
-        await redis.del(jobKey)
+        // Delete failure list and job data
+        await redis.del(failureKey, jobKey)
         jobsDeleted++
       }
     }
 
     return { jobsDeleted, chunksDeleted }
   } catch (error) {
-    console.error('Failed to cleanup expired jobs:', error)
+    logger.error('Failed to cleanup expired jobs', { error })
     return { jobsDeleted: 0, chunksDeleted: 0 }
   }
 }
@@ -166,7 +208,8 @@ export async function getImportJobStats(): Promise<{
   const redis = getRedis()
 
   try {
-    const jobKeys = await redis.keys('import:*')
+    // Use SCAN instead of KEYS for production safety
+    const jobKeys = await scanKeys('import:*')
     const chunkKeys = jobKeys.filter((key) => key.includes(':chunk:'))
     const jobDataKeys = jobKeys.filter(
       (key) => !key.includes(':chunk:') && !key.includes(':failures')
@@ -201,7 +244,7 @@ export async function getImportJobStats(): Promise<{
       totalChunks: chunkKeys.length,
     }
   } catch (error) {
-    console.error('Failed to get job stats:', error)
+    logger.error('Failed to get job stats', { error })
     return {
       totalJobs: 0,
       activeJobs: 0,
@@ -209,5 +252,157 @@ export async function getImportJobStats(): Promise<{
       failedJobs: 0,
       totalChunks: 0,
     }
+  }
+}
+
+/**
+ * Job details interface for health dashboard
+ */
+export interface JobDetails {
+  jobId: string
+  status: string
+  total: number
+  processed: number
+  failed: number
+  failedCount: number
+  createdAt: number | null
+  completedAt: number | null
+  userUUID: string | null
+  error: string | null
+}
+
+/**
+ * Get detailed list of import jobs
+ */
+export async function getImportJobsList(limit = 50): Promise<JobDetails[]> {
+  const redis = getRedis()
+
+  try {
+    // Use SCAN instead of KEYS for production safety
+    const jobKeys = await scanKeys('import:*')
+    const jobDataKeys = jobKeys.filter(
+      (key) => !key.includes(':chunk:') && !key.includes(':failures')
+    )
+
+    const jobs: JobDetails[] = []
+
+    for (const jobKey of jobDataKeys.slice(0, limit)) {
+      const jobData = await redis.hgetall(jobKey)
+      const jobId = jobKey.replace('import:', '')
+
+      // Get failure count
+      const failureCount = await redis.llen(`import:${jobId}:failures`)
+
+      jobs.push({
+        jobId,
+        status: jobData.status || 'unknown',
+        total: parseInt(jobData.total || '0'),
+        processed: parseInt(jobData.processed || '0'),
+        failed: parseInt(jobData.failed || '0'),
+        failedCount: failureCount,
+        createdAt: jobData.createdAt ? parseInt(jobData.createdAt) : null,
+        completedAt: jobData.completedAt ? parseInt(jobData.completedAt) : null,
+        userUUID: jobData.userUUID || null,
+        error: jobData.error || null,
+      })
+    }
+
+    // Sort by createdAt descending (newest first)
+    jobs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+
+    return jobs
+  } catch (error) {
+    logger.error('Failed to get jobs list', { error })
+    return []
+  }
+}
+
+/**
+ * Failure record interface
+ */
+export interface FailureRecord {
+  batchNumber: number
+  index: number
+  object: Record<string, unknown>
+  error: string
+  errorType: string
+  timestamp: number
+}
+
+/**
+ * Get failure details for a specific job
+ */
+export async function getJobFailures(
+  jobId: string,
+  offset = 0,
+  limit = 100
+): Promise<{ failures: FailureRecord[]; total: number }> {
+  const redis = getRedis()
+
+  try {
+    const failureKey = `import:${jobId}:failures`
+    const total = await redis.llen(failureKey)
+    const failureStrings = await redis.lrange(
+      failureKey,
+      offset,
+      offset + limit - 1
+    )
+
+    const failures: FailureRecord[] = failureStrings.map((str) => {
+      try {
+        return JSON.parse(str) as FailureRecord
+      } catch {
+        return {
+          batchNumber: 0,
+          index: 0,
+          object: {},
+          error: 'Failed to parse failure record',
+          errorType: 'PARSE_ERROR',
+          timestamp: Date.now(),
+        }
+      }
+    })
+
+    return { failures, total }
+  } catch (error) {
+    logger.error('Failed to get job failures', { error })
+    return { failures: [], total: 0 }
+  }
+}
+
+/**
+ * Get failed objects for retry (returns the original objects)
+ */
+export async function getFailedObjectsForRetry(jobId: string): Promise<{
+  objects: Record<string, unknown>[]
+  userUUID: string | null
+}> {
+  const redis = getRedis()
+
+  try {
+    // Get job info for userUUID
+    const jobData = await redis.hgetall(`import:${jobId}`)
+    const userUUID = jobData.userUUID || null
+
+    // Get all failures
+    const failureKey = `import:${jobId}:failures`
+    const failureStrings = await redis.lrange(failureKey, 0, -1)
+
+    const objects: Record<string, unknown>[] = []
+    for (const str of failureStrings) {
+      try {
+        const failure = JSON.parse(str) as FailureRecord
+        if (failure.object) {
+          objects.push(failure.object)
+        }
+      } catch {
+        // Skip unparseable records
+      }
+    }
+
+    return { objects, userUUID }
+  } catch (error) {
+    logger.error('Failed to get failed objects', { error })
+    return { objects: [], userUUID: null }
   }
 }

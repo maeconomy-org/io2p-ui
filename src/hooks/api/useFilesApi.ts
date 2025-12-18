@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useIomSdkClient } from '@/contexts'
 import { toast } from 'sonner'
+
+import { logger } from '@/lib'
+import { useIomSdkClient } from '@/contexts'
 
 export function useFilesApi() {
   const client = useIomSdkClient()
@@ -19,7 +21,7 @@ export function useFilesApi() {
         queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
       onError: (error) => {
-        console.error('Failed to delete file:', error)
+        logger.error('Failed to delete file:', error)
         toast.error('Failed to delete file')
       },
     })

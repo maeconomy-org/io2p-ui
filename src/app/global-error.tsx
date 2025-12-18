@@ -1,8 +1,10 @@
 'use client'
 
-import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+
+import { logger } from '@/lib'
 
 interface GlobalErrorProps {
   error: Error & { digest?: string }
@@ -19,7 +21,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
       Sentry.captureException(error)
     } else {
       // In development, log to console for debugging
-      console.error('Global Error:', error)
+      logger.error('Global Error:', error)
     }
   }, [error])
 

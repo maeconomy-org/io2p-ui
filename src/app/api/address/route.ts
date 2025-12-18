@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib'
 
 // Proxy HERE API requests to hide API key from client
 export async function GET(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   const apiKey = process.env.HERE_API_KEY
   if (!apiKey) {
-    console.error('HERE_API_KEY not configured')
+    logger.error('HERE_API_KEY not configured')
     return NextResponse.json(
       { error: 'Address service not configured' },
       { status: 500 }
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    console.error('HERE API error:', error)
+    logger.error('HERE API error:', error)
     return NextResponse.json(
       { error: 'Address lookup failed' },
       { status: 500 }

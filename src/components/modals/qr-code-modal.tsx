@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui'
+import { logger } from '@/lib'
 
 interface QRCodeModalProps {
   isOpen: boolean
@@ -71,7 +72,7 @@ export function QRCodeModal({
         try {
           qrCodeInstance = new QRCodeStyling(qrCodeConfig(uuid))
         } catch (error) {
-          console.error('Error initializing QR code:', error)
+          logger.error('Error initializing QR code:', error)
           return
         }
       } else {
@@ -107,7 +108,7 @@ export function QRCodeModal({
           extension: format,
         })
       } catch (error) {
-        console.error('Error downloading QR code:', error)
+        logger.error('Error downloading QR code:', error)
       } finally {
         setIsDownloading(false)
       }

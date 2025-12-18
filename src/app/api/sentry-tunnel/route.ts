@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib'
 
 // Sentry tunnel endpoint to bypass ad blockers
 // This proxies Sentry events through your own domain
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Sentry tunnel error:', error)
+    logger.error('Sentry tunnel error:', error)
     return NextResponse.json(
       { error: 'Failed to forward to Sentry' },
       { status: 500 }

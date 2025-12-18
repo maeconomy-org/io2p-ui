@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
+import { logger } from '@/lib'
+
 interface ImportStatus {
   jobId: string
   status: 'pending' | 'receiving' | 'processing' | 'completed' | 'failed'
@@ -47,7 +49,7 @@ export function useImportStatus(jobId: string | null) {
         setAutoRefresh(false)
       }
     } catch (err) {
-      console.error('Error fetching import status:', err)
+      logger.error('Error fetching import status:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch status')
       setAutoRefresh(false)
     } finally {

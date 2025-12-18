@@ -1,36 +1,29 @@
 import * as Sentry from '@sentry/nextjs'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
-export type LogDestination = 'console' | 'sentry' | 'sdk' | 'none'
 
 interface LoggerConfig {
   level: LogLevel
-  destinations: LogDestination[]
   enableConsole: boolean
   enableSentry: boolean
-  enableSdk: boolean
 }
 
-interface LogContext {
-  [key: string]: any
-}
+// LogContext can be any data - flexible for logging
+type LogContext = Record<string, unknown> | unknown
 
-// Global logger configuration
+// Determine if we're in production
+const isProduction = process.env.NODE_ENV === 'production'
+
+// Global logger configuration - simplified
+// In dev: console only, no Sentry (SENTRY_ENABLED=false by default)
+// In prod: Sentry for errors/warnings, console for errors only
 let loggerConfig: LoggerConfig = {
-  level: (process.env.LOG_LEVEL as LogLevel) || 'info',
-  destinations: parseDestinations(
-    process.env.LOG_DESTINATIONS || 'console,sentry'
-  ),
-  enableConsole: process.env.LOG_CONSOLE !== 'false',
-  enableSentry: process.env.SENTRY_ENABLED === 'true', // Only enable if explicitly set
-  enableSdk: process.env.LOG_SDK === 'true',
-}
-
-// SDK logger instance (will be set when available)
-let sdkLogger: any = null
-
-function parseDestinations(destinations: string): LogDestination[] {
-  return destinations.split(',').map((d) => d.trim() as LogDestination)
+  level:
+    (process.env.LOG_LEVEL as LogLevel) || (isProduction ? 'warn' : 'info'),
+  // Console: always enabled in dev, errors only in prod
+  enableConsole: !isProduction || process.env.LOG_LEVEL === 'debug',
+  // Sentry: only when explicitly enabled (default false in dev)
+  enableSentry: process.env.SENTRY_ENABLED === 'true',
 }
 
 function shouldLog(level: LogLevel): boolean {
@@ -41,135 +34,89 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 function logToConsole(level: LogLevel, message: string, context?: LogContext) {
-  if (
-    !loggerConfig.enableConsole ||
-    !loggerConfig.destinations.includes('console')
-  ) {
-    return
-  }
+  if (!loggerConfig.enableConsole) return
 
   const timestamp = new Date().toISOString()
   const prefix = `[${timestamp}] [${level.toUpperCase()}]`
+  const contextStr = context ? JSON.stringify(context) : ''
 
   switch (level) {
     case 'debug':
-      console.debug(prefix, message, context || '')
+      console.debug(prefix, message, contextStr)
       break
     case 'info':
-      console.info(prefix, message, context || '')
+      console.info(prefix, message, contextStr)
       break
     case 'warn':
-      console.warn(prefix, message, context || '')
+      console.warn(prefix, message, contextStr)
       break
     case 'error':
-      console.error(prefix, message, context || '')
+      console.error(prefix, message, contextStr)
       break
   }
 }
 
 function logToSentry(level: LogLevel, message: string, context?: LogContext) {
-  if (
-    !loggerConfig.enableSentry ||
-    !loggerConfig.destinations.includes('sentry')
-  ) {
-    return
-  }
+  if (!loggerConfig.enableSentry) return
+
+  // Only send errors and warnings to Sentry to reduce noise
+  if (level !== 'error' && level !== 'warn') return
 
   // Map our log levels to Sentry severity levels
-  const sentryLevel: 'debug' | 'info' | 'warning' | 'error' =
-    level === 'debug'
-      ? 'debug'
-      : level === 'info'
-        ? 'info'
-        : level === 'warn'
-          ? 'warning'
-          : 'error'
+  const sentryLevel: 'warning' | 'error' =
+    level === 'warn' ? 'warning' : 'error'
+
+  // Wrap context in object if needed for Sentry
+  const extra =
+    context && typeof context === 'object' && !Array.isArray(context)
+      ? (context as Record<string, unknown>)
+      : { data: context }
 
   if (level === 'error') {
     Sentry.captureException(new Error(message), {
-      extra: context,
+      extra,
       level: sentryLevel,
     })
   } else {
+    // Use Sentry's native logger for warnings (requires enableLogs: true in Sentry init)
     Sentry.addBreadcrumb({
       message,
       level: sentryLevel,
-      data: context,
+      data: extra,
       timestamp: Date.now() / 1000,
     })
-  }
-}
-
-async function logToSdk(
-  level: LogLevel,
-  message: string,
-  context?: LogContext
-) {
-  if (!loggerConfig.enableSdk || !loggerConfig.destinations.includes('sdk')) {
-    return
-  }
-
-  try {
-    // Use SDK logger if available (from query context)
-    if (sdkLogger && typeof sdkLogger.log === 'function') {
-      sdkLogger.log(level, message, context)
-      return
-    }
-
-    // Fallback: Send to API endpoint if SDK logger not available
-    await fetch('/api/logs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        level,
-        message,
-        context,
-        timestamp: new Date().toISOString(),
-      }),
-    })
-  } catch (error) {
-    // Fallback to console if SDK logging fails
-    console.warn('Failed to log to SDK:', error)
   }
 }
 
 // Main logging functions
 function debug(message: string, context?: LogContext) {
   if (!shouldLog('debug')) return
-
   logToConsole('debug', message, context)
   logToSentry('debug', message, context)
-  logToSdk('debug', message, context)
 }
 
 function info(message: string, context?: LogContext) {
   if (!shouldLog('info')) return
-
   logToConsole('info', message, context)
   logToSentry('info', message, context)
-  logToSdk('info', message, context)
 }
 
 function warn(message: string, context?: LogContext) {
   if (!shouldLog('warn')) return
-
   logToConsole('warn', message, context)
   logToSentry('warn', message, context)
-  logToSdk('warn', message, context)
 }
 
 function error(message: string, context?: LogContext) {
   if (!shouldLog('error')) return
-
   logToConsole('error', message, context)
   logToSentry('error', message, context)
-  logToSdk('error', message, context)
 }
 
 // Security-specific logging
 function security(
   event: string,
-  details: LogContext,
+  details: Record<string, unknown>,
   level: LogLevel = 'warn'
 ) {
   const message = `[SECURITY] ${event}`
@@ -199,7 +146,7 @@ function security(
 // Import-specific logging
 function importLog(
   event: string,
-  details: LogContext,
+  details: Record<string, unknown>,
   level: LogLevel = 'info'
 ) {
   const message = `[IMPORT] ${event}`
@@ -235,10 +182,6 @@ function getConfig(): LoggerConfig {
   return { ...loggerConfig }
 }
 
-function setSdkLogger(logger: any) {
-  sdkLogger = logger
-}
-
 // Export functional logger interface
 export const logger = {
   debug,
@@ -249,7 +192,6 @@ export const logger = {
   import: importLog,
   updateConfig,
   getConfig,
-  setSdkLogger,
 }
 
 // These provide a drop-in replacement for console methods
@@ -273,7 +215,7 @@ export const log = {
 }
 export function logSecurityEvent(
   event: string,
-  details: LogContext,
+  details: Record<string, unknown>,
   level: LogLevel = 'warn'
 ) {
   logger.security(event, details, level)

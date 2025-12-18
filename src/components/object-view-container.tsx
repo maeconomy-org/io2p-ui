@@ -1,5 +1,6 @@
 'use client'
 
+import { logger } from '@/lib'
 import { ViewData } from '@/hooks'
 import { ObjectsTable } from '@/components/tables'
 import { ViewType } from '@/components/view-selector'
@@ -23,7 +24,7 @@ export function ObjectViewContainer({
   switch (viewType) {
     case 'table': {
       if (viewData.type !== 'table') {
-        console.error('Expected table data but received:', viewData.type)
+        logger.error('Expected table data but received:', viewData.type)
         return null
       }
 
@@ -52,7 +53,7 @@ export function ObjectViewContainer({
 
     case 'columns': {
       if (viewData.type !== 'columns') {
-        console.error('Expected columns data but received:', viewData.type)
+        logger.error('Expected columns data but received:', viewData.type)
         return null
       }
 
@@ -70,7 +71,7 @@ export function ObjectViewContainer({
     default: {
       // Default to table view
       if (viewData.type !== 'table') {
-        console.error(
+        logger.error(
           'Expected table data for default case but received:',
           viewData.type
         )

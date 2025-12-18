@@ -26,15 +26,9 @@ export async function GET() {
 
     // Import limits (client-side needed for UI)
     maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '100'),
-    maxImportPayloadMB: parseInt(process.env.MAX_IMPORT_PAYLOAD_MB || '100'), // Should match or be less than file size
+    maxImportPayloadMB: parseInt(process.env.MAX_IMPORT_PAYLOAD_MB || '100'),
     maxObjectsPerImport: parseInt(
       process.env.MAX_OBJECTS_PER_IMPORT || '50000'
     ),
-
-    // SDK logging config (client-side)
-    sdkDebugEnabled:
-      process.env.LOG_LEVEL === 'debug' || process.env.LOG_SDK === 'true',
-    sdkLogLevel: process.env.LOG_LEVEL || 'info',
-    sdkLogToConsole: process.env.LOG_SDK !== 'true', // Only log to console if not using SDK logging
   })
 }

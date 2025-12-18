@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+
+import { logger } from '@/lib'
 import { useObjects } from '@/hooks'
 
 interface ObjectToDelete {
@@ -38,7 +40,7 @@ export function useUnifiedDelete() {
       setObjectToDelete(null)
       setWasDeleteSuccessful(true)
     } catch (error) {
-      console.error('Error deleting object:', error)
+      logger.error('Error deleting object:', error)
       toast.error('Failed to delete object', { id: 'delete-object' })
     }
   }

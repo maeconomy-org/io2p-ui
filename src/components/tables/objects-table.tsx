@@ -15,7 +15,7 @@ import {
   CopyButton,
   TablePagination,
 } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn, logger } from '@/lib'
 import { useUnifiedDelete, useObjects } from '@/hooks'
 import { QRCodeModal, DeleteConfirmationDialog } from '@/components/modals'
 
@@ -136,7 +136,7 @@ export function ObjectsTable({
         description: object.description,
       })
     } catch (error) {
-      console.error('Error reverting object:', error)
+      logger.error('Error reverting object:', error)
     }
   }
 

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { X, Loader2, ChevronsUpDown, Users, Check } from 'lucide-react'
+
+import { logger } from '@/lib'
 import {
   Button,
   Badge,
@@ -17,7 +19,7 @@ import {
   CommandList,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { useCommonApi } from '@/hooks/api/useCommonApi'
+import { useCommonApi } from '@/hooks/api'
 import type { ParentObject } from '@/types'
 
 interface ParentSelectorProps {
@@ -90,7 +92,7 @@ export function ParentSelector({
         setHasInitiallyLoaded(true)
       }
     } catch (error) {
-      console.error('Search failed:', error)
+      logger.error('Search failed:', error)
       setSearchResults([])
     } finally {
       setIsSearching(false)
@@ -257,7 +259,8 @@ export function ParentSelector({
                 totalResultsCount > searchResults.length && (
                   <div className="px-2 py-1.5 text-xs text-muted-foreground border-t bg-muted/20">
                     Showing top {searchResults.length} of {totalResultsCount}{' '}
-                    result{totalResultsCount !== 1 ? 's' : ''} • Search to find more
+                    result{totalResultsCount !== 1 ? 's' : ''} • Search to find
+                    more
                   </div>
                 )}
             </CommandList>

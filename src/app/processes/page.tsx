@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { PlusCircle, Loader2, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -11,8 +12,6 @@ import { useStatements } from '@/hooks'
 import { LoadingState } from '@/components/processes/loading-state'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
 import {
-  SankeyDiagram,
-  NetworkDiagram,
   ProcessViewSelector,
   ProcessCreateSheet,
   RelationshipDetailsSheet,
@@ -24,6 +23,30 @@ import {
 
 import { ProcessViewType, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 import { logger } from '@/lib'
+
+// Simple loading placeholder for dynamic imports
+const DiagramLoader = () => (
+  <div className="flex items-center justify-center h-96">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+)
+
+// Lazy load heavy diagram components (echarts ~300KB)
+const SankeyDiagram = dynamic(
+  () =>
+    import('@/components/processes/views/sankey-view').then(
+      (mod) => mod.SankeyDiagram
+    ),
+  { loading: () => <DiagramLoader />, ssr: false }
+)
+
+const NetworkDiagram = dynamic(
+  () =>
+    import('@/components/processes/views/network-view').then(
+      (mod) => mod.NetworkDiagram
+    ),
+  { loading: () => <DiagramLoader />, ssr: false }
+)
 
 const MaterialFlowPage = () => {
   const searchParams = useSearchParams()

@@ -1,5 +1,5 @@
 import { getRedis } from '@/lib/redis'
-import { hsetWithTTL } from '@/lib/redis-utils'
+import { hsetWithTTL, REDIS_KEYS } from '@/lib/redis-utils'
 import { untrackUserJob } from '@/lib/security-utils'
 import { logger } from '@/lib/logger'
 import {
@@ -10,6 +10,7 @@ import {
   API_BATCH_SIZE,
   API_REQUEST_DELAY,
   PARALLEL_REQUESTS,
+  REDIS_JOB_TTL_HOURS,
 } from '@/constants'
 import axios from 'axios'
 
@@ -18,7 +19,7 @@ export async function processImportJob(jobId: string) {
 
   try {
     // Get job metadata
-    const jobData = await redis.hgetall(`import:${jobId}`)
+    const jobData = await redis.hgetall(REDIS_KEYS.job(jobId))
 
     if (
       !jobData ||
@@ -65,7 +66,7 @@ export async function processImportJob(jobId: string) {
     // Get objects from all chunks
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       // Get chunk of objects
-      const chunkKey = `import:${jobId}:chunk:${chunkIndex}`
+      const chunkKey = REDIS_KEYS.chunk(jobId, chunkIndex)
       const chunkData = await redis.get(chunkKey)
 
       if (!chunkData) {
@@ -103,11 +104,11 @@ export async function processImportJob(jobId: string) {
 
     // Delete all chunks after processing to save memory
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      await redis.del(`import:${jobId}:chunk:${chunkIndex}`)
+      await redis.del(REDIS_KEYS.chunk(jobId, chunkIndex))
     }
 
     // Mark job as completed with TTL
-    await hsetWithTTL(`import:${jobId}`, {
+    await hsetWithTTL(REDIS_KEYS.job(jobId), {
       status: 'completed',
       completedAt: Date.now().toString(),
       processed: processed.toString(),
@@ -134,14 +135,14 @@ export async function processImportJob(jobId: string) {
     logger.import('Import job failed', { jobId }, 'error')
 
     // Mark job as failed with TTL
-    await hsetWithTTL(`import:${jobId}`, {
+    await hsetWithTTL(REDIS_KEYS.job(jobId), {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error),
       failedAt: Date.now().toString(),
     })
 
     // Remove job from user tracking
-    const errorJobData = await redis.hgetall(`import:${jobId}`)
+    const errorJobData = await redis.hgetall(REDIS_KEYS.job(jobId))
     const errorUserUUID = errorJobData.userUUID
     if (errorUserUUID) {
       await untrackUserJob(errorUserUUID, jobId)
@@ -221,7 +222,7 @@ async function processObjectsInParallel(
       })
 
       // Update progress immediately after each batch
-      await redis.hset(`import:${jobId}`, {
+      await redis.hset(REDIS_KEYS.job(jobId), {
         processed: processed.toString(),
         failed: failed.toString(),
       })
@@ -239,7 +240,7 @@ async function processObjectsInParallel(
       })
 
       // Update failed count
-      await redis.hset(`import:${jobId}`, {
+      await redis.hset(REDIS_KEYS.job(jobId), {
         failed: failed.toString(),
       })
 
@@ -381,9 +382,10 @@ async function processBatch(
 
     if (shouldMarkAsFailed) {
       // Store failure details for each object in the batch
+      const failureKey = REDIS_KEYS.failures(jobId)
       const failurePromises = batch.map((obj, index) =>
         redis.rpush(
-          `import:${jobId}:failures`,
+          failureKey,
           JSON.stringify({
             batchNumber,
             index,
@@ -398,6 +400,10 @@ async function processBatch(
       )
 
       await Promise.all(failurePromises)
+
+      // Set TTL on failure list to prevent indefinite storage (same as job TTL)
+      await redis.expire(failureKey, REDIS_JOB_TTL_HOURS * 60 * 60)
+
       return { processedCount: 0, failedCount: batch.length }
     }
 

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+import { logger } from '@/lib'
 import { useAuth } from '@/contexts'
 import { APP_ACRONYM, APP_DESCRIPTION, APP_NAME } from '@/constants'
 import { Button, Card, Alert, AlertDescription } from '@/components/ui'
@@ -43,7 +44,7 @@ export default function AuthPage() {
       // Redirect to main app
       router.push('/objects')
     } catch (err) {
-      console.error('Authentication Error:', err)
+      logger.error('Authentication Error:', err)
       setStatus('error')
 
       // Provide specific error messages

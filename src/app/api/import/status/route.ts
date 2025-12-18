@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRedis } from '@/lib/redis'
+import { logger } from '@/lib/logger'
 
 export async function GET(req: Request) {
   // Get job ID from the request
@@ -37,7 +38,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error('Error getting job status:', error)
+    logger.error('Error getting job status', { error })
     return NextResponse.json(
       { error: 'Failed to get job status' },
       { status: 500 }

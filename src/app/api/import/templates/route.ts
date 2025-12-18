@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getRedis } from '@/lib/redis'
+import { logger } from '@/lib/logger'
 
 // Template prefix for Redis keys
 const TEMPLATE_PREFIX = 'mapping_template:'
@@ -25,7 +26,7 @@ export async function GET() {
         try {
           return JSON.parse(data)
         } catch (e) {
-          console.error(`Failed to parse template data for ${key}:`, e)
+          logger.error('Failed to parse template data', { key, error: e })
           return null
         }
       })
@@ -38,7 +39,7 @@ export async function GET() {
 
     return NextResponse.json({ templates: validTemplates })
   } catch (error) {
-    console.error('Error fetching templates:', error)
+    logger.error('Error fetching templates', { error })
     return NextResponse.json(
       { error: 'Failed to fetch mapping templates' },
       { status: 500 }
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
       template,
     })
   } catch (error) {
-    console.error('Error creating template:', error)
+    logger.error('Error creating template', { error })
     return NextResponse.json(
       { error: 'Failed to create mapping template' },
       { status: 500 }
@@ -124,7 +125,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting template:', error)
+    logger.error('Error deleting template', { error })
     return NextResponse.json(
       { error: 'Failed to delete mapping template' },
       { status: 500 }

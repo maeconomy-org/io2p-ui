@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 
+import { logger } from '@/lib'
+
 interface UseColumnPaginationProps {
   loadChildren?: (
     parentUUID: string,
@@ -74,7 +76,7 @@ export function useColumnPagination({
         })
       }
     } catch (error) {
-      console.error('Failed to load page:', error)
+      logger.error('Failed to load page:', error)
       // Clear loading state on error
       setLoadingColumns((prev) => {
         const newSet = new Set(prev)

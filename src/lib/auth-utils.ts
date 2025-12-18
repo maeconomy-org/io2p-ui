@@ -1,20 +1,55 @@
 import { NextRequest } from 'next/server'
 
 /**
- * Simple admin authentication for internal endpoints
- * In production, this should be replaced with proper authentication
+ * Extract certificate info from request headers (set by nginx/reverse proxy)
+ */
+export function getCertificateInfo(req: NextRequest): {
+  fingerprint: string | null
+  serialNumber: string | null
+  subject: string | null
+} {
+  return {
+    fingerprint: req.headers.get('x-ssl-client-fingerprint'),
+    serialNumber: req.headers.get('x-ssl-client-serial'),
+    subject: req.headers.get('x-ssl-client-s-dn'),
+  }
+}
+
+/**
+ * Validate admin access based on certificate fingerprint/serial
+ * Uses HEALTH_ALLOWED_CERTS env var (comma-separated list)
  */
 export function validateAdminAccess(req: NextRequest): boolean {
-  // Check for admin token in headers
-  const adminToken = req.headers.get('x-admin-token')
-  const expectedToken = process.env.ADMIN_TOKEN
+  const allowedFingerprints = process.env.HEALTH_ALLOWED_CERTS || ''
 
-  // If no admin token is configured, allow access (development mode)
-  if (!expectedToken) {
-    return process.env.NODE_ENV === 'development'
+  // In development without configured fingerprints, allow localhost access
+  if (!allowedFingerprints.trim()) {
+    return process.env.NODE_ENV === 'development' && isLocalhost(req)
   }
 
-  return adminToken === expectedToken
+  // Parse allowed fingerprints/serials
+  const allowedList = allowedFingerprints
+    .split(',')
+    .map((f) => f.trim().toLowerCase())
+
+  // Get certificate info from request
+  const certInfo = getCertificateInfo(req)
+
+  // Check if fingerprint or serial matches
+  if (
+    certInfo.fingerprint &&
+    allowedList.includes(certInfo.fingerprint.toLowerCase())
+  ) {
+    return true
+  }
+  if (
+    certInfo.serialNumber &&
+    allowedList.includes(certInfo.serialNumber.toLowerCase())
+  ) {
+    return true
+  }
+
+  return false
 }
 
 /**
@@ -26,24 +61,17 @@ export function isLocalhost(req: NextRequest): boolean {
 }
 
 /**
- * Validate internal service access
+ * Validate internal service access (for health endpoints)
+ * Uses certificate-based auth in production, localhost in development
  */
 export function validateInternalAccess(req: NextRequest): boolean {
-  // Allow if admin token is provided
+  // Allow if admin cert is valid
   if (validateAdminAccess(req)) {
     return true
   }
 
   // Allow from localhost in development
   if (process.env.NODE_ENV === 'development' && isLocalhost(req)) {
-    return true
-  }
-
-  // Check for internal service header
-  const internalToken = req.headers.get('x-internal-service')
-  const expectedInternalToken = process.env.INTERNAL_SERVICE_TOKEN
-
-  if (expectedInternalToken && internalToken === expectedInternalToken) {
     return true
   }
 

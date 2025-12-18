@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
+
+import { logger, cn } from '@/lib'
 import { Button } from './button'
 import {
   Tooltip,
@@ -10,7 +12,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './tooltip'
-import { cn } from '@/lib/utils'
 
 interface CopyButtonProps {
   text: string
@@ -55,7 +56,7 @@ export function CopyButton({
       if (showToast) {
         toast.error('Failed to copy to clipboard')
       }
-      console.error('Failed to copy:', error)
+      logger.error('Failed to copy:', error)
     }
   }
 

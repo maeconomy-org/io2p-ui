@@ -20,7 +20,12 @@ import {
   Textarea,
   Button,
 } from '@/components/ui'
-import { objectModelSchema, ObjectModelFormValues, Property } from '@/lib'
+import {
+  objectModelSchema,
+  ObjectModelFormValues,
+  Property,
+  logger,
+} from '@/lib'
 import { PropertyFieldTemplate } from '@/components/forms'
 import { useObjectOperations } from './hooks'
 import { createEmptyProperty } from './utils'
@@ -122,7 +127,7 @@ export function ObjectModelSheet({
         }
       }
     } catch (error) {
-      console.error('Error saving template:', error)
+      logger.error('Error saving template:', error)
       // Error is already handled by the hook with toast
     }
   }

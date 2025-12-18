@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { MapPin, Loader2 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+
+import { logger } from '@/lib'
+import { Input } from '@/components/ui'
 
 export interface AddressComponents {
   street: string
@@ -61,14 +63,14 @@ export function HereAddressAutocomplete({
           setSuggestions(data.items || [])
         })
         .catch((error) => {
-          console.error('Error searching addresses:', error)
+          logger.error('Error searching addresses:', error)
           setSuggestions([])
         })
         .finally(() => {
           setIsLoading(false)
         })
     } catch (error) {
-      console.error('Error searching addresses:', error)
+      logger.error('Error searching addresses:', error)
       setSuggestions([])
       setIsLoading(false)
     }

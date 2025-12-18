@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+
+import { logger } from '@/lib'
 import { useDebounce } from '@/hooks'
 
 interface UseColumnSearchProps {
@@ -68,7 +70,7 @@ export function useColumnSearch({
           })
         }
       } catch (error) {
-        console.error('Search failed:', error)
+        logger.error('Search failed:', error)
         setSearchLoading((prev) => {
           const newSet = new Set(prev)
           newSet.delete(columnIndex)

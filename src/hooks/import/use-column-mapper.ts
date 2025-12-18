@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+
+import { logger } from '@/lib'
 import {
   IMPORT_HEADER_ROW_KEY,
   IMPORT_START_ROW_KEY,
@@ -161,7 +163,7 @@ export function useColumnMapper({
         setMappingTemplates(templates)
       }
     } catch (error) {
-      console.error('Failed to load mapping templates:', error)
+      logger.error('Failed to load mapping templates:', error)
     }
   }, [])
 
@@ -399,7 +401,7 @@ export function useColumnMapper({
         setMappingTemplates(updatedTemplates)
         setActiveTemplateId(newTemplate.id)
       } catch (error) {
-        console.error('Failed to save template:', error)
+        logger.error('Failed to save template:', error)
       }
     },
     [columnMapping, mappingTemplates]

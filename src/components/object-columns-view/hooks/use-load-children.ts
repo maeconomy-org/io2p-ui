@@ -63,7 +63,7 @@ export function useLoadChildren() {
         totalItems: response?.totalElements || items.length,
       }
     } catch (error) {
-      console.error('Error loading children:', error)
+      logger.error('Error loading children:', error)
       return {
         items: [],
         totalPages: 1,

@@ -13,17 +13,7 @@ import {
 } from '@/lib/security-utils'
 import { logger } from '@/lib/logger'
 import { API_CHUNK_SIZE } from '@/constants'
-
-import { processImportJob } from './process'
-
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '100mb', // Set reasonable limit for import payloads
-    },
-    responseLimit: false, // No response limit for large responses
-  },
-}
+import { processImportJob } from '@/lib/import-processor'
 
 export async function POST(req: Request) {
   try {

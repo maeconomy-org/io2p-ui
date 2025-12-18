@@ -10,6 +10,7 @@ import {
   getClientIdentifier,
   logSecurityEvent,
 } from '@/lib/security-utils'
+import { logger } from '@/lib/logger'
 
 // Handle initial chunk upload and session start
 export async function POST(req: Request) {
@@ -183,7 +184,7 @@ export async function POST(req: Request) {
       complete: parseInt(receivedChunks.toString()) === totalChunks,
     })
   } catch (error) {
-    console.error('Chunk upload error:', error)
+    logger.error('Chunk upload error', { error })
     return NextResponse.json(
       { error: 'Failed to process chunk' },
       { status: 500 }
@@ -199,7 +200,7 @@ async function startProcessing(jobId: string) {
   setImmediate(async () => {
     try {
       // Import dynamically to avoid circular dependencies
-      const { processImportJob } = await import('../process')
+      const { processImportJob } = await import('@/lib/import-processor')
 
       // Update job status to processing
       await redis.hset(`import:${jobId}`, { status: 'processing' })
@@ -207,14 +208,16 @@ async function startProcessing(jobId: string) {
       // Process the job
       await processImportJob(jobId)
     } catch (error) {
-      console.error(`Error processing import job ${jobId}:`, error)
+      logger.error('Error processing import job', { jobId, error })
       // Update job status to failed
       redis
         .hset(`import:${jobId}`, {
           status: 'failed',
           error: error instanceof Error ? error.message : 'Unknown error',
         })
-        .catch(console.error)
+        .catch((err) =>
+          logger.error('Failed to update job status', { jobId, error: err })
+        )
     }
   })
 }

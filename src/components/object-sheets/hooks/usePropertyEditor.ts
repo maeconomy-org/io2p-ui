@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+
+import { logger } from '@/lib'
 import { usePropertyManagement } from '@/hooks'
 
 export interface UsePropertyEditorProps {
@@ -161,7 +163,7 @@ export function usePropertyEditor({
 
       toast.success('Object properties updated successfully')
     } catch (error) {
-      console.error('Error saving properties:', error)
+      logger.error('Error saving properties:', error)
       toast.error('Failed to update object properties')
       throw error
     }

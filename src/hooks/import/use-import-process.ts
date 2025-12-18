@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
+import { logger } from '@/lib'
 import { useAuth } from '@/contexts'
 import { IMPORT_CHUNK_SIZE, SIZE_THRESHOLD_MB } from '@/constants'
 
@@ -160,7 +161,7 @@ export function useImportProcess({
 
         return jobId
       } catch (error) {
-        console.error('Import error:', error)
+        logger.error('Import error:', error)
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error'
         toast.error(`Import failed: ${errorMessage}`)
@@ -286,7 +287,7 @@ export function useImportProcess({
 
         return jobId
       } catch (error) {
-        console.error('Chunked upload error:', error)
+        logger.error('Chunked upload error:', error)
         toast.error(
           `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         )

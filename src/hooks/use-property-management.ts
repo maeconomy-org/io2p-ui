@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import type { UUPropertyDTO, UUPropertyValueDTO } from 'iom-sdk'
 
+import { logger } from '@/lib'
 import { useProperties } from './api'
 
 /**
@@ -62,7 +63,7 @@ export function usePropertyManagement(objectUuid?: string) {
 
         return newProperty
       } catch (err) {
-        console.error('Error creating property:', err)
+        logger.error('Error creating property:', err)
         setError(err as Error)
         throw err
       } finally {

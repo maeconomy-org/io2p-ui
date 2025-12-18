@@ -64,20 +64,18 @@ export function QueryProvider({ children }: PropsWithChildren) {
       try {
         const config = await fetchClientConfig()
 
+        // SDK debug: enabled in dev, disabled in prod
+        const isDev = config.nodeEnv !== 'production'
+
         cachedClient = createClient({
           baseUrl: config.baseApiUrl,
           uuidServiceBaseUrl: config.uuidApiUrl,
           debug: {
-            enabled: config.sdkDebugEnabled,
-            logLevel: config.sdkLogLevel as 'error' | 'info',
-            logToConsole: config.sdkLogToConsole,
+            enabled: isDev,
+            logLevel: isDev ? 'info' : 'error',
+            logToConsole: isDev,
           },
         })
-
-        // Set SDK logger for our unified logging system
-        if (cachedClient && 'logger' in cachedClient) {
-          logger.setSdkLogger(cachedClient as any)
-        }
 
         if (isMounted) setClient(cachedClient)
       } catch (err) {

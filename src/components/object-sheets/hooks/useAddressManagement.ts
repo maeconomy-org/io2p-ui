@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+
+import { logger } from '@/lib'
 import { useAddresses } from '@/hooks/api'
 
 export interface AddressData {
@@ -106,7 +108,7 @@ export function useAddressManagement({
 
       toast.success('Address updated successfully')
     } catch (error) {
-      console.error('Error in address update process:', error)
+      logger.error('Error in address update process:', error)
       toast.error('Failed to process address updates')
       throw error
     }

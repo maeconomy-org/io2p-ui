@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   Activity,
   Database,
@@ -12,6 +10,10 @@ import {
   XCircle,
   Shield,
   Clock,
+  Server,
+  RotateCcw,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import {
   Card,
@@ -25,128 +27,27 @@ import {
   AlertDescription,
   Progress,
 } from '@/components/ui'
-import { useAuth } from '@/contexts'
-import { HEALTH_UI_ENABLED, HEALTH_UI_ALLOWED_CERTS } from '@/constants'
-
-interface HealthData {
-  status: 'healthy' | 'warning' | 'critical' | 'error'
-  timestamp: string
-  redis: {
-    memory: {
-      usedMB: number
-      maxMB: number
-      usedPercentage: number
-      warning: boolean
-      alert: boolean
-    }
-    keyCount: number
-  }
-  imports: {
-    total: number
-    active: number
-    completed: number
-    failed: number
-    chunks: number
-  }
-  environment: {
-    nodeEnv: string
-    verifyCertificates: boolean
-    allowInsecureFallback: boolean
-  }
-}
+import { useHealthDashboard } from '@/hooks/use-health-dashboard'
 
 export default function HealthPage() {
-  const router = useRouter()
-  const { certFingerprint, certSerialNumber, isAuthenticated } = useAuth()
-  const [healthData, setHealthData] = useState<HealthData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const {
+    healthData,
+    loading,
+    actionLoading,
+    error,
+    lastUpdated,
+    expandedJob,
+    jobFailures,
+    hasAccess,
+    isEnabled,
+    fetchHealthData,
+    triggerCleanup,
+    retryJob,
+    toggleJobExpand,
+  } = useHealthDashboard()
 
-  // Check if user has access
-  const hasAccess = () => {
-    if (!HEALTH_UI_ENABLED) return false
-    if (!isAuthenticated) return false
-
-    // If no specific certs are configured, allow any authenticated user
-    if (!HEALTH_UI_ALLOWED_CERTS.trim()) return true
-
-    // Check if user's cert is in allowed list
-    const allowedCerts = HEALTH_UI_ALLOWED_CERTS.split(',').map((c) => c.trim())
-    return (
-      allowedCerts.includes(certFingerprint || '') ||
-      allowedCerts.includes(certSerialNumber || '')
-    )
-  }
-
-  const fetchHealthData = async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/system/health', {
-        headers: {
-          'x-admin-token': process.env.NEXT_PUBLIC_ADMIN_TOKEN || '',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      setHealthData(data)
-      setLastUpdated(new Date())
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to fetch health data'
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const triggerCleanup = async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/system/health', {
-        method: 'POST',
-        headers: {
-          'x-admin-token': process.env.NEXT_PUBLIC_ADMIN_TOKEN || '',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      alert(
-        `Cleanup completed: ${result.result.jobsDeleted} jobs and ${result.result.chunksDeleted} chunks deleted`
-      )
-
-      // Refresh health data after cleanup
-      await fetchHealthData()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to trigger cleanup')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (hasAccess()) {
-      fetchHealthData()
-
-      // Auto-refresh every 30 seconds
-      const interval = setInterval(fetchHealthData, 30000)
-      return () => clearInterval(interval)
-    }
-  }, [isAuthenticated, certFingerprint, certSerialNumber])
-
-  if (!HEALTH_UI_ENABLED) {
+  // Access control checks
+  if (!isEnabled) {
     return (
       <div className="container mx-auto py-8">
         <Alert>
@@ -159,17 +60,21 @@ export default function HealthPage() {
     )
   }
 
-  // Redirect unauthorized users to main page
-  useEffect(() => {
-    if (!hasAccess()) {
-      // router.push('/')
-    }
-  }, [hasAccess, router])
-
-  if (!hasAccess()) {
-    return null // Don't render anything while redirecting
+  if (!hasAccess) {
+    return (
+      <div className="container mx-auto py-8">
+        <Alert>
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            Access denied. Your certificate is not authorized for the health
+            dashboard.
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
   }
 
+  // Helper functions for rendering
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'healthy':
@@ -196,14 +101,31 @@ export default function HealthPage() {
     }
   }
 
+  const getJobStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800">Completed</Badge>
+      case 'processing':
+        return <Badge className="bg-blue-100 text-blue-800">Processing</Badge>
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+      case 'failed':
+        return <Badge variant="destructive">Failed</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
+  }
+
+  const formatDate = (timestamp: number | null) => {
+    if (!timestamp) return '-'
+    return new Date(timestamp).toLocaleString()
+  }
+
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="container mx-auto p-4 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">System Health Dashboard</h1>
-          <p className="text-muted-foreground">
-            Monitor system status and performance
-          </p>
+          <h1 className="text-3xl font-bold">System Health</h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -226,7 +148,7 @@ export default function HealthPage() {
           </Button>
           <Button
             onClick={triggerCleanup}
-            disabled={loading}
+            disabled={actionLoading === 'cleanup'}
             variant="outline"
             size="sm"
           >
@@ -244,80 +166,91 @@ export default function HealthPage() {
       )}
 
       {healthData && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* System Status */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                System Status
-              </CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                {getStatusIcon(healthData.status)}
-                <span
-                  className={`text-2xl font-bold ${getStatusColor(healthData.status)}`}
-                >
-                  {healthData.status.charAt(0).toUpperCase() +
-                    healthData.status.slice(1)}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Environment: {healthData.environment.nodeEnv}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Redis Memory */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Redis Memory
-              </CardTitle>
-              <Database className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>{healthData.redis.memory.usedMB} MB</span>
-                  <span>{healthData.redis.memory.maxMB} MB</span>
-                </div>
-                <Progress value={healthData.redis.memory.usedPercentage} />
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">
-                    {healthData.redis.memory.usedPercentage.toFixed(1)}% used
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* System Status */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  System Status
+                </CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(healthData.status)}
+                  <span
+                    className={`text-2xl font-bold ${getStatusColor(healthData.status)}`}
+                  >
+                    {healthData.status.charAt(0).toUpperCase() +
+                      healthData.status.slice(1)}
                   </span>
-                  {healthData.redis.memory.alert && (
-                    <Badge variant="destructive">Critical</Badge>
-                  )}
-                  {healthData.redis.memory.warning &&
-                    !healthData.redis.memory.alert && (
-                      <Badge variant="secondary">Warning</Badge>
-                    )}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Keys: {healthData.redis.keyCount.toLocaleString()}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {healthData.environment.nodeEnv} |{' '}
+                  {healthData.system?.uptimeFormatted || '-'}
                 </p>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Import Statistics */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Import Jobs</CardTitle>
-              <RefreshCw className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <div className="font-medium">
-                      {healthData.imports.total}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Total</div>
+            {/* Redis Memory */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Redis Memory
+                </CardTitle>
+                <Database className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>{healthData.redis.memory.usedMB} MB</span>
+                    <span>{healthData.redis.memory.maxMB || '∞'} MB</span>
                   </div>
+                  <Progress
+                    value={healthData.redis.memory.usedPercentage || 0}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Keys: {healthData.redis.keyCount.toLocaleString()}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Node.js Memory */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Node.js Memory
+                </CardTitle>
+                <Server className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold">
+                    {healthData.system?.memory?.heapUsedMB || 0} MB
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Heap: {healthData.system?.memory?.heapUsedMB || 0} /{' '}
+                    {healthData.system?.memory?.heapTotalMB || 0} MB
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    RSS: {healthData.system?.memory?.rssMB || 0} MB
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Import Stats */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Import Jobs
+                </CardTitle>
+                <RefreshCw className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <div className="font-medium text-blue-600">
                       {healthData.imports.active}
@@ -328,9 +261,7 @@ export default function HealthPage() {
                     <div className="font-medium text-green-600">
                       {healthData.imports.completed}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Completed
-                    </div>
+                    <div className="text-xs text-muted-foreground">Done</div>
                   </div>
                   <div>
                     <div className="font-medium text-red-600">
@@ -338,16 +269,166 @@ export default function HealthPage() {
                     </div>
                     <div className="text-xs text-muted-foreground">Failed</div>
                   </div>
+                  <div>
+                    <div className="font-medium">
+                      {healthData.imports.total}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Total</div>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Chunks: {healthData.imports.chunks.toLocaleString()}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Jobs Table */}
+          {healthData.jobs && healthData.jobs.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Recent Import Jobs
+                </CardTitle>
+                <CardDescription>
+                  View job details and retry failed imports
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {healthData.jobs.map((job) => (
+                    <div key={job.jobId} className="border rounded-lg">
+                      <div
+                        className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleJobExpand(job.jobId)}
+                      >
+                        <div className="flex items-center gap-3">
+                          {expandedJob === job.jobId ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                          <div>
+                            <div className="font-mono text-sm">
+                              {job.jobId.slice(0, 8)}...
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatDate(job.createdAt)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm text-right">
+                            <div>
+                              {job.processed}/{job.total} processed
+                            </div>
+                            {job.failedCount > 0 && (
+                              <div className="text-red-600">
+                                {job.failedCount} failed
+                              </div>
+                            )}
+                          </div>
+                          {getJobStatusBadge(job.status)}
+                          {job.failedCount > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                retryJob(job.jobId)
+                              }}
+                              disabled={actionLoading === `retry-${job.jobId}`}
+                            >
+                              <RotateCcw
+                                className={`h-3 w-3 mr-1 ${actionLoading === `retry-${job.jobId}` ? 'animate-spin' : ''}`}
+                              />
+                              Retry
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {expandedJob === job.jobId && (
+                        <div className="border-t p-3 bg-muted/30">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
+                            <div>
+                              <div className="text-muted-foreground">
+                                Job ID
+                              </div>
+                              <div className="font-mono text-xs">
+                                {job.jobId}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">
+                                User UUID
+                              </div>
+                              <div className="font-mono text-xs">
+                                {job.userUUID?.slice(0, 8) || '-'}...
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">
+                                Created
+                              </div>
+                              <div>{formatDate(job.createdAt)}</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">
+                                Completed
+                              </div>
+                              <div>{formatDate(job.completedAt)}</div>
+                            </div>
+                          </div>
+
+                          {job.error && (
+                            <Alert variant="destructive" className="mb-3">
+                              <AlertTriangle className="h-4 w-4" />
+                              <AlertDescription>{job.error}</AlertDescription>
+                            </Alert>
+                          )}
+
+                          {jobFailures[job.jobId] &&
+                            jobFailures[job.jobId].length > 0 && (
+                              <div>
+                                <div className="text-sm font-medium mb-2">
+                                  Recent Failures:
+                                </div>
+                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                  {jobFailures[job.jobId].map(
+                                    (failure, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="text-xs p-2 bg-red-50 dark:bg-red-950 rounded"
+                                      >
+                                        <div className="flex justify-between">
+                                          <span className="font-medium">
+                                            {failure.errorType}
+                                          </span>
+                                          <span className="text-muted-foreground">
+                                            {new Date(
+                                              failure.timestamp
+                                            ).toLocaleTimeString()}
+                                          </span>
+                                        </div>
+                                        <div className="text-muted-foreground truncate">
+                                          {failure.error}
+                                        </div>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Security Settings */}
-          <Card className="md:col-span-2 lg:col-span-3">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
@@ -358,7 +439,7 @@ export default function HealthPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <div className="text-sm font-medium">
                     Certificate Verification
@@ -392,10 +473,14 @@ export default function HealthPage() {
                 <div>
                   <div className="text-sm font-medium">Your Certificate</div>
                   <div className="text-xs text-muted-foreground">
-                    {certFingerprint && (
-                      <div>Fingerprint: {certFingerprint.slice(0, 16)}...</div>
-                    )}
-                    {certSerialNumber && <div>Serial: {certSerialNumber}</div>}
+                    {healthData.auth?.certFingerprint?.slice(0, 16) ||
+                      'Not detected'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">Node Version</div>
+                  <div className="text-xs text-muted-foreground">
+                    {healthData.system?.nodeVersion || '-'}
                   </div>
                 </div>
               </div>

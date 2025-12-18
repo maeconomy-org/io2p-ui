@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import Papa from 'papaparse'
+
+import { logger } from '@/lib'
 import { MAX_FILE_SIZE_MB, STREAM_CHUNK_SIZE } from '@/constants'
 
 export interface SheetData {
@@ -84,7 +86,7 @@ export function useFileProcessor({
           }
         }
       } catch (err) {
-        console.error('Error parsing file:', err)
+        logger.error('Error parsing file:', err)
         setError(err instanceof Error ? err.message : 'Failed to parse file')
         return []
       } finally {

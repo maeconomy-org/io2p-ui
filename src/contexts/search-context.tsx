@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState } from 'react'
 
-import { useCommonApi } from '@/hooks/api/useCommonApi'
+import { logger } from '@/lib'
+import { useCommonApi } from '@/hooks/api'
 
 interface SearchContextType {
   searchQuery: string
@@ -80,7 +81,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('Search in view failed:', error)
+      logger.error('Search in view failed:', error)
       setSearchViewResults([])
       setSearchPaginationData(null)
       setIsSearchMode(false)

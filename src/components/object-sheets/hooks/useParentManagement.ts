@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Predicate } from 'iom-sdk'
 import { toast } from 'sonner'
 
+import { logger } from '@/lib'
 import { useStatements } from '@/hooks/api'
 import type { ParentObject } from '@/types'
 
@@ -129,7 +130,7 @@ export function useParentManagement({
         onRefetch()
       }
     } catch (error) {
-      console.error('Error saving parents:', error)
+      logger.error('Error saving parents:', error)
       toast.error('Failed to update parent objects')
       throw error
     } finally {

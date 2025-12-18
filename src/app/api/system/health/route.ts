@@ -2,19 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   getRedisMemoryInfo,
   getImportJobStats,
+  getImportJobsList,
   cleanupExpiredJobs,
 } from '@/lib/redis-utils'
 import { logger } from '@/lib/logger'
-import { validateInternalAccess } from '@/lib/auth-utils'
+import { validateInternalAccess, getCertificateInfo } from '@/lib/auth-utils'
 
 export async function GET(req: NextRequest) {
   // Validate access to health endpoint
   if (!validateInternalAccess(req)) {
     logger.security('unauthorized_health_access', {
-      ip:
-        req.headers.get('x-forwarded-for') ||
-        req.headers.get('x-real-ip') ||
-        'unknown',
       userAgent: req.headers.get('user-agent') || 'unknown',
     })
 
@@ -30,6 +27,9 @@ export async function GET(req: NextRequest) {
 
     // Get import job statistics
     const jobStats = await getImportJobStats()
+
+    // Get detailed job list
+    const jobsList = await getImportJobsList(20)
 
     // Check if memory usage is high
     const memoryWarning = memoryInfo.usedMemoryPercentage > 80
@@ -54,6 +54,13 @@ export async function GET(req: NextRequest) {
       })
     }
 
+    // Get Node.js process stats
+    const processMemory = process.memoryUsage()
+    const uptime = process.uptime()
+
+    // Get certificate info for display
+    const certInfo = getCertificateInfo(req)
+
     const healthData = {
       status: memoryAlert ? 'critical' : memoryWarning ? 'warning' : 'healthy',
       timestamp: new Date().toISOString(),
@@ -75,10 +82,27 @@ export async function GET(req: NextRequest) {
         failed: jobStats.failedJobs,
         chunks: jobStats.totalChunks,
       },
+      jobs: jobsList,
+      system: {
+        nodeVersion: process.version,
+        uptime: Math.round(uptime),
+        uptimeFormatted: formatUptime(uptime),
+        memory: {
+          heapUsedMB: Math.round(processMemory.heapUsed / (1024 * 1024)),
+          heapTotalMB: Math.round(processMemory.heapTotal / (1024 * 1024)),
+          rssMB: Math.round(processMemory.rss / (1024 * 1024)),
+        },
+      },
       environment: {
         nodeEnv: process.env.NODE_ENV,
         verifyCertificates: process.env.VERIFY_CERTIFICATES === 'true',
         allowInsecureFallback: process.env.ALLOW_INSECURE_FALLBACK !== 'false',
+      },
+      auth: {
+        certFingerprint: certInfo.fingerprint
+          ? `${certInfo.fingerprint.slice(0, 16)}...`
+          : null,
+        certSerial: certInfo.serialNumber,
       },
     }
 
@@ -99,14 +123,20 @@ export async function GET(req: NextRequest) {
   }
 }
 
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400)
+  const hours = Math.floor((seconds % 86400) / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${minutes}m`
+}
+
 export async function POST(req: NextRequest) {
   // Validate access to cleanup endpoint
   if (!validateInternalAccess(req)) {
     logger.security('unauthorized_cleanup_access', {
-      ip:
-        req.headers.get('x-forwarded-for') ||
-        req.headers.get('x-real-ip') ||
-        'unknown',
       userAgent: req.headers.get('user-agent') || 'unknown',
     })
 

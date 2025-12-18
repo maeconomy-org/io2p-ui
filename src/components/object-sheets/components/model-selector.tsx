@@ -16,8 +16,8 @@ import {
   PopoverTrigger,
   FormLabel,
 } from '@/components/ui'
-import { cn } from '@/lib/utils'
-import { useCommonApi } from '@/hooks/api/useCommonApi'
+import { logger, cn } from '@/lib'
+import { useCommonApi } from '@/hooks/api'
 
 export interface ModelOption {
   uuid: string
@@ -60,7 +60,7 @@ export function ModelSelector({
     try {
       const results = await searchMutation.mutateAsync({
         searchBy: {
-          isTemplate: true, 
+          isTemplate: true,
           softDeleted: false,
         },
         ...(query && { searchTerm: query.trim() }),
@@ -89,7 +89,7 @@ export function ModelSelector({
         setHasInitiallyLoaded(true)
       }
     } catch (error) {
-      console.error('Model search failed:', error)
+      logger.error('Model search failed:', error)
       setModels([])
       setTotalResultsCount(0)
     } finally {
@@ -214,13 +214,12 @@ export function ModelSelector({
                   </CommandItem>
                 ))}
               </CommandGroup>
-              {models.length > 0 &&
-                totalResultsCount > models.length && (
-                  <div className="px-2 py-1.5 text-xs text-muted-foreground border-t bg-muted/20">
-                    Showing top {models.length} of {totalResultsCount}{' '}
-                    result{totalResultsCount !== 1 ? 's' : ''} • Search to find more
-                  </div>
-                )}
+              {models.length > 0 && totalResultsCount > models.length && (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground border-t bg-muted/20">
+                  Showing top {models.length} of {totalResultsCount} result
+                  {totalResultsCount !== 1 ? 's' : ''} • Search to find more
+                </div>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>

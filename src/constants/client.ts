@@ -25,11 +25,6 @@ export interface ClientConfig {
   maxFileSizeMB: number
   maxImportPayloadMB: number
   maxObjectsPerImport: number
-
-  // SDK logging config
-  sdkDebugEnabled: boolean
-  sdkLogLevel: string
-  sdkLogToConsole: boolean
 }
 
 // Default values (fallback if config API fails)
@@ -46,11 +41,8 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   contactUrl: 'https://example.com/contact',
   supportEmail: 'support@internetofmaterials.com',
   maxFileSizeMB: 100,
-  maxImportPayloadMB: 100, // Should match or be less than file size
+  maxImportPayloadMB: 100,
   maxObjectsPerImport: 50000,
-  sdkDebugEnabled: false,
-  sdkLogLevel: 'info',
-  sdkLogToConsole: true,
 }
 
 // Fetch client config from API

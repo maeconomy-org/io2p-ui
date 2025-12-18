@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-// Use any to avoid type conflicts with parent component's ObjectItem interface
+import { logger } from '@/lib'
 
 interface UseColumnSelectionProps {
   loadChildren?: (
@@ -73,7 +73,7 @@ export function useColumnSelection({
           onPaginationRemove(nextColumnIndex)
         }
       } catch (error) {
-        console.error('Failed to load children:', error)
+        logger.error('Failed to load children:', error)
         // Clear loading state on error
         onLoadingSet(nextColumnIndex, false)
         // On error, trim columns and clear pagination

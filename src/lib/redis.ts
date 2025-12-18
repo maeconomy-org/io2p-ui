@@ -22,7 +22,7 @@ export function getRedis(): Redis {
       retryStrategy: (times) => {
         if (times > 10) {
           // Stop retrying after 10 attempts
-          console.error('Redis: Max retries reached, giving up')
+          logger.error('Redis: Max retries reached, giving up')
           return null
         }
         const delay = Math.min(times * 100, 3000)
