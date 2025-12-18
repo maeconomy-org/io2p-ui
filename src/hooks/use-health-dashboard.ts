@@ -23,6 +23,7 @@ interface UseHealthDashboardReturn {
   fetchHealthData: () => Promise<void>
   triggerCleanup: () => Promise<void>
   retryJob: (jobId: string) => Promise<void>
+  deleteJob: (jobId: string) => Promise<void>
   toggleJobExpand: (jobId: string) => void
 }
 
@@ -140,6 +141,47 @@ export function useHealthDashboard(): UseHealthDashboardReturn {
     [fetchHealthData]
   )
 
+  const deleteJob = useCallback(
+    async (jobId: string) => {
+      if (
+        !confirm(
+          `Are you sure you want to delete job ${jobId.slice(0, 8)}...? This cannot be undone.`
+        )
+      ) {
+        return
+      }
+
+      setActionLoading(`delete-${jobId}`)
+      setError(null)
+
+      try {
+        const response = await fetch('/api/system/health/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId }),
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || `HTTP ${response.status}`)
+        }
+
+        const result = await response.json()
+        alert(
+          `Job deleted successfully. Chunks removed: ${result.chunksDeleted}`
+        )
+
+        // Refresh health data
+        await fetchHealthData()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to delete job')
+      } finally {
+        setActionLoading(null)
+      }
+    },
+    [fetchHealthData]
+  )
+
   const fetchJobFailures = useCallback(
     async (jobId: string) => {
       if (jobFailures[jobId]) return // Already fetched
@@ -199,6 +241,7 @@ export function useHealthDashboard(): UseHealthDashboardReturn {
     fetchHealthData,
     triggerCleanup,
     retryJob,
+    deleteJob,
     toggleJobExpand,
   }
 }

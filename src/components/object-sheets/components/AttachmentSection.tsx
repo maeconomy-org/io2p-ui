@@ -89,6 +89,29 @@ export function AttachmentSection({
     }
   }
 
+  const renameAttachment = (attachment: Attachment, newFileName: string) => {
+    const index = attachments.findIndex((att) => att === attachment)
+    if (index >= 0) {
+      const updated = [...attachments]
+      const oldAttachment = updated[index]
+
+      // Create a new File object with the new filename for multipart upload
+      let newBlob = oldAttachment.blob
+      if (oldAttachment.blob instanceof File) {
+        newBlob = new File([oldAttachment.blob], newFileName, {
+          type: oldAttachment.blob.type,
+        })
+      }
+
+      updated[index] = {
+        ...oldAttachment,
+        fileName: newFileName,
+        blob: newBlob,
+      }
+      onChange(updated)
+    }
+  }
+
   return (
     <div className="space-y-3 py-4">
       {allowUpload && (
@@ -150,7 +173,9 @@ export function AttachmentSection({
           <AttachmentList
             attachments={attachments}
             onRemoveAttachment={removeAttachmentByObject}
+            onRenameAttachment={renameAttachment}
             allowHardRemove={true}
+            allowRename={true}
           />
         </div>
       ) : (

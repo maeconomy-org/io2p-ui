@@ -2,11 +2,15 @@
 
 import { useState } from 'react'
 import type { MouseEvent, ReactElement } from 'react'
-import { Download, Link as LinkIcon, Trash2 } from 'lucide-react'
+import { Download, Link as LinkIcon, Trash2, Eye, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { Button, Badge } from '@/components/ui'
 import {
+  Button,
+  Badge,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -15,12 +19,33 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+} from '@/components/ui'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 
 import { useFilesApi } from '@/hooks'
 import type { FileData } from '@/types'
 
 import { isExternalFileReference, truncateText } from '../utils'
+
+/**
+ * Check if file is previewable (images only)
+ */
+function isPreviewable(file: FileData): boolean {
+  const { contentType, fileReference, fileName } = file
+
+  // Check by content type
+  if (contentType?.startsWith('image/')) return true
+
+  // Fallback: check by file extension
+  const ref = fileReference || fileName || ''
+  const ext = ref.split('.').pop()?.toLowerCase()
+  if (ext) {
+    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp']
+    if (imageExts.includes(ext)) return true
+  }
+
+  return false
+}
 
 interface FileDisplayProps {
   file: FileData
@@ -95,18 +120,39 @@ export function FileDisplay({
   allowHardRemove = false,
 }: FileDisplayProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
   const icon = getFileIcon(file)
   const typeBadge = getFileTypeBadge(file)
   const displayName = getDisplayName(file)
   const isSoftDeleted = file.softDeleted
+  const canPreview =
+    isPreviewable(file) && !isExternalFileReference(file.fileReference)
   const { useSoftDeleteFile } = useFilesApi()
   const softDeleteFile = useSoftDeleteFile()
 
   const handleClick = () => {
     if (onClick) {
       onClick(file)
+    } else if (canPreview) {
+      setShowPreview(true)
     } else {
       handleFileOpen(file)
+    }
+  }
+
+  const handlePreview = (e: MouseEvent) => {
+    e.stopPropagation()
+    setShowPreview(true)
+  }
+
+  const handleDownload = () => {
+    if (file.fileReference) {
+      const link = document.createElement('a')
+      link.href = file.fileReference
+      link.download = displayName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     }
   }
 
@@ -163,6 +209,17 @@ export function FileDisplay({
             Deleted
           </Badge>
         )}
+        {!isSoftDeleted && canPreview && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
+            onClick={handlePreview}
+            title="Preview in new tab"
+          >
+            <Eye className="h-3 w-3" />
+          </Button>
+        )}
         {!isSoftDeleted && (
           <Button
             variant="ghost"
@@ -176,7 +233,51 @@ export function FileDisplay({
         )}
       </div>
 
-      {/* Move AlertDialog outside the clickable container */}
+      {/* Preview Dialog */}
+      {canPreview && (
+        <Dialog open={showPreview} onOpenChange={setShowPreview}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden border-0 bg-black/95 [&>button]:hidden">
+            <VisuallyHidden>
+              <DialogTitle>File Preview</DialogTitle>
+            </VisuallyHidden>
+            {/* Close button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2 z-10 h-8 w-8 p-0 text-white hover:bg-white/20"
+              onClick={() => setShowPreview(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+
+            {/* Content */}
+            <div className="flex items-center justify-center w-full h-[90vh]">
+              {file.fileReference && (
+                <img
+                  src={file.fileReference}
+                  alt={displayName}
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
+            </div>
+
+            {/* Download button at bottom */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleDownload}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>

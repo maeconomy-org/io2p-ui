@@ -196,6 +196,51 @@ export async function cleanupExpiredJobs(): Promise<{
 }
 
 /**
+ * Delete a specific import job and all its associated data
+ */
+export async function deleteJob(jobId: string): Promise<{
+  success: boolean
+  chunksDeleted: number
+  error?: string
+}> {
+  const redis = getRedis()
+
+  try {
+    const jobKey = REDIS_KEYS.job(jobId)
+
+    // Check if job exists
+    const exists = await redis.exists(jobKey)
+    if (!exists) {
+      return { success: false, chunksDeleted: 0, error: 'Job not found' }
+    }
+
+    // Find and delete associated chunks
+    const chunkKeys = await scanKeys(`import:${jobId}:chunk:*`)
+    let chunksDeleted = 0
+
+    if (chunkKeys.length > 0) {
+      await redis.del(...chunkKeys)
+      chunksDeleted = chunkKeys.length
+    }
+
+    // Delete failure list and job data
+    const failureKey = REDIS_KEYS.failures(jobId)
+    await redis.del(failureKey, jobKey)
+
+    logger.info('Job deleted manually', { jobId, chunksDeleted })
+
+    return { success: true, chunksDeleted }
+  } catch (error) {
+    logger.error('Failed to delete job', { jobId, error })
+    return {
+      success: false,
+      chunksDeleted: 0,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+/**
  * Get import job statistics
  */
 export async function getImportJobStats(): Promise<{
