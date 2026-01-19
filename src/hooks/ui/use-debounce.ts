@@ -10,7 +10,8 @@ export function useDebounce<T extends (...args: any[]) => any>(
   fn: T,
   delay: number
 ): T {
-  const timeoutRef = useRef<NodeJS.Timeout>(null)
+  // eslint-disable-next-line no-undef
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const debouncedFn = useCallback(
     (...args: Parameters<T>) => {

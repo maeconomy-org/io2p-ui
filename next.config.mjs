@@ -27,20 +27,23 @@ const nextConfig = {
         fs: false,
       }
     }
-    
+
     // Suppress specific warnings
     config.ignoreWarnings = [
       /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
     ]
-    
+
     return config
   },
 }
 
 // Only configure Sentry in production or when explicitly enabled
-const shouldUseSentry = process.env.NODE_ENV === 'production' || process.env.SENTRY_ENABLED === 'true'
+const shouldUseSentry =
+  process.env.NODE_ENV === 'production' || process.env.SENTRY_ENABLED === 'true'
 
-export default shouldUseSentry && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT 
+export default shouldUseSentry &&
+process.env.SENTRY_ORG &&
+process.env.SENTRY_PROJECT
   ? withSentryConfig(nextConfig, {
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT,
@@ -54,8 +57,8 @@ export default shouldUseSentry && process.env.SENTRY_ORG && process.env.SENTRY_P
       // Route browser requests through tunnel to bypass ad-blockers
       tunnelRoute: '/monitoring',
 
-       // Use new webpack options instead of deprecated top-level options
-       webpack: {
+      // Use new webpack options instead of deprecated top-level options
+      webpack: {
         treeshake: {
           removeDebugLogging: true, // Replaces deprecated disableLogger
         },
@@ -64,7 +67,7 @@ export default shouldUseSentry && process.env.SENTRY_ORG && process.env.SENTRY_P
 
       // Disable source map upload during build - we do runtime-only config
       hideSourceMaps: true,
-      
+
       // Disable release creation during build - we handle this at runtime
       disableClientWebpackPlugin: false,
       disableServerWebpackPlugin: false,

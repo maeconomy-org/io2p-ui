@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+
+// Disable static generation for this page since it requires client-side SDK
+export const dynamic = 'force-dynamic'
 import { PlusCircle } from 'lucide-react'
 
 import { Button, DeletedFilter } from '@/components/ui'

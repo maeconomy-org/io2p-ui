@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { headers } from 'next/headers'
 
 import { getRedis } from '@/lib/redis'
 import { hsetWithTTL } from '@/lib/redis-utils'
@@ -15,6 +16,11 @@ import { logger } from '@/lib/logger'
 import { API_CHUNK_SIZE } from '@/constants'
 import { processImportJob } from '@/lib/import-processor'
 
+/**
+ * Bulk import API route - handles JSON data from UI
+ * Supports chunked uploads for large datasets
+ * Uses JWT token for authentication (passed in Authorization header)
+ */
 export async function POST(req: Request) {
   try {
     // Validate basic request properties
@@ -26,23 +32,31 @@ export async function POST(req: Request) {
       )
     }
 
-    // Parse request body to get user UUID and data
-    const body = await req.json()
-    const { aggregateEntityList, user } = body
+    // Extract JWT token from Authorization header
+    const headersList = await headers()
+    const authorization = headersList.get('authorization')
 
-    if (!user?.userUUID) {
+    if (!authorization || !authorization.startsWith('Bearer ')) {
+      logger.security('missing_jwt_token', {
+        clientId: getClientIdentifier(req),
+      })
       return NextResponse.json(
-        { error: 'User UUID is required in payload' },
-        { status: 400 }
+        { error: 'Authorization header with JWT token is required' },
+        { status: 401 }
       )
     }
 
-    const userUUID = user.userUUID
+    const jwtToken = authorization.substring(7) // Remove 'Bearer ' prefix
+
+    // Parse request body
+    const body = await req.json()
+    const { aggregateEntityList } = body // No user object needed - JWT contains user info
+
     const clientId = getClientIdentifier(req)
 
     // Validate aggregateEntityList format
     if (!aggregateEntityList || !Array.isArray(aggregateEntityList)) {
-      logger.security('invalid_payload_format', {})
+      logger.security('invalid_payload_format', { clientId })
       return NextResponse.json(
         { error: 'Invalid data format: aggregateEntityList must be an array' },
         { status: 400 }
@@ -71,7 +85,11 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check rate limiting (soft warning approach)
+    // For rate limiting, we'll use a placeholder userUUID from JWT
+    // In a real implementation, you'd decode the JWT to get the actual userUUID
+    const userUUID = 'jwt-user' // TODO: Decode JWT to get actual userUUID
+
+    // Check rate limiting
     const rateLimitCheck = await checkImportRateLimit(clientId, userUUID)
     if (!rateLimitCheck.allowed) {
       return NextResponse.json(
@@ -98,6 +116,7 @@ export async function POST(req: Request) {
       status: 'receiving',
       userUUID: userUUID,
       clientId: clientId,
+      jwtToken: jwtToken, // Store JWT token for API calls
       createdAt: Date.now().toString(),
       payloadSizeMB: payloadValidation.size?.toFixed(2) || '0',
       objectCount: payloadValidation.objectCount?.toString() || '0',
@@ -134,8 +153,6 @@ export async function POST(req: Request) {
       totalChunks: totalChunks.toString(),
     })
 
-    // Import started successfully - no logging needed
-
     // Start background processing
     startProcessing(jobId)
 
@@ -157,14 +174,15 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(response)
-  } catch (error) {
-    logger.import('Import API failed', {}, 'error')
+  } catch (error: any) {
+    logger.import('Import API failed', { error: error.message }, 'error')
     return NextResponse.json(
       { error: 'Failed to start import job' },
       { status: 500 }
     )
   }
 }
+
 // Function to start processing in the background
 async function startProcessing(jobId: string) {
   const redis = getRedis()
@@ -176,7 +194,11 @@ async function startProcessing(jobId: string) {
   // We're using setImmediate to make it non-blocking
   setImmediate(() => {
     processImportJob(jobId).catch((error) => {
-      logger.import('Background job failed', { jobId }, 'error')
+      logger.import(
+        'Background job failed',
+        { jobId, error: error.message },
+        'error'
+      )
       // Update job status to failed
       redis
         .hset(`import:${jobId}`, {

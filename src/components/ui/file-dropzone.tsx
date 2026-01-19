@@ -1,3 +1,5 @@
+'use client'
+
 import { ReactNode, useCallback, useEffect, useState } from 'react'
 import { useDropzone, DropzoneOptions } from 'react-dropzone'
 import { cn } from '@/lib/utils'

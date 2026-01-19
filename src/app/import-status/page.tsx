@@ -1,361 +1,202 @@
 'use client'
 
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
-  Loader2,
-  CheckCircle2,
+  FileText,
+  Clock,
+  CheckCircle,
   XCircle,
   AlertCircle,
-  BarChart,
-  RefreshCcw,
 } from 'lucide-react'
 
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
-  Button,
-  Progress,
-  Badge,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
 } from '@/components/ui'
-import { useImportStatus } from '@/hooks'
+import { ImportStatusTracker } from '@/components/import/import-status-tracker'
+import { useImportJobStore, importJobSelectors, type ImportJob } from '@/stores'
 
 export default function ImportStatusPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const jobId = searchParams.get('jobId')
-  const {
-    status,
-    loading,
-    error,
-    refresh,
-    isAutoRefreshing,
-    toggleAutoRefresh,
-  } = useImportStatus(jobId)
-  const [activeTab, setActiveTab] = useState<string>('overview')
 
-  // Check if we should redirect to objects page after completion
+  // Get all import jobs for the current user
+  const jobs = useImportJobStore(importJobSelectors.jobs)
+
+  // Load jobs on mount
   useEffect(() => {
-    if (status?.status === 'completed') {
-      // If there's a redirect param, redirect to objects after 3 seconds
-      const shouldRedirect = searchParams.get('redirect') === 'true'
-      if (shouldRedirect) {
-        const timer = setTimeout(() => {
-          router.push('/objects')
-        }, 3000)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [status, router, searchParams])
+    // The store already manages jobs, but we can trigger a refresh if needed
+    // For now, we'll use the existing jobs in the store
+  }, [])
 
-  // Format the created date if available
-  const formattedCreatedAt = status?.createdAt
-    ? new Date(status.createdAt).toLocaleString()
-    : 'N/A'
-
-  // Format the completed date if available
-  const formattedCompletedAt = status?.completedAt
-    ? new Date(status.completedAt).toLocaleString()
-    : 'N/A'
-
-  // Calculate elapsed time
-  const calculateElapsedTime = () => {
-    if (!status?.createdAt) return 'N/A'
-
-    const start = new Date(status.createdAt).getTime()
-    const end = status.completedAt
-      ? new Date(status.completedAt).getTime()
-      : Date.now()
-
-    const elapsedMs = end - start
-
-    // Format elapsed time
-    if (elapsedMs < 1000) {
-      return `${elapsedMs}ms`
-    } else if (elapsedMs < 60000) {
-      return `${Math.floor(elapsedMs / 1000)}s`
-    } else {
-      const minutes = Math.floor(elapsedMs / 60000)
-      const seconds = Math.floor((elapsedMs % 60000) / 1000)
-      return `${minutes}m ${seconds}s`
-    }
-  }
-
-  // Calculate estimated completion time based on current processing rate
-  const calculateETA = () => {
-    if (
-      !status ||
-      status.processed === 0 ||
-      status.status === 'completed' ||
-      !status.createdAt
-    ) {
-      return 'N/A'
-    }
-
-    // Get time elapsed so far
-    const start = new Date(status.createdAt).getTime()
-    const now = Date.now()
-    const elapsedMs = now - start
-
-    // Calculate processing rate (items per ms)
-    const rate = status.processed / elapsedMs
-
-    // Estimate remaining time
-    const remaining = status.total - status.processed
-    const estimatedRemainingMs = remaining / rate
-
-    // Format estimated time
-    if (estimatedRemainingMs < 1000) {
-      return 'Less than a second'
-    } else if (estimatedRemainingMs < 60000) {
-      return `${Math.floor(estimatedRemainingMs / 1000)} seconds`
-    } else if (estimatedRemainingMs < 3600000) {
-      return `${Math.floor(estimatedRemainingMs / 60000)} minutes`
-    } else {
-      const hours = Math.floor(estimatedRemainingMs / 3600000)
-      const minutes = Math.floor((estimatedRemainingMs % 3600000) / 60000)
-      return `${hours}h ${minutes}m`
-    }
-  }
-
-  // Determine the status color and icon
-  const getStatusDetails = () => {
-    if (!status) return { color: 'default', icon: null, text: 'Unknown' }
-
-    switch (status.status) {
-      case 'pending':
-        return {
-          color: 'warning',
-          icon: <AlertCircle className="h-4 w-4" />,
-          text: 'Pending',
-        }
-      case 'receiving':
-        return {
-          color: 'warning',
-          icon: <Loader2 className="h-4 w-4 animate-spin" />,
-          text: 'Receiving Data',
-        }
-      case 'processing':
-        return {
-          color: 'default',
-          icon: <Loader2 className="h-4 w-4 animate-spin" />,
-          text: 'Processing',
-        }
+  const getStatusIcon = (status: string) => {
+    switch (status) {
       case 'completed':
-        return {
-          color: 'success',
-          icon: <CheckCircle2 className="h-4 w-4" />,
-          text: 'Completed',
-        }
+        return <CheckCircle className="h-5 w-5 text-green-600" />
       case 'failed':
-        return {
-          color: 'destructive',
-          icon: <XCircle className="h-4 w-4" />,
-          text: 'Failed',
-        }
+        return <XCircle className="h-5 w-5 text-red-600" />
+      case 'processing':
+        return <Clock className="h-5 w-5 text-blue-600 animate-spin" />
+      case 'starting':
+      case 'pending':
+        return <AlertCircle className="h-5 w-5 text-yellow-600" />
       default:
-        return {
-          color: 'default',
-          icon: null,
-          text: status.status,
-        }
+        return <FileText className="h-5 w-5 text-gray-600" />
     }
   }
 
-  const statusDetails = getStatusDetails()
-
-  if (!jobId) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <Card className="w-full max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle>Import Status</CardTitle>
-            <CardDescription>No job ID provided</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Please provide a job ID to view the import status.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Link href="/import">
-              <Button>Go to Import</Button>
-            </Link>
-          </CardFooter>
-        </Card>
-      </div>
-    )
-  }
-
-  if (loading && !status) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <Card className="w-full max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle>Import Status</CardTitle>
-            <CardDescription>Loading status for job {jobId}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center py-6">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (error && !status) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <Card className="w-full max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle>Import Status</CardTitle>
-            <CardDescription>Error retrieving status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-destructive">{error}</p>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Link href="/import">
-              <Button variant="outline">Go to Import</Button>
-            </Link>
-            <Button onClick={refresh}>Retry</Button>
-          </CardFooter>
-        </Card>
-      </div>
-    )
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'text-green-700 bg-green-50 border-green-200'
+      case 'failed':
+        return 'text-red-700 bg-red-50 border-red-200'
+      case 'processing':
+        return 'text-blue-700 bg-blue-50 border-blue-200'
+      case 'starting':
+      case 'pending':
+        return 'text-yellow-700 bg-yellow-50 border-yellow-200'
+      default:
+        return 'text-gray-700 bg-gray-50 border-gray-200'
+    }
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <Card className="w-full max-w-4xl mx-auto">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Import Status</CardTitle>
-              <CardDescription>Job ID: {jobId}</CardDescription>
-            </div>
-            <Badge
-              variant={statusDetails.color as any}
-              className="flex items-center gap-1"
-            >
-              {statusDetails.icon}
-              <span>{statusDetails.text}</span>
-            </Badge>
+    <div className="container mx-auto py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Import Status
+          </h1>
+          <p className="text-gray-600">
+            Track the progress of your import jobs and view detailed status
+            information.
+          </p>
+        </div>
+
+        {/* Specific Job Tracker (if jobId provided) */}
+        {jobId && (
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Import Job Details</CardTitle>
+                <CardDescription>Tracking job: {jobId}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ImportStatusTracker />
+              </CardContent>
+            </Card>
           </div>
-        </CardHeader>
+        )}
 
-        <CardContent className="space-y-6">
-          {status && (
-            <>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Progress:</span>
-                  <span className="font-medium">
-                    {status.processed} / {status.total} objects
-                    {status.failed > 0 && ` (${status.failed} failed)`}
-                  </span>
-                </div>
-                <Progress
-                  value={(status.processed / (status.total || 1)) * 100}
-                  className="h-2"
-                />
+        {/* All User Jobs */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Your Import Jobs
+            </CardTitle>
+            <CardDescription>
+              All import jobs initiated by your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {jobs.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No Import Jobs Found
+                </h3>
+                <p className="text-gray-600">
+                  You haven't started any import jobs yet. Visit the{' '}
+                  <a
+                    href="/import"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    import page
+                  </a>{' '}
+                  to get started.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {jobs.map((job: ImportJob) => (
+                  <div
+                    key={job.id}
+                    className={`p-4 rounded-lg border ${getStatusColor(job.status)}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        {getStatusIcon(job.status)}
+                        <div>
+                          <h4 className="font-medium">
+                            Job {job.id.substring(0, 8)}...
+                          </h4>
+                          <p className="text-sm opacity-75">
+                            {job.totalItems} objects • Started{' '}
+                            {job.startTime.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium capitalize">
+                          {job.status}
+                        </div>
+                        {job.status === 'processing' && (
+                          <div className="text-xs opacity-75">
+                            {job.processedItems}/{job.totalItems} processed
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                {/* Estimated completion info */}
-                {['processing', 'receiving'].includes(status.status) && (
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>ETA: {calculateETA()}</span>
-                    <span>
-                      {Math.round(
-                        (status.processed / (status.total || 1)) * 100
+                    {/* Progress Bar */}
+                    {job.status === 'processing' && job.totalItems > 0 && (
+                      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${(job.processedItems / job.totalItems) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Error Message */}
+                    {job.status === 'failed' && job.error && (
+                      <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-sm text-red-700">
+                        <strong>Error:</strong> {job.error}
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-3">
+                      <a
+                        href={`/import-status?jobId=${job.id}`}
+                        className="text-sm px-3 py-1 bg-white border border-current rounded hover:bg-gray-50 transition-colors"
+                      >
+                        View Details
+                      </a>
+                      {job.status === 'completed' && (
+                        <a
+                          href={`/objects`}
+                          className="text-sm px-3 py-1 bg-white border border-current rounded hover:bg-gray-50 transition-colors"
+                        >
+                          View Objects
+                        </a>
                       )}
-                      %
-                    </span>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-medium mb-2">Status</h3>
-                  <dl className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <dt className="text-muted-foreground">Started:</dt>
-                      <dd>{formattedCreatedAt}</dd>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <dt className="text-muted-foreground">Completed:</dt>
-                      <dd>{formattedCompletedAt}</dd>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <dt className="text-muted-foreground">Elapsed Time:</dt>
-                      <dd>{calculateElapsedTime()}</dd>
-                    </div>
-                  </dl>
-                </div>
-
-                <div className="border rounded-md p-3">
-                  <h3 className="text-sm font-medium mb-2">Results</h3>
-                  <dl className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <dt className="text-muted-foreground">Total Objects:</dt>
-                      <dd>{status.total}</dd>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <dt className="text-muted-foreground">Processed:</dt>
-                      <dd>{status.processed}</dd>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <dt className="text-muted-foreground">Failed:</dt>
-                      <dd>{status.failed}</dd>
-                    </div>
-                  </dl>
-                </div>
-              </div>
-
-              {status.status === 'failed' && status.error && (
-                <div className="p-3 bg-destructive/10 text-destructive rounded-md">
-                  <h4 className="text-sm font-medium mb-1">Error:</h4>
-                  <p className="text-sm">{status.error}</p>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex justify-between">
-          <div className="flex gap-2">
-            <Link href="/import">
-              <Button variant="outline">Back to Import</Button>
-            </Link>
-            {status?.status === 'completed' && (
-              <Link href="/objects">
-                <Button>View Objects</Button>
-              </Link>
             )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleAutoRefresh}
-              className={isAutoRefreshing ? 'text-primary' : ''}
-            >
-              <RefreshCcw className="h-4 w-4" />
-            </Button>
-            <Button onClick={refresh}>Refresh Status</Button>
-          </div>
-        </CardFooter>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

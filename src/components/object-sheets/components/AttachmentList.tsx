@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Pencil, Check, X } from 'lucide-react'
 
 import type { FileData, Attachment } from '@/types'
-import { cn } from '@/lib/utils'
 import { Button, Input, Badge } from '@/components/ui'
 import { FileList } from './FileDisplay'
 import { truncateText } from '../utils'

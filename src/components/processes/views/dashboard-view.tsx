@@ -12,13 +12,13 @@ import {
   Leaf,
   AlertTriangle,
   RotateCcw,
-  Rows3
+  Rows3,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { CountList } from '../count-list'
 import type {
   EnhancedMaterialObject,
-  EnhancedMaterialRelationship
+  EnhancedMaterialRelationship,
 } from '@/types'
 
 import { PROCESS_CATEGORY_COLORS, LIFECYCLE_STAGE_COLORS } from '../constants'
@@ -32,74 +32,87 @@ interface DashboardViewProps {
 export function DashboardView({
   materials = [],
   relationships = [],
-  onCreateProcess = () => { }
+  onCreateProcess = () => {},
 }: DashboardViewProps) {
   const dashboardData = useMemo(() => {
     // Calculate KPIs
     const totalFlows = relationships.length
-    const circularFlows = relationships.filter(rel =>
-      rel.flowCategory === 'RECYCLING' ||
-      rel.flowCategory === 'REUSE' ||
-      rel.flowCategory === 'CIRCULAR' ||
-      rel.inputMaterial?.lifecycleStage === 'SECONDARY_INPUT' ||
-      rel.outputMaterial?.lifecycleStage === 'SECONDARY_INPUT'
+    const circularFlows = relationships.filter(
+      (rel) =>
+        rel.flowCategory === 'RECYCLING' ||
+        rel.flowCategory === 'REUSE' ||
+        rel.flowCategory === 'CIRCULAR' ||
+        rel.inputMaterial?.lifecycleStage === 'SECONDARY_INPUT' ||
+        rel.outputMaterial?.lifecycleStage === 'SECONDARY_INPUT'
     ).length
-    const circularityRate = totalFlows > 0 ? Math.round((circularFlows / totalFlows) * 100) : 0
+    const circularityRate =
+      totalFlows > 0 ? Math.round((circularFlows / totalFlows) * 100) : 0
 
     // Material insights - calculated from filtered relationships
     const uniqueMaterialUuids = new Set<string>()
-    relationships.forEach(rel => {
+    relationships.forEach((rel) => {
       uniqueMaterialUuids.add(rel.subject.uuid)
       uniqueMaterialUuids.add(rel.object.uuid)
     })
     const totalMaterials = uniqueMaterialUuids.size
 
     // Process category breakdown
-    const processCategoryStats = relationships.reduce((acc, rel) => {
-      const category = rel.processTypeCode || 'UNKNOWN'
-      acc[category] = (acc[category] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
+    const processCategoryStats = relationships.reduce(
+      (acc, rel) => {
+        const category = rel.processTypeCode || 'UNKNOWN'
+        acc[category] = (acc[category] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    )
 
     // Lifecycle stage distribution - from filtered relationships
-    const lifecycleStats = relationships.reduce((acc, rel) => {
-      // Count input material lifecycle stages
-      if (rel.inputMaterial?.lifecycleStage) {
-        const stage = rel.inputMaterial.lifecycleStage
-        acc[stage] = (acc[stage] || 0) + 1
-      }
-      // Count output material lifecycle stages
-      if (rel.outputMaterial?.lifecycleStage) {
-        const stage = rel.outputMaterial.lifecycleStage
-        acc[stage] = (acc[stage] || 0) + 1
-      }
-      return acc
-    }, {} as Record<string, number>)
+    const lifecycleStats = relationships.reduce(
+      (acc, rel) => {
+        // Count input material lifecycle stages
+        if (rel.inputMaterial?.lifecycleStage) {
+          const stage = rel.inputMaterial.lifecycleStage
+          acc[stage] = (acc[stage] || 0) + 1
+        }
+        // Count output material lifecycle stages
+        if (rel.outputMaterial?.lifecycleStage) {
+          const stage = rel.outputMaterial.lifecycleStage
+          acc[stage] = (acc[stage] || 0) + 1
+        }
+        return acc
+      },
+      {} as Record<string, number>
+    )
 
     const reusedComponents = lifecycleStats['REUSED_COMPONENT'] || 0
 
     // Environmental impact summary
-    const environmentalImpact = relationships.reduce((acc, rel) => {
-      if (rel.emissionsTotal) acc.totalEmissions += rel.emissionsTotal
-      if (rel.materialLossPercent) {
-        acc.totalMaterialLoss += rel.materialLossPercent
-        acc.materialLossCount += 1
+    const environmentalImpact = relationships.reduce(
+      (acc, rel) => {
+        if (rel.emissionsTotal) acc.totalEmissions += rel.emissionsTotal
+        if (rel.materialLossPercent) {
+          acc.totalMaterialLoss += rel.materialLossPercent
+          acc.materialLossCount += 1
+        }
+        if (rel.qualityChangeCode === 'UPCYCLED') acc.upcycledProcesses += 1
+        if (rel.qualityChangeCode === 'DOWNCYCLED') acc.downcycledProcesses += 1
+        return acc
+      },
+      {
+        totalEmissions: 0,
+        totalMaterialLoss: 0,
+        materialLossCount: 0,
+        upcycledProcesses: 0,
+        downcycledProcesses: 0,
       }
-      if (rel.qualityChangeCode === 'UPCYCLED') acc.upcycledProcesses += 1
-      if (rel.qualityChangeCode === 'DOWNCYCLED') acc.downcycledProcesses += 1
-      return acc
-    }, {
-      totalEmissions: 0,
-      totalMaterialLoss: 0,
-      materialLossCount: 0,
-      upcycledProcesses: 0,
-      downcycledProcesses: 0
-    })
+    )
 
     // Calculate average material loss percentage
-    const averageMaterialLoss = environmentalImpact.materialLossCount > 0 
-      ? environmentalImpact.totalMaterialLoss / environmentalImpact.materialLossCount 
-      : 0
+    const averageMaterialLoss =
+      environmentalImpact.materialLossCount > 0
+        ? environmentalImpact.totalMaterialLoss /
+          environmentalImpact.materialLossCount
+        : 0
 
     return {
       kpis: {
@@ -107,30 +120,32 @@ export function DashboardView({
         circularFlows,
         circularityRate,
         totalMaterials,
-        reusedComponents
+        reusedComponents,
       },
       breakdowns: {
         processCategories: processCategoryStats,
         lifecycleStages: lifecycleStats,
         processCategoriesTotal: Object.keys(processCategoryStats).length,
-        lifecycleStagesTotal: Object.keys(lifecycleStats).length
+        lifecycleStagesTotal: Object.keys(lifecycleStats).length,
       },
       environmental: {
         ...environmentalImpact,
-        averageMaterialLoss
-      }
+        averageMaterialLoss,
+      },
     }
   }, [materials, relationships])
-
 
   if (materials.length === 0 && relationships.length === 0) {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
           <Factory className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Process Data</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No Process Data
+          </h3>
           <p className="text-gray-600 mb-6">
-            Start by creating your first material flow process to see insights and analytics.
+            Start by creating your first material flow process to see insights
+            and analytics.
           </p>
           <button
             onClick={onCreateProcess}
@@ -156,7 +171,9 @@ export function DashboardView({
                 <ArrowLeftRight className="h-4 w-4 text-blue-600" />
               </div>
               <div>
-                <div className="text-2xl font-semibold">{dashboardData.kpis.totalFlows}</div>
+                <div className="text-2xl font-semibold">
+                  {dashboardData.kpis.totalFlows}
+                </div>
                 <div className="text-xs text-muted-foreground">Total Flows</div>
               </div>
             </div>
@@ -171,8 +188,12 @@ export function DashboardView({
                 <Recycle className="h-4 w-4 text-emerald-600" />
               </div>
               <div>
-                <div className="text-2xl font-semibold">{dashboardData.kpis.circularFlows}</div>
-                <div className="text-xs text-muted-foreground">Circular Flows</div>
+                <div className="text-2xl font-semibold">
+                  {dashboardData.kpis.circularFlows}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Circular Flows
+                </div>
               </div>
             </div>
           </CardContent>
@@ -186,8 +207,12 @@ export function DashboardView({
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </div>
               <div>
-                <div className="text-2xl font-semibold">{dashboardData.kpis.circularityRate}%</div>
-                <div className="text-xs text-muted-foreground">Circularity Rate</div>
+                <div className="text-2xl font-semibold">
+                  {dashboardData.kpis.circularityRate}%
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Circularity Rate
+                </div>
               </div>
             </div>
           </CardContent>
@@ -201,66 +226,70 @@ export function DashboardView({
                 <RefreshCw className="h-4 w-4 text-cyan-600" />
               </div>
               <div>
-                <div className="text-2xl font-semibold">{dashboardData.kpis.reusedComponents}</div>
-                <div className="text-xs text-muted-foreground">Reused Components</div>
+                <div className="text-2xl font-semibold">
+                  {dashboardData.kpis.reusedComponents}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Reused Components
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-       {/* Charts Section - Count Lists */}
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         {/* Process Categories List */}
-         <Card>
-           <CardHeader className="pb-2">
-             <div className="flex items-center justify-between">
-               <CardTitle className="flex items-center gap-2">
-                 <Rows3 className="h-5 w-5" />
-                 Process Categories
-               </CardTitle>
-               {dashboardData.breakdowns.processCategoriesTotal > 5 && (
-                 <span className="text-xs text-gray-500 font-medium">
-                   Top 5 of {dashboardData.breakdowns.processCategoriesTotal}
-                 </span>
-               )}
-             </div>
-           </CardHeader>
-           <CardContent className="p-4">
-             <CountList
-               data={dashboardData.breakdowns.processCategories}
-               maxItems={4}
-               emptyMessage="No process category data"
-               colorPalette={PROCESS_CATEGORY_COLORS}
-             />
-           </CardContent>
-         </Card>
+      {/* Charts Section - Count Lists */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Process Categories List */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Rows3 className="h-5 w-5" />
+                Process Categories
+              </CardTitle>
+              {dashboardData.breakdowns.processCategoriesTotal > 5 && (
+                <span className="text-xs text-gray-500 font-medium">
+                  Top 5 of {dashboardData.breakdowns.processCategoriesTotal}
+                </span>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <CountList
+              data={dashboardData.breakdowns.processCategories}
+              maxItems={4}
+              emptyMessage="No process category data"
+              colorPalette={PROCESS_CATEGORY_COLORS}
+            />
+          </CardContent>
+        </Card>
 
-         {/* Lifecycle Stages List */}
-         <Card>
-           <CardHeader className="pb-2">
-             <div className="flex items-center justify-between">
-               <CardTitle className="flex items-center gap-2">
-                 <RotateCcw className="h-5 w-5" />
-                 Lifecycle Stages
-               </CardTitle>
-               {dashboardData.breakdowns.lifecycleStagesTotal > 5 && (
-                 <span className="text-xs text-gray-500 font-medium">
-                   Top 5 of {dashboardData.breakdowns.lifecycleStagesTotal}
-                 </span>
-               )}
-             </div>
-           </CardHeader>
-           <CardContent className="p-4">
-             <CountList
-               data={dashboardData.breakdowns.lifecycleStages}
-               maxItems={4}
-               emptyMessage="No lifecycle stage data"
-               colorPalette={LIFECYCLE_STAGE_COLORS}
-             />
-           </CardContent>
-         </Card>
-       </div>
+        {/* Lifecycle Stages List */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <RotateCcw className="h-5 w-5" />
+                Lifecycle Stages
+              </CardTitle>
+              {dashboardData.breakdowns.lifecycleStagesTotal > 5 && (
+                <span className="text-xs text-gray-500 font-medium">
+                  Top 5 of {dashboardData.breakdowns.lifecycleStagesTotal}
+                </span>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <CountList
+              data={dashboardData.breakdowns.lifecycleStages}
+              maxItems={4}
+              emptyMessage="No lifecycle stage data"
+              colorPalette={LIFECYCLE_STAGE_COLORS}
+            />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Environmental Impact Section - Improved */}
       <Card>
@@ -283,7 +312,9 @@ export function DashboardView({
                     <span className="text-2xl font-semibold text-green-700">
                       {dashboardData.environmental.totalEmissions.toFixed(1)}
                     </span>
-                    <span className="text-sm text-green-600 font-medium">kg CO₂</span>
+                    <span className="text-sm text-green-600 font-medium">
+                      kg CO₂
+                    </span>
                   </div>
                   <div className="text-xs text-green-600">Total Emissions</div>
                 </div>
@@ -299,11 +330,17 @@ export function DashboardView({
                 <div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-semibold text-orange-700">
-                      {dashboardData.environmental.averageMaterialLoss.toFixed(1)}
+                      {dashboardData.environmental.averageMaterialLoss.toFixed(
+                        1
+                      )}
                     </span>
-                    <span className="text-sm text-orange-600 font-medium">%</span>
+                    <span className="text-sm text-orange-600 font-medium">
+                      %
+                    </span>
                   </div>
-                  <div className="text-xs text-orange-600">Avg Material Loss</div>
+                  <div className="text-xs text-orange-600">
+                    Avg Material Loss
+                  </div>
                 </div>
               </div>
             </div>
@@ -319,7 +356,9 @@ export function DashboardView({
                     <span className="text-2xl font-semibold text-blue-700">
                       {dashboardData.environmental.upcycledProcesses}
                     </span>
-                    <span className="text-sm text-blue-600 font-medium">processes</span>
+                    <span className="text-sm text-blue-600 font-medium">
+                      processes
+                    </span>
                   </div>
                   <div className="text-xs text-blue-600">Upcycled</div>
                 </div>
@@ -337,7 +376,9 @@ export function DashboardView({
                     <span className="text-2xl font-semibold text-red-700">
                       {dashboardData.environmental.downcycledProcesses}
                     </span>
-                    <span className="text-sm text-red-600 font-medium">processes</span>
+                    <span className="text-sm text-red-600 font-medium">
+                      processes
+                    </span>
                   </div>
                   <div className="text-xs text-red-600">Downcycled</div>
                 </div>
@@ -358,8 +399,10 @@ export function DashboardView({
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6  gap-3 max-h-64 overflow-y-auto">
             {materials.map((material) => {
-              const materialFlowCount = relationships.filter(rel =>
-                rel.subject.uuid === material.uuid || rel.object.uuid === material.uuid
+              const materialFlowCount = relationships.filter(
+                (rel) =>
+                  rel.subject.uuid === material.uuid ||
+                  rel.object.uuid === material.uuid
               ).length
 
               return (
@@ -376,7 +419,9 @@ export function DashboardView({
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 truncate">
-                    {material.lifecycleStage?.replace(/_/g, ' ').toLowerCase() || 'No stage'}
+                    {material.lifecycleStage
+                      ?.replace(/_/g, ' ')
+                      .toLowerCase() || 'No stage'}
                   </div>
                 </div>
               )

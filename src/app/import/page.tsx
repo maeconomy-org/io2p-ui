@@ -7,7 +7,8 @@ import { FileUpload } from './components/file-upload'
 import { ColumnMapper } from './components/column-mapper'
 import { ImportPreview } from './components/import-preview'
 import { Steps, Step } from './components/steps'
-import { useImportProcess, SheetData } from '@/hooks'
+import { useBulkImport } from '@/hooks/import/use-bulk-import'
+import type { SheetData } from '@/hooks'
 import {
   Select,
   SelectContent,
@@ -35,11 +36,13 @@ export default function ImportPage() {
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({})
   const [mappedData, setMappedData] = useState<any[]>([])
 
-  // Use the import process hook with redirection enabled
-  const { isImporting, startImport } = useImportProcess({
-    autoRedirect: true,
-    onImportStarted: (jobId) => {
-      logger.import(`Import job started: ${jobId}`, { jobId })
+  // Use the new bulk import hook
+  const { isImporting, startBulkImport } = useBulkImport({
+    onImportStarted: (jobId: string) => {
+      logger.import(`Bulk import job started: ${jobId}`, { jobId })
+    },
+    onImportError: (jobId: string, error: string) => {
+      logger.error(`Bulk import failed: ${jobId}`, { jobId, error })
     },
   })
 
@@ -114,11 +117,20 @@ export default function ImportPage() {
       return
     }
 
-    // Start import with redirect enabled
-    await startImport({
-      mappedData,
-      redirectOnComplete: true,
-    })
+    // Start bulk import using new API
+    const result = await startBulkImport(mappedData)
+
+    if (result.success) {
+      // Reset form after successful import
+      setStep('upload')
+      setFile(null)
+      setSheets([])
+      setSelectedSheet('')
+      setSelectedSheetData([])
+      setColumnMapping({})
+      setMappedData([])
+      clearSessionStorage()
+    }
   }
 
   const handleBack = () => {

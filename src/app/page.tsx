@@ -12,13 +12,14 @@ import {
 import Link from 'next/link'
 
 import { logger } from '@/lib'
-import { useAuth } from '@/contexts'
+import { useAuthStore, authSelectors } from '@/stores'
 import { APP_ACRONYM, APP_DESCRIPTION, APP_NAME } from '@/constants'
 import { Button, Card, Alert, AlertDescription } from '@/components/ui'
 
 export default function AuthPage() {
   const router = useRouter()
-  const { isAuthenticated, handleCertificateAuth } = useAuth()
+  const isAuthenticated = useAuthStore(authSelectors.isAuthenticated)
+  const login = useAuthStore((state) => state.login)
   const [status, setStatus] = useState<
     'idle' | 'authorizing' | 'success' | 'error'
   >('idle')
@@ -36,7 +37,7 @@ export default function AuthPage() {
     setError(null)
 
     try {
-      const { success, error } = await handleCertificateAuth()
+      const { success, error } = await login()
       if (!success) {
         throw new Error(error)
       }

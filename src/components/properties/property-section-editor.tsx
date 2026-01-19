@@ -223,7 +223,11 @@ export function PropertySectionEditor({
         </div>
       ) : (
         isEditable && (
-          <Button variant="outline" onClick={handleAddProperty} className="mt-2">
+          <Button
+            variant="outline"
+            onClick={handleAddProperty}
+            className="mt-2"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Property
           </Button>

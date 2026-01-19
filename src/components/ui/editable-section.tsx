@@ -1,3 +1,5 @@
+'use client'
+
 import { ReactNode, useState } from 'react'
 import { Edit, Save, X } from 'lucide-react'
 import { toast } from 'sonner'

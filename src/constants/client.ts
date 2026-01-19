@@ -2,9 +2,10 @@
 // This allows the same Docker image to work with different configurations
 
 export interface ClientConfig {
-  // API endpoints
-  baseApiUrl: string
-  uuidApiUrl: string
+  // API endpoints - New service-based URLs
+  authApiUrl: string
+  registryApiUrl: string
+  nodeApiUrl: string
 
   // Sentry config
   sentryDsn: string
@@ -29,8 +30,9 @@ export interface ClientConfig {
 
 // Default values (fallback if config API fails)
 export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
-  baseApiUrl: '',
-  uuidApiUrl: '',
+  authApiUrl: '',
+  registryApiUrl: '',
+  nodeApiUrl: '',
   sentryDsn: '',
   sentryEnabled: 'false',
   sentryRelease: '',

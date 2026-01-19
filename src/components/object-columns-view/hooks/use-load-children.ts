@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useIomSdkClient } from '@/contexts'
+import { useSDKStore, sdkSelectors } from '@/stores'
 import { logger } from '@/lib'
 
 /**
@@ -8,7 +8,11 @@ import { logger } from '@/lib'
  */
 export function useLoadChildren() {
   const queryClient = useQueryClient()
-  const client = useIomSdkClient()
+  const client = useSDKStore(sdkSelectors.client)
+
+  if (!client) {
+    throw new Error('SDK client not initialized')
+  }
 
   // Children loading function for columns view with pagination and search
   // Uses queryClient.fetchQuery to share the same cache as useAggregateEntities hook

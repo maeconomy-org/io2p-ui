@@ -1,4 +1,7 @@
-import type { MaterialRelationship, EnhancedMaterialRelationship } from '@/types'
+import type {
+  MaterialRelationship,
+  EnhancedMaterialRelationship,
+} from '@/types'
 import type { UUObjectDTO } from 'iom-sdk'
 
 // Enhanced material with quantity, unit, and metadata for process flows
@@ -59,7 +62,9 @@ export const generateRelationships = (
 /**
  * Validate process form data
  */
-export const validateProcessForm = (formData: ProcessFlowData): Record<string, string> => {
+export const validateProcessForm = (
+  formData: ProcessFlowData
+): Record<string, string> => {
   const errors: Record<string, string> = {}
 
   if (!formData.name.trim()) {
@@ -75,15 +80,17 @@ export const validateProcessForm = (formData: ProcessFlowData): Record<string, s
   }
 
   // Check for duplicate materials between inputs and outputs
-  const inputUuids = new Set(formData.inputMaterials.map(m => m.object.uuid))
-  const outputUuids = new Set(formData.outputMaterials.map(m => m.object.uuid))
-  const duplicateUuids = [...inputUuids].filter(uuid => outputUuids.has(uuid))
-  
+  const inputUuids = new Set(formData.inputMaterials.map((m) => m.object.uuid))
+  const outputUuids = new Set(
+    formData.outputMaterials.map((m) => m.object.uuid)
+  )
+  const duplicateUuids = [...inputUuids].filter((uuid) => outputUuids.has(uuid))
+
   if (duplicateUuids.length > 0) {
     const duplicateMaterials = formData.inputMaterials
-      .filter(m => duplicateUuids.includes(m.object.uuid))
-      .map(m => m.object.name)
-    
+      .filter((m) => duplicateUuids.includes(m.object.uuid))
+      .map((m) => m.object.name)
+
     errors.duplicates = `The following materials cannot be used as both input and output: ${duplicateMaterials.join(', ')}`
   }
 
@@ -94,23 +101,28 @@ export const validateProcessForm = (formData: ProcessFlowData): Record<string, s
  * Format category names for display
  */
 export const formatCategoryName = (category: string): string => {
-  return category.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+  return category
+    .replace('_', ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (l) => l.toUpperCase())
 }
 
 /**
  * Detect and remove cycles from relationships to ensure DAG compliance
  */
-export function detectAndRemoveCycles(relationships: EnhancedMaterialRelationship[]) {
+export function detectAndRemoveCycles(
+  relationships: EnhancedMaterialRelationship[]
+) {
   // Build adjacency list
   const graph = new Map<string, string[]>()
   const edgeMap = new Map<string, EnhancedMaterialRelationship>()
-  
+
   // Initialize graph
   relationships.forEach((rel) => {
     const source = rel.subject.uuid
     const target = rel.object.uuid
     const edgeKey = `${source}->${target}`
-    
+
     if (!graph.has(source)) {
       graph.set(source, [])
     }
@@ -127,19 +139,19 @@ export function detectAndRemoveCycles(relationships: EnhancedMaterialRelationshi
   function dfs(node: string, path: string[]): void {
     visited.add(node)
     recursionStack.add(node)
-    
+
     const neighbors = graph.get(node) || []
-    
+
     for (const neighbor of neighbors) {
       const edgeKey = `${node}->${neighbor}`
-      
+
       if (recursionStack.has(neighbor)) {
         // Found a cycle - trace it back
         const cycleStart = path.indexOf(neighbor)
         if (cycleStart !== -1) {
           const cycle = path.slice(cycleStart)
           cycles.push([...cycle, neighbor])
-          
+
           // Mark all edges in this cycle as cyclic
           for (let i = cycleStart; i < path.length; i++) {
             const cycleEdge = `${path[i]}->${path[i + 1] || neighbor}`
@@ -151,7 +163,7 @@ export function detectAndRemoveCycles(relationships: EnhancedMaterialRelationshi
         dfs(neighbor, [...path, neighbor])
       }
     }
-    
+
     recursionStack.delete(node)
   }
 
@@ -177,13 +189,17 @@ export function detectAndRemoveCycles(relationships: EnhancedMaterialRelationshi
 
   // Create cycle info for user feedback
   const cycleInfo = {
-    cycles: cycles.map(cycle => 
-      cycle.map(nodeId => {
+    cycles: cycles.map((cycle) =>
+      cycle.map((nodeId) => {
         // Try to find a readable name for the node
-        const rel = relationships.find(r => r.subject.uuid === nodeId || r.object.uuid === nodeId)
-        return rel?.subject.uuid === nodeId ? rel.subject.name : 
-               rel?.object.uuid === nodeId ? rel.object.name : 
-               nodeId.slice(0, 8) + '...'
+        const rel = relationships.find(
+          (r) => r.subject.uuid === nodeId || r.object.uuid === nodeId
+        )
+        return rel?.subject.uuid === nodeId
+          ? rel.subject.name
+          : rel?.object.uuid === nodeId
+            ? rel.object.name
+            : nodeId.slice(0, 8) + '...'
       })
     ),
     removedCount: removedFlows.length,

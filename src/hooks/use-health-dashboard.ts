@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useAuth } from '@/contexts'
+import { useAuthStore, authSelectors } from '@/stores'
 import { HEALTH_UI_ENABLED, HEALTH_ALLOWED_CERTS } from '@/constants'
 import type { HealthData, FailureRecord } from '@/types'
 
@@ -28,7 +28,7 @@ interface UseHealthDashboardReturn {
 }
 
 export function useHealthDashboard(): UseHealthDashboardReturn {
-  const { certFingerprint, certSerialNumber, isAuthenticated } = useAuth()
+  const isAuthenticated = useAuthStore(authSelectors.isAuthenticated)
 
   const [healthData, setHealthData] = useState<HealthData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -47,16 +47,7 @@ export function useHealthDashboard(): UseHealthDashboardReturn {
 
     // If no specific certs are configured, allow any authenticated user
     if (!HEALTH_ALLOWED_CERTS.trim()) return true
-
-    // Check if user's cert is in allowed list
-    const allowedCerts = HEALTH_ALLOWED_CERTS.split(',').map((c: string) =>
-      c.trim()
-    )
-    return (
-      allowedCerts.includes(certFingerprint || '') ||
-      allowedCerts.includes(certSerialNumber || '')
-    )
-  }, [isAuthenticated, certFingerprint, certSerialNumber])
+  }, [isAuthenticated])
 
   const fetchHealthData = useCallback(async () => {
     setLoading(true)
@@ -234,8 +225,8 @@ export function useHealthDashboard(): UseHealthDashboardReturn {
     jobFailures,
 
     // Access control
-    hasAccess: hasAccess(),
-    isEnabled: HEALTH_UI_ENABLED,
+    hasAccess: hasAccess() ?? false,
+    isEnabled: HEALTH_UI_ENABLED ?? false,
 
     // Actions
     fetchHealthData,

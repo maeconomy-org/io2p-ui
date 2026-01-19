@@ -1,4 +1,10 @@
-import { Table, Columns, BarChart3, Network, LayoutDashboard } from 'lucide-react'
+import {
+  Table,
+  Columns,
+  BarChart3,
+  Network,
+  LayoutDashboard,
+} from 'lucide-react'
 
 // Object view types configuration
 export const OBJECT_VIEW_TYPES = [

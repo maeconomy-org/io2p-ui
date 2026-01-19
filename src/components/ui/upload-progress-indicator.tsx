@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronUp, ChevronDown, Upload, AlertTriangle } from 'lucide-react'
-import { getUploadService } from '@/lib'
-import { useIomSdkClient } from '@/contexts'
+import { getUploadService } from '@/lib/upload-service'
+import { useSDKStore, sdkSelectors } from '@/stores'
 import { Button, Card, Progress } from '@/components/ui'
 
 export function UploadProgressIndicator() {
@@ -14,25 +14,47 @@ export function UploadProgressIndicator() {
     pending: 0,
     isProcessing: false,
   })
-  const client = useIomSdkClient()
+
+  const client = useSDKStore(sdkSelectors.client)
+  const isInitialized = useSDKStore(sdkSelectors.isInitialized)
 
   useEffect(() => {
-    if (!client) return
+    if (!client || !isInitialized) return
 
-    const uploadService = getUploadService(client)
+    try {
+      const uploadService = getUploadService()
 
-    // Poll upload status every 500ms
-    const interval = setInterval(() => {
-      const summary = uploadService.getUploadSummary()
-      setUploadStats({
-        completed: summary.completed.length,
-        failed: summary.failed.length,
-        pending: summary.pending.length,
-        isProcessing: summary.isProcessing,
-      })
-    }, 500)
+      // Poll upload status every 500ms
+      const interval = setInterval(() => {
+        try {
+          const status = uploadService.getQueueStatus()
 
-    return () => clearInterval(interval)
+          const completed = status.filter(
+            (s) => s.status === 'completed'
+          ).length
+          const failed = status.filter((s) => s.status === 'failed').length
+          const pending = status.filter(
+            (s) => s.status === 'pending' || s.status === 'uploading'
+          ).length
+          const isProcessing = status.some((s) => s.status === 'uploading')
+
+          setUploadStats({
+            completed,
+            failed,
+            pending,
+            isProcessing,
+          })
+        } catch (error) {
+          // Silently handle errors - upload service might not be initialized
+          console.debug('Upload service not available:', error)
+        }
+      }, 500)
+
+      return () => clearInterval(interval)
+    } catch (error) {
+      // Upload service not available - this is fine
+      console.debug('Upload service initialization failed:', error)
+    }
   }, [client])
 
   // Don't show if no uploads are happening

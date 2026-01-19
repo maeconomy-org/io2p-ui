@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UUAddressDTO } from 'iom-sdk'
 
-import { useIomSdkClient } from '@/contexts'
+import { useSDKStore, sdkSelectors } from '@/stores'
 
 export function useAddresses() {
-  const client = useIomSdkClient()
+  const client = useSDKStore(sdkSelectors.client)
   const queryClient = useQueryClient()
 
   // Create address mutation

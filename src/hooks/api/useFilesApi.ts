@@ -2,10 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { logger } from '@/lib'
-import { useIomSdkClient } from '@/contexts'
+import { useSDKStore, sdkSelectors } from '@/stores'
 
 export function useFilesApi() {
-  const client = useIomSdkClient()
+  const client = useSDKStore(sdkSelectors.client)
   const queryClient = useQueryClient()
 
   const useSoftDeleteFile = () => {

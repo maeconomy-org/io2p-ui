@@ -5,7 +5,7 @@ import Footer from '@/components/footer'
 
 export default function ConditionalFooter() {
   const pathname = usePathname()
-  
+
   // Pages that don't show the footer (public pages)
   const isPublicPage =
     pathname === '/' ||

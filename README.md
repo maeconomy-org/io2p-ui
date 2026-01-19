@@ -50,9 +50,14 @@ A modern web application for tracking and managing building materials, component
    # Environment Configuration
    NODE_ENV=development
 
-   # API Configuration
+   # API Configuration - New Service-Based Architecture
+   AUTH_API_URL=https://auth.example.com
+   REGISTRY_API_URL=https://registry.example.com
+   NODE_API_URL=https://api.example.com
+
+   # Legacy API Configuration (for backward compatibility)
    BASE_API_URL=https://api.example.com
-   UUID_API_URL=https://uuid-api.example.com
+   UUID_API_URL=https://registry.example.com
 
    # Sentry Configuration (Optional)
    SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
@@ -61,6 +66,18 @@ A modern web application for tracking and managing building materials, component
    SENTRY_ENABLED=false
    SENTRY_DEBUG=false
    SENTRY_RELEASE=1.0.0
+
+   # Application Information (Optional)
+   APP_NAME="Internet of Materials"
+   APP_DESCRIPTION="Material Management System"
+   APP_ACRONYM="IoM"
+   CONTACT_URL=https://example.com/contact
+   SUPPORT_EMAIL=support@internetofmaterials.com
+
+   # Import Limits (Optional)
+   MAX_FILE_SIZE_MB=100
+   MAX_IMPORT_PAYLOAD_MB=100
+   MAX_OBJECTS_PER_IMPORT=50000
    ```
 
 4. Setup HTTPS certificates
@@ -73,6 +90,36 @@ A modern web application for tracking and managing building materials, component
 
 6. Open your browser
    Navigate to `https://localhost:3000`
+
+## Authentication
+
+The application uses **user-initiated JWT authentication** with mTLS certificates for secure access.
+
+### Authentication Flow
+
+1. **User visits the application** - No automatic authentication occurs
+2. **User clicks "Authorize with Certificate"** - Browser prompts for certificate selection
+3. **mTLS authentication** - Certificate is used to obtain JWT token
+4. **JWT token storage** - Token is stored in localStorage for persistence
+5. **Automatic token refresh** - SDK handles token refresh 5 minutes before expiration
+6. **Cross-tab synchronization** - Tokens work across multiple browser tabs
+
+### Key Features
+
+- **User-controlled authentication** - Users must explicitly login
+- **JWT token management** - Automatic refresh and secure storage
+- **Cross-tab synchronization** - Login state shared across browser tabs
+- **Certificate-based security** - mTLS for initial authentication
+- **Persistent sessions** - Users stay logged in across browser sessions
+
+### User Profile Information
+
+The JWT token contains user information that can be displayed in the UI:
+
+- User UUID
+- Authorities/roles
+- Account status (enabled, locked, expired)
+- Token expiration time
 
 ## Project Structure
 

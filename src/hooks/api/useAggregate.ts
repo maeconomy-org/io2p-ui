@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import type { AggregateFindDTO } from 'iom-sdk'
 
-import { useIomSdkClient } from '@/contexts'
+import { useSDKStore, sdkSelectors } from '@/stores'
 
 export function useAggregate() {
-  const client = useIomSdkClient()
+  const client = useSDKStore(sdkSelectors.client)
 
   // Get aggregate entity by UUID (rich data with all relationships)
   const useAggregateByUUID = (uuid: string, options = {}) => {
@@ -12,8 +12,13 @@ export function useAggregate() {
       queryKey: ['aggregate', uuid],
       queryFn: async () => {
         if (!uuid) return null
-        const response = await client.aggregate.findByUUID(uuid)
-        return response.data
+
+        const response = await client.node.searchAggregates({
+          searchBy: { uuid },
+          page: 0,
+          size: 1,
+        })
+        return response.content?.[0] || null
       },
       enabled: !!uuid,
       ...options,
@@ -25,8 +30,8 @@ export function useAggregate() {
     return useQuery({
       queryKey: ['aggregates', params],
       queryFn: async () => {
-        const response = await client.aggregate.getAggregateEntities(params)
-        return response.data
+        const response = await client.node.searchAggregates(params)
+        return response
       },
       ...options,
     })
@@ -36,14 +41,16 @@ export function useAggregate() {
     return useQuery({
       queryKey: ['aggregates', 'models', params],
       queryFn: async () => {
-        const response = await client.aggregate.getAggregateEntities({
+        const searchParams = {
           ...params,
           searchBy: {
             ...params?.searchBy,
             isTemplate: true,
           },
-        })
-        return response.data
+        }
+
+        const response = await client.node.searchAggregates(searchParams)
+        return response
       },
       ...options,
     })
@@ -57,11 +64,13 @@ export function useAggregate() {
     return useQuery({
       queryKey: ['aggregates', 'withHistory', params],
       queryFn: async () => {
-        const response = await client.aggregate.getAggregateEntities({
+        const searchParams = {
           ...params,
           hasHistory: true,
-        })
-        return response.data
+        }
+
+        const response = await client.node.searchAggregates(searchParams)
+        return response
       },
       ...options,
     })

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useAggregate } from '@/hooks'
 
 export interface ObjectDataHookProps {
@@ -43,7 +43,7 @@ export function useObjectData({
   // Process aggregate data to get the object details in the expected format
   const { object, properties, files, objectHistory, addressInfo } =
     useMemo(() => {
-      const source = aggregateData?.[0] || initialObject
+      const source = aggregateData || initialObject
 
       if (!source) {
         return {

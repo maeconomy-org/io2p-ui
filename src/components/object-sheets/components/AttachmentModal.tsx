@@ -21,8 +21,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui'
 import type { Attachment } from '@/types'
-import { getUploadService, logger } from '@/lib'
-import { useIomSdkClient } from '@/contexts'
+import { getUploadService } from '@/lib/upload-service'
+import { logger } from '@/lib'
+import { useSDKStore, sdkSelectors } from '@/stores'
 
 import { AttachmentSection } from './AttachmentSection'
 
@@ -59,7 +60,7 @@ export function AttachmentModal({
 }: AttachmentModalProps) {
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([])
   const [showUploadConfirm, setShowUploadConfirm] = useState(false)
-  const client = useIomSdkClient()
+  const client = useSDKStore(sdkSelectors.client)
   const initialAttachmentsRef = useRef<Attachment[]>([])
 
   // Capture initial state only when modal opens (not when attachments change)
@@ -111,7 +112,7 @@ export function AttachmentModal({
     }
 
     // Start uploads in background
-    const uploadService = getUploadService(client)
+    const uploadService = getUploadService()
     const filesToUpload = getUploadableAttachments(pendingAttachments)
 
     if (filesToUpload.length > 0) {
@@ -122,28 +123,37 @@ export function AttachmentModal({
       })
 
       try {
-        // Start background upload
-        await uploadService.queueFileUploads(filesToUpload, uploadContext)
+        // Start background upload using new interface
+        filesToUpload.forEach((attachment) => {
+          uploadService.addFile({
+            id: `${attachment.fileName}-${Date.now()}`,
+            attachment,
+            objectUuid: uploadContext.objectUuid,
+            propertyUuid: uploadContext.propertyUuid,
+            valueUuid: uploadContext.valueUuid,
+            status: 'pending',
+            progress: 0,
+            retries: 0,
+          })
+        })
 
         // Wait for completion and show results
         setTimeout(async () => {
-          const summary = uploadService.getUploadSummary()
+          const status = uploadService.getQueueStatus()
 
-          if (summary.completed.length > 0) {
-            toast.success(
-              `${summary.completed.length} files uploaded successfully`,
-              {
-                id: 'file-upload',
-              }
-            )
-          }
-          if (summary.failed.length > 0) {
-            toast.error(`${summary.failed.length} files failed to upload`, {
+          const completed = status.filter((s) => s.status === 'completed')
+          const failed = status.filter((s) => s.status === 'failed')
+
+          if (completed.length > 0) {
+            toast.success(`${completed.length} files uploaded successfully`, {
               id: 'file-upload',
             })
           }
-
-          uploadService.clearCompleted()
+          if (failed.length > 0) {
+            toast.error(`${failed.length} files failed to upload`, {
+              id: 'file-upload',
+            })
+          }
           onUploadComplete?.()
         }, 2000)
       } catch (error) {

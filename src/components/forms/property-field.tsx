@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react'
 
-import {
-  Control,
-  Controller,
-  useFieldArray,
-} from 'react-hook-form'
+import { Control, Controller, useFieldArray } from 'react-hook-form'
 import { PlusIcon, UploadIcon, XIcon } from 'lucide-react'
 
 import {
@@ -57,13 +53,13 @@ export function PropertyField({
   // Modal state: value-level tracks which index is open; property-level separate
   const [openValueIndex, setOpenValueIndex] = useState<number | null>(null)
   const [isPropertyFilesOpen, setIsPropertyFilesOpen] = useState(false)
-  
+
   // Version counter to force re-rendering when array changes
   const [arrayVersion, setArrayVersion] = useState(0)
-  
+
   // Force re-render when field array length changes
   useEffect(() => {
-    setArrayVersion(prev => prev + 1)
+    setArrayVersion((prev) => prev + 1)
   }, [valueFields.length])
 
   return (

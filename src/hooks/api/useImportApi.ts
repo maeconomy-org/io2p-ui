@@ -1,6 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-
-import { useIomSdkClient, useAuth } from '@/contexts'
+import { useSDKStore, sdkSelectors } from '@/stores'
 
 /**
  * Import API object structure based on the provided schema
@@ -64,34 +63,19 @@ export interface ImportResult {
   success: boolean
   message?: string
   data?: any
-  // The actual structure depends on what the import API returns
-  // We'll log the response to understand the structure
 }
 
 /**
  * Hook for using the import API directly from client-side
  */
 export function useImportApi() {
-  const client = useIomSdkClient()
-  const { userUUID } = useAuth()
+  const client = useSDKStore(sdkSelectors.client)
 
   const importSingleObject = useMutation({
     mutationFn: async (objectData: ImportObjectData): Promise<any> => {
-      if (!userUUID) {
-        throw new Error('User UUID is required for import')
-      }
-
-      // Wrap data with required structure
-      const payload = {
-        aggregateEntityList: [objectData],
-        user: { userUUID },
-      }
-
-      const response = await client.aggregate.createAggregateObject(payload)
-      return response.data
+      const response = await client.node.createAggregates([objectData])
+      return response
     },
-    // Remove automatic query invalidation - let the calling code handle it
-    // This prevents the object from appearing in the root before relationships are created
   })
 
   return {

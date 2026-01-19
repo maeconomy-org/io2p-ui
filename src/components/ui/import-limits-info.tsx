@@ -1,3 +1,5 @@
+'use client'
+
 import { Info, Mail, AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {

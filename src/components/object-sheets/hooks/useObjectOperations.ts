@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 
-import { useIomSdkClient } from '@/contexts'
-import { getUploadService, logger } from '@/lib'
+import { useSDKStore, sdkSelectors } from '@/stores'
+import { getUploadService } from '@/lib/upload-service'
+import { logger } from '@/lib'
 import { useImportApi, useObjects, useStatements } from '@/hooks'
 import {
   transformToImportFormat,
@@ -59,7 +60,7 @@ export function useObjectOperations({
   // Get query client for manual invalidation
   const queryClient = useQueryClient()
 
-  const client = useIomSdkClient()
+  const client = useSDKStore(sdkSelectors.client)
 
   useEffect(() => {
     if (initialObject && !isEditing) {
@@ -217,7 +218,7 @@ export function useObjectOperations({
 
       // Step 5: Upload files in background if any (don't await - let it run in background)
       if (uploadFiles.length > 0) {
-        const uploadService = getUploadService(client)
+        const uploadService = getUploadService()
 
         // Map files to their correct context UUIDs from Aggregate API response
         const fileContexts = mapFileContexts(uploadFiles, importResult)

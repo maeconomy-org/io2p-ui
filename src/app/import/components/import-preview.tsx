@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { Download, Loader2, ExternalLink } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -15,11 +15,10 @@ import {
   Button,
   Progress,
 } from '@/components/ui'
-
-import { useImportStatus } from '@/hooks'
+import { useImportJobStore } from '@/stores'
 
 interface ImportPreviewProps {
-  data: any[]
+  data: unknown[]
   onBack?: () => void
   onImport: () => Promise<void>
   title?: string
@@ -38,7 +37,7 @@ export function ImportPreview({
   jobId,
 }: ImportPreviewProps) {
   const router = useRouter()
-  const { status: importStatus } = useImportStatus(jobId || null)
+  const importStatus = useImportJobStore((state) => state.getJob(jobId ?? ''))
 
   // Limit preview to first 10 rows for performance
   const previewData = data.slice(0, 10)
@@ -50,7 +49,7 @@ export function ImportPreview({
     const keys = new Set<string>()
 
     // Extract all property keys from the first 10 objects
-    previewData.forEach((item) => {
+    previewData.forEach((item: any) => {
       // Get regular properties
       Object.keys(item).forEach((key) => {
         if (key !== 'properties') {
@@ -154,19 +153,21 @@ export function ImportPreview({
                 <h4 className="text-sm font-medium">
                   Import in progress
                   {importStatus?.status === 'processing' &&
-                    ` - ${importStatus.processed || 0} of ${importStatus.total || 0} processed`}
+                    ` - ${importStatus.processedItems || 0} of ${importStatus.totalItems || 0} processed`}
                 </h4>
               </div>
-              {importStatus?.failed && importStatus.failed > 0 && (
+              {importStatus?.failedItems && importStatus.failedItems > 0 && (
                 <Badge variant="destructive">
-                  {importStatus.failed} failed
+                  {importStatus.failedItems} failed
                 </Badge>
               )}
             </div>
-            {importStatus && importStatus.total > 0 && (
+            {importStatus && importStatus.totalItems > 0 && (
               <Progress
                 value={
-                  ((importStatus.processed || 0) / importStatus.total) * 100
+                  ((importStatus.processedItems || 0) /
+                    importStatus.totalItems) *
+                  100
                 }
                 className="h-2"
               />

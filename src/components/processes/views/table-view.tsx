@@ -14,7 +14,10 @@ import {
   TablePagination,
 } from '@/components/ui'
 import { usePagination } from '@/hooks'
-import { EnhancedMaterialRelationship, QualityChangeCode } from '@/types/sankey-metadata'
+import {
+  EnhancedMaterialRelationship,
+  QualityChangeCode,
+} from '@/types/sankey-metadata'
 
 interface ProcessTableViewProps {
   relationships: EnhancedMaterialRelationship[]
@@ -40,8 +43,12 @@ export function ProcessTableView({
         rel.subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.object.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.processName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        rel.inputMaterial?.unit?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        rel.outputMaterial?.unit?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        rel.inputMaterial?.unit
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        rel.outputMaterial?.unit
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         rel.processTypeCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.flowCategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         rel.notes?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -76,9 +83,10 @@ export function ProcessTableView({
 
   const formatQuantity = (relationship: EnhancedMaterialRelationship) => {
     // Use input material quantity/unit from the new structure
-    const quantity = relationship.inputMaterial?.quantity || relationship.quantity
+    const quantity =
+      relationship.inputMaterial?.quantity || relationship.quantity
     const unit = relationship.inputMaterial?.unit || relationship.unit
-    
+
     if (quantity && unit) {
       return `${quantity.toLocaleString()} ${unit}`
     }
@@ -89,24 +97,25 @@ export function ProcessTableView({
   const getQualityChangeInfo = (code?: QualityChangeCode) => {
     switch (code) {
       case 'UPCYCLED':
-        return { 
-          text: 'UPCYCLED', 
-          className: 'text-xs bg-emerald-50 text-emerald-700 border-emerald-200' 
+        return {
+          text: 'UPCYCLED',
+          className:
+            'text-xs bg-emerald-50 text-emerald-700 border-emerald-200',
         }
       case 'SAME':
-        return { 
-          text: 'SAME', 
-          className: 'text-xs bg-slate-50 text-slate-700 border-slate-200' 
+        return {
+          text: 'SAME',
+          className: 'text-xs bg-slate-50 text-slate-700 border-slate-200',
         }
       case 'DOWNCYCLED':
-        return { 
-          text: 'DOWNCYCLED', 
-          className: 'text-xs bg-amber-50 text-amber-700 border-amber-200' 
+        return {
+          text: 'DOWNCYCLED',
+          className: 'text-xs bg-amber-50 text-amber-700 border-amber-200',
         }
       default:
-        return { 
-          text: '', 
-          className: 'text-xs bg-gray-50 text-gray-700 border-gray-200' 
+        return {
+          text: '',
+          className: 'text-xs bg-gray-50 text-gray-700 border-gray-200',
         }
     }
   }
@@ -131,7 +140,10 @@ export function ProcessTableView({
           <TableBody>
             {paginatedRelationships.length === 0 ? (
               <TableRow>
-                <TableCell className="text-center py-8 text-muted-foreground" {...{ colSpan: 9 }}>
+                <TableCell
+                  className="text-center py-8 text-muted-foreground"
+                  {...{ colSpan: 9 }}
+                >
                   {filteredRelationships.length === 0
                     ? 'No relationships found'
                     : 'No relationships on this page'}
@@ -188,7 +200,7 @@ export function ProcessTableView({
                       </div>
                     </div>
                   </TableCell>
-                  
+
                   <TableCell className="text-center">
                     {relationship.flowCategory && (
                       <Badge variant="secondary" className="text-xs">
@@ -196,33 +208,45 @@ export function ProcessTableView({
                       </Badge>
                     )}
                   </TableCell>
-                  
+
                   <TableCell className="text-right">
                     {relationship.emissionsTotal !== undefined ? (
-                      <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
-                        {relationship.emissionsTotal} {relationship.emissionsUnit || 'kgCO2e'}
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+                      >
+                        {relationship.emissionsTotal}{' '}
+                        {relationship.emissionsUnit || 'kgCO2e'}
                       </Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  
+
                   <TableCell className="text-right">
                     {relationship.materialLossPercent !== undefined ? (
-                      <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-red-50 text-red-700 border-red-200"
+                      >
                         {relationship.materialLossPercent}%
                       </Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  
+
                   <TableCell className="text-center">
                     {relationship.qualityChangeCode ? (
                       (() => {
-                        const qualityInfo = getQualityChangeInfo(relationship.qualityChangeCode)
+                        const qualityInfo = getQualityChangeInfo(
+                          relationship.qualityChangeCode
+                        )
                         return (
-                          <Badge variant="outline" className={qualityInfo.className}>
+                          <Badge
+                            variant="outline"
+                            className={qualityInfo.className}
+                          >
                             {qualityInfo.text}
                           </Badge>
                         )

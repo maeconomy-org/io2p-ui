@@ -5,7 +5,7 @@ import ReactECharts from 'echarts-for-react'
 import type {
   EnhancedMaterialObject,
   EnhancedMaterialRelationship,
-  FlowCategory
+  FlowCategory,
 } from '@/types'
 import { toCapitalize } from '@/lib'
 import { detectAndRemoveCycles } from '../utils'
@@ -22,7 +22,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
   materials = [],
   relationships = [],
   selectedRelationship = null,
-  onLinkSelect = () => { },
+  onLinkSelect = () => {},
   className = '',
 }: SankeyDiagramProps) {
   const { chartOptions, cycleInfo } = useMemo(() => {
@@ -31,7 +31,8 @@ export const SankeyDiagram = memo(function SankeyDiagram({
     }
 
     // Compute layout using metadata-driven approach
-    const { nodes, links, recyclingFlows, removedFlows, cycleInfo, stats } = computeEnhancedLayout(materials, relationships)
+    const { nodes, links, recyclingFlows, removedFlows, cycleInfo, stats } =
+      computeEnhancedLayout(materials, relationships)
 
     // Identify materials involved in recycling/reuse
     const recyclingMaterialIds = new Set<string>()
@@ -97,7 +98,8 @@ export const SankeyDiagram = memo(function SankeyDiagram({
         selectedRelationship?.subject.uuid === rel.subject.uuid &&
         selectedRelationship?.object.uuid === rel.object.uuid &&
         selectedRelationship?.processName === rel.processName &&
-        selectedRelationship?.inputMaterial?.quantity === rel.inputMaterial?.quantity &&
+        selectedRelationship?.inputMaterial?.quantity ===
+          rel.inputMaterial?.quantity &&
         selectedRelationship?.inputMaterial?.unit === rel.inputMaterial?.unit
 
       const inputNode = nodes.find((n) => n.uuid === rel.subject.uuid)
@@ -220,11 +222,25 @@ export const SankeyDiagram = memo(function SankeyDiagram({
         <div className="flex items-center gap-4">
           <span className="font-medium text-foreground">Flow Types:</span>
           <div className="flex items-center gap-1.5">
-            <div className="w-6 h-0.5 bg-emerald-500" style={{ borderStyle: 'dashed', borderWidth: '2px', borderColor: '#059669' }}></div>
+            <div
+              className="w-6 h-0.5 bg-emerald-500"
+              style={{
+                borderStyle: 'dashed',
+                borderWidth: '2px',
+                borderColor: '#059669',
+              }}
+            ></div>
             <span>Recycling</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-6 h-0.5 bg-cyan-500" style={{ borderStyle: 'dashed', borderWidth: '2px', borderColor: '#06B6D4' }}></div>
+            <div
+              className="w-6 h-0.5 bg-cyan-500"
+              style={{
+                borderStyle: 'dashed',
+                borderWidth: '2px',
+                borderColor: '#06B6D4',
+              }}
+            ></div>
             <span>Reuse</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -232,7 +248,14 @@ export const SankeyDiagram = memo(function SankeyDiagram({
             <span>Standard</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-6 h-0.5 bg-amber-500" style={{ borderStyle: 'dotted', borderWidth: '2px', borderColor: '#F59E0B' }}></div>
+            <div
+              className="w-6 h-0.5 bg-amber-500"
+              style={{
+                borderStyle: 'dotted',
+                borderWidth: '2px',
+                borderColor: '#F59E0B',
+              }}
+            ></div>
             <span>Waste</span>
           </div>
         </div>
@@ -246,12 +269,14 @@ export const SankeyDiagram = memo(function SankeyDiagram({
           <div className="flex items-center gap-2 text-amber-700">
             <span className="text-amber-600">⚠</span>
             <span>
-              {cycleInfo.removedCount} circular flow{cycleInfo.removedCount > 1 ? 's' : ''} removed
+              {cycleInfo.removedCount} circular flow
+              {cycleInfo.removedCount > 1 ? 's' : ''} removed
             </span>
             {cycleInfo.cycles.length > 0 && (
               <details className="inline">
                 <summary className="cursor-pointer text-amber-800 hover:text-amber-900 ml-1">
-                  ({cycleInfo.cycles.length} cycle{cycleInfo.cycles.length > 1 ? 's' : ''})
+                  ({cycleInfo.cycles.length} cycle
+                  {cycleInfo.cycles.length > 1 ? 's' : ''})
                 </summary>
                 <div className="mt-1.5 ml-4 space-y-0.5 text-[10px] font-mono text-amber-600">
                   {cycleInfo.cycles.slice(0, 3).map((cycle, idx) => (
@@ -307,12 +332,22 @@ function computeEnhancedLayout(
   })
 
   // Detect and remove cycles to ensure DAG compliance
-  const { validFlows, removedFlows, cycleInfo } = detectAndRemoveCycles(standardFlows)
+  const { validFlows, removedFlows, cycleInfo } =
+    detectAndRemoveCycles(standardFlows)
 
   // Calculate statistics
-  const totalQuantity = relationships.reduce((sum, rel) => sum + (rel.quantity || 0), 0)
-  const recyclingQuantity = recyclingFlows.reduce((sum, rel) => sum + (rel.quantity || 0), 0)
-  const recyclingRate = totalQuantity > 0 ? Math.round((recyclingQuantity / totalQuantity) * 100) : 0
+  const totalQuantity = relationships.reduce(
+    (sum, rel) => sum + (rel.quantity || 0),
+    0
+  )
+  const recyclingQuantity = recyclingFlows.reduce(
+    (sum, rel) => sum + (rel.quantity || 0),
+    0
+  )
+  const recyclingRate =
+    totalQuantity > 0
+      ? Math.round((recyclingQuantity / totalQuantity) * 100)
+      : 0
 
   return {
     nodes,
@@ -334,7 +369,10 @@ function computeEnhancedLayout(
 /**
  * Get stage number from lifecycle metadata
  */
-function getStageFromLifecycle(stage: string | undefined, fallbackType: string): number {
+function getStageFromLifecycle(
+  stage: string | undefined,
+  fallbackType: string
+): number {
   switch (stage) {
     case 'PRIMARY_INPUT':
       return 0.0
@@ -410,7 +448,10 @@ function getFlowStyling(
     width = 6
   } else if (rel.flowCategory === 'REUSE') {
     width = 4 // Thicker for reuse to highlight
-  } else if (rel.flowCategory === 'RECYCLING' || rel.flowCategory === 'CIRCULAR') {
+  } else if (
+    rel.flowCategory === 'RECYCLING' ||
+    rel.flowCategory === 'CIRCULAR'
+  ) {
     width = 3
   }
 
@@ -439,7 +480,11 @@ function getFlowStyling(
  * Get flow opacity based on metadata
  */
 function getFlowOpacity(rel: EnhancedMaterialRelationship): number {
-  if (rel.flowCategory === 'RECYCLING' || rel.flowCategory === 'REUSE' || rel.flowCategory === 'CIRCULAR') {
+  if (
+    rel.flowCategory === 'RECYCLING' ||
+    rel.flowCategory === 'REUSE' ||
+    rel.flowCategory === 'CIRCULAR'
+  ) {
     return 0.9 // Higher opacity for circular economy flows
   }
   return 0.7
@@ -448,7 +493,10 @@ function getFlowOpacity(rel: EnhancedMaterialRelationship): number {
 /**
  * Create enhanced node tooltip with lifecycle information (no quantities - those vary per relationship)
  */
-function createNodeTooltip(node: EnhancedMaterialObject, isRecyclingRelated: boolean): string {
+function createNodeTooltip(
+  node: EnhancedMaterialObject,
+  isRecyclingRelated: boolean
+): string {
   const parts = [
     `<strong>${node.name}</strong>`,
     `Type: ${toCapitalize(node.type)}`,
@@ -480,9 +528,7 @@ function createNodeTooltip(node: EnhancedMaterialObject, isRecyclingRelated: boo
  * Create enhanced link tooltip with process-level data only (no material quantities)
  */
 function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
-  const parts = [
-    `<strong>${rel.subject.name} → ${rel.object.name}</strong>`,
-  ]
+  const parts = [`<strong>${rel.subject.name} → ${rel.object.name}</strong>`]
 
   if (rel.processName) {
     parts.push(`Process: ${rel.processName}`)
@@ -500,7 +546,9 @@ function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
 
   // Impact data section
   if (rel.emissionsTotal && rel.emissionsTotal > 0) {
-    parts.push(`<strong>🌍 Emissions: ${rel.emissionsTotal} ${rel.emissionsUnit || 'kgCO2e'}</strong>`)
+    parts.push(
+      `<strong>🌍 Emissions: ${rel.emissionsTotal} ${rel.emissionsUnit || 'kgCO2e'}</strong>`
+    )
   }
 
   if (rel.materialLossPercent && rel.materialLossPercent > 0) {
@@ -508,10 +556,18 @@ function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
   }
 
   if (rel.qualityChangeCode) {
-    const qualityLabel = rel.qualityChangeCode === 'UPCYCLED' ? 'Upcycled' :
-      rel.qualityChangeCode === 'DOWNCYCLED' ? 'Downcycled' : 'Same Quality'
-    const qualityEmoji = rel.qualityChangeCode === 'UPCYCLED' ? '⬆️' :
-      rel.qualityChangeCode === 'DOWNCYCLED' ? '⬇️' : '➡️'
+    const qualityLabel =
+      rel.qualityChangeCode === 'UPCYCLED'
+        ? 'Upcycled'
+        : rel.qualityChangeCode === 'DOWNCYCLED'
+          ? 'Downcycled'
+          : 'Same Quality'
+    const qualityEmoji =
+      rel.qualityChangeCode === 'UPCYCLED'
+        ? '⬆️'
+        : rel.qualityChangeCode === 'DOWNCYCLED'
+          ? '⬇️'
+          : '➡️'
     parts.push(`${qualityEmoji} Quality: ${qualityLabel}`)
   }
 
@@ -541,4 +597,3 @@ function getFlowCategoryEmoji(category: FlowCategory): string {
       return '➡️'
   }
 }
-

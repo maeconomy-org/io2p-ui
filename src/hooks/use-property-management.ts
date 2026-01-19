@@ -9,7 +9,7 @@ import { useProperties } from './api'
 /**
  * A hook that provides comprehensive property management functions
  */
-export function usePropertyManagement(objectUuid?: string) {
+export function usePropertyManagement() {
   const {
     useUpdatePropertyWithValues,
     useAddPropertyToObject,

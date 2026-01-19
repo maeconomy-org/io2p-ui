@@ -67,6 +67,6 @@ export function Steps({ children, currentStep }: StepsProps) {
   )
 }
 
-export function Step({ title }: StepProps) {
+export function Step(_props: StepProps) {
   return null // This is just a data component, doesn't render anything
 }

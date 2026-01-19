@@ -2,13 +2,13 @@ import { ProcessCategory } from '@/types/sankey-metadata'
 
 export const PROCESS_CATEGORIES: ProcessCategory[] = [
   'CONSTRUCTION',
-  'DECONSTRUCTION', 
+  'DECONSTRUCTION',
   'SORTING',
   'RECYCLING',
   'REFURBISHMENT',
   'TRANSPORT',
   'DEMOLITION',
-  'DISPOSAL'
+  'DISPOSAL',
 ]
 
 export const FLOW_CATEGORY_OPTIONS = [

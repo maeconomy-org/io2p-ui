@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { useAuth } from '@/contexts'
+import { useAuthStore, authSelectors } from '@/stores'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -11,14 +11,13 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter()
-  const { isAuthenticated, checkAuth } = useAuth()
+  const isAuthenticated = useAuthStore(authSelectors.isAuthenticated)
 
   useEffect(() => {
-    const authenticated = checkAuth()
-    if (!authenticated) {
+    if (!isAuthenticated) {
       router.push('/')
     }
-  }, [router, checkAuth])
+  }, [router, isAuthenticated])
 
   if (!isAuthenticated) {
     return (

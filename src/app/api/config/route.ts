@@ -4,9 +4,10 @@ import { NextResponse } from 'next/server'
 // This allows one Docker image to work on multiple VMs with different configs
 export async function GET() {
   return NextResponse.json({
-    // API endpoints
-    baseApiUrl: process.env.BASE_API_URL || '',
-    uuidApiUrl: process.env.UUID_API_URL || '',
+    // API endpoints - New service-based URLs
+    authApiUrl: process.env.AUTH_API_URL || '',
+    registryApiUrl: process.env.REGISTRY_API_URL || '',
+    nodeApiUrl: process.env.NODE_API_URL || '',
 
     // Sentry config (client-side)
     sentryDsn: process.env.SENTRY_DSN || '',

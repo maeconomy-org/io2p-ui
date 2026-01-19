@@ -1,25 +1,22 @@
 import { useMutation } from '@tanstack/react-query'
-import type { AggregateFindDTO, AuthResponse } from 'iom-sdk'
-
-import { useIomSdkClient } from '@/contexts'
+import type { AggregateFindDTO } from 'iom-sdk'
+import { useSDKStore, sdkSelectors } from '@/stores'
 
 export function useCommonApi() {
-  const client = useIomSdkClient()
+  const client = useSDKStore(sdkSelectors.client)
 
-  // Request certificate authentication (both base and UUID auth)
-  const useRequestCertificate = () => {
+  // Check authentication status
+  const useAuthCheck = () => {
     return useMutation({
       mutationFn: async (): Promise<{
-        base: AuthResponse
-        uuid: AuthResponse
+        authenticated: boolean
+        error?: string
       }> => {
-        const baseAuthResponse = await client.auth.requestBaseAuth()
-        const uuidAuthResponse = await client.auth.requestUuidAuth()
-
-        return {
-          base: baseAuthResponse.data as AuthResponse,
-          uuid: uuidAuthResponse.data as AuthResponse,
+        const isAuthenticated = client.isAuthenticated()
+        if (!isAuthenticated) {
+          throw new Error('Authentication required - user must login first')
         }
+        return { authenticated: true }
       },
     })
   }
@@ -28,14 +25,14 @@ export function useCommonApi() {
   const useSearch = () => {
     return useMutation({
       mutationFn: async (params: AggregateFindDTO) => {
-        const response = await client.aggregate.getAggregateEntities(params)
-        return response.data
+        const response = await client.node.searchAggregates(params)
+        return response
       },
     })
   }
 
   return {
-    useRequestCertificate, // Consolidated auth method for both base and UUID
+    useAuthCheck,
     useSearch,
   }
 }

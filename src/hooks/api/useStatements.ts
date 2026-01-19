@@ -7,11 +7,15 @@ import type {
   Predicate,
 } from 'iom-sdk'
 
-import { useIomSdkClient } from '@/contexts'
+import { useSDKStore, sdkSelectors } from '@/stores'
 import type { ProcessMetadata, MaterialFlowMetadata } from '@/types'
 
 export function useStatements() {
-  const client = useIomSdkClient()
+  const client = useSDKStore(sdkSelectors.client)
+
+  if (!client) {
+    throw new Error('SDK client not initialized')
+  }
   const queryClient = useQueryClient()
 
   // Get all statements using the new unified API
@@ -22,8 +26,8 @@ export function useStatements() {
     return useQuery({
       queryKey: ['statements', queryParams],
       queryFn: async () => {
-        const response = await client.statements.getStatements(queryParams)
-        return response.data
+        const response = await client.node.getStatements(queryParams)
+        return response
       },
       enabled,
     })
@@ -37,11 +41,11 @@ export function useStatements() {
     return useQuery({
       queryKey: ['statements', 'predicate', predicate],
       queryFn: async () => {
-        const response = await client.statements.getStatements({
+        const response = await client.node.getStatements({
           predicate: predicate as any,
           softDeleted: false, // Only get non-deleted statements
         })
-        return response.data
+        return response
       },
       enabled: !!predicate && options?.enabled !== false,
     })
@@ -51,8 +55,8 @@ export function useStatements() {
   const useCreateStatement = () => {
     return useMutation({
       mutationFn: async (statement: UUStatementDTO) => {
-        const response = await client.statements.create(statement)
-        return response.data
+        const response = await client.node.createStatement(statement)
+        return response
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['statements'] })
@@ -62,8 +66,6 @@ export function useStatements() {
 
   // Create process-enhanced statement with direct properties (internal - no auto-invalidation)
   const useCreateProcessStatement = (skipInvalidation = false) => {
-    const createStatementMutation = useCreateStatement()
-
     return useMutation({
       mutationFn: async ({
         subject,
@@ -169,14 +171,14 @@ export function useStatements() {
           })
 
         // Create the statement with properties - use direct client call to avoid invalidation
-        const statement = await client.statements.create({
+        const statement = await client.node.createStatement({
           subject,
           predicate,
           object,
           properties,
         })
 
-        return statement.data
+        return statement
       },
       onSuccess: () => {
         // Only invalidate if not skipping (for batch operations)
@@ -275,19 +277,6 @@ export function useStatements() {
     })
   }
 
-  // Delete statement mutation - using new simplified method
-  const useDeleteStatement = () => {
-    return useMutation({
-      mutationFn: async (statement: UUStatementDTO) => {
-        const response = await client.statements.delete(statement)
-        return response.data
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['statements'] })
-      },
-    })
-  }
-
   // Find all relationships for an entity (legacy - use useObjectRelationships instead)
   const useFindAllRelationships = (
     entityUuid: UUID,
@@ -296,10 +285,10 @@ export function useStatements() {
     return useQuery({
       queryKey: ['statements', 'relationships', entityUuid],
       queryFn: async () => {
-        const response = await client.statements.getStatements({
+        const response = await client.node.getStatements({
           subject: entityUuid,
         })
-        return response.data
+        return response
       },
       enabled: !!entityUuid && options?.enabled !== false,
     })
@@ -327,20 +316,20 @@ export function useStatements() {
       queryFn: async () => {
         // Make parallel requests for both directions
         const [asSubjectResponse, asObjectResponse] = await Promise.all([
-          client.statements.getStatements({
+          client.node.getStatements({
             subject: objectUuid,
             predicate: predicate as any,
             softDeleted: includeDeleted,
           }),
-          client.statements.getStatements({
+          client.node.getStatements({
             object: objectUuid,
             predicate: predicate as any,
             softDeleted: includeDeleted,
           }),
         ])
 
-        const asSubject = asSubjectResponse.data || []
-        const asObject = asObjectResponse.data || []
+        const asSubject = asSubjectResponse || []
+        const asObject = asObjectResponse || []
 
         // Return structured data for easy consumption
         return {
@@ -360,7 +349,6 @@ export function useStatements() {
     useCreateStatement,
     useCreateProcessStatement,
     useCreateProcessFlow,
-    useDeleteStatement,
     useFindAllRelationships,
     useObjectRelationships,
   }

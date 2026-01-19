@@ -184,7 +184,7 @@ export function useColumnMapper({
 
   // Get mapped headers for display
   const mappedHeaders = useMemo(() => {
-    return Object.entries(columnMapping).map(([index, propKey]) => {
+    return Object.entries(columnMapping).map(([, propKey]) => {
       // Handle property mappings (e.g., __property__:name:Display Name)
       if (propKey.startsWith('__property__:')) {
         const [, key, label] = propKey.split(':')
@@ -279,8 +279,8 @@ export function useColumnMapper({
     // We'll use an empty string value in columnMapping to represent explicitly set "none" values
     const explicitlyUnmapped = new Set(
       Object.entries(columnMapping)
-        .filter(([_, value]) => value === '')
-        .map(([index, _]) => Number(index))
+        .filter(([, value]) => value === '')
+        .map(([index]) => Number(index))
     )
 
     // Find columns that have no mapping AND aren't explicitly set to "none"

@@ -1,19 +1,28 @@
+'use client'
+
 import type { Attachment } from '@/types'
 import { logger } from './logger'
+import { useSDKStore } from '@/stores'
 
 // Updated client type for new flow with uploadDirect and uploadByReference methods
 type ApiClient = {
-  files: {
-    uploadDirect: (input: {
+  node: {
+    uploadFileDirect: (input: {
       file: File | Blob | ArrayBuffer | FormData
       uuidToAttach: string
-    }) => Promise<{ data: any }>
-    uploadByReference: (file: {
+      label?: string
+      fileName?: string
+      contentType?: string
+      size?: number
+    }) => Promise<any>
+    uploadFileByReference: (input: {
       fileName: string
       fileReference: string
       uuidToAttach: string
       label?: string
-    }) => Promise<{ data: any }>
+      contentType?: string
+      size?: number
+    }) => Promise<any>
   }
 }
 
@@ -48,7 +57,11 @@ export class FileUploadService {
   private processing = false
   private options: Required<FileUploadOptions>
 
-  constructor(client: ApiClient, options: FileUploadOptions = {}) {
+  constructor(client: ApiClient, options?: FileUploadOptions) {
+    if (!client) {
+      throw new Error('API client is required for FileUploadService')
+    }
+
     this.client = client
     this.options = {
       maxRetries: 3,
@@ -61,275 +74,121 @@ export class FileUploadService {
   }
 
   /**
-   * Queue file uploads with specific context mapping for each file
+   * Add a file to the upload queue
    */
-  async queueFileUploadsWithContext(
-    fileContexts: Array<{
-      attachment: Attachment
-      objectUuid?: string
-      propertyUuid?: string
-      valueUuid?: string
-    }>
-  ): Promise<void> {
-    const tasks: FileUploadTask[] = fileContexts
-      .filter(({ attachment }) => {
-        // Include upload files with blobs OR reference files with URLs
-        return (
-          (attachment.mode === 'upload' && attachment.blob) ||
-          (attachment.mode === 'reference' &&
-            (attachment.fileReference || attachment.url))
-        )
-      })
-      .map(({ attachment, objectUuid, propertyUuid, valueUuid }) => ({
-        id: `${attachment.fileName}-${Date.now()}`, // Unique task ID
-        attachment,
-        objectUuid,
-        propertyUuid,
-        valueUuid,
-        status: 'pending',
-        progress: 0,
-        retries: 0,
-      }))
-
-    logger.info(`Queueing ${tasks.length} file uploads with context:`, tasks)
-
-    this.uploadQueue.push(...tasks)
-    await this.processQueue()
+  addFile(task: FileUploadTask) {
+    this.uploadQueue.push(task)
+    this.processQueue()
   }
 
   /**
-   * Legacy method - Queue file uploads with single context for all files
+   * Process the upload queue
    */
-  async queueFileUploads(
-    attachments: Attachment[],
-    context: {
-      objectUuid?: string
-      propertyUuid?: string
-      valueUuid?: string
-    }
-  ): Promise<void> {
-    const tasks: FileUploadTask[] = attachments
-      .filter((attachment) => {
-        // Include upload files with blobs OR reference files with URLs
-        return (
-          (attachment.mode === 'upload' && attachment.blob) ||
-          (attachment.mode === 'reference' &&
-            (attachment.fileReference || attachment.url))
-        )
-      })
-      .map((attachment) => ({
-        id: `${attachment.fileName}-${Date.now()}`, // Unique task ID
-        attachment,
-        ...context,
-        status: 'pending',
-        progress: 0,
-        retries: 0,
-      }))
-
-    logger.info(`Queueing ${tasks.length} file uploads:`, tasks)
-
-    this.uploadQueue.push(...tasks)
-    await this.processQueue()
-  }
-
-  /**
-   * Process the upload queue with concurrency control
-   */
-  private async processQueue(): Promise<void> {
+  private async processQueue() {
     if (this.processing) return
     this.processing = true
 
-    try {
-      const pendingTasks = this.uploadQueue.filter(
-        (t) => t.status === 'pending'
-      )
+    while (this.uploadQueue.length > 0) {
+      const task = this.uploadQueue.shift()
+      if (!task) continue
 
-      // Process in batches
-      for (
-        let i = 0;
-        i < pendingTasks.length;
-        i += this.options.maxConcurrent
-      ) {
-        const batch = pendingTasks.slice(i, i + this.options.maxConcurrent)
-        await Promise.allSettled(batch.map((task) => this.processTask(task)))
-      }
-    } finally {
-      this.processing = false
-    }
-  }
-
-  /**
-   * Process a single upload task - New simplified flow using uploadDirect
-   */
-  private async processTask(task: FileUploadTask): Promise<void> {
-    try {
-      task.status = 'uploading'
-      this.options.onProgress(task.id, 0)
-
-      logger.info(`Processing file ${task.attachment.fileName}`)
-
-      // Validate based on attachment mode
-      if (task.attachment.mode === 'upload' && !task.attachment.blob) {
-        throw new Error('No blob data available for upload')
-      }
-      if (
-        task.attachment.mode === 'reference' &&
-        !task.attachment.fileReference &&
-        !task.attachment.url
-      ) {
-        throw new Error('No file reference URL available for reference upload')
-      }
-
-      // Determine the UUID to attach to (priority: valueUuid > propertyUuid > objectUuid)
-      const uuidToAttach =
-        task.valueUuid || task.propertyUuid || task.objectUuid
-      if (!uuidToAttach) {
-        throw new Error('No UUID provided to attach file to')
-      }
-
-      this.options.onProgress(task.id, 50)
-
-      let response
-      if (task.attachment.mode === 'reference') {
-        // Use uploadByReference for external file references
-        const fileReference =
-          task.attachment.fileReference || task.attachment.url
-        if (!fileReference) {
-          throw new Error(
-            'File reference URL is required for reference uploads'
-          )
-        }
-
-        const uploadData: any = {
-          fileName: task.attachment.fileName,
-          fileReference: fileReference,
-          uuidToAttach: uuidToAttach,
-        }
-        if (task.attachment.label) {
-          uploadData.label = task.attachment.label
-        }
-
-        response = await this.client.files.uploadByReference(uploadData)
-      } else {
-        // Use the new uploadDirect method for file uploads
-        // Pass the raw blob/file directly - library handles FormData creation
-        if (!task.attachment.blob) {
-          throw new Error('Blob is required for direct uploads')
-        }
-
-        response = await this.client.files.uploadDirect({
-          file: task.attachment.blob,
-          uuidToAttach: uuidToAttach,
-        })
-      }
-
-      this.options.onProgress(task.id, 100)
-
-      task.status = 'completed'
-      this.options.onComplete(task.id)
-    } catch (error: any) {
-      task.retries++
-      task.error = error.message
-
-      logger.error(`Upload failed for ${task.attachment.fileName}:`, {
-        error: error.message,
-      })
-
-      if (task.retries < this.options.maxRetries) {
-        task.status = 'pending'
-        // Retry after delay
-        setTimeout(() => this.processQueue(), 1000 * task.retries)
-      } else {
+      try {
+        await this.uploadFile(task)
+      } catch (error: any) {
+        logger.error(`File upload failed for task ${task.id}:`, error)
         task.status = 'failed'
+        task.error = error.message
         this.options.onError(task.id, error.message)
       }
     }
+
+    this.processing = false
   }
 
   /**
-   * Get upload progress summary
+   * Upload a single file
    */
-  getProgress(): {
-    completed: number
-    failed: number
-    pending: number
-    total: number
-  } {
-    const completed = this.uploadQueue.filter(
-      (t) => t.status === 'completed'
-    ).length
-    const failed = this.uploadQueue.filter((t) => t.status === 'failed').length
-    const pending = this.uploadQueue.filter(
-      (t) => t.status === 'pending' || t.status === 'uploading'
-    ).length
-
-    return {
-      completed,
-      failed,
-      pending,
-      total: this.uploadQueue.length,
+  private async uploadFile(task: FileUploadTask) {
+    if (!this.client?.node) {
+      throw new Error('SDK client node service not available')
     }
-  }
 
-  /**
-   * Clear completed tasks from queue
-   */
-  clearCompleted(): void {
-    this.uploadQueue = this.uploadQueue.filter((t) => t.status !== 'completed')
-  }
+    task.status = 'uploading'
+    task.progress = 0
+    this.options.onProgress(task.id, 0)
 
-  /**
-   * Get current upload status for reporting
-   */
-  getUploadSummary(): {
-    completed: FileUploadTask[]
-    failed: FileUploadTask[]
-    pending: FileUploadTask[]
-    isProcessing: boolean
-  } {
-    return {
-      completed: this.uploadQueue.filter((t) => t.status === 'completed'),
-      failed: this.uploadQueue.filter((t) => t.status === 'failed'),
-      pending: this.uploadQueue.filter(
-        (t) => t.status === 'pending' || t.status === 'uploading'
-      ),
-      isProcessing: this.processing,
+    const uuidToAttach = task.objectUuid || task.propertyUuid || task.valueUuid
+
+    if (!uuidToAttach) {
+      throw new Error('No UUID provided to attach the file to')
     }
-  }
 
-  /**
-   * Wait for all current uploads to complete
-   */
-  async waitForCompletion(): Promise<void> {
-    return new Promise((resolve) => {
-      const checkStatus = () => {
-        const { pending, isProcessing } = this.getUploadSummary()
-        if (pending.length === 0 && !isProcessing) {
-          resolve()
-        } else {
-          setTimeout(checkStatus, 500)
-        }
+    this.options.onProgress(task.id, 50)
+
+    let response
+    if (task.attachment.mode === 'reference') {
+      // Use uploadFileByReference for external file references
+      const fileReference = task.attachment.fileReference || task.attachment.url
+      if (!fileReference) {
+        throw new Error('File reference URL is required for reference uploads')
       }
-      checkStatus()
-    })
+
+      const uploadData = {
+        fileName: task.attachment.fileName || '',
+        fileReference: fileReference,
+        uuidToAttach: uuidToAttach,
+        contentType: task.attachment.mimeType,
+        size: task.attachment.size,
+        label: task.attachment.label,
+      }
+
+      response = await this.client.node.uploadFileByReference(uploadData)
+    } else {
+      // Use the new uploadFileDirect method for file uploads
+      if (!task.attachment.blob) {
+        throw new Error('Blob is required for direct uploads')
+      }
+
+      response = await this.client.node.uploadFileDirect({
+        file: task.attachment.blob,
+        uuidToAttach: uuidToAttach,
+        fileName: task.attachment.fileName,
+        contentType: task.attachment.mimeType,
+        size: task.attachment.size,
+        label: task.attachment.label,
+      })
+    }
+
+    this.options.onProgress(task.id, 100)
+
+    task.status = 'completed'
+    this.options.onComplete(task.id)
+    return response
+  }
+
+  /**
+   * Get the current queue status
+   */
+  getQueueStatus() {
+    return this.uploadQueue.map((task) => ({
+      id: task.id,
+      status: task.status,
+      progress: task.progress,
+      error: task.error,
+    }))
   }
 }
 
-// Global service instance
+// Singleton instance
 let uploadService: FileUploadService | null = null
 
-export function getUploadService(client: ApiClient): FileUploadService {
+export function getUploadService() {
+  const client = useSDKStore.getState().client
+  if (!client) {
+    throw new Error('SDK client is not initialized. Cannot get Upload Service.')
+  }
   if (!uploadService) {
-    uploadService = new FileUploadService(client, {
-      onProgress: (taskId, progress) => {
-        // Could emit events here for UI updates
-      },
-      onComplete: () => {},
-      onError: (taskId, error: string) => {
-        // Individual file error - we'll handle summary in the calling code
-        logger.error(`File ${taskId} upload failed:`, { error: error })
-      },
-    })
+    uploadService = new FileUploadService(client)
   }
   return uploadService
 }

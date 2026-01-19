@@ -1,14 +1,17 @@
 // Core utilities
 export * from './utils'
 
-// File upload service
-export * from './upload-service'
+// File upload service (client-only - import directly)
+// export * from './upload-service'
 
 // Validation schemas
 export * from './validations/object-model'
 
 // Logging (client-safe)
 export * from './logger'
+
+// Search parser (client-safe)
+export * from './search-parser'
 
 // Note: Redis, security, and auth utilities are server-side only
 // Import them directly in API routes:
