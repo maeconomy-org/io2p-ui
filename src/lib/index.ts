@@ -1,8 +1,8 @@
 // Core utilities
 export * from './utils'
 
-// File upload service (client-only - import directly)
-// export * from './upload-service'
+// File upload service
+export * from './upload-service'
 
 // Validation schemas
 export * from './validations/object-model'

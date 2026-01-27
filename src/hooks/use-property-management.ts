@@ -46,8 +46,7 @@ export function usePropertyManagement() {
         })
 
         // Get the property UUID from the response
-        // Based on API response structure in useAddPropertyToObject
-        const newProperty = response.property
+        const newProperty = response.property.data
 
         // If we have a property UUID and values, add them
         if (newProperty && newProperty.uuid && values.length > 0) {
@@ -90,7 +89,7 @@ export function usePropertyManagement() {
 
       try {
         const result = await updatePropertyMutation.mutateAsync({
-          property,
+          propertyUuid: property.uuid,
           values,
         })
         return result

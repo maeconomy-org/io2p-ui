@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 
-import { useSDKStore, sdkSelectors } from '@/stores'
-import { getUploadService } from '@/lib/upload-service'
 import { logger } from '@/lib'
+import { useUploadService } from '@/lib/upload-service'
 import { useImportApi, useObjects, useStatements } from '@/hooks'
 import {
   transformToImportFormat,
@@ -60,7 +59,8 @@ export function useObjectOperations({
   // Get query client for manual invalidation
   const queryClient = useQueryClient()
 
-  const client = useSDKStore(sdkSelectors.client)
+  // Get upload service
+  const uploadService = useUploadService()
 
   useEffect(() => {
     if (initialObject && !isEditing) {
@@ -149,7 +149,7 @@ export function useObjectOperations({
         { id: 'revert-object' }
       )
 
-      const result = await revertObjectMutation.mutateAsync({
+      await revertObjectMutation.mutateAsync({
         uuid: object.uuid,
         name: object.name,
         abbreviation: object.abbreviation,
@@ -218,8 +218,6 @@ export function useObjectOperations({
 
       // Step 5: Upload files in background if any (don't await - let it run in background)
       if (uploadFiles.length > 0) {
-        const uploadService = getUploadService()
-
         // Map files to their correct context UUIDs from Aggregate API response
         const fileContexts = mapFileContexts(uploadFiles, importResult)
 

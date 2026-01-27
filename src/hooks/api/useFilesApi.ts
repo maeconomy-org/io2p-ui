@@ -2,18 +2,18 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { logger } from '@/lib'
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 
 export function useFilesApi() {
-  const client = useSDKStore(sdkSelectors.client)
+  const client = useIomSdkClient()
   const queryClient = useQueryClient()
 
   const useSoftDeleteFile = () => {
     return useMutation({
       mutationFn: async (fileUuid: string) => {
-        const response = await client.files.delete(fileUuid)
+        const response = await client.node.softDeleteFile(fileUuid)
 
-        return response.data
+        return response
       },
       onSuccess: () => {
         toast.success('File deleted successfully')

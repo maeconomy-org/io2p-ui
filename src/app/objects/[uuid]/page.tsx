@@ -49,8 +49,8 @@ function ObjectChildrenPageContent() {
 
   // Process parent object data
   const parentObject = useMemo(() => {
-    if (parentData && parentData.length > 0) {
-      return parentData[0]
+    if (parentData) {
+      return parentData
     }
     return null
   }, [parentData])

@@ -300,9 +300,6 @@ export async function getImportJobStats(): Promise<{
   }
 }
 
-/**
- * Job details interface for health dashboard
- */
 export interface JobDetails {
   jobId: string
   status: string

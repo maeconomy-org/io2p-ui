@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 
-import { useSearchStore, searchSelectors } from '@/stores'
+import { useSearch } from '@/contexts'
 import { usePagination, useAggregate } from '@/hooks'
 import { ViewType } from '@/components/view-selector'
 
@@ -64,9 +64,7 @@ export function useViewData({
   showDeleted = false, // Default to not showing deleted items
 }: UseViewDataProps): ViewData {
   const { useAggregateEntities } = useAggregate()
-  const isSearchMode = useSearchStore(searchSelectors.isSearchMode)
-  const searchViewResults = useSearchStore(searchSelectors.searchViewResults)
-  const searchPagination = useSearchStore(searchSelectors.searchPagination)
+  const { isSearchMode, searchViewResults, searchPagination } = useSearch()
 
   // Internal pagination state for table view
   const [currentPage, setCurrentPage] = useState(0)

@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { useAuthStore, authSelectors } from '@/stores'
+import { useAuth } from '@/contexts'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -11,13 +11,23 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter()
-  const isAuthenticated = useAuthStore(authSelectors.isAuthenticated)
+  const { isAuthenticated, authLoading } = useAuth()
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Only redirect after auth check is complete
+    if (!authLoading && !isAuthenticated) {
       router.push('/')
     }
-  }, [router, isAuthenticated])
+  }, [router, isAuthenticated, authLoading])
+
+  // Show loading while auth is being checked - prevents flicker
+  if (authLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return (

@@ -1,16 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UUObjectDTO, UUID, QueryParams } from 'iom-sdk'
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 
 export function useObjects() {
-  const client = useSDKStore(sdkSelectors.client)
+  const client = useIomSdkClient()
   const queryClient = useQueryClient()
-
-  if (!client) {
-    throw new Error(
-      'SDK client not initialized. Make sure to call initializeClient first.'
-    )
-  }
 
   // Get all objects using the unified API
   const useAllObjects = (options?: QueryParams & { enabled?: boolean }) => {
@@ -112,7 +106,7 @@ export function useObjects() {
   const useCreateObject = () => {
     return useMutation({
       mutationFn: async (object: UUObjectDTO) => {
-        const response = await client.node.createObject(object)
+        const response = await client.node.createOrUpdateObject(object)
         return response
       },
       onSuccess: () => {
@@ -139,7 +133,7 @@ export function useObjects() {
         description?: string
       }) => {
         // Use createObject for updates (this creates a new version)
-        const response = await client.node.updateObject({
+        const response = await client.node.createOrUpdateObject({
           uuid,
           name,
           abbreviation,
@@ -205,7 +199,7 @@ export function useObjects() {
         isTemplate?: boolean
       }) => {
         // Use createObject for revert (this creates a new version)
-        const response = await client.node.updateObject({
+        const response = await client.node.createOrUpdateObject({
           uuid,
           name,
           abbreviation,

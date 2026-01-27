@@ -1,9 +1,9 @@
 import { useMutation } from '@tanstack/react-query'
 import type { AggregateFindDTO } from 'iom-sdk'
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 
 export function useCommonApi() {
-  const client = useSDKStore(sdkSelectors.client)
+  const client = useIomSdkClient()
 
   // Check authentication status
   const useAuthCheck = () => {

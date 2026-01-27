@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { Download, HelpCircle, ArrowLeft } from 'lucide-react'
 
-import { APP_ACRONYM, SUPPORT_EMAIL } from '@/constants'
+import { APP_ACRONYM } from '@/constants'
+import { useAppConfig } from '@/contexts'
 import {
   Card,
   CardContent,
@@ -18,6 +19,9 @@ import {
 } from '@/components/ui'
 
 export default function HelpPage() {
+  const config = useAppConfig()
+  const supportEmail = config.supportEmail
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -137,7 +141,7 @@ export default function HelpPage() {
 
                 <Button variant="outline" className="mt-4">
                   <HelpCircle className="mr-2 h-4 w-4" />
-                  Contact Support: {SUPPORT_EMAIL}
+                  Contact Support: {supportEmail}
                 </Button>
               </CardContent>
             </Card>

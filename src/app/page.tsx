@@ -12,32 +12,41 @@ import {
 import Link from 'next/link'
 
 import { logger } from '@/lib'
-import { useAuthStore, authSelectors } from '@/stores'
+import { useAuth } from '@/contexts'
 import { APP_ACRONYM, APP_DESCRIPTION, APP_NAME } from '@/constants'
 import { Button, Card, Alert, AlertDescription } from '@/components/ui'
 
 export default function AuthPage() {
   const router = useRouter()
-  const isAuthenticated = useAuthStore(authSelectors.isAuthenticated)
-  const login = useAuthStore((state) => state.login)
+  const { isAuthenticated, authLoading, handleAuth } = useAuth()
   const [status, setStatus] = useState<
     'idle' | 'authorizing' | 'success' | 'error'
   >('idle')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Only redirect after auth check is complete
+    if (!authLoading && isAuthenticated) {
       setStatus('success')
       router.push('/objects')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, authLoading, router])
+
+  // Show loading while checking auth status
+  if (authLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+      </div>
+    )
+  }
 
   const handleAuthorize = async () => {
     setStatus('authorizing')
     setError(null)
 
     try {
-      const { success, error } = await login()
+      const { success, error } = await handleAuth()
       if (!success) {
         throw new Error(error)
       }

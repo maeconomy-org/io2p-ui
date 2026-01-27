@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PlusCircle, Search, X } from 'lucide-react'
 
 import { useViewData } from '@/hooks'
-import { useSearchStore, searchSelectors } from '@/stores'
+import { useSearch } from '@/contexts'
 import { isObjectDeleted } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
 import { Button, Badge, DeletedFilter } from '@/components/ui'
@@ -21,11 +21,13 @@ function ObjectsPageContent() {
   const [showDeleted, setShowDeleted] = useState<boolean>(false)
 
   const router = useRouter()
-  const isSearchMode = useSearchStore(searchSelectors.isSearchMode)
-  const searchQuery = useSearchStore(searchSelectors.searchQuery)
-  const searchViewResults = useSearchStore(searchSelectors.searchViewResults)
-  const searchPagination = useSearchStore(searchSelectors.searchPagination)
-  const clearSearch = useSearchStore((state) => state.clearSearch)
+  const {
+    isSearchMode,
+    searchQuery,
+    searchViewResults,
+    searchPagination,
+    clearSearch,
+  } = useSearch()
 
   // Use the data adapter hook - handles all data fetching internally
   const viewData = useViewData({ viewType, showDeleted })

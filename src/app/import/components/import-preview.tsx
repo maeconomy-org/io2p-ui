@@ -1,8 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Download, Loader2, ExternalLink } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { Download, Loader2 } from 'lucide-react'
 
 import {
   Table,
@@ -13,18 +12,15 @@ import {
   TableRow,
   Badge,
   Button,
-  Progress,
 } from '@/components/ui'
-import { useImportJobStore } from '@/stores'
 
 interface ImportPreviewProps {
-  data: unknown[]
+  data: any[]
   onBack?: () => void
   onImport: () => Promise<void>
   title?: string
   description?: string
   isImporting: boolean
-  jobId?: string | null
 }
 
 export function ImportPreview({
@@ -34,11 +30,7 @@ export function ImportPreview({
   title,
   description,
   isImporting,
-  jobId,
 }: ImportPreviewProps) {
-  const router = useRouter()
-  const importStatus = useImportJobStore((state) => state.getJob(jobId ?? ''))
-
   // Limit preview to first 10 rows for performance
   const previewData = data.slice(0, 10)
   const totalRows = data.length
@@ -49,7 +41,7 @@ export function ImportPreview({
     const keys = new Set<string>()
 
     // Extract all property keys from the first 10 objects
-    previewData.forEach((item: any) => {
+    previewData.forEach((item) => {
       // Get regular properties
       Object.keys(item).forEach((key) => {
         if (key !== 'properties') {
@@ -145,49 +137,6 @@ export function ImportPreview({
       )}
 
       <div className="space-y-4">
-        {isImporting && jobId && (
-          <div className="border rounded-md p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <h4 className="text-sm font-medium">
-                  Import in progress
-                  {importStatus?.status === 'processing' &&
-                    ` - ${importStatus.processedItems || 0} of ${importStatus.totalItems || 0} processed`}
-                </h4>
-              </div>
-              {importStatus?.failedItems && importStatus.failedItems > 0 && (
-                <Badge variant="destructive">
-                  {importStatus.failedItems} failed
-                </Badge>
-              )}
-            </div>
-            {importStatus && importStatus.totalItems > 0 && (
-              <Progress
-                value={
-                  ((importStatus.processedItems || 0) /
-                    importStatus.totalItems) *
-                  100
-                }
-                className="h-2"
-              />
-            )}
-            {jobId && (
-              <div className="flex justify-end">
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="text-xs flex items-center gap-1"
-                  onClick={() => router.push(`/import-status?jobId=${jobId}`)}
-                >
-                  <span>View detailed status</span>
-                  <ExternalLink className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{totalRows} objects</Badge>

@@ -53,7 +53,6 @@ interface ObjectSelectionModalProps {
   onSave: (data: ObjectSelectionData) => void
   title?: string
   initialData?: ObjectSelectionData
-  materialType?: 'input' | 'output'
   showMetadataFields?: boolean
 }
 
@@ -63,7 +62,6 @@ export function ObjectSelectionModal({
   onSave,
   title = 'Select Object',
   initialData,
-  materialType = 'input',
   showMetadataFields = true,
 }: ObjectSelectionModalProps) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -113,6 +111,7 @@ export function ObjectSelectionModal({
     }, 300)
 
     return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, isOpen])
 
   useEffect(() => {

@@ -58,10 +58,6 @@ chmod +x deploy.sh
 # Configure environment
 cp .env.example .env
 nano .env  # Edit with your values
-
-# Create certificates directory
-mkdir -p certs
-# Copy your certificate.pem to certs/
 ```
 
 ### 2. Login to GHCR
@@ -132,14 +128,12 @@ These are baked into the Docker image during build. Set them in GitHub Actions:
 
 These are set in `.env` on each VM:
 
-| Variable               | Description                    | Required |
-| ---------------------- | ------------------------------ | -------- |
-| `IMAGE_TAG`            | Docker image tag to deploy     | Yes      |
-| `PORT`                 | Port to expose (default: 3000) | No       |
-| `CERTIFICATE_PASSWORD` | mTLS certificate password      | Yes      |
-| `VERIFY_CERTIFICATES`  | Verify SSL certs (true/false)  | No       |
-| `SENTRY_DSN`           | Sentry DSN (server)            | Yes      |
-| `SENTRY_ENABLED`       | Enable Sentry (true/false)     | No       |
+| Variable         | Description                    | Required |
+| ---------------- | ------------------------------ | -------- |
+| `IMAGE_TAG`      | Docker image tag to deploy     | Yes      |
+| `PORT`           | Port to expose (default: 3000) | No       |
+| `SENTRY_DSN`     | Sentry DSN (server)            | Yes      |
+| `SENTRY_ENABLED` | Enable Sentry (true/false)     | No       |
 
 ## Directory Structure on VM
 
@@ -150,8 +144,6 @@ These are set in `.env` on each VM:
 ├── .env.example         # Template
 ├── .previous            # Auto-generated for rollback
 ├── deploy.sh            # Deployment script
-└── certs/
-    └── certificate.pem  # Your mTLS certificate
 ```
 
 ## Versioning & Rollback
@@ -185,7 +177,7 @@ For deploying the same code to multiple VMs with different configurations:
 
 ### Option 1: Same Image, Different Env
 
-Each VM has its own `.env` with different `CERTIFICATE_PASSWORD`, etc.
+Each VM has its own `.env` with different `SENTRY_DSN`, etc.
 
 ### Option 2: Different Branches
 
@@ -205,16 +197,6 @@ docker compose ps
 
 # Verify image exists
 docker images | grep iom-ui
-```
-
-### Certificate issues
-
-```bash
-# Verify certificate is mounted
-docker compose exec iom-ui ls -la /app/certs/
-
-# Check certificate permissions
-ls -la certs/
 ```
 
 ### Pull fails

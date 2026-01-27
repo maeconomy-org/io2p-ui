@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 import { logger } from '@/lib'
 
 /**
@@ -8,11 +8,7 @@ import { logger } from '@/lib'
  */
 export function useLoadChildren() {
   const queryClient = useQueryClient()
-  const client = useSDKStore(sdkSelectors.client)
-
-  if (!client) {
-    throw new Error('SDK client not initialized')
-  }
+  const client = useIomSdkClient()
 
   // Children loading function for columns view with pagination and search
   // Uses queryClient.fetchQuery to share the same cache as useAggregateEntities hook
@@ -47,8 +43,8 @@ export function useLoadChildren() {
       const response = await queryClient.fetchQuery({
         queryKey: ['aggregates', params],
         queryFn: async () => {
-          const response = await client.aggregate.getAggregateEntities(params)
-          return response.data
+          const response = await client.node.searchAggregates(params)
+          return response
         },
         staleTime: 0, // Always fetch fresh data for children
       })

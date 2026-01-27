@@ -85,13 +85,6 @@ export function useColumnMapper({
     return stored ? JSON.parse(stored) : defaultValue
   }
 
-  // Helper to get stored values from local storage
-  const getLocalStorageValue = (key: string, defaultValue: any) => {
-    if (typeof window === 'undefined') return defaultValue
-    const stored = localStorage.getItem(key)
-    return stored ? JSON.parse(stored) : defaultValue
-  }
-
   // State for column mapping - try to get from initialMapping, then sessionStorage only
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>(
     () => {

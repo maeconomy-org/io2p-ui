@@ -114,6 +114,7 @@ export function PropertySectionEditor({
       })
 
     setAllProperties(allProps)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [properties])
 
   // Add a new property

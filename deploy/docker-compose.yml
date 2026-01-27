@@ -60,7 +60,6 @@ services:
       # All other variables are loaded from .env file automatically
 
     volumes:
-      - ./certs:/app/certs:ro
       - ./logs:/app/logs:rw
 
     logging:

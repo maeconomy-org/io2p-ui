@@ -1,21 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  Package,
-  Globe,
-  Lock,
-  Calendar,
-  Edit,
-  Plus,
-  Minus,
-  User,
-  X,
-} from 'lucide-react'
+import { Package, Globe, Lock, Edit, Plus, Minus, X } from 'lucide-react'
 import {
   Button,
   Badge,
-  Separator,
   Tabs,
   TabsContent,
   TabsList,

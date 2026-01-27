@@ -32,7 +32,7 @@ export function usePropertyEditor({
     updatePropertyWithValues,
     createPropertyForObject,
     removePropertyFromObject,
-  } = usePropertyManagement(objectUuid)
+  } = usePropertyManagement()
 
   // Reset editing properties when data changes or editing mode changes
   useEffect(() => {

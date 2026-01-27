@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 import { logger } from '@/lib'
 import { API_CHUNK_SIZE } from '@/constants'
 
@@ -37,7 +37,7 @@ export function useBulkImport({
   autoRedirect = true,
 }: UseBulkImportOptions = {}): UseBulkImportResult {
   const router = useRouter()
-  const client = useSDKStore(sdkSelectors.client)
+  const client = useIomSdkClient()
   const [isImporting, setIsImporting] = useState(false)
 
   const startBulkImport = useCallback(
@@ -52,8 +52,8 @@ export function useBulkImport({
 
       try {
         // Get JWT token for API calls
-        const tokenInfo = await client.getToken()
-        if (!tokenInfo) {
+        const token = client.getToken()
+        if (!token) {
           throw new Error(
             'No authentication token available. Please login first.'
           )
@@ -70,10 +70,10 @@ export function useBulkImport({
           toast.info(
             `Large dataset detected (estimated ${estimatedDataSizeMB.toFixed(2)}MB). Using optimized upload.`
           )
-          jobId = await handleChunkedUpload(mappedData, tokenInfo.token)
+          jobId = await handleChunkedUpload(mappedData, token)
         } else {
           // Standard upload for smaller datasets
-          jobId = await handleStandardUpload(mappedData, tokenInfo.token)
+          jobId = await handleStandardUpload(mappedData, token)
         }
 
         if (jobId) {

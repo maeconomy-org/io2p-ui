@@ -1,36 +1,19 @@
 'use client'
 
-import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 
 import Navbar from '@/components/navbar'
-import { useSDKStore, useAuthStore } from '@/stores'
+import {
+  QueryProvider,
+  AuthProvider,
+  SearchProvider,
+  useIomSdkClient,
+} from '@/contexts'
+import { UploadProgressIndicator } from '@/components/ui'
 
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+function ClientLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-
-  // Initialize SDK and auth on app start
-  const initializeClient = useSDKStore((state) => state.initializeClient)
-  const loadUserInfo = useAuthStore((state) => state.loadUserInfo)
-  const isSDKInitialized = useSDKStore((state) => state.isInitialized)
-
-  // Initialize SDK client on mount
-  useEffect(() => {
-    if (!isSDKInitialized) {
-      initializeClient()
-    }
-  }, [initializeClient, isSDKInitialized])
-
-  // Load user info when SDK is ready
-  useEffect(() => {
-    if (isSDKInitialized) {
-      loadUserInfo()
-    }
-  }, [isSDKInitialized, loadUserInfo])
+  const client = useIomSdkClient()
 
   // Pages that don't require authentication don't show the navbar
   const isPublicPage =
@@ -40,9 +23,26 @@ export default function ClientLayout({
     pathname === '/privacy'
 
   return (
-    <div className="flex-1 flex flex-col">
-      {!isPublicPage && <Navbar />}
-      {children}
-    </div>
+    <AuthProvider client={client}>
+      <SearchProvider>
+        <div className="flex-1 flex flex-col">
+          {!isPublicPage && <Navbar />}
+          {children}
+          <UploadProgressIndicator />
+        </div>
+      </SearchProvider>
+    </AuthProvider>
+  )
+}
+
+export default function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <QueryProvider>
+      <ClientLayoutInner>{children}</ClientLayoutInner>
+    </QueryProvider>
   )
 }

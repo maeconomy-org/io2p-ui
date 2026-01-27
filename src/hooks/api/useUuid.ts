@@ -1,12 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 
 export function useUuid() {
-  const client = useSDKStore(sdkSelectors.client)
-
-  if (!client) {
-    throw new Error('SDK client not initialized')
-  }
+  const client = useIomSdkClient()
 
   // Generate a new UUID
   const useGenerateUuid = () => {

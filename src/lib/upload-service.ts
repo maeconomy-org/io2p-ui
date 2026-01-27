@@ -2,29 +2,11 @@
 
 import type { Attachment } from '@/types'
 import { logger } from './logger'
-import { useSDKStore } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
+import type { Client } from 'iom-sdk'
 
-// Updated client type for new flow with uploadDirect and uploadByReference methods
-type ApiClient = {
-  node: {
-    uploadFileDirect: (input: {
-      file: File | Blob | ArrayBuffer | FormData
-      uuidToAttach: string
-      label?: string
-      fileName?: string
-      contentType?: string
-      size?: number
-    }) => Promise<any>
-    uploadFileByReference: (input: {
-      fileName: string
-      fileReference: string
-      uuidToAttach: string
-      label?: string
-      contentType?: string
-      size?: number
-    }) => Promise<any>
-  }
-}
+// Use the actual SDK Client type
+type ApiClient = Client
 
 export interface FileUploadTask {
   id: string
@@ -150,11 +132,8 @@ export class FileUploadService {
       }
 
       response = await this.client.node.uploadFileDirect({
-        file: task.attachment.blob,
+        file: task.attachment.blob as File,
         uuidToAttach: uuidToAttach,
-        fileName: task.attachment.fileName,
-        contentType: task.attachment.mimeType,
-        size: task.attachment.size,
         label: task.attachment.label,
       })
     }
@@ -177,18 +156,71 @@ export class FileUploadService {
       error: task.error,
     }))
   }
+
+  /**
+   * Queue file uploads with context (for object creation)
+   */
+  queueFileUploadsWithContext(fileContexts: any[]) {
+    fileContexts.forEach((context) => {
+      this.addFile({
+        id: `upload-${Date.now()}-${Math.random()}`,
+        attachment: context.attachment,
+        objectUuid: context.objectUuid,
+        propertyUuid: context.propertyUuid,
+        valueUuid: context.valueUuid,
+        status: 'pending',
+        progress: 0,
+        retries: 0,
+      })
+    })
+    return Promise.resolve()
+  }
+
+  /**
+   * Get upload summary
+   */
+  getUploadSummary() {
+    const completed = this.uploadQueue.filter(
+      (task) => task.status === 'completed'
+    )
+    const failed = this.uploadQueue.filter((task) => task.status === 'failed')
+    const pending = this.uploadQueue.filter((task) => task.status === 'pending')
+    const uploading = this.uploadQueue.filter(
+      (task) => task.status === 'uploading'
+    )
+
+    return {
+      completed,
+      failed,
+      pending,
+      uploading,
+      total: this.uploadQueue.length,
+    }
+  }
+
+  /**
+   * Clear completed uploads
+   */
+  clearCompleted() {
+    this.uploadQueue = this.uploadQueue.filter(
+      (task) => task.status !== 'completed'
+    )
+  }
 }
 
-// Singleton instance
-let uploadService: FileUploadService | null = null
+// Hook to get upload service within React components
+export function useUploadService(): FileUploadService {
+  const client = useIomSdkClient() // Always defined (blocking load)
 
+  // Note: Creates new instance each time - consider useMemo if needed
+  return new FileUploadService(client)
+}
+
+// Legacy function for non-React contexts (will be phased out)
 export function getUploadService() {
-  const client = useSDKStore.getState().client
-  if (!client) {
-    throw new Error('SDK client is not initialized. Cannot get Upload Service.')
-  }
-  if (!uploadService) {
-    uploadService = new FileUploadService(client)
-  }
-  return uploadService
+  // This is a fallback for components that haven't been updated yet
+  // We'll gradually replace all usages with the hook
+  throw new Error(
+    'getUploadService() is deprecated. Use useUploadService() hook instead.'
+  )
 }

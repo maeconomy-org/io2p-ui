@@ -3,9 +3,13 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
-import { APP_NAME, SUPPORT_EMAIL } from '@/constants'
+import { useAppConfig } from '@/contexts'
 
 export default function PrivacyPage() {
+  const config = useAppConfig()
+  const appName = config.appName
+  const supportEmail = config.supportEmail
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="mb-8">
@@ -26,7 +30,7 @@ export default function PrivacyPage() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Introduction</h2>
           <p>
-            {APP_NAME} ("we", "our", or "us") is committed to protecting your
+            {appName} ("we", "our", or "us") is committed to protecting your
             privacy. This Privacy Policy explains how we collect, use, and share
             information about you when you use our materials management system
             and related services.
@@ -75,7 +79,7 @@ export default function PrivacyPage() {
             If you have any questions or concerns about this Privacy Policy or
             our data practices, please contact us at:
           </p>
-          <p className="font-medium">{SUPPORT_EMAIL}</p>
+          <p className="font-medium">{supportEmail}</p>
         </section>
       </div>
     </div>

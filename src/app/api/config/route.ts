@@ -6,6 +6,7 @@ export async function GET() {
   return NextResponse.json({
     // API endpoints - New service-based URLs
     authApiUrl: process.env.AUTH_API_URL || '',
+    authRefreshApiUrl: process.env.AUTH_REFRESH_API_URL || '',
     registryApiUrl: process.env.REGISTRY_API_URL || '',
     nodeApiUrl: process.env.NODE_API_URL || '',
 

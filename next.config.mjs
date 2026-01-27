@@ -20,7 +20,7 @@ const nextConfig = {
     },
   },
 
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -29,9 +29,16 @@ const nextConfig = {
     }
 
     // Suppress specific warnings
-    config.ignoreWarnings = [
-      /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
-    ]
+    // Suppress OTel-related dynamic requires during "next dev"
+    if (dev) {
+      config.ignoreWarnings = [
+        { message: /the request of a dependency is an expression/ },
+        { message: /Critical dependency: the request of a dependency is an expression/ },
+        { 
+          message: /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/
+        },
+      ]
+    }
 
     return config
   },

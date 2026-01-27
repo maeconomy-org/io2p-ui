@@ -1,28 +1,23 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UUAddressDTO } from 'iom-sdk'
 
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 
 export function useAddresses() {
-  const client = useSDKStore(sdkSelectors.client)
+  const client = useIomSdkClient()
   const queryClient = useQueryClient()
 
   // Create address mutation
   const useCreateAddress = () => {
     return useMutation({
       mutationFn: async ({
-        objectUuid,
         address,
       }: {
-        objectUuid: string
         address: Omit<UUAddressDTO, 'uuid'>
       }) => {
-        const response = await client.addresses.createForObject(
-          objectUuid,
-          address as any
-        )
+        const response = await client.node.createAddress(address)
 
-        return response.data
+        return response
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['addresses'] })
@@ -37,8 +32,8 @@ export function useAddresses() {
   const useUpdateAddress = () => {
     return useMutation({
       mutationFn: async (address: UUAddressDTO & { uuid: string }) => {
-        const response = await client.addresses.update(address)
-        return response.data
+        const response = await client.node.createOrUpdateAddress(address)
+        return response
       },
       onSuccess: (data) => {
         queryClient.invalidateQueries({ queryKey: ['addresses'] })
@@ -54,8 +49,8 @@ export function useAddresses() {
   const useDeleteAddress = () => {
     return useMutation({
       mutationFn: async (uuid: string) => {
-        const response = await client.addresses.delete(uuid)
-        return response.data
+        const response = await client.node.softDeleteAddress(uuid)
+        return response
       },
       onSuccess: (_, deletedUuid) => {
         queryClient.invalidateQueries({ queryKey: ['addresses'] })

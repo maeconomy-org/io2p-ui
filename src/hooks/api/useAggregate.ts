@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import type { AggregateFindDTO } from 'iom-sdk'
 
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 
 export function useAggregate() {
-  const client = useSDKStore(sdkSelectors.client)
+  const client = useIomSdkClient()
 
   // Get aggregate entity by UUID (rich data with all relationships)
   const useAggregateByUUID = (uuid: string, options = {}) => {
@@ -30,7 +30,7 @@ export function useAggregate() {
     return useQuery({
       queryKey: ['aggregates', params],
       queryFn: async () => {
-        const response = await client.node.searchAggregates(params)
+        const response = await client.node.searchAggregates(params || {})
         return response
       },
       ...options,

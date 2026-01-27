@@ -17,6 +17,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'iom-sdk': path.resolve(
+        __dirname,
+        './node_modules/iom-sdk/dist/index.esm.js'
+      ),
     },
   },
 })

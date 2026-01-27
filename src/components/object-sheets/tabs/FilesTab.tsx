@@ -3,7 +3,7 @@
 import { Plus } from 'lucide-react'
 
 import type { FileData, Attachment } from '@/types'
-import { Button, Label } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { AttachmentModal, FileList } from '../components'
 
 // Helper function to convert API files to FileData format

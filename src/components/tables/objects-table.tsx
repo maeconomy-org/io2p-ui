@@ -59,7 +59,6 @@ export function ObjectsTable({
   const router = useRouter()
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
 
   const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
   const [selectedQRObject, setSelectedQRObject] = useState<any>(null)

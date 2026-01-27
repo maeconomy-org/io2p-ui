@@ -31,7 +31,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
     }
 
     // Compute layout using metadata-driven approach
-    const { nodes, links, recyclingFlows, removedFlows, cycleInfo, stats } =
+    const { nodes, links, recyclingFlows, cycleInfo, stats } =
       computeEnhancedLayout(materials, relationships)
 
     // Identify materials involved in recycling/reuse
@@ -93,7 +93,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
     })
 
     // Create enhanced links with metadata-driven styling and impact data
-    const chartLinks = links.map((rel, index) => {
+    const chartLinks = links.map((rel) => {
       const isSelected =
         selectedRelationship?.subject.uuid === rel.subject.uuid &&
         selectedRelationship?.object.uuid === rel.object.uuid &&

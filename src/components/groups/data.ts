@@ -1,6 +1,3 @@
-// Dummy data for groups and objects - comprehensive dataset for testing
-import { v4 as uuidv4 } from 'uuid'
-
 // Generate consistent UUIDs for demo purposes
 const generateUUID = (seed: string) => {
   // For demo purposes, we'll use a simple hash-based approach to get consistent UUIDs

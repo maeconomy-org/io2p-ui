@@ -87,7 +87,7 @@ export function CommandCenter({
     filters: [],
     searchBy: {},
   })
-  const [showSuggestions, setShowSuggestions] = React.useState(true)
+  const [showSuggestions] = React.useState(true)
   const [selectedIndex, setSelectedIndex] = React.useState(0)
   const [recentSearches, setRecentSearches] = React.useState<string[]>([])
   const inputRef = React.useRef<HTMLInputElement>(null)

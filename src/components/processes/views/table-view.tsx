@@ -23,7 +23,6 @@ interface ProcessTableViewProps {
   relationships: EnhancedMaterialRelationship[]
   onRelationshipSelect?: (relationship: EnhancedMaterialRelationship) => void
   selectedRelationship?: EnhancedMaterialRelationship | null
-  className?: string
   pageSize?: number
 }
 
@@ -31,7 +30,6 @@ export function ProcessTableView({
   relationships,
   onRelationshipSelect,
   selectedRelationship,
-  className = '',
   pageSize = 10,
 }: ProcessTableViewProps) {
   const [searchTerm, setSearchTerm] = useState('')

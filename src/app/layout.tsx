@@ -6,11 +6,6 @@ import { Toaster } from 'sonner'
 import Footer from '@/components/footer'
 import ClientLayout from '@/components/client-layout'
 import { APP_NAME, APP_DESCRIPTION } from '@/constants'
-import { UploadProgressIndicator } from '@/components/ui'
-import { ZustandDevTools } from '@/components/dev/zustand-devtools'
-import { PerformanceMonitor } from '@/components/dev/performance-monitor'
-
-import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: APP_NAME,
@@ -31,14 +26,9 @@ export default function RootLayout({
       className={`${inter.className} h-full`}
     >
       <body className="flex flex-col min-h-screen h-full">
-        <Providers>
-          <ClientLayout>{children}</ClientLayout>
-          <Footer />
-          <Toaster />
-          <UploadProgressIndicator />
-          <PerformanceMonitor />
-          <ZustandDevTools />
-        </Providers>
+        <ClientLayout>{children}</ClientLayout>
+        <Footer />
+        <Toaster />
       </body>
     </html>
   )

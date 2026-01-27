@@ -13,6 +13,7 @@ import {
 } from '@/lib/security-utils'
 import { logger } from '@/lib/logger'
 import { processImportJob } from '@/lib/import-processor'
+import { getUserUUIDFromJWT } from '@/lib/jwt-utils'
 
 /**
  * Chunked import API route - handles large datasets in chunks
@@ -92,9 +93,15 @@ export async function POST(req: Request) {
       )
     }
 
-    // For rate limiting, we'll use a placeholder userUUID from JWT
-    // In a real implementation, you'd decode the JWT to get the actual userUUID
-    const userUUID = 'jwt-user' // TODO: Decode JWT to get actual userUUID
+    // Extract userUUID from JWT token (already extracted above)
+    const userUUID = getUserUUIDFromJWT(jwtToken)
+    if (!userUUID) {
+      logger.security('invalid_jwt_payload', { clientId })
+      return NextResponse.json(
+        { error: 'Invalid JWT token: unable to extract user information' },
+        { status: 401 }
+      )
+    }
 
     // Check rate limiting (applies to overall session)
     const rateLimitCheck = await checkImportRateLimit(clientId, userUUID)
@@ -113,7 +120,6 @@ export async function POST(req: Request) {
     // For the first chunk, create a new job ID and initialize job metadata
     if (chunkIndex === 0) {
       currentJobId = crypto.randomUUID()
-      const redis = getRedis()
 
       await hsetWithTTL(`import:${currentJobId}`, {
         status: 'receiving',
@@ -135,7 +141,6 @@ export async function POST(req: Request) {
       )
     } else if (currentJobId) {
       // For subsequent chunks, store them
-      const redis = getRedis()
       await setWithTTL(
         `import:${currentJobId}:chunk:${chunkIndex}`,
         JSON.stringify(chunk),

@@ -7,15 +7,12 @@ import type {
   Predicate,
 } from 'iom-sdk'
 
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 import type { ProcessMetadata, MaterialFlowMetadata } from '@/types'
+import { toast } from 'sonner'
 
 export function useStatements() {
-  const client = useSDKStore(sdkSelectors.client)
-
-  if (!client) {
-    throw new Error('SDK client not initialized')
-  }
+  const client = useIomSdkClient()
   const queryClient = useQueryClient()
 
   // Get all statements using the new unified API
@@ -343,6 +340,25 @@ export function useStatements() {
     })
   }
 
+  const useDeleteStatement = () => {
+    return useMutation({
+      mutationFn: async (params: UUStatementDTO) => {
+        const response = await client.node.softDeleteStatement(
+          params.subject,
+          params.predicate,
+          params.object
+        )
+        return response
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['statements'] })
+      },
+      onError: (error: Error) => {
+        toast.error(`Failed to delete statement: ${error.message}`)
+      },
+    })
+  }
+
   return {
     useAllStatements,
     useStatementsByPredicate,
@@ -351,5 +367,6 @@ export function useStatements() {
     useCreateProcessFlow,
     useFindAllRelationships,
     useObjectRelationships,
+    useDeleteStatement,
   }
 }

@@ -11,9 +11,7 @@ import {
   ChevronRight,
   ChevronDown,
   Shield,
-  Calendar,
   Hash,
-  AlertTriangle,
   CheckCircle,
   User,
 } from 'lucide-react'
@@ -33,29 +31,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   CopyButton,
+  CommandCenter,
+  useCommandCenter,
 } from '@/components/ui'
-import { CommandCenter, useCommandCenter } from '@/components/ui/command-center'
 import { cn } from '@/lib/utils'
-import {
-  useAuthStore,
-  authSelectors,
-  useSearchStore,
-  searchSelectors,
-} from '@/stores'
+import { useAuth, useSearch } from '@/contexts'
 import { APP_ACRONYM, NAV_ITEMS } from '@/constants'
 
 export default function Navbar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMac, setIsMac] = useState(false)
-  const userInfo = useAuthStore(authSelectors.userInfo)
-  const logout = useAuthStore((state) => state.logout)
-  const searchQuery = useSearchStore((state) => state.query)
-  const isSearching = useSearchStore(searchSelectors.isSearching)
-  const isSearchMode = useSearchStore(searchSelectors.isSearchMode)
-  const executeAdvancedSearch = useSearchStore(
-    (state) => state.executeAdvancedSearch
-  )
+  const { userInfo, logout } = useAuth()
+  const { searchQuery, isSearching, isSearchMode, executeSearchFromParsed } =
+    useSearch()
 
   // Command center state
   const { open: commandCenterOpen, setOpen: setCommandCenterOpen } =
@@ -150,7 +139,7 @@ export default function Navbar() {
                       <User className="h-4 w-4 text-primary" />
                       <div className="flex flex-col items-start text-left">
                         <span className="text-sm font-medium max-w-32 truncate leading-tight">
-                          {userInfo?.userUUID?.substring(0, 8) || 'User'}
+                          {userInfo?.certificateInfo.subjectFields.CN || 'User'}
                         </span>
                       </div>
                       <ChevronDown className="h-3 w-3 text-muted-foreground ml-1" />
@@ -164,7 +153,8 @@ export default function Navbar() {
                         </div>
                         <div className="flex flex-col space-y-1">
                           <p className="text-sm font-semibold leading-none">
-                            {userInfo?.userUUID?.substring(0, 8) || 'User'}
+                            {userInfo?.certificateInfo.subjectFields.CN ||
+                              'User'}
                           </p>
                           <div className="flex items-center gap-1">
                             <Shield className="h-3 w-3 text-green-600" />
@@ -307,7 +297,7 @@ export default function Navbar() {
                   <div className="border-t bg-muted/20 p-4 space-y-3">
                     <div>
                       <div className="text-sm font-semibold text-foreground">
-                        {userInfo?.userUUID?.substring(0, 8) || 'User'}
+                        {userInfo?.certificateInfo.subjectFields.CN || 'User'}
                       </div>
                       <div className="flex items-center gap-1 mt-0.5">
                         <Shield className="h-3 w-3 text-green-600" />
@@ -361,7 +351,7 @@ export default function Navbar() {
       <CommandCenter
         open={commandCenterOpen}
         onOpenChange={setCommandCenterOpen}
-        onSearch={executeAdvancedSearch}
+        onSearch={executeSearchFromParsed}
         initialQuery={isSearchMode ? searchQuery : ''}
       />
     </>

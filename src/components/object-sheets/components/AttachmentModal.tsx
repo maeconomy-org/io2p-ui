@@ -21,9 +21,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui'
 import type { Attachment } from '@/types'
-import { getUploadService } from '@/lib/upload-service'
+import { useIomSdkClient } from '@/contexts'
+import { useUploadService } from '@/lib/upload-service'
 import { logger } from '@/lib'
-import { useSDKStore, sdkSelectors } from '@/stores'
 
 import { AttachmentSection } from './AttachmentSection'
 
@@ -60,7 +60,8 @@ export function AttachmentModal({
 }: AttachmentModalProps) {
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([])
   const [showUploadConfirm, setShowUploadConfirm] = useState(false)
-  const client = useSDKStore(sdkSelectors.client)
+  const client = useIomSdkClient()
+  const uploadService = useUploadService()
   const initialAttachmentsRef = useRef<Attachment[]>([])
 
   // Capture initial state only when modal opens (not when attachments change)
@@ -112,7 +113,6 @@ export function AttachmentModal({
     }
 
     // Start uploads in background
-    const uploadService = getUploadService()
     const filesToUpload = getUploadableAttachments(pendingAttachments)
 
     if (filesToUpload.length > 0) {

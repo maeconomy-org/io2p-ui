@@ -189,6 +189,14 @@ export function ObjectDetailsSheet({
     resetDeleteSuccess,
   } = useUnifiedDelete()
 
+  // Close sheet after successful delete
+  useEffect(() => {
+    if (wasDeleteSuccessful) {
+      onClose()
+      resetDeleteSuccess() // Reset the success state for next time
+    }
+  }, [wasDeleteSuccessful, onClose, resetDeleteSuccess])
+
   // File management handlers - now simplified since AttachmentModal handles uploads
   const handleObjectFilesChange = (newAttachments: Attachment[]) => {
     setObjectFiles(newAttachments)
@@ -217,7 +225,7 @@ export function ObjectDetailsSheet({
     try {
       await saveMetadata()
       setActiveEditingSection(null)
-    } catch (error) {
+    } catch {
       // Error handling is done in the hook
     }
   }
@@ -230,7 +238,7 @@ export function ObjectDetailsSheet({
         refetchAggregate()
       }
       setActiveEditingSection(null)
-    } catch (error) {
+    } catch {
       // Error handling is done in the hook
     }
   }
@@ -239,7 +247,7 @@ export function ObjectDetailsSheet({
     try {
       await saveAddress()
       setActiveEditingSection(null)
-    } catch (error) {
+    } catch {
       // Error handling is done in the hook
     }
   }
@@ -248,7 +256,7 @@ export function ObjectDetailsSheet({
     try {
       await saveParents()
       setActiveEditingSection(null)
-    } catch (error) {
+    } catch {
       // Error handling is done in the hook
     }
   }
@@ -341,14 +349,6 @@ export function ObjectDetailsSheet({
       logger.error('Error reverting object:', error)
     }
   }
-
-  // Close sheet after successful delete
-  useEffect(() => {
-    if (wasDeleteSuccessful) {
-      onClose()
-      resetDeleteSuccess() // Reset the success state for next time
-    }
-  }, [wasDeleteSuccessful, onClose, resetDeleteSuccess])
 
   // Get computed values
   const objectName = getObjectDisplayName(object)

@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { FOOTER_LINKS, APP_NAME } from '@/constants'
-import { FileText } from 'lucide-react'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
@@ -21,7 +20,6 @@ export default function Footer() {
               href="/import-status"
               className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
-              <FileText className="h-4 w-4" />
               Import Status
             </Link>
 

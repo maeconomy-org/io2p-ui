@@ -40,6 +40,7 @@ export function HereAddressAutocomplete({
 
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line no-undef
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Update query when value prop changes

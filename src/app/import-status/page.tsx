@@ -1,201 +1,382 @@
 'use client'
 
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
 import {
-  FileText,
-  Clock,
-  CheckCircle,
+  Loader2,
+  CheckCircle2,
   XCircle,
   AlertCircle,
+  RefreshCcw,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  ArrowLeft,
 } from 'lucide-react'
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui'
-import { ImportStatusTracker } from '@/components/import/import-status-tracker'
-import { useImportJobStore, importJobSelectors, type ImportJob } from '@/stores'
+import { Button, Progress } from '@/components/ui'
+import { useImportManager } from '@/hooks'
+
+// Job status icon component
+function JobStatusIcon({ status }: { status: string }) {
+  switch (status) {
+    case 'pending':
+      return <AlertCircle className="h-4 w-4 text-yellow-500" />
+    case 'receiving':
+    case 'processing':
+      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+    case 'completed':
+      return <CheckCircle2 className="h-4 w-4 text-green-500" />
+    case 'completed_with_errors':
+      return <AlertCircle className="h-4 w-4 text-yellow-500" />
+    case 'failed':
+      return <XCircle className="h-4 w-4 text-red-500" />
+    default:
+      return <AlertCircle className="h-4 w-4 text-gray-400" />
+  }
+}
+
+// Format date helper
+function formatDate(timestamp: number | null): string {
+  if (!timestamp) return 'N/A'
+  return new Date(timestamp).toLocaleString()
+}
+
+// Format job title
+function formatJobTitle(job: any): string {
+  const shortId = job.jobId.substring(0, 8)
+  const statusText =
+    job.status.charAt(0).toUpperCase() + job.status.slice(1).replace('_', ' ')
+  return `Import Job ${shortId} - ${statusText}`
+}
 
 export default function ImportStatusPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const jobId = searchParams.get('jobId')
+  const initialJobId = searchParams.get('jobId')
 
-  // Get all import jobs for the current user
-  const jobs = useImportJobStore(importJobSelectors.jobs)
+  // Use unified import manager hook
+  const {
+    jobs,
+    jobsLoading,
+    jobsError,
+    refreshJobs,
+    selectedJob,
+    selectedJobLoading,
+    selectedJobError,
+    refreshSelectedJob,
+    isAutoRefreshing,
+    toggleAutoRefresh,
+    selectJob,
+    selectedJobId,
+  } = useImportManager(initialJobId)
 
-  // Load jobs on mount
+  // Check if we should redirect to objects page after completion
   useEffect(() => {
-    // The store already manages jobs, but we can trigger a refresh if needed
-    // For now, we'll use the existing jobs in the store
-  }, [])
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-5 w-5 text-green-600" />
-      case 'failed':
-        return <XCircle className="h-5 w-5 text-red-600" />
-      case 'processing':
-        return <Clock className="h-5 w-5 text-blue-600 animate-spin" />
-      case 'starting':
-      case 'pending':
-        return <AlertCircle className="h-5 w-5 text-yellow-600" />
-      default:
-        return <FileText className="h-5 w-5 text-gray-600" />
+    if (selectedJob?.status === 'completed') {
+      const shouldRedirect = searchParams.get('redirect') === 'true'
+      if (shouldRedirect) {
+        const timer = setTimeout(() => {
+          router.push('/objects')
+        }, 3000)
+        return () => clearTimeout(timer)
+      }
     }
-  }
+  }, [selectedJob, router, searchParams])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'text-green-700 bg-green-50 border-green-200'
-      case 'failed':
-        return 'text-red-700 bg-red-50 border-red-200'
-      case 'processing':
-        return 'text-blue-700 bg-blue-50 border-blue-200'
-      case 'starting':
-      case 'pending':
-        return 'text-yellow-700 bg-yellow-50 border-yellow-200'
-      default:
-        return 'text-gray-700 bg-gray-50 border-gray-200'
+  // Toggle job expansion
+  const toggleJob = (jobId: string) => {
+    if (selectedJobId === jobId) {
+      selectJob(null)
+      // Clear jobId from URL
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete('jobId')
+      window.history.replaceState({}, '', newUrl.toString())
+    } else {
+      selectJob(jobId)
+      // Update URL with jobId
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.set('jobId', jobId)
+      window.history.replaceState({}, '', newUrl.toString())
     }
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Import Status
-          </h1>
-          <p className="text-gray-600">
-            Track the progress of your import jobs and view detailed status
-            information.
-          </p>
-        </div>
-
-        {/* Specific Job Tracker (if jobId provided) */}
-        {jobId && (
-          <div className="mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Import Job Details</CardTitle>
-                <CardDescription>Tracking job: {jobId}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ImportStatusTracker />
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* All User Jobs */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Your Import Jobs
-            </CardTitle>
-            <CardDescription>
-              All import jobs initiated by your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {jobs.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  No Import Jobs Found
-                </h3>
-                <p className="text-gray-600">
-                  You haven't started any import jobs yet. Visit the{' '}
-                  <a
-                    href="/import"
-                    className="text-blue-600 hover:text-blue-800 underline"
-                  >
-                    import page
-                  </a>{' '}
-                  to get started.
+    <div className="min-h-screen bg-gray-50/50">
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/import">
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Import
+                </Button>
+              </Link>
+              <div className="h-6 w-px bg-border" />
+              <div>
+                <h1 className="text-xl font-semibold flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Import Jobs
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {jobs.length} job{jobs.length !== 1 ? 's' : ''} found
                 </p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {jobs.map((job: ImportJob) => (
-                  <div
-                    key={job.id}
-                    className={`p-4 rounded-lg border ${getStatusColor(job.status)}`}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshJobs}
+              disabled={jobsLoading}
+              className="gap-2"
+            >
+              <RefreshCcw
+                className={`h-4 w-4 ${jobsLoading ? 'animate-spin' : ''}`}
+              />
+              Refresh
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto">
+          {jobsLoading && jobs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">Loading import jobs...</p>
+            </div>
+          ) : jobsError ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="text-center">
+                <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  Failed to load jobs
+                </h3>
+                <p className="text-muted-foreground mb-4">{jobsError}</p>
+                <Button onClick={refreshJobs} variant="outline">
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
+              <h3 className="text-lg font-medium mb-2">No import jobs found</h3>
+              <p className="text-muted-foreground mb-6">
+                Start your first import to see jobs here
+              </p>
+              <Link href="/import">
+                <Button>Start New Import</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {jobs.map((job) => (
+                <div
+                  key={job.jobId}
+                  className="bg-white rounded-lg border shadow-sm overflow-hidden"
+                >
+                  {/* Job Header */}
+                  <button
+                    onClick={() => toggleJob(job.jobId)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors text-left"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(job.status)}
-                        <div>
-                          <h4 className="font-medium">
-                            Job {job.id.substring(0, 8)}...
-                          </h4>
-                          <p className="text-sm opacity-75">
-                            {job.totalItems} objects • Started{' '}
-                            {job.startTime.toLocaleString()}
-                          </p>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <JobStatusIcon status={job.status} />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="font-medium text-sm">
+                          {formatJobTitle(job)}
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium capitalize">
-                          {job.status}
-                        </div>
-                        {job.status === 'processing' && (
-                          <div className="text-xs opacity-75">
-                            {job.processedItems}/{job.totalItems} processed
-                          </div>
-                        )}
                       </div>
                     </div>
-
-                    {/* Progress Bar */}
-                    {job.status === 'processing' && job.totalItems > 0 && (
-                      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{
-                            width: `${(job.processedItems / job.totalItems) * 100}%`,
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Error Message */}
-                    {job.status === 'failed' && job.error && (
-                      <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-sm text-red-700">
-                        <strong>Error:</strong> {job.error}
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-3">
-                      <a
-                        href={`/import-status?jobId=${job.id}`}
-                        className="text-sm px-3 py-1 bg-white border border-current rounded hover:bg-gray-50 transition-colors"
-                      >
-                        View Details
-                      </a>
-                      {job.status === 'completed' && (
-                        <a
-                          href={`/objects`}
-                          className="text-sm px-3 py-1 bg-white border border-current rounded hover:bg-gray-50 transition-colors"
-                        >
-                          View Objects
-                        </a>
+                    <div className="flex-shrink-0 ml-4">
+                      {selectedJobId === job.jobId ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  </button>
+
+                  {/* Expanded Details */}
+                  {selectedJobId === job.jobId && (
+                    <div className="border-t bg-gray-50/30">
+                      {selectedJobLoading ? (
+                        <div className="flex justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                      ) : selectedJobError ? (
+                        <div className="p-6 text-center">
+                          <p className="text-destructive mb-4">
+                            {selectedJobError}
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={refreshSelectedJob}
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      ) : selectedJob ? (
+                        <div className="p-6 space-y-6">
+                          {/* Progress Section */}
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Progress
+                              </span>
+                              <span className="text-lg font-semibold">
+                                {Math.round(
+                                  (selectedJob.processed /
+                                    (selectedJob.total || 1)) *
+                                    100
+                                )}
+                                %
+                              </span>
+                            </div>
+                            <Progress
+                              value={
+                                (selectedJob.processed /
+                                  (selectedJob.total || 1)) *
+                                100
+                              }
+                              className="h-3"
+                            />
+                          </div>
+
+                          {/* Details Grid */}
+                          <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                              <div>
+                                <div className="text-sm font-medium text-muted-foreground mb-1">
+                                  Started
+                                </div>
+                                <div className="text-sm">
+                                  {formatDate(selectedJob.createdAt)}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-muted-foreground mb-1">
+                                  Total Objects
+                                </div>
+                                <div className="text-sm font-medium">
+                                  {selectedJob.total.toLocaleString()}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-muted-foreground mb-1">
+                                  Successful
+                                </div>
+                                <div className="text-sm font-medium text-green-600">
+                                  {(
+                                    selectedJob.processed - selectedJob.failed
+                                  ).toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              <div>
+                                <div className="text-sm font-medium text-muted-foreground mb-1">
+                                  Completed
+                                </div>
+                                <div className="text-sm">
+                                  {formatDate(selectedJob.completedAt)}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-muted-foreground mb-1">
+                                  Failed
+                                </div>
+                                <div className="text-sm font-medium text-destructive">
+                                  {selectedJob.failed.toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Error Display */}
+                          {selectedJob.error && (
+                            <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-md">
+                              <div className="text-sm font-medium text-destructive mb-2">
+                                Error Details
+                              </div>
+                              <div className="text-sm text-destructive/80">
+                                {selectedJob.error}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Actions */}
+                          <div className="flex items-center justify-between pt-4 border-t">
+                            <div className="flex gap-3">
+                              {(selectedJob.status === 'completed' ||
+                                selectedJob.status ===
+                                  'completed_with_errors') && (
+                                <Link href="/objects">
+                                  <Button size="sm">View Objects</Button>
+                                </Link>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {['pending', 'receiving', 'processing'].includes(
+                                selectedJob.status
+                              ) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={toggleAutoRefresh}
+                                  className={
+                                    isAutoRefreshing
+                                      ? 'text-primary border-primary'
+                                      : ''
+                                  }
+                                >
+                                  <RefreshCcw
+                                    className={`h-3 w-3 mr-2 ${isAutoRefreshing ? 'animate-spin' : ''}`}
+                                  />
+                                  {isAutoRefreshing
+                                    ? 'Auto-refreshing'
+                                    : 'Auto-refresh'}
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={refreshSelectedJob}
+                              >
+                                Refresh
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Job ID */}
+                          <div className="pt-4 border-t">
+                            <div className="text-xs text-muted-foreground">
+                              <span className="font-medium">Job ID:</span>{' '}
+                              <code className="font-mono bg-muted px-1 py-0.5 rounded text-xs">
+                                {selectedJob.jobId}
+                              </code>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 text-center text-muted-foreground">
+                          <p>Loading job details...</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

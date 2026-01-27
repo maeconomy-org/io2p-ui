@@ -15,6 +15,7 @@ import {
 import { logger } from '@/lib/logger'
 import { API_CHUNK_SIZE } from '@/constants'
 import { processImportJob } from '@/lib/import-processor'
+import { getUserUUIDFromJWT } from '@/lib/jwt-utils'
 
 /**
  * Bulk import API route - handles JSON data from UI
@@ -85,9 +86,15 @@ export async function POST(req: Request) {
       )
     }
 
-    // For rate limiting, we'll use a placeholder userUUID from JWT
-    // In a real implementation, you'd decode the JWT to get the actual userUUID
-    const userUUID = 'jwt-user' // TODO: Decode JWT to get actual userUUID
+    // Extract userUUID from JWT token
+    const userUUID = getUserUUIDFromJWT(jwtToken)
+    if (!userUUID) {
+      logger.security('invalid_jwt_payload', { clientId })
+      return NextResponse.json(
+        { error: 'Invalid JWT token: unable to extract user information' },
+        { status: 401 }
+      )
+    }
 
     // Check rate limiting
     const rateLimitCheck = await checkImportRateLimit(clientId, userUUID)

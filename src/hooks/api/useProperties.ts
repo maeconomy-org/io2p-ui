@@ -1,13 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UUPropertyDTO, UUPropertyValueDTO, QueryParams } from 'iom-sdk'
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 
 export function useProperties() {
-  const client = useSDKStore(sdkSelectors.client)
-
-  if (!client) {
-    throw new Error('SDK client not initialized')
-  }
+  const client = useIomSdkClient()
   const queryClient = useQueryClient()
 
   // Get all properties using the unified API

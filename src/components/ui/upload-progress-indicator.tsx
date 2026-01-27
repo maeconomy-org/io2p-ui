@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronUp, ChevronDown, Upload, AlertTriangle } from 'lucide-react'
-import { getUploadService } from '@/lib/upload-service'
-import { useSDKStore, sdkSelectors } from '@/stores'
+
+import { useUploadService } from '@/lib/upload-service'
 import { Button, Card, Progress } from '@/components/ui'
 
 export function UploadProgressIndicator() {
@@ -15,15 +15,10 @@ export function UploadProgressIndicator() {
     isProcessing: false,
   })
 
-  const client = useSDKStore(sdkSelectors.client)
-  const isInitialized = useSDKStore(sdkSelectors.isInitialized)
+  const uploadService = useUploadService()
 
   useEffect(() => {
-    if (!client || !isInitialized) return
-
     try {
-      const uploadService = getUploadService()
-
       // Poll upload status every 500ms
       const interval = setInterval(() => {
         try {
@@ -55,7 +50,7 @@ export function UploadProgressIndicator() {
       // Upload service not available - this is fine
       console.debug('Upload service initialization failed:', error)
     }
-  }, [client])
+  }, [uploadService])
 
   // Don't show if no uploads are happening
   if (

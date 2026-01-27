@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { useSDKStore, sdkSelectors } from '@/stores'
+import { useIomSdkClient } from '@/contexts'
 
 /**
  * Import API object structure based on the provided schema
@@ -69,7 +69,7 @@ export interface ImportResult {
  * Hook for using the import API directly from client-side
  */
 export function useImportApi() {
-  const client = useSDKStore(sdkSelectors.client)
+  const client = useIomSdkClient()
 
   const importSingleObject = useMutation({
     mutationFn: async (objectData: ImportObjectData): Promise<any> => {

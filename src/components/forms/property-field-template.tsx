@@ -1,12 +1,6 @@
-import {
-  Control,
-  Controller,
-  useFieldArray,
-  useFormContext,
-} from 'react-hook-form'
+import { Control, useFieldArray } from 'react-hook-form'
 import { PlusIcon, XIcon } from 'lucide-react'
 
-import { useState } from 'react'
 import {
   Button,
   Input,
@@ -30,7 +24,6 @@ export function PropertyFieldTemplate({
   index,
   onRemove,
 }: PropertyFieldTemplateProps) {
-  const { setValue, getValues } = useFormContext()
   const valuesName = `${name}.values`
 
   const {

@@ -111,7 +111,7 @@ const initialData = [
 ]
 
 export function HierarchyTable() {
-  const [data, setData] = useState(initialData)
+  const [data] = useState(initialData)
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({
     1: true,
   })
