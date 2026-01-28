@@ -15,14 +15,6 @@ export default function Footer() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            {/* Import Status Link */}
-            <Link
-              href="/import-status"
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
-            >
-              Import Status
-            </Link>
-
             {FOOTER_LINKS.map((link) => (
               <Link
                 key={link.path}

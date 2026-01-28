@@ -20,6 +20,8 @@ import { getUserUUIDFromJWT } from '@/lib/jwt-utils'
  * Uses JWT token for authentication (passed in Authorization header)
  */
 export async function POST(req: Request) {
+  let body: any = {}
+
   try {
     // Validate basic request properties
     const basicValidation = validateRequestBasics(req)
@@ -47,7 +49,7 @@ export async function POST(req: Request) {
     const jwtToken = authorization.substring(7) // Remove 'Bearer ' prefix
 
     // Parse the request body
-    const body = await req.json()
+    body = await req.json()
     const { aggregateEntityList, total, chunkIndex, totalChunks, sessionId } =
       body // No user object needed - JWT contains user info
 
@@ -171,7 +173,20 @@ export async function POST(req: Request) {
       totalChunks,
     })
   } catch (error: any) {
-    logger.import('Chunk import API failed', { error: error.message }, 'error')
+    const errorContext = {
+      error: error.message,
+      errorStack: error.stack,
+      timestamp: new Date().toISOString(),
+      redisUrl: process.env.REDIS_URL ? 'configured' : 'missing',
+      nodeApiUrl: process.env.NODE_API_URL ? 'configured' : 'missing',
+      requestSize: req.headers.get('content-length') || 'unknown',
+      userAgent: req.headers.get('user-agent') || 'unknown',
+      chunkIndex: body?.chunkIndex || 'unknown',
+      totalChunks: body?.totalChunks || 'unknown',
+      sessionId: body?.sessionId || 'unknown',
+    }
+
+    logger.import('Chunk import API failed', errorContext, 'error')
     return NextResponse.json(
       { error: 'Failed to upload chunk' },
       { status: 500 }
@@ -181,27 +196,52 @@ export async function POST(req: Request) {
 
 // Function to start processing in the background
 async function startProcessing(jobId: string) {
-  const redis = getRedis()
+  try {
+    const redis = getRedis()
 
-  // Update job status to processing
-  await redis.hset(`import:${jobId}`, { status: 'processing' })
-
-  // Process the job in the background
-  setImmediate(() => {
-    processImportJob(jobId).catch((error) => {
-      logger.import(
-        'Background job failed',
-        { jobId, error: error.message },
-        'error'
-      )
-      redis
-        .hset(`import:${jobId}`, {
-          status: 'failed',
-          error: error.message,
-        })
-        .catch(() =>
-          logger.import('Job status update failed', { jobId }, 'error')
-        )
+    // Test Redis connection before processing
+    await redis.ping()
+    logger.import('Redis connection verified for chunk job processing', {
+      jobId,
     })
-  })
+
+    // Update job status to processing
+    await redis.hset(`import:${jobId}`, { status: 'processing' })
+
+    // Process the job in the background
+    setImmediate(() => {
+      processImportJob(jobId).catch((error) => {
+        const errorContext = {
+          jobId,
+          error: error.message,
+          errorStack: error.stack,
+          timestamp: new Date().toISOString(),
+          source: 'chunk_import',
+        }
+
+        logger.import('Background chunk job failed', errorContext, 'error')
+
+        // Update job status to failed
+        redis
+          .hset(`import:${jobId}`, {
+            status: 'failed',
+            error: error.message,
+            failedAt: Date.now().toString(),
+          })
+          .catch(() =>
+            logger.import('Job status update failed', { jobId }, 'error')
+          )
+      })
+    })
+  } catch (error) {
+    logger.import(
+      'Failed to start chunk background processing',
+      {
+        jobId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      },
+      'error'
+    )
+  }
 }

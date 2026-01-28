@@ -182,7 +182,17 @@ export async function POST(req: Request) {
 
     return NextResponse.json(response)
   } catch (error: any) {
-    logger.import('Import API failed', { error: error.message }, 'error')
+    const errorContext = {
+      error: error.message,
+      errorStack: error.stack,
+      timestamp: new Date().toISOString(),
+      redisUrl: process.env.REDIS_URL ? 'configured' : 'missing',
+      nodeApiUrl: process.env.NODE_API_URL ? 'configured' : 'missing',
+      requestSize: req.headers.get('content-length') || 'unknown',
+      userAgent: req.headers.get('user-agent') || 'unknown',
+    }
+
+    logger.import('Import API failed', errorContext, 'error')
     return NextResponse.json(
       { error: 'Failed to start import job' },
       { status: 500 }
@@ -192,29 +202,51 @@ export async function POST(req: Request) {
 
 // Function to start processing in the background
 async function startProcessing(jobId: string) {
-  const redis = getRedis()
+  try {
+    const redis = getRedis()
 
-  // Update job status to processing
-  await redis.hset(`import:${jobId}`, { status: 'processing' })
+    // Test Redis connection before processing
+    await redis.ping()
+    logger.import('Redis connection verified for job processing', { jobId })
 
-  // Process the job in the background
-  // We're using setImmediate to make it non-blocking
-  setImmediate(() => {
-    processImportJob(jobId).catch((error) => {
-      logger.import(
-        'Background job failed',
-        { jobId, error: error.message },
-        'error'
-      )
-      // Update job status to failed
-      redis
-        .hset(`import:${jobId}`, {
-          status: 'failed',
+    // Update job status to processing
+    await redis.hset(`import:${jobId}`, { status: 'processing' })
+
+    // Process the job in the background
+    // We're using setImmediate to make it non-blocking
+    setImmediate(() => {
+      processImportJob(jobId).catch((error) => {
+        const errorContext = {
+          jobId,
           error: error.message,
-        })
-        .catch(() =>
-          logger.import('Job status update failed', { jobId }, 'error')
-        )
+          errorStack: error.stack,
+          timestamp: new Date().toISOString(),
+          redisConnected: 'unknown',
+        }
+
+        logger.import('Background job failed', errorContext, 'error')
+
+        // Update job status to failed
+        redis
+          .hset(`import:${jobId}`, {
+            status: 'failed',
+            error: error.message,
+            failedAt: Date.now().toString(),
+          })
+          .catch(() =>
+            logger.import('Job status update failed', { jobId }, 'error')
+          )
+      })
     })
-  })
+  } catch (error) {
+    logger.import(
+      'Failed to start background processing',
+      {
+        jobId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      },
+      'error'
+    )
+  }
 }

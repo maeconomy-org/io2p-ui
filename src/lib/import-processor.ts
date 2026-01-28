@@ -8,6 +8,13 @@ export async function processImportJob(jobId: string) {
   const redis = getRedis()
 
   try {
+    // Test Redis connection at start of job processing
+    await redis.ping()
+    logger.import('Redis connection verified for import job processing', {
+      jobId,
+      timestamp: new Date().toISOString(),
+    })
+
     // Get job metadata
     const jobData = await redis.hgetall(REDIS_KEYS.job(jobId))
 
@@ -45,6 +52,15 @@ export async function processImportJob(jobId: string) {
       })
       return
     }
+
+    // Log API configuration for debugging
+    logger.import('Node API configuration', {
+      jobId,
+      nodeApiUrl: nodeApiUrl.replace(/\/\/.*@/, '//***@'), // Hide credentials if any
+      endpoint: `${nodeApiUrl}/api/Aggregate/Import`,
+      hasJwtToken: !!jwtToken,
+      jwtTokenLength: jwtToken?.length || 0,
+    })
 
     // Use constants for configuration
     const requestDelay = API_REQUEST_DELAY
@@ -88,6 +104,16 @@ export async function processImportJob(jobId: string) {
 
       try {
         // Call the Node API bulk import endpoint directly
+        logger.import(
+          `Calling Node API for batch ${Math.floor(i / batchSize) + 1}`,
+          {
+            jobId,
+            nodeApiUrl,
+            batchSize: batch.length,
+            endpoint: `${nodeApiUrl}/api/Aggregate/Import`,
+          }
+        )
+
         const response = await fetch(`${nodeApiUrl}/api/Aggregate/Import`, {
           method: 'POST',
           headers: {
@@ -97,13 +123,45 @@ export async function processImportJob(jobId: string) {
           body: JSON.stringify(batch),
         })
 
+        logger.import(`Node API response received`, {
+          jobId,
+          batchIndex: Math.floor(i / batchSize),
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries()),
+        })
+
         if (!response.ok) {
           const errorData = await response
             .json()
             .catch(() => ({ error: 'Unknown error' }))
-          throw new Error(
+
+          const apiError = new Error(
             errorData.error || `API call failed with status ${response.status}`
           )
+
+          // Add detailed API error context
+          logger.import(
+            `Node API call failed`,
+            {
+              jobId,
+              batchIndex: Math.floor(i / batchSize),
+              nodeApiUrl,
+              endpoint: `${nodeApiUrl}/api/Aggregate/Import`,
+              httpStatus: response.status,
+              statusText: response.statusText,
+              responseHeaders: Object.fromEntries(response.headers.entries()),
+              errorData,
+              requestHeaders: {
+                'Content-Type': 'application/json',
+                Authorization: 'Bearer [REDACTED]',
+              },
+            },
+            'error'
+          )
+
+          throw apiError
         }
 
         // Update progress
@@ -129,21 +187,42 @@ export async function processImportJob(jobId: string) {
         }
       } catch (error: any) {
         failed += batch.length
+
+        // Enhanced error logging with detailed context for Sentry
+        const errorContext = {
+          jobId,
+          batchIndex: Math.floor(i / batchSize),
+          batchSize: batch.length,
+          batchStartIndex: i,
+          batchEndIndex: i + batch.length - 1,
+          totalObjects: allObjects.length,
+          processed,
+          failed,
+          nodeApiUrl,
+          error: error.message,
+          errorStack: error.stack,
+          httpStatus: error.status || 'unknown',
+          timestamp: new Date().toISOString(),
+          // Add sample of failed objects for debugging (first 3 objects)
+          sampleObjects: batch.slice(0, 3).map((obj) => ({
+            id: obj.id || 'no-id',
+            type: obj.type || 'unknown',
+            hasRequiredFields: !!(obj.id && obj.type),
+          })),
+        }
+
         logger.import(
           `Batch processing failed for job ${jobId}`,
-          {
-            jobId,
-            batchIndex: Math.floor(i / batchSize),
-            batchSize: batch.length,
-            error: error.message,
-          },
+          errorContext,
           'error'
         )
 
-        // Update failed count
+        // Update failed count with more detailed error info
         await hsetWithTTL(REDIS_KEYS.job(jobId), {
           failed: failed.toString(),
           lastError: error.message,
+          lastErrorTimestamp: Date.now().toString(),
+          lastErrorBatch: Math.floor(i / batchSize).toString(),
         })
 
         // Continue processing other batches even if one fails
@@ -170,26 +249,67 @@ export async function processImportJob(jobId: string) {
       status: finalStatus,
       processed,
       failed,
-      total: allObjects.length,
+      totalObjects: allObjects.length,
+      completedAt: new Date().toISOString(),
     })
   } catch (error: any) {
-    logger.import(
-      `Import job ${jobId} failed with error`,
-      { jobId, error: error.message },
-      'error'
-    )
-
-    // Mark job as failed
-    await hsetWithTTL(REDIS_KEYS.job(jobId), {
-      status: 'failed',
+    // Enhanced error logging for job-level failures
+    const jobErrorContext = {
+      jobId,
       error: error.message,
-      failedAt: Date.now().toString(),
-    })
+      errorStack: error.stack,
+      timestamp: new Date().toISOString(),
+      redisConnected: 'unknown',
+      nodeApiUrl: process.env.NODE_API_URL ? 'configured' : 'missing',
+      jobPhase: 'unknown', // Will be updated based on where the error occurred
+    }
 
-    // Untrack the job for the user
-    const jobData = await redis.hgetall(REDIS_KEYS.job(jobId))
-    if (jobData.userUUID) {
-      await untrackUserJob(jobData.userUUID, jobId)
+    // Try to determine what phase failed
+    if (
+      error.message.includes('Redis') ||
+      error.message.includes('ECONNREFUSED')
+    ) {
+      jobErrorContext.jobPhase = 'redis_connection'
+    } else if (
+      error.message.includes('JWT') ||
+      error.message.includes('token')
+    ) {
+      jobErrorContext.jobPhase = 'authentication'
+    } else if (
+      error.message.includes('API') ||
+      error.message.includes('fetch')
+    ) {
+      jobErrorContext.jobPhase = 'api_communication'
+    } else if (error.message.includes('chunk')) {
+      jobErrorContext.jobPhase = 'data_retrieval'
+    } else {
+      jobErrorContext.jobPhase = 'general_processing'
+    }
+
+    logger.import(`Import job ${jobId} failed`, jobErrorContext, 'error')
+
+    // Try to update job status to failed, but don't fail if Redis is down
+    try {
+      await hsetWithTTL(REDIS_KEYS.job(jobId), {
+        status: 'failed',
+        error: error.message,
+        failedAt: Date.now().toString(),
+        errorPhase: jobErrorContext.jobPhase,
+      })
+    } catch (redisError) {
+      logger.import(
+        'Failed to update job status in Redis',
+        {
+          jobId,
+          originalError: error.message,
+          redisError:
+            redisError instanceof Error
+              ? redisError.message
+              : 'Unknown Redis error',
+          timestamp: new Date().toISOString(),
+        },
+        'error'
+      )
     }
   }
 }

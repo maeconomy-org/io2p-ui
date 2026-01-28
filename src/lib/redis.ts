@@ -43,19 +43,62 @@ export function getRedis(): Redis {
     })
 
     redis.on('error', (error) => {
-      logger.error('Redis connection error:', { error: error.message })
+      logger.error('Redis connection error:', {
+        error: error.message,
+        redisUrl: redisUrl.replace(/\/\/.*@/, '//***@'), // Hide credentials
+        timestamp: new Date().toISOString(),
+      })
     })
 
     redis.on('connect', () => {
-      logger.info('Redis connected')
+      logger.info('Redis connected successfully', {
+        redisUrl: redisUrl.replace(/\/\/.*@/, '//***@'), // Hide credentials
+        timestamp: new Date().toISOString(),
+      })
     })
 
     redis.on('ready', () => {
-      logger.info('Redis ready')
+      logger.info('Redis ready and accepting commands', {
+        redisUrl: redisUrl.replace(/\/\/.*@/, '//***@'), // Hide credentials
+        timestamp: new Date().toISOString(),
+      })
+    })
+
+    redis.on('reconnecting', (delay: number) => {
+      logger.warn('Redis reconnecting', {
+        delay,
+        timestamp: new Date().toISOString(),
+      })
+    })
+
+    redis.on('close', () => {
+      logger.warn('Redis connection closed', {
+        timestamp: new Date().toISOString(),
+      })
     })
   }
 
   return redis
+}
+
+// Test Redis connection and log status
+export async function testRedisConnection(): Promise<boolean> {
+  try {
+    const redis = getRedis()
+    await redis.ping()
+    logger.info('Redis connection test successful', {
+      status: 'connected',
+      timestamp: new Date().toISOString(),
+    })
+    return true
+  } catch (error) {
+    logger.error('Redis connection test failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      status: 'failed',
+      timestamp: new Date().toISOString(),
+    })
+    return false
+  }
 }
 
 // Graceful shutdown helper
@@ -63,5 +106,6 @@ export async function closeRedis(): Promise<void> {
   if (redis) {
     await redis.quit()
     redis = null
+    logger.info('Redis connection closed gracefully')
   }
 }
