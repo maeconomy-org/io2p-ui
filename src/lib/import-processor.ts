@@ -203,6 +203,10 @@ export async function processImportJob(jobId: string) {
           errorStack: error.stack,
           httpStatus: error.status || 'unknown',
           timestamp: new Date().toISOString(),
+          // Network-specific error details
+          errorCode: error.code || 'unknown',
+          errorType: error.constructor.name || 'unknown',
+          networkError: error.cause?.message || 'unknown',
           // Add sample of failed objects for debugging (first 3 objects)
           sampleObjects: batch.slice(0, 3).map((obj) => ({
             id: obj.id || 'no-id',

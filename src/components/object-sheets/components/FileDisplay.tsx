@@ -23,6 +23,7 @@ import {
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 
 import { useFilesApi } from '@/hooks'
+import { useIomSdkClient } from '@/contexts'
 import type { FileData } from '@/types'
 
 import { isExternalFileReference, truncateText } from '../utils'
@@ -104,11 +105,50 @@ function getDisplayName(file: FileData): string {
 }
 
 /**
- * Handle file opening - always use fileReference for both types
+ * Handle file opening - use authenticated download for internal files
  */
-function handleFileOpen(file: FileData): void {
-  if (file.fileReference) {
+async function handleFileOpen(file: FileData): Promise<void> {
+  if (!file.fileReference) return
+
+  // For external files, use direct window.open
+  if (isExternalFileReference(file.fileReference)) {
     window.open(file.fileReference, '_blank', 'noopener,noreferrer')
+    return
+  }
+
+  // For internal files, use server-side download endpoint (better for large files)
+  try {
+    const uuidMatch = file.fileReference.match(
+      /\/api\/UUFile\/download\/([^/?]+)/
+    )
+    if (!uuidMatch) {
+      console.error(
+        'Could not extract UUID from fileReference:',
+        file.fileReference
+      )
+      return
+    }
+
+    const uuid = uuidMatch[1]
+
+    // Get auth token from localStorage and pass to API route
+    const authToken = JSON.parse(
+      localStorage.getItem('iom-auth-state') || '{}'
+    ).token
+    if (!authToken) {
+      console.error('No auth token found in localStorage')
+      return
+    }
+
+    // Use server-side download endpoint with auth token
+    const link = document.createElement('a')
+    link.href = `/api/files/download/${uuid}?token=${encodeURIComponent(authToken)}`
+    link.download = getDisplayName(file)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    console.error('Failed to open file:', error)
   }
 }
 
@@ -121,6 +161,7 @@ export function FileDisplay({
 }: FileDisplayProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const icon = getFileIcon(file)
   const typeBadge = getFileTypeBadge(file)
   const displayName = getDisplayName(file)
@@ -129,12 +170,14 @@ export function FileDisplay({
     isPreviewable(file) && !isExternalFileReference(file.fileReference)
   const { useSoftDeleteFile } = useFilesApi()
   const softDeleteFile = useSoftDeleteFile()
+  const client = useIomSdkClient()
 
   const handleClick = () => {
     if (onClick) {
       onClick(file)
     } else if (canPreview) {
       setShowPreview(true)
+      loadPreviewImage()
     } else {
       handleFileOpen(file)
     }
@@ -143,16 +186,86 @@ export function FileDisplay({
   const handlePreview = (e: MouseEvent) => {
     e.stopPropagation()
     setShowPreview(true)
+    loadPreviewImage()
   }
 
-  const handleDownload = () => {
-    if (file.fileReference) {
+  const loadPreviewImage = async () => {
+    if (!file.fileReference || isExternalFileReference(file.fileReference)) {
+      // For external files, use direct URL
+      setPreviewImageUrl(file.fileReference)
+      return
+    }
+
+    // For internal files, fetch with auth
+    try {
+      const uuidMatch = file.fileReference.match(
+        /\/api\/UUFile\/download\/([^/?]+)/
+      )
+      if (!uuidMatch) {
+        console.error(
+          'Could not extract UUID from fileReference:',
+          file.fileReference
+        )
+        return
+      }
+
+      const uuid = uuidMatch[1]
+      const arrayBuffer = await client.node.downloadFile(uuid)
+
+      // Set correct MIME type for preview
+      const mimeType = file.contentType || 'application/octet-stream'
+      const blob = new Blob([arrayBuffer], { type: mimeType })
+      const url = URL.createObjectURL(blob)
+      setPreviewImageUrl(url)
+    } catch (error) {
+      console.error('Failed to load preview image:', error)
+    }
+  }
+
+  const handleDownload = async () => {
+    if (!file.fileReference) return
+
+    // For external references, use direct link (no auth needed)
+    if (isExternalFileReference(file.fileReference)) {
       const link = document.createElement('a')
       link.href = file.fileReference
       link.download = displayName
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      return
+    }
+
+    // For internal files, use SDK with auth
+    try {
+      // Extract UUID from fileReference URL like /api/UUFile/download/uuid
+      const uuidMatch = file.fileReference.match(
+        /\/api\/UUFile\/download\/([^/?]+)/
+      )
+      if (!uuidMatch) {
+        console.error(
+          'Could not extract UUID from fileReference:',
+          file.fileReference
+        )
+        return
+      }
+
+      const uuid = uuidMatch[1]
+      const arrayBuffer = await client.node.downloadFile(uuid)
+
+      // Create blob and download with correct MIME type
+      const mimeType = file.contentType || 'application/octet-stream'
+      const blob = new Blob([arrayBuffer], { type: mimeType })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = displayName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to download file:', error)
     }
   }
 
@@ -235,7 +348,21 @@ export function FileDisplay({
 
       {/* Preview Dialog */}
       {canPreview && (
-        <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <Dialog
+          open={showPreview}
+          onOpenChange={(open) => {
+            setShowPreview(open)
+            if (
+              !open &&
+              previewImageUrl &&
+              !isExternalFileReference(file.fileReference || '')
+            ) {
+              // Clean up blob URL when closing preview for internal files
+              URL.revokeObjectURL(previewImageUrl)
+              setPreviewImageUrl(null)
+            }
+          }}
+        >
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden border-0 bg-black/95 [&>button]:hidden">
             <VisuallyHidden>
               <DialogTitle>File Preview</DialogTitle>
@@ -252,9 +379,9 @@ export function FileDisplay({
 
             {/* Content */}
             <div className="flex items-center justify-center w-full h-[90vh]">
-              {file.fileReference && (
+              {previewImageUrl && (
                 <img
-                  src={file.fileReference}
+                  src={previewImageUrl}
                   alt={displayName}
                   className="max-w-full max-h-full object-contain"
                 />

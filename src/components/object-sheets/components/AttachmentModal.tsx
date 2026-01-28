@@ -137,25 +137,46 @@ export function AttachmentModal({
           })
         })
 
-        // Wait for completion and show results
-        setTimeout(async () => {
-          const status = uploadService.getQueueStatus()
+        // Poll for completion with timeout
+        const maxWaitMs = 60000 // 60 seconds max
+        const pollIntervalMs = 1000
+        let elapsed = 0
 
+        const checkStatus = () => {
+          const status = uploadService.getQueueStatus()
           const completed = status.filter((s) => s.status === 'completed')
           const failed = status.filter((s) => s.status === 'failed')
+          const pending = status.filter(
+            (s) => s.status === 'pending' || s.status === 'uploading'
+          )
 
-          if (completed.length > 0) {
-            toast.success(`${completed.length} files uploaded successfully`, {
-              id: 'file-upload',
-            })
+          // All done or timed out
+          if (pending.length === 0 || elapsed >= maxWaitMs) {
+            if (failed.length > 0) {
+              toast.error(`${failed.length} files failed to upload`, {
+                id: 'file-upload',
+              })
+            } else if (completed.length > 0) {
+              toast.success(`${completed.length} files uploaded successfully`, {
+                id: 'file-upload',
+              })
+            } else if (elapsed >= maxWaitMs) {
+              toast.error('Upload timed out', { id: 'file-upload' })
+            } else {
+              // No files processed - dismiss toast
+              toast.dismiss('file-upload')
+            }
+            onUploadComplete?.()
+            return
           }
-          if (failed.length > 0) {
-            toast.error(`${failed.length} files failed to upload`, {
-              id: 'file-upload',
-            })
-          }
-          onUploadComplete?.()
-        }, 2000)
+
+          // Keep polling
+          elapsed += pollIntervalMs
+          setTimeout(checkStatus, pollIntervalMs)
+        }
+
+        // Start polling after initial delay
+        setTimeout(checkStatus, pollIntervalMs)
       } catch (error) {
         logger.error('Upload error:', {
           error: error instanceof Error ? error.message : String(error),
