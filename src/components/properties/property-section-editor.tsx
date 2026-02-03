@@ -125,9 +125,10 @@ export function PropertySectionEditor({
     const tempId = `temp_${Date.now()}`
 
     // Create a simpler property object with only key and values
+    // Auto-add first empty value so user can immediately fill it in
     const newProperty = {
-      key: `property_${editedProperties.length + 1}`,
-      values: [], // Create with empty values array instead of an empty string value
+      key: '',
+      values: [{ value: '', _needsInput: true }],
       _isNew: true,
       _tempId: tempId, // Use temporary ID for tracking
     }

@@ -5,6 +5,78 @@ const runId = Date.now()
 const getDialogByTitle = (page: Page, title: string) =>
   page.getByRole('dialog').filter({ hasText: title })
 
+const getDeleteConfirmDialog = (page: Page) =>
+  page
+    .getByRole('alertdialog')
+    .or(page.getByRole('dialog').filter({ hasText: /are you sure/i }))
+    .or(page.getByRole('dialog').filter({ hasText: /soft delete/i }))
+
+const setShowDeletedFilter = async (page: Page, enable: boolean) => {
+  const filtersButton = page.getByRole('button', { name: /filters/i })
+  const hasFiltersButton = await filtersButton
+    .isVisible({ timeout: 2000 })
+    .catch(() => false)
+
+  if (hasFiltersButton) {
+    await filtersButton.click()
+    const showDeletedItem = page.getByRole('menuitemcheckbox', {
+      name: /show deleted/i,
+    })
+    await expect(showDeletedItem).toBeVisible({ timeout: 5000 })
+    const checked = await showDeletedItem.getAttribute('aria-checked')
+    const isEnabled = checked === 'true'
+    if (isEnabled !== enable) {
+      await showDeletedItem.click()
+    }
+    await page.keyboard.press('Escape')
+    return true
+  }
+
+  const legacyToggle = page.locator(
+    'input[type="checkbox"]:near(:text("deleted")), button:has-text("Show deleted"), [data-testid*="deleted"]'
+  )
+
+  if ((await legacyToggle.count()) > 0) {
+    const toggle = legacyToggle.first()
+    const role = await toggle.getAttribute('role')
+    const type = await toggle.getAttribute('type')
+    const ariaPressed = await toggle.getAttribute('aria-pressed')
+
+    if (type === 'checkbox') {
+      const isChecked = await toggle.isChecked()
+      if (isChecked !== enable) {
+        await toggle.click()
+      }
+    } else if (role === 'switch' || ariaPressed !== null) {
+      const isPressed = ariaPressed === 'true'
+      if (isPressed !== enable) {
+        await toggle.click()
+      }
+    } else if (enable) {
+      await toggle.click()
+    }
+
+    return true
+  }
+
+  return false
+}
+
+const expectDeletedIndicator = async (row: ReturnType<Page['locator']>) => {
+  const deletedLabelVisible = await row
+    .getByText(/\(deleted\)/i)
+    .first()
+    .isVisible({ timeout: 2000 })
+    .catch(() => false)
+  const deletedStrikeVisible = await row
+    .locator('.line-through')
+    .first()
+    .isVisible({ timeout: 2000 })
+    .catch(() => false)
+
+  expect(deletedLabelVisible || deletedStrikeVisible).toBeTruthy()
+}
+
 test.describe('Object Soft Delete & Restore', () => {
   test.describe.configure({ mode: 'serial' })
 
@@ -51,9 +123,7 @@ test.describe('Object Soft Delete & Restore', () => {
       await deleteButton.first().click()
 
       // Should show confirmation dialog
-      const confirmDialog = getDialogByTitle(page, 'Delete Object')
-        .or(page.getByRole('dialog').filter({ hasText: 'confirm' }))
-        .or(page.getByRole('dialog').filter({ hasText: 'delete' }))
+      const confirmDialog = getDeleteConfirmDialog(page)
 
       await expect(confirmDialog).toBeVisible({ timeout: 5000 })
 
@@ -63,13 +133,14 @@ test.describe('Object Soft Delete & Restore', () => {
 
       // Try delete again and confirm
       await deleteButton.first().click()
-      await expect(confirmDialog).toBeVisible()
+      await expect(confirmDialog).toBeVisible({ timeout: 5000 })
       await confirmDialog
         .getByRole('button', { name: /delete|yes|confirm/i })
         .click()
 
       // Object should be soft deleted (may disappear from default view)
       await page.waitForTimeout(3000)
+      await expect(row).toBeHidden({ timeout: 10000 })
     }
   })
 
@@ -100,10 +171,15 @@ test.describe('Object Soft Delete & Restore', () => {
     await expect(row).toBeVisible({ timeout: 15000 })
     await row.dblclick()
 
-    await expect(page.getByText(detailsTestName)).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: detailsTestName })
+    ).toBeVisible({ timeout: 10000 })
 
     // Look for delete button in the details sheet
-    const deleteButton = page.locator(
+    const detailsSheet = page
+      .getByRole('dialog')
+      .filter({ has: page.getByRole('heading', { name: detailsTestName }) })
+    const deleteButton = detailsSheet.locator(
       'button:has-text("Delete"), button[title*="Delete"], [data-testid*="delete"]'
     )
 
@@ -111,9 +187,7 @@ test.describe('Object Soft Delete & Restore', () => {
       await deleteButton.first().click()
 
       // Should show confirmation dialog
-      const confirmDialog = getDialogByTitle(page, 'Delete Object')
-        .or(page.getByRole('dialog').filter({ hasText: 'confirm' }))
-        .or(page.getByRole('dialog').filter({ hasText: 'delete' }))
+      const confirmDialog = getDeleteConfirmDialog(page)
 
       await expect(confirmDialog).toBeVisible({ timeout: 5000 })
       await confirmDialog
@@ -122,31 +196,32 @@ test.describe('Object Soft Delete & Restore', () => {
 
       // Should close details and return to list
       await page.waitForTimeout(3000)
+      await expect(
+        page.getByRole('heading', { name: detailsTestName })
+      ).toBeHidden({ timeout: 10000 })
+      await expect(
+        page.locator('tbody tr').filter({ hasText: detailsTestName }).first()
+      ).toBeHidden({ timeout: 10000 })
     }
   })
 
-  test('view deleted objects with filter', async ({ page }) => {
+  test('show deleted filter lists soft-deleted objects', async ({ page }) => {
     await page.goto('/objects')
     await page.waitForLoadState('networkidle')
 
     // Look for "Show deleted" filter/toggle
-    const showDeletedToggle = page.locator(
-      'input[type="checkbox"]:near(:text("deleted")), button:has-text("Show deleted"), [data-testid*="deleted"]'
-    )
-
-    if ((await showDeletedToggle.count()) > 0) {
-      await showDeletedToggle.first().click()
-
+    if (await setShowDeletedFilter(page, true)) {
       // Should now show deleted objects
       await page.waitForTimeout(2000)
 
-      // Look for deleted indicator (strikethrough, badge, etc.)
-      const deletedIndicators = page.locator(
-        'text=/deleted|removed/, .line-through, [data-deleted="true"]'
-      )
+      const deletedRow = page
+        .locator('tbody tr')
+        .filter({ hasText: testObjectName })
+        .first()
 
-      if ((await deletedIndicators.count()) > 0) {
-        await expect(deletedIndicators.first()).toBeVisible()
+      if ((await deletedRow.count()) > 0) {
+        await expect(deletedRow).toBeVisible({ timeout: 5000 })
+        await expectDeletedIndicator(deletedRow)
       }
     }
   })
@@ -156,12 +231,7 @@ test.describe('Object Soft Delete & Restore', () => {
     await page.waitForLoadState('networkidle')
 
     // Enable show deleted filter
-    const showDeletedToggle = page.locator(
-      'input[type="checkbox"]:near(:text("deleted")), button:has-text("Show deleted")'
-    )
-
-    if ((await showDeletedToggle.count()) > 0) {
-      await showDeletedToggle.first().click()
+    if (await setShowDeletedFilter(page, true)) {
       await page.waitForTimeout(2000)
 
       // Look for a deleted object to restore
@@ -226,17 +296,7 @@ test.describe('Object Soft Delete & Restore', () => {
     await page.waitForLoadState('networkidle')
 
     // Ensure show deleted is off to see only active objects
-    const showDeletedToggle = page.locator(
-      'input[type="checkbox"]:near(:text("deleted"))'
-    )
-
-    if (
-      (await showDeletedToggle.count()) > 0 &&
-      (await showDeletedToggle.isChecked())
-    ) {
-      await showDeletedToggle.click()
-      await page.waitForTimeout(2000)
-    }
+    await setShowDeletedFilter(page, false)
 
     // Look for the restored object
     const restoredObject = page.getByText(testObjectName)
@@ -254,7 +314,9 @@ test.describe('Object Soft Delete & Restore', () => {
     }
   })
 
-  test('permanent delete confirmation', async ({ page }) => {
+  test('soft delete does not expose permanent delete action', async ({
+    page,
+  }) => {
     // Create object specifically for permanent deletion test
     const permanentDeleteName = `E2E Permanent Delete ${runId}`
 
@@ -287,25 +349,16 @@ test.describe('Object Soft Delete & Restore', () => {
     if ((await deleteButton.count()) > 0) {
       await deleteButton.first().click()
 
-      const confirmDialog = getDialogByTitle(page, 'Delete Object').or(
-        page.getByRole('dialog').filter({ hasText: 'delete' })
-      )
-
-      if (await confirmDialog.isVisible()) {
-        await confirmDialog
-          .getByRole('button', { name: /delete|yes|confirm/i })
-          .click()
-      }
+      const confirmDialog = getDeleteConfirmDialog(page)
+      await expect(confirmDialog).toBeVisible({ timeout: 5000 })
+      await confirmDialog
+        .getByRole('button', { name: /delete|yes|confirm/i })
+        .click()
 
       await page.waitForTimeout(2000)
 
-      // Now look for permanent delete option
-      const showDeletedToggle = page.locator(
-        'input[type="checkbox"]:near(:text("deleted"))'
-      )
-
-      if ((await showDeletedToggle.count()) > 0) {
-        await showDeletedToggle.click()
+      // Verify there is no permanent delete action exposed
+      if (await setShowDeletedFilter(page, true)) {
         await page.waitForTimeout(2000)
 
         const deletedRow = page
@@ -314,27 +367,10 @@ test.describe('Object Soft Delete & Restore', () => {
           .first()
 
         if ((await deletedRow.count()) > 0) {
-          // Look for permanent delete button
           const permanentDeleteButton = deletedRow.locator(
             'button:has-text("Permanent"), button[title*="Permanent"]'
           )
-
-          if ((await permanentDeleteButton.count()) > 0) {
-            await permanentDeleteButton.first().click()
-
-            // Should show strong confirmation
-            const permanentConfirmDialog = page
-              .getByRole('dialog')
-              .filter({ hasText: 'permanent' })
-
-            await expect(permanentConfirmDialog).toBeVisible()
-
-            // Test cancel
-            await permanentConfirmDialog
-              .getByRole('button', { name: /cancel|no/i })
-              .click()
-            await expect(permanentConfirmDialog).toBeHidden()
-          }
+          await expect(permanentDeleteButton).toHaveCount(0)
         }
       }
     }

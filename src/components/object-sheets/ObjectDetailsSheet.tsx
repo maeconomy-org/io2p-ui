@@ -426,13 +426,8 @@ export function ObjectDetailsSheet({
                 </TabsContent>
                 <TabsContent value="files" className="mt-0">
                   <FilesTab
-                    object={object}
                     files={files}
-                    objectFiles={objectFiles}
-                    setObjectFiles={setObjectFiles}
-                    isObjectFilesModalOpen={isObjectFilesModalOpen}
                     setIsObjectFilesModalOpen={setIsObjectFilesModalOpen}
-                    onUploadComplete={handleUploadComplete}
                     isDeleted={isDeleted}
                   />
                 </TabsContent>
@@ -555,17 +550,19 @@ export function ObjectDetailsSheet({
       )}
 
       {/* Object Files Attachment Modal */}
-      <AttachmentModal
-        open={isObjectFilesModalOpen}
-        onOpenChange={setIsObjectFilesModalOpen}
-        attachments={objectFiles}
-        onChange={handleObjectFilesChange}
-        title="Object Files"
-        uploadContext={{
-          objectUuid: object?.uuid,
-        }}
-        onUploadComplete={handleUploadComplete}
-      />
+      {isObjectFilesModalOpen && object?.uuid && (
+        <AttachmentModal
+          open={isObjectFilesModalOpen}
+          onOpenChange={setIsObjectFilesModalOpen}
+          attachments={objectFiles}
+          onChange={handleObjectFilesChange}
+          title="Object Files"
+          uploadContext={{
+            objectUuid: object?.uuid,
+          }}
+          onUploadComplete={handleUploadComplete}
+        />
+      )}
 
       {/* Property/Value Attachment Modal */}
       {attachmentModal.isOpen && object?.uuid && (

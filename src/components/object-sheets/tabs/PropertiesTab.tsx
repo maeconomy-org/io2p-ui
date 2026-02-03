@@ -7,7 +7,7 @@ import { Button, EditableSection, CopyButton } from '@/components/ui'
 import { PropertySectionEditor } from '@/components/properties'
 import type { Attachment, FileData } from '@/types'
 
-import { AttachmentModal, FileList } from '../components'
+import { FileList } from '../components'
 
 // Helper function to convert API files to FileData format
 const convertApiFilesToFileData = (files: any[]): FileData[] => {
@@ -46,16 +46,13 @@ interface PropertiesTabProps {
 }
 
 export function PropertiesTab({
-  object,
   properties,
   editedProperties,
   setEditedProperties,
   activeEditingSection,
   setActiveEditingSection,
   onSaveProperties,
-  attachmentModal,
   setAttachmentModal,
-  onUploadComplete,
 }: PropertiesTabProps) {
   const [expandedPropertyId, setExpandedPropertyId] = useState<string | null>(
     null
@@ -109,14 +106,6 @@ export function PropertiesTab({
       valueUuid,
       propertyIndex: _propertyIndex,
       valueIndex: _valueIndex,
-      attachments: [],
-    })
-  }
-
-  const handleCloseAttachmentModal = () => {
-    setAttachmentModal({
-      isOpen: false,
-      type: null,
       attachments: [],
     })
   }
@@ -311,36 +300,6 @@ export function PropertiesTab({
           />
         )}
       />
-
-      {/* Property/Value Attachment Modal */}
-      {attachmentModal.isOpen && object?.uuid && (
-        <AttachmentModal
-          open={attachmentModal.isOpen}
-          onOpenChange={handleCloseAttachmentModal}
-          attachments={attachmentModal.attachments || []} // Track modal-specific attachments
-          onChange={(newAttachments) => {
-            // Update the modal state to track selected attachments
-            setAttachmentModal((prev: any) => ({
-              ...prev,
-              attachments: newAttachments,
-            }))
-          }}
-          title={
-            attachmentModal.type === 'property'
-              ? 'Attach Files to Property'
-              : 'Attach Files to Value'
-          }
-          uploadContext={{
-            objectUuid: object.uuid,
-            propertyUuid: attachmentModal.propertyUuid,
-            valueUuid: attachmentModal.valueUuid,
-          }}
-          onUploadComplete={() => {
-            onUploadComplete()
-            handleCloseAttachmentModal()
-          }}
-        />
-      )}
     </div>
   )
 }

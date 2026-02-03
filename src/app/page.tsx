@@ -51,18 +51,45 @@ export default function AuthPage() {
         throw new Error(error)
       }
 
-      // Redirect to main app
-      router.push('/objects')
+      setStatus('success')
+      // Small delay to show success state before redirect
+      setTimeout(() => {
+        router.push('/objects')
+      }, 1500)
     } catch (err) {
       logger.error('Authentication Error:', err)
       setStatus('error')
 
-      // Provide specific error messages
+      // Provide more specific and helpful error messages
       const errorMessage =
         err instanceof Error ? err.message : 'Unknown authentication error'
-      setError(
-        `Authentication failed: ${errorMessage}. Please ensure you have a valid, non-expired certificate.`
-      )
+
+      let userFriendlyMessage = 'Authentication failed'
+
+      if (errorMessage.includes('certificate')) {
+        userFriendlyMessage =
+          'Certificate authentication failed. Please ensure you have selected a valid certificate.'
+      } else if (
+        errorMessage.includes('network') ||
+        errorMessage.includes('connection')
+      ) {
+        userFriendlyMessage =
+          'Network connection failed. Please check your internet connection and try again.'
+      } else if (errorMessage.includes('timeout')) {
+        userFriendlyMessage =
+          'Authentication timed out. This may indicate a network issue or certificate problem.'
+      } else if (
+        errorMessage.includes('unauthorized') ||
+        errorMessage.includes('forbidden')
+      ) {
+        userFriendlyMessage =
+          'Your certificate is not authorized to access this system. Please contact your administrator.'
+      } else if (errorMessage.includes('expired')) {
+        userFriendlyMessage =
+          'Your certificate has expired. Please obtain a new certificate from your administrator.'
+      }
+
+      setError(userFriendlyMessage)
     }
   }
 
@@ -149,7 +176,7 @@ export default function AuthPage() {
                   </AlertDescription>
                 </Alert>
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Button
                     onClick={handleAuthorize}
                     className="w-full"
@@ -159,23 +186,39 @@ export default function AuthPage() {
                     Try Again
                   </Button>
 
-                  <div className="text-xs text-center text-muted-foreground space-y-2">
-                    <p>Common issues:</p>
-                    <ul className="list-disc list-inside space-y-0.5 text-left">
-                      <li>Certificate is expired or invalid</li>
-                      <li>No certificate was selected</li>
-                      <li>Certificate is not authorized for this system</li>
-                      <li>Browser blocked the certificate prompt</li>
-                    </ul>
+                  <div className="text-xs space-y-3">
+                    <div className="bg-blue-50 border border-blue-200 rounded p-3 text-blue-800">
+                      <p className="font-medium mb-2">Troubleshooting Steps:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-left">
+                        <li>
+                          Ensure your certificate is installed in your browser
+                        </li>
+                        <li>Check that your certificate has not expired</li>
+                        <li>
+                          Verify you selected the correct certificate when
+                          prompted
+                        </li>
+                        <li>Try refreshing the page and attempting again</li>
+                      </ol>
+                    </div>
 
-                    <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800">
-                      <p className="font-medium">
+                    <div className="bg-amber-50 border border-amber-200 rounded p-3 text-amber-800">
+                      <p className="font-medium mb-2">
                         Need to use a different certificate?
                       </p>
-                      <p>
+                      <p className="text-left">
                         Close your browser completely and reopen it. Browsers
-                        cache mTLS certificates and cannot be cleared
-                        programmatically.
+                        cache mTLS certificates and the selection cannot be
+                        changed without a full browser restart.
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 border border-gray-200 rounded p-3 text-gray-700">
+                      <p className="font-medium mb-2">Still having issues?</p>
+                      <p className="text-left">
+                        Contact your system administrator or IT support team.
+                        They can verify your certificate permissions and help
+                        with installation if needed.
                       </p>
                     </div>
                   </div>

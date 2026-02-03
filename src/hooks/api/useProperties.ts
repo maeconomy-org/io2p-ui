@@ -48,6 +48,21 @@ export function useProperties() {
     })
   }
 
+  // Update property mutation (updates property metadata like key/name)
+  const useUpdateProperty = () => {
+    return useMutation({
+      mutationFn: async (property: UUPropertyDTO) => {
+        const response = await client.node.createOrUpdateProperty(property)
+        return response
+      },
+      onSuccess: (_, property) => {
+        queryClient.invalidateQueries({ queryKey: ['properties'] })
+        queryClient.invalidateQueries({ queryKey: ['property', property.uuid] })
+        queryClient.invalidateQueries({ queryKey: ['object'] })
+      },
+    })
+  }
+
   // Delete property mutation
   const useDeleteProperty = () => {
     return useMutation({
@@ -143,6 +158,7 @@ export function useProperties() {
     useAllProperties,
     useProperty,
     useCreateProperty,
+    useUpdateProperty,
     useDeleteProperty,
     useAddPropertyToObject,
     useSetPropertyValue,

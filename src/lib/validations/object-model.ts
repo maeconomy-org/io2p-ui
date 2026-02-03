@@ -36,7 +36,12 @@ export const objectModelSchema = z.object({
 
 export const objectSchema = z.object({
   uuid: z.string().optional(),
-  name: z.string().min(1, 'Name is required'),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .refine((val) => val.trim().length > 0, {
+      message: 'Name cannot contain only whitespace',
+    }),
   abbreviation: z.string().optional(),
   version: z.string().optional(),
   description: z.string().optional(),

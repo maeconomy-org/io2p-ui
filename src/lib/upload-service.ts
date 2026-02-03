@@ -99,7 +99,8 @@ export class FileUploadService {
     task.progress = 0
     this.options.onProgress(task.id, 0)
 
-    const uuidToAttach = task.objectUuid || task.propertyUuid || task.valueUuid
+    // Prefer more specific UUIDs: value > property > object
+    const uuidToAttach = task.valueUuid || task.propertyUuid || task.objectUuid
 
     if (!uuidToAttach) {
       throw new Error('No UUID provided to attach the file to')

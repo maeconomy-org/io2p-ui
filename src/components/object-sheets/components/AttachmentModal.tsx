@@ -213,6 +213,7 @@ export function AttachmentModal({
           <DialogFooter>
             <Button
               type="button"
+              data-test="attachment-modal-done-button"
               onClick={() => {
                 // Check if there are uploadable files
                 const uploadableFiles = getUploadableAttachments(attachments)
@@ -251,7 +252,10 @@ export function AttachmentModal({
             <AlertDialogCancel onClick={handleCancelUpload}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmUpload}>
+            <AlertDialogAction
+              onClick={handleConfirmUpload}
+              data-test="upload-files-confirm-button"
+            >
               Upload Files
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -33,9 +33,13 @@ const nextConfig = {
     if (dev) {
       config.ignoreWarnings = [
         { message: /the request of a dependency is an expression/ },
-        { message: /Critical dependency: the request of a dependency is an expression/ },
-        { 
-          message: /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/
+        {
+          message:
+            /Critical dependency: the request of a dependency is an expression/,
+        },
+        {
+          message:
+            /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
         },
       ]
     }

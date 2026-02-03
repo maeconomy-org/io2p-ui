@@ -12,12 +12,14 @@ import { useProperties } from './api'
 export function usePropertyManagement() {
   const {
     useUpdatePropertyWithValues,
+    useUpdateProperty,
     useAddPropertyToObject,
     useSetPropertyValue,
     useDeleteProperty,
   } = useProperties()
 
   const updatePropertyMutation = useUpdatePropertyWithValues()
+  const updatePropertyMetaMutation = useUpdateProperty()
   const addPropertyMutation = useAddPropertyToObject()
   const setValueMutation = useSetPropertyValue()
   const deletePropertyMutation = useDeleteProperty()
@@ -74,6 +76,7 @@ export function usePropertyManagement() {
 
   /**
    * Update a property and its values in a single operation
+   * This updates both the property metadata (key/name) AND the values
    */
   const updatePropertyWithValues = useCallback(
     async (
@@ -88,12 +91,26 @@ export function usePropertyManagement() {
       setError(null)
 
       try {
+        // First, update the property metadata (key/name) if provided
+        if (property.key !== undefined) {
+          logger.info('Updating property key:', {
+            uuid: property.uuid,
+            key: property.key,
+          })
+          await updatePropertyMetaMutation.mutateAsync({
+            uuid: property.uuid,
+            key: property.key,
+          })
+        }
+
+        // Then update the values
         const result = await updatePropertyMutation.mutateAsync({
           propertyUuid: property.uuid,
           values,
         })
         return result
       } catch (err) {
+        logger.error('Failed to update property:', err)
         setError(
           err instanceof Error ? err : new Error('Failed to update property')
         )
@@ -102,7 +119,7 @@ export function usePropertyManagement() {
         setIsLoading(false)
       }
     },
-    [updatePropertyMutation]
+    [updatePropertyMutation, updatePropertyMetaMutation]
   )
 
   /**

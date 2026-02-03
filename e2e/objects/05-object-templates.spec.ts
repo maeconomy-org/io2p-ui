@@ -29,7 +29,7 @@ test.describe('Object Templates', () => {
 
     // Add properties that will be part of the template
     await addSheet.getByRole('button', { name: 'Add Property' }).click()
-    await addSheet.getByLabel('Property Name').fill('template.property')
+    await addSheet.getByLabel('Property Name').fill('Template Property')
     await addSheet
       .getByPlaceholder('Enter property value')
       .first()
@@ -43,7 +43,7 @@ test.describe('Object Templates', () => {
 
     // Add second property
     await addSheet.getByRole('button', { name: 'Add Property' }).click()
-    await addSheet.getByLabel('Property Name').nth(1).fill('category')
+    await addSheet.getByLabel('Property Name').nth(1).fill('Category')
     await addSheet
       .getByPlaceholder('Enter property value')
       .nth(2)
@@ -70,7 +70,9 @@ test.describe('Object Templates', () => {
     await expect(row).toBeVisible({ timeout: 15000 })
     await row.dblclick()
 
-    await expect(page.getByText(sourceObjectName)).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: sourceObjectName })
+    ).toBeVisible()
 
     // Look for "Create Template" or similar button
     const createTemplateButton = page.locator(
@@ -106,12 +108,8 @@ test.describe('Object Templates', () => {
 
       // Create the template
       await templateDialog.getByRole('button', { name: /create|save/i }).click()
-
-      // Should show success message or close dialog
-      await page.waitForTimeout(3000)
+      await expect(templateDialog).toBeHidden({ timeout: 10000 })
     }
-
-    await page.getByRole('button', { name: 'Close' }).click()
   })
 
   test('verify template appears in templates list', async ({ page }) => {
@@ -208,12 +206,13 @@ test.describe('Object Templates', () => {
       await page.getByRole('tab', { name: 'Properties' }).click()
 
       // Should have the template properties
-      await expect(page.getByText('template.property')).toBeVisible()
-      await expect(page.getByText('template value')).toBeVisible()
-      await expect(page.getByText('category')).toBeVisible()
-      await expect(page.getByText('Template Category')).toBeVisible()
+      // Click to expand property
+      await page.getByText('Template Property').first().click()
+      await expect(page.getByText('template value').first()).toBeVisible()
+      await page.getByText('Category').first().click()
+      await expect(page.getByText('Template Category').first()).toBeVisible()
 
-      await page.getByRole('button', { name: 'Close' }).click()
+      await page.getByRole('button', { name: 'Close' }).first().click()
     }
   })
 
@@ -250,7 +249,7 @@ test.describe('Object Templates', () => {
         await page.getByRole('button', { name: 'Add Property' }).click()
         const propertyInputs = page.getByLabel('Property Name')
         const lastPropertyInput = propertyInputs.last()
-        await lastPropertyInput.fill('new.template.property')
+        await lastPropertyInput.fill('New Template Property')
 
         const valueInputs = page.getByPlaceholder('Enter property value')
         const lastValueInput = valueInputs.last()
@@ -258,11 +257,13 @@ test.describe('Object Templates', () => {
 
         await page.getByRole('button', { name: 'Save' }).click()
 
-        await expect(page.getByText('new.template.property')).toBeVisible({
+        await expect(
+          page.getByText('New Template Property').first()
+        ).toBeVisible({
           timeout: 10000,
         })
 
-        await page.getByRole('button', { name: 'Close' }).click()
+        await page.getByRole('button', { name: 'Close' }).first().click()
       }
     }
   })
@@ -313,9 +314,11 @@ test.describe('Object Templates', () => {
         await row.dblclick()
 
         await page.getByRole('tab', { name: 'Properties' }).click()
-        await expect(page.getByText('new.template.property')).toBeVisible()
+        await expect(
+          page.getByText('New Template Property').first()
+        ).toBeVisible()
 
-        await page.getByRole('button', { name: 'Close' }).click()
+        await page.getByRole('button', { name: 'Close' }).first().click()
       }
     }
   })

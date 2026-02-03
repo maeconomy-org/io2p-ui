@@ -31,9 +31,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-test-results/
-playwright-report/
+e2e/.auth/
 
+certs/
 memory-bank/
 .cursorrules
 dump.rdb

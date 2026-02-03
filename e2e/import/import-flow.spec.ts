@@ -29,10 +29,13 @@ test.describe('Import Flow', () => {
         buffer: Buffer.from('invalid content'),
       })
 
-      // Should show error message about file type
-      await expect(page.locator('text=/xlsx|csv|file type/i')).toBeVisible({
-        timeout: 5000,
-      })
+      // Should show error message about file type - use more specific selector
+      await expect(
+        page
+          .getByText('File type must be one of')
+          .or(page.getByText(/invalid.*file/i))
+          .or(page.getByText(/not.*supported/i))
+      ).toBeVisible({ timeout: 5000 })
     }
   })
 
