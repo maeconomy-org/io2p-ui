@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Search, X } from 'lucide-react'
 import { Button, Input, ColumnPagination } from '@/components/ui'
 
@@ -26,6 +26,7 @@ export function ColumnHeader({
   pagination,
   isLoading = false,
 }: ColumnHeaderProps) {
+  const t = useTranslations()
   const clearSearch = () => {
     onSearchChange('')
   }
@@ -38,10 +39,11 @@ export function ColumnHeader({
           <h3 className="text-sm font-medium">{title}</h3>
           <div className="text-xs text-muted-foreground">
             {pagination
-              ? searchTerm
-                ? `${itemCount} of ${pagination.totalItems} items`
-                : `${itemCount} of ${pagination.totalItems} items`
-              : `${itemCount} items`}
+              ? t('objects.columnCount', {
+                  count: itemCount,
+                  total: pagination.totalItems,
+                })
+              : t('objects.itemsCount', { count: itemCount })}
           </div>
         </div>
 
@@ -49,7 +51,7 @@ export function ColumnHeader({
         <div className="relative">
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input
-            placeholder="Search in column..."
+            placeholder={t('objects.columnSearch')}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="h-7 pl-7 pr-7 text-xs"

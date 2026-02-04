@@ -1,6 +1,7 @@
 'use client'
 
 import { Filter } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,7 @@ export function FilterDropdown({
   label = 'Filters',
   className = '',
 }: FilterDropdownProps) {
+  const t = useTranslations()
   const activeFiltersCount = options.filter((option) => option.checked).length
 
   return (
@@ -49,7 +51,7 @@ export function FilterDropdown({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+          <DropdownMenuLabel>{t('filters.filterOptions')}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {options.map((option) => (
             <DropdownMenuCheckboxItem
@@ -80,6 +82,7 @@ export function DeletedFilter({
   label = 'Show deleted items',
   className = '',
 }: DeletedFilterProps) {
+  const t = useTranslations()
   const options: FilterOption[] = [
     {
       id: 'show-deleted',
@@ -98,7 +101,7 @@ export function DeletedFilter({
     <FilterDropdown
       options={options}
       onOptionChange={handleOptionChange}
-      label="Filters"
+      label={t('common.filters')}
       className={className}
     />
   )

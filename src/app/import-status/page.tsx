@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   Loader2,
   CheckCircle2,
@@ -44,14 +45,14 @@ function formatDate(timestamp: number | null): string {
 }
 
 // Format job title
-function formatJobTitle(job: any): string {
-  const shortId = job.jobId.substring(0, 8)
-  const statusText =
+function formatJobStatus(job: any): string {
+  return (
     job.status.charAt(0).toUpperCase() + job.status.slice(1).replace('_', ' ')
-  return `Import Job ${shortId} - ${statusText}`
+  )
 }
 
 export default function ImportStatusPage() {
+  const t = useTranslations()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialJobId = searchParams.get('jobId')
@@ -112,17 +113,17 @@ export default function ImportStatusPage() {
               <Link href="/import">
                 <Button variant="ghost" size="sm" className="gap-2">
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Import
+                  {t('importStatus.back')}
                 </Button>
               </Link>
               <div className="h-6 w-px bg-border" />
               <div>
                 <h1 className="text-xl font-semibold flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Import Jobs
+                  {t('importStatus.title')}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {jobs.length} job{jobs.length !== 1 ? 's' : ''} found
+                  {t('importStatus.jobsFound', { count: jobs.length })}
                 </p>
               </div>
             </div>
@@ -136,7 +137,7 @@ export default function ImportStatusPage() {
               <RefreshCcw
                 className={`h-4 w-4 ${jobsLoading ? 'animate-spin' : ''}`}
               />
-              Refresh
+              {t('common.refresh')}
             </Button>
           </div>
         </div>
@@ -148,30 +149,34 @@ export default function ImportStatusPage() {
           {jobsLoading && jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">Loading import jobs...</p>
+              <p className="text-muted-foreground">
+                {t('importStatus.loadingJobs')}
+              </p>
             </div>
           ) : jobsError ? (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="text-center">
                 <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">
-                  Failed to load jobs
+                  {t('importStatus.failedJobs')}
                 </h3>
                 <p className="text-muted-foreground mb-4">{jobsError}</p>
                 <Button onClick={refreshJobs} variant="outline">
-                  Try Again
+                  {t('importStatus.tryAgain')}
                 </Button>
               </div>
             </div>
           ) : jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No import jobs found</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {t('importStatus.noJobs')}
+              </h3>
               <p className="text-muted-foreground mb-6">
-                Start your first import to see jobs here
+                {t('importStatus.startFirst')}
               </p>
               <Link href="/import">
-                <Button>Start New Import</Button>
+                <Button>{t('importStatus.startNew')}</Button>
               </Link>
             </div>
           ) : (
@@ -190,7 +195,10 @@ export default function ImportStatusPage() {
                       <JobStatusIcon status={job.status} />
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className="font-medium text-sm">
-                          {formatJobTitle(job)}
+                          {t('importStatus.jobTitle', {
+                            id: job.jobId.substring(0, 8),
+                            status: formatJobStatus(job),
+                          })}
                         </div>
                       </div>
                     </div>
@@ -220,7 +228,7 @@ export default function ImportStatusPage() {
                             variant="outline"
                             onClick={refreshSelectedJob}
                           >
-                            Retry
+                            {t('common.retry')}
                           </Button>
                         </div>
                       ) : selectedJob ? (
@@ -229,7 +237,7 @@ export default function ImportStatusPage() {
                           <div className="space-y-3">
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium text-muted-foreground">
-                                Progress
+                                {t('importStatus.progress')}
                               </span>
                               <span className="text-lg font-semibold">
                                 {Math.round(
@@ -255,7 +263,7 @@ export default function ImportStatusPage() {
                             <div className="space-y-3">
                               <div>
                                 <div className="text-sm font-medium text-muted-foreground mb-1">
-                                  Started
+                                  {t('importStatus.started')}
                                 </div>
                                 <div className="text-sm">
                                   {formatDate(selectedJob.createdAt)}
@@ -263,7 +271,7 @@ export default function ImportStatusPage() {
                               </div>
                               <div>
                                 <div className="text-sm font-medium text-muted-foreground mb-1">
-                                  Total Objects
+                                  {t('importStatus.totalObjects')}
                                 </div>
                                 <div className="text-sm font-medium">
                                   {selectedJob.total.toLocaleString()}
@@ -271,7 +279,7 @@ export default function ImportStatusPage() {
                               </div>
                               <div>
                                 <div className="text-sm font-medium text-muted-foreground mb-1">
-                                  Successful
+                                  {t('importStatus.successful')}
                                 </div>
                                 <div className="text-sm font-medium text-green-600">
                                   {(
@@ -283,7 +291,7 @@ export default function ImportStatusPage() {
                             <div className="space-y-3">
                               <div>
                                 <div className="text-sm font-medium text-muted-foreground mb-1">
-                                  Completed
+                                  {t('importStatus.completed')}
                                 </div>
                                 <div className="text-sm">
                                   {formatDate(selectedJob.completedAt)}
@@ -291,7 +299,7 @@ export default function ImportStatusPage() {
                               </div>
                               <div>
                                 <div className="text-sm font-medium text-muted-foreground mb-1">
-                                  Failed
+                                  {t('importStatus.failed')}
                                 </div>
                                 <div className="text-sm font-medium text-destructive">
                                   {selectedJob.failed.toLocaleString()}
@@ -304,7 +312,7 @@ export default function ImportStatusPage() {
                           {selectedJob.error && (
                             <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-md">
                               <div className="text-sm font-medium text-destructive mb-2">
-                                Error Details
+                                {t('importStatus.errorDetails')}
                               </div>
                               <div className="text-sm text-destructive/80">
                                 {selectedJob.error}
@@ -319,7 +327,9 @@ export default function ImportStatusPage() {
                                 selectedJob.status ===
                                   'completed_with_errors') && (
                                 <Link href="/objects">
-                                  <Button size="sm">View Objects</Button>
+                                  <Button size="sm">
+                                    {t('importStatus.viewObjects')}
+                                  </Button>
                                 </Link>
                               )}
                             </div>
@@ -341,8 +351,8 @@ export default function ImportStatusPage() {
                                     className={`h-3 w-3 mr-2 ${isAutoRefreshing ? 'animate-spin' : ''}`}
                                   />
                                   {isAutoRefreshing
-                                    ? 'Auto-refreshing'
-                                    : 'Auto-refresh'}
+                                    ? t('importStatus.autoRefreshing')
+                                    : t('importStatus.autoRefresh')}
                                 </Button>
                               )}
                               <Button
@@ -350,7 +360,7 @@ export default function ImportStatusPage() {
                                 variant="outline"
                                 onClick={refreshSelectedJob}
                               >
-                                Refresh
+                                {t('common.refresh')}
                               </Button>
                             </div>
                           </div>
@@ -358,7 +368,9 @@ export default function ImportStatusPage() {
                           {/* Job ID */}
                           <div className="pt-4 border-t">
                             <div className="text-xs text-muted-foreground">
-                              <span className="font-medium">Job ID:</span>{' '}
+                              <span className="font-medium">
+                                {t('importStatus.jobId')}
+                              </span>{' '}
                               <code className="font-mono bg-muted px-1 py-0.5 rounded text-xs">
                                 {selectedJob.jobId}
                               </code>
@@ -367,7 +379,7 @@ export default function ImportStatusPage() {
                         </div>
                       ) : (
                         <div className="p-6 text-center text-muted-foreground">
-                          <p>Loading job details...</p>
+                          <p>{t('importStatus.loadingDetails')}</p>
                         </div>
                       )}
                     </div>

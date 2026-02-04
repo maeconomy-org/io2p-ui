@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -16,6 +17,7 @@ export function PropertySectionEditor({
   isEditable,
   onUpdate,
 }: PropertySectionEditorProps) {
+  const t = useTranslations()
   const [expandedPropertyId, setExpandedPropertyId] = useState<string | null>(
     null
   )
@@ -210,7 +212,9 @@ export function PropertySectionEditor({
 
       {editedProperties.length === 0 ? (
         <div className="text-center p-4 border rounded-md bg-muted/10">
-          <p className="text-muted-foreground">No properties defined</p>
+          <p className="text-muted-foreground">
+            {t('objects.properties.noProperties')}
+          </p>
           {isEditable && (
             <Button
               variant="outline"
@@ -219,7 +223,7 @@ export function PropertySectionEditor({
               className="mt-2"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Your First Property
+              {t('objects.properties.addFirst')}
             </Button>
           )}
         </div>
@@ -231,7 +235,7 @@ export function PropertySectionEditor({
             className="mt-2"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Property
+            {t('objects.properties.add')}
           </Button>
         )
       )}

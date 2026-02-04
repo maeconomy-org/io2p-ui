@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronRight, FileText, MoreHorizontal } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { hasChildren } from '../utils'
 import {
   Button,
@@ -67,10 +68,12 @@ export function ObjectColumn({
   onDelete,
   searchTerm = '',
   onSearchChange,
-  columnTitle = 'Objects',
+  columnTitle,
 }: ObjectColumnProps) {
+  const t = useTranslations()
+  const title = columnTitle ?? t('objects.title')
   // Get icon based on object type
-  const getIcon = (item: ObjectItem) => {
+  const getIcon = () => {
     return <FileText size={16} />
   }
 
@@ -90,7 +93,7 @@ export function ObjectColumn({
     <div className="flex-1 min-w-[250px] max-w-[300px] h-full border-r overflow-hidden flex flex-col">
       {/* Column Header with Search & Pagination */}
       <ColumnHeader
-        title={columnTitle}
+        title={title}
         searchTerm={searchTerm}
         onSearchChange={onSearchChange || (() => {})}
         itemCount={filteredItems.length}
@@ -104,15 +107,15 @@ export function ObjectColumn({
             <div className="flex items-center justify-center p-8">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2"></div>
               <span className="text-sm text-muted-foreground">
-                Loading children...
+                {t('objects.loadingChildren')}
               </span>
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="flex items-center justify-center p-8 text-center">
               <div className="text-sm text-muted-foreground">
                 {searchTerm
-                  ? 'No items match your search'
-                  : 'No items in this column'}
+                  ? t('objects.noItemsMatch')
+                  : t('objects.noItemsColumn')}
               </div>
             </div>
           ) : (
@@ -134,7 +137,7 @@ export function ObjectColumn({
                 >
                   <div className="flex items-center flex-1 min-w-0">
                     <div className="rounded-full w-5 h-5 flex items-center justify-center bg-blue-50 text-blue-600 mr-2 shrink-0">
-                      {getIcon(item)}
+                      {getIcon()}
                     </div>
 
                     <div className="flex flex-col min-w-0">
@@ -142,7 +145,7 @@ export function ObjectColumn({
                         <span
                           className={`text-sm font-medium truncate ${isSoftDeleted ? 'text-red-600 line-through' : ''}`}
                         >
-                          {item.name || 'Unnamed Object'}
+                          {item.name || t('objects.unnamed')}
                         </span>
                         {itemHasChildren && (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 shrink-0">
@@ -167,14 +170,14 @@ export function ObjectColumn({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onShowDetails(item)}>
-                          View Details
+                          {t('objects.viewDetails')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => onDelete(item)}
                           className="text-destructive"
                           disabled={isSoftDeleted}
                         >
-                          Delete
+                          {t('common.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

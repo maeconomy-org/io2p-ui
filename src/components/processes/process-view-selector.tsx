@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib'
 import {
   ENABLED_PROCESS_VIEW_TYPES,
@@ -25,6 +26,7 @@ export function ProcessViewSelector({
   view,
   onChange,
 }: ProcessViewSelectorProps) {
+  const t = useTranslations()
   return (
     <TooltipProvider>
       <ToggleGroup
@@ -50,12 +52,14 @@ export function ProcessViewSelector({
               >
                 <ToggleGroupItem
                   value={viewType.value}
-                  aria-label={viewType.label}
+                  aria-label={t(`viewSelector.${viewType.labelKey}`)}
                 >
                   <Icon className="h-4 w-4" />
                 </ToggleGroupItem>
               </TooltipTrigger>
-              <TooltipContent side="bottom">{viewType.label}</TooltipContent>
+              <TooltipContent side="bottom">
+                {t(`viewSelector.${viewType.labelKey}`)}
+              </TooltipContent>
             </Tooltip>
           )
         })}

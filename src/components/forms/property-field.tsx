@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 
 import { Control, Controller, useFieldArray } from 'react-hook-form'
 import { PlusIcon, UploadIcon, XIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import {
   AttachmentModal,
@@ -30,6 +31,7 @@ export function PropertyField({
   index,
   onRemove,
 }: PropertyFieldProps) {
+  const t = useTranslations()
   const valuesName = `${name}.values`
   const filesName = `${name}.files`
 
@@ -68,7 +70,7 @@ export function PropertyField({
         <div className="w-full space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor={`property-${index}`} className="text-sm">
-              Property Name
+              {t('objects.propertyName')}
             </Label>
             <Button
               type="button"
@@ -90,7 +92,7 @@ export function PropertyField({
                   <FormControl>
                     <Input
                       id={`property-${index}`}
-                      placeholder="e.g. Total Floors"
+                      placeholder={t('objects.propertyNamePlaceholder')}
                       {...field}
                     />
                   </FormControl>
@@ -115,7 +117,9 @@ export function PropertyField({
               render={({ field }) => (
                 <div className="mt-1 space-y-2">
                   {(field.value?.length || 0) > 0 && (
-                    <Label className="text-sm">Property Files</Label>
+                    <Label className="text-sm">
+                      {t('objects.fields.files')}
+                    </Label>
                   )}
                   <AttachmentList attachments={field.value || []} />
                   <AttachmentModal
@@ -123,7 +127,7 @@ export function PropertyField({
                     onOpenChange={setIsPropertyFilesOpen}
                     attachments={field.value || []}
                     onChange={field.onChange}
-                    title="Property Attachments"
+                    title={t('objects.attachFilesProperty')}
                   />
                 </div>
               )}
@@ -133,7 +137,7 @@ export function PropertyField({
       </div>
 
       <div className="space-y-3">
-        <Label className="text-sm">Property Values</Label>
+        <Label className="text-sm">{t('objects.propertyValues')}</Label>
 
         {valueFields.map((valueField, valueIndex) => (
           <div key={valueField.id} className="space-y-2">
@@ -146,7 +150,10 @@ export function PropertyField({
                   render={({ field }) => (
                     <FormItem className="flex-1">
                       <FormControl>
-                        <Input placeholder="Enter property value" {...field} />
+                        <Input
+                          placeholder={t('objects.propertyValuePlaceholder')}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -183,7 +190,9 @@ export function PropertyField({
               render={({ field }) => (
                 <div className="mt-2 space-y-2">
                   {(field.value?.length || 0) > 0 && (
-                    <Label className="text-sm">Value Files</Label>
+                    <Label className="text-sm">
+                      {t('objects.fields.files')}
+                    </Label>
                   )}
                   <AttachmentList attachments={field.value || []} />
                   <AttachmentModal
@@ -193,7 +202,7 @@ export function PropertyField({
                     }
                     attachments={field.value || []}
                     onChange={field.onChange}
-                    title="Value Attachments"
+                    title={t('objects.attachFilesValue')}
                   />
                 </div>
               )}
@@ -209,7 +218,7 @@ export function PropertyField({
           onClick={handleAddValue}
         >
           <PlusIcon className="h-4 w-4 mr-2" />
-          Add Another Value
+          {t('objects.addAnotherValue')}
         </Button>
       </div>
     </div>

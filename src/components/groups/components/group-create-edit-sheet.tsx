@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Globe, Lock, Save, X, Shield } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import {
   Button,
@@ -57,6 +58,7 @@ export function GroupCreateEditSheet({
   open,
   onOpenChange,
 }: GroupCreateEditSheetProps) {
+  const t = useTranslations()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isEditing = !!group
 
@@ -130,7 +132,9 @@ export function GroupCreateEditSheet({
       <SheetContent className="w-full sm:max-w-2xl">
         <SheetHeader>
           <SheetTitle>
-            {isEditing ? 'Edit Group' : 'Create New Group'}
+            {isEditing
+              ? t('groups.form.editTitle')
+              : t('groups.form.createTitle')}
           </SheetTitle>
         </SheetHeader>
 
@@ -142,9 +146,12 @@ export function GroupCreateEditSheet({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Group Name *</FormLabel>
+                  <FormLabel>{t('groups.form.name')} *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter group name..." {...field} />
+                    <Input
+                      placeholder={t('groups.form.namePlaceholder')}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -157,17 +164,16 @@ export function GroupCreateEditSheet({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t('groups.form.description')}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe the purpose of this group..."
+                      placeholder={t('groups.form.descriptionPlaceholder')}
                       className="min-h-[100px]"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Optional description to help others understand this group's
-                    purpose
+                    {t('groups.form.descriptionHint')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -180,7 +186,7 @@ export function GroupCreateEditSheet({
               name="type"
               render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel>Group Type *</FormLabel>
+                  <FormLabel>{t('groups.form.type')} *</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -199,11 +205,10 @@ export function GroupCreateEditSheet({
                             className="flex items-center gap-2 font-medium"
                           >
                             <Globe className="h-4 w-4 text-green-600" />
-                            Public Group
+                            {t('groups.form.publicGroup')}
                           </Label>
                           <p className="text-sm text-muted-foreground">
-                            Anyone can view this group and its objects. Great
-                            for shared resources and public datasets.
+                            {t('groups.form.publicDescription')}
                           </p>
                         </div>
                       </div>
@@ -220,11 +225,10 @@ export function GroupCreateEditSheet({
                             className="flex items-center gap-2 font-medium"
                           >
                             <Lock className="h-4 w-4 text-blue-600" />
-                            Private Group
+                            {t('groups.form.privateGroup')}
                           </Label>
                           <p className="text-sm text-muted-foreground">
-                            Only users with the group UUID can access this
-                            group. Perfect for confidential projects.
+                            {t('groups.form.privateDescription')}
                           </p>
                         </div>
                       </div>
@@ -243,10 +247,10 @@ export function GroupCreateEditSheet({
                 <FormItem className="space-y-3">
                   <FormLabel className="flex items-center gap-2">
                     <Shield className="h-4 w-4" />
-                    Default Permissions
+                    {t('groups.form.permissions')}
                   </FormLabel>
                   <FormDescription>
-                    Set the default permissions for users who join this group
+                    {t('groups.form.permissionsHint')}
                   </FormDescription>
                   <FormControl>
                     <div className="flex items-center space-x-1 bg-muted rounded-lg p-1">
@@ -259,7 +263,7 @@ export function GroupCreateEditSheet({
                         onClick={() => field.onChange({ level: 'read' })}
                         className="flex-1"
                       >
-                        Read Only
+                        {t('groups.form.readOnly')}
                       </Button>
                       <Button
                         type="button"
@@ -270,14 +274,14 @@ export function GroupCreateEditSheet({
                         onClick={() => field.onChange({ level: 'write' })}
                         className="flex-1"
                       >
-                        Write Access
+                        {t('groups.form.writeAccess')}
                       </Button>
                     </div>
                   </FormControl>
                   <div className="text-xs text-muted-foreground">
                     {field.value?.level === 'write'
-                      ? 'Users can view, edit, and manage objects in this group'
-                      : 'Users can only view objects in this group'}
+                      ? t('groups.form.writeAccessHint')
+                      : t('groups.form.readOnlyHint')}
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -292,11 +296,11 @@ export function GroupCreateEditSheet({
                 <Save className="h-4 w-4 mr-2" />
                 {isSubmitting
                   ? isEditing
-                    ? 'Updating...'
-                    : 'Creating...'
+                    ? t('groups.form.updating')
+                    : t('groups.form.creating')
                   : isEditing
-                    ? 'Update Group'
-                    : 'Create Group'}
+                    ? t('groups.form.updateGroup')
+                    : t('groups.form.createGroup')}
               </Button>
               <Button
                 type="button"
@@ -305,7 +309,7 @@ export function GroupCreateEditSheet({
                 disabled={isSubmitting}
               >
                 <X className="h-4 w-4 mr-2" />
-                Cancel
+                {t('common.cancel')}
               </Button>
             </div>
           </form>

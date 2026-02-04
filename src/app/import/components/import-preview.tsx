@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { Download, Loader2 } from 'lucide-react'
 
 import {
@@ -31,6 +32,7 @@ export function ImportPreview({
   description,
   isImporting,
 }: ImportPreviewProps) {
+  const t = useTranslations()
   // Limit preview to first 10 rows for performance
   const previewData = data.slice(0, 10)
   const totalRows = data.length
@@ -139,17 +141,26 @@ export function ImportPreview({
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{totalRows} objects</Badge>
-            <Badge variant="outline">{propertyKeys.length} properties</Badge>
+            <Badge variant="outline">
+              {t('import.preview.objects', { count: totalRows })}
+            </Badge>
+            <Badge variant="outline">
+              {t('import.preview.properties', { count: propertyKeys.length })}
+            </Badge>
             <Badge variant="outline">
               {showingRows < totalRows
-                ? `Previewing ${showingRows}/${totalRows}`
-                : 'All rows shown'}
+                ? t('import.preview.previewing', {
+                    shown: showingRows,
+                    total: totalRows,
+                  })
+                : t('import.preview.allShown')}
             </Badge>
             {showingRows < totalRows && (
               <p className="text-xs text-muted-foreground ml-2">
-                Note: All {totalRows} rows will be imported, even though only{' '}
-                {showingRows} are shown in the preview.
+                {t('import.preview.note', {
+                  total: totalRows,
+                  shown: showingRows,
+                })}
               </p>
             )}
           </div>
@@ -161,13 +172,15 @@ export function ImportPreview({
             className="flex items-center gap-1"
           >
             <Download className="h-4 w-4" />
-            <span>Export JSON</span>
+            <span>{t('import.preview.exportJson')}</span>
           </Button>
         </div>
 
         <div className="border rounded-md">
           <div className="p-3 border-b flex items-center justify-between">
-            <h4 className="text-sm font-medium">Objects to Import</h4>
+            <h4 className="text-sm font-medium">
+              {t('import.preview.objectsToImport')}
+            </h4>
           </div>
           <div className="relative h-[400px] overflow-auto">
             <div className="min-w-max">
@@ -212,7 +225,7 @@ export function ImportPreview({
 
         <div className="flex justify-between pt-4">
           <Button variant="outline" onClick={handleBack} disabled={isImporting}>
-            Back
+            {t('import.map.back')}
           </Button>
           <Button
             onClick={handleImport}
@@ -221,10 +234,10 @@ export function ImportPreview({
             {isImporting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Importing...
+                {t('import.preview.importing')}
               </>
             ) : (
-              `Import ${totalRows} Objects`
+              t('import.preview.import', { count: totalRows })
             )}
           </Button>
         </div>

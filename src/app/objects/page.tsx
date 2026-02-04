@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PlusCircle, Search, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { useViewData } from '@/hooks'
 import { useSearch } from '@/contexts'
@@ -14,6 +15,7 @@ import { ObjectViewContainer } from '@/components/object-view-container'
 import { ObjectDetailsSheet, ObjectAddSheet } from '@/components/object-sheets'
 
 function ObjectsPageContent() {
+  const t = useTranslations()
   const [viewType, setViewType] = useState<ViewType>('table')
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
   const [isObjectEditSheetOpen, setIsObjectEditSheetOpen] = useState(false)
@@ -68,12 +70,12 @@ function ObjectsPageContent() {
     <div className="container mx-auto p-4">
       <div className="flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Objects</h1>
+          <h1 className="text-2xl font-bold">{t('objects.title')}</h1>
           <div className="flex items-center gap-4">
             <DeletedFilter
               showDeleted={showDeleted}
               onShowDeletedChange={setShowDeleted}
-              label="Show deleted objects"
+              label={t('objects.showDeleted')}
             />
             <ViewSelector
               view={viewType}
@@ -84,7 +86,7 @@ function ObjectsPageContent() {
             />
             <Button onClick={handleAddObject}>
               <PlusCircle className="h-4 w-4 mr-2" />
-              Create Object
+              {t('objects.create')}
             </Button>
           </div>
         </div>
@@ -97,7 +99,7 @@ function ObjectsPageContent() {
                 <div className="flex items-center gap-2">
                   <Search className="h-4 w-4 text-blue-600 flex-shrink-0" />
                   <span className="text-sm font-medium text-blue-900 truncate">
-                    Search Results for: "{searchQuery}"
+                    {t('objects.searchResults', { query: searchQuery })}
                   </span>
                 </div>
                 <Badge
@@ -105,8 +107,14 @@ function ObjectsPageContent() {
                   className="bg-blue-100 text-blue-700 whitespace-nowrap"
                 >
                   {searchPagination
-                    ? `${searchPagination.totalElements} result${searchPagination.totalElements !== 1 ? 's' : ''} (page ${searchPagination.currentPage + 1} of ${searchPagination.totalPages})`
-                    : `${searchViewResults.length} result${searchViewResults.length !== 1 ? 's' : ''}`}
+                    ? t('objects.resultsPage', {
+                        count: searchPagination.totalElements,
+                        page: searchPagination.currentPage + 1,
+                        pages: searchPagination.totalPages,
+                      })
+                    : t('objects.results', {
+                        count: searchViewResults.length,
+                      })}
                 </Badge>
               </div>
               <Button
@@ -116,7 +124,7 @@ function ObjectsPageContent() {
                 className="text-blue-600 hover:text-blue-800 hover:bg-blue-100 flex-shrink-0"
               >
                 <X className="h-4 w-4 mr-1" />
-                Clear Search
+                {t('objects.clearSearch')}
               </Button>
             </div>
           </div>

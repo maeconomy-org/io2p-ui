@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type FormEvent } from 'react'
 import { Plus, Trash2, ArrowRight } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import type { UUObjectDTO } from 'iom-sdk'
 import {
   Button,
@@ -57,6 +58,7 @@ export function ProcessCreateSheet({
   process,
   onSave,
 }: ProcessCreateSheetProps) {
+  const t = useTranslations()
   const [formData, setFormData] = useState<ProcessFlowData>({
     uuid: '',
     name: '',
@@ -115,7 +117,7 @@ export function ProcessCreateSheet({
 
   // Validation
   const validateForm = () => {
-    const newErrors = validateProcessForm(formData)
+    const newErrors = validateProcessForm(formData, t)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -249,7 +251,9 @@ export function ProcessCreateSheet({
         <SheetContent className="sm:max-w-2xl overflow-y-auto" side="right">
           <SheetHeader className="mb-5">
             <SheetTitle>
-              {process ? 'Edit Process Flow' : 'Create Process Flow'}
+              {process
+                ? t('processes.form.editTitle')
+                : t('processes.form.createTitle')}
             </SheetTitle>
           </SheetHeader>
 
@@ -258,14 +262,16 @@ export function ProcessCreateSheet({
               {/* Process Information */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Process Name</Label>
+                  <Label htmlFor="name">
+                    {t('processes.form.processName')}
+                  </Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    placeholder="e.g., Concrete Production, Steel Recycling"
+                    placeholder={t('processes.form.processNamePlaceholder')}
                     className={errors.name ? 'border-red-500' : ''}
                   />
                   {errors.name && (
@@ -277,7 +283,9 @@ export function ProcessCreateSheet({
                 <div className="space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="processCategory">Process Category</Label>
+                      <Label htmlFor="processCategory">
+                        {t('processes.form.processCategory')}
+                      </Label>
                       <Select
                         value={formData.processMetadata?.processCategory || ''}
                         onValueChange={(value) =>
@@ -291,7 +299,11 @@ export function ProcessCreateSheet({
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select process category" />
+                          <SelectValue
+                            placeholder={t(
+                              'processes.form.selectProcessCategory'
+                            )}
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {PROCESS_CATEGORIES.map((category) => (
@@ -304,7 +316,9 @@ export function ProcessCreateSheet({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="flowCategory">Flow Type</Label>
+                      <Label htmlFor="flowCategory">
+                        {t('processes.form.flowType')}
+                      </Label>
                       <Select
                         value={formData.processMetadata?.flowCategory || ''}
                         onValueChange={(value) =>
@@ -318,12 +332,14 @@ export function ProcessCreateSheet({
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select flow type" />
+                          <SelectValue
+                            placeholder={t('processes.form.selectFlowType')}
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {FLOW_CATEGORY_OPTIONS.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
-                              {option.label}
+                              {t(`processes.flowCategories.${option.labelKey}`)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -335,7 +351,7 @@ export function ProcessCreateSheet({
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="emissionsTotal">
-                        Carbon Emissions (Optional)
+                        {t('processes.form.emissions')}
                       </Label>
                       <Input
                         id="emissionsTotal"
@@ -360,7 +376,7 @@ export function ProcessCreateSheet({
 
                     <div className="space-y-2">
                       <Label htmlFor="materialLossPercent">
-                        Material Loss % (Optional)
+                        {t('processes.form.materialLoss')}
                       </Label>
                       <Input
                         id="materialLossPercent"
@@ -390,7 +406,7 @@ export function ProcessCreateSheet({
                   {/* Quality Change */}
                   <div className="space-y-2">
                     <Label htmlFor="qualityChange">
-                      Quality Change (Optional)
+                      {t('processes.form.qualityChange')}
                     </Label>
                     <Select
                       value={formData.processMetadata?.qualityChangeCode || ''}
@@ -405,12 +421,14 @@ export function ProcessCreateSheet({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select quality change" />
+                        <SelectValue
+                          placeholder={t('processes.form.selectQualityChange')}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {QUALITY_CHANGE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                            {t(`processes.qualityChanges.${option.labelKey}`)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -420,7 +438,7 @@ export function ProcessCreateSheet({
                   {/* Process Notes */}
                   <div className="space-y-2">
                     <Label htmlFor="processNotes">
-                      Process Notes (Optional)
+                      {t('processes.form.notes')}
                     </Label>
                     <Textarea
                       id="processNotes"
@@ -434,7 +452,7 @@ export function ProcessCreateSheet({
                           },
                         })
                       }
-                      placeholder="Additional notes about this process..."
+                      placeholder={t('processes.form.notesPlaceholder')}
                       rows={3}
                     />
                   </div>
@@ -448,7 +466,7 @@ export function ProcessCreateSheet({
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-lg font-medium flex items-center gap-2">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        Input Materials
+                        {t('processes.form.inputMaterials')}
                         <Badge variant="outline">
                           {formData.inputMaterials.length}
                         </Badge>
@@ -460,7 +478,7 @@ export function ProcessCreateSheet({
                         onClick={() => addNewMaterial('input')}
                       >
                         <Plus className="h-4 w-4 mr-1" />
-                        Add
+                        {t('processes.form.add')}
                       </Button>
                     </div>
                   </CardHeader>
@@ -517,7 +535,7 @@ export function ProcessCreateSheet({
                                 size="sm"
                                 onClick={() => editMaterial(material, 'input')}
                               >
-                                Edit
+                                {t('processes.form.edit')}
                               </Button>
                               <Button
                                 type="button"
@@ -535,7 +553,7 @@ export function ProcessCreateSheet({
                       </div>
                     ) : (
                       <div className="text-center py-8 text-gray-500">
-                        <p className="text-sm">Click "Add" to get started</p>
+                        <p className="text-sm">{t('processes.form.empty')}</p>
                       </div>
                     )}
                     {errors.inputs && (
@@ -552,7 +570,7 @@ export function ProcessCreateSheet({
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-lg font-medium flex items-center gap-2">
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        Output Materials
+                        {t('processes.form.outputMaterials')}
                         <Badge variant="outline">
                           {formData.outputMaterials.length}
                         </Badge>
@@ -660,14 +678,13 @@ export function ProcessCreateSheet({
                     </div>
                     <div>
                       <h4 className="font-medium text-red-900 mb-1">
-                        Duplicate Materials Detected
+                        {t('processes.form.duplicateTitle')}
                       </h4>
                       <p className="text-sm text-red-700">
                         {errors.duplicates}
                       </p>
                       <p className="text-xs text-red-600 mt-1">
-                        Please remove duplicate materials or use different
-                        materials for inputs and outputs.
+                        {t('processes.form.duplicateHint')}
                       </p>
                     </div>
                   </div>
@@ -680,37 +697,44 @@ export function ProcessCreateSheet({
                   <Card className="bg-gray-50">
                     <CardHeader>
                       <CardTitle className="text-sm">
-                        Process Flow Summary
+                        {t('processes.flowSummary')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center justify-center gap-4 text-sm">
                         <div className="text-center">
                           <div className="font-medium text-blue-600">
-                            {formData.inputMaterials.length} Inputs
+                            {formData.inputMaterials.length}{' '}
+                            {t('processes.inputs')}
                           </div>
                         </div>
                         <ArrowRight className="h-4 w-4 text-gray-400" />
                         <div className="text-center">
                           <div className="font-medium">
-                            {formData.name || 'Process'}
+                            {formData.name || t('processes.form.process')}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {selectedProcessType?.label}
+                            {selectedProcessType
+                              ? t(
+                                  `processes.types.${selectedProcessType.labelKey}`
+                                )
+                              : ''}
                           </div>
                         </div>
                         <ArrowRight className="h-4 w-4 text-gray-400" />
                         <div className="text-center">
                           <div className="font-medium text-green-600">
-                            {formData.outputMaterials.length} Outputs
+                            {formData.outputMaterials.length}{' '}
+                            {t('processes.outputs')}
                           </div>
                         </div>
                       </div>
                       <div className="mt-3 text-xs text-gray-500 text-center">
-                        This will create{' '}
-                        {formData.inputMaterials.length *
-                          formData.outputMaterials.length}{' '}
-                        material relationships
+                        {t('processes.relationships', {
+                          count:
+                            formData.inputMaterials.length *
+                            formData.outputMaterials.length,
+                        })}
                       </div>
                     </CardContent>
                   </Card>
@@ -723,11 +747,13 @@ export function ProcessCreateSheet({
                   className="w-full"
                   onClick={onClose}
                 >
-                  Cancel
+                  {t('processes.form.cancel')}
                 </Button>
 
                 <Button type="submit" className="w-full">
-                  {process ? 'Update Process' : 'Create Process'}
+                  {process
+                    ? t('processes.form.update')
+                    : t('processes.form.create')}
                 </Button>
               </div>
             </form>
@@ -743,7 +769,6 @@ export function ProcessCreateSheet({
           setEditingMaterial(null)
         }}
         onSave={handleObjectSave}
-        materialType={materialType}
         showMetadataFields={true}
         initialData={
           editingMaterial
@@ -756,11 +781,7 @@ export function ProcessCreateSheet({
               }
             : undefined
         }
-        title={
-          editingMaterial
-            ? `Edit ${materialType === 'input' ? 'Input' : 'Output'} Material`
-            : `Add ${materialType === 'input' ? 'Input' : 'Output'} Material`
-        }
+        title={t('objectSelection.title')}
       />
     </>
   )

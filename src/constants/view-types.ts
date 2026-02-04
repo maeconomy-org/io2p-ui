@@ -10,13 +10,13 @@ import {
 export const OBJECT_VIEW_TYPES = [
   {
     value: 'table',
-    label: 'Table View',
+    labelKey: 'table',
     icon: Table,
     enabled: true,
   },
   {
     value: 'columns',
-    label: 'Columns View',
+    labelKey: 'columns',
     icon: Columns,
     enabled: true,
   },
@@ -26,25 +26,25 @@ export const OBJECT_VIEW_TYPES = [
 export const PROCESS_VIEW_TYPES = [
   {
     value: 'dashboard',
-    label: 'Dashboard',
+    labelKey: 'dashboard',
     icon: LayoutDashboard,
     enabled: true,
   },
   {
     value: 'sankey',
-    label: 'Sankey Diagram',
+    labelKey: 'sankey',
     icon: BarChart3,
     enabled: true,
   },
   {
     value: 'network',
-    label: 'Network Diagram',
+    labelKey: 'network',
     icon: Network,
     enabled: true,
   },
   {
     value: 'table',
-    label: 'Table View',
+    labelKey: 'table',
     icon: Table,
     enabled: true,
   },

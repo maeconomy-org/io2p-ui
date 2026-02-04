@@ -63,20 +63,21 @@ export const generateRelationships = (
  * Validate process form data
  */
 export const validateProcessForm = (
-  formData: ProcessFlowData
+  formData: ProcessFlowData,
+  t: (key: string, values?: Record<string, any>) => string
 ): Record<string, string> => {
   const errors: Record<string, string> = {}
 
   if (!formData.name.trim()) {
-    errors.name = 'Process name is required'
+    errors.name = t('processes.errors.nameRequired')
   }
 
   if (formData.inputMaterials.length === 0) {
-    errors.inputs = 'At least one input material is required'
+    errors.inputs = t('processes.errors.inputsRequired')
   }
 
   if (formData.outputMaterials.length === 0) {
-    errors.outputs = 'At least one output material is required'
+    errors.outputs = t('processes.errors.outputsRequired')
   }
 
   // Check for duplicate materials between inputs and outputs
@@ -91,7 +92,9 @@ export const validateProcessForm = (
       .filter((m) => duplicateUuids.includes(m.object.uuid))
       .map((m) => m.object.name)
 
-    errors.duplicates = `The following materials cannot be used as both input and output: ${duplicateMaterials.join(', ')}`
+    errors.duplicates = t('processes.errors.duplicate', {
+      materials: duplicateMaterials.join(', '),
+    })
   }
 
   return errors

@@ -16,6 +16,7 @@ import {
   Command as CommandIcon,
   Hash,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 import { cn } from '@/lib/utils'
@@ -28,12 +29,12 @@ import {
   type ParsedSearch,
 } from '@/lib/search-parser'
 import {
+  Badge,
   Dialog,
   DialogContent,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
+} from '@/components/ui'
 
 interface CommandCenterProps {
   open?: boolean
@@ -81,6 +82,7 @@ export function CommandCenter({
   onSearch,
   initialQuery = '',
 }: CommandCenterProps) {
+  const t = useTranslations()
   const [inputValue, setInputValue] = React.useState(initialQuery)
   const [parsedSearch, setParsedSearch] = React.useState<ParsedSearch>({
     searchTerm: '',
@@ -203,9 +205,11 @@ export function CommandCenter({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden bg-gradient-to-b from-background to-muted/20 border-border/50 shadow-2xl [&>button]:hidden">
         {/* Visually hidden title and description for accessibility */}
-        <DialogTitle className="sr-only">Search Command Center</DialogTitle>
+        <DialogTitle className="sr-only">
+          {t('commandCenter.title')}
+        </DialogTitle>
         <DialogDescription className="sr-only">
-          Advanced search interface with filters and suggestions
+          {t('commandCenter.description')}
         </DialogDescription>
 
         {/* Search Header */}
@@ -214,7 +218,7 @@ export function CommandCenter({
           <button
             onClick={() => onOpenChange?.(false)}
             className="absolute right-4 top-3 p-1 hover:bg-muted rounded-md transition-colors z-10"
-            aria-label="Close search"
+            aria-label={t('commandCenter.closeSearch')}
           >
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -226,7 +230,7 @@ export function CommandCenter({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Search objects, or type a filter..."
+              placeholder={t('commandCenter.placeholder')}
               className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
               autoComplete="off"
               autoCorrect="off"
@@ -236,7 +240,7 @@ export function CommandCenter({
               <button
                 onClick={() => setInputValue('')}
                 className="p-1 hover:bg-muted rounded-md transition-colors ml-2"
-                aria-label="Clear input"
+                aria-label={t('commandCenter.clearInput')}
               >
                 <X className="h-3 w-3 text-muted-foreground" />
               </button>
@@ -286,7 +290,7 @@ export function CommandCenter({
             <div className="p-2">
               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3" />
-                Filters
+                {t('commandCenter.filters')}
               </div>
               {currentSuggestions.map((suggestion, index) => {
                 const Icon = ICON_MAP[suggestion.icon] || Tag
@@ -313,10 +317,10 @@ export function CommandCenter({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">
-                        {suggestion.label}
+                        {t(suggestion.labelKey)}
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {suggestion.description}
+                        {t(suggestion.descriptionKey)}
                       </div>
                     </div>
                     <code className="px-2 py-1 bg-muted rounded text-xs font-mono">
@@ -333,7 +337,7 @@ export function CommandCenter({
             <div className="p-2 border-t border-border/50">
               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Clock className="h-3 w-3" />
-                Recent
+                {t('commandCenter.recent')}
               </div>
               {recentSearches.map((query, index) => (
                 <button
@@ -353,7 +357,7 @@ export function CommandCenter({
             <div className="p-2 border-t border-border/50">
               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <CommandIcon className="h-3 w-3" />
-                Quick Actions
+                {t('commandCenter.quickActions')}
               </div>
               <button
                 onClick={() => setInputValue('deleted:true ')}
@@ -364,10 +368,10 @@ export function CommandCenter({
                 </div>
                 <div className="flex-1">
                   <div className="font-medium text-sm">
-                    View Deleted Objects
+                    {t('commandCenter.viewDeleted')}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Show all soft-deleted items
+                    {t('commandCenter.viewDeletedDescription')}
                   </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -383,25 +387,29 @@ export function CommandCenter({
               <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm">
                 ↵
               </kbd>
-              <span>Search</span>
+              <span>{t('commandCenter.search')}</span>
             </span>
             <span className="flex items-center gap-1.5">
               <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm">
                 Tab
               </kbd>
-              <span>Complete</span>
+              <span>{t('commandCenter.complete')}</span>
             </span>
             <span className="flex items-center gap-1.5">
               <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm">
                 Esc
               </kbd>
-              <span>Close</span>
+              <span>{t('commandCenter.close')}</span>
             </span>
           </div>
           {parsedSearch.searchTerm && (
             <div className="flex items-center gap-1.5">
               <Search className="h-3 w-3" />
-              <span>Searching for &quot;{parsedSearch.searchTerm}&quot;</span>
+              <span>
+                {t('commandCenter.searchingFor', {
+                  query: parsedSearch.searchTerm,
+                })}
+              </span>
             </div>
           )}
         </div>

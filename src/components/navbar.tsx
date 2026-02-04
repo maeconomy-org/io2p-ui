@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import {
   Building2,
@@ -37,9 +38,11 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth, useSearch } from '@/contexts'
 import { APP_ACRONYM, NAV_ITEMS } from '@/constants'
+import { LanguageDropdownItem } from '@/components/language-switcher'
 
 export default function Navbar() {
   const pathname = usePathname()
+  const t = useTranslations()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMac, setIsMac] = useState(false)
   const { userInfo, logout } = useAuth()
@@ -72,7 +75,7 @@ export default function Navbar() {
               <nav className="hidden md:flex items-center gap-6">
                 {NAV_ITEMS.map((item) => (
                   <Link
-                    key={item.name}
+                    key={item.key}
                     href={item.path}
                     className={cn(
                       'text-sm font-medium transition-colors',
@@ -82,7 +85,7 @@ export default function Navbar() {
                         : 'text-muted-foreground'
                     )}
                   >
-                    {item.name}
+                    {t(`nav.${item.key}`)}
                   </Link>
                 ))}
               </nav>
@@ -102,7 +105,9 @@ export default function Navbar() {
               >
                 <Search className="h-4 w-4 shrink-0" />
                 <span className="flex-1 text-left text-sm truncate">
-                  {isSearchMode && searchQuery ? searchQuery : 'Search...'}
+                  {isSearchMode && searchQuery
+                    ? searchQuery
+                    : t('common.search') + '...'}
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0">
                   <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm">
@@ -123,7 +128,7 @@ export default function Navbar() {
                 size="icon"
                 className="md:hidden"
                 onClick={() => setCommandCenterOpen(true)}
-                aria-label="Search"
+                aria-label={t('common.search')}
               >
                 <Search className="h-5 w-5" />
               </Button>
@@ -139,7 +144,8 @@ export default function Navbar() {
                       <User className="h-4 w-4 text-primary" />
                       <div className="flex flex-col items-start text-left">
                         <span className="text-sm font-medium max-w-32 truncate leading-tight">
-                          {userInfo?.certificateInfo.subjectFields.CN || 'User'}
+                          {userInfo?.certificateInfo.subjectFields.CN ||
+                            t('nav.user')}
                         </span>
                       </div>
                       <ChevronDown className="h-3 w-3 text-muted-foreground ml-1" />
@@ -154,12 +160,12 @@ export default function Navbar() {
                         <div className="flex flex-col space-y-1">
                           <p className="text-sm font-semibold leading-none">
                             {userInfo?.certificateInfo.subjectFields.CN ||
-                              'User'}
+                              t('nav.user')}
                           </p>
                           <div className="flex items-center gap-1">
                             <Shield className="h-3 w-3 text-green-600" />
                             <p className="text-xs leading-none text-muted-foreground">
-                              Certificate Authenticated
+                              {t('nav.certificateAuthenticated')}
                             </p>
                           </div>
                         </div>
@@ -177,7 +183,7 @@ export default function Navbar() {
                           <div className="flex items-center gap-2">
                             <Hash className="h-3 w-3 text-muted-foreground" />
                             <span className="text-xs font-medium text-muted-foreground">
-                              User UUID
+                              {t('nav.userUuid')}
                             </span>
                           </div>
                           <CopyButton
@@ -197,16 +203,16 @@ export default function Navbar() {
                         className="flex flex-col items-start p-3 hover:bg-muted/50"
                         onSelect={(e) => e.preventDefault()}
                       >
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center justify-between w-full gap-2 mb-2">
                           <Shield className="h-3 w-3 text-green-600" />
                           <span className="text-xs font-medium text-muted-foreground">
-                            Certificate Authentication
+                            {t('nav.certificateAuthentication')}
                           </span>
                           <div className="ml-auto">
                             <div className="flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
                               <CheckCircle className="h-3 w-3" />
                               <span className="text-xs font-medium">
-                                ACTIVE
+                                {t('nav.active')}
                               </span>
                             </div>
                           </div>
@@ -214,18 +220,18 @@ export default function Navbar() {
                         <div className="space-y-1 w-full">
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">
-                              Authentication:
+                              {t('nav.authentication')}
                             </span>
                             <span className="font-medium text-foreground">
-                              Client Certificate
+                              {t('nav.clientCertificate')}
                             </span>
                           </div>
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">
-                              Session:
+                              {t('nav.session')}
                             </span>
                             <span className="font-medium text-foreground">
-                              Active
+                              {t('nav.sessionActive')}
                             </span>
                           </div>
                         </div>
@@ -233,13 +239,15 @@ export default function Navbar() {
                     )}
 
                     <DropdownMenuSeparator />
+                    <LanguageDropdownItem />
+                    <DropdownMenuSeparator />
 
                     <DropdownMenuItem
                       onClick={logout}
                       className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer hover:bg-red-50/50 transition-colors"
                     >
                       <LogOut className="h-4 w-4 mr-2" />
-                      <span className="font-medium">Sign out</span>
+                      <span className="font-medium">{t('nav.signOut')}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -285,7 +293,7 @@ export default function Navbar() {
                                 : 'text-foreground'
                             )}
                           >
-                            <span>{item.name}</span>
+                            <span>{t(`nav.${item.key}`)}</span>
                             <ChevronRight className="h-4 w-4" />
                           </Link>
                         </SheetClose>
@@ -297,12 +305,13 @@ export default function Navbar() {
                   <div className="border-t bg-muted/20 p-4 space-y-3">
                     <div>
                       <div className="text-sm font-semibold text-foreground">
-                        {userInfo?.certificateInfo.subjectFields.CN || 'User'}
+                        {userInfo?.certificateInfo.subjectFields.CN ||
+                          t('nav.user')}
                       </div>
                       <div className="flex items-center gap-1 mt-0.5">
                         <Shield className="h-3 w-3 text-green-600" />
                         <span className="text-xs text-muted-foreground">
-                          Certificate Authenticated
+                          {t('nav.certificateAuthenticated')}
                         </span>
                       </div>
                     </div>
@@ -312,7 +321,7 @@ export default function Navbar() {
                       <>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-medium text-muted-foreground">
-                            UUID
+                            {t('nav.mobile.uuid')}
                           </span>
                           <CopyButton
                             text={userInfo.userUUID}

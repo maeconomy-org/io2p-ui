@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import { FileUpload } from './components/file-upload'
@@ -27,6 +28,7 @@ import { logger } from '@/lib'
 type ImportStep = 'upload' | 'map-columns' | 'preview'
 
 export default function ImportPage() {
+  const t = useTranslations()
   const [step, setStep] = useState<ImportStep>('upload')
   // const [file, setFile] = useState<File | null>(null)
   const [sheets, setSheets] = useState<SheetData[]>([])
@@ -113,7 +115,7 @@ export default function ImportPage() {
 
   const handleImport = async () => {
     if (mappedData.length === 0) {
-      toast.error('No data to import')
+      toast.error(t('import.errors.noData'))
       return
     }
 
@@ -147,36 +149,39 @@ export default function ImportPage() {
   const getStepTitle = () => {
     switch (step) {
       case 'upload':
-        return 'Upload File'
+        return t('import.steps.upload')
       case 'map-columns':
-        return 'Map Columns'
+        return t('import.steps.map')
       case 'preview':
-        return 'Preview Data'
+        return t('import.preview.title')
     }
   }
 
   const getStepDescription = () => {
     switch (step) {
       case 'upload':
-        return 'Upload an XLSX or CSV file to import objects'
+        return t('import.subtitle')
       case 'map-columns':
-        return 'Select a sheet and map columns to object properties'
+        return t('import.map.description')
       case 'preview':
-        return 'Review and import your data'
+        return t('import.preview.description')
     }
   }
 
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold">Import Objects</h1>
+        <h1 className="text-2xl font-semibold">{t('import.title')}</h1>
         <p className="text-muted-foreground mt-2">
-          Import objects from XLSX or CSV files
+          {t('import.subtitle')}
           {selectedSheet && (
             <span className="ml-2">
               • <span className="font-medium">{selectedSheet}</span>
               {selectedSheetData.length > 0 && (
-                <span> ({selectedSheetData.length} rows)</span>
+                <span>
+                  {' '}
+                  ({t('import.rows', { count: selectedSheetData.length })})
+                </span>
               )}
             </span>
           )}
@@ -187,9 +192,9 @@ export default function ImportPage() {
         <Steps
           currentStep={step === 'upload' ? 0 : step === 'map-columns' ? 1 : 2}
         >
-          <Step title="Upload File" />
-          <Step title="Map Columns" />
-          <Step title="Preview & Import" />
+          <Step title={t('import.steps.upload')} />
+          <Step title={t('import.steps.map')} />
+          <Step title={t('import.steps.preview')} />
         </Steps>
       </div>
 
@@ -220,7 +225,7 @@ export default function ImportPage() {
             {sheets.length > 1 && (
               <div className="mb-6">
                 <label className="text-sm font-medium mb-1 block">
-                  Select Sheet
+                  {t('import.sheet.select')}
                 </label>
                 <div className="flex gap-4 items-center">
                   <Select
@@ -228,12 +233,15 @@ export default function ImportPage() {
                     onValueChange={handleSheetChange}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Please select a sheet" />
+                      <SelectValue
+                        placeholder={t('import.sheet.placeholder')}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {sheets.map((sheet) => (
                         <SelectItem key={sheet.name} value={sheet.name}>
-                          {sheet.name} ({sheet.data.length} rows)
+                          {sheet.name} (
+                          {t('import.rows', { count: sheet.data.length })})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -248,17 +256,17 @@ export default function ImportPage() {
                 onColumnsMapped={handleColumnMapped}
                 onBack={handleBack}
                 suggestedStartRow={suggestedStartRow}
-                title="Map Columns"
-                description="Map columns to object properties"
+                title={t('import.map.title')}
+                description={t('import.map.description')}
               />
             ) : (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">
                   {sheets.length === 0
-                    ? 'No sheets found in file'
+                    ? t('import.sheet.noSheets')
                     : selectedSheet
-                      ? `No data found in sheet "${selectedSheet}"`
-                      : 'Please select a sheet to continue'}
+                      ? t('import.sheet.noData', { sheet: selectedSheet })
+                      : t('import.sheet.selectPrompt')}
                 </p>
               </div>
             )}
@@ -271,8 +279,8 @@ export default function ImportPage() {
             onImport={handleImport}
             onBack={handleBack}
             isImporting={isImporting}
-            title="Preview Data"
-            description="Review and import your data"
+            title={t('import.preview.title')}
+            description={t('import.preview.description')}
           />
         )}
       </div>

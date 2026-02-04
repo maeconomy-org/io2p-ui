@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Link as LinkIcon, Upload } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import type { Attachment } from '@/types'
 import { FileDropzone, Button, Input, Separator } from '@/components/ui'
@@ -25,6 +26,7 @@ export function AttachmentSection({
   allowReference = true,
   allowUpload = true,
 }: AttachmentSectionProps) {
+  const t = useTranslations()
   const [referenceUrl, setReferenceUrl] = useState('')
   const [referenceLabel, setReferenceLabel] = useState('')
   const [isUploading, setIsUploading] = useState(false)
@@ -118,7 +120,9 @@ export function AttachmentSection({
         <FileDropzone
           onDrop={handleDrop}
           isLoading={isUploading}
-          loadingText={`Uploading... (${uploadProgress}%)`}
+          loadingText={t('objects.attachments.uploading', {
+            progress: uploadProgress,
+          })}
           progress={uploadProgress}
           error={error}
           disabled={disabled}
@@ -127,11 +131,9 @@ export function AttachmentSection({
         >
           <div className="flex flex-col items-center justify-center text-muted-foreground">
             <Upload className="h-5 w-5 mb-2" />
-            <p className="text-sm">
-              Drag and drop files here, or click to browse
-            </p>
+            <p className="text-sm">{t('objects.attachments.dragDrop')}</p>
             <p className="text-sm font-semibold">
-              Max {getMaxUploadSizeMB()}MB
+              {t('objects.attachments.maxSize', { size: getMaxUploadSizeMB() })}
             </p>
           </div>
         </FileDropzone>
@@ -141,14 +143,14 @@ export function AttachmentSection({
         <div className="flex items-center gap-2">
           <div className="flex-1 space-y-1">
             <Input
-              placeholder="Enter external file URL"
+              placeholder={t('objects.attachments.externalUrl')}
               value={referenceUrl}
               onChange={(e) => setReferenceUrl(e.target.value)}
               disabled={disabled}
             />
           </div>
           <Input
-            placeholder="Label (optional)"
+            placeholder={t('objects.attachments.labelOptional')}
             className="max-w-[180px]"
             value={referenceLabel}
             onChange={(e) => setReferenceLabel(e.target.value)}
@@ -162,7 +164,7 @@ export function AttachmentSection({
             disabled={disabled}
             data-test="add-reference-button"
           >
-            <LinkIcon className="h-4 w-4 mr-1" /> Add
+            <LinkIcon className="h-4 w-4 mr-1" /> {t('common.add')}
           </Button>
         </div>
       )}
@@ -181,7 +183,7 @@ export function AttachmentSection({
         </div>
       ) : (
         <div className="text-sm text-muted-foreground italic">
-          No attachments
+          {t('objects.attachments.noAttachments')}
         </div>
       )}
     </div>

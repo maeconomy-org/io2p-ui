@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
 import { PlusCircle, ArrowLeft } from 'lucide-react'
 
@@ -12,6 +13,7 @@ import ProtectedRoute from '@/components/protected-route'
 import { ObjectDetailsSheet, ObjectAddSheet } from '@/components/object-sheets'
 
 function ObjectChildrenPageContent() {
+  const t = useTranslations()
   const params = useParams()
   const router = useRouter()
   const parentUuid = params.uuid as string
@@ -99,7 +101,7 @@ function ObjectChildrenPageContent() {
   if (parentLoading) {
     return (
       <div className="flex justify-center items-center h-40">
-        Loading parent object...
+        {t('objects.childrenPage.loadingParent')}
       </div>
     )
   }
@@ -109,7 +111,7 @@ function ObjectChildrenPageContent() {
       <div className="flex flex-col flex-1">
         <div className="container mx-auto px-4">
           <div className="flex justify-center items-center h-40">
-            <p>Parent object not found</p>
+            <p>{t('objects.childrenPage.parentNotFound')}</p>
           </div>
         </div>
       </div>
@@ -129,7 +131,7 @@ function ObjectChildrenPageContent() {
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Objects
+              {t('objects.childrenPage.backToObjects')}
             </Button>
             <div>
               <div className="flex items-center gap-2">
@@ -143,14 +145,16 @@ function ObjectChildrenPageContent() {
 
           <Button onClick={handleAddChild}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Child
+            {t('objects.childrenPage.addChild')}
           </Button>
         </div>
 
         <div className="mb-4">
-          <h2 className="text-xl font-semibold">Children Objects</h2>
+          <h2 className="text-xl font-semibold">
+            {t('objects.childrenPage.childrenTitle')}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            {totalElements} child objects found
+            {t('objects.childrenPage.childrenCount', { count: totalElements })}
           </p>
         </div>
 

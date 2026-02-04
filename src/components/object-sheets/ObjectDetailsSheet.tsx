@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Trash2, Loader2, FileText, RotateCcw } from 'lucide-react'
 
 import { logger } from '@/lib'
@@ -58,6 +59,7 @@ export function ObjectDetailsSheet({
   uuid,
   isDeleted,
 }: ObjectSheetProps) {
+  const t = useTranslations()
   // State for UI interactions
   const [activeEditingSection, setActiveEditingSection] = useState<
     string | null
@@ -362,7 +364,7 @@ export function ObjectDetailsSheet({
               <span className="flex items-center gap-2">
                 <SheetTitle>{objectName}</SheetTitle>
                 {(object?.softDeleted || isDeleted) && (
-                  <Badge variant="destructive">Deleted</Badge>
+                  <Badge variant="destructive">{t('objects.deleted')}</Badge>
                 )}
               </span>
               {object?.uuid && (
@@ -375,7 +377,7 @@ export function ObjectDetailsSheet({
                       onClick={handleRevertObject}
                       disabled={isReverting}
                       className="text-muted-foreground hover:text-foreground"
-                      title="Restore this object"
+                      title={t('objects.restoreTitle')}
                     >
                       {isReverting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -388,7 +390,7 @@ export function ObjectDetailsSheet({
               )}
             </div>
             <SheetDescription>
-              View and edit object properties, relationships, and files
+              {t('objects.detailsDescription')}
             </SheetDescription>
           </SheetHeader>
 
@@ -404,10 +406,18 @@ export function ObjectDetailsSheet({
                 className="w-full"
               >
                 <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="properties">Properties</TabsTrigger>
-                  <TabsTrigger value="files">Files</TabsTrigger>
-                  <TabsTrigger value="relationships">Relationships</TabsTrigger>
-                  <TabsTrigger value="metadata">Metadata</TabsTrigger>
+                  <TabsTrigger value="properties">
+                    {t('objects.tabs.properties')}
+                  </TabsTrigger>
+                  <TabsTrigger value="files">
+                    {t('objects.tabs.files')}
+                  </TabsTrigger>
+                  <TabsTrigger value="relationships">
+                    {t('objects.tabs.relationships')}
+                  </TabsTrigger>
+                  <TabsTrigger value="metadata">
+                    {t('objects.tabs.metadata')}
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="properties" className="mt-0">
@@ -472,7 +482,7 @@ export function ObjectDetailsSheet({
                   onClick={onClose}
                   className="w-full"
                 >
-                  Close
+                  {t('common.close')}
                 </Button>
                 {object?.uuid && (
                   <>
@@ -487,12 +497,12 @@ export function ObjectDetailsSheet({
                         {isReverting ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Restoring...
+                            {t('objects.restoring')}
                           </>
                         ) : (
                           <>
                             <RotateCcw className="h-4 w-4 mr-2" />
-                            Restore
+                            {t('objects.restore')}
                           </>
                         )}
                       </Button>
@@ -507,7 +517,7 @@ export function ObjectDetailsSheet({
                         className="text-white w-full"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
+                        {t('common.delete')}
                       </Button>
                     )}
                   </>
@@ -524,12 +534,12 @@ export function ObjectDetailsSheet({
                   {isCreatingTemplate ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating Template...
+                      {t('objects.creatingTemplate')}
                     </>
                   ) : (
                     <>
                       <FileText className="h-4 w-4 mr-2" />
-                      Create Template
+                      {t('objects.createTemplate')}
                     </>
                   )}
                 </Button>
@@ -556,7 +566,7 @@ export function ObjectDetailsSheet({
           onOpenChange={setIsObjectFilesModalOpen}
           attachments={objectFiles}
           onChange={handleObjectFilesChange}
-          title="Object Files"
+          title={t('objects.filesTitle')}
           uploadContext={{
             objectUuid: object?.uuid,
           }}
@@ -579,8 +589,8 @@ export function ObjectDetailsSheet({
           }}
           title={
             attachmentModal.type === 'property'
-              ? 'Attach Files to Property'
-              : 'Attach Files to Value'
+              ? t('objects.attachFilesProperty')
+              : t('objects.attachFilesValue')
           }
           uploadContext={{
             objectUuid: object.uuid,

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { MouseEvent, ReactElement } from 'react'
 import { Download, Link as LinkIcon, Trash2, Eye, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import {
@@ -159,6 +160,7 @@ export function FileDisplay({
   onRemove,
   allowHardRemove = false,
 }: FileDisplayProps) {
+  const t = useTranslations()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
@@ -319,7 +321,7 @@ export function FileDisplay({
             variant="outline"
             className="text-xs border-destructive text-destructive"
           >
-            Deleted
+            {t('common.deleted')}
           </Badge>
         )}
         {!isSoftDeleted && canPreview && (
@@ -328,7 +330,7 @@ export function FileDisplay({
             size="sm"
             className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
             onClick={handlePreview}
-            title="Preview in new tab"
+            title={t('objects.files.preview')}
           >
             <Eye className="h-3 w-3" />
           </Button>
@@ -339,7 +341,7 @@ export function FileDisplay({
             size="sm"
             className="h-6 w-6 p-0 text-destructive hover:text-destructive/80"
             onClick={handleRemoveFile}
-            title="Delete file"
+            title={t('objects.files.delete')}
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -365,7 +367,7 @@ export function FileDisplay({
         >
           <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden border-0 bg-black/95 [&>button]:hidden">
             <VisuallyHidden>
-              <DialogTitle>File Preview</DialogTitle>
+              <DialogTitle>{t('objects.files.filePreview')}</DialogTitle>
             </VisuallyHidden>
             {/* Close button */}
             <Button
@@ -397,7 +399,7 @@ export function FileDisplay({
                 className="gap-2"
               >
                 <Download className="h-4 w-4" />
-                Download
+                {t('common.download')}
               </Button>
             </div>
           </DialogContent>
@@ -408,19 +410,20 @@ export function FileDisplay({
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t('objects.files.deleteTitle')}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{displayName}"? This action
-              cannot be undone.
+              {t('objects.files.deleteConfirm', { name: displayName })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -447,6 +450,7 @@ export function FileList({
   allowHardRemove = false,
   showEmptyState = true,
 }: FileListProps) {
+  const t = useTranslations()
   return (
     <div className={cn('space-y-1', className)}>
       {files && files.length > 0 ? (
@@ -460,7 +464,7 @@ export function FileList({
         ))
       ) : showEmptyState ? (
         <p className="text-sm text-muted-foreground">
-          No files found for this object
+          {t('objects.files.noFiles')}
         </p>
       ) : null}
     </div>

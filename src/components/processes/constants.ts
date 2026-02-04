@@ -12,18 +12,18 @@ export const PROCESS_CATEGORIES: ProcessCategory[] = [
 ]
 
 export const FLOW_CATEGORY_OPTIONS = [
-  { value: 'STANDARD', label: 'Standard Flow' },
-  { value: 'RECYCLING', label: 'Recycling' },
-  { value: 'REUSE', label: 'Reuse' },
-  { value: 'DOWNCYCLING', label: 'Downcycling' },
-  { value: 'CIRCULAR', label: 'Circular Flow' },
-  { value: 'WASTE_FLOW', label: 'Waste Flow' },
+  { value: 'STANDARD', labelKey: 'STANDARD' },
+  { value: 'RECYCLING', labelKey: 'RECYCLING' },
+  { value: 'REUSE', labelKey: 'REUSE' },
+  { value: 'DOWNCYCLING', labelKey: 'DOWNCYCLING' },
+  { value: 'CIRCULAR', labelKey: 'CIRCULAR' },
+  { value: 'WASTE_FLOW', labelKey: 'WASTE_FLOW' },
 ] as const
 
 export const QUALITY_CHANGE_OPTIONS = [
-  { value: 'UPCYCLED', label: 'Upcycled (Improved Quality)' },
-  { value: 'SAME', label: 'Same Quality' },
-  { value: 'DOWNCYCLED', label: 'Downcycled (Reduced Quality)' },
+  { value: 'UPCYCLED', labelKey: 'UPCYCLED' },
+  { value: 'SAME', labelKey: 'SAME' },
+  { value: 'DOWNCYCLED', labelKey: 'DOWNCYCLED' },
 ] as const
 
 // Color palettes for charts

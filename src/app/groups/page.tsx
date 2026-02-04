@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Plus, Search } from 'lucide-react'
 
 import { Button, Input, DeletedFilter } from '@/components/ui'
@@ -12,6 +13,7 @@ import {
 } from '@/components/groups'
 
 export default function GroupsPage() {
+  const t = useTranslations()
   const [groups] = useState(dummyGroups)
   const [searchTerm, setSearchTerm] = useState('')
   const [showDeleted, setShowDeleted] = useState(false)
@@ -71,7 +73,7 @@ export default function GroupsPage() {
     // In real implementation, this would call the delete API
     console.log('Deleting group:', group.uuid)
     // For now, just show a confirmation
-    if (confirm(`Are you sure you want to delete "${group.name}"?`)) {
+    if (confirm(t('groups.confirmDelete', { name: group.name }))) {
       console.log('Group deleted (soft delete)')
     }
   }
@@ -80,7 +82,7 @@ export default function GroupsPage() {
     <div className="container mx-auto p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Groups & Projects</h1>
+        <h1 className="text-2xl font-bold">{t('groups.title')}</h1>
         <div className="flex items-center gap-2">
           {/* Search Button */}
           <Button
@@ -96,7 +98,7 @@ export default function GroupsPage() {
           <DeletedFilter
             showDeleted={showDeleted}
             onShowDeletedChange={setShowDeleted}
-            label="Show deleted groups"
+            label={t('groups.showDeleted')}
           />
 
           <Button
@@ -104,7 +106,7 @@ export default function GroupsPage() {
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
-            Create Group
+            {t('groups.create')}
           </Button>
         </div>
       </div>
@@ -115,7 +117,7 @@ export default function GroupsPage() {
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search groups..."
+              placeholder={t('groups.search')}
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-10"
@@ -130,26 +132,34 @@ export default function GroupsPage() {
         <div className="bg-card rounded-lg border p-4">
           <div className="text-2xl font-bold">{filteredGroups.length}</div>
           <div className="text-sm text-muted-foreground">
-            {searchTerm || showDeleted ? 'Filtered Groups' : 'Total Groups'}
+            {searchTerm || showDeleted
+              ? t('groups.filtered')
+              : t('groups.total')}
           </div>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <div className="text-2xl font-bold">
             {filteredGroups.filter((g) => g.type === 'public').length}
           </div>
-          <div className="text-sm text-muted-foreground">Public Groups</div>
+          <div className="text-sm text-muted-foreground">
+            {t('groups.public')}
+          </div>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <div className="text-2xl font-bold">
             {filteredGroups.filter((g) => g.type === 'private').length}
           </div>
-          <div className="text-sm text-muted-foreground">Private Groups</div>
+          <div className="text-sm text-muted-foreground">
+            {t('groups.private')}
+          </div>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <div className="text-2xl font-bold">
             {filteredGroups.reduce((sum, g) => sum + g.objectCount, 0)}
           </div>
-          <div className="text-sm text-muted-foreground">Total Objects</div>
+          <div className="text-sm text-muted-foreground">
+            {t('groups.totalObjects')}
+          </div>
         </div>
       </div>
 
@@ -170,9 +180,11 @@ export default function GroupsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {startIndex + 1}-
-            {Math.min(startIndex + itemsPerPage, filteredGroups.length)} of{' '}
-            {filteredGroups.length} groups
+            {t('groups.showing', {
+              start: startIndex + 1,
+              end: Math.min(startIndex + itemsPerPage, filteredGroups.length),
+              total: filteredGroups.length,
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -181,7 +193,7 @@ export default function GroupsPage() {
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
             >
-              Previous
+              {t('common.previous')}
             </Button>
             <div className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
@@ -204,7 +216,7 @@ export default function GroupsPage() {
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
-              Next
+              {t('common.next')}
             </Button>
           </div>
         </div>
@@ -213,9 +225,7 @@ export default function GroupsPage() {
       {filteredGroups.length === 0 && (
         <div className="text-center py-12">
           <div className="text-muted-foreground">
-            {searchTerm
-              ? 'No groups found matching your search.'
-              : 'No groups available.'}
+            {searchTerm ? t('groups.noMatches') : t('groups.noGroups')}
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Search, Package } from 'lucide-react'
 import type { UUObjectDTO } from 'iom-sdk'
 import {
@@ -64,9 +65,9 @@ export function ObjectSelectionModal({
   onSave,
   title = 'Select Object',
   initialData,
-  materialType = 'input',
   showMetadataFields = true,
 }: ObjectSelectionModalProps) {
+  const t = useTranslations()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedObject, setSelectedObject] = useState<UUObjectDTO | null>(null)
   const [quantity, setQuantity] = useState<number | undefined>(undefined)
@@ -114,7 +115,7 @@ export function ObjectSelectionModal({
     }, 300)
 
     return () => clearTimeout(timeout)
-  }, [searchTerm, isOpen])
+  }, [searchTerm, isOpen, searchMutation])
 
   useEffect(() => {
     if (initialData) {
@@ -217,7 +218,7 @@ export function ObjectSelectionModal({
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-blue-600" />
-            {title}
+            {title || t('objectSelection.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -225,14 +226,16 @@ export function ObjectSelectionModal({
           <div className="space-y-4 p-1">
             {/* Search Objects */}
             <div className="space-y-2">
-              <Label htmlFor="search">Search Objects</Label>
+              <Label htmlFor="search">
+                {t('objectSelection.searchObjects')}
+              </Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Type to search objects..."
+                  placeholder={t('objectSelection.typeToSearch')}
                   className="pl-10"
                 />
               </div>
@@ -240,17 +243,17 @@ export function ObjectSelectionModal({
 
             {/* Object List */}
             <div className="space-y-2 flex-1">
-              <Label>Available Objects</Label>
+              <Label>{t('objectSelection.availableObjects')}</Label>
               <ScrollArea className="h-48 border rounded-lg">
                 {isSearching ? (
                   <div className="p-4 text-center text-gray-500">
-                    Searching objects...
+                    {t('objectSelection.searching')}
                   </div>
                 ) : objects.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">
                     {searchTerm.trim().length >= 2
-                      ? 'No objects found matching your search'
-                      : 'Type at least 2 characters to search for objects'}
+                      ? t('objectSelection.noObjects')
+                      : t('objectSelection.typeToSearch')}
                   </div>
                 ) : (
                   <div className="p-2 space-y-1">
@@ -281,7 +284,7 @@ export function ObjectSelectionModal({
             {selectedObject && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">Selected</Badge>
+                  <Badge variant="secondary">{t('common.selected')}</Badge>
                   <span className="font-medium">{selectedObject.name}</span>
                 </div>
               </div>
@@ -290,7 +293,9 @@ export function ObjectSelectionModal({
             {/* Quantity (Required) and Unit (Optional) */}
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
+                <Label htmlFor="quantity">
+                  {t('objectSelection.quantity')}
+                </Label>
                 <Input
                   id="quantity"
                   type="number"
@@ -302,23 +307,25 @@ export function ObjectSelectionModal({
                       e.target.value ? Number(e.target.value) : undefined
                     )
                   }
-                  placeholder="Enter quantity"
+                  placeholder={t('objectSelection.quantityPlaceholder')}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="unit">Unit</Label>
+                <Label htmlFor="unit">{t('objectSelection.unit')}</Label>
                 <Select value={unit} onValueChange={setUnit} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select unit" />
+                    <SelectValue
+                      placeholder={t('objectSelection.selectUnit')}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(UNIT_CATEGORIES).map(
                       ([categoryKey, category]) => (
                         <div key={categoryKey}>
                           <div className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100">
-                            {category.label}
+                            {t(`units.${category.labelKey}`)}
                           </div>
                           {category.units.map((unitOption) => (
                             <SelectItem key={unitOption} value={unitOption}>
@@ -337,13 +344,15 @@ export function ObjectSelectionModal({
             {showMetadataFields && (
               <div className="space-y-4 border-t pt-4">
                 <h3 className="text-sm font-semibold text-gray-700">
-                  Material Metadata (Optional)
+                  {t('objectSelection.metadata')}
                 </h3>
 
                 {/* Lifecycle Stage and Category - simplified field names */}
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="lifecycleStage">Lifecycle Stage</Label>
+                    <Label htmlFor="lifecycleStage">
+                      {t('objectSelection.lifecycleStage')}
+                    </Label>
                     <Select
                       value={metadata.lifecycleStage || ''}
                       onValueChange={(value) =>
@@ -354,7 +363,11 @@ export function ObjectSelectionModal({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select lifecycle stage" />
+                        <SelectValue
+                          placeholder={t(
+                            'objectSelection.selectLifecycleStage'
+                          )}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {LIFECYCLE_STAGES.map((stage) => (
@@ -370,7 +383,9 @@ export function ObjectSelectionModal({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="categoryCode">Material Category</Label>
+                    <Label htmlFor="categoryCode">
+                      {t('objectSelection.materialCategory')}
+                    </Label>
                     <Select
                       value={metadata.categoryCode || ''}
                       onValueChange={(value) =>
@@ -378,7 +393,9 @@ export function ObjectSelectionModal({
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
+                        <SelectValue
+                          placeholder={t('objectSelection.selectCategory')}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {Object.entries(DOMAIN_CATEGORY_CODES).map(
@@ -398,7 +415,7 @@ export function ObjectSelectionModal({
             {/* Custom Properties */}
             <div className="space-y-4 border-t pt-4">
               <h3 className="text-sm font-semibold text-gray-700">
-                Custom Properties (Optional)
+                {t('objectSelection.customProperties')}
               </h3>
 
               {/* Existing Custom Properties */}
@@ -428,12 +445,12 @@ export function ObjectSelectionModal({
               {/* Add New Custom Property */}
               <div className="grid sm:grid-cols-3 gap-2">
                 <Input
-                  placeholder="Property name"
+                  placeholder={t('objectSelection.propertyName')}
                   value={newPropertyKey}
                   onChange={(e) => setNewPropertyKey(e.target.value)}
                 />
                 <Input
-                  placeholder="Property value"
+                  placeholder={t('objectSelection.propertyValue')}
                   value={newPropertyValue}
                   onChange={(e) => setNewPropertyValue(e.target.value)}
                 />
@@ -443,7 +460,7 @@ export function ObjectSelectionModal({
                   onClick={addCustomProperty}
                   disabled={!newPropertyKey.trim() || !newPropertyValue.trim()}
                 >
-                  Add Property
+                  {t('objectSelection.addProperty')}
                 </Button>
               </div>
             </div>
@@ -458,7 +475,7 @@ export function ObjectSelectionModal({
             onClick={handleCancel}
             className="flex-1"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
@@ -466,7 +483,9 @@ export function ObjectSelectionModal({
             disabled={!selectedObject || !quantity || quantity <= 0 || !unit}
             className="flex-1"
           >
-            {initialData ? 'Update' : 'Add'} Material
+            {initialData
+              ? t('objectSelection.updateMaterial')
+              : t('objectSelection.addMaterial')}
           </Button>
         </div>
       </DialogContent>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   ArrowLeftRight,
   Recycle,
@@ -34,6 +35,7 @@ export function DashboardView({
   relationships = [],
   onCreateProcess = () => {},
 }: DashboardViewProps) {
+  const t = useTranslations()
   const dashboardData = useMemo(() => {
     // Calculate KPIs
     const totalFlows = relationships.length
@@ -133,7 +135,7 @@ export function DashboardView({
         averageMaterialLoss,
       },
     }
-  }, [materials, relationships])
+  }, [relationships])
 
   if (materials.length === 0 && relationships.length === 0) {
     return (
@@ -141,18 +143,17 @@ export function DashboardView({
         <div className="text-center py-12">
           <Factory className="mx-auto h-12 w-12 text-gray-400 mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No Process Data
+            {t('processes.dashboard.noDataTitle')}
           </h3>
           <p className="text-gray-600 mb-6">
-            Start by creating your first material flow process to see insights
-            and analytics.
+            {t('processes.dashboard.noDataDescription')}
           </p>
           <button
             onClick={onCreateProcess}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <ArrowLeftRight className="mr-2 h-4 w-4" />
-            Create First Process
+            {t('processes.dashboard.createFirstProcess')}
           </button>
         </div>
       </div>
@@ -174,7 +175,9 @@ export function DashboardView({
                 <div className="text-2xl font-semibold">
                   {dashboardData.kpis.totalFlows}
                 </div>
-                <div className="text-xs text-muted-foreground">Total Flows</div>
+                <div className="text-xs text-muted-foreground">
+                  {t('processes.dashboard.totalFlows')}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -192,7 +195,7 @@ export function DashboardView({
                   {dashboardData.kpis.circularFlows}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Circular Flows
+                  {t('processes.dashboard.circularFlows')}
                 </div>
               </div>
             </div>
@@ -211,7 +214,7 @@ export function DashboardView({
                   {dashboardData.kpis.circularityRate}%
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Circularity Rate
+                  {t('processes.dashboard.circularityRate')}
                 </div>
               </div>
             </div>
@@ -230,7 +233,7 @@ export function DashboardView({
                   {dashboardData.kpis.reusedComponents}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Reused Components
+                  {t('processes.dashboard.reusedComponents')}
                 </div>
               </div>
             </div>
@@ -246,11 +249,13 @@ export function DashboardView({
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Rows3 className="h-5 w-5" />
-                Process Categories
+                {t('processes.dashboard.processCategories')}
               </CardTitle>
               {dashboardData.breakdowns.processCategoriesTotal > 5 && (
                 <span className="text-xs text-gray-500 font-medium">
-                  Top 5 of {dashboardData.breakdowns.processCategoriesTotal}
+                  {t('processes.dashboard.topCount', {
+                    count: dashboardData.breakdowns.processCategoriesTotal,
+                  })}
                 </span>
               )}
             </div>
@@ -259,7 +264,7 @@ export function DashboardView({
             <CountList
               data={dashboardData.breakdowns.processCategories}
               maxItems={4}
-              emptyMessage="No process category data"
+              emptyMessage={t('processes.dashboard.noProcessCategoryData')}
               colorPalette={PROCESS_CATEGORY_COLORS}
             />
           </CardContent>
@@ -271,11 +276,13 @@ export function DashboardView({
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <RotateCcw className="h-5 w-5" />
-                Lifecycle Stages
+                {t('processes.dashboard.lifecycleStages')}
               </CardTitle>
               {dashboardData.breakdowns.lifecycleStagesTotal > 5 && (
                 <span className="text-xs text-gray-500 font-medium">
-                  Top 5 of {dashboardData.breakdowns.lifecycleStagesTotal}
+                  {t('processes.dashboard.topCount', {
+                    count: dashboardData.breakdowns.lifecycleStagesTotal,
+                  })}
                 </span>
               )}
             </div>
@@ -284,7 +291,7 @@ export function DashboardView({
             <CountList
               data={dashboardData.breakdowns.lifecycleStages}
               maxItems={4}
-              emptyMessage="No lifecycle stage data"
+              emptyMessage={t('processes.dashboard.noLifecycleData')}
               colorPalette={LIFECYCLE_STAGE_COLORS}
             />
           </CardContent>
@@ -296,7 +303,7 @@ export function DashboardView({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Leaf className="h-5 w-5" />
-            Environmental Impact
+            {t('processes.dashboard.environmentalImpact')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -316,7 +323,9 @@ export function DashboardView({
                       kg CO₂
                     </span>
                   </div>
-                  <div className="text-xs text-green-600">Total Emissions</div>
+                  <div className="text-xs text-green-600">
+                    {t('processes.dashboard.totalEmissions')}
+                  </div>
                 </div>
               </div>
             </div>
@@ -339,7 +348,7 @@ export function DashboardView({
                     </span>
                   </div>
                   <div className="text-xs text-orange-600">
-                    Avg Material Loss
+                    {t('processes.dashboard.avgMaterialLoss')}
                   </div>
                 </div>
               </div>
@@ -357,10 +366,12 @@ export function DashboardView({
                       {dashboardData.environmental.upcycledProcesses}
                     </span>
                     <span className="text-sm text-blue-600 font-medium">
-                      processes
+                      {t('processes.dashboard.processesUnit')}
                     </span>
                   </div>
-                  <div className="text-xs text-blue-600">Upcycled</div>
+                  <div className="text-xs text-blue-600">
+                    {t('processes.dashboard.upcycled')}
+                  </div>
                 </div>
               </div>
             </div>
@@ -377,10 +388,12 @@ export function DashboardView({
                       {dashboardData.environmental.downcycledProcesses}
                     </span>
                     <span className="text-sm text-red-600 font-medium">
-                      processes
+                      {t('processes.dashboard.processesUnit')}
                     </span>
                   </div>
-                  <div className="text-xs text-red-600">Downcycled</div>
+                  <div className="text-xs text-red-600">
+                    {t('processes.dashboard.downcycled')}
+                  </div>
                 </div>
               </div>
             </div>
@@ -393,7 +406,9 @@ export function DashboardView({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Materials ({materials.length})
+            {t('processes.dashboard.materialsTitle', {
+              count: materials.length,
+            })}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -412,7 +427,8 @@ export function DashboardView({
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium truncate text-gray-900">
-                      {material.name || 'Unnamed Material'}
+                      {material.name ||
+                        t('processes.dashboard.unnamedMaterial')}
                     </span>
                     <span className="text-xs px-1.5 py-0.5 rounded-full ml-1 bg-gray-100 text-gray-600">
                       {materialFlowCount}
@@ -421,7 +437,7 @@ export function DashboardView({
                   <div className="text-xs text-gray-500 truncate">
                     {material.lifecycleStage
                       ?.replace(/_/g, ' ')
-                      .toLowerCase() || 'No stage'}
+                      .toLowerCase() || t('processes.dashboard.noStage')}
                   </div>
                 </div>
               )
@@ -430,7 +446,7 @@ export function DashboardView({
           {materials.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <Package className="mx-auto h-8 w-8 mb-2 opacity-50" />
-              <p>No materials available</p>
+              <p>{t('processes.dashboard.noMaterials')}</p>
             </div>
           )}
         </CardContent>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Download, HelpCircle, ArrowLeft } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { APP_ACRONYM } from '@/constants'
 import { useAppConfig } from '@/contexts'
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui'
 
 export default function HelpPage() {
+  const t = useTranslations()
   const config = useAppConfig()
   const supportEmail = config.supportEmail
 
@@ -29,51 +31,53 @@ export default function HelpPage() {
           <Link href="/">
             <Button variant="ghost" className="mr-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t('help.back')}
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">Help Center</h1>
+          <h1 className="text-3xl font-bold">{t('help.title')}</h1>
         </div>
 
         <Tabs defaultValue="installation" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="installation">Installation</TabsTrigger>
-            <TabsTrigger value="usage">Usage Guide</TabsTrigger>
-            <TabsTrigger value="troubleshooting">Troubleshooting</TabsTrigger>
+            <TabsTrigger value="installation">
+              {t('help.installation')}
+            </TabsTrigger>
+            <TabsTrigger value="usage">{t('help.usageGuide')}</TabsTrigger>
+            <TabsTrigger value="troubleshooting">
+              {t('help.troubleshooting')}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="installation" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Certificate Installation</CardTitle>
+                <CardTitle>{t('help.certificateInstallation')}</CardTitle>
                 <CardDescription>
-                  Follow these steps to install your certificate
+                  {t('help.certificateInstallationDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="font-semibold">Windows</h3>
+                  <h3 className="font-semibold">{t('help.windows')}</h3>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
-                    <li>Double-click the certificate file (.p12 or .pfx)</li>
-                    <li>Select "Current User" for store location</li>
-                    <li>Enter your certificate password when prompted</li>
-                    <li>Complete the Certificate Import Wizard</li>
+                    {(t.raw('help.windowsSteps') as string[]).map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
                   </ol>
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="font-semibold">macOS</h3>
+                  <h3 className="font-semibold">{t('help.macos')}</h3>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
-                    <li>Double-click the certificate file</li>
-                    <li>Allow Keychain Access to install</li>
-                    <li>Enter your system password</li>
-                    <li>Enter the certificate password</li>
+                    {(t.raw('help.macosSteps') as string[]).map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
                   </ol>
                 </div>
 
                 <Button variant="outline" className="mt-4">
                   <Download className="mr-2 h-4 w-4" />
-                  Download Full Guide
+                  {t('help.downloadGuide')}
                 </Button>
               </CardContent>
             </Card>
@@ -82,28 +86,31 @@ export default function HelpPage() {
           <TabsContent value="usage" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Using Your Certificate</CardTitle>
+                <CardTitle>{t('help.usingCertificate')}</CardTitle>
                 <CardDescription>
-                  Learn how to use your certificate with {APP_ACRONYM}
+                  {t('help.usingCertificateDesc', { acronym: APP_ACRONYM })}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="font-semibold">First-Time Login</h3>
+                  <h3 className="font-semibold">{t('help.firstTimeLogin')}</h3>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
-                    <li>Open {APP_ACRONYM} application</li>
-                    <li>Click "Authorize"</li>
-                    <li>Select your certificate when prompted</li>
-                    <li>Click OK/Allow</li>
+                    {(t.raw('help.firstTimeLoginSteps') as string[]).map(
+                      (step, i) => (
+                        <li key={i}>{step}</li>
+                      )
+                    )}
                   </ol>
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="font-semibold">Daily Usage</h3>
+                  <h3 className="font-semibold">{t('help.dailyUsage')}</h3>
                   <ul className="list-disc list-inside space-y-1 ml-4">
-                    <li>Browser remembers your choice</li>
-                    <li>May need to reselect after browser restart</li>
-                    <li>Selection dialog appears if multiple certificates</li>
+                    {(t.raw('help.dailyUsageItems') as string[]).map(
+                      (item, i) => (
+                        <li key={i}>{item}</li>
+                      )
+                    )}
                   </ul>
                 </div>
               </CardContent>
@@ -113,35 +120,39 @@ export default function HelpPage() {
           <TabsContent value="troubleshooting" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Common Issues</CardTitle>
-                <CardDescription>
-                  Solutions for common certificate problems
-                </CardDescription>
+                <CardTitle>{t('help.commonIssues')}</CardTitle>
+                <CardDescription>{t('help.commonIssuesDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <h3 className="font-semibold">Certificate Not Showing</h3>
+                    <h3 className="font-semibold">
+                      {t('help.certificateNotShowing')}
+                    </h3>
                     <ul className="list-disc list-inside space-y-1 ml-4">
-                      <li>Check if certificate is installed correctly</li>
-                      <li>Verify certificate hasn't expired</li>
-                      <li>Ensure using supported browser</li>
+                      {(
+                        t.raw('help.certificateNotShowingItems') as string[]
+                      ).map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
                     </ul>
                   </div>
 
                   <div className="space-y-2">
-                    <h3 className="font-semibold">Access Denied</h3>
+                    <h3 className="font-semibold">{t('help.accessDenied')}</h3>
                     <ul className="list-disc list-inside space-y-1 ml-4">
-                      <li>Verify correct certificate selected</li>
-                      <li>Check certificate expiration</li>
-                      <li>Contact administrator if issues persist</li>
+                      {(t.raw('help.accessDeniedItems') as string[]).map(
+                        (item, i) => (
+                          <li key={i}>{item}</li>
+                        )
+                      )}
                     </ul>
                   </div>
                 </div>
 
                 <Button variant="outline" className="mt-4">
                   <HelpCircle className="mr-2 h-4 w-4" />
-                  Contact Support: {supportEmail}
+                  {t('help.contactSupport', { email: supportEmail })}
                 </Button>
               </CardContent>
             </Card>

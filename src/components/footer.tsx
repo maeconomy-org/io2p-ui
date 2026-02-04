@@ -1,8 +1,12 @@
 import Link from 'next/link'
-import { FOOTER_LINKS, APP_NAME } from '@/constants'
+import { useTranslations } from 'next-intl'
+
+import { APP_NAME, FOOTER_LINKS } from '@/constants'
+import { LanguageSelect } from '@/components/language-switcher'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
+  const t = useTranslations()
 
   return (
     <footer className="w-full mt-6">
@@ -11,7 +15,7 @@ export default function Footer() {
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div>
             <p>
-              © {currentYear} {APP_NAME}. All rights reserved.
+              {currentYear} {APP_NAME}. {t('footer.rights')}
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -21,9 +25,12 @@ export default function Footer() {
                 href={link.path}
                 className="hover:text-foreground transition-colors"
               >
-                {link.name}
+                {t(`nav.${link.key}`)}
               </Link>
             ))}
+            <div className="flex items-center gap-2">
+              <LanguageSelect className="size-10" />
+            </div>
           </div>
         </div>
       </div>

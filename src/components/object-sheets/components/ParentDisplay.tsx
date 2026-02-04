@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+
 import { Badge } from '@/components/ui'
 import { CopyButton } from '@/components/ui'
 
@@ -13,10 +15,11 @@ interface ParentDisplayProps {
  * Handles both string arrays and object arrays gracefully
  */
 export function ParentDisplay({ parents, className = '' }: ParentDisplayProps) {
+  const t = useTranslations()
   if (!parents || parents.length === 0) {
     return (
       <div className="text-sm text-muted-foreground bg-muted/20 rounded-md p-3">
-        No parent objects
+        {t('objects.noParents')}
       </div>
     )
   }
@@ -44,7 +47,7 @@ export function ParentDisplay({ parents, className = '' }: ParentDisplayProps) {
             </Badge>
             <CopyButton
               text={fullUuid}
-              label="Parent UUID"
+              label={t('objects.parentUuid')}
               size="sm"
               className="h-4 w-4"
             />

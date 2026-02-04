@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { ChevronsUpDown, Package, Check } from 'lucide-react'
 import {
   Button,
@@ -31,10 +32,11 @@ export function MaterialSelector({
   materials,
   selectedMaterialUuids = [],
   onMaterialsChange,
-  placeholder = 'Search for materials...',
+  placeholder,
   maxSelections = 10,
   disabled = false,
 }: MaterialSelectorProps) {
+  const t = useTranslations()
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredMaterials, setFilteredMaterials] = useState<
@@ -93,18 +95,6 @@ export function MaterialSelector({
     onMaterialsChange(newSelectedUuids)
   }
 
-  const handleRemoveMaterial = (materialUuid: string) => {
-    const newSelectedUuids = selectedMaterialUuids.filter(
-      (uuid) => uuid !== materialUuid
-    )
-    onMaterialsChange(newSelectedUuids)
-  }
-
-  const handleClearAllMaterials = () => {
-    onMaterialsChange([])
-    setIsOpen(false)
-  }
-
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger className="w-[355px]" asChild>
@@ -119,18 +109,20 @@ export function MaterialSelector({
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               <span className="truncate">
-                {selectedMaterials.length === 1
-                  ? '1 material selected'
-                  : `${selectedMaterials.length} materials selected`}
+                {t('processes.materialSelector.selectedCount', {
+                  count: selectedMaterials.length,
+                })}
               </span>
               {selectedMaterials.length >= maxSelections && (
                 <Badge variant="secondary" className="text-xs">
-                  Max
+                  {t('processes.materialSelector.maxBadge')}
                 </Badge>
               )}
             </div>
           ) : (
-            <span className="text-muted-foreground">{placeholder}</span>
+            <span className="text-muted-foreground">
+              {placeholder ?? t('processes.materialSelector.placeholder')}
+            </span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -142,7 +134,7 @@ export function MaterialSelector({
         <Command shouldFilter={false}>
           <div className="relative">
             <CommandInput
-              placeholder="Search materials..."
+              placeholder={t('processes.materialSelector.searchPlaceholder')}
               value={searchQuery}
               onValueChange={setSearchQuery}
               className="ml-2"
@@ -151,8 +143,8 @@ export function MaterialSelector({
           <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
             <CommandEmpty>
               {searchQuery.length < 2 && filteredMaterials.length === 0
-                ? 'Start typing to search for materials'
-                : 'No materials found.'}
+                ? t('processes.materialSelector.startTyping')
+                : t('processes.materialSelector.noResults')}
             </CommandEmpty>
             <CommandGroup>
               {filteredMaterials.map((material) => {
@@ -187,8 +179,10 @@ export function MaterialSelector({
             {filteredMaterials.length > 0 &&
               materials.length > filteredMaterials.length && (
                 <div className="px-2 py-1.5 text-xs text-muted-foreground border-t bg-muted/20">
-                  Showing top {filteredMaterials.length} of {materials.length}{' '}
-                  materials • Search to find more
+                  {t('processes.materialSelector.showingTop', {
+                    shown: filteredMaterials.length,
+                    total: materials.length,
+                  })}
                 </div>
               )}
           </CommandList>

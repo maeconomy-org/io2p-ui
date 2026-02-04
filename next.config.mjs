@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 import { withSentryConfig } from '@sentry/nextjs'
+import createNextIntlPlugin from 'next-intl/plugin'
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig = {
   eslint: {
@@ -52,35 +55,36 @@ const nextConfig = {
 const shouldUseSentry =
   process.env.NODE_ENV === 'production' || process.env.SENTRY_ENABLED === 'true'
 
-export default shouldUseSentry &&
-process.env.SENTRY_ORG &&
-process.env.SENTRY_PROJECT
-  ? withSentryConfig(nextConfig, {
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
+const configuredNextConfig =
+  shouldUseSentry && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+    ? withSentryConfig(nextConfig, {
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
 
-      // Silent mode - no verbose logging during build
-      silent: true,
+        // Silent mode - no verbose logging during build
+        silent: true,
 
-      // Upload source maps for better stack traces
-      widenClientFileUpload: true,
+        // Upload source maps for better stack traces
+        widenClientFileUpload: true,
 
-      // Route browser requests through tunnel to bypass ad-blockers
-      tunnelRoute: '/monitoring',
+        // Route browser requests through tunnel to bypass ad-blockers
+        tunnelRoute: '/monitoring',
 
-      // Use new webpack options instead of deprecated top-level options
-      webpack: {
-        treeshake: {
-          removeDebugLogging: true, // Replaces deprecated disableLogger
+        // Use new webpack options instead of deprecated top-level options
+        webpack: {
+          treeshake: {
+            removeDebugLogging: true, // Replaces deprecated disableLogger
+          },
+          automaticVercelMonitors: false, // Replaces deprecated automaticVercelMonitors
         },
-        automaticVercelMonitors: false, // Replaces deprecated automaticVercelMonitors
-      },
 
-      // Disable source map upload during build - we do runtime-only config
-      hideSourceMaps: true,
+        // Disable source map upload during build - we do runtime-only config
+        hideSourceMaps: true,
 
-      // Disable release creation during build - we handle this at runtime
-      disableClientWebpackPlugin: false,
-      disableServerWebpackPlugin: false,
-    })
-  : nextConfig
+        // Disable release creation during build - we handle this at runtime
+        disableClientWebpackPlugin: false,
+        disableServerWebpackPlugin: false,
+      })
+    : nextConfig
+
+export default withNextIntl(configuredNextConfig)

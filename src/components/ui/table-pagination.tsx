@@ -6,6 +6,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -42,6 +43,7 @@ export function TablePagination({
   onNext,
   onLast,
 }: TablePaginationProps) {
+  const t = useTranslations()
   if (totalPages <= 1) {
     return null
   }
@@ -63,7 +65,11 @@ export function TablePagination({
     <div className="flex flex-col gap-3 px-2 py-4">
       {/* Results info - always visible on top on mobile */}
       <div className="text-sm text-muted-foreground text-center sm:text-left">
-        Showing {startItem}-{endItem} of {totalElements} results
+        {t('pagination.showing', {
+          start: startItem,
+          end: endItem,
+          total: totalElements,
+        })}
       </div>
 
       {/* Main pagination controls */}
@@ -76,7 +82,7 @@ export function TablePagination({
             onClick={onFirst}
             disabled={isFirstPage}
             className="h-8 w-8 sm:h-10 sm:w-10 p-0"
-            title="First page"
+            title={t('pagination.first')}
           >
             <ChevronsLeft className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
@@ -87,7 +93,7 @@ export function TablePagination({
             onClick={onPrevious}
             disabled={isFirstPage}
             className="h-8 w-8 sm:h-10 sm:w-10 p-0"
-            title="Previous page"
+            title={t('pagination.previous')}
           >
             <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
@@ -141,7 +147,7 @@ export function TablePagination({
             onClick={onNext}
             disabled={isLastPage}
             className="h-8 w-8 sm:h-10 sm:w-10 p-0"
-            title="Next page"
+            title={t('pagination.next')}
           >
             <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
@@ -152,7 +158,7 @@ export function TablePagination({
             onClick={onLast}
             disabled={isLastPage}
             className="h-8 w-8 sm:h-10 sm:w-10 p-0"
-            title="Last page"
+            title={t('pagination.last')}
           >
             <ChevronsRight className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
@@ -161,7 +167,10 @@ export function TablePagination({
 
       {/* Page info - more compact on mobile */}
       <div className="text-xs sm:text-sm text-muted-foreground text-center">
-        Page {currentPage + 1} of {totalPages}
+        {t('pagination.pageOf', {
+          page: currentPage + 1,
+          pages: totalPages,
+        })}
       </div>
     </div>
   )

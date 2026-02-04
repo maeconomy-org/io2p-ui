@@ -8,6 +8,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog'
+import { useTranslations } from 'next-intl'
 
 interface DeleteConfirmationDialogProps {
   open: boolean
@@ -22,22 +23,26 @@ export function DeleteConfirmationDialog({
   objectName,
   onDelete,
 }: DeleteConfirmationDialogProps) {
+  const t = useTranslations()
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogTitle>{t('objects.deleteConfirmTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
-            This will soft delete &quot;{objectName}&quot; and cannot be undone.
+            {t('objects.deleteConfirmDescription', { name: objectName })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex w-full gap-2">
-          <AlertDialogCancel className="flex-1">Cancel</AlertDialogCancel>
+          <AlertDialogCancel className="flex-1">
+            {t('common.cancel')}
+          </AlertDialogCancel>
           <AlertDialogAction
             className="bg-destructive hover:bg-destructive/90 flex-1"
             onClick={onDelete}
           >
-            Delete
+            {t('common.delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

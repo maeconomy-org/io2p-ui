@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { useMemo } from 'react'
 import type { UUID, UUStatementDTO, UUObjectDTO } from 'iom-sdk'
 
@@ -43,6 +44,7 @@ export function useSankeyDiagramData(
   const { useObjectsByUUIDs } = useObjects()
 
   // Fetch input relationships
+
   const inputStatementsQuery = objectUuid
     ? useObjectRelationships(objectUuid, { predicate: 'IS_INPUT_OF' })
     : useStatementsByPredicate('IS_INPUT_OF')

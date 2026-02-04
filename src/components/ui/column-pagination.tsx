@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   ChevronLeft,
   ChevronRight,
@@ -27,6 +28,7 @@ export function ColumnPagination({
   className = '',
   loading = false,
 }: ColumnPaginationProps) {
+  const t = useTranslations()
   const [pageInput, setPageInput] = useState(currentPage.toString())
 
   const handleInputChange = (value: string) => {
@@ -105,12 +107,14 @@ export function ColumnPagination({
               max={totalPages}
               disabled={loading}
             />
-            <span className="text-muted-foreground">/ {totalPages}</span>
+            <span className="text-muted-foreground">
+              {t('pagination.of', { count: totalPages })}
+            </span>
           </>
         ) : (
           // Show simple page info when only 1 page
           <span className="text-muted-foreground">
-            {totalItems} item{totalItems !== 1 ? 's' : ''}
+            {t('pagination.items', { count: totalItems })}
           </span>
         )}
 

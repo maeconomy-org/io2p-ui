@@ -9,35 +9,35 @@ export const APP_ACRONYM = 'IoM'
 
 // Navigation
 export const NAV_ITEMS = [
-  { name: 'Objects', path: '/objects' },
-  { name: 'I/O Processes', path: '/processes' },
-  { name: 'Models', path: '/models' },
-  { name: 'Import', path: '/import' },
-]
+  { key: 'objects', path: '/objects' },
+  { key: 'processes', path: '/processes' },
+  { key: 'models', path: '/models' },
+  { key: 'import', path: '/import' },
+] as const
 
 // Footer links
 export const FOOTER_LINKS = [
-  { name: 'Import Status', path: '/import-status' },
-  { name: 'Help', path: '/help' },
-]
+  { key: 'importStatus', path: '/import-status' },
+  { key: 'help', path: '/help' },
+] as const
 
 // Process types (based on actual API model)
 export const PROCESS_TYPES = [
-  { value: 'processing', label: 'Processing' },
-  { value: 'assembly', label: 'Assembly' },
-  { value: 'recycling', label: 'Recycling' },
-  { value: 'disposal', label: 'Disposal' },
-]
+  { value: 'processing', labelKey: 'processing' },
+  { value: 'assembly', labelKey: 'assembly' },
+  { value: 'recycling', labelKey: 'recycling' },
+  { value: 'disposal', labelKey: 'disposal' },
+] as const
 
 // Unit categories for material selection
 export const UNIT_CATEGORIES = {
-  volume: { label: 'Volume', units: ['L', 'mL', 'm³', 'gal'] },
-  weight: { label: 'Weight/Mass', units: ['kg', 'g', 't', 'lb'] },
-  area: { label: 'Area', units: ['m²', 'cm²', 'ft²'] },
-  length: { label: 'Length', units: ['m', 'mm', 'cm', 'ft', 'in'] },
-  count: { label: 'Count', units: ['pcs', 'ea', 'units', 'items'] },
+  volume: { labelKey: 'volume', units: ['L', 'mL', 'm³', 'gal'] },
+  weight: { labelKey: 'weight', units: ['kg', 'g', 't', 'lb'] },
+  area: { labelKey: 'area', units: ['m²', 'cm²', 'ft²'] },
+  length: { labelKey: 'length', units: ['m', 'mm', 'cm', 'ft', 'in'] },
+  count: { labelKey: 'count', units: ['pcs', 'ea', 'units', 'items'] },
   energy: {
-    label: 'Energy/Environmental',
+    labelKey: 'energy',
     units: ['kWh', 'kg CO2e', 'MJ', 'BTU'],
   },
-}
+} as const

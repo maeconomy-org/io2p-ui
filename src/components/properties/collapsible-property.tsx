@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronRight, Plus, Trash2, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { Button, Input, Label } from '@/components/ui'
 import { FileList } from '@/components/object-sheets/components/FileDisplay'
@@ -21,6 +22,7 @@ export function CollapsibleProperty({
   onUpdate,
   onRemove,
 }: CollapsiblePropertyProps) {
+  const t = useTranslations()
   const [editedProperty, setEditedProperty] = useState(property)
 
   // Handle field changes when editing
@@ -111,7 +113,7 @@ export function CollapsibleProperty({
           <div className="ml-4 text-sm text-muted-foreground">
             {property.values?.length === 1
               ? property.values[0].value
-              : `${property.values?.length || 0} values`}
+              : t('objects.values', { count: property.values?.length || 0 })}
           </div>
         </div>
 
@@ -130,14 +132,14 @@ export function CollapsibleProperty({
             {isEditable ? (
               <div className="space-y-2">
                 <Label htmlFor={`property-key-${property.uuid || 'new'}`}>
-                  Property Name
+                  {t('objects.propertyName')}
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id={`property-key-${property.uuid || 'new'}`}
                     value={editedProperty.key}
                     onChange={(e) => handleChange('key', e.target.value)}
-                    placeholder="e.g. Total Floors"
+                    placeholder={t('objects.propertyNamePlaceholder')}
                     className="flex-1"
                   />
                 </div>
@@ -159,7 +161,7 @@ export function CollapsibleProperty({
 
           {/* Property Values Section */}
           <div>
-            <h4 className="font-medium mb-2">Values</h4>
+            <h4 className="font-medium mb-2">{t('objects.propertyValues')}</h4>
 
             <div className="space-y-4">
               {(editedProperty.values || []).map(
@@ -172,7 +174,7 @@ export function CollapsibleProperty({
                           onChange={(e) =>
                             handleValueChange(index, e.target.value)
                           }
-                          placeholder="Enter property value"
+                          placeholder={t('objects.propertyValuePlaceholder')}
                           className="flex-1"
                         />
                         <Button
@@ -202,7 +204,7 @@ export function CollapsibleProperty({
               {(!editedProperty.values ||
                 editedProperty.values.length === 0) && (
                 <div className="text-sm text-muted-foreground">
-                  No values defined
+                  {t('objects.noValues')}
                 </div>
               )}
 
@@ -214,7 +216,7 @@ export function CollapsibleProperty({
                   className="mt-2"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Value
+                  {t('common.add')}
                 </Button>
               )}
             </div>

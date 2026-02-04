@@ -10,14 +10,16 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
+import { APP_NAME, APP_DESCRIPTION, APP_ACRONYM } from '@/constants'
 import { useAuth } from '@/contexts'
-import { APP_ACRONYM, APP_DESCRIPTION, APP_NAME } from '@/constants'
 import { Button, Card, Alert, AlertDescription } from '@/components/ui'
 
 export default function AuthPage() {
   const router = useRouter()
+  const t = useTranslations()
   const { isAuthenticated, authLoading, handleAuth } = useAuth()
   const [status, setStatus] = useState<
     'idle' | 'authorizing' | 'success' | 'error'
@@ -64,29 +66,24 @@ export default function AuthPage() {
       const errorMessage =
         err instanceof Error ? err.message : 'Unknown authentication error'
 
-      let userFriendlyMessage = 'Authentication failed'
+      let userFriendlyMessage = t('auth.errors.authFailed')
 
       if (errorMessage.includes('certificate')) {
-        userFriendlyMessage =
-          'Certificate authentication failed. Please ensure you have selected a valid certificate.'
+        userFriendlyMessage = t('auth.errors.certificateFailed')
       } else if (
         errorMessage.includes('network') ||
         errorMessage.includes('connection')
       ) {
-        userFriendlyMessage =
-          'Network connection failed. Please check your internet connection and try again.'
+        userFriendlyMessage = t('auth.errors.networkFailed')
       } else if (errorMessage.includes('timeout')) {
-        userFriendlyMessage =
-          'Authentication timed out. This may indicate a network issue or certificate problem.'
+        userFriendlyMessage = t('auth.errors.timeout')
       } else if (
         errorMessage.includes('unauthorized') ||
         errorMessage.includes('forbidden')
       ) {
-        userFriendlyMessage =
-          'Your certificate is not authorized to access this system. Please contact your administrator.'
+        userFriendlyMessage = t('auth.errors.unauthorized')
       } else if (errorMessage.includes('expired')) {
-        userFriendlyMessage =
-          'Your certificate has expired. Please obtain a new certificate from your administrator.'
+        userFriendlyMessage = t('auth.errors.expired')
       }
 
       setError(userFriendlyMessage)
@@ -97,9 +94,14 @@ export default function AuthPage() {
     <div className="flex flex-1 items-center justify-center">
       <div className="max-w-md w-full space-y-6 p-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Welcome to {APP_ACRONYM}</h1>
+          <h1 className="text-3xl font-bold">
+            {t('auth.welcome', { acronym: APP_ACRONYM })}
+          </h1>
           <p className="mt-2 text-gray-600">
-            {APP_NAME} - {APP_DESCRIPTION}
+            {t('auth.subtitle', {
+              name: APP_NAME,
+              description: APP_DESCRIPTION,
+            })}
           </p>
         </div>
 
@@ -108,17 +110,14 @@ export default function AuthPage() {
             {status === 'idle' && (
               <>
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    To access the system, you need a valid certificate. Click
-                    the button below to start the authorization process.
-                  </p>
+                  <p className="text-sm text-gray-600">{t('auth.intro')}</p>
                   <Button
                     onClick={handleAuthorize}
                     className="w-full py-6 text-lg"
                     variant="default"
                   >
                     <Shield className="mr-2 h-5 w-5" />
-                    Authorize with Certificate
+                    {t('auth.authorize')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
@@ -129,19 +128,16 @@ export default function AuthPage() {
               <div className="text-center space-y-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
                 <div className="space-y-2">
-                  <p className="font-medium">
-                    Authenticating with certificate...
-                  </p>
+                  <p className="font-medium">{t('auth.authorizing')}</p>
                   <p className="text-sm text-muted-foreground">
-                    Please select your certificate when prompted by your browser
+                    {t('auth.selectCertificate')}
                   </p>
                 </div>
                 <Alert className="text-left">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription className="text-sm">
-                    <strong>Browser Prompt:</strong> You may see a certificate
-                    selection dialog. Choose your organization's client
-                    certificate to continue.
+                    <strong>{t('auth.browserPromptTitle')}</strong>{' '}
+                    {t('auth.browserPrompt')}
                   </AlertDescription>
                 </Alert>
               </div>
@@ -151,17 +147,15 @@ export default function AuthPage() {
               <div className="space-y-6 text-center">
                 <div className="bg-green-50 p-4 rounded-md text-green-600 flex items-center justify-center">
                   <Check className="h-5 w-5 mr-2" />
-                  Successfully authenticated with certificate
+                  {t('auth.success')}
                 </div>
-                <p className="text-sm text-gray-600">
-                  You are being redirected to the application...
-                </p>
+                <p className="text-sm text-gray-600">{t('auth.redirecting')}</p>
                 <Button
                   onClick={() => router.push('/objects')}
                   className="w-full py-6 text-lg"
                   variant="default"
                 >
-                  Open Application
+                  {t('auth.openApp')}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -172,7 +166,7 @@ export default function AuthPage() {
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    {error || 'Authentication failed'}
+                    {error || t('auth.errors.authFailed')}
                   </AlertDescription>
                 </Alert>
 
@@ -183,42 +177,38 @@ export default function AuthPage() {
                     variant="outline"
                   >
                     <Shield className="mr-2 h-4 w-4" />
-                    Try Again
+                    {t('auth.tryAgain')}
                   </Button>
 
                   <div className="text-xs space-y-3">
                     <div className="bg-blue-50 border border-blue-200 rounded p-3 text-blue-800">
-                      <p className="font-medium mb-2">Troubleshooting Steps:</p>
+                      <p className="font-medium mb-2">
+                        {t('auth.errors.troubleshootingTitle')}
+                      </p>
                       <ol className="list-decimal list-inside space-y-1 text-left">
-                        <li>
-                          Ensure your certificate is installed in your browser
-                        </li>
-                        <li>Check that your certificate has not expired</li>
-                        <li>
-                          Verify you selected the correct certificate when
-                          prompted
-                        </li>
-                        <li>Try refreshing the page and attempting again</li>
+                        {t
+                          .raw('auth.errors.troubleshooting')
+                          .map((step: string, index: number) => (
+                            <li key={index}>{step}</li>
+                          ))}
                       </ol>
                     </div>
 
                     <div className="bg-amber-50 border border-amber-200 rounded p-3 text-amber-800">
                       <p className="font-medium mb-2">
-                        Need to use a different certificate?
+                        {t('auth.errors.differentCertTitle')}
                       </p>
                       <p className="text-left">
-                        Close your browser completely and reopen it. Browsers
-                        cache mTLS certificates and the selection cannot be
-                        changed without a full browser restart.
+                        {t('auth.errors.differentCert')}
                       </p>
                     </div>
 
                     <div className="bg-gray-50 border border-gray-200 rounded p-3 text-gray-700">
-                      <p className="font-medium mb-2">Still having issues?</p>
+                      <p className="font-medium mb-2">
+                        {t('auth.errors.stillIssuesTitle')}
+                      </p>
                       <p className="text-left">
-                        Contact your system administrator or IT support team.
-                        They can verify your certificate permissions and help
-                        with installation if needed.
+                        {t('auth.errors.stillIssues')}
                       </p>
                     </div>
                   </div>
@@ -234,24 +224,23 @@ export default function AuthPage() {
             className="text-primary hover:text-primary/80 flex items-center transition-colors"
           >
             <HelpCircle className="h-4 w-4 mr-1" />
-            Need help with certificates?
+            {t('auth.needHelp')}
           </Link>
         </div>
 
         {/* Certificate requirements info */}
         <div className="text-center space-y-2">
           <p className="text-xs text-muted-foreground">
-            This application requires a valid client certificate for secure
-            access
+            {t('auth.requiresCertificate')}
           </p>
           <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Shield className="h-3 w-3" />
-              mTLS Authentication
+              {t('auth.mtls')}
             </span>
             <span className="flex items-center gap-1">
               <Check className="h-3 w-3" />
-              Secure Access
+              {t('auth.secureAccess')}
             </span>
           </div>
         </div>
