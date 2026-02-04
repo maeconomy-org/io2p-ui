@@ -33,6 +33,7 @@ interface ModelSelectorProps {
   onModelSelect: (model: ModelOption | null) => void
   placeholder?: string
   disabled?: boolean
+  dataTour?: string
 }
 
 export function ModelSelector({
@@ -40,6 +41,7 @@ export function ModelSelector({
   onModelSelect,
   placeholder = 'Select a model template...',
   disabled = false,
+  dataTour,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -149,6 +151,7 @@ export function ModelSelector({
             aria-expanded={open}
             className="w-full justify-between"
             disabled={disabled}
+            data-tour={dataTour}
           >
             {selectedModel ? (
               <div className="flex items-center gap-2">

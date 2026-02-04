@@ -23,6 +23,7 @@ interface HereAddressAutocompleteProps {
   onAddressSelect: (fullAddress: string, components: AddressComponents) => void
   disabled?: boolean
   className?: string
+  dataTour?: string
 }
 
 export function HereAddressAutocomplete({
@@ -31,6 +32,7 @@ export function HereAddressAutocomplete({
   onAddressSelect,
   disabled = false,
   className = '',
+  dataTour,
 }: HereAddressAutocompleteProps) {
   const [query, setQuery] = useState(value)
   const [suggestions, setSuggestions] = useState<any[]>([])
@@ -188,6 +190,7 @@ export function HereAddressAutocomplete({
           placeholder={placeholder}
           disabled={disabled}
           className="pl-10"
+          data-tour={dataTour}
         />
         <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         {isLoading && (

@@ -24,6 +24,7 @@ interface FilterDropdownProps {
   onOptionChange: (optionId: string, checked: boolean) => void
   label?: string
   className?: string
+  'data-tour'?: string
 }
 
 export function FilterDropdown({
@@ -31,6 +32,7 @@ export function FilterDropdown({
   onOptionChange,
   label = 'Filters',
   className = '',
+  'data-tour': dataTour,
 }: FilterDropdownProps) {
   const activeFiltersCount = options.filter((option) => option.checked).length
 
@@ -38,7 +40,7 @@ export function FilterDropdown({
     <div className={className}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8">
+          <Button variant="outline" size="sm" className="h-8" data-tour={dataTour}>
             <Filter className="h-3 w-3 mr-2" />
             {label}
             {activeFiltersCount > 0 && (
@@ -79,6 +81,7 @@ export function DeletedFilter({
   onShowDeletedChange,
   label = 'Show deleted items',
   className = '',
+  ...props
 }: DeletedFilterProps) {
   const options: FilterOption[] = [
     {
@@ -100,6 +103,7 @@ export function DeletedFilter({
       onOptionChange={handleOptionChange}
       label="Filters"
       className={className}
+      {...props}
     />
   )
 }

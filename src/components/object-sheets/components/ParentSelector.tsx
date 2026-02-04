@@ -29,6 +29,7 @@ interface ParentSelectorProps {
   placeholder?: string
   maxSelections?: number
   disabled?: boolean
+  dataTour?: string
 }
 
 export function ParentSelector({
@@ -38,6 +39,7 @@ export function ParentSelector({
   placeholder = 'Search for parent objects...',
   maxSelections = 10,
   disabled = false,
+  dataTour,
 }: ParentSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -183,6 +185,7 @@ export function ParentSelector({
             aria-expanded={isOpen}
             className="w-full justify-between"
             disabled={disabled}
+            data-tour={dataTour}
           >
             {selectedParents.length > 0 ? (
               <div className="flex items-center gap-2">
