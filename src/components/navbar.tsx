@@ -14,6 +14,7 @@ import {
   Hash,
   CheckCircle,
   User,
+  RocketIcon,
 } from 'lucide-react'
 
 import {
@@ -37,11 +38,16 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth, useSearch } from '@/contexts'
 import { APP_ACRONYM, NAV_ITEMS } from '@/constants'
+import {
+  DEMO_TOUR_START_EVENT,
+  USER_MENU_TOGGLE_EVENT,
+} from '@/components/onboarding/constants'
 
 export default function Navbar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMac, setIsMac] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const { userInfo, logout } = useAuth()
   const { searchQuery, isSearching, isSearchMode, executeSearchFromParsed } =
     useSearch()
@@ -53,6 +59,18 @@ export default function Navbar() {
   // Detect Mac for keyboard shortcut display
   useEffect(() => {
     setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0)
+  }, [])
+
+  useEffect(() => {
+    const handleToggle = (event: Event) => {
+      const detail = (event as CustomEvent<{ open?: boolean }>).detail
+      if (typeof detail?.open === 'boolean') {
+        setIsUserMenuOpen(detail.open)
+      }
+    }
+
+    window.addEventListener(USER_MENU_TOGGLE_EVENT, handleToggle)
+    return () => window.removeEventListener(USER_MENU_TOGGLE_EVENT, handleToggle)
   }, [])
 
   return (
@@ -69,11 +87,15 @@ export default function Navbar() {
               </Link>
 
               {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center gap-6">
+              <nav
+                className="hidden md:flex items-center gap-6"
+                data-tour="top-nav"
+              >
                 {NAV_ITEMS.map((item) => (
                   <Link
                     key={item.name}
                     href={item.path}
+                    data-tour={item.dataTour}
                     className={cn(
                       'text-sm font-medium transition-colors',
                       'hover:cursor-pointer hover:text-primary',
@@ -92,6 +114,7 @@ export default function Navbar() {
               {/* Command Center Search Button */}
               <button
                 onClick={() => setCommandCenterOpen(true)}
+                data-tour="search-button"
                 className={cn(
                   'hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all',
                   'bg-muted/50 hover:bg-muted border-border/50 hover:border-border',
@@ -130,11 +153,12 @@ export default function Navbar() {
 
               {/* User Profile Dropdown - Hidden on Mobile */}
               <div className="hidden md:flex">
-                <DropdownMenu>
+                <DropdownMenu open={isUserMenuOpen} onOpenChange={setIsUserMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
                       className="flex items-center gap-2 px-3 h-auto hover:bg-muted/50 transition-colors"
+                      data-tour="user-menu-trigger"
                     >
                       <User className="h-4 w-4 text-primary" />
                       <div className="flex flex-col items-start text-left">
@@ -234,6 +258,19 @@ export default function Navbar() {
 
                     <DropdownMenuSeparator />
 
+                     <DropdownMenuItem
+                      data-tour="demo-tour"
+                      onClick={() =>
+                        window.dispatchEvent(
+                          new CustomEvent(DEMO_TOUR_START_EVENT)
+                        )
+                      }
+                      className="cursor-pointer"
+                    >
+                      <RocketIcon className="h-4 w-4 mr-2" />
+                      <span className="font-medium">Demo tour</span>
+                    </DropdownMenuItem>
+
                     <DropdownMenuItem
                       onClick={logout}
                       className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer hover:bg-red-50/50 transition-colors"
@@ -277,6 +314,7 @@ export default function Navbar() {
                         <SheetClose asChild key={item.path}>
                           <Link
                             href={item.path}
+                            data-tour={item.dataTour}
                             className={cn(
                               'flex items-center justify-between py-3 px-4 hover:bg-muted transition-colors',
                               pathname === item.path ||

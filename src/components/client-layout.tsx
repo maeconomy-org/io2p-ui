@@ -10,6 +10,7 @@ import {
   useIomSdkClient,
 } from '@/contexts'
 import { UploadProgressIndicator } from '@/components/ui'
+import DemoTour from './onboarding/DemoTour'
 
 function ClientLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -26,6 +27,7 @@ function ClientLayoutInner({ children }: { children: React.ReactNode }) {
     <AuthProvider client={client}>
       <SearchProvider>
         <div className="flex-1 flex flex-col">
+          <DemoTour />
           {!isPublicPage && <Navbar />}
           {children}
           <UploadProgressIndicator />

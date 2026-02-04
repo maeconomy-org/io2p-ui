@@ -16,14 +16,16 @@ export type ViewType = ObjectViewType
 interface ViewSelectorProps {
   view: ViewType
   onChange: (view: ViewType) => void
+  'data-tour'?: string
 }
 
-export function ViewSelector({ view, onChange }: ViewSelectorProps) {
+export function ViewSelector({ view, onChange, 'data-tour': dataTour }: ViewSelectorProps) {
   return (
     <TooltipProvider>
       <ToggleGroup
         type="single"
         value={view}
+        data-tour={dataTour}
         onValueChange={(value) => {
           if (value) {
             onChange(value as ViewType)

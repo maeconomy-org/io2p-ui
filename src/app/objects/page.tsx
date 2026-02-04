@@ -8,6 +8,7 @@ import { useViewData } from '@/hooks'
 import { useSearch } from '@/contexts'
 import { isObjectDeleted } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
+import InitialLoginTour from '@/components/onboarding/InitialLoginTour'
 import { Button, Badge, DeletedFilter } from '@/components/ui'
 import { ViewSelector, ViewType } from '@/components/view-selector'
 import { ObjectViewContainer } from '@/components/object-view-container'
@@ -66,6 +67,7 @@ function ObjectsPageContent() {
 
   return (
     <div className="container mx-auto p-4">
+      <InitialLoginTour />
       <div className="flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Objects</h1>
@@ -74,6 +76,7 @@ function ObjectsPageContent() {
               showDeleted={showDeleted}
               onShowDeletedChange={setShowDeleted}
               label="Show deleted objects"
+              data-tour="filters"
             />
             <ViewSelector
               view={viewType}
@@ -81,8 +84,9 @@ function ObjectsPageContent() {
                 setViewType(value)
                 localStorage.setItem('view', value)
               }}
+              data-tour="view-selector"
             />
-            <Button onClick={handleAddObject}>
+            <Button onClick={handleAddObject} data-tour="create-object">
               <PlusCircle className="h-4 w-4 mr-2" />
               Create Object
             </Button>

@@ -179,6 +179,7 @@ export function ObjectAddSheet({
                   selectedModel={selectedModel}
                   onModelSelect={handleModelSelect}
                   placeholder="Choose a model template (optional)..."
+                  dataTour="object-model"
                 />
 
                 <ParentSelector
@@ -186,32 +187,19 @@ export function ObjectAddSheet({
                   onParentsChange={handleParentsChange}
                   placeholder="Search for parent objects..."
                   maxSelections={10}
+                  dataTour="object-parents"
                 />
 
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter object name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className='space-y-2' data-tour="object-metadata">
                   <FormField
                     control={form.control}
-                    name="abbreviation"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Abbreviation</FormLabel>
+                        <FormLabel>Name</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Abbreviation (optional)"
+                            placeholder="Enter object name"
                             {...field}
                           />
                         </FormControl>
@@ -220,38 +208,60 @@ export function ObjectAddSheet({
                     )}
                   />
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="abbreviation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Abbreviation</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Abbreviation (optional)"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="version"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Version</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Version (optional)"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <FormField
                     control={form.control}
-                    name="version"
+                    name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Version</FormLabel>
+                        <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Input placeholder="Version (optional)" {...field} />
+                          <Textarea
+                            placeholder="Enter object description"
+                            rows={3}
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Enter object description"
-                          rows={3}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               <Separator />
@@ -267,6 +277,7 @@ export function ObjectAddSheet({
                     onAddressSelect={(fullAddress, components) => {
                       form.setValue('address', { fullAddress, components })
                     }}
+                    dataTour="object-address"
                   />
                 </div>
 
@@ -301,6 +312,7 @@ export function ObjectAddSheet({
                           type="button"
                           variant="outline"
                           onClick={() => setIsObjectAttachmentsOpen(true)}
+                          data-tour="object-files"
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Attach File
@@ -348,8 +360,8 @@ export function ObjectAddSheet({
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
                     onClick={addProperty}
+                    data-tour="add-property-button"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Property
@@ -381,7 +393,12 @@ export function ObjectAddSheet({
                 >
                   Cancel
                 </Button>
-                <Button className="w-full" type="submit" disabled={isCreating}>
+                <Button
+                  className="w-full"
+                  type="submit"
+                  disabled={isCreating}
+                  data-tour="object-create-submit"
+                >
                   {isCreating ? (
                     <>
                       <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></span>

@@ -9,10 +9,10 @@ export const APP_ACRONYM = 'IoM'
 
 // Navigation
 export const NAV_ITEMS = [
-  { name: 'Objects', path: '/objects' },
-  { name: 'I/O Processes', path: '/processes' },
-  { name: 'Models', path: '/models' },
-  { name: 'Import', path: '/import' },
+  { name: 'Objects', path: '/objects', dataTour: 'nav-objects' },
+  { name: 'I/O Processes', path: '/processes', dataTour: 'nav-processes' },
+  { name: 'Models', path: '/models', dataTour: 'nav-models' },
+  { name: 'Import', path: '/import', dataTour: 'nav-import' },
 ]
 
 // Footer links

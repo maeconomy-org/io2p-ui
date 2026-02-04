@@ -103,6 +103,7 @@ export function PropertyField({
               variant="outline"
               size="sm"
               onClick={() => setIsPropertyFilesOpen(true)}
+              data-tour="property-name-upload"
             >
               <UploadIcon className="h-4 w-4" />
             </Button>
@@ -158,6 +159,7 @@ export function PropertyField({
                   variant="outline"
                   size="sm"
                   onClick={() => setOpenValueIndex(valueIndex)}
+                  data-tour="property-value-upload"
                 >
                   <UploadIcon className="h-4 w-4" />
                 </Button>

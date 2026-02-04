@@ -1,0 +1,148 @@
+/* Custom Driver.js styles to match platform design */
+
+/* Main popover container */
+.driver-popover {
+  background: white !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+  font-family: inherit !important;
+  max-width: 320px !important;
+}
+
+/* Popover header */
+.driver-popover-title {
+  color: hsl(var(--foreground)) !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  line-height: 1.4 !important;
+}
+
+/* Popover description */
+.driver-popover-description {
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  margin-bottom: 16px !important;
+}
+
+/* Footer container */
+.driver-popover-footer {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 16px !important;
+}
+
+/* Progress indicator */
+.driver-popover-progress-text {
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* Button base styles */
+.driver-popover-prev-btn,
+.driver-popover-next-btn,
+.driver-popover-close-btn {
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  padding: 8px 16px !important;
+  border: 1px solid !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 36px !important;
+}
+
+/* Previous button (secondary style) */
+.driver-popover-prev-btn {
+  background: transparent !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.driver-popover-prev-btn:hover {
+  background: hsl(var(--muted)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Next/Done button (primary style) */
+.driver-popover-next-btn {
+  background: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+.driver-popover-next-btn:hover {
+  background: hsl(var(--primary) / 0.9) !important;
+  border-color: hsl(var(--primary) / 0.9) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* Close button (X) */
+.driver-popover-close-btn {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  background: transparent !important;
+  border: none !important;
+  color: hsl(var(--muted-foreground)) !important;
+  padding: 4px !important;
+  min-height: auto !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 4px !important;
+}
+
+.driver-popover-close-btn:hover {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Overlay */
+/* .driver-overlay {
+  background: rgba(0, 0, 0, 0.2) !important;
+} */
+
+/* Highlighted element */
+.driver-highlighted-element {
+  border-radius: 6px !important;
+  box-shadow: 0 0 0 2px hsl(var(--primary)), 0 0 0 4px hsl(var(--primary) / 0.2) !important;
+}
+
+/* Hide the arrow/pointer completely */
+.driver-popover-arrow {
+  display: none !important;
+}
+
+.driver-popover-arrow-side-over,
+.driver-popover-arrow-side-bottom,
+.driver-popover-arrow-side-left,
+.driver-popover-arrow-side-right {
+  display: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .driver-popover {
+    max-width: 280px !important;
+    margin: 16px !important;
+  }
+  
+  .driver-popover-title {
+    font-size: 15px !important;
+  }
+  
+  .driver-popover-description {
+    font-size: 13px !important;
+  }
+}
