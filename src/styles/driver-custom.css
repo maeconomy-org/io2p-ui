@@ -5,7 +5,9 @@
   background: white !important;
   border: 1px solid hsl(var(--border)) !important;
   border-radius: 8px !important;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
   font-family: inherit !important;
   max-width: 320px !important;
 }
@@ -116,7 +118,9 @@
 /* Highlighted element */
 .driver-highlighted-element {
   border-radius: 6px !important;
-  box-shadow: 0 0 0 2px hsl(var(--primary)), 0 0 0 4px hsl(var(--primary) / 0.2) !important;
+  box-shadow:
+    0 0 0 2px hsl(var(--primary)),
+    0 0 0 4px hsl(var(--primary) / 0.2) !important;
 }
 
 /* Hide the arrow/pointer completely */
@@ -137,11 +141,11 @@
     max-width: 280px !important;
     margin: 16px !important;
   }
-  
+
   .driver-popover-title {
     font-size: 15px !important;
   }
-  
+
   .driver-popover-description {
     font-size: 13px !important;
   }

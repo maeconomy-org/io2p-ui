@@ -70,7 +70,8 @@ export default function Navbar() {
     }
 
     window.addEventListener(USER_MENU_TOGGLE_EVENT, handleToggle)
-    return () => window.removeEventListener(USER_MENU_TOGGLE_EVENT, handleToggle)
+    return () =>
+      window.removeEventListener(USER_MENU_TOGGLE_EVENT, handleToggle)
   }, [])
 
   return (
@@ -153,7 +154,10 @@ export default function Navbar() {
 
               {/* User Profile Dropdown - Hidden on Mobile */}
               <div className="hidden md:flex">
-                <DropdownMenu open={isUserMenuOpen} onOpenChange={setIsUserMenuOpen}>
+                <DropdownMenu
+                  open={isUserMenuOpen}
+                  onOpenChange={setIsUserMenuOpen}
+                >
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
@@ -258,7 +262,7 @@ export default function Navbar() {
 
                     <DropdownMenuSeparator />
 
-                     <DropdownMenuItem
+                    <DropdownMenuItem
                       data-tour="demo-tour"
                       onClick={() =>
                         window.dispatchEvent(

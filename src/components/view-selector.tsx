@@ -19,7 +19,11 @@ interface ViewSelectorProps {
   'data-tour'?: string
 }
 
-export function ViewSelector({ view, onChange, 'data-tour': dataTour }: ViewSelectorProps) {
+export function ViewSelector({
+  view,
+  onChange,
+  'data-tour': dataTour,
+}: ViewSelectorProps) {
   return (
     <TooltipProvider>
       <ToggleGroup

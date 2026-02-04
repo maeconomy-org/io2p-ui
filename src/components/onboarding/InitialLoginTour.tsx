@@ -32,28 +32,32 @@ const steps = [
     element: NAV_OBJECTS_SELECTOR,
     popover: {
       title: 'Welcome to IoM - Objects',
-      description: 'This is your main workspace where you can browse, manage, and organize all the objects in your system. Objects are the core entities that represent real-world items, documents, or concepts you want to track and manage.',
+      description:
+        'This is your main workspace where you can browse, manage, and organize all the objects in your system. Objects are the core entities that represent real-world items, documents, or concepts you want to track and manage.',
     },
   },
   {
     element: NAV_PROCESSES_SELECTOR,
     popover: {
       title: 'I/O Processes',
-      description: 'Here you can track and monitor processes that transform or move your objects. This section helps you understand how objects flow through different stages, from input to output, giving you complete visibility into your operational workflows.',
+      description:
+        'Here you can track and monitor processes that transform or move your objects. This section helps you understand how objects flow through different stages, from input to output, giving you complete visibility into your operational workflows.',
     },
   },
   {
     element: NAV_MODELS_SELECTOR,
     popover: {
       title: 'Models & Templates',
-      description: 'Create reusable models and templates that define the structure and properties of your objects. Models act as blueprints, ensuring consistency when creating new objects and helping standardize your data across the platform.',
+      description:
+        'Create reusable models and templates that define the structure and properties of your objects. Models act as blueprints, ensuring consistency when creating new objects and helping standardize your data across the platform.',
     },
   },
   {
     element: NAV_IMPORT_SELECTOR,
     popover: {
       title: 'Data Import',
-      description: 'Import existing data from external sources, spreadsheets, or other systems. This powerful feature allows you to bring your legacy data into IoM efficiently, supporting various formats and bulk operations to get you started quickly.',
+      description:
+        'Import existing data from external sources, spreadsheets, or other systems. This powerful feature allows you to bring your legacy data into IoM efficiently, supporting various formats and bulk operations to get you started quickly.',
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,
@@ -71,7 +75,8 @@ const steps = [
     element: SEARCH_BUTTON_SELECTOR,
     popover: {
       title: 'Global Search',
-      description: 'Use the powerful search functionality to quickly find any object, process, or data across your entire IoM workspace. Press Cmd+K (or Ctrl+K) to open the command center and search through everything with intelligent filtering and suggestions.',
+      description:
+        'Use the powerful search functionality to quickly find any object, process, or data across your entire IoM workspace. Press Cmd+K (or Ctrl+K) to open the command center and search through everything with intelligent filtering and suggestions.',
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,
@@ -119,7 +124,8 @@ const steps = [
     },
     popover: {
       title: 'Interactive Demo Tour',
-      description: 'Ready for a hands-on experience? Click "Demo tour" anytime to take a comprehensive walkthrough that will guide you through creating your first object, exploring all the features, and understanding how everything works together.',
+      description:
+        'Ready for a hands-on experience? Click "Demo tour" anytime to take a comprehensive walkthrough that will guide you through creating your first object, exploring all the features, and understanding how everything works together.',
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,

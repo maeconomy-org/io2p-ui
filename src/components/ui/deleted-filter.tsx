@@ -40,7 +40,12 @@ export function FilterDropdown({
     <div className={className}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8" data-tour={dataTour}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
+            data-tour={dataTour}
+          >
             <Filter className="h-3 w-3 mr-2" />
             {label}
             {activeFiltersCount > 0 && (

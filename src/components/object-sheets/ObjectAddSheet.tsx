@@ -190,7 +190,7 @@ export function ObjectAddSheet({
                   dataTour="object-parents"
                 />
 
-                <div className='space-y-2' data-tour="object-metadata">
+                <div className="space-y-2" data-tour="object-metadata">
                   <FormField
                     control={form.control}
                     name="name"
@@ -198,10 +198,7 @@ export function ObjectAddSheet({
                       <FormItem>
                         <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Enter object name"
-                            {...field}
-                          />
+                          <Input placeholder="Enter object name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
