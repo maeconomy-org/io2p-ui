@@ -39,7 +39,7 @@ memory-bank/
 dump.rdb
 
 docs/
-
+AGENTS.md
 # Deployment secrets (keep examples)
 deploy/.env
 deploy/.previous
