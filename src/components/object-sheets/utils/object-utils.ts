@@ -99,14 +99,6 @@ export function extractUserUUID(userField: any): string | null {
 }
 
 /**
- * Truncate long text with ellipsis
- */
-export function truncateText(text: string, maxLength: number = 100): string {
-  if (!text || text.length <= maxLength) return text
-  return `${text.substring(0, maxLength)}...`
-}
-
-/**
  * Format soft delete user information for display
  */
 export function formatSoftDeleteBy(

@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test'
 
-test.describe('Navigation', () => {
-  test('should load the home page', async ({ page }) => {
+test.describe('00 - Navigation Smoke Tests', () => {
+  test('TC001: Load home page', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveURL(/.*/)
   })
 
-  test('should navigate to objects page', async ({ page }) => {
+  test('TC002: Navigate to objects page', async ({ page }) => {
     await page.goto('/objects')
 
     // Should show objects page or redirect based on auth
@@ -17,7 +17,7 @@ test.describe('Navigation', () => {
     await expect(errorElement).not.toBeVisible()
   })
 
-  test('should navigate to models page', async ({ page }) => {
+  test('TC003: Navigate to models page', async ({ page }) => {
     await page.goto('/models')
     await page.waitForLoadState('networkidle')
 
@@ -25,7 +25,7 @@ test.describe('Navigation', () => {
     await expect(errorElement).not.toBeVisible()
   })
 
-  test('should navigate to import page', async ({ page }) => {
+  test('TC004: Navigate to import page', async ({ page }) => {
     await page.goto('/import')
     await page.waitForLoadState('networkidle')
 
@@ -33,7 +33,7 @@ test.describe('Navigation', () => {
     await expect(errorElement).not.toBeVisible()
   })
 
-  test('should navigate to processes page', async ({ page }) => {
+  test('TC005: Navigate to processes page', async ({ page }) => {
     await page.goto('/processes')
     await page.waitForLoadState('networkidle')
 
@@ -41,7 +41,7 @@ test.describe('Navigation', () => {
     await expect(errorElement).not.toBeVisible()
   })
 
-  test('should navigate to groups page', async ({ page }) => {
+  test('TC006: Navigate to groups page', async ({ page }) => {
     await page.goto('/groups')
     await page.waitForLoadState('networkidle')
 

@@ -2,7 +2,6 @@
 
 import { ChevronRight, FileText, MoreHorizontal } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { hasChildren } from '../utils'
 import {
   Button,
   ScrollArea,
@@ -11,6 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui'
+import { truncateText } from '@/lib'
+import { hasChildren } from '../utils'
 import { ColumnHeader } from './column-header'
 
 // Define interfaces for our data
@@ -134,22 +135,23 @@ export function ObjectColumn({
                   ${isSoftDeleted ? 'bg-red-50 border border-red-200' : ''}
                 `}
                   onClick={() => onSelect(item)}
+                  onDoubleClick={() => onShowDetails(item)}
                 >
                   <div className="flex items-center flex-1 min-w-0">
-                    <div className="rounded-full w-5 h-5 flex items-center justify-center bg-blue-50 text-blue-600 mr-2 shrink-0">
-                      {getIcon()}
-                    </div>
-
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`text-sm font-medium truncate ${isSoftDeleted ? 'text-red-600 line-through' : ''}`}
+                          className={`text-sm font-medium select-none truncate ${isSoftDeleted ? 'text-red-600 line-through' : ''}`}
                         >
-                          {item.name || t('objects.unnamed')}
+                          {truncateText(
+                            item.name || t('objects.unnamed'),
+                            25,
+                            true
+                          )}
                         </span>
                         {itemHasChildren && (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 shrink-0">
-                            📁 {item.childCount || item.children?.length || 0}
+                            {item.childCount || item.children?.length || 0}
                           </span>
                         )}
                       </div>

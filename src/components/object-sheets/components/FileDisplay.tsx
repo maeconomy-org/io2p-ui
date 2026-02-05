@@ -26,8 +26,9 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useFilesApi } from '@/hooks'
 import { useIomSdkClient } from '@/contexts'
 import type { FileData } from '@/types'
+import { truncateText } from '@/lib'
 
-import { isExternalFileReference, truncateText } from '../utils'
+import { isExternalFileReference } from '../utils'
 
 /**
  * Check if file is previewable (images only)

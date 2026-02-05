@@ -271,11 +271,16 @@
     "addAnotherValue": "Nog een waarde toevoegen",
     "parentSelector": {
       "label": "Bovenliggende objecten",
+      "placeholder": "Zoek bovenliggende objecten...",
       "searchPlaceholder": "Zoek bovenliggende objecten...",
       "startTyping": "Typ minimaal 2 tekens om te zoeken",
       "searching": "Zoeken...",
       "noResults": "Geen objecten gevonden",
-      "showingTop": "Toont top {shown} van {total} objecten"
+      "showingTop": "Toont top {shown} van {total} objecten",
+      "clearAll": "Alles wissen",
+      "selectedCount": "{count, plural, one {1 ouder geselecteerd} other {# ouders geselecteerd}}",
+      "maxBadge": "Max",
+      "maxSelections": "Maximaal {max} ouders kunnen worden geselecteerd"
     },
     "attachments": {
       "dragDrop": "Sleep bestanden hierheen of klik om te bladeren",

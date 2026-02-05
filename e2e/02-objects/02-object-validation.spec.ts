@@ -90,7 +90,9 @@ test.describe('02 - Object Validation', () => {
     await sheet.getByLabel('Name').fill(`TC014 Object ${runId}`)
 
     await sheet.getByRole('button', { name: /attach file/i }).click()
-    const attachModal = getDialog(page, 'Object Attachments')
+    const attachModal = page
+      .getByRole('dialog')
+      .filter({ hasText: /attachments/i })
     await expect(attachModal).toBeVisible({ timeout: 5000 })
 
     // Try invalid URL
@@ -113,9 +115,7 @@ test.describe('02 - Object Validation', () => {
 
     await sheet.getByLabel('Name').fill(`TC015 Object ${runId}`)
 
-    const addressInput = sheet.getByPlaceholder(
-      'Search for building address...'
-    )
+    const addressInput = sheet.getByPlaceholder(/search.*address/i)
     await addressInput.fill('XYZ123NonExistentPlace999')
 
     // Wait for suggestions
@@ -296,9 +296,9 @@ test.describe('02 - Object Validation', () => {
     await sheet.getByLabel('Name').fill(`TC020 Child ${runId}`)
 
     // Select parent first time - click combobox trigger
-    await sheet.locator('text=Search for parent objects...').click()
+    await sheet.locator('text=/search.*parent/i').click()
     await page.waitForTimeout(1000)
-    await page.getByPlaceholder('Search parent objects...').fill(parentName)
+    await page.getByPlaceholder(/search.*parent/i).fill(parentName)
     await page.waitForTimeout(1000)
     await page
       .locator('[cmdk-item]')
@@ -321,7 +321,7 @@ test.describe('02 - Object Validation', () => {
     await page.waitForTimeout(1000)
 
     // Search for the same parent
-    const searchInput = page.getByPlaceholder('Search parent objects...')
+    const searchInput = page.getByPlaceholder(/search.*parent/i)
     if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
       await searchInput.fill(parentName)
       await page.waitForTimeout(1000)

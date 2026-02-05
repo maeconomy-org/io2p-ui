@@ -106,9 +106,7 @@ test.describe('01 - Object CRUD Operations', () => {
     await sheet.getByLabel('Name').fill(name)
 
     // Add address via autocomplete
-    const addressInput = sheet.getByPlaceholder(
-      'Search for building address...'
-    )
+    const addressInput = sheet.getByPlaceholder(/search.*address/i)
     await addressInput.fill('Berlin')
 
     const suggestion = page
@@ -183,10 +181,10 @@ test.describe('01 - Object CRUD Operations', () => {
     await sheet.getByLabel('Name').fill(childName)
 
     // Open parent selector popover - click the combobox trigger
-    await sheet.locator('text=Search for parent objects...').click()
+    await sheet.locator('text=/search.*parent/i').click()
     // Wait for popover and search results to load
     await page.waitForTimeout(1000)
-    await page.getByPlaceholder('Search parent objects...').fill(parentName)
+    await page.getByPlaceholder(/search.*parent/i).fill(parentName)
     await page.waitForTimeout(1000)
     // Select from the command list
     await page
@@ -223,7 +221,9 @@ test.describe('01 - Object CRUD Operations', () => {
 
     // Add file
     await sheet.getByRole('button', { name: /attach file/i }).click()
-    const attachModal = getDialog(page, 'Object Attachments')
+    const attachModal = page
+      .getByRole('dialog')
+      .filter({ hasText: /attachments/i })
     await expect(attachModal).toBeVisible({ timeout: 5000 })
 
     await attachModal.locator('input[type="file"]').setInputFiles({
@@ -350,7 +350,7 @@ test.describe('01 - Object CRUD Operations', () => {
       .getByRole('button', { name: 'Edit' })
       .click()
 
-    const addressInput = page.getByPlaceholder('Search for building address...')
+    const addressInput = page.getByPlaceholder(/search.*address/i)
     await addressInput.fill('Munich')
 
     const suggestion = page

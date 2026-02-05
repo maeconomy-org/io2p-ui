@@ -6,8 +6,9 @@ import { useTranslations } from 'next-intl'
 
 import type { FileData, Attachment } from '@/types'
 import { Button, Input, Badge } from '@/components/ui'
+import { truncateText } from '@/lib'
+
 import { FileList } from './FileDisplay'
-import { truncateText } from '../utils'
 
 type AttachmentListProps = {
   attachments: Attachment[]

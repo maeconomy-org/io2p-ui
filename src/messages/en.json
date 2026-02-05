@@ -227,7 +227,7 @@
     "createTemplate": "Create Template",
     "attachFilesProperty": "Attach Files to Property",
     "attachFilesValue": "Attach Files to Value",
-    "addTitle": "Add New Object",
+    "addTitle": "Add Object",
     "addDescription": "Create a new object by filling in the details below",
     "modelTemplatePlaceholder": "Select a model template (optional)",
     "addProperty": "Add Property",
@@ -307,11 +307,16 @@
     },
     "parentSelector": {
       "label": "Parent Objects",
+      "placeholder": "Search for parent objects...",
       "searchPlaceholder": "Search parent objects...",
       "startTyping": "Type at least 2 characters to search",
       "searching": "Searching...",
       "noResults": "No objects found",
-      "showingTop": "Showing top {shown} of {total} objects"
+      "showingTop": "Showing top {shown} of {total} objects",
+      "clearAll": "Clear All",
+      "selectedCount": "{count, plural, one {1 parent selected} other {# parents selected}}",
+      "maxBadge": "Max",
+      "maxSelections": "Maximum {max} parents can be selected"
     },
     "columnsView": {
       "noObjects": "No Objects Found",

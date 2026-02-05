@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
-test.describe('Search Functionality', () => {
-  test('should have search input on objects page', async ({ page }) => {
+test.describe('04 - Search Functionality', () => {
+  test('TC001: Have search input on objects page', async ({ page }) => {
     await page.goto('/objects')
     await page.waitForLoadState('networkidle')
 
@@ -15,7 +15,7 @@ test.describe('Search Functionality', () => {
     expect(count).toBeGreaterThanOrEqual(0)
   })
 
-  test('should filter results when searching', async ({ page }) => {
+  test('TC002: Filter results when searching', async ({ page }) => {
     await page.goto('/objects')
     await page.waitForLoadState('networkidle')
 
@@ -39,7 +39,7 @@ test.describe('Search Functionality', () => {
     }
   })
 
-  test('should clear search and show all results', async ({ page }) => {
+  test('TC003: Clear search and show all results', async ({ page }) => {
     await page.goto('/objects')
     await page.waitForLoadState('networkidle')
 
