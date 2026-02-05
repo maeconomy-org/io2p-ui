@@ -1,6 +1,7 @@
 'use client'
 
 import { Plus } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import type { FileData } from '@/types'
 import { Button } from '@/components/ui'
@@ -32,6 +33,7 @@ export function FilesTab({
   setIsObjectFilesModalOpen,
   isDeleted,
 }: FilesTabProps) {
+  const t = useTranslations()
   const handleOpenObjectFilesModal = () => {
     setIsObjectFilesModalOpen(true)
   }
@@ -42,7 +44,7 @@ export function FilesTab({
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Object Files
+            {t('objects.filesTitle')}
           </h3>
           {!isDeleted && (
             <Button
@@ -51,7 +53,7 @@ export function FilesTab({
               onClick={handleOpenObjectFilesModal}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Files
+              {t('objects.addFiles')}
             </Button>
           )}
         </div>

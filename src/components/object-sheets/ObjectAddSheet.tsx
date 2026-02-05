@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Plus } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useFieldArray } from 'react-hook-form'
@@ -47,6 +48,7 @@ export function ObjectAddSheet({
   onClose,
   onSave,
 }: ObjectAddSheetProps) {
+  const t = useTranslations()
   const { createObject, isCreating } = useObjectOperations({
     isEditing: false,
     onRefetch: onSave ? () => onSave({}) : undefined, // Wrap onSave to match signature
@@ -167,10 +169,8 @@ export function ObjectAddSheet({
       <SheetContent className="sm:max-w-xl overflow-y-auto">
         <Form {...form}>
           <SheetHeader>
-            <SheetTitle>Add Object</SheetTitle>
-            <SheetDescription>
-              Create a new object with properties
-            </SheetDescription>
+            <SheetTitle>{t('objects.addTitle')}</SheetTitle>
+            <SheetDescription>{t('objects.addDescription')}</SheetDescription>
           </SheetHeader>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <div className="space-y-4 pt-6 pb-2">
@@ -178,14 +178,14 @@ export function ObjectAddSheet({
                 <ModelSelector
                   selectedModel={selectedModel}
                   onModelSelect={handleModelSelect}
-                  placeholder="Choose a model template (optional)..."
+                  placeholder={t('objects.modelTemplatePlaceholder')}
                   dataTour="object-model"
                 />
 
                 <ParentSelector
                   initialParentUuids={watchedParents}
                   onParentsChange={handleParentsChange}
-                  placeholder="Search for parent objects..."
+                  placeholder={t('objects.parentSearch')}
                   maxSelections={10}
                   dataTour="object-parents"
                 />
@@ -196,9 +196,12 @@ export function ObjectAddSheet({
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>{t('objects.fields.name')}</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter object name" {...field} />
+                          <Input
+                            placeholder={t('objects.placeholders.name')}
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -211,10 +214,14 @@ export function ObjectAddSheet({
                       name="abbreviation"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Abbreviation</FormLabel>
+                          <FormLabel>
+                            {t('objects.fields.abbreviation')}
+                          </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Abbreviation (optional)"
+                              placeholder={t(
+                                'objects.placeholders.abbreviation'
+                              )}
                               {...field}
                             />
                           </FormControl>
@@ -228,10 +235,10 @@ export function ObjectAddSheet({
                       name="version"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Version</FormLabel>
+                          <FormLabel>{t('objects.fields.version')}</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Version (optional)"
+                              placeholder={t('objects.placeholders.version')}
                               {...field}
                             />
                           </FormControl>
@@ -246,10 +253,10 @@ export function ObjectAddSheet({
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel>{t('objects.fields.description')}</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Enter object description"
+                            placeholder={t('objects.placeholders.description')}
                             rows={3}
                             {...field}
                           />
@@ -266,11 +273,11 @@ export function ObjectAddSheet({
               {/* Address Section */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>{t('objects.fields.address')}</FormLabel>
 
                   <HereAddressAutocomplete
                     value={watchedAddress?.fullAddress || ''}
-                    placeholder="Search for building address..."
+                    placeholder={t('objects.placeholders.address')}
                     onAddressSelect={(fullAddress, components) => {
                       form.setValue('address', { fullAddress, components })
                     }}
@@ -303,7 +310,7 @@ export function ObjectAddSheet({
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex justify-between items-center">
-                        <FormLabel>Files</FormLabel>
+                        <FormLabel>{t('objects.fields.files')}</FormLabel>
                         <Button
                           size="sm"
                           type="button"
@@ -312,7 +319,7 @@ export function ObjectAddSheet({
                           data-tour="object-files"
                         >
                           <Plus className="h-4 w-4 mr-2" />
-                          Attach File
+                          {t('objects.attachFile')}
                         </Button>
                       </div>
 
@@ -341,7 +348,7 @@ export function ObjectAddSheet({
                           onOpenChange={setIsObjectAttachmentsOpen}
                           attachments={field.value || []}
                           onChange={field.onChange}
-                          title="Object Attachments"
+                          title={t('objects.attachmentsTitle')}
                         />
                       </div>
                     </FormItem>
@@ -353,7 +360,7 @@ export function ObjectAddSheet({
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <FormLabel>Properties</FormLabel>
+                  <FormLabel>{t('objects.fields.properties')}</FormLabel>
                   <Button
                     type="button"
                     variant="outline"
@@ -361,7 +368,7 @@ export function ObjectAddSheet({
                     data-tour="add-property-button"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Property
+                    {t('objects.addProperty')}
                   </Button>
                 </div>
 
@@ -388,7 +395,7 @@ export function ObjectAddSheet({
                   onClick={onClose}
                   disabled={isCreating}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   className="w-full"
@@ -399,10 +406,10 @@ export function ObjectAddSheet({
                   {isCreating ? (
                     <>
                       <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
-                      Creating...
+                      {t('objects.creating')}
                     </>
                   ) : (
-                    'Create'
+                    t('objects.create')
                   )}
                 </Button>
               </div>

@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test'
 import path from 'path'
 
-test.describe('Import Flow', () => {
+test.describe('03 - Import Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/import')
     await page.waitForLoadState('networkidle')
   })
 
-  test('should display import page', async ({ page }) => {
+  test('TC001: Display import page', async ({ page }) => {
     // Verify the import page loads without errors
     const errorElement = page.locator('text=Application error')
     await expect(errorElement).not.toBeVisible()
@@ -17,7 +17,7 @@ test.describe('Import Flow', () => {
     await expect(mainContent).toBeVisible({ timeout: 10000 })
   })
 
-  test('should show error for invalid file type', async ({ page }) => {
+  test('TC002: Show error for invalid file type', async ({ page }) => {
     // Create a test file with invalid extension
     const fileInput = page.locator('input[type="file"]')
 
@@ -39,7 +39,7 @@ test.describe('Import Flow', () => {
     }
   })
 
-  test('should accept CSV file and show preview', async ({ page }) => {
+  test('TC003: Accept CSV file and show preview', async ({ page }) => {
     const fileInput = page.locator('input[type="file"]')
 
     if (await fileInput.isVisible()) {
@@ -60,7 +60,7 @@ test.describe('Import Flow', () => {
     }
   })
 
-  test('should show column mapping interface after file upload', async ({
+  test('TC004: Show column mapping interface after file upload', async ({
     page,
   }) => {
     const fileInput = page.locator('input[type="file"]')

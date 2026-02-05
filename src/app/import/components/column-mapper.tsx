@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Save, MoveRight, Undo } from 'lucide-react'
 
@@ -48,6 +49,7 @@ export function ColumnMapper({
   title,
   description,
 }: ColumnMapperProps) {
+  const t = useTranslations()
   const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false)
   const [templateName, setTemplateName] = useState('')
 
@@ -82,7 +84,7 @@ export function ColumnMapper({
 
     // Check if we have required properties
     if (!requiredFieldsMapped) {
-      toast.error('Please map all required properties before continuing')
+      toast.error(t('import.map.errors.mapRequired'))
       return
     }
 
@@ -101,12 +103,12 @@ export function ColumnMapper({
   // Save template
   const handleSaveTemplate = () => {
     if (!templateName.trim()) {
-      toast.error('Please enter a template name')
+      toast.error(t('import.map.errors.templateName'))
       return
     }
 
     saveTemplateToStorage(templateName)
-    toast.success(`Template "${templateName}" saved`)
+    toast.success(t('import.map.errors.templateSaved', { name: templateName }))
     setSaveTemplateDialogOpen(false)
     setTemplateName('')
   }
@@ -125,7 +127,7 @@ export function ColumnMapper({
 
       {!hasData ? (
         <div className="border rounded-md p-8 text-center text-muted-foreground">
-          <p>No data available for mapping. Please select a sheet first.</p>
+          <p>{t('import.map.noData')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -138,7 +140,7 @@ export function ColumnMapper({
                     htmlFor="start-row"
                     className="text-sm whitespace-nowrap"
                   >
-                    Header Row:
+                    {t('import.map.headerRow')}
                   </Label>
                   <Input
                     id="start-row"
@@ -150,8 +152,10 @@ export function ColumnMapper({
                     className="w-16 h-8"
                   />
                   <span className="text-xs text-muted-foreground">
-                    (showing rows {Math.max(1, headerRowIndex - 1)} to{' '}
-                    {Math.min(headerRowIndex + 5, sheetData.length)})
+                    {t('import.map.showing', {
+                      start: Math.max(1, headerRowIndex - 1),
+                      end: Math.min(headerRowIndex + 5, sheetData.length),
+                    })}
                   </span>
                 </div>
 
@@ -163,7 +167,7 @@ export function ColumnMapper({
                     key={`header-switch-${headerRowIndex}`}
                   />
                   <Label htmlFor="use-headers" className="text-sm">
-                    Use row as headers
+                    {t('import.map.useHeaders')}
                   </Label>
                 </div>
 
@@ -171,11 +175,13 @@ export function ColumnMapper({
                 {mappingTemplates.length > 0 && (
                   <div className="flex items-center gap-2">
                     <Label htmlFor="template" className="text-sm">
-                      Apply Template:
+                      {t('import.map.applyTemplate')}
                     </Label>
                     <Select onValueChange={applyTemplate}>
                       <SelectTrigger className="w-[200px] h-8">
-                        <SelectValue placeholder="Select template" />
+                        <SelectValue
+                          placeholder={t('import.map.selectTemplate')}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {mappingTemplates.map((template) => (
@@ -192,13 +198,15 @@ export function ColumnMapper({
 
             {/* Sheet Preview */}
             <div className="border rounded-md p-3">
-              <h3 className="text-sm font-medium mb-1">Sheet Preview</h3>
+              <h3 className="text-sm font-medium mb-1">
+                {t('import.map.sheetPreview')}
+              </h3>
               <div className="border rounded-md overflow-x-auto max-h-[300px] overflow-y-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[60px] text-xs sticky top-0 bg-background z-10">
-                        Row
+                        {t('import.map.row')}
                       </TableHead>
                       {Array.from({
                         length: Math.min(10, sheetData[0]?.length || 0),
@@ -207,7 +215,7 @@ export function ColumnMapper({
                           key={index}
                           className="text-xs sticky top-0 bg-background z-10"
                         >
-                          Col {index + 1}
+                          {t('import.map.column')} {index + 1}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -255,7 +263,7 @@ export function ColumnMapper({
             <div className="border rounded-md p-3">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-sm font-medium">
-                  Map Columns to Properties
+                  {t('import.map.mapColumns')}
                 </h3>
                 <div className="flex items-center gap-2">
                   <Button
@@ -265,7 +273,7 @@ export function ColumnMapper({
                     className="flex items-center gap-1"
                   >
                     <Undo className="h-3 w-3" />
-                    <span>Reset</span>
+                    <span>{t('import.map.reset')}</span>
                   </Button>
 
                   <Button
@@ -273,7 +281,7 @@ export function ColumnMapper({
                     size="sm"
                     onClick={handleMapMultipleAsProperties}
                   >
-                    Map All Unmapped as Properties
+                    {t('import.map.mapAll')}
                   </Button>
 
                   <Dialog
@@ -288,26 +296,27 @@ export function ColumnMapper({
                         disabled={Object.keys(columnMapping).length === 0}
                       >
                         <Save className="h-3 w-3" />
-                        <span>Save Template</span>
+                        <span>{t('import.map.saveTemplate')}</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader>
-                        <DialogTitle>Save Mapping Template</DialogTitle>
+                        <DialogTitle>
+                          {t('import.map.saveTemplateTitle')}
+                        </DialogTitle>
                         <DialogDescription>
-                          Templates save your column mappings so you can reuse
-                          them
+                          {t('import.map.saveTemplateDescription')}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="py-4">
                         <Label htmlFor="template-name" className="text-sm">
-                          Template Name
+                          {t('import.map.templateName')}
                         </Label>
                         <Input
                           id="template-name"
                           value={templateName}
                           onChange={(e) => setTemplateName(e.target.value)}
-                          placeholder="e.g. Customer Import"
+                          placeholder={t('import.map.templatePlaceholder')}
                           className="mt-1"
                         />
                       </div>
@@ -316,13 +325,13 @@ export function ColumnMapper({
                           variant="outline"
                           onClick={() => setSaveTemplateDialogOpen(false)}
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </Button>
                         <Button
                           onClick={handleSaveTemplate}
                           disabled={!templateName.trim()}
                         >
-                          Save Template
+                          {t('import.map.saveTemplate')}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -334,11 +343,13 @@ export function ColumnMapper({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[200px]">Column</TableHead>
-                      <TableHead className="w-[300px]">
-                        Map to Property
+                      <TableHead className="w-[200px]">
+                        {t('import.map.column')}
                       </TableHead>
-                      <TableHead>Preview</TableHead>
+                      <TableHead className="w-[300px]">
+                        {t('import.map.mapToProperty')}
+                      </TableHead>
+                      <TableHead>{t('import.map.preview')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -355,11 +366,12 @@ export function ColumnMapper({
                           <TableCell className="py-1">
                             {useFirstRowAsHeaders ? (
                               <div className="font-medium text-sm">
-                                {header || `Column ${index + 1}`}
+                                {header ||
+                                  `${t('import.map.column')} ${index + 1}`}
                               </div>
                             ) : (
                               <div className="font-medium text-sm">
-                                Column {index + 1}
+                                {t('import.map.column')} {index + 1}
                               </div>
                             )}
                           </TableCell>
@@ -381,16 +393,19 @@ export function ColumnMapper({
                               }}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select property type" />
+                                <SelectValue
+                                  placeholder={t('import.map.mapToProperty')}
+                                />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">
-                                  Don't Import This Column
+                                  {t('import.map.dontImport')}
                                 </SelectItem>
                                 {DEFAULT_PROPERTIES.map((prop) => (
                                   <SelectItem key={prop.key} value={prop.key}>
                                     {prop.label}
-                                    {prop.required && ' (Required)'}
+                                    {prop.required &&
+                                      ` ${t('import.map.required')}`}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -414,7 +429,7 @@ export function ColumnMapper({
 
           <div className="flex justify-between pt-4 border-t">
             <Button variant="outline" onClick={onBack} disabled={!onBack}>
-              Back
+              {t('import.map.back')}
             </Button>
             <Button
               onClick={handleContinue}
@@ -423,7 +438,7 @@ export function ColumnMapper({
               }
               className="flex items-center gap-1"
             >
-              <span>Continue</span>
+              <span>{t('import.map.continue')}</span>
               <MoveRight className="h-4 w-4" />
             </Button>
           </div>

@@ -137,7 +137,6 @@ export function useImportManager(
     if (selectedJobId) {
       fetchSelectedJob(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedJobId])
 
   // Auto-refresh for active jobs
@@ -149,7 +148,6 @@ export function useImportManager(
     }, 2000) // Refresh every 2 seconds
 
     return () => clearInterval(intervalId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh, selectedJobId])
 
   // Toggle auto-refresh

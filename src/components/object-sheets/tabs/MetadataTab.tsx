@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { MapPin } from 'lucide-react'
 
 import {
@@ -22,7 +23,6 @@ interface MetadataTabProps {
   setEditedAddressData: (data: any) => void
   editedObject?: any
   setEditedObject: (object: any) => void
-  isDeleted?: boolean
   activeEditingSection: string | null
   setActiveEditingSection: (section: string | null) => void
   onSaveMetadata: () => Promise<void>
@@ -36,12 +36,12 @@ export function MetadataTab({
   setEditedAddressData,
   editedObject,
   setEditedObject,
-  isDeleted,
   activeEditingSection,
   setActiveEditingSection,
   onSaveMetadata,
   onSaveAddress,
 }: MetadataTabProps) {
+  const t = useTranslations()
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
   // Derived states for editing modes
@@ -67,32 +67,41 @@ export function MetadataTab({
     <div className="space-y-2 py-4">
       {/* Metadata Section - Editable */}
       <EditableSection
-        title="Metadata"
+        title={t('objects.tabs.metadata')}
         isEditing={isMetadataEditing}
         onEditToggle={(isEditing) => handleEditToggle('metadata', isEditing)}
         onSave={onSaveMetadata}
-        successMessage="Object metadata updated successfully"
+        successMessage={t('objects.metadataUpdated')}
         showToast={false}
         renderDisplay={() => (
           <div className="grid grid-cols-1 gap-3">
             <div>
-              <div className="text-sm font-medium">UUID</div>
+              <div className="text-sm font-medium">
+                {t('objects.fields.uuid')}
+              </div>
               <div className="text-sm font-mono text-muted-foreground flex items-center gap-2">
                 <span className="truncate flex">{object?.uuid}</span>
-                <CopyButton text={object?.uuid || ''} label="Object UUID" />
+                <CopyButton
+                  text={object?.uuid || ''}
+                  label={t('objects.objectUuid')}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <div className="text-sm font-medium">Name</div>
+                <div className="text-sm font-medium">
+                  {t('objects.fields.name')}
+                </div>
                 <div className="text-sm text-muted-foreground">
                   {object?.name}
                 </div>
               </div>
               {object?.version && (
                 <div>
-                  <div className="text-sm font-medium">Version</div>
+                  <div className="text-sm font-medium">
+                    {t('objects.fields.version')}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     {object?.version}
                   </div>
@@ -100,26 +109,34 @@ export function MetadataTab({
               )}
               {object?.abbreviation && (
                 <div>
-                  <div className="text-sm font-medium">Abbreviation</div>
+                  <div className="text-sm font-medium">
+                    {t('objects.fields.abbreviation')}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     {object?.abbreviation}
                   </div>
                 </div>
               )}
               <div>
-                <div className="text-sm font-medium">Created</div>
+                <div className="text-sm font-medium">
+                  {t('objects.fields.created')}
+                </div>
                 <div className="text-sm text-muted-foreground">{created}</div>
               </div>
               {updated && (
                 <div>
-                  <div className="text-sm font-medium">Updated</div>
+                  <div className="text-sm font-medium">
+                    {t('objects.fields.updated')}
+                  </div>
                   <div className="text-sm text-muted-foreground">{updated}</div>
                 </div>
               )}
             </div>
             {object?.description && (
               <div>
-                <div className="text-sm font-medium">Description</div>
+                <div className="text-sm font-medium">
+                  {t('objects.fields.description')}
+                </div>
                 <div className="text-sm text-muted-foreground">
                   {object.description.length > 100 ? (
                     <>
@@ -132,7 +149,9 @@ export function MetadataTab({
                         }
                         className="ml-2 text-primary hover:text-primary/80 underline text-xs"
                       >
-                        {isDescriptionExpanded ? 'Show less' : 'Show more'}
+                        {isDescriptionExpanded
+                          ? t('objects.showLess')
+                          : t('objects.showMore')}
                       </button>
                     </>
                   ) : (
@@ -148,7 +167,7 @@ export function MetadataTab({
                 {softDeleteInfo.deletedAt && (
                   <div>
                     <div className="text-sm font-medium text-destructive">
-                      Deleted At
+                      {t('objects.deletedAt')}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {softDeleteInfo.deletedAt}
@@ -158,7 +177,7 @@ export function MetadataTab({
                 {softDeleteInfo.deletedBy && (
                   <div>
                     <div className="text-sm font-medium text-destructive">
-                      Deleted By
+                      {t('objects.deletedBy')}
                     </div>
                     <div
                       className="text-sm text-muted-foreground font-mono"
@@ -176,7 +195,7 @@ export function MetadataTab({
         renderEdit={() => (
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="object-name">Name</Label>
+              <Label htmlFor="object-name">{t('objects.fields.name')}</Label>
               <Input
                 id="object-name"
                 value={editedObject?.name || ''}
@@ -190,7 +209,9 @@ export function MetadataTab({
             </div>
 
             <div>
-              <Label htmlFor="object-abbreviation">Abbreviation</Label>
+              <Label htmlFor="object-abbreviation">
+                {t('objects.fields.abbreviation')}
+              </Label>
               <Input
                 id="object-abbreviation"
                 value={editedObject?.abbreviation || ''}
@@ -204,7 +225,9 @@ export function MetadataTab({
             </div>
 
             <div>
-              <Label htmlFor="object-version">Version</Label>
+              <Label htmlFor="object-version">
+                {t('objects.fields.version')}
+              </Label>
               <Input
                 id="object-version"
                 value={editedObject?.version || ''}
@@ -218,7 +241,9 @@ export function MetadataTab({
             </div>
 
             <div>
-              <Label htmlFor="object-description">Description</Label>
+              <Label htmlFor="object-description">
+                {t('objects.fields.description')}
+              </Label>
               <Textarea
                 id="object-description"
                 value={editedObject?.description || ''}
@@ -238,11 +263,11 @@ export function MetadataTab({
       {/* Address Section */}
       <Separator />
       <EditableSection
-        title="Address"
+        title={t('objects.fields.address')}
         isEditing={isAddressEditing}
         onEditToggle={(isEditing) => handleEditToggle('address', isEditing)}
         onSave={onSaveAddress}
-        successMessage="Address updated successfully"
+        successMessage={t('objects.addressUpdated')}
         showToast={false}
         renderDisplay={() => (
           <div>
@@ -256,30 +281,49 @@ export function MetadataTab({
                 <div className="ml-6 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                   <div className="space-y-1">
                     {addressData.street && (
-                      <div>Street: {addressData.street}</div>
+                      <div>
+                        {t('objects.address.street')}: {addressData.street}
+                      </div>
                     )}
                     {addressData.houseNumber && (
-                      <div>House Number: {addressData.houseNumber}</div>
+                      <div>
+                        {t('objects.address.number')}: {addressData.houseNumber}
+                      </div>
                     )}
-                    {addressData.city && <div>City: {addressData.city}</div>}
+                    {addressData.city && (
+                      <div>
+                        {t('objects.address.city')}: {addressData.city}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     {addressData.postalCode && (
-                      <div>Postal Code: {addressData.postalCode}</div>
+                      <div>
+                        {t('objects.address.postalCode')}:{' '}
+                        {addressData.postalCode}
+                      </div>
                     )}
                     {addressData.country && (
-                      <div>Country: {addressData.country}</div>
+                      <div>
+                        {t('objects.address.country')}: {addressData.country}
+                      </div>
                     )}
-                    {addressData.state && <div>State: {addressData.state}</div>}
+                    {addressData.state && (
+                      <div>
+                        {t('objects.address.state')}: {addressData.state}
+                      </div>
+                    )}
                     {addressData.district && (
-                      <div>District: {addressData.district}</div>
+                      <div>
+                        {t('objects.address.district')}: {addressData.district}
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No address specified for this object
+                {t('objects.noAddress')}
               </p>
             )}
           </div>
@@ -287,10 +331,12 @@ export function MetadataTab({
         renderEdit={() => (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="address-search">Building Address</Label>
+              <Label htmlFor="address-search">
+                {t('objects.buildingAddress')}
+              </Label>
               <HereAddressAutocomplete
                 value={editedAddressData.fullAddress}
-                placeholder="Search for building address..."
+                placeholder={t('objects.placeholders.address')}
                 onAddressSelect={(fullAddress, components) => {
                   setEditedAddressData({
                     fullAddress,
@@ -312,43 +358,49 @@ export function MetadataTab({
               editedAddressData.country) && (
               <div className="p-3 bg-muted/20 rounded-md">
                 <div className="text-sm font-medium mb-2">
-                  Address Components:
+                  {t('objects.addressComponents')}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   {editedAddressData.street && (
                     <div>
-                      <strong>Street:</strong> {editedAddressData.street}
+                      <strong>{t('objects.address.street')}:</strong>{' '}
+                      {editedAddressData.street}
                     </div>
                   )}
                   {editedAddressData.houseNumber && (
                     <div>
-                      <strong>Number:</strong> {editedAddressData.houseNumber}
+                      <strong>{t('objects.address.number')}:</strong>{' '}
+                      {editedAddressData.houseNumber}
                     </div>
                   )}
                   {editedAddressData.city && (
                     <div>
-                      <strong>City:</strong> {editedAddressData.city}
+                      <strong>{t('objects.address.city')}:</strong>{' '}
+                      {editedAddressData.city}
                     </div>
                   )}
                   {editedAddressData.postalCode && (
                     <div>
-                      <strong>Postal Code:</strong>{' '}
+                      <strong>{t('objects.address.postalCode')}:</strong>{' '}
                       {editedAddressData.postalCode}
                     </div>
                   )}
                   {editedAddressData.country && (
                     <div>
-                      <strong>Country:</strong> {editedAddressData.country}
+                      <strong>{t('objects.address.country')}:</strong>{' '}
+                      {editedAddressData.country}
                     </div>
                   )}
                   {editedAddressData.state && (
                     <div>
-                      <strong>State:</strong> {editedAddressData.state}
+                      <strong>{t('objects.address.state')}:</strong>{' '}
+                      {editedAddressData.state}
                     </div>
                   )}
                   {editedAddressData.district && (
                     <div>
-                      <strong>District:</strong> {editedAddressData.district}
+                      <strong>{t('objects.address.district')}:</strong>{' '}
+                      {editedAddressData.district}
                     </div>
                   )}
                 </div>

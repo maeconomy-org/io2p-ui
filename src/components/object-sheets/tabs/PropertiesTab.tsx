@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { ChevronRight, Upload } from 'lucide-react'
 
 import { Button, EditableSection, CopyButton } from '@/components/ui'
@@ -54,6 +55,7 @@ export function PropertiesTab({
   onSaveProperties,
   setAttachmentModal,
 }: PropertiesTabProps) {
+  const t = useTranslations()
   const [expandedPropertyId, setExpandedPropertyId] = useState<string | null>(
     null
   )
@@ -114,11 +116,11 @@ export function PropertiesTab({
     <div className="space-y-4 pt-4">
       {/* Properties Section - Uses PropertySectionEditor */}
       <EditableSection
-        title="Properties"
+        title={t('objects.tabs.properties')}
         isEditing={isPropertiesEditing}
         onEditToggle={(isEditing) => handleEditToggle('properties', isEditing)}
         onSave={onSaveProperties}
-        successMessage="Object properties updated successfully"
+        successMessage={t('objects.propertiesUpdated')}
         showToast={false}
         renderDisplay={() => (
           <div>
@@ -163,12 +165,12 @@ export function PropertiesTab({
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="font-mono text-xs text-muted-foreground">
-                                {prop.uuid || 'No UUID'}
+                                {prop.uuid || t('objects.noUuid')}
                               </span>
                               {prop.uuid && (
                                 <CopyButton
                                   text={prop.uuid}
-                                  label="Property UUID"
+                                  label={t('objects.propertyUuid')}
                                   size="sm"
                                 />
                               )}
@@ -187,7 +189,7 @@ export function PropertiesTab({
                               className="h-7 px-2"
                             >
                               <Upload className="h-3 w-3 mr-1" />
-                              Attach
+                              {t('objects.attach')}
                             </Button>
                           )}
                         </div>
@@ -197,7 +199,7 @@ export function PropertiesTab({
                           <div>
                             <div className="flex items-center gap-2 mb-2">
                               <div className="text-sm font-medium">
-                                Files attached to property
+                                {t('objects.filesAttachedProperty')}
                               </div>
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
                                 {prop.files.length}
@@ -212,7 +214,9 @@ export function PropertiesTab({
                         {/* Property Values Section */}
                         <div>
                           <div className="text-sm font-medium mb-2">
-                            Values ({(prop.values || []).length})
+                            {t('objects.values', {
+                              count: (prop.values || []).length,
+                            })}
                           </div>
 
                           <div className="space-y-3">
@@ -232,10 +236,9 @@ export function PropertiesTab({
                                       {value.files &&
                                         value.files.length > 0 && (
                                           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                                            {value.files.length} file
-                                            {value.files.length !== 1
-                                              ? 's'
-                                              : ''}
+                                            {t('objects.filesCount', {
+                                              count: value.files.length,
+                                            })}
                                           </span>
                                         )}
                                       {value.uuid && !isPropertiesEditing && (
@@ -253,7 +256,7 @@ export function PropertiesTab({
                                           className="h-6 px-2 text-xs"
                                         >
                                           <Upload className="h-3 w-3 mr-1" />
-                                          Attach
+                                          {t('objects.attach')}
                                         </Button>
                                       )}
                                     </div>
@@ -275,7 +278,7 @@ export function PropertiesTab({
 
                             {(!prop.values || prop.values.length === 0) && (
                               <div className="text-sm text-muted-foreground italic">
-                                No values defined
+                                {t('objects.noValues')}
                               </div>
                             )}
                           </div>
@@ -287,7 +290,7 @@ export function PropertiesTab({
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No properties defined for this object
+                {t('objects.noProperties')}
               </p>
             )}
           </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { FileText, Loader2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
 import {
@@ -39,6 +40,7 @@ export function TemplateCreationDialog({
   onConfirm,
   isCreating = false,
 }: TemplateCreationDialogProps) {
+  const t = useTranslations()
   const [templateData, setTemplateData] = useState<TemplateData>(initialData)
 
   // Reset form data when dialog opens with new initial data
@@ -77,56 +79,64 @@ export function TemplateCreationDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Create Template
+            {t('objects.templateDialogTitle')}
           </DialogTitle>
           <DialogDescription>
-            Configure the template details before creating it from this object.
+            {t('objects.templateDialogDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="template-name">Name</Label>
+            <Label htmlFor="template-name">
+              {t('objects.templateNameLabel')}
+            </Label>
             <Input
               id="template-name"
               value={templateData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Enter template name"
+              placeholder={t('objects.templateNamePlaceholder')}
               disabled={isCreating}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="template-abbreviation">Abbreviation</Label>
+            <Label htmlFor="template-abbreviation">
+              {t('objects.templateAbbreviationLabel')}
+            </Label>
             <Input
               id="template-abbreviation"
               value={templateData.abbreviation}
               onChange={(e) =>
                 handleInputChange('abbreviation', e.target.value)
               }
-              placeholder="Enter abbreviation (optional)"
+              placeholder={t('objects.templateAbbreviationPlaceholder')}
               disabled={isCreating}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="template-version">Version</Label>
+            <Label htmlFor="template-version">
+              {t('objects.templateVersionLabel')}
+            </Label>
             <Input
               id="template-version"
               value={templateData.version}
               onChange={(e) => handleInputChange('version', e.target.value)}
-              placeholder="Enter version"
+              placeholder={t('objects.templateVersionPlaceholder')}
               disabled={isCreating}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="template-description">Description</Label>
+            <Label htmlFor="template-description">
+              {t('objects.templateDescriptionLabel')}
+            </Label>
             <Textarea
               id="template-description"
               value={templateData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder="Enter template description"
+              placeholder={t('objects.templateDescriptionPlaceholder')}
               className="min-h-[80px]"
               disabled={isCreating}
             />
@@ -141,7 +151,7 @@ export function TemplateCreationDialog({
             disabled={isCreating}
             className="flex-1"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
@@ -152,10 +162,10 @@ export function TemplateCreationDialog({
             {isCreating ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating...
+                {t('objects.creating')}
               </>
             ) : (
-              <>Create Template</>
+              <>{t('objects.createTemplate')}</>
             )}
           </Button>
         </DialogFooter>

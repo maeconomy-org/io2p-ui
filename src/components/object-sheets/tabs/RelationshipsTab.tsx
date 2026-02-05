@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { ExternalLink, ArrowRight, Loader2 } from 'lucide-react'
 import {
@@ -37,6 +38,7 @@ export function RelationshipsTab({
   setActiveEditingSection,
   onSaveParents,
 }: RelationshipsTabProps) {
+  const t = useTranslations()
   const router = useRouter()
 
   // Lightweight hook specifically designed for object processes
@@ -91,11 +93,11 @@ export function RelationshipsTab({
     <div className="pt-4 space-y-6">
       {/* Parent Objects Section */}
       <EditableSection
-        title="Parent Objects"
+        title={t('objects.parentsTitle')}
         isEditing={isParentsEditing}
         onEditToggle={(isEditing) => handleEditToggle('parents', isEditing)}
         onSave={onSaveParents}
-        successMessage="Parent objects updated successfully"
+        successMessage={t('objects.parentsUpdated')}
         showToast={false}
         renderDisplay={() => (
           <div>
@@ -103,7 +105,7 @@ export function RelationshipsTab({
               <ParentDisplay parents={parents} />
             ) : (
               <p className="text-sm text-muted-foreground">
-                No parent objects assigned
+                {t('objects.noParents')}
               </p>
             )}
           </div>
@@ -120,7 +122,7 @@ export function RelationshipsTab({
                 })
                 setParents(newParents)
               }}
-              placeholder="Search for parent objects..."
+              placeholder={t('objects.parentSearch')}
               maxSelections={50}
               currentObjectUuid={object?.uuid}
             />
@@ -132,7 +134,7 @@ export function RelationshipsTab({
 
       <div className="flex justify-between items-center">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Input/Output Relationships
+          {t('objects.relationshipsTitle')}
         </h3>
         {!isDeleted && limitedRelationships.totalCount > 0 && (
           <Button
@@ -143,8 +145,8 @@ export function RelationshipsTab({
           >
             <ExternalLink className="h-4 w-4" />
             {limitedRelationships.hasMore
-              ? 'View All in Processes'
-              : 'View in Processes'}
+              ? t('objects.viewAllInProcesses')
+              : t('objects.viewInProcesses')}
           </Button>
         )}
       </div>
@@ -152,7 +154,7 @@ export function RelationshipsTab({
       {limitedRelationships.totalCount === 0 ? (
         <div className="flex flex-col items-center justify-center py-4">
           <h4 className="text-md font-semibold mb-2">
-            No Input/Output Processes
+            {t('objects.noIoProcesses')}
           </h4>
         </div>
       ) : (
@@ -162,14 +164,16 @@ export function RelationshipsTab({
             <div>
               <h4 className="text-md font-semibold mb-3 flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                Input ({limitedRelationships.createdBy.length})
+                {t('objects.inputCount', {
+                  count: limitedRelationships.createdBy.length,
+                })}
               </h4>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Process Name</TableHead>
-                    <TableHead>Flow</TableHead>
-                    <TableHead>Quantity</TableHead>
+                    <TableHead>{t('objects.processName')}</TableHead>
+                    <TableHead>{t('objects.flow')}</TableHead>
+                    <TableHead>{t('objects.quantity')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -190,7 +194,7 @@ export function RelationshipsTab({
                       <TableCell>
                         {rel.quantity > 0
                           ? `${rel.quantity.toLocaleString()} ${rel.unit}`
-                          : 'Not specified'}
+                          : t('objects.notSpecified')}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -204,14 +208,16 @@ export function RelationshipsTab({
             <div>
               <h4 className="text-md font-semibold mb-3 flex items-center gap-2">
                 <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                Output ({limitedRelationships.usedIn.length})
+                {t('objects.outputCount', {
+                  count: limitedRelationships.usedIn.length,
+                })}
               </h4>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Process Name</TableHead>
-                    <TableHead>Flow</TableHead>
-                    <TableHead>Quantity</TableHead>
+                    <TableHead>{t('objects.processName')}</TableHead>
+                    <TableHead>{t('objects.flow')}</TableHead>
+                    <TableHead>{t('objects.quantity')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -234,7 +240,7 @@ export function RelationshipsTab({
                       <TableCell>
                         {rel.quantity > 0
                           ? `${rel.quantity.toLocaleString()} ${rel.unit}`
-                          : 'Not specified'}
+                          : t('objects.notSpecified')}
                       </TableCell>
                     </TableRow>
                   ))}

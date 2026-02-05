@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { Pencil, Check, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import type { FileData, Attachment } from '@/types'
 import { Button, Input, Badge } from '@/components/ui'
+import { truncateText } from '@/lib'
+
 import { FileList } from './FileDisplay'
-import { truncateText } from '../utils'
 
 type AttachmentListProps = {
   attachments: Attachment[]
@@ -53,6 +55,7 @@ export function AttachmentList({
   allowHardRemove = false,
   allowRename = false,
 }: AttachmentListProps) {
+  const t = useTranslations()
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editValue, setEditValue] = useState('')
   const [editExtension, setEditExtension] = useState('') // Store extension separately
@@ -153,7 +156,7 @@ export function AttachmentList({
                   size="sm"
                   className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
                   onClick={() => handleConfirmEdit(attachment)}
-                  title="Confirm"
+                  title={t('common.confirm')}
                 >
                   <Check className="h-3 w-3" />
                 </Button>
@@ -162,7 +165,7 @@ export function AttachmentList({
                   size="sm"
                   className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                   onClick={handleCancelEdit}
-                  title="Cancel"
+                  title={t('common.cancel')}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -173,7 +176,7 @@ export function AttachmentList({
                   {truncateText(displayName, 50)}
                 </span>
                 <Badge variant="secondary" className="text-xs">
-                  New
+                  {t('common.new')}
                 </Badge>
                 {allowRename && onRenameAttachment && (
                   <Button
@@ -181,7 +184,7 @@ export function AttachmentList({
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                     onClick={() => handleStartEdit(index, displayName)}
-                    title="Rename file"
+                    title={t('objects.attachments.rename')}
                   >
                     <Pencil className="h-3 w-3" />
                   </Button>
@@ -192,7 +195,7 @@ export function AttachmentList({
                     size="sm"
                     className="h-6 w-6 p-0 text-destructive hover:text-destructive/80"
                     onClick={() => onRemoveAttachment(attachment)}
-                    title="Remove file"
+                    title={t('objects.attachments.remove')}
                   >
                     <X className="h-3 w-3" />
                   </Button>

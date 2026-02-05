@@ -77,12 +77,12 @@ const expectDeletedIndicator = async (row: ReturnType<Page['locator']>) => {
   expect(deletedLabelVisible || deletedStrikeVisible).toBeTruthy()
 }
 
-test.describe('Object Soft Delete & Restore', () => {
+test.describe('04 - Object Soft Delete & Restore', () => {
   test.describe.configure({ mode: 'serial' })
 
   let testObjectName = ''
 
-  test('setup - create test object for deletion', async ({ page }) => {
+  test('TC001: Setup - create test object for deletion', async ({ page }) => {
     testObjectName = `E2E Delete Test ${runId}`
 
     await page.goto('/objects')
@@ -103,7 +103,7 @@ test.describe('Object Soft Delete & Restore', () => {
     })
   })
 
-  test('soft delete object from table view', async ({ page }) => {
+  test('TC002: Soft delete object from table view', async ({ page }) => {
     await page.goto('/objects')
     await page.waitForLoadState('networkidle')
 
@@ -144,7 +144,7 @@ test.describe('Object Soft Delete & Restore', () => {
     }
   })
 
-  test('soft delete object from details view', async ({ page }) => {
+  test('TC003: Soft delete object from details view', async ({ page }) => {
     // Create another object for this test
     const detailsTestName = `${testObjectName} Details`
 
@@ -205,7 +205,9 @@ test.describe('Object Soft Delete & Restore', () => {
     }
   })
 
-  test('show deleted filter lists soft-deleted objects', async ({ page }) => {
+  test('TC004: Show deleted filter lists soft-deleted objects', async ({
+    page,
+  }) => {
     await page.goto('/objects')
     await page.waitForLoadState('networkidle')
 
@@ -226,7 +228,7 @@ test.describe('Object Soft Delete & Restore', () => {
     }
   })
 
-  test('restore soft deleted object', async ({ page }) => {
+  test('TC005: Restore soft deleted object', async ({ page }) => {
     await page.goto('/objects')
     await page.waitForLoadState('networkidle')
 
@@ -291,7 +293,7 @@ test.describe('Object Soft Delete & Restore', () => {
     }
   })
 
-  test('verify restored object is active', async ({ page }) => {
+  test('TC006: Verify restored object is active', async ({ page }) => {
     await page.goto('/objects')
     await page.waitForLoadState('networkidle')
 
@@ -314,7 +316,7 @@ test.describe('Object Soft Delete & Restore', () => {
     }
   })
 
-  test('soft delete does not expose permanent delete action', async ({
+  test('TC007: Soft delete does not expose permanent delete action', async ({
     page,
   }) => {
     // Create object specifically for permanent deletion test

@@ -32,7 +32,7 @@ export function ProcessTableView({
   selectedRelationship,
   pageSize = 10,
 }: ProcessTableViewProps) {
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
 
   const filteredRelationships = useMemo(() => {

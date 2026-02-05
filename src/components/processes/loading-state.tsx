@@ -1,4 +1,5 @@
 import { BarChart3, Loader2, PlusCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { Button, Card, CardContent } from '@/components/ui'
 
 export function LoadingState({
@@ -14,12 +15,16 @@ export function LoadingState({
   setIsProcessFormOpen: (isOpen: boolean) => void
   variant?: 'card' | 'inline'
 }) {
+  const t = useTranslations()
+
   if (isLoading) {
     const loadingContent = (
       <div className="flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Loading process data...</p>
+          <p className="text-muted-foreground">
+            {t('processes.loadingState.loading')}
+          </p>
         </div>
       </div>
     )
@@ -47,15 +52,17 @@ export function LoadingState({
         <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
           <BarChart3 className="h-6 w-6 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">No I/O Processes</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          {t('processes.loadingState.noProcesses')}
+        </h3>
         <p className="text-muted-foreground mb-4">
           {objectUuid
-            ? 'No I/O processes found for the selected object.'
-            : 'No I/O processes have been created yet.'}
+            ? t('processes.loadingState.noProcessesForObject')
+            : t('processes.loadingState.noProcessesYet')}
         </p>
         <Button onClick={() => setIsProcessFormOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Create First Process
+          {t('processes.loadingState.createFirst')}
         </Button>
       </div>
     )

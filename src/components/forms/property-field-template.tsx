@@ -1,5 +1,6 @@
 import { Control, useFieldArray } from 'react-hook-form'
 import { PlusIcon, XIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import {
   Button,
@@ -24,6 +25,7 @@ export function PropertyFieldTemplate({
   index,
   onRemove,
 }: PropertyFieldTemplateProps) {
+  const t = useTranslations()
   const valuesName = `${name}.values`
 
   const {
@@ -49,7 +51,7 @@ export function PropertyFieldTemplate({
         <div className="w-full space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor={`property-${index}`} className="text-sm">
-              Property Name
+              {t('objects.propertyName')}
             </Label>
             <Button
               type="button"
@@ -70,7 +72,7 @@ export function PropertyFieldTemplate({
                 <FormControl>
                   <Input
                     id={`property-${index}`}
-                    placeholder="e.g. Total Floors"
+                    placeholder={t('objects.propertyNamePlaceholder')}
                     {...field}
                   />
                 </FormControl>
@@ -82,7 +84,7 @@ export function PropertyFieldTemplate({
       </div>
 
       <div className="space-y-3">
-        <Label className="text-sm">Property Values</Label>
+        <Label className="text-sm">{t('objects.propertyValues')}</Label>
 
         {valueFields.map((valueField, valueIndex) => (
           <div key={valueField.id} className="space-y-2">
@@ -93,7 +95,10 @@ export function PropertyFieldTemplate({
                 render={({ field }) => (
                   <FormItem className="flex-1">
                     <FormControl>
-                      <Input placeholder="Enter property value" {...field} />
+                      <Input
+                        placeholder={t('objects.propertyValuePlaceholder')}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -123,7 +128,7 @@ export function PropertyFieldTemplate({
           onClick={handleAddValue}
         >
           <PlusIcon className="h-4 w-4 mr-2" />
-          Add Another Value
+          {t('objects.addAnotherValue')}
         </Button>
       </div>
     </div>

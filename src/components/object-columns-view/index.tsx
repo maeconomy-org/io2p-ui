@@ -1,6 +1,7 @@
 'use client'
 
 import { FileText } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { DeleteConfirmationDialog } from '@/components/modals'
 
 import { getColumnTitle } from './utils'
@@ -28,6 +29,7 @@ export function ObjectColumnsView({
   onViewObject,
   showDeleted = false,
 }: ObjectColumnsViewProps) {
+  const t = useTranslations()
   // Create loadChildren function locally for columns view
   const { loadChildren } = useLoadChildren()
   // Use the centralized columns data hook
@@ -120,10 +122,10 @@ export function ObjectColumnsView({
               <div className="flex-1 flex items-center justify-center p-8 text-center text-muted-foreground">
                 <div>
                   <FileText className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />
-                  <h3 className="text-lg font-medium mb-2">No Objects Found</h3>
-                  <p className="text-sm">
-                    Load some data to start exploring the object hierarchy
-                  </p>
+                  <h3 className="text-lg font-medium mb-2">
+                    {t('objects.columnsView.noObjects')}
+                  </h3>
+                  <p className="text-sm">{t('objects.columnsView.loadData')}</p>
                 </div>
               </div>
             )}

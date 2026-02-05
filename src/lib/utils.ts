@@ -32,3 +32,19 @@ export function toCapitalize(str: string) {
 export const isObjectDeleted = (object: any): boolean => {
   return object?.softDeleted === true
 }
+
+/**
+ * Truncate long text with ellipsis
+ */
+export function truncateText(
+  text: string,
+  maxLength: number = 100,
+  fromMiddle: boolean = false
+): string {
+  if (!text || text.length <= maxLength) return text
+  if (fromMiddle) {
+    const half = Math.floor(maxLength / 2)
+    return `${text.substring(0, half)}...${text.substring(text.length - half)}`
+  }
+  return `${text.substring(0, maxLength)}...`
+}

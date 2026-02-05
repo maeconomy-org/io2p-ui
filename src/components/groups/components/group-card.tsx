@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  MoreHorizontal,
-  Users,
-  Package,
-  Lock,
-  Globe,
-  Trash2,
-} from 'lucide-react'
+import { MoreHorizontal, Lock, Globe, Trash2 } from 'lucide-react'
 import {
   Button,
   Badge,
@@ -44,14 +37,6 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
-  }
-
   const getTypeIcon = () => {
     if (group.type === 'public') {
       return <Globe className="h-4 w-4" />

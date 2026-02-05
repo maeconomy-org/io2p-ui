@@ -1,6 +1,7 @@
 'use client'
 
 import { MouseEvent, useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { FileText, Trash2, QrCode, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -56,6 +57,7 @@ export function ObjectsTable({
   onNextPage,
   onLastPage,
 }: ObjectsTableProps) {
+  const t = useTranslations()
   const router = useRouter()
   const [data, setData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -167,14 +169,16 @@ export function ObjectsTable({
                 {object.name}
               </span>
               {isDeleted && (
-                <span className="ml-2 text-xs text-destructive">(Deleted)</span>
+                <span className="ml-2 text-xs text-destructive">
+                  {t('objects.deletedBadge')}
+                </span>
               )}
             </div>
           </TableCell>
           <TableCell className="font-mono text-xs text-muted-foreground truncate">
             <div className="flex items-center gap-2">
               <span className="truncate flex">{object.uuid}</span>
-              <CopyButton text={object.uuid} label="UUID" />
+              <CopyButton text={object.uuid} label={t('objects.fields.uuid')} />
             </div>
           </TableCell>
           <TableCell>
@@ -183,7 +187,7 @@ export function ObjectsTable({
                 <span className="text-sm">{childCount}</span>
                 {hasChildren && (
                   <span className="text-xs text-muted-foreground">
-                    (double-click)
+                    {t('objects.doubleClick')}
                   </span>
                 )}
               </div>
@@ -195,7 +199,7 @@ export function ObjectsTable({
               variant="ghost"
               size="icon"
               onClick={(e) => handleShowQRCode(object, e)}
-              title="Show QR Code"
+              title={t('objects.showQr')}
             >
               <QrCode className="h-4 w-4" />
             </Button>
@@ -222,7 +226,7 @@ export function ObjectsTable({
                     handleRevertObject(object)
                   }}
                   disabled={revertObjectMutation.isPending}
-                  title="Restore object"
+                  title={t('objects.restoreTitle')}
                 >
                   <RotateCcw className="h-4 w-4 text-blue-600" />
                 </Button>
@@ -254,7 +258,9 @@ export function ObjectsTable({
   // Only show full loading screen on initial load when there's no data
   if (isLoading && data.length === 0) {
     return (
-      <div className="flex justify-center items-center h-40">Loading...</div>
+      <div className="flex justify-center items-center h-40">
+        {t('common.loading')}
+      </div>
     )
   }
 
@@ -264,12 +270,14 @@ export function ObjectsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>UUID</TableHead>
-              <TableHead>Children</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>QR Code</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t('objects.fields.name')}</TableHead>
+              <TableHead>{t('objects.fields.uuid')}</TableHead>
+              <TableHead>{t('objects.children')}</TableHead>
+              <TableHead>{t('objects.fields.created')}</TableHead>
+              <TableHead>{t('objects.qrCode')}</TableHead>
+              <TableHead className="text-right">
+                {t('common.actions')}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -278,7 +286,7 @@ export function ObjectsTable({
                 <TableCell className="text-center py-4" {...{ colSpan: 6 }}>
                   <div className="flex items-center justify-center">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2"></div>
-                    Updating data...
+                    {t('common.updating')}
                   </div>
                 </TableCell>
               </TableRow>
@@ -288,10 +296,10 @@ export function ObjectsTable({
                   <div className="flex flex-col items-center">
                     <FileText className="h-10 w-10 text-muted-foreground/50 mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      No Objects Found
+                      {t('objects.noObjectsTitle')}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      There are no objects to display
+                      {t('objects.noObjectsDescription')}
                     </p>
                   </div>
                 </TableCell>

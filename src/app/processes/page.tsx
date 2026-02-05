@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { useSearchParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { PlusCircle, Loader2, Filter } from 'lucide-react'
@@ -49,6 +50,7 @@ const NetworkDiagram = dynamic(
 )
 
 const MaterialFlowPage = () => {
+  const t = useTranslations()
   const searchParams = useSearchParams()
   const router = useRouter()
   const objectUuid = searchParams.get('objectUuid')
@@ -119,8 +121,10 @@ const MaterialFlowPage = () => {
   const handleProcessSave = useCallback(
     async (newProcess: any) => {
       try {
-        toast.loading('Creating process flow...', { id: 'create-process-flow' })
-        const result = await createProcessFlowMutation.mutateAsync({
+        toast.loading(t('processes.form.createTitle'), {
+          id: 'create-process-flow',
+        })
+        await createProcessFlowMutation.mutateAsync({
           processMetadata: {
             processName: newProcess.name,
             processType: newProcess.type,
@@ -148,18 +152,18 @@ const MaterialFlowPage = () => {
           })),
         })
 
-        toast.success('Process flow created successfully!', {
+        toast.success(t('processes.create'), {
           id: 'create-process-flow',
         })
         setIsProcessFormOpen(false)
       } catch (error) {
         logger.error('Failed to save process flow:', { error })
-        toast.error('Failed to create process flow', {
+        toast.error(t('processes.create'), {
           id: 'create-process-flow',
         })
       }
     },
-    [createProcessFlowMutation]
+    [createProcessFlowMutation, t]
   )
 
   const handleRelationshipSelect = useCallback(
@@ -232,14 +236,14 @@ const MaterialFlowPage = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="mb-6 flex flex-wrap gap-6 justify-between items-center">
-        <h1 className="text-2xl font-bold">I/O Processes</h1>
+        <h1 className="text-2xl font-bold">{t('processes.title')}</h1>
         <div className="flex flex-wrap items-center gap-4">
           {/* Material Filter Selector */}
           <MaterialSelector
             materials={allMaterials}
             selectedMaterialUuids={selectedMaterialUuids}
             onMaterialsChange={setSelectedMaterialUuids}
-            placeholder="Filter by objects..."
+            placeholder={t('processes.filterObjects')}
             maxSelections={10}
           />
           <ProcessViewSelector view={activeView} onChange={setActiveView} />
@@ -253,7 +257,7 @@ const MaterialFlowPage = () => {
             ) : (
               <PlusCircle className="mr-2 h-4 w-4" />
             )}
-            Create Process
+            {t('processes.create')}
           </Button>
         </div>
       </div>
@@ -267,7 +271,7 @@ const MaterialFlowPage = () => {
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-orange-600 flex-shrink-0" />
                   <span className="text-sm font-medium text-orange-900">
-                    Active Filters:
+                    {t('processes.filters')}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -276,7 +280,7 @@ const MaterialFlowPage = () => {
                       variant="secondary"
                       className="bg-orange-100 text-orange-700 font-mono text-xs"
                     >
-                      Object: {objectUuid.slice(0, 8)}...
+                      {t('processes.object')}: {objectUuid.slice(0, 8)}...
                     </Badge>
                   )}
                   {selectedMaterialUuids.map((uuid) => {
@@ -301,7 +305,7 @@ const MaterialFlowPage = () => {
                     onClick={() => setSelectedMaterialUuids([])}
                     className="text-orange-600 hover:text-orange-800 hover:bg-orange-100 flex-shrink-0 text-xs"
                   >
-                    Clear Materials
+                    {t('processes.clearMaterials')}
                   </Button>
                 )}
                 {objectUuid && (
@@ -311,7 +315,7 @@ const MaterialFlowPage = () => {
                     onClick={clearFilter}
                     className="text-orange-600 hover:text-orange-800 hover:bg-orange-100 flex-shrink-0 text-xs"
                   >
-                    Clear Object
+                    {t('processes.clearObject')}
                   </Button>
                 )}
                 {objectUuid && selectedMaterialUuids.length > 0 && (
@@ -324,7 +328,7 @@ const MaterialFlowPage = () => {
                     }}
                     className="text-orange-600 hover:text-orange-800 hover:bg-orange-100 flex-shrink-0 text-xs"
                   >
-                    Clear All
+                    {t('processes.clearAll')}
                   </Button>
                 )}
               </div>

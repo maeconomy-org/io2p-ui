@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Upload, FileSpreadsheet } from 'lucide-react'
 import { FileDropzone } from '@/components/ui/file-dropzone'
 import { useFileProcessor, SheetData } from '@/hooks'
@@ -18,6 +19,7 @@ export function FileUpload({
   description,
   maxSizeInMB = 100,
 }: FileUploadProps) {
+  const t = useTranslations()
   const [uploadProgress, setUploadProgress] = useState<number>(0)
 
   const { processFile, isProcessing, progress, error, reset } =
@@ -55,7 +57,9 @@ export function FileUpload({
         <FileDropzone
           onDrop={handleDrop}
           isLoading={isProcessing}
-          loadingText={`Processing file (${uploadProgress}%)...`}
+          loadingText={t('import.upload.processing', {
+            progress: uploadProgress,
+          })}
           error={error}
           progress={uploadProgress}
           accept={{
@@ -76,15 +80,15 @@ export function FileUpload({
             <div className="space-y-2">
               <h3 className="text-lg font-medium">
                 {isProcessing
-                  ? `Processing file (${progress}%)...`
-                  : 'Drag & drop your file here'}
+                  ? t('import.upload.processing', { progress })
+                  : t('import.upload.dragDrop')}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {!isProcessing && 'or click to browse'}
+                {!isProcessing && t('import.upload.browse')}
               </p>
             </div>
             <div className="text-xs text-muted-foreground">
-              Supports XLSX and CSV files up to {maxSizeInMB}MB
+              {t('import.upload.supports', { size: maxSizeInMB })}
             </div>
           </div>
         </FileDropzone>

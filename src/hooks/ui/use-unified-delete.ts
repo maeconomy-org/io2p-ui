@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import { logger } from '@/lib'
@@ -12,6 +13,7 @@ interface ObjectToDelete {
 }
 
 export function useUnifiedDelete() {
+  const t = useTranslations()
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [objectToDelete, setObjectToDelete] = useState<ObjectToDelete | null>(
     null
@@ -31,17 +33,17 @@ export function useUnifiedDelete() {
     if (!objectToDelete) return
 
     try {
-      toast.loading('Deleting object...', { id: 'delete-object' })
+      toast.loading(t('objects.deletingObject'), { id: 'delete-object' })
 
       await deleteObject(objectToDelete.uuid)
 
-      toast.success('Object deleted successfully', { id: 'delete-object' })
+      toast.success(t('objects.objectDeletedSuccess'), { id: 'delete-object' })
       setIsDeleteModalOpen(false)
       setObjectToDelete(null)
       setWasDeleteSuccessful(true)
     } catch (error) {
       logger.error('Error deleting object:', error)
-      toast.error('Failed to delete object', { id: 'delete-object' })
+      toast.error(t('objects.objectDeleteFailed'), { id: 'delete-object' })
     }
   }
 

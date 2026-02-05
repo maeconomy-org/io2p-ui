@@ -1,4 +1,5 @@
 import { PencilIcon, TrashIcon, FileText, RotateCcw } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import {
   Table,
@@ -45,6 +46,7 @@ export function ObjectModelsTable({
   fetching = false,
   pagination,
 }: ObjectModelsTableProps) {
+  const t = useTranslations()
   // Revert functionality
   const { useRevertObject } = useObjects()
   const revertObjectMutation = useRevertObject()
@@ -74,12 +76,14 @@ export function ObjectModelsTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Abbreviation</TableHead>
-                <TableHead>Version</TableHead>
-                <TableHead>UUID</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t('objects.fields.name')}</TableHead>
+                <TableHead>{t('objects.fields.abbreviation')}</TableHead>
+                <TableHead>{t('objects.fields.version')}</TableHead>
+                <TableHead>{t('objects.fields.uuid')}</TableHead>
+                <TableHead>{t('objects.fields.created')}</TableHead>
+                <TableHead className="text-right">
+                  {t('common.actions')}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -87,7 +91,7 @@ export function ObjectModelsTable({
                 <TableCell className="text-center py-8" {...{ colSpan: 6 }}>
                   <div className="flex items-center justify-center">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2"></div>
-                    Loading templates...
+                    {t('models.loading')}
                   </div>
                 </TableCell>
               </TableRow>
@@ -104,12 +108,14 @@ export function ObjectModelsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Abbreviation</TableHead>
-              <TableHead>Version</TableHead>
-              <TableHead>UUID</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t('objects.fields.name')}</TableHead>
+              <TableHead>{t('objects.fields.abbreviation')}</TableHead>
+              <TableHead>{t('objects.fields.version')}</TableHead>
+              <TableHead>{t('objects.fields.uuid')}</TableHead>
+              <TableHead>{t('objects.fields.created')}</TableHead>
+              <TableHead className="text-right">
+                {t('common.actions')}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -118,7 +124,7 @@ export function ObjectModelsTable({
                 <TableCell className="text-center py-4" {...{ colSpan: 6 }}>
                   <div className="flex items-center justify-center">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2"></div>
-                    Updating data...
+                    {t('common.updating')}
                   </div>
                 </TableCell>
               </TableRow>
@@ -128,10 +134,10 @@ export function ObjectModelsTable({
                   <div className="flex flex-col items-center">
                     <FileText className="h-10 w-10 text-muted-foreground/50 mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      No Templates Found
+                      {t('models.noTemplatesTitle')}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      There are no templates to display
+                      {t('models.noTemplatesDescription')}
                     </p>
                   </div>
                 </TableCell>
@@ -153,7 +159,7 @@ export function ObjectModelsTable({
                         </span>
                         {deleted && (
                           <Badge variant="destructive" className="text-xs">
-                            Deleted
+                            {t('objects.deleted')}
                           </Badge>
                         )}
                       </div>
@@ -193,7 +199,7 @@ export function ObjectModelsTable({
                             size="icon"
                             onClick={() => handleRevertModel(model)}
                             disabled={revertObjectMutation.isPending}
-                            title="Restore model"
+                            title={t('models.restoreTitle')}
                           >
                             <RotateCcw className="h-4 w-4 text-blue-600" />
                           </Button>

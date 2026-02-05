@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib'
+import { useTranslations } from 'next-intl'
 import {
   ToggleGroup,
   ToggleGroupItem,
@@ -24,6 +25,7 @@ export function ViewSelector({
   onChange,
   'data-tour': dataTour,
 }: ViewSelectorProps) {
+  const t = useTranslations()
   return (
     <TooltipProvider>
       <ToggleGroup
@@ -50,12 +52,14 @@ export function ViewSelector({
               >
                 <ToggleGroupItem
                   value={viewType.value}
-                  aria-label={viewType.label}
+                  aria-label={t(`viewSelector.${viewType.labelKey}`)}
                 >
                   <Icon className="h-4 w-4" />
                 </ToggleGroupItem>
               </TooltipTrigger>
-              <TooltipContent side="bottom">{viewType.label}</TooltipContent>
+              <TooltipContent side="bottom">
+                {t(`viewSelector.${viewType.labelKey}`)}
+              </TooltipContent>
             </Tooltip>
           )
         })}

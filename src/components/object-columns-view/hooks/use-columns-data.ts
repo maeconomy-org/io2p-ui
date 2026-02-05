@@ -34,7 +34,6 @@ export function useColumnsData({
 }: UseColumnsDataProps) {
   // Column management hooks
   const {
-    columnPagination,
     handleColumnPageChange,
     setPaginationForColumn,
     removePaginationForColumn,
@@ -55,7 +54,7 @@ export function useColumnsData({
     showDeleted,
     onPaginationSet: setPaginationForColumn,
     onPaginationRemove: removePaginationForColumn,
-    onLoadingSet: (columnIndex: number, loading: boolean) => {
+    onLoadingSet: (_columnIndex: number, _loading: boolean) => {
       // This will be handled by the pagination hook
     },
   })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 // Disable static generation for this page since it requires client-side SDK
 export const dynamic = 'force-dynamic'
@@ -13,6 +14,7 @@ import { useModelData, useUnifiedDelete } from '@/hooks'
 import { DeleteConfirmationDialog } from '@/components/modals'
 
 export default function ObjectModelsPage() {
+  const t = useTranslations()
   // State for UI controls
   const [sheetOpen, setSheetOpen] = useState<boolean>(false)
   const [selectedModel, setSelectedModel] = useState<any | null>(null)
@@ -57,16 +59,16 @@ export default function ObjectModelsPage() {
       <div className="container mx-auto p-4 flex-1">
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold">Models</h2>
+            <h2 className="text-2xl font-semibold">{t('models.title')}</h2>
             <div className="flex items-center gap-4">
               <DeletedFilter
                 showDeleted={showDeleted}
                 onShowDeletedChange={setShowDeleted}
-                label="Show deleted items"
+                label={t('models.showDeleted')}
               />
               <Button onClick={handleAddModel}>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Add Model
+                {t('models.add')}
               </Button>
             </div>
           </div>
@@ -95,7 +97,7 @@ export default function ObjectModelsPage() {
         open={isDeleteModalOpen}
         onOpenChange={handleDeleteCancel}
         onDelete={handleDeleteConfirm}
-        objectName={objectToDelete?.name || 'Model'}
+        objectName={objectToDelete?.name || t('models.defaultName')}
       />
     </>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { X, Loader2, ChevronsUpDown, Users, Check } from 'lucide-react'
 
 import { logger } from '@/lib'
@@ -36,11 +37,12 @@ export function ParentSelector({
   currentObjectUuid,
   initialParentUuids = [],
   onParentsChange,
-  placeholder = 'Search for parent objects...',
+  placeholder,
   maxSelections = 10,
   disabled = false,
   dataTour,
 }: ParentSelectorProps) {
+  const t = useTranslations()
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -163,7 +165,7 @@ export function ParentSelector({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label>Parent Objects</Label>
+        <Label>{t('objects.parentSelector.label')}</Label>
         {selectedParents.length > 0 && (
           <Button
             type="button"
@@ -172,7 +174,7 @@ export function ParentSelector({
             onClick={handleClearAllParents}
             className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
           >
-            Clear all
+            {t('objects.parentSelector.clearAll')}
           </Button>
         )}
       </div>
@@ -191,18 +193,20 @@ export function ParentSelector({
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 <span className="truncate">
-                  {selectedParents.length === 1
-                    ? '1 parent selected'
-                    : `${selectedParents.length} parents selected`}
+                  {t('objects.parentSelector.selectedCount', {
+                    count: selectedParents.length,
+                  })}
                 </span>
                 {selectedParents.length >= maxSelections && (
                   <Badge variant="secondary" className="text-xs">
-                    Max
+                    {t('objects.parentSelector.maxBadge')}
                   </Badge>
                 )}
               </div>
             ) : (
-              <span className="text-muted-foreground">{placeholder}</span>
+              <span className="text-muted-foreground">
+                {placeholder ?? t('objects.parentSelector.placeholder')}
+              </span>
             )}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -214,7 +218,7 @@ export function ParentSelector({
           <Command shouldFilter={false}>
             <div className="relative">
               <CommandInput
-                placeholder="Search parent objects..."
+                placeholder={t('objects.parentSelector.searchPlaceholder')}
                 value={searchQuery}
                 onValueChange={setSearchQuery}
                 className="ml-2"
@@ -228,10 +232,10 @@ export function ParentSelector({
             <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
               <CommandEmpty>
                 {isSearching
-                  ? 'Searching...'
+                  ? t('objects.parentSelector.searching')
                   : searchQuery.length < 2 && searchResults.length === 0
-                    ? 'Start typing to search for objects'
-                    : 'No objects found.'}
+                    ? t('objects.parentSelector.startTyping')
+                    : t('objects.parentSelector.noResults')}
               </CommandEmpty>
               <CommandGroup>
                 {searchResults.map((object: any) => {
@@ -261,9 +265,10 @@ export function ParentSelector({
               {searchResults.length > 0 &&
                 totalResultsCount > searchResults.length && (
                   <div className="px-2 py-1.5 text-xs text-muted-foreground border-t bg-muted/20">
-                    Showing top {searchResults.length} of {totalResultsCount}{' '}
-                    result{totalResultsCount !== 1 ? 's' : ''} • Search to find
-                    more
+                    {t('objects.parentSelector.showingTop', {
+                      shown: searchResults.length,
+                      total: totalResultsCount,
+                    })}
                   </div>
                 )}
             </CommandList>
@@ -311,7 +316,7 @@ export function ParentSelector({
       {/* Max selections reached message */}
       {selectedParents.length >= maxSelections && !disabled && (
         <p className="text-xs text-muted-foreground">
-          Maximum of {maxSelections} parent objects allowed
+          {t('objects.parentSelector.maxSelections', { max: maxSelections })}
         </p>
       )}
     </div>

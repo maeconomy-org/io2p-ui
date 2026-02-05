@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { PlusIcon } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useFieldArray } from 'react-hook-form'
@@ -57,6 +58,7 @@ export function ObjectModelSheet({
   model = null,
   isEditing = false,
 }: ObjectModelSheetProps) {
+  const t = useTranslations()
   const form = useForm<ObjectModelFormValues>({
     resolver: zodResolver(objectModelSchema),
     defaultValues: {
@@ -137,12 +139,12 @@ export function ObjectModelSheet({
       <SheetContent className="sm:max-w-xl w-full overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
-            {isEditing ? 'Edit Model' : 'Create New Model'}
+            {isEditing ? t('models.editTitle') : t('models.createTitle')}
           </SheetTitle>
           <SheetDescription>
             {isEditing
-              ? 'Update this model template and its properties.'
-              : 'Create a new model template that can be used to generate objects.'}
+              ? t('models.editDescription')
+              : t('models.createDescription')}
           </SheetDescription>
         </SheetHeader>
 
@@ -158,9 +160,12 @@ export function ObjectModelSheet({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>{t('objects.fields.name')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. School Building" {...field} />
+                      <Input
+                        placeholder={t('models.placeholders.name')}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -173,9 +178,12 @@ export function ObjectModelSheet({
                   name="abbreviation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Abbreviation</FormLabel>
+                      <FormLabel>{t('objects.fields.abbreviation')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. SB (optional)" {...field} />
+                        <Input
+                          placeholder={t('models.placeholders.abbreviation')}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -186,9 +194,12 @@ export function ObjectModelSheet({
                   name="version"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Version</FormLabel>
+                      <FormLabel>{t('objects.fields.version')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. 1.0 (optional)" {...field} />
+                        <Input
+                          placeholder={t('models.placeholders.version')}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -201,10 +212,10 @@ export function ObjectModelSheet({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>{t('objects.fields.description')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Describe the object model..."
+                        placeholder={t('models.placeholders.description')}
                         className="min-h-24"
                         {...field}
                       />
@@ -218,7 +229,9 @@ export function ObjectModelSheet({
             {/* Properties section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Properties</h3>
+                <h3 className="text-lg font-medium">
+                  {t('objects.fields.properties')}
+                </h3>
                 <Button
                   type="button"
                   variant="outline"
@@ -226,7 +239,7 @@ export function ObjectModelSheet({
                   onClick={addProperty}
                 >
                   <PlusIcon className="h-4 w-4 mr-2" />
-                  Add Property
+                  {t('objects.addProperty')}
                 </Button>
               </div>
 
@@ -243,7 +256,7 @@ export function ObjectModelSheet({
               {fields.length === 0 && (
                 <div className="text-center p-4 border border-dashed rounded-md">
                   <p className="text-muted-foreground">
-                    No properties added yet
+                    {t('objects.noProperties')}
                   </p>
                   <Button
                     type="button"
@@ -253,7 +266,7 @@ export function ObjectModelSheet({
                     onClick={addProperty}
                   >
                     <PlusIcon className="h-4 w-4 mr-2" />
-                    Add First Property
+                    {t('models.addFirstProperty')}
                   </Button>
                 </div>
               )}
@@ -268,18 +281,18 @@ export function ObjectModelSheet({
                 className="w-full"
                 disabled={isCreating}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button type="submit" className="w-full" disabled={isCreating}>
                 {isCreating ? (
                   <>
                     <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
-                    {isEditing ? 'Updating...' : 'Creating...'}
+                    {isEditing ? t('models.updating') : t('models.creating')}
                   </>
                 ) : isEditing ? (
-                  'Update Model'
+                  t('models.update')
                 ) : (
-                  'Create Model'
+                  t('models.create')
                 )}
               </Button>
             </SheetFooter>

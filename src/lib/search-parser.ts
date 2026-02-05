@@ -51,59 +51,59 @@ export interface ParsedSearch {
 export interface FilterSuggestion {
   type: SearchFilter['type']
   prefix: string
-  label: string
-  description: string
+  labelKey: string
+  descriptionKey: string
   examples: string[]
   icon: string
 }
 
-// Available filter suggestions
+// Available filter suggestions - uses translation keys for i18n
 export const FILTER_SUGGESTIONS: FilterSuggestion[] = [
   {
     type: 'deleted',
     prefix: 'deleted:',
-    label: 'Deleted',
-    description: 'Filter by deleted status',
+    labelKey: 'search.filters.deleted.label',
+    descriptionKey: 'search.filters.deleted.description',
     examples: ['deleted:true', 'deleted:false'],
     icon: 'Trash2',
   },
   {
     type: 'property',
     prefix: 'prop:',
-    label: 'Property',
-    description: 'Search by property (label or label=value)',
+    labelKey: 'search.filters.property.label',
+    descriptionKey: 'search.filters.property.description',
     examples: ['prop:material=steel', 'prop:status'],
     icon: 'Tag',
   },
   {
     type: 'propertyValue',
     prefix: 'value:',
-    label: 'Value',
-    description: 'Search by property value (any property)',
+    labelKey: 'search.filters.value.label',
+    descriptionKey: 'search.filters.value.description',
     examples: ['value:steel', 'value:active'],
     icon: 'Hash',
   },
   {
     type: 'name',
     prefix: 'name:',
-    label: 'Name',
-    description: 'Search by object name',
+    labelKey: 'search.filters.name.label',
+    descriptionKey: 'search.filters.name.description',
     examples: ['name:Battery', 'name:Clay Tile'],
     icon: 'Type',
   },
   {
     type: 'createdBy',
     prefix: 'createdBy:',
-    label: 'Created By',
-    description: 'Filter by creator UUID',
+    labelKey: 'search.filters.createdBy.label',
+    descriptionKey: 'search.filters.createdBy.description',
     examples: ['createdBy:abc-123-def'],
     icon: 'User',
   },
   {
     type: 'parent',
     prefix: 'parent:',
-    label: 'Parent',
-    description: 'Filter by parent object UUID',
+    labelKey: 'search.filters.parent.label',
+    descriptionKey: 'search.filters.parent.description',
     examples: ['parent:abc-123-def'],
     icon: 'FolderTree',
   },
@@ -352,10 +352,9 @@ export function getFilterSuggestions(input: string): FilterSuggestion[] {
   const lowerInput = input.toLowerCase()
 
   // Check if user is typing a filter prefix
-  return FILTER_SUGGESTIONS.filter(
-    (suggestion) =>
-      suggestion.prefix.startsWith(lowerInput) ||
-      suggestion.label.toLowerCase().includes(lowerInput)
+  // Note: labelKey matching is handled in the UI component with translations
+  return FILTER_SUGGESTIONS.filter((suggestion) =>
+    suggestion.prefix.startsWith(lowerInput)
   )
 }
 

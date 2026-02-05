@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { Check, ChevronsUpDown, FileText, Loader2 } from 'lucide-react'
 
 import {
@@ -39,10 +40,11 @@ interface ModelSelectorProps {
 export function ModelSelector({
   selectedModel,
   onModelSelect,
-  placeholder = 'Select a model template...',
+  placeholder,
   disabled = false,
   dataTour,
 }: ModelSelectorProps) {
+  const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [models, setModels] = useState<ModelOption[]>([])
@@ -55,49 +57,52 @@ export function ModelSelector({
   const searchMutation = useSearch()
 
   // Unified search function
-  const performSearch = async (query: string = '') => {
-    if (!open) return
+  const performSearch = useCallback(
+    async (query: string = '') => {
+      if (!open) return
 
-    setIsSearching(true)
-    try {
-      const results = await searchMutation.mutateAsync({
-        searchBy: {
-          isTemplate: true,
-          softDeleted: false,
-        },
-        ...(query && { searchTerm: query.trim() }),
-        size: 8,
-        page: 0,
-      })
+      setIsSearching(true)
+      try {
+        const results = await searchMutation.mutateAsync({
+          searchBy: {
+            isTemplate: true,
+            softDeleted: false,
+          },
+          ...(query && { searchTerm: query.trim() }),
+          size: 8,
+          page: 0,
+        })
 
-      if (results && results.content) {
-        const modelOptions: ModelOption[] = results.content.map(
-          (model: any) => ({
-            uuid: model.uuid,
-            name: model.name,
-            abbreviation: model.abbreviation,
-            version: model.version,
-            description: model.description,
-            properties: model.properties || [],
-          })
-        )
+        if (results && results.content) {
+          const modelOptions: ModelOption[] = results.content.map(
+            (model: any) => ({
+              uuid: model.uuid,
+              name: model.name,
+              abbreviation: model.abbreviation,
+              version: model.version,
+              description: model.description,
+              properties: model.properties || [],
+            })
+          )
 
-        setModels(modelOptions)
-        setTotalResultsCount(results.totalElements || modelOptions.length)
-        setHasInitiallyLoaded(true)
-      } else {
+          setModels(modelOptions)
+          setTotalResultsCount(results.totalElements || modelOptions.length)
+          setHasInitiallyLoaded(true)
+        } else {
+          setModels([])
+          setTotalResultsCount(0)
+          setHasInitiallyLoaded(true)
+        }
+      } catch (error) {
+        logger.error('Model search failed:', error)
         setModels([])
         setTotalResultsCount(0)
-        setHasInitiallyLoaded(true)
+      } finally {
+        setIsSearching(false)
       }
-    } catch (error) {
-      logger.error('Model search failed:', error)
-      setModels([])
-      setTotalResultsCount(0)
-    } finally {
-      setIsSearching(false)
-    }
-  }
+    },
+    [open, searchMutation]
+  )
 
   // Handle search logic (debounced)
   useEffect(() => {
@@ -114,7 +119,7 @@ export function ModelSelector({
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [searchQuery, open])
+  }, [searchQuery, open, hasInitiallyLoaded, performSearch])
 
   const handleModelSelect = (model: ModelOption) => {
     onModelSelect(model)
@@ -129,7 +134,7 @@ export function ModelSelector({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <FormLabel>Model Template</FormLabel>
+        <FormLabel>{t('objects.modelSelector.label')}</FormLabel>
         {selectedModel && (
           <Button
             type="button"
@@ -138,7 +143,7 @@ export function ModelSelector({
             onClick={handleClearSelection}
             className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
           >
-            Clear selection
+            {t('objects.modelSelector.clearSelection')}
           </Button>
         )}
       </div>
@@ -159,7 +164,9 @@ export function ModelSelector({
                 <span className="truncate">{selectedModel.name}</span>
               </div>
             ) : (
-              <span className="text-muted-foreground">{placeholder}</span>
+              <span className="text-muted-foreground">
+                {placeholder ?? t('objects.modelSelector.placeholder')}
+              </span>
             )}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -171,7 +178,7 @@ export function ModelSelector({
           <Command shouldFilter={false}>
             <div className="relative">
               <CommandInput
-                placeholder="Search models..."
+                placeholder={t('objects.modelSelector.searchPlaceholder')}
                 value={searchQuery}
                 onValueChange={setSearchQuery}
                 className="ml-2"
@@ -185,10 +192,10 @@ export function ModelSelector({
             <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
               <CommandEmpty>
                 {isSearching
-                  ? 'Searching...'
+                  ? t('objects.modelSelector.searching')
                   : searchQuery.length < 2 && models.length === 0
-                    ? 'Start typing to search for models'
-                    : 'No models found.'}
+                    ? t('objects.modelSelector.startTyping')
+                    : t('objects.modelSelector.noResults')}
               </CommandEmpty>
               <CommandGroup>
                 {models.map((model) => (
@@ -219,8 +226,10 @@ export function ModelSelector({
               </CommandGroup>
               {models.length > 0 && totalResultsCount > models.length && (
                 <div className="px-2 py-1.5 text-xs text-muted-foreground border-t bg-muted/20">
-                  Showing top {models.length} of {totalResultsCount} result
-                  {totalResultsCount !== 1 ? 's' : ''} • Search to find more
+                  {t('objects.modelSelector.showingTop', {
+                    shown: models.length,
+                    total: totalResultsCount,
+                  })}
                 </div>
               )}
             </CommandList>

@@ -43,6 +43,7 @@ export function useSankeyDiagramData(
   const { useObjectsByUUIDs } = useObjects()
 
   // Fetch input relationships
+
   const inputStatementsQuery = objectUuid
     ? useObjectRelationships(objectUuid, { predicate: 'IS_INPUT_OF' })
     : useStatementsByPredicate('IS_INPUT_OF')

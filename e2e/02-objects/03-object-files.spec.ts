@@ -66,7 +66,9 @@ test.describe('03 - Object File Attachments', () => {
     await sheet.getByLabel('Name').fill(name)
 
     await sheet.getByRole('button', { name: /attach file/i }).click()
-    const attachModal = getDialog(page, 'Object Attachments')
+    const attachModal = page
+      .getByRole('dialog')
+      .filter({ hasText: /attachments/i })
     await expect(attachModal).toBeVisible({ timeout: 5000 })
 
     await attachModal.locator('input[type="file"]').setInputFiles({
@@ -100,7 +102,9 @@ test.describe('03 - Object File Attachments', () => {
 
     // Upload first file
     await sheet.getByRole('button', { name: /attach file/i }).click()
-    const attachModal = getDialog(page, 'Object Attachments')
+    const attachModal = page
+      .getByRole('dialog')
+      .filter({ hasText: /attachments/i })
     await expect(attachModal).toBeVisible({ timeout: 5000 })
 
     await attachModal.locator('input[type="file"]').setInputFiles({
@@ -142,7 +146,9 @@ test.describe('03 - Object File Attachments', () => {
     await sheet.getByLabel('Name').fill(name)
 
     await sheet.getByRole('button', { name: /attach file/i }).click()
-    const attachModal = getDialog(page, 'Object Attachments')
+    const attachModal = page
+      .getByRole('dialog')
+      .filter({ hasText: /attachments/i })
     await expect(attachModal).toBeVisible({ timeout: 5000 })
 
     await attachModal
@@ -177,7 +183,9 @@ test.describe('03 - Object File Attachments', () => {
     await sheet.getByLabel('Name').fill(name)
 
     await sheet.getByRole('button', { name: /attach file/i }).click()
-    const attachModal = getDialog(page, 'Object Attachments')
+    const attachModal = page
+      .getByRole('dialog')
+      .filter({ hasText: /attachments/i })
     await expect(attachModal).toBeVisible({ timeout: 10000 })
 
     // Upload file
