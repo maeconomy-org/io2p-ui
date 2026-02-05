@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { driver } from 'driver.js'
+import { useTranslations } from 'next-intl'
 
 import { useAuth } from '@/contexts'
 
@@ -12,6 +13,7 @@ const ATTEMPT_DELAY_MS = 300
 
 export default function CreateObjectOnboardingTour() {
   const { isAuthenticated, authLoading } = useAuth()
+  const t = useTranslations()
   const driverRef = useRef<ReturnType<typeof driver> | null>(null)
   const hasStartedRef = useRef(false)
 
@@ -45,6 +47,8 @@ export default function CreateObjectOnboardingTour() {
 
       hasStartedRef.current = true
       const onboardingDriver = driver({
+        nextBtnText: t('common.next'),
+        prevBtnText: t('common.previous'),
         allowClose: true,
         allowKeyboardControl: true,
         onDestroyStarted: () => {
@@ -57,8 +61,8 @@ export default function CreateObjectOnboardingTour() {
           {
             element: TARGET_SELECTOR,
             popover: {
-              title: 'Create your first object',
-              description: 'Use this button to add a new object to the system.',
+              title: t('onboarding.createObject.title'),
+              description: t('onboarding.createObject.description'),
             },
           },
         ],

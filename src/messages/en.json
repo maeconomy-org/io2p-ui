@@ -792,6 +792,50 @@
     "contactUs": "Contact Us",
     "contactUsText": "If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at:"
   },
+  "onboarding": {
+    "initialLogin": {
+      "welcome": "Welcome to IoM - Objects",
+      "welcomeDescription": "This is your main workspace where you can browse, manage, and organize all the objects in your system. Objects are the core entities that represent real-world items, documents, or concepts you want to track and manage.",
+      "processes": "I/O Processes",
+      "processesDescription": "Here you can track and monitor processes that transform or move your objects. This section helps you understand how objects flow through different stages, from input to output, giving you complete visibility into your operational workflows.",
+      "models": "Models & Templates",
+      "modelsDescription": "Create reusable models and templates that define the structure and properties of your objects. Models act as blueprints, ensuring consistency when creating new objects and helping standardize your data across the platform.",
+      "import": "Data Import",
+      "importDescription": "Import existing data from external sources, spreadsheets, or other systems. This powerful feature allows you to bring your legacy data into IoM efficiently, supporting various formats and bulk operations to get you started quickly.",
+      "search": "Global Search",
+      "searchDescription": "Use the powerful search functionality to quickly find any object, process, or data across your entire IoM workspace. Press Cmd+K (or Ctrl+K) to open the command center and search through everything with intelligent filtering and suggestions.",
+      "demoTour": "Interactive Demo Tour",
+      "demoTourDescription": "Ready for a hands-on experience? Click \"Demo tour\" anytime to take a comprehensive walkthrough that will guide you through creating your first object, exploring all the features, and understanding how everything works together."
+    },
+    "demo": {
+      "filters": "Filters",
+      "filtersDescription": "Use filters to refine your view and find exactly what you need. You can filter by various criteria including showing or hiding deleted objects, status, categories, and more. Filters help you focus on the most relevant data for your current task.",
+      "viewOptions": "View Options",
+      "viewOptionsDescription": "Switch between different view modes to see your data in the format that works best for you. Choose from table view for detailed listings or column view for a more visual, card-based layout. Your preference is automatically saved.",
+      "createObjects": "Create New Objects",
+      "createObjectsDescription": "This is where your object creation journey begins. Click this button anytime you want to add a new object to your IoM system. Objects can represent anything from physical items to digital assets, processes, or concepts.",
+      "modelTemplates": "Model Templates",
+      "modelTemplatesDescription": "Choose from predefined templates that automatically populate relevant fields based on the type of object you're creating. Models ensure consistency and save time by providing structured blueprints for common object types in your organization.",
+      "parentRelationships": "Parent Relationships",
+      "parentRelationshipsDescription": "Establish hierarchical connections by linking this object to its parent objects. This creates a structured tree that helps organize your data and enables powerful filtering and navigation through related objects.",
+      "objectMetadata": "Object Metadata",
+      "objectMetadataDescription": "These core fields define your object's identity: Name (the primary identifier), Abbreviation (optional short code for quick reference), Version (for tracking changes over time), and Description (detailed explanation for team understanding). Fill these thoughtfully as they're used throughout the system for search and identification.",
+      "locationInfo": "Location Information",
+      "locationInfoDescription": "Associate a physical address or location with your object when relevant. This is particularly useful for tracking assets, facilities, or any objects that have a geographic component to their identity.",
+      "fileAttachments": "File Attachments",
+      "fileAttachmentsDescription": "Upload supporting documents, images, specifications, or any files that provide additional context about your object. These attachments become part of the object's permanent record and are searchable within the system.",
+      "customProperties": "Custom Properties",
+      "customPropertiesDescription": "Add specialized data fields unique to your object. Each property has a name and value, and you can attach files to individual properties for detailed documentation. This flexibility allows you to capture any specific information your object needs.",
+      "propertyFiles": "Property File Attachments",
+      "propertyFilesDescription": "Properties support file attachments at multiple levels - you can attach files to the property name itself (for documentation about what the property represents) and to individual property values (for evidence or supporting documents). This granular file system creates comprehensive documentation for your objects.",
+      "completeCreation": "Complete Object Creation",
+      "completeCreationDescription": "When you've filled in all the necessary information, click Create to save your new object to the system. The object will then be available for searching, linking, and use in processes throughout your IoM workspace."
+    },
+    "createObject": {
+      "title": "Create your first object",
+      "description": "Use this button to add a new object to the system."
+    }
+  },
   "terms": {
     "title": "Terms of Service",
     "lastUpdated": "Last updated: {date}",

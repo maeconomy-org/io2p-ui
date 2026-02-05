@@ -792,6 +792,50 @@
     "contactUs": "Neem contact met ons op",
     "contactUsText": "Als u vragen of zorgen heeft over dit privacybeleid of onze gegevenspraktijken, neem dan contact met ons op via:"
   },
+  "onboarding": {
+    "initialLogin": {
+      "welcome": "Welkom bij IoM - Objecten",
+      "welcomeDescription": "Dit is uw hoofdwerkruimte waar u alle objecten in uw systeem kunt bekijken, beheren en organiseren. Objecten zijn de kernentiteiten die echte items, documenten of concepten vertegenwoordigen die u wilt volgen en beheren.",
+      "processes": "I/O-processen",
+      "processesDescription": "Hier kunt u processen volgen en monitoren die uw objecten transformeren of verplaatsen. Deze sectie helpt u te begrijpen hoe objecten door verschillende fasen stromen, van input naar output, waardoor u volledig inzicht krijgt in uw operationele workflows.",
+      "models": "Modellen & sjablonen",
+      "modelsDescription": "Maak herbruikbare modellen en sjablonen die de structuur en eigenschappen van uw objecten definiëren. Modellen fungeren als blauwdrukken, zorgen voor consistentie bij het maken van nieuwe objecten en helpen uw gegevens te standaardiseren over het hele platform.",
+      "import": "Gegevensimport",
+      "importDescription": "Importeer bestaande gegevens uit externe bronnen, spreadsheets of andere systemen. Deze krachtige functie stelt u in staat om uw legacy-gegevens efficiënt in IoM te brengen, met ondersteuning voor verschillende formaten en bulkbewerkingen om snel aan de slag te gaan.",
+      "search": "Globaal zoeken",
+      "searchDescription": "Gebruik de krachtige zoekfunctionaliteit om snel elk object, proces of gegevens in uw hele IoM-werkruimte te vinden. Druk op Cmd+K (of Ctrl+K) om het commandocentrum te openen en door alles te zoeken met intelligente filtering en suggesties.",
+      "demoTour": "Interactieve demotour",
+      "demoTourDescription": "Klaar voor een hands-on ervaring? Klik op \"Demotour\" om op elk moment een uitgebreide rondleiding te krijgen die u begeleidt bij het maken van uw eerste object, het verkennen van alle functies en het begrijpen hoe alles samenwerkt."
+    },
+    "demo": {
+      "filters": "Filters",
+      "filtersDescription": "Gebruik filters om uw weergave te verfijnen en precies te vinden wat u nodig heeft. U kunt filteren op verschillende criteria, waaronder het tonen of verbergen van verwijderde objecten, status, categorieën en meer. Filters helpen u zich te concentreren op de meest relevante gegevens voor uw huidige taak.",
+      "viewOptions": "Weergaveopties",
+      "viewOptionsDescription": "Schakel tussen verschillende weergavemodi om uw gegevens te zien in het formaat dat het beste voor u werkt. Kies uit tabelweergave voor gedetailleerde lijsten of kolomweergave voor een meer visuele, kaartgebaseerde lay-out. Uw voorkeur wordt automatisch opgeslagen.",
+      "createObjects": "Nieuwe objecten maken",
+      "createObjectsDescription": "Dit is waar uw objectcreatiereis begint. Klik op deze knop wanneer u een nieuw object aan uw IoM-systeem wilt toevoegen. Objecten kunnen van alles vertegenwoordigen, van fysieke items tot digitale activa, processen of concepten.",
+      "modelTemplates": "Modelsjablonen",
+      "modelTemplatesDescription": "Kies uit vooraf gedefinieerde sjablonen die automatisch relevante velden invullen op basis van het type object dat u maakt. Modellen zorgen voor consistentie en besparen tijd door gestructureerde blauwdrukken te bieden voor veelvoorkomende objecttypen in uw organisatie.",
+      "parentRelationships": "Bovenliggende relaties",
+      "parentRelationshipsDescription": "Stel hiërarchische verbindingen in door dit object te koppelen aan zijn bovenliggende objecten. Dit creëert een gestructureerde boom die helpt bij het organiseren van uw gegevens en krachtige filtering en navigatie door gerelateerde objecten mogelijk maakt.",
+      "objectMetadata": "Objectmetadata",
+      "objectMetadataDescription": "Deze kernvelden definiëren de identiteit van uw object: Naam (de primaire identificatie), Afkorting (optionele korte code voor snelle referentie), Versie (voor het bijhouden van wijzigingen in de tijd) en Beschrijving (gedetailleerde uitleg voor teambegrip). Vul deze zorgvuldig in, want ze worden door het hele systeem gebruikt voor zoeken en identificatie.",
+      "locationInfo": "Locatie-informatie",
+      "locationInfoDescription": "Koppel indien relevant een fysiek adres of locatie aan uw object. Dit is bijzonder handig voor het volgen van activa, faciliteiten of objecten die een geografische component hebben in hun identiteit.",
+      "fileAttachments": "Bestandsbijlagen",
+      "fileAttachmentsDescription": "Upload ondersteunende documenten, afbeeldingen, specificaties of bestanden die extra context bieden over uw object. Deze bijlagen worden onderdeel van het permanente record van het object en zijn doorzoekbaar binnen het systeem.",
+      "customProperties": "Aangepaste eigenschappen",
+      "customPropertiesDescription": "Voeg gespecialiseerde gegevensvelden toe die uniek zijn voor uw object. Elke eigenschap heeft een naam en waarde, en u kunt bestanden aan individuele eigenschappen koppelen voor gedetailleerde documentatie. Deze flexibiliteit stelt u in staat om specifieke informatie vast te leggen die uw object nodig heeft.",
+      "propertyFiles": "Eigenschapsbestandsbijlagen",
+      "propertyFilesDescription": "Eigenschappen ondersteunen bestandsbijlagen op meerdere niveaus - u kunt bestanden koppelen aan de eigenschapsnaam zelf (voor documentatie over wat de eigenschap vertegenwoordigt) en aan individuele eigenschapswaarden (voor bewijs of ondersteunende documenten). Dit gedetailleerde bestandssysteem creëert uitgebreide documentatie voor uw objecten.",
+      "completeCreation": "Objectcreatie voltooien",
+      "completeCreationDescription": "Wanneer u alle benodigde informatie heeft ingevuld, klik op Maken om uw nieuwe object op te slaan in het systeem. Het object is dan beschikbaar voor zoeken, koppelen en gebruik in processen in uw hele IoM-werkruimte."
+    },
+    "createObject": {
+      "title": "Maak uw eerste object",
+      "description": "Gebruik deze knop om een nieuw object aan het systeem toe te voegen."
+    }
+  },
   "terms": {
     "title": "Servicevoorwaarden",
     "lastUpdated": "Laatst bijgewerkt: {date}",

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { driver } from 'driver.js'
+import { useTranslations } from 'next-intl'
 
 import { useAuth } from '@/contexts'
 import { USER_MENU_TOGGLE_EVENT } from '@/components/onboarding/constants'
@@ -27,37 +28,33 @@ const READY_SELECTORS = [
 type DriverApi = ReturnType<typeof driver>
 type DriverHookOptions = { driver?: DriverApi }
 
-const steps = [
+const useSteps = (t: ReturnType<typeof useTranslations>) => [
   {
     element: NAV_OBJECTS_SELECTOR,
     popover: {
-      title: 'Welcome to IoM - Objects',
-      description:
-        'This is your main workspace where you can browse, manage, and organize all the objects in your system. Objects are the core entities that represent real-world items, documents, or concepts you want to track and manage.',
+      title: t('onboarding.initialLogin.welcome'),
+      description: t('onboarding.initialLogin.welcomeDescription'),
     },
   },
   {
     element: NAV_PROCESSES_SELECTOR,
     popover: {
-      title: 'I/O Processes',
-      description:
-        'Here you can track and monitor processes that transform or move your objects. This section helps you understand how objects flow through different stages, from input to output, giving you complete visibility into your operational workflows.',
+      title: t('onboarding.initialLogin.processes'),
+      description: t('onboarding.initialLogin.processesDescription'),
     },
   },
   {
     element: NAV_MODELS_SELECTOR,
     popover: {
-      title: 'Models & Templates',
-      description:
-        'Create reusable models and templates that define the structure and properties of your objects. Models act as blueprints, ensuring consistency when creating new objects and helping standardize your data across the platform.',
+      title: t('onboarding.initialLogin.models'),
+      description: t('onboarding.initialLogin.modelsDescription'),
     },
   },
   {
     element: NAV_IMPORT_SELECTOR,
     popover: {
-      title: 'Data Import',
-      description:
-        'Import existing data from external sources, spreadsheets, or other systems. This powerful feature allows you to bring your legacy data into IoM efficiently, supporting various formats and bulk operations to get you started quickly.',
+      title: t('onboarding.initialLogin.import'),
+      description: t('onboarding.initialLogin.importDescription'),
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,
@@ -74,9 +71,8 @@ const steps = [
   {
     element: SEARCH_BUTTON_SELECTOR,
     popover: {
-      title: 'Global Search',
-      description:
-        'Use the powerful search functionality to quickly find any object, process, or data across your entire IoM workspace. Press Cmd+K (or Ctrl+K) to open the command center and search through everything with intelligent filtering and suggestions.',
+      title: t('onboarding.initialLogin.search'),
+      description: t('onboarding.initialLogin.searchDescription'),
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,
@@ -123,9 +119,8 @@ const steps = [
       )
     },
     popover: {
-      title: 'Interactive Demo Tour',
-      description:
-        'Ready for a hands-on experience? Click "Demo tour" anytime to take a comprehensive walkthrough that will guide you through creating your first object, exploring all the features, and understanding how everything works together.',
+      title: t('onboarding.initialLogin.demoTour'),
+      description: t('onboarding.initialLogin.demoTourDescription'),
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,
@@ -143,6 +138,7 @@ const steps = [
 
 export default function InitialLoginTour() {
   const { isAuthenticated, authLoading } = useAuth()
+  const t = useTranslations()
   const driverRef = useRef<ReturnType<typeof driver> | null>(null)
   const hasStartedRef = useRef(false)
 
@@ -177,7 +173,11 @@ export default function InitialLoginTour() {
       }
 
       hasStartedRef.current = true
+      const steps = useSteps(t)
       const onboardingDriver = driver({
+        nextBtnText: t('common.next'),
+        prevBtnText: t('common.previous'),
+        showProgress: true,
         allowClose: true,
         allowKeyboardControl: true,
         onCloseClick: () => {
