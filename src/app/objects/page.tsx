@@ -71,9 +71,9 @@ function ObjectsPageContent() {
     <div className="container mx-auto p-4">
       <InitialLoginTour />
       <div className="flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">{t('objects.title')}</h1>
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-4 gap-2">
+          <h1 className="text-2xl font-bold shrink-0">{t('objects.title')}</h1>
+          <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
             <DeletedFilter
               showDeleted={showDeleted}
               onShowDeletedChange={setShowDeleted}
@@ -89,8 +89,8 @@ function ObjectsPageContent() {
               data-tour="view-selector"
             />
             <Button onClick={handleAddObject} data-tour="create-object">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              {t('objects.create')}
+              <PlusCircle className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{t('objects.create')}</span>
             </Button>
           </div>
         </div>

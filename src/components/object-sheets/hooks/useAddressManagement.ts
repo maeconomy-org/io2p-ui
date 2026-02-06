@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
 import { useAddresses } from '@/hooks/api'
@@ -39,6 +40,7 @@ export function useAddressManagement({
   const { useCreateAddress, useUpdateAddress } = useAddresses()
   const createAddressMutation = useCreateAddress()
   const updateAddressMutation = useUpdateAddress()
+  const t = useTranslations()
 
   // Address state - matches actual API response structure
   const [addressData, setAddressData] = useState<AddressData>({
@@ -106,10 +108,10 @@ export function useAddressManagement({
         })
       }
 
-      toast.success('Address updated successfully')
+      toast.success(t('objects.addressUpdatedSuccess'))
     } catch (error) {
       logger.error('Error in address update process:', error)
-      toast.error('Failed to process address updates')
+      toast.error(t('objects.addressUpdateFailed'))
       throw error
     }
   }

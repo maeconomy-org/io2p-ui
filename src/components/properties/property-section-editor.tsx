@@ -116,7 +116,6 @@ export function PropertySectionEditor({
       })
 
     setAllProperties(allProps)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [properties])
 
   // Add a new property
@@ -185,7 +184,9 @@ export function PropertySectionEditor({
 
     // Show toast notification with Sonner
     toast.success(
-      `Property ${propertyToRemove._isNew ? 'removed' : 'marked for deletion'}`
+      propertyToRemove._isNew
+        ? t('objects.propertyRemoved')
+        : t('objects.propertyMarkedForDeletion')
     )
   }
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 import { logger, cn } from '@/lib'
 import { Button } from './button'
@@ -33,6 +34,7 @@ export function CopyButton({
   iconSize = 'sm',
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
+  const t = useTranslations('copyButton')
 
   const copyToClipboard = async (e?: React.MouseEvent) => {
     // Prevent event bubbling if used inside clickable elements
@@ -46,7 +48,7 @@ export function CopyButton({
 
       if (showToast) {
         toast.success(
-          label ? `${label} copied to clipboard` : 'Copied to clipboard'
+          label ? t('copiedWithLabel', { label }) : t('copiedToClipboard')
         )
       }
 
@@ -54,7 +56,7 @@ export function CopyButton({
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       if (showToast) {
-        toast.error('Failed to copy to clipboard')
+        toast.error(t('failedToCopy'))
       }
       logger.error('Failed to copy:', error)
     }
@@ -72,10 +74,10 @@ export function CopyButton({
   )
 
   const tooltipText = copied
-    ? 'Copied!'
+    ? t('copied')
     : label
-      ? `Copy ${label}`
-      : 'Copy to clipboard'
+      ? t('copyLabel', { label })
+      : t('copyToClipboard')
 
   return (
     <TooltipProvider>

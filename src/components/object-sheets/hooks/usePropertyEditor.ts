@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
 import { usePropertyManagement } from '@/hooks'
@@ -33,6 +34,7 @@ export function usePropertyEditor({
     createPropertyForObject,
     removePropertyFromObject,
   } = usePropertyManagement()
+  const t = useTranslations()
 
   // Reset editing properties when data changes or editing mode changes
   useEffect(() => {
@@ -161,10 +163,10 @@ export function usePropertyEditor({
       // Wait for all operations to complete
       await Promise.all(operations)
 
-      toast.success('Object properties updated successfully')
+      toast.success(t('objects.propertiesUpdated'))
     } catch (error) {
       logger.error('Error saving properties:', error)
-      toast.error('Failed to update object properties')
+      toast.error(t('objects.propertiesUpdateFailed'))
       throw error
     }
   }

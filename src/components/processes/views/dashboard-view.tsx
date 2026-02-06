@@ -423,18 +423,18 @@ export function DashboardView({
               return (
                 <div
                   key={material.uuid}
-                  className="p-3 rounded-lg border border-gray-200 bg-white"
+                  className="p-3 rounded-lg border bg-card"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium truncate text-gray-900">
+                    <span className="text-sm font-medium truncate text-foreground">
                       {material.name ||
                         t('processes.dashboard.unnamedMaterial')}
                     </span>
-                    <span className="text-xs px-1.5 py-0.5 rounded-full ml-1 bg-gray-100 text-gray-600">
+                    <span className="text-xs px-1.5 py-0.5 rounded-full ml-1 bg-muted text-muted-foreground">
                       {materialFlowCount}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500 truncate">
+                  <div className="text-xs text-muted-foreground truncate">
                     {material.lifecycleStage
                       ?.replace(/_/g, ' ')
                       .toLowerCase() || t('processes.dashboard.noStage')}

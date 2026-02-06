@@ -27,14 +27,14 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
 
   return (
     <html lang="en">
-      <body className="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
+      <body className="bg-background min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-6 text-center">
           <div className="mb-6">
             <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
               Something went wrong
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               We apologize for the inconvenience. An unexpected error has
               occurred.
             </p>
@@ -74,8 +74,8 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             </button>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <p className="text-xs text-gray-500">
+          <div className="mt-6 pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground">
               If this problem persists, please contact support.
             </p>
           </div>

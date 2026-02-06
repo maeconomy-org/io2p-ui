@@ -104,9 +104,9 @@ export default function ImportStatusPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-muted/50">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-background border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -184,12 +184,12 @@ export default function ImportStatusPage() {
               {jobs.map((job) => (
                 <div
                   key={job.jobId}
-                  className="bg-white rounded-lg border shadow-sm overflow-hidden"
+                  className="bg-card rounded-lg border shadow-sm overflow-hidden"
                 >
                   {/* Job Header */}
                   <button
                     onClick={() => toggleJob(job.jobId)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors text-left"
+                    className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors text-left"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <JobStatusIcon status={job.status} />

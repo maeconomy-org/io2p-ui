@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus, Search } from 'lucide-react'
 
+import { logger } from '@/lib'
 import { Button, Input, DeletedFilter } from '@/components/ui'
 import {
   GroupCard,
@@ -71,10 +72,10 @@ export default function GroupsPage() {
 
   const handleDeleteGroup = (group: (typeof dummyGroups)[0]) => {
     // In real implementation, this would call the delete API
-    console.log('Deleting group:', group.uuid)
+    logger.info('Deleting group:', { uuid: group.uuid })
     // For now, just show a confirmation
     if (confirm(t('groups.confirmDelete', { name: group.name }))) {
-      console.log('Group deleted (soft delete)')
+      logger.info('Group deleted (soft delete)')
     }
   }
 

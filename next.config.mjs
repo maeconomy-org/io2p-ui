@@ -31,8 +31,7 @@ const nextConfig = {
       }
     }
 
-    // Suppress specific warnings
-    // Suppress OTel-related dynamic requires during "next dev"
+    // Suppress specific warnings during development
     if (dev) {
       config.ignoreWarnings = [
         { message: /the request of a dependency is an expression/ },
@@ -45,6 +44,12 @@ const nextConfig = {
             /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
         },
       ]
+
+      // Suppress cache-layer warnings (e.g. next-intl's dynamic import parsing)
+      config.infrastructureLogging = {
+        ...config.infrastructureLogging,
+        level: 'error',
+      }
     }
 
     return config

@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl'
 
 import { APP_NAME, FOOTER_LINKS } from '@/constants'
 import { LanguageSelect } from '@/components/language-switcher'
+import { ThemeSelect } from '@/components/ui'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
@@ -27,8 +28,9 @@ export default function Footer() {
                 {t(`nav.${link.key}`)}
               </Link>
             ))}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <LanguageSelect className="size-10" />
+              <ThemeSelect className="size-10" />
             </div>
           </div>
         </div>

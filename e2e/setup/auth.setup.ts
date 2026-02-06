@@ -43,6 +43,25 @@ setup('authenticate with certificate', async ({ page }) => {
                 const bufferMs = 5 * 60 * 1000 // 5 minutes buffer
 
                 if (expiry > now + bufferMs) {
+                  // Ensure onboarding key is in the saved state
+                  const hasOnboardingKey = authOrigin.localStorage?.some(
+                    (item: { name: string }) =>
+                      item.name === 'onboarding:initial-login:v1'
+                  )
+                  if (!hasOnboardingKey) {
+                    authOrigin.localStorage = authOrigin.localStorage || []
+                    authOrigin.localStorage.push({
+                      name: 'onboarding:initial-login:v1',
+                      value: 'done',
+                    })
+                    fs.writeFileSync(
+                      authFilePath,
+                      JSON.stringify(authState, null, 2)
+                    )
+                    console.log(
+                      'Patched auth state with onboarding:initial-login:v1=done'
+                    )
+                  }
                   console.log(
                     'Valid non-expired auth state found, skipping authentication flow'
                   )
@@ -77,6 +96,9 @@ setup('authenticate with certificate', async ({ page }) => {
   // Check if we're already authenticated (redirected to /objects)
   if (page.url().includes('/objects')) {
     console.log('Already authenticated, saving state...')
+    await page.evaluate(() => {
+      localStorage.setItem('onboarding:initial-login:v1', 'done')
+    })
     await page.context().storageState({ path: authFile })
     return
   }
@@ -114,6 +136,12 @@ setup('authenticate with certificate', async ({ page }) => {
     // Check if we're on the objects page (success)
     if (page.url().includes('/objects')) {
       await expect(page.getByText(/objects/i)).toBeVisible({ timeout: 10000 })
+
+      // Mark onboarding as completed so the tour overlay doesn't block tests
+      await page.evaluate(() => {
+        localStorage.setItem('onboarding:initial-login:v1', 'done')
+      })
+
       await page.context().storageState({ path: authFile })
       console.log('Authentication successful, state saved to', authFile)
     } else {

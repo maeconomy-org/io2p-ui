@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Predicate } from 'iom-sdk'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
 import { useStatements } from '@/hooks/api'
@@ -32,6 +33,7 @@ export function useParentManagement({
 }: UseParentManagementProps): UseParentManagementReturn {
   const [parents, setParents] = useState<ParentObject[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const t = useTranslations()
 
   // Get the statements mutations
   const { useCreateStatement, useDeleteStatement } = useStatements()
@@ -123,7 +125,7 @@ export function useParentManagement({
         })
       }
 
-      toast.success('Parent objects updated successfully')
+      toast.success(t('objects.parentObjectsUpdated'))
 
       // Manually trigger a refetch to ensure UI updates immediately
       if (onRefetch) {
@@ -131,7 +133,7 @@ export function useParentManagement({
       }
     } catch (error) {
       logger.error('Error saving parents:', error)
-      toast.error('Failed to update parent objects')
+      toast.error(t('objects.parentObjectsUpdateFailed'))
       throw error
     } finally {
       setIsSaving(false)

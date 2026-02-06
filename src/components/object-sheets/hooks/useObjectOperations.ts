@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
 import { useUploadService } from '@/lib/upload-service'
@@ -58,6 +59,7 @@ export function useObjectOperations({
 
   // Get query client for manual invalidation
   const queryClient = useQueryClient()
+  const t = useTranslations()
 
   // Get upload service
   const uploadService = useUploadService()
@@ -108,7 +110,7 @@ export function useObjectOperations({
         })
       }
 
-      toast.success('Object metadata updated successfully')
+      toast.success(t('objects.objectMetadataUpdated'))
 
       // Manually trigger a refetch to ensure UI updates immediately
       if (onRefetch) {
@@ -116,7 +118,7 @@ export function useObjectOperations({
       }
     } catch (error) {
       logger.error('Error saving metadata:', error)
-      toast.error('Failed to update object metadata')
+      toast.error(t('objects.objectMetadataUpdateFailed'))
       throw error
     }
   }
@@ -128,9 +130,9 @@ export function useObjectOperations({
 
     try {
       await toast.promise(deleteObjectMutation.mutateAsync(objectId), {
-        loading: 'Deleting object...',
-        success: 'Object deleted successfully',
-        error: 'Failed to delete object',
+        loading: t('objects.deletingObject'),
+        success: t('objects.objectDeletedSuccess'),
+        error: t('objects.objectDeleteFailed'),
       })
     } catch (error) {
       logger.error('Error deleting object:', error)
@@ -145,7 +147,9 @@ export function useObjectOperations({
 
     try {
       toast.loading(
-        isTemplate ? 'Reverting template...' : 'Reverting object...',
+        isTemplate
+          ? t('objects.revertingTemplate')
+          : t('objects.revertingObject'),
         { id: 'revert-object' }
       )
 
@@ -160,8 +164,8 @@ export function useObjectOperations({
 
       toast.success(
         isTemplate
-          ? 'Template restored successfully'
-          : 'Object restored successfully',
+          ? t('objects.templateRestoredSuccess')
+          : t('objects.objectRestoredSuccess'),
         { id: 'revert-object' }
       )
 
@@ -172,7 +176,9 @@ export function useObjectOperations({
     } catch (error) {
       logger.error('Error reverting object:', error)
       toast.error(
-        isTemplate ? 'Failed to restore template' : 'Failed to restore object',
+        isTemplate
+          ? t('objects.templateRestoreFailed')
+          : t('objects.objectRestoreFailed'),
         { id: 'revert-object' }
       )
       throw error
@@ -182,7 +188,7 @@ export function useObjectOperations({
   const createObject = async (object: any): Promise<boolean> => {
     try {
       // Step 1: Immediate UI feedback and optimistic update
-      toast.loading('Creating object...', { id: 'save-object' })
+      toast.loading(t('objects.creatingObject'), { id: 'save-object' })
 
       // Step 2: Separate files from object data
       const { uploadFiles, importData } = transformToImportFormat(
@@ -208,11 +214,11 @@ export function useObjectOperations({
       }
 
       // Step 4: Show success only after everything is complete
-      toast.success('Object created successfully!', {
+      toast.success(t('objects.objectCreatedSuccess'), {
         id: 'save-object',
         description:
           uploadFiles.length > 0
-            ? `${uploadFiles.length} files uploading in background`
+            ? t('objects.uploadingFiles', { count: uploadFiles.length })
             : undefined,
       })
 
@@ -229,11 +235,17 @@ export function useObjectOperations({
               const summary = uploadService.getUploadSummary()
               if (summary.completed.length > 0) {
                 toast.success(
-                  `${summary.completed.length} files uploaded successfully`
+                  t('objects.filesUploadedSuccess', {
+                    count: summary.completed.length,
+                  })
                 )
               }
               if (summary.failed.length > 0) {
-                toast.error(`${summary.failed.length} files failed to upload`)
+                toast.error(
+                  t('objects.filesUploadFailed', {
+                    count: summary.failed.length,
+                  })
+                )
               }
               uploadService.clearCompleted()
             }, 2000)
@@ -259,7 +271,7 @@ export function useObjectOperations({
       return true
     } catch (error: any) {
       logger.error('Error creating object:', error)
-      toast.error('Failed to create object', {
+      toast.error(t('objects.objectCreateFailed'), {
         id: 'save-object',
         description: error.message,
       })

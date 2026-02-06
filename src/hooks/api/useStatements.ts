@@ -10,10 +10,12 @@ import type {
 import { useIomSdkClient } from '@/contexts'
 import type { ProcessMetadata, MaterialFlowMetadata } from '@/types'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 export function useStatements() {
   const client = useIomSdkClient()
   const queryClient = useQueryClient()
+  const t = useTranslations()
 
   // Get all statements using the new unified API
   const useAllStatements = (
@@ -354,7 +356,7 @@ export function useStatements() {
         queryClient.invalidateQueries({ queryKey: ['statements'] })
       },
       onError: (error: Error) => {
-        toast.error(`Failed to delete statement: ${error.message}`)
+        toast.error(t('import.statementDeleteFailed', { error: error.message }))
       },
     })
   }

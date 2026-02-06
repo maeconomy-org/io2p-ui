@@ -27,6 +27,12 @@
       "uuid": "UUID"
     }
   },
+  "theme": {
+    "toggle": "Thema",
+    "light": "Licht",
+    "dark": "Donker",
+    "system": "Systeem"
+  },
   "footer": {
     "rights": "Alle rechten voorbehouden.",
     "language": "Taal"
@@ -59,6 +65,29 @@
     "deleted": "Verwijderd",
     "download": "Downloaden"
   },
+  "copyButton": {
+    "copied": "Gekopieerd!",
+    "copyLabel": "Kopieer {label}",
+    "copyToClipboard": "Kopieer naar klembord",
+    "copiedWithLabel": "{label} gekopieerd naar klembord",
+    "copiedToClipboard": "Gekopieerd naar klembord",
+    "failedToCopy": "Kopiëren naar klembord mislukt"
+  },
+  "attachmentModal": {
+    "title": "Bijlagen beheren",
+    "done": "Gereed",
+    "uploadTitle": "Bestanden uploaden?",
+    "uploadDescription": "{count} bestand(en) worden geüpload en bijgevoegd. Deze actie kan niet ongedaan worden gemaakt.",
+    "uploadWarning": "Herlaad de pagina niet en navigeer niet weg terwijl bestanden worden geüpload.",
+    "important": "Belangrijk:",
+    "uploadFiles": "Bestanden uploaden",
+    "uploading": "{count} bestanden uploaden...",
+    "uploadDoNotReload": "Herlaad de pagina niet tijdens het uploaden",
+    "filesFailedToUpload": "{count} bestanden uploaden mislukt",
+    "filesUploadedSuccessfully": "{count} bestanden succesvol geüpload",
+    "uploadTimedOut": "Upload verlopen",
+    "uploadFailed": "Upload mislukt"
+  },
   "pagination": {
     "previous": "Vorige",
     "next": "Volgende",
@@ -85,6 +114,7 @@
     "subtitle": "{name} - {description}",
     "intro": "Om toegang te krijgen tot het systeem heeft u een geldig certificaat nodig. Klik op de knop hieronder om het autorisatieproces te starten.",
     "authorize": "Autoriseer met certificaat",
+    "authorizeShort": "Autoriseer",
     "authorizing": "Authenticeren met certificaat...",
     "selectCertificate": "Selecteer uw certificaat wanneer uw browser hierom vraagt",
     "browserPromptTitle": "Browsermelding:",
@@ -98,6 +128,18 @@
     "requiresCertificate": "Deze applicatie vereist een geldig clientcertificaat voor veilige toegang",
     "mtls": "mTLS-authenticatie",
     "secureAccess": "Veilige toegang",
+    "tagline": "Volg, beheer en optimaliseer bouwmaterialen gedurende hun levenscyclus",
+    "infoTitle": "Hoe het werkt",
+    "infoStep1Title": "Certificaat installeren",
+    "infoStep1": "Uw organisatie levert een clientcertificaat waarmee u veilig wordt geïdentificeerd.",
+    "infoStep2Title": "Toegang autoriseren",
+    "infoStep2": "Klik op de autorisatieknop en selecteer uw certificaat wanneer uw browser hierom vraagt.",
+    "infoStep3Title": "Begin met beheren",
+    "infoStep3": "Krijg toegang tot het volledige platform om objecten, processen en materiaalstromen te volgen.",
+    "featureObjects": "Objectbeheer",
+    "featureProcesses": "I/O Procesvolging",
+    "featureModels": "Materiaalmodellen",
+    "featureImport": "Bulk data-import",
     "errors": {
       "authFailed": "Authenticatie mislukt",
       "certificateFailed": "Certificaatauthenticatie mislukt. Controleer of u een geldig certificaat heeft geselecteerd.",
@@ -177,6 +219,7 @@
     "noValues": "Geen waarden",
     "noProperties": "Geen eigenschappen gedefinieerd",
     "propertiesUpdated": "Eigenschappen succesvol bijgewerkt",
+    "propertiesUpdateFailed": "Objecteigenschappen bijwerken mislukt",
     "metadataUpdated": "Metadata succesvol bijgewerkt",
     "addressUpdated": "Adres succesvol bijgewerkt",
     "parentsUpdated": "Bovenliggende relaties succesvol bijgewerkt",
@@ -475,6 +518,8 @@
     "noMatches": "Geen groepen gevonden die overeenkomen met uw zoekopdracht.",
     "noGroups": "Geen groepen beschikbaar.",
     "confirmDelete": "Weet u zeker dat u \"{name}\" wilt verwijderen?",
+    "groupUuid": "Groeps-UUID",
+    "creatorUuid": "Maker-UUID",
     "form": {
       "createTitle": "Nieuwe groep aanmaken",
       "editTitle": "Groep bewerken",
@@ -879,5 +924,27 @@
         "description": "Filteren op bovenliggend object UUID"
       }
     }
+  },
+  "processDetails": {
+    "unnamedProcess": "Naamloos proces",
+    "input": "Invoer",
+    "output": "Uitvoer",
+    "environmentalImpact": "Milieu-impact",
+    "emissions": "Emissies",
+    "notMeasured": "Niet gemeten",
+    "materialLoss": "Materiaalverlies",
+    "lostInProcess": "Verloren in proces",
+    "noLoss": "Geen verlies",
+    "quality": "Kwaliteit",
+    "qualityChange": "Kwaliteitsverandering",
+    "unchanged": "Ongewijzigd",
+    "inputMaterialDetails": "Invoermateriaal details",
+    "outputMaterialDetails": "Uitvoermateriaal details",
+    "quantity": "Hoeveelheid",
+    "lifecycle": "Levenscyclus",
+    "category": "Categorie",
+    "customProperties": "Aangepaste eigenschappen",
+    "processNotes": "Procesnotities",
+    "close": "Sluiten"
   }
 }

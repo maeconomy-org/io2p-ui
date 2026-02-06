@@ -27,6 +27,12 @@
       "uuid": "UUID"
     }
   },
+  "theme": {
+    "toggle": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "footer": {
     "rights": "All rights reserved.",
     "language": "Language"
@@ -59,6 +65,29 @@
     "deleted": "Deleted",
     "download": "Download"
   },
+  "copyButton": {
+    "copied": "Copied!",
+    "copyLabel": "Copy {label}",
+    "copyToClipboard": "Copy to clipboard",
+    "copiedWithLabel": "{label} copied to clipboard",
+    "copiedToClipboard": "Copied to clipboard",
+    "failedToCopy": "Failed to copy to clipboard"
+  },
+  "attachmentModal": {
+    "title": "Manage Attachments",
+    "done": "Done",
+    "uploadTitle": "Upload Files?",
+    "uploadDescription": "{count} file(s) will be uploaded and attached. This action cannot be undone.",
+    "uploadWarning": "Do not reload or navigate away from this page while files are uploading.",
+    "important": "Important:",
+    "uploadFiles": "Upload Files",
+    "uploading": "Uploading {count} files...",
+    "uploadDoNotReload": "Do not reload the page while uploading",
+    "filesFailedToUpload": "{count} files failed to upload",
+    "filesUploadedSuccessfully": "{count} files uploaded successfully",
+    "uploadTimedOut": "Upload timed out",
+    "uploadFailed": "Upload failed"
+  },
   "pagination": {
     "previous": "Previous",
     "next": "Next",
@@ -85,6 +114,7 @@
     "subtitle": "{name} - {description}",
     "intro": "To access the system, you need a valid certificate. Click the button below to start the authorization process.",
     "authorize": "Authorize with Certificate",
+    "authorizeShort": "Authorize",
     "authorizing": "Authenticating with certificate...",
     "selectCertificate": "Please select your certificate when prompted by your browser",
     "browserPromptTitle": "Browser Prompt:",
@@ -98,6 +128,18 @@
     "requiresCertificate": "This application requires a valid client certificate for secure access",
     "mtls": "mTLS Authentication",
     "secureAccess": "Secure Access",
+    "tagline": "Track, manage, and optimize building materials throughout their lifecycle",
+    "infoTitle": "How it works",
+    "infoStep1Title": "Install Certificate",
+    "infoStep1": "Your organization provides a client certificate that identifies you securely.",
+    "infoStep2Title": "Authorize Access",
+    "infoStep2": "Click the authorize button and select your certificate when your browser prompts you.",
+    "infoStep3Title": "Start Managing",
+    "infoStep3": "Access the full platform to track objects, processes, and material flows.",
+    "featureObjects": "Object Management",
+    "featureProcesses": "I/O Process Tracking",
+    "featureModels": "Material Models",
+    "featureImport": "Bulk Data Import",
     "errors": {
       "authFailed": "Authentication failed",
       "certificateFailed": "Certificate authentication failed. Please ensure you have selected a valid certificate.",
@@ -198,6 +240,7 @@
       "noFiles": "No files found for this object"
     },
     "propertiesUpdated": "Properties updated successfully",
+    "propertiesUpdateFailed": "Failed to update object properties",
     "metadataUpdated": "Metadata updated successfully",
     "addressUpdated": "Address updated successfully",
     "parentsUpdated": "Parent relationships updated successfully",
@@ -475,6 +518,8 @@
     "noMatches": "No groups found matching your search.",
     "noGroups": "No groups available.",
     "confirmDelete": "Are you sure you want to delete \"{name}\"?",
+    "groupUuid": "Group UUID",
+    "creatorUuid": "Creator UUID",
     "form": {
       "createTitle": "Create New Group",
       "editTitle": "Edit Group",
@@ -879,5 +924,27 @@
         "description": "Filter by parent object UUID"
       }
     }
+  },
+  "processDetails": {
+    "unnamedProcess": "Unnamed Process",
+    "input": "Input",
+    "output": "Output",
+    "environmentalImpact": "Environmental Impact",
+    "emissions": "Emissions",
+    "notMeasured": "Not measured",
+    "materialLoss": "Material Loss",
+    "lostInProcess": "Lost in process",
+    "noLoss": "No loss",
+    "quality": "Quality",
+    "qualityChange": "Quality change",
+    "unchanged": "Unchanged",
+    "inputMaterialDetails": "Input Material Details",
+    "outputMaterialDetails": "Output Material Details",
+    "quantity": "Quantity",
+    "lifecycle": "Lifecycle",
+    "category": "Category",
+    "customProperties": "Custom Properties",
+    "processNotes": "Process Notes",
+    "close": "Close"
   }
 }

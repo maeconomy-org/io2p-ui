@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react'
 import { FileImage, FileCode } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import QRCodeStyling, {
   CornerSquareType,
   DotType,
@@ -60,6 +61,7 @@ export function QRCodeModal({
   const qrCodeRef = useRef<HTMLDivElement>(null)
   const [qrRendered, setQrRendered] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const t = useTranslations()
 
   // Initialize QR code on mount and when UUID changes
   useEffect(() => {
@@ -140,7 +142,7 @@ export function QRCodeModal({
 
           <div className="mt-4 font-mono text-xs text-muted-foreground break-all text-center flex items-center gap-2">
             <span className="truncate flex">{uuid}</span>
-            <CopyButton text={uuid} label="Object UUID" />
+            <CopyButton text={uuid} label={t('objects.objectUuid')} />
           </div>
 
           <div className="mt-6 flex gap-2 w-full">

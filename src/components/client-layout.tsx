@@ -9,19 +9,22 @@ import {
   SearchProvider,
   useIomSdkClient,
 } from '@/contexts'
+import { useKeyboardShortcuts } from '@/hooks'
 import { UploadProgressIndicator } from '@/components/ui'
 import DemoTour from './onboarding/DemoTour'
 
-function ClientLayoutInner({ children }: { children: React.ReactNode }) {
+const PUBLIC_PAGES = ['/', '/help', '/terms', '/privacy']
+
+/**
+ * Inner layout that depends on QueryProvider being available
+ * (useIomSdkClient requires QueryProvider context)
+ */
+function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const client = useIomSdkClient()
+  const isPublicPage = PUBLIC_PAGES.includes(pathname)
 
-  // Pages that don't require authentication don't show the navbar
-  const isPublicPage =
-    pathname === '/' ||
-    pathname === '/help' ||
-    pathname === '/terms' ||
-    pathname === '/privacy'
+  useKeyboardShortcuts()
 
   return (
     <AuthProvider client={client}>
@@ -37,6 +40,10 @@ function ClientLayoutInner({ children }: { children: React.ReactNode }) {
   )
 }
 
+/**
+ * Client-side providers and layout shell.
+ * QueryProvider must wrap AuthenticatedLayout because useIomSdkClient depends on it.
+ */
 export default function ClientLayout({
   children,
 }: {
@@ -44,7 +51,7 @@ export default function ClientLayout({
 }) {
   return (
     <QueryProvider>
-      <ClientLayoutInner>{children}</ClientLayoutInner>
+      <AuthenticatedLayout>{children}</AuthenticatedLayout>
     </QueryProvider>
   )
 }

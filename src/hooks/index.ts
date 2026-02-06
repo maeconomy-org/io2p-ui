@@ -30,3 +30,4 @@ export * from './ui/use-unified-delete'
 // Utility Hooks - General utilities
 export * from './use-property-editor'
 export * from './use-property-management'
+export * from './use-theme-shortcut'

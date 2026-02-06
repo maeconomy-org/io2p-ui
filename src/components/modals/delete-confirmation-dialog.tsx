@@ -39,7 +39,7 @@ export function DeleteConfirmationDialog({
             {t('common.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive hover:bg-destructive/90 flex-1"
+            className="bg-destructive text-white flex-1"
             onClick={onDelete}
           >
             {t('common.delete')}

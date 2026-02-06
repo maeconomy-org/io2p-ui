@@ -5,6 +5,24 @@ import { Page, expect } from '@playwright/test'
  */
 
 /**
+ * Dismiss the initial login onboarding tour if it is active.
+ * Sets the localStorage key so the tour won't start, and clicks
+ * the driver.js close button if the overlay is already visible.
+ */
+export async function dismissOnboarding(page: Page) {
+  await page.evaluate(() => {
+    localStorage.setItem('onboarding:initial-login:v1', 'done')
+  })
+
+  // If driver.js overlay is already visible, close it
+  const overlay = page.locator('.driver-popover-close-btn')
+  if (await overlay.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await overlay.click()
+    await page.waitForTimeout(300)
+  }
+}
+
+/**
  * Get a dialog by its title text
  */
 export const getDialog = (page: Page, title: string) =>

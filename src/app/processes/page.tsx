@@ -213,7 +213,7 @@ const MaterialFlowPage = () => {
         relationships={relationships}
         selectedRelationship={null} // Always null to prevent visual selection
         onLinkSelect={handleRelationshipSelect}
-        className="bg-white"
+        className="bg-card"
       />
     ) : (
       <SankeyDiagram
@@ -221,7 +221,7 @@ const MaterialFlowPage = () => {
         relationships={relationships}
         selectedRelationship={null} // Always null to prevent visual selection
         onLinkSelect={handleRelationshipSelect}
-        className="bg-white"
+        className="bg-card"
       />
     )
   }, [

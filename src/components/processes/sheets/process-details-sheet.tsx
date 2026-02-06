@@ -14,6 +14,8 @@ import {
   FileText,
   Scale,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+
 import {
   Button,
   Separator,
@@ -27,6 +29,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui'
+import { cn } from '@/lib/utils'
 import { MaterialRelationship } from '@/types'
 import type {
   EnhancedMaterialRelationship,
@@ -93,6 +96,8 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
   isOpen,
   onClose,
 }) => {
+  const t = useTranslations('processDetails')
+
   if (!relationship) return null
 
   // Type guard to check if relationship is enhanced
@@ -120,7 +125,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
         {/* Standard Header */}
         <SheetHeader className="mb-4">
           <SheetTitle className="text-xl">
-            {relationship.processName || 'Unnamed Process'}
+            {relationship.processName || t('unnamedProcess')}
           </SheetTitle>
           <div className="flex flex-wrap items-center gap-2 mt-2">
             {enhanced?.processTypeCode && (
@@ -152,7 +157,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4 text-blue-600" />
                       <span className="text-xs font-medium text-blue-600 uppercase">
-                        Input
+                        {t('input')}
                       </span>
                     </div>
                     <div className="font-semibold text-foreground">
@@ -186,7 +191,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4 text-emerald-600" />
                       <span className="text-xs font-medium text-emerald-600 uppercase">
-                        Output
+                        {t('output')}
                       </span>
                     </div>
                     <div className="font-semibold text-foreground">
@@ -216,93 +221,158 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
               <div className="space-y-3">
                 <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Leaf className="h-4 w-4 text-emerald-600" />
-                  Environmental Impact
+                  {t('environmentalImpact')}
                 </h3>
                 <div className="grid grid-cols-3 gap-3">
                   {/* Emissions */}
                   <div
-                    className={`rounded-lg p-4 border ${hasEmissions ? 'bg-orange-50 border-orange-200' : 'bg-muted/30 border-border'}`}
+                    className={cn(
+                      'rounded-lg p-4 border',
+                      hasEmissions
+                        ? 'bg-orange-50 border-orange-200'
+                        : 'bg-muted/30 border-border'
+                    )}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <Flame
-                        className={`h-4 w-4 ${hasEmissions ? 'text-orange-500' : 'text-muted-foreground'}`}
+                        className={cn(
+                          'h-4 w-4',
+                          hasEmissions
+                            ? 'text-orange-500'
+                            : 'text-muted-foreground'
+                        )}
                       />
                       <span
-                        className={`text-xs font-medium ${hasEmissions ? 'text-orange-700' : 'text-muted-foreground'}`}
+                        className={cn(
+                          'text-xs font-medium',
+                          hasEmissions
+                            ? 'text-orange-700'
+                            : 'text-muted-foreground'
+                        )}
                       >
-                        Emissions
+                        {t('emissions')}
                       </span>
                     </div>
                     <div
-                      className={`text-xl font-bold ${hasEmissions ? 'text-orange-900' : 'text-muted-foreground'}`}
+                      className={cn(
+                        'text-xl font-bold',
+                        hasEmissions
+                          ? 'text-orange-900'
+                          : 'text-muted-foreground'
+                      )}
                     >
                       {hasEmissions ? enhanced?.emissionsTotal : '—'}
                     </div>
                     <div
-                      className={`text-xs ${hasEmissions ? 'text-orange-600' : 'text-muted-foreground'}`}
+                      className={cn(
+                        'text-xs',
+                        hasEmissions
+                          ? 'text-orange-600'
+                          : 'text-muted-foreground'
+                      )}
                     >
                       {hasEmissions
                         ? enhanced?.emissionsUnit || 'kgCO2e'
-                        : 'Not measured'}
+                        : t('notMeasured')}
                     </div>
                   </div>
 
                   {/* Material Loss */}
                   <div
-                    className={`rounded-lg p-4 border ${hasLoss ? 'bg-red-50 border-red-200' : 'bg-muted/30 border-border'}`}
+                    className={cn(
+                      'rounded-lg p-4 border',
+                      hasLoss
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-muted/30 border-border'
+                    )}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <Droplets
-                        className={`h-4 w-4 ${hasLoss ? 'text-red-500' : 'text-muted-foreground'}`}
+                        className={cn(
+                          'h-4 w-4',
+                          hasLoss ? 'text-red-500' : 'text-muted-foreground'
+                        )}
                       />
                       <span
-                        className={`text-xs font-medium ${hasLoss ? 'text-red-700' : 'text-muted-foreground'}`}
+                        className={cn(
+                          'text-xs font-medium',
+                          hasLoss ? 'text-red-700' : 'text-muted-foreground'
+                        )}
                       >
-                        Material Loss
+                        {t('materialLoss')}
                       </span>
                     </div>
                     <div
-                      className={`text-xl font-bold ${hasLoss ? 'text-red-900' : 'text-muted-foreground'}`}
+                      className={cn(
+                        'text-xl font-bold',
+                        hasLoss ? 'text-red-900' : 'text-muted-foreground'
+                      )}
                     >
                       {hasLoss ? `${enhanced?.materialLossPercent}%` : '—'}
                     </div>
                     <div
-                      className={`text-xs ${hasLoss ? 'text-red-600' : 'text-muted-foreground'}`}
+                      className={cn(
+                        'text-xs',
+                        hasLoss ? 'text-red-600' : 'text-muted-foreground'
+                      )}
                     >
-                      {hasLoss ? 'Lost in process' : 'No loss'}
+                      {hasLoss ? t('lostInProcess') : t('noLoss')}
                     </div>
                   </div>
 
                   {/* Quality Change */}
                   <div
-                    className={`rounded-lg p-4 border ${hasQuality ? `${qualityInfo.bg} ${qualityInfo.border}` : 'bg-muted/30 border-border'}`}
+                    className={cn(
+                      'rounded-lg p-4 border',
+                      hasQuality
+                        ? cn(qualityInfo.bg, qualityInfo.border)
+                        : 'bg-muted/30 border-border'
+                    )}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <Scale
-                        className={`h-4 w-4 ${hasQuality ? qualityInfo.color : 'text-muted-foreground'}`}
+                        className={cn(
+                          'h-4 w-4',
+                          hasQuality
+                            ? qualityInfo.color
+                            : 'text-muted-foreground'
+                        )}
                       />
                       <span
-                        className={`text-xs font-medium ${hasQuality ? qualityInfo.color : 'text-muted-foreground'}`}
+                        className={cn(
+                          'text-xs font-medium',
+                          hasQuality
+                            ? qualityInfo.color
+                            : 'text-muted-foreground'
+                        )}
                       >
-                        Quality
+                        {t('quality')}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       {hasQuality && (
                         <QualityIcon
-                          className={`h-5 w-5 ${qualityInfo.color}`}
+                          className={cn('h-5 w-5', qualityInfo.color)}
                         />
                       )}
                       <span
-                        className={`text-lg font-bold ${hasQuality ? qualityInfo.color : 'text-muted-foreground'}`}
+                        className={cn(
+                          'text-lg font-bold',
+                          hasQuality
+                            ? qualityInfo.color
+                            : 'text-muted-foreground'
+                        )}
                       >
                         {hasQuality ? qualityInfo.label : '—'}
                       </span>
                     </div>
                     <div
-                      className={`text-xs ${hasQuality ? qualityInfo.color : 'text-muted-foreground'}`}
+                      className={cn(
+                        'text-xs',
+                        hasQuality ? qualityInfo.color : 'text-muted-foreground'
+                      )}
                     >
-                      {hasQuality ? 'Quality change' : 'Unchanged'}
+                      {hasQuality ? t('qualityChange') : t('unchanged')}
                     </div>
                   </div>
                 </div>
@@ -316,14 +386,16 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Package className="h-4 w-4 text-blue-600" />
-                    Input Material Details
+                    {t('inputMaterialDetails')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
                     {enhanced?.inputMaterial?.quantity !== undefined && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Quantity</span>
+                        <span className="text-muted-foreground">
+                          {t('quantity')}
+                        </span>
                         <span className="font-medium">
                           {enhanced.inputMaterial.quantity.toLocaleString()}{' '}
                           {enhanced.inputMaterial.unit || ''}
@@ -332,7 +404,9 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     )}
                     {enhanced?.inputMaterial?.lifecycleStage && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Lifecycle</span>
+                        <span className="text-muted-foreground">
+                          {t('lifecycle')}
+                        </span>
                         <span className="font-medium text-xs">
                           {enhanced.inputMaterial.lifecycleStage.replace(
                             /_/g,
@@ -343,7 +417,9 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     )}
                     {enhanced?.inputMaterial?.categoryCode && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Category</span>
+                        <span className="text-muted-foreground">
+                          {t('category')}
+                        </span>
                         <span className="font-medium">
                           {enhanced.inputMaterial.categoryCode}
                         </span>
@@ -359,7 +435,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                         <Separator />
                         <div className="space-y-2">
                           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Custom Properties
+                            {t('customProperties')}
                           </div>
                           {Object.entries(
                             enhanced.inputMaterial.customProperties
@@ -387,14 +463,16 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Package className="h-4 w-4 text-emerald-600" />
-                    Output Material Details
+                    {t('outputMaterialDetails')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
                     {enhanced?.outputMaterial?.quantity !== undefined && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Quantity</span>
+                        <span className="text-muted-foreground">
+                          {t('quantity')}
+                        </span>
                         <span className="font-medium">
                           {enhanced.outputMaterial.quantity.toLocaleString()}{' '}
                           {enhanced.outputMaterial.unit || ''}
@@ -403,7 +481,9 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     )}
                     {enhanced?.outputMaterial?.lifecycleStage && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Lifecycle</span>
+                        <span className="text-muted-foreground">
+                          {t('lifecycle')}
+                        </span>
                         <span className="font-medium text-xs">
                           {enhanced.outputMaterial.lifecycleStage.replace(
                             /_/g,
@@ -414,7 +494,9 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     )}
                     {enhanced?.outputMaterial?.categoryCode && (
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">Category</span>
+                        <span className="text-muted-foreground">
+                          {t('category')}
+                        </span>
                         <span className="font-medium">
                           {enhanced.outputMaterial.categoryCode}
                         </span>
@@ -430,7 +512,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                         <Separator />
                         <div className="space-y-2">
                           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Custom Properties
+                            {t('customProperties')}
                           </div>
                           {Object.entries(
                             enhanced.outputMaterial.customProperties
@@ -460,7 +542,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    Process Notes
+                    {t('processNotes')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -476,7 +558,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
         {/* Footer */}
         <div className="flex-shrink-0 pt-4 border-t mt-4">
           <Button onClick={onClose} className="w-full" variant="outline">
-            Close
+            {t('close')}
           </Button>
         </div>
       </SheetContent>

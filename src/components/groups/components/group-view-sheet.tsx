@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Package, Globe, Lock, Edit, Plus, Minus, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import {
   Button,
   Badge,
@@ -49,6 +50,7 @@ export function GroupViewSheet({
 }: GroupViewSheetProps) {
   const [activeTab, setActiveTab] = useState('objects')
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null)
+  const t = useTranslations()
 
   if (!group) return null
 
@@ -153,7 +155,7 @@ export function GroupViewSheet({
               </code>
               <CopyButton
                 text={group.uuid}
-                label="Group UUID"
+                label={t('groups.groupUuid')}
                 size="sm"
                 variant="ghost"
                 showToast={true}
@@ -169,7 +171,7 @@ export function GroupViewSheet({
               </code>
               <CopyButton
                 text={group.createdBy}
-                label="Creator UUID"
+                label={t('groups.creatorUuid')}
                 size="sm"
                 variant="ghost"
                 showToast={true}

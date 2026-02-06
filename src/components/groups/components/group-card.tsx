@@ -1,6 +1,7 @@
 'use client'
 
 import { MoreHorizontal, Lock, Globe, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import {
   Button,
   Badge,
@@ -37,6 +38,8 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
+  const t = useTranslations()
+
   const getTypeIcon = () => {
     if (group.type === 'public') {
       return <Globe className="h-4 w-4" />
@@ -164,7 +167,7 @@ export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
           </code>
           <CopyButton
             text={group.uuid}
-            label="Group UUID"
+            label={t('groups.groupUuid')}
             size="sm"
             variant="ghost"
             className="h-5 w-5 p-0"

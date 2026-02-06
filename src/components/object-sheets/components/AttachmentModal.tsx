@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 import {
   Button,
@@ -51,7 +52,7 @@ export function AttachmentModal({
   onOpenChange,
   attachments,
   onChange,
-  title = 'Manage Attachments',
+  title,
   allowReference = true,
   allowUpload = true,
   disabled = false,
@@ -63,6 +64,8 @@ export function AttachmentModal({
   const client = useIomSdkClient()
   const uploadService = useUploadService()
   const initialAttachmentsRef = useRef<Attachment[]>([])
+  const t = useTranslations('attachmentModal')
+  const tCommon = useTranslations('common')
 
   // Capture initial state only when modal opens (not when attachments change)
   useEffect(() => {
@@ -117,9 +120,9 @@ export function AttachmentModal({
 
     if (filesToUpload.length > 0) {
       // Show upload started message
-      toast.loading(`Uploading ${filesToUpload.length} files...`, {
+      toast.loading(t('uploading', { count: filesToUpload.length }), {
         id: 'file-upload',
-        description: '⚠️ Do not reload the page while uploading',
+        description: `⚠️ ${t('uploadDoNotReload')}`,
       })
 
       try {
@@ -153,15 +156,18 @@ export function AttachmentModal({
           // All done or timed out
           if (pending.length === 0 || elapsed >= maxWaitMs) {
             if (failed.length > 0) {
-              toast.error(`${failed.length} files failed to upload`, {
+              toast.error(t('filesFailedToUpload', { count: failed.length }), {
                 id: 'file-upload',
               })
             } else if (completed.length > 0) {
-              toast.success(`${completed.length} files uploaded successfully`, {
-                id: 'file-upload',
-              })
+              toast.success(
+                t('filesUploadedSuccessfully', { count: completed.length }),
+                {
+                  id: 'file-upload',
+                }
+              )
             } else if (elapsed >= maxWaitMs) {
-              toast.error('Upload timed out', { id: 'file-upload' })
+              toast.error(t('uploadTimedOut'), { id: 'file-upload' })
             } else {
               // No files processed - dismiss toast
               toast.dismiss('file-upload')
@@ -181,7 +187,7 @@ export function AttachmentModal({
         logger.error('Upload error:', {
           error: error instanceof Error ? error.message : String(error),
         })
-        toast.error('Upload failed', { id: 'file-upload' })
+        toast.error(t('uploadFailed'), { id: 'file-upload' })
       }
     }
 
@@ -198,7 +204,7 @@ export function AttachmentModal({
       <Dialog open={open} onOpenChange={handleModalClose}>
         <DialogContent className="sm:max-w-[640px]">
           <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle>{title || t('title')}</DialogTitle>
           </DialogHeader>
           <DialogDescription></DialogDescription>
 
@@ -228,7 +234,7 @@ export function AttachmentModal({
                 }
               }}
             >
-              Done
+              {t('done')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -238,25 +244,25 @@ export function AttachmentModal({
       <AlertDialog open={showUploadConfirm} onOpenChange={setShowUploadConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Upload Files?</AlertDialogTitle>
+            <AlertDialogTitle>{t('uploadTitle')}</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
-              {getUploadableAttachments(pendingAttachments).length} file(s) will
-              be uploaded and attached. This action cannot be undone.
+              {t('uploadDescription', {
+                count: getUploadableAttachments(pendingAttachments).length,
+              })}
             </AlertDialogDescription>
             <AlertDialogDescription className="p-3 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
-              ⚠️ <strong>Important:</strong> Do not reload or navigate away from
-              this page while files are uploading.
+              ⚠️ <strong>{t('important')}</strong> {t('uploadWarning')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelUpload}>
-              Cancel
+              {tCommon('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmUpload}
               data-test="upload-files-confirm-button"
             >
-              Upload Files
+              {t('uploadFiles')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

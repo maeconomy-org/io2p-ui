@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import { useIomSdkClient } from '@/contexts'
 import { logger } from '@/lib'
 import { API_CHUNK_SIZE } from '@/constants'
@@ -39,6 +40,7 @@ export function useBulkImport({
   const router = useRouter()
   const client = useIomSdkClient()
   const [isImporting, setIsImporting] = useState(false)
+  const t = useTranslations()
 
   const startBulkImport = useCallback(
     async (
@@ -68,7 +70,9 @@ export function useBulkImport({
         if (estimatedDataSizeMB > 50) {
           // Use chunked upload for large datasets
           toast.info(
-            `Large dataset detected (estimated ${estimatedDataSizeMB.toFixed(2)}MB). Using optimized upload.`
+            t('import.toasts.largeDataset', {
+              size: estimatedDataSizeMB.toFixed(2),
+            })
           )
           jobId = await handleChunkedUpload(mappedData, token)
         } else {
@@ -78,8 +82,8 @@ export function useBulkImport({
 
         if (jobId) {
           onImportStarted?.(jobId)
-          toast.success('Import job started successfully!', {
-            description: `Job ID: ${jobId}`,
+          toast.success(t('import.toasts.jobStarted'), {
+            description: t('import.importJobId', { id: jobId }),
           })
 
           if (autoRedirect) {
@@ -95,7 +99,7 @@ export function useBulkImport({
           error instanceof Error ? error.message : 'Unknown import error'
         logger.error('Bulk import failed:', error)
 
-        toast.error('Import failed', {
+        toast.error(t('import.toasts.failed'), {
           description: errorMessage,
         })
 
@@ -105,7 +109,15 @@ export function useBulkImport({
         setIsImporting(false)
       }
     },
-    [isImporting, client, onImportStarted, onImportError, autoRedirect, router]
+    [
+      isImporting,
+      client,
+      onImportStarted,
+      onImportError,
+      autoRedirect,
+      router,
+      t,
+    ]
   )
 
   const handleStandardUpload = async (
@@ -141,7 +153,12 @@ export function useBulkImport({
     const totalObjects = mappedData.length
     const totalChunks = Math.ceil(totalObjects / API_CHUNK_SIZE)
 
-    toast.info(`Processing ${totalObjects} objects in ${totalChunks} chunks`)
+    toast.info(
+      t('import.toasts.processingChunks', {
+        total: totalObjects,
+        chunks: totalChunks,
+      })
+    )
 
     let jobId: string | null = null
 
@@ -153,7 +170,11 @@ export function useBulkImport({
 
       // Update progress toast
       toast.loading(
-        `Uploading chunk ${chunkIndex + 1}/${totalChunks} (${chunkPercent}%)...`,
+        t('import.toasts.uploadingChunk', {
+          current: chunkIndex + 1,
+          total: totalChunks,
+          percent: chunkPercent,
+        }),
         {
           id: 'chunk-upload',
           description: `Objects: ${i + 1}-${Math.min(
@@ -194,9 +215,9 @@ export function useBulkImport({
       }
     }
 
-    toast.success('All chunks uploaded!', {
+    toast.success(t('import.toasts.allUploaded'), {
       id: 'chunk-upload',
-      description: `Import job ID: ${jobId}`,
+      description: t('import.importJobIdLabel', { id: jobId ?? '' }),
     })
 
     return jobId!
