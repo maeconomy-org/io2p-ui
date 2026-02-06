@@ -369,7 +369,9 @@
     "properties": {
       "noProperties": "Geen eigenschappen gedefinieerd",
       "addFirst": "Voeg uw eerste eigenschap toe",
-      "add": "Eigenschap toevoegen"
+      "add": "Eigenschap toevoegen",
+      "detailedView": "Gedetailleerde weergave",
+      "passportView": "Paspoort overzicht"
     }
   },
   "processes": {

@@ -28,6 +28,14 @@ export * from './ui/use-pagination'
 export * from './ui/use-unified-delete'
 
 // Utility Hooks - General utilities
-export * from './use-property-editor'
-export * from './use-property-management'
 export * from './use-theme-shortcut'
+
+// Re-export property hooks from their consolidated location
+export {
+  usePropertyEditor,
+  usePropertyManagement,
+} from '@/components/properties'
+export type {
+  UsePropertyEditorProps,
+  UsePropertyEditorReturn,
+} from '@/components/properties'

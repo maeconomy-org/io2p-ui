@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { logger } from '@/lib'
 import { Button } from '@/components/ui'
 
-interface EditableSectionProps {
+export interface EditableSectionProps {
   title: string
   isEditing: boolean
   onEditToggle: (isEditing: boolean) => void
@@ -16,6 +16,7 @@ interface EditableSectionProps {
   onSave?: () => Promise<void> | void
   successMessage?: string
   showToast?: boolean
+  headerExtra?: ReactNode
 }
 
 export function EditableSection({
@@ -27,6 +28,7 @@ export function EditableSection({
   onSave,
   successMessage = 'Changes saved successfully',
   showToast = true,
+  headerExtra,
 }: EditableSectionProps) {
   const [isSaving, setIsSaving] = useState(false)
 
@@ -58,9 +60,12 @@ export function EditableSection({
   return (
     <div className="mb-6">
       <div className="flex justify-between items-center mb-3">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          {title}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            {title}
+          </h3>
+          {headerExtra}
+        </div>
 
         {isEditing ? (
           <div className="flex space-x-2">

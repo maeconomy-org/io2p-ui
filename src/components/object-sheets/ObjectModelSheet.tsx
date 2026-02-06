@@ -27,7 +27,7 @@ import {
   Property,
   logger,
 } from '@/lib'
-import { PropertyFieldTemplate } from '@/components/forms'
+import { PropertyFieldTemplate } from '@/components/properties'
 import { useObjectOperations } from './hooks'
 import { createEmptyProperty } from './utils'
 

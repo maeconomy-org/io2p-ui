@@ -2,10 +2,22 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { ChevronRight, Upload } from 'lucide-react'
+import { ChevronRight, LayoutGrid, List, Upload } from 'lucide-react'
 
-import { Button, EditableSection, CopyButton } from '@/components/ui'
-import { PropertySectionEditor } from '@/components/properties'
+import { cn } from '@/lib/utils'
+import {
+  Button,
+  EditableSection,
+  CopyButton,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui'
+import {
+  PropertyGridView,
+  PropertySectionEditor,
+} from '@/components/properties'
 import type { Attachment, FileData } from '@/types'
 
 import { FileList } from '../components'
@@ -59,6 +71,7 @@ export function PropertiesTab({
   const [expandedPropertyId, setExpandedPropertyId] = useState<string | null>(
     null
   )
+  const [viewMode, setViewMode] = useState<'detailed' | 'grid'>('detailed')
 
   // Derived states for editing modes
   const isPropertiesEditing = activeEditingSection === 'properties'
@@ -122,9 +135,57 @@ export function PropertiesTab({
         onSave={onSaveProperties}
         successMessage={t('objects.propertiesUpdated')}
         showToast={false}
+        headerExtra={
+          !isPropertiesEditing && properties && properties.length > 0 ? (
+            <TooltipProvider>
+              <div className="flex items-center border rounded-md overflow-hidden">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('detailed')}
+                      className={cn(
+                        'p-1.5 transition-colors',
+                        viewMode === 'detailed'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted text-muted-foreground'
+                      )}
+                    >
+                      <List className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    {t('objects.properties.detailedView')}
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('grid')}
+                      className={cn(
+                        'p-1.5 transition-colors',
+                        viewMode === 'grid'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted text-muted-foreground'
+                      )}
+                    >
+                      <LayoutGrid className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    {t('objects.properties.passportView')}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+          ) : undefined
+        }
         renderDisplay={() => (
           <div>
-            {properties && properties.length > 0 ? (
+            {viewMode === 'grid' ? (
+              <PropertyGridView properties={properties} />
+            ) : properties.length > 0 ? (
               <div className="space-y-2">
                 {properties.map((prop: any, idx: number) => (
                   <div

@@ -25,7 +25,7 @@ import {
   SheetFooter,
   HereAddressAutocomplete,
 } from '@/components/ui'
-import { PropertyField } from '@/components/forms'
+import { PropertyField } from '@/components/properties'
 import { objectSchema, ObjectFormValues } from '@/lib/validations/object-model'
 import {
   AttachmentList,

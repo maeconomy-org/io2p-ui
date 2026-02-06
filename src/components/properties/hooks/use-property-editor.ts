@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
-import { usePropertyManagement } from '@/hooks'
+import { usePropertyManagement } from './use-property-management'
 
 export interface UsePropertyEditorProps {
   initialProperties?: any[]
