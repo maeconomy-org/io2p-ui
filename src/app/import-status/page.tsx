@@ -14,9 +14,13 @@ import {
   ChevronRight,
   FileText,
   ArrowLeft,
+  Package,
+  Clock,
+  CalendarCheck,
 } from 'lucide-react'
 
 import { Button, Progress } from '@/components/ui'
+import { cn } from '@/lib/utils'
 import { useImportManager } from '@/hooks'
 
 // Job status icon component
@@ -34,7 +38,7 @@ function JobStatusIcon({ status }: { status: string }) {
     case 'failed':
       return <XCircle className="h-4 w-4 text-red-500" />
     default:
-      return <AlertCircle className="h-4 w-4 text-gray-400" />
+      return <AlertCircle className="h-4 w-4 text-muted-foreground" />
   }
 }
 
@@ -213,7 +217,7 @@ export default function ImportStatusPage() {
 
                   {/* Expanded Details */}
                   {selectedJobId === job.jobId && (
-                    <div className="border-t bg-gray-50/30">
+                    <div className="border-t bg-muted/30">
                       {selectedJobLoading ? (
                         <div className="flex justify-center py-8">
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -258,63 +262,133 @@ export default function ImportStatusPage() {
                             />
                           </div>
 
-                          {/* Details Grid */}
-                          <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                              <div>
-                                <div className="text-sm font-medium text-muted-foreground mb-1">
-                                  {t('importStatus.started')}
+                          {/* Stat Cards */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {/* Total Objects */}
+                            <div className="rounded-lg border bg-card p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/40">
+                                  <Package className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                                 </div>
-                                <div className="text-sm">
-                                  {formatDate(selectedJob.createdAt)}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-muted-foreground mb-1">
+                                <span className="text-xs font-medium text-muted-foreground">
                                   {t('importStatus.totalObjects')}
-                                </div>
-                                <div className="text-sm font-medium">
-                                  {selectedJob.total.toLocaleString()}
-                                </div>
+                                </span>
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-muted-foreground mb-1">
-                                  {t('importStatus.successful')}
-                                </div>
-                                <div className="text-sm font-medium text-green-600">
-                                  {(
-                                    selectedJob.processed - selectedJob.failed
-                                  ).toLocaleString()}
-                                </div>
+                              <div className="text-xl font-semibold">
+                                {selectedJob.total.toLocaleString()}
                               </div>
                             </div>
-                            <div className="space-y-3">
-                              <div>
-                                <div className="text-sm font-medium text-muted-foreground mb-1">
-                                  {t('importStatus.completed')}
+
+                            {/* Successful */}
+                            <div className="rounded-lg border bg-card p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40">
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                                 </div>
-                                <div className="text-sm">
-                                  {formatDate(selectedJob.completedAt)}
-                                </div>
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {t('importStatus.successful')}
+                                </span>
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-muted-foreground mb-1">
+                              <div className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
+                                {Math.max(
+                                  0,
+                                  selectedJob.processed - selectedJob.failed
+                                ).toLocaleString()}
+                              </div>
+                            </div>
+
+                            {/* Failed */}
+                            <div className="rounded-lg border bg-card p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div
+                                  className={cn(
+                                    'p-1.5 rounded-md',
+                                    selectedJob.failed > 0
+                                      ? 'bg-red-100 dark:bg-red-900/40'
+                                      : 'bg-muted'
+                                  )}
+                                >
+                                  <XCircle
+                                    className={cn(
+                                      'h-3.5 w-3.5',
+                                      selectedJob.failed > 0
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-muted-foreground'
+                                    )}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium text-muted-foreground">
                                   {t('importStatus.failed')}
-                                </div>
-                                <div className="text-sm font-medium text-destructive">
-                                  {selectedJob.failed.toLocaleString()}
-                                </div>
+                                </span>
                               </div>
+                              <div
+                                className={cn(
+                                  'text-xl font-semibold',
+                                  selectedJob.failed > 0
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-muted-foreground'
+                                )}
+                              >
+                                {selectedJob.failed.toLocaleString()}
+                              </div>
+                            </div>
+
+                            {/* Processed */}
+                            <div className="rounded-lg border bg-card p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="p-1.5 rounded-md bg-violet-100 dark:bg-violet-900/40">
+                                  <Loader2
+                                    className={cn(
+                                      'h-3.5 w-3.5 text-violet-600 dark:text-violet-400',
+                                      [
+                                        'pending',
+                                        'receiving',
+                                        'processing',
+                                      ].includes(selectedJob.status) &&
+                                        'animate-spin'
+                                    )}
+                                  />
+                                </div>
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {t('importStatus.processed')}
+                                </span>
+                              </div>
+                              <div className="text-xl font-semibold">
+                                {selectedJob.processed.toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Timestamps */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-muted-foreground">
+                                {t('importStatus.started')}
+                              </span>
+                              <span className="font-medium">
+                                {formatDate(selectedJob.createdAt)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <CalendarCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-muted-foreground">
+                                {t('importStatus.completed')}
+                              </span>
+                              <span className="font-medium">
+                                {formatDate(selectedJob.completedAt)}
+                              </span>
                             </div>
                           </div>
 
                           {/* Error Display */}
                           {selectedJob.error && (
-                            <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-md">
-                              <div className="text-sm font-medium text-destructive mb-2">
+                            <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+                              <div className="flex items-center gap-2 text-sm font-medium text-destructive mb-2">
+                                <AlertCircle className="h-4 w-4" />
                                 {t('importStatus.errorDetails')}
                               </div>
-                              <div className="text-sm text-destructive/80">
+                              <div className="text-sm text-destructive/80 font-mono">
                                 {selectedJob.error}
                               </div>
                             </div>
@@ -341,14 +415,16 @@ export default function ImportStatusPage() {
                                   variant="outline"
                                   size="sm"
                                   onClick={toggleAutoRefresh}
-                                  className={
-                                    isAutoRefreshing
-                                      ? 'text-primary border-primary'
-                                      : ''
-                                  }
+                                  className={cn(
+                                    isAutoRefreshing &&
+                                      'text-primary border-primary'
+                                  )}
                                 >
                                   <RefreshCcw
-                                    className={`h-3 w-3 mr-2 ${isAutoRefreshing ? 'animate-spin' : ''}`}
+                                    className={cn(
+                                      'h-3 w-3 mr-2',
+                                      isAutoRefreshing && 'animate-spin'
+                                    )}
                                   />
                                   {isAutoRefreshing
                                     ? t('importStatus.autoRefreshing')
@@ -371,7 +447,7 @@ export default function ImportStatusPage() {
                               <span className="font-medium">
                                 {t('importStatus.jobId')}
                               </span>{' '}
-                              <code className="font-mono bg-muted px-1 py-0.5 rounded text-xs">
+                              <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-xs">
                                 {selectedJob.jobId}
                               </code>
                             </div>

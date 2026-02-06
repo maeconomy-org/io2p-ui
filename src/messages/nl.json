@@ -702,6 +702,7 @@
     "autoRefreshing": "Automatisch vernieuwen",
     "jobId": "Opdracht-ID:",
     "loadingDetails": "Opdrachtdetails laden...",
+    "processed": "Verwerkt",
     "jobTitle": "Importopdracht {id} - {status}"
   },
   "filters": {

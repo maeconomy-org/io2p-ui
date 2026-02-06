@@ -68,18 +68,11 @@ export function DashboardView({
       {} as Record<string, number>
     )
 
-    // Lifecycle stage distribution - from filtered relationships
-    const lifecycleStats = relationships.reduce(
-      (acc, rel) => {
-        // Count input material lifecycle stages
-        if (rel.inputMaterial?.lifecycleStage) {
-          const stage = rel.inputMaterial.lifecycleStage
-          acc[stage] = (acc[stage] || 0) + 1
-        }
-        // Count output material lifecycle stages
-        if (rel.outputMaterial?.lifecycleStage) {
-          const stage = rel.outputMaterial.lifecycleStage
-          acc[stage] = (acc[stage] || 0) + 1
+    // Lifecycle stage distribution - from materials (which have fallback logic)
+    const lifecycleStats = materials.reduce(
+      (acc, mat) => {
+        if (mat.lifecycleStage) {
+          acc[mat.lifecycleStage] = (acc[mat.lifecycleStage] || 0) + 1
         }
         return acc
       },
@@ -135,17 +128,17 @@ export function DashboardView({
         averageMaterialLoss,
       },
     }
-  }, [relationships])
+  }, [materials, relationships])
 
   if (materials.length === 0 && relationships.length === 0) {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
-          <Factory className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <Factory className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">
             {t('processes.dashboard.noDataTitle')}
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-muted-foreground mb-6">
             {t('processes.dashboard.noDataDescription')}
           </p>
           <button
@@ -168,8 +161,8 @@ export function DashboardView({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <ArrowLeftRight className="h-4 w-4 text-blue-600" />
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40">
+                <ArrowLeftRight className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <div className="text-2xl font-semibold">
@@ -187,8 +180,8 @@ export function DashboardView({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-100">
-                <Recycle className="h-4 w-4 text-emerald-600" />
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                <Recycle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <div className="text-2xl font-semibold">
@@ -206,8 +199,8 @@ export function DashboardView({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <TrendingUp className="h-4 w-4 text-green-600" />
+              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/40">
+                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
               <div>
                 <div className="text-2xl font-semibold">
@@ -225,8 +218,8 @@ export function DashboardView({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-100">
-                <RefreshCw className="h-4 w-4 text-cyan-600" />
+              <div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900/40">
+                <RefreshCw className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
               </div>
               <div>
                 <div className="text-2xl font-semibold">
@@ -252,7 +245,7 @@ export function DashboardView({
                 {t('processes.dashboard.processCategories')}
               </CardTitle>
               {dashboardData.breakdowns.processCategoriesTotal > 5 && (
-                <span className="text-xs text-gray-500 font-medium">
+                <span className="text-xs text-muted-foreground font-medium">
                   {t('processes.dashboard.topCount', {
                     count: dashboardData.breakdowns.processCategoriesTotal,
                   })}
@@ -279,7 +272,7 @@ export function DashboardView({
                 {t('processes.dashboard.lifecycleStages')}
               </CardTitle>
               {dashboardData.breakdowns.lifecycleStagesTotal > 5 && (
-                <span className="text-xs text-gray-500 font-medium">
+                <span className="text-xs text-muted-foreground font-medium">
                   {t('processes.dashboard.topCount', {
                     count: dashboardData.breakdowns.lifecycleStagesTotal,
                   })}
@@ -309,21 +302,21 @@ export function DashboardView({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* CO₂ Emissions */}
-            <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
+            <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg border border-green-100 dark:border-green-800">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-100">
-                  <Leaf className="h-4 w-4 text-green-600" />
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/40">
+                  <Leaf className="h-4 w-4 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-semibold text-green-700">
+                    <span className="text-2xl font-semibold text-green-700 dark:text-green-300">
                       {dashboardData.environmental.totalEmissions.toFixed(1)}
                     </span>
-                    <span className="text-sm text-green-600 font-medium">
+                    <span className="text-sm text-green-600 dark:text-green-400 font-medium">
                       kg CO₂
                     </span>
                   </div>
-                  <div className="text-xs text-green-600">
+                  <div className="text-xs text-green-600 dark:text-green-400">
                     {t('processes.dashboard.totalEmissions')}
                   </div>
                 </div>
@@ -331,23 +324,23 @@ export function DashboardView({
             </div>
 
             {/* Material Loss */}
-            <div className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-100">
+            <div className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 rounded-lg border border-orange-100 dark:border-orange-800">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-100">
-                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/40">
+                  <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-semibold text-orange-700">
+                    <span className="text-2xl font-semibold text-orange-700 dark:text-orange-300">
                       {dashboardData.environmental.averageMaterialLoss.toFixed(
                         1
                       )}
                     </span>
-                    <span className="text-sm text-orange-600 font-medium">
+                    <span className="text-sm text-orange-600 dark:text-orange-400 font-medium">
                       %
                     </span>
                   </div>
-                  <div className="text-xs text-orange-600">
+                  <div className="text-xs text-orange-600 dark:text-orange-400">
                     {t('processes.dashboard.avgMaterialLoss')}
                   </div>
                 </div>
@@ -355,21 +348,21 @@ export function DashboardView({
             </div>
 
             {/* Upcycled Processes */}
-            <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 rounded-lg border border-blue-100">
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-950/30 dark:to-sky-950/30 rounded-lg border border-blue-100 dark:border-blue-800">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40">
+                  <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-semibold text-blue-700">
+                    <span className="text-2xl font-semibold text-blue-700 dark:text-blue-300">
                       {dashboardData.environmental.upcycledProcesses}
                     </span>
-                    <span className="text-sm text-blue-600 font-medium">
+                    <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
                       {t('processes.dashboard.processesUnit')}
                     </span>
                   </div>
-                  <div className="text-xs text-blue-600">
+                  <div className="text-xs text-blue-600 dark:text-blue-400">
                     {t('processes.dashboard.upcycled')}
                   </div>
                 </div>
@@ -377,21 +370,21 @@ export function DashboardView({
             </div>
 
             {/* Downcycled Processes */}
-            <div className="p-4 bg-gradient-to-br from-red-50 to-rose-50 rounded-lg border border-red-100">
+            <div className="p-4 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 rounded-lg border border-red-100 dark:border-red-800">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-100">
-                  <TrendingDown className="h-4 w-4 text-red-600" />
+                <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/40">
+                  <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-semibold text-red-700">
+                    <span className="text-2xl font-semibold text-red-700 dark:text-red-300">
                       {dashboardData.environmental.downcycledProcesses}
                     </span>
-                    <span className="text-sm text-red-600 font-medium">
+                    <span className="text-sm text-red-600 dark:text-red-400 font-medium">
                       {t('processes.dashboard.processesUnit')}
                     </span>
                   </div>
-                  <div className="text-xs text-red-600">
+                  <div className="text-xs text-red-600 dark:text-red-400">
                     {t('processes.dashboard.downcycled')}
                   </div>
                 </div>
@@ -444,7 +437,7 @@ export function DashboardView({
             })}
           </div>
           {materials.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               <Package className="mx-auto h-8 w-8 mb-2 opacity-50" />
               <p>{t('processes.dashboard.noMaterials')}</p>
             </div>

@@ -35,7 +35,7 @@ export function CountList({
 
   if (!hasData) {
     return (
-      <div className="flex items-center justify-center py-8 text-gray-400 text-sm">
+      <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
         {emptyMessage}
       </div>
     )
@@ -63,12 +63,12 @@ export function CountList({
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: color }}
               />
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-foreground">
                 {formattedName}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-16 bg-gray-200 rounded-full h-2">
+              <div className="w-16 bg-muted rounded-full h-2">
                 <div
                   className="h-2 rounded-full transition-all duration-300"
                   style={{
@@ -77,7 +77,7 @@ export function CountList({
                   }}
                 />
               </div>
-              <span className="text-sm font-semibold text-gray-900 min-w-[2rem] text-right">
+              <span className="text-sm font-semibold text-foreground min-w-[2rem] text-right">
                 {value}
               </span>
             </div>

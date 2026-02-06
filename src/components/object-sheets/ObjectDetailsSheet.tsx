@@ -462,7 +462,6 @@ export function ObjectDetailsSheet({
                     setEditedAddressData={setEditedAddressData}
                     editedObject={editedObject}
                     setEditedObject={setEditedObject}
-                    isDeleted={isDeleted}
                     activeEditingSection={activeEditingSection}
                     setActiveEditingSection={setActiveEditingSection}
                     onSaveMetadata={handleSaveMetadata}

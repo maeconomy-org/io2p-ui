@@ -68,25 +68,25 @@ const getQualityInfo = (code?: QualityChangeCode) => {
       return {
         label: 'Upcycled',
         icon: TrendingUp,
-        color: 'text-emerald-600',
-        bg: 'bg-emerald-50',
-        border: 'border-emerald-200',
+        color: 'text-emerald-600 dark:text-emerald-400',
+        bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+        border: 'border-emerald-200 dark:border-emerald-800',
       }
     case 'DOWNCYCLED':
       return {
         label: 'Downcycled',
         icon: TrendingDown,
-        color: 'text-amber-600',
-        bg: 'bg-amber-50',
-        border: 'border-amber-200',
+        color: 'text-amber-600 dark:text-amber-400',
+        bg: 'bg-amber-50 dark:bg-amber-950/30',
+        border: 'border-amber-200 dark:border-amber-800',
       }
     default:
       return {
         label: 'Same Quality',
         icon: Minus,
-        color: 'text-slate-600',
-        bg: 'bg-slate-50',
-        border: 'border-slate-200',
+        color: 'text-slate-600 dark:text-slate-400',
+        bg: 'bg-slate-50 dark:bg-slate-800/30',
+        border: 'border-slate-200 dark:border-slate-700',
       }
   }
 }
@@ -153,7 +153,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
               <div className="flex items-center justify-between gap-4">
                 {/* Input */}
                 <div className="flex-1">
-                  <div className="bg-background rounded-lg p-4 border border-blue-200 space-y-2">
+                  <div className="bg-background rounded-lg p-4 border border-blue-200 dark:border-blue-800 space-y-2">
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4 text-blue-600" />
                       <span className="text-xs font-medium text-blue-600 uppercase">
@@ -187,7 +187,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
 
                 {/* Output */}
                 <div className="flex-1">
-                  <div className="bg-background rounded-lg p-4 border border-emerald-200 space-y-2">
+                  <div className="bg-background rounded-lg p-4 border border-emerald-200 dark:border-emerald-800 space-y-2">
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4 text-emerald-600" />
                       <span className="text-xs font-medium text-emerald-600 uppercase">
@@ -229,7 +229,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     className={cn(
                       'rounded-lg p-4 border',
                       hasEmissions
-                        ? 'bg-orange-50 border-orange-200'
+                        ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800'
                         : 'bg-muted/30 border-border'
                     )}
                   >
@@ -238,7 +238,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                         className={cn(
                           'h-4 w-4',
                           hasEmissions
-                            ? 'text-orange-500'
+                            ? 'text-orange-500 dark:text-orange-400'
                             : 'text-muted-foreground'
                         )}
                       />
@@ -246,7 +246,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                         className={cn(
                           'text-xs font-medium',
                           hasEmissions
-                            ? 'text-orange-700'
+                            ? 'text-orange-700 dark:text-orange-300'
                             : 'text-muted-foreground'
                         )}
                       >
@@ -257,7 +257,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                       className={cn(
                         'text-xl font-bold',
                         hasEmissions
-                          ? 'text-orange-900'
+                          ? 'text-orange-900 dark:text-orange-100'
                           : 'text-muted-foreground'
                       )}
                     >
@@ -267,7 +267,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                       className={cn(
                         'text-xs',
                         hasEmissions
-                          ? 'text-orange-600'
+                          ? 'text-orange-600 dark:text-orange-400'
                           : 'text-muted-foreground'
                       )}
                     >
@@ -282,7 +282,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     className={cn(
                       'rounded-lg p-4 border',
                       hasLoss
-                        ? 'bg-red-50 border-red-200'
+                        ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
                         : 'bg-muted/30 border-border'
                     )}
                   >
@@ -290,13 +290,17 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                       <Droplets
                         className={cn(
                           'h-4 w-4',
-                          hasLoss ? 'text-red-500' : 'text-muted-foreground'
+                          hasLoss
+                            ? 'text-red-500 dark:text-red-400'
+                            : 'text-muted-foreground'
                         )}
                       />
                       <span
                         className={cn(
                           'text-xs font-medium',
-                          hasLoss ? 'text-red-700' : 'text-muted-foreground'
+                          hasLoss
+                            ? 'text-red-700 dark:text-red-300'
+                            : 'text-muted-foreground'
                         )}
                       >
                         {t('materialLoss')}
@@ -305,7 +309,9 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     <div
                       className={cn(
                         'text-xl font-bold',
-                        hasLoss ? 'text-red-900' : 'text-muted-foreground'
+                        hasLoss
+                          ? 'text-red-900 dark:text-red-100'
+                          : 'text-muted-foreground'
                       )}
                     >
                       {hasLoss ? `${enhanced?.materialLossPercent}%` : '—'}
@@ -313,7 +319,9 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     <div
                       className={cn(
                         'text-xs',
-                        hasLoss ? 'text-red-600' : 'text-muted-foreground'
+                        hasLoss
+                          ? 'text-red-600 dark:text-red-400'
+                          : 'text-muted-foreground'
                       )}
                     >
                       {hasLoss ? t('lostInProcess') : t('noLoss')}

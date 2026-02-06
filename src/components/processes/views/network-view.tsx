@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, memo } from 'react'
+import { useTheme } from 'next-themes'
 import ReactECharts from 'echarts-for-react'
 import type {
   EnhancedMaterialObject,
@@ -25,6 +26,9 @@ export const NetworkDiagram = memo(function NetworkDiagram({
   onNodeSelect,
   className = '',
 }: NetworkDiagramProps) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const { chartOptions } = useMemo(() => {
     if (!materials || materials.length === 0) {
       return { chartOptions: null, stats: null }
@@ -61,7 +65,13 @@ export const NetworkDiagram = memo(function NetworkDiagram({
         draggable: true,
         itemStyle: {
           color: material.color || categories[category]?.itemStyle.color,
-          borderColor: isBuilding ? '#1F2937' : '#E5E7EB',
+          borderColor: isBuilding
+            ? isDark
+              ? '#E5E7EB'
+              : '#1F2937'
+            : isDark
+              ? '#374151'
+              : '#E5E7EB',
           borderWidth: isBuilding ? 2 : 1,
           shadowBlur: isBuilding ? 12 : 4,
           shadowColor: 'rgba(0, 0, 0, 0.1)',
@@ -72,7 +82,7 @@ export const NetworkDiagram = memo(function NetworkDiagram({
           distance: 8,
           fontSize: isBuilding ? 12 : 10,
           fontWeight: isBuilding ? '600' : '400',
-          color: '#374151',
+          color: isDark ? '#D1D5DB' : '#374151',
           formatter: '{b}',
         },
         tooltip: {
@@ -138,16 +148,20 @@ export const NetworkDiagram = memo(function NetworkDiagram({
     const options = {
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(255, 255, 255, 0.98)',
-        borderColor: '#E5E7EB',
+        backgroundColor: isDark
+          ? 'rgba(30, 41, 59, 0.98)'
+          : 'rgba(255, 255, 255, 0.98)',
+        borderColor: isDark ? '#334155' : '#E5E7EB',
         borderWidth: 1,
         borderRadius: 8,
         padding: [10, 14],
         textStyle: {
           fontSize: 12,
-          color: '#374151',
+          color: isDark ? '#E2E8F0' : '#374151',
         },
-        extraCssText: 'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);',
+        extraCssText: isDark
+          ? 'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);'
+          : 'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);',
       },
       legend: {
         show: false, // Hide default legend, we'll use custom
@@ -191,7 +205,7 @@ export const NetworkDiagram = memo(function NetworkDiagram({
         buildingCount,
       },
     }
-  }, [materials, relationships, selectedRelationship])
+  }, [materials, relationships, selectedRelationship, isDark])
 
   if (!chartOptions) {
     return null

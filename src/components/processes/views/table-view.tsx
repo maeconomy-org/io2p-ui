@@ -98,22 +98,24 @@ export function ProcessTableView({
         return {
           text: 'UPCYCLED',
           className:
-            'text-xs bg-emerald-50 text-emerald-700 border-emerald-200',
+            'text-xs bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
         }
       case 'SAME':
         return {
           text: 'SAME',
-          className: 'text-xs bg-slate-50 text-slate-700 border-slate-200',
+          className:
+            'text-xs bg-slate-50 dark:bg-slate-800/30 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
         }
       case 'DOWNCYCLED':
         return {
           text: 'DOWNCYCLED',
-          className: 'text-xs bg-amber-50 text-amber-700 border-amber-200',
+          className:
+            'text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
         }
       default:
         return {
           text: '',
-          className: 'text-xs bg-gray-50 text-gray-700 border-gray-200',
+          className: 'text-xs bg-muted text-muted-foreground border-border',
         }
     }
   }
@@ -211,7 +213,7 @@ export function ProcessTableView({
                     {relationship.emissionsTotal !== undefined ? (
                       <Badge
                         variant="outline"
-                        className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+                        className="text-xs bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800"
                       >
                         {relationship.emissionsTotal}{' '}
                         {relationship.emissionsUnit || 'kgCO2e'}
@@ -225,7 +227,7 @@ export function ProcessTableView({
                     {relationship.materialLossPercent !== undefined ? (
                       <Badge
                         variant="outline"
-                        className="text-xs bg-red-50 text-red-700 border-red-200"
+                        className="text-xs bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
                       >
                         {relationship.materialLossPercent}%
                       </Badge>

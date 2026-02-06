@@ -702,6 +702,7 @@
     "autoRefreshing": "Auto-refreshing",
     "jobId": "Job ID:",
     "loadingDetails": "Loading job details...",
+    "processed": "Processed",
     "jobTitle": "Import Job {id} - {status}"
   },
   "filters": {

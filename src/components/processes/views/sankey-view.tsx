@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, memo } from 'react'
+import { useTheme } from 'next-themes'
 import ReactECharts from 'echarts-for-react'
 import type {
   EnhancedMaterialObject,
@@ -25,6 +26,9 @@ export const SankeyDiagram = memo(function SankeyDiagram({
   onLinkSelect = () => {},
   className = '',
 }: SankeyDiagramProps) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const { chartOptions, cycleInfo } = useMemo(() => {
     if (!materials || materials.length === 0) {
       return { chartOptions: null, recyclingInfo: null, cycleInfo: null }
@@ -75,7 +79,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
           position: 'right',
           fontSize: 11,
           fontWeight: 'bold',
-          color: '#1F2937',
+          color: isDark ? '#E5E7EB' : '#1F2937',
         },
         itemStyle: {
           color: node.color,
@@ -140,11 +144,14 @@ export const SankeyDiagram = memo(function SankeyDiagram({
     const options = {
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderColor: '#E5E7EB',
+        backgroundColor: isDark
+          ? 'rgba(30, 41, 59, 0.95)'
+          : 'rgba(255, 255, 255, 0.95)',
+        borderColor: isDark ? '#334155' : '#E5E7EB',
         borderWidth: 1,
         textStyle: {
           fontSize: 12,
+          color: isDark ? '#E2E8F0' : '#374151',
         },
         confine: true,
       },
@@ -175,7 +182,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
           label: {
             fontSize: 11,
             fontWeight: 'normal',
-            color: '#374151',
+            color: isDark ? '#D1D5DB' : '#374151',
           },
           lineStyle: {
             curveness: 0.5,
@@ -191,7 +198,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
       recyclingInfo: { recyclingFlows, stats },
       cycleInfo,
     }
-  }, [materials, relationships, selectedRelationship])
+  }, [materials, relationships, selectedRelationship, isDark])
 
   if (!chartOptions) {
     return null
@@ -265,27 +272,27 @@ export const SankeyDiagram = memo(function SankeyDiagram({
 
       {/* Compact Cycle Detection Notice */}
       {cycleInfo && cycleInfo.removedCount > 0 && (
-        <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
-          <div className="flex items-center gap-2 text-amber-700">
-            <span className="text-amber-600">⚠</span>
+        <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded text-xs">
+          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+            <span className="text-amber-600 dark:text-amber-500">⚠</span>
             <span>
               {cycleInfo.removedCount} circular flow
               {cycleInfo.removedCount > 1 ? 's' : ''} removed
             </span>
             {cycleInfo.cycles.length > 0 && (
               <details className="inline">
-                <summary className="cursor-pointer text-amber-800 hover:text-amber-900 ml-1">
+                <summary className="cursor-pointer text-amber-800 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 ml-1">
                   ({cycleInfo.cycles.length} cycle
                   {cycleInfo.cycles.length > 1 ? 's' : ''})
                 </summary>
-                <div className="mt-1.5 ml-4 space-y-0.5 text-[10px] font-mono text-amber-600">
+                <div className="mt-1.5 ml-4 space-y-0.5 text-[10px] font-mono text-amber-600 dark:text-amber-400">
                   {cycleInfo.cycles.slice(0, 3).map((cycle, idx) => (
                     <div key={idx}>
                       {cycle.join(' → ')} → {cycle[0]}
                     </div>
                   ))}
                   {cycleInfo.cycles.length > 3 && (
-                    <div className="text-amber-600/70">
+                    <div className="text-amber-600/70 dark:text-amber-400/70">
                       ... and {cycleInfo.cycles.length - 3} more
                     </div>
                   )}
