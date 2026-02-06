@@ -1,21 +1,29 @@
 # =============================================================================
-# IoM UI Dockerfile - Optimized Build
+# IoM UI Dockerfile - Standalone Mode (node server.js)
 # =============================================================================
-# Multi-stage build with production-only dependencies
-# Build: docker build -t iom-ui .
+# Optimized build using Next.js standalone output
+# Smaller image, faster startup, no npm at runtime
+#
+# REQUIRES: Add `output: 'standalone'` to next.config.mjs
+#
+# Build: docker build -f Dockerfile.standalone -t iom-ui .
 # Run:   docker run -p 3000:3000 --env-file .env iom-ui
 
 # -----------------------------------------------------------------------------
-# Stage 1: Dependencies (all deps for build)
+# Stage 1: Dependencies
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS deps
 WORKDIR /app
 
 RUN apk add --no-cache libc6-compat
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # -----------------------------------------------------------------------------
@@ -26,42 +34,40 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Copy dependencies
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the application
+# Build application (no NEXT_PUBLIC_* needed - config served at runtime)
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
 RUN pnpm build
 
-# Prune dev dependencies after build to reduce size
-RUN pnpm prune --prod
-
 # -----------------------------------------------------------------------------
-# Stage 3: Runner (production only)
+# Stage 3: Runner (Production)
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Production environment
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV PORT=3000
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S -u 1001 -G nodejs nextjs
 
-# Copy only what's needed for production
+# Copy standalone build
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Create directories for runtime
-RUN mkdir -p ./certs ./logs && \
-    chown -R nextjs:nodejs ./certs ./logs ./.next
+# Create writable directories for runtime
+RUN mkdir -p ./logs ./.next/cache && \
+    chown -R nextjs:nodejs ./logs ./.next
 
+# Switch to non-root user
 USER nextjs
 
 EXPOSE 3000
@@ -69,4 +75,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
