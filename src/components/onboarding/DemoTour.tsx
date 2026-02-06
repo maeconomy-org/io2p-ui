@@ -77,7 +77,7 @@ export default function DemoTour() {
           nextBtnText: t('common.next'),
           prevBtnText: t('common.previous'),
           showProgress: true,
-          allowClose: true,
+          allowClose: false,
           allowKeyboardControl: true,
           onDestroyed: () => {
             driverRef.current = null

@@ -178,7 +178,7 @@ export default function InitialLoginTour() {
         nextBtnText: t('common.next'),
         prevBtnText: t('common.previous'),
         showProgress: true,
-        allowClose: true,
+        allowClose: false,
         allowKeyboardControl: true,
         onCloseClick: () => {
           localStorage.setItem(ONBOARDING_KEY, 'done')
