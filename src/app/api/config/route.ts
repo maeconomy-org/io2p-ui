@@ -23,8 +23,7 @@ export async function GET() {
     appDescription: process.env.APP_DESCRIPTION || 'Material Management System',
     appAcronym: process.env.APP_ACRONYM || 'IoM',
     contactUrl: process.env.CONTACT_URL || 'https://example.com/contact',
-    supportEmail:
-      process.env.SUPPORT_EMAIL || 'support@internetofmaterials.com',
+    supportEmail: process.env.SUPPORT_EMAIL || 'support@maeconomy.org',
 
     // Import limits (client-side needed for UI)
     maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '100'),

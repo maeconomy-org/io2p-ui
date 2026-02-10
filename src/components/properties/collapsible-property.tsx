@@ -3,7 +3,7 @@ import { ChevronRight, Plus, Trash2, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { Button, Input, Label } from '@/components/ui'
-import { FileList } from '@/components/object-sheets/components/FileDisplay'
+import { FileList } from '@/components/object-sheets/components/file-display'
 
 interface CollapsiblePropertyProps {
   property: any

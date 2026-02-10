@@ -1,13 +1,17 @@
+'use client'
+
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
-import { APP_NAME, FOOTER_LINKS } from '@/constants'
-import { LanguageSelect } from '@/components/language-switcher'
+import { useAppConfig } from '@/contexts'
+import { FOOTER_LINKS } from '@/constants'
 import { ThemeSelect } from '@/components/ui'
+import { LanguageSelect } from '@/components/language-switcher'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
   const t = useTranslations()
+  const config = useAppConfig()
 
   return (
     <footer className="w-full mt-6">
@@ -15,7 +19,7 @@ export default function Footer() {
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div>
             <p>
-              &copy; {currentYear} {APP_NAME}. {t('footer.rights')}
+              &copy; {currentYear} {config.appName}. {t('footer.rights')}
             </p>
           </div>
           <div className="flex items-center gap-4">

@@ -1,5 +1,5 @@
 import { Predicate } from 'iom-sdk'
-import type { ImportObjectData } from '@/hooks/api/useImportApi'
+import type { ImportObjectData } from '@/hooks/api/use-import-api'
 import { logger } from '@/lib'
 import type { Attachment } from '@/types'
 

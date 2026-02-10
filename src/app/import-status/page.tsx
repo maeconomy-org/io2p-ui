@@ -19,9 +19,10 @@ import {
   CalendarCheck,
 } from 'lucide-react'
 
-import { Button, Progress } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { useImportManager } from '@/hooks'
+import { Button, Progress } from '@/components/ui'
+import { ContentSkeleton } from '@/components/skeletons'
 
 // Job status icon component
 function JobStatusIcon({ status }: { status: string }) {
@@ -151,12 +152,7 @@ export default function ImportStatusPage() {
       <div className="container mx-auto px-4 py-6">
         <div className="max-w-4xl mx-auto">
           {jobsLoading && jobs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">
-                {t('importStatus.loadingJobs')}
-              </p>
-            </div>
+            <ContentSkeleton />
           ) : jobsError ? (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="text-center">

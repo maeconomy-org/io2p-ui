@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import Papa from 'papaparse'
 
 import { logger } from '@/lib'
@@ -164,8 +164,9 @@ export function useFileProcessor({
       const buffer = await file.arrayBuffer()
       updateProgress(40)
 
-      // Parse workbook
-      const workbook = XLSX.read(buffer, { type: 'array' })
+      // Parse workbook with ExcelJS
+      const workbook = new ExcelJS.Workbook()
+      await workbook.xlsx.load(buffer)
       updateProgress(70)
 
       return extractSheetData(workbook)
@@ -184,7 +185,7 @@ export function useFileProcessor({
           const fileSize = file.size
           const chunks: Uint8Array[] = []
 
-          reader.onload = (e) => {
+          reader.onload = async (e) => {
             if (e.target?.result instanceof ArrayBuffer) {
               // Add this chunk to our array
               chunks.push(new Uint8Array(e.target.result))
@@ -214,8 +215,9 @@ export function useFileProcessor({
                   }
 
                   // Parse the workbook from the combined chunks
-                  const workbook = XLSX.read(combinedChunks, { type: 'array' })
-                  const sheetData = extractSheetData(workbook)
+                  const workbook = new ExcelJS.Workbook()
+                  await workbook.xlsx.load(combinedChunks.buffer)
+                  const sheetData = await extractSheetData(workbook)
                   updateProgress(100)
                   resolve(sheetData)
                 } catch (err) {
@@ -253,14 +255,49 @@ export function useFileProcessor({
 
   // Helper to extract sheet data from a workbook
   const extractSheetData = useCallback(
-    (workbook: XLSX.WorkBook): SheetData[] => {
-      const sheetNames = workbook.SheetNames
+    async (workbook: ExcelJS.Workbook): Promise<SheetData[]> => {
+      const sheets: SheetData[] = []
 
-      // Process each sheet
-      const sheets = sheetNames.map((name) => {
-        // Convert sheet to JSON with headers
-        const worksheet = workbook.Sheets[name]
-        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+      // Process each worksheet
+      workbook.eachSheet((worksheet: ExcelJS.Worksheet) => {
+        const rawData: any[][] = []
+
+        // Convert worksheet to 2D array
+        worksheet.eachRow((row: ExcelJS.Row, rowNumber: number) => {
+          const rowData: any[] = []
+          row.eachCell(
+            { includeEmpty: true },
+            (cell: ExcelJS.Cell, colNumber: number) => {
+              // Get cell value, handling different types
+              let value = cell.value
+
+              // Handle formula results
+              if (
+                cell.type === ExcelJS.ValueType.Formula &&
+                cell.result !== undefined
+              ) {
+                value = cell.result
+              }
+
+              // Handle dates
+              if (value instanceof Date) {
+                value = value.toISOString()
+              }
+
+              // Handle rich text
+              if (
+                typeof value === 'object' &&
+                value !== null &&
+                'richText' in value
+              ) {
+                value = (value as any).richText.map((t: any) => t.text).join('')
+              }
+
+              rowData[colNumber - 1] = value
+            }
+          )
+          rawData.push(rowData)
+        })
 
         // Filter out empty rows
         const data = cleanSheetData(rawData)
@@ -268,7 +305,11 @@ export function useFileProcessor({
         // Try to detect the start row by finding patterns
         const suggestedStartRow = detectDataStartRow(data)
 
-        return { name, data, suggestedStartRow }
+        sheets.push({
+          name: worksheet.name,
+          data,
+          suggestedStartRow,
+        })
       })
 
       // Check if we have data

@@ -25,7 +25,9 @@
     "test:e2e:regression": "playwright test --headed --workers=1",
     "test:e2e:debug": "playwright test --headed --debug",
     "test:e2e:slow": "playwright test --headed --workers=1",
-    "test:e2e:comprehensive": "playwright test e2e/objects/object-comprehensive.spec.ts --headed"
+    "test:e2e:comprehensive": "playwright test e2e/objects/object-comprehensive.spec.ts --headed",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -61,7 +63,7 @@
     "@tanstack/react-query": "^5.75.5",
     "@tanstack/react-query-devtools": "^5.75.5",
     "autoprefixer": "^10.4.20",
-    "axios": "^1.13.3",
+    "axios": "^1.13.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
@@ -75,7 +77,7 @@
     "iom-sdk": "^0.1.13",
     "ioredis": "^5.6.1",
     "lucide-react": "^0.454.0",
-    "next": "15.5.10",
+    "next": "15.5.12",
     "next-intl": "^4.8.2",
     "next-themes": "^0.4.6",
     "papaparse": "^5.5.3",
@@ -93,7 +95,7 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
     "vaul": "^0.9.6",
-    "xlsx": "^0.18.5",
+    "exceljs": "^4.4.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -118,11 +120,26 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-tailwindcss": "^3.18.2",
     "globals": "^17.0.0",
+    "husky": "^9.1.7",
     "jsdom": "^27.3.0",
+    "lint-staged": "^16.2.7",
     "postcss": "^8",
     "prettier": "^3.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5",
     "vitest": "^4.0.16"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{js,jsx,mjs}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
   }
 }

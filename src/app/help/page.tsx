@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { Download, HelpCircle, ArrowLeft } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { APP_ACRONYM } from '@/constants'
 import { useAppConfig } from '@/contexts'
 import {
   Card,
@@ -88,7 +87,9 @@ export default function HelpPage() {
               <CardHeader>
                 <CardTitle>{t('help.usingCertificate')}</CardTitle>
                 <CardDescription>
-                  {t('help.usingCertificateDesc', { acronym: APP_ACRONYM })}
+                  {t('help.usingCertificateDesc', {
+                    acronym: config.appAcronym,
+                  })}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

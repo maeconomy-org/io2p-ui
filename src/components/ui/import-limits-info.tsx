@@ -1,7 +1,6 @@
 'use client'
 
 import { Info, Mail, AlertTriangle } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Alert,
@@ -10,7 +9,7 @@ import {
   Badge,
   Button,
 } from '@/components/ui'
-import { fetchClientConfig, type ClientConfig } from '@/constants'
+import { useAppConfig } from '@/contexts'
 
 interface ImportLimitsInfoProps {
   currentObjectCount?: number
@@ -26,15 +25,7 @@ export function ImportLimitsInfo({
   showContactForLarge = true,
 }: ImportLimitsInfoProps) {
   const t = useTranslations()
-  const [config, setConfig] = useState<ClientConfig | null>(null)
-
-  useEffect(() => {
-    fetchClientConfig().then(setConfig)
-  }, [])
-
-  if (!config) {
-    return null // Loading state
-  }
+  const config = useAppConfig()
 
   const isLargeImport = currentObjectCount > config.maxObjectsPerImport * 0.8
   const isOversized = currentSizeMB > config.maxImportPayloadMB * 0.8

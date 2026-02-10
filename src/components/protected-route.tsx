@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { useAuth } from '@/contexts'
+import { ContentSkeleton } from '@/components/skeletons'
 
 interface ProtectedRouteProps {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
@@ -20,21 +21,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
   }, [router, isAuthenticated, authLoading])
 
-  // Show loading while auth is being checked - prevents flicker
-  if (authLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-      </div>
-    )
+  // Show skeleton while auth is being checked - prevents flicker
+  if (authLoading || !isAuthenticated) {
+    return <ContentSkeleton />
   }
 
   return <>{children}</>

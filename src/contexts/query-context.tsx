@@ -13,6 +13,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fetchClientConfig, ClientConfig } from '@/constants'
 import { getSdkClient } from '@/lib/sdk-client'
+import { NavbarSkeleton, ContentSkeleton } from '@/components/skeletons'
 
 const IomSdkClientContext = createContext<Client | null>(null)
 const ConfigContext = createContext<ClientConfig | null>(null)
@@ -61,8 +62,8 @@ export function QueryProvider({ children }: PropsWithChildren) {
 
     async function init() {
       try {
-        const sdk = await getSdkClient()
         const fetchedConfig = await fetchClientConfig()
+        const sdk = getSdkClient(fetchedConfig)
 
         if (mounted) {
           setClient(sdk)
@@ -105,8 +106,9 @@ export function QueryProvider({ children }: PropsWithChildren) {
 
   if (!client || !config) {
     return (
-      <div className="flex flex-1 items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+      <div className="flex-1 flex flex-col min-h-screen">
+        <NavbarSkeleton />
+        <ContentSkeleton />
       </div>
     )
   }

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui'
 import { ObjectsTable } from '@/components/tables'
 import { isObjectDeleted } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
+import { ContentSkeleton } from '@/components/skeletons'
 import { ObjectDetailsSheet, ObjectAddSheet } from '@/components/object-sheets'
 
 function ObjectChildrenPageContent() {
@@ -99,11 +100,7 @@ function ObjectChildrenPageContent() {
   }
 
   if (parentLoading) {
-    return (
-      <div className="flex justify-center items-center h-40">
-        {t('objects.childrenPage.loadingParent')}
-      </div>
-    )
+    return <ContentSkeleton />
   }
 
   if (!parentObject) {

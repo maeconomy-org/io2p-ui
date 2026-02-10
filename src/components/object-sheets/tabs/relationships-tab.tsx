@@ -16,8 +16,8 @@ import {
   Separator,
 } from '@/components/ui'
 import { useObjectProcesses } from '@/hooks'
-import { ParentDisplay } from '../components/ParentDisplay'
-import { ParentSelector } from '../components/ParentSelector'
+import { ParentDisplay } from '../components/parent-display'
+import { ParentSelector } from '../components/parent-selector'
 
 interface RelationshipsTabProps {
   object: any

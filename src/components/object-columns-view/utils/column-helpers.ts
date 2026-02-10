@@ -26,8 +26,14 @@ export interface ObjectItem {
 }
 
 // Helper function to get column title
-export function getColumnTitle(index: number): string {
-  return index === 0 ? 'Root Objects' : `Level ${index + 1}`
+export function getColumnTitle(
+  index: number,
+  t?: (key: string, values?: Record<string, any>) => string
+): string {
+  if (!t) {
+    return index === 0 ? 'Root Objects' : `Level ${index + 1}`
+  }
+  return index === 0 ? t('rootObjects') : t('level', { level: index + 1 })
 }
 
 // Helper function to check if item has children

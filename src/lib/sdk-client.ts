@@ -1,29 +1,28 @@
 import { createClient } from 'iom-sdk'
-import { fetchClientConfig } from '@/constants'
+import type { ClientConfig } from '@/constants'
 import { logger } from '@/lib/logger'
 
 let sdkClient: ReturnType<typeof createClient> | null = null
 
-export async function getSdkClient() {
+export function getSdkClient(config: ClientConfig) {
   if (sdkClient) return sdkClient
 
-  const fetchedConfig = await fetchClientConfig()
-  const isDev = fetchedConfig.nodeEnv !== 'production'
+  const isDev = config.nodeEnv !== 'production'
 
   sdkClient = createClient({
     auth: {
-      baseUrl: fetchedConfig.authApiUrl,
-      refreshBaseUrl: fetchedConfig.authRefreshApiUrl,
+      baseUrl: config.authApiUrl,
+      refreshBaseUrl: config.authRefreshApiUrl,
       timeout: 30000,
       retries: 3,
     },
     registry: {
-      baseUrl: fetchedConfig.registryApiUrl,
+      baseUrl: config.registryApiUrl,
       timeout: 30000,
       retries: 3,
     },
     node: {
-      baseUrl: fetchedConfig.nodeApiUrl,
+      baseUrl: config.nodeApiUrl,
       timeout: 30000,
       retries: 3,
     },

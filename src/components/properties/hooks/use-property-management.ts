@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import type { UUPropertyDTO, UUPropertyValueDTO } from 'iom-sdk'
 
 import { logger } from '@/lib'
-import { useProperties } from '@/hooks/api/useProperties'
+import { useProperties } from '@/hooks/api/use-properties'
 
 /**
  * A hook that provides comprehensive property management functions

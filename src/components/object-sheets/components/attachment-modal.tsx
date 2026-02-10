@@ -26,7 +26,7 @@ import { useIomSdkClient } from '@/contexts'
 import { useUploadService } from '@/lib/upload-service'
 import { logger } from '@/lib'
 
-import { AttachmentSection } from './AttachmentSection'
+import { AttachmentSection } from './attachment-section'
 
 type AttachmentModalProps = {
   open: boolean

@@ -38,11 +38,11 @@ import {
 import { getObjectDisplayName, isExternalFileReference } from './utils'
 
 // Import tab components
-import { FilesTab } from './tabs/FilesTab'
-import { MetadataTab } from './tabs/MetadataTab'
-import { PropertiesTab } from './tabs/PropertiesTab'
-import { RelationshipsTab } from './tabs/RelationshipsTab'
-import { AttachmentModal } from './components/AttachmentModal'
+import { FilesTab } from './tabs/files-tab'
+import { MetadataTab } from './tabs/metadata-tab'
+import { PropertiesTab } from './tabs/properties-tab'
+import { RelationshipsTab } from './tabs/relationships-tab'
+import { AttachmentModal } from './components/attachment-modal'
 
 interface ObjectSheetProps {
   isOpen: boolean

@@ -8,7 +8,7 @@ import type { Attachment } from '@/types'
 import { FileDropzone, Button, Input, Separator } from '@/components/ui'
 
 import { getMaxUploadSizeMB, isOversize } from '../utils'
-import { AttachmentList } from './AttachmentList'
+import { AttachmentList } from './attachment-list'
 
 type AttachmentSectionProps = {
   title?: string

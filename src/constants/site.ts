@@ -1,11 +1,6 @@
 /**
- * Site configuration and branding
+ * Site configuration and navigation
  */
-
-// App branding (Static)
-export const APP_NAME = 'Internet of Materials'
-export const APP_DESCRIPTION = 'Material Management System'
-export const APP_ACRONYM = 'IoM'
 
 // Navigation
 export const NAV_ITEMS = [

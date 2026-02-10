@@ -1,13 +1,13 @@
 // API Hooks - Data fetching and mutations
-export * from './api/useAddresses'
-export * from './api/useAggregate'
-export * from './api/useCommonApi'
-export * from './api/useFilesApi'
-export * from './api/useImportApi'
-export * from './api/useObjects'
-export * from './api/useProperties'
-export * from './api/useStatements'
-export * from './api/useUuid'
+export * from './api/use-addresses'
+export * from './api/use-aggregate'
+export * from './api/use-common-api'
+export * from './api/use-files-api'
+export * from './api/use-import-api'
+export * from './api/use-objects'
+export * from './api/use-properties'
+export * from './api/use-statements'
+export * from './api/use-uuid'
 
 // Data Hooks - Complex data operations
 export * from './data/use-view-data'

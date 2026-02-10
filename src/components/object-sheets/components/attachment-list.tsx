@@ -8,7 +8,7 @@ import type { FileData, Attachment } from '@/types'
 import { Button, Input, Badge } from '@/components/ui'
 import { truncateText } from '@/lib'
 
-import { FileList } from './FileDisplay'
+import { FileList } from './file-display'
 
 type AttachmentListProps = {
   attachments: Attachment[]

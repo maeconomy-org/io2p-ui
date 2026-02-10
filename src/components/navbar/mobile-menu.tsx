@@ -30,8 +30,8 @@ import {
   Separator,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/contexts'
-import { APP_ACRONYM, NAV_ITEMS } from '@/constants'
+import { useAuth, useAppConfig } from '@/contexts'
+import { NAV_ITEMS } from '@/constants'
 
 const LOCALES = [
   { value: 'en', label: 'EN' },
@@ -54,6 +54,7 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
   const themeT = useTranslations('theme')
   const [isOpen, setIsOpen] = useState(false)
   const { userInfo, logout } = useAuth()
+  const config = useAppConfig()
   const locale = useLocale()
   const { theme, setTheme } = useTheme()
 
@@ -95,7 +96,7 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
           <SheetHeader className="border-b p-4">
             <SheetTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
-              <span>{APP_ACRONYM}</span>
+              <span>{config.appAcronym}</span>
             </SheetTitle>
           </SheetHeader>
 
@@ -124,9 +125,7 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
 
           {/* Bottom Section */}
           <div className="border-t bg-muted/30">
-            {/* Lang & Theme - compact row */}
             <div className="px-4 py-3 flex items-center gap-3">
-              {/* Language toggle */}
               <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
                 {LOCALES.map((item) => (
                   <button

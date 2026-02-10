@@ -14,20 +14,15 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
-import {
-  APP_NAME,
-  APP_DESCRIPTION,
-  APP_ACRONYM,
-  AUTH_FEATURES,
-  AUTH_STEPS,
-} from '@/constants'
-import { useAuth } from '@/contexts'
+import { AUTH_FEATURES, AUTH_STEPS } from '@/constants'
+import { useAuth, useAppConfig } from '@/contexts'
 import { Button, Card, Alert, AlertDescription } from '@/components/ui'
 
 export default function AuthPage() {
   const router = useRouter()
   const t = useTranslations()
   const { isAuthenticated, authLoading, handleAuth } = useAuth()
+  const config = useAppConfig()
   const [status, setStatus] = useState<
     'idle' | 'authorizing' | 'success' | 'error'
   >('idle')
@@ -110,11 +105,11 @@ export default function AuthPage() {
                 <div className="flex items-center justify-center gap-2.5 mb-6">
                   <Building2 className="h-8 w-8 text-white/90" />
                   <span className="font-bold text-2xl text-white/90">
-                    {APP_ACRONYM}
+                    {config.appAcronym}
                   </span>
                 </div>
                 <h2 className="text-3xl xl:text-4xl font-bold leading-tight mb-3">
-                  {APP_NAME}
+                  {config.appName}
                 </h2>
                 <p className="text-base text-white/70 leading-relaxed">
                   {t('auth.tagline')}
@@ -174,15 +169,15 @@ export default function AuthPage() {
           <div className="text-center lg:text-left">
             <div className="flex items-center justify-center lg:justify-start gap-2.5 mb-6 lg:hidden">
               <Building2 className="h-8 w-8 text-primary" />
-              <span className="font-bold text-2xl">{APP_ACRONYM}</span>
+              <span className="font-bold text-2xl">{config.appAcronym}</span>
             </div>
             <h1 className="text-3xl font-bold tracking-tight">
-              {t('auth.welcome', { acronym: APP_ACRONYM })}
+              {t('auth.welcome', { acronym: config.appAcronym })}
             </h1>
             <p className="mt-2 text-muted-foreground">
               {t('auth.subtitle', {
-                name: APP_NAME,
-                description: APP_DESCRIPTION,
+                name: config.appName,
+                description: config.appDescription,
               })}
             </p>
           </div>

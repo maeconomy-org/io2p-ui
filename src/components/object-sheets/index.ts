@@ -1,3 +1,3 @@
-export { ObjectDetailsSheet } from './ObjectDetailsSheet'
-export { ObjectAddSheet } from './ObjectAddSheet'
-export { ObjectModelSheet } from './ObjectModelSheet'
+export { ObjectDetailsSheet } from './object-details-sheet'
+export { ObjectAddSheet } from './object-add-sheet'
+export { ObjectModelSheet } from './object-model-sheet'

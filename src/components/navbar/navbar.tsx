@@ -8,8 +8,8 @@ import { Building2, Search } from 'lucide-react'
 
 import { CommandCenter, useCommandCenter } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { useSearch } from '@/contexts'
-import { APP_ACRONYM, NAV_ITEMS } from '@/constants'
+import { useSearch, useAppConfig } from '@/contexts'
+import { NAV_ITEMS } from '@/constants'
 import { UserProfileDropdown } from './user-profile-dropdown'
 import { MobileMenu } from './mobile-menu'
 
@@ -19,6 +19,7 @@ export default function Navbar() {
   const [isMac, setIsMac] = useState(false)
   const { searchQuery, isSearching, isSearchMode, executeSearchFromParsed } =
     useSearch()
+  const config = useAppConfig()
 
   const { open: commandCenterOpen, setOpen: setCommandCenterOpen } =
     useCommandCenter()
@@ -37,7 +38,7 @@ export default function Navbar() {
               <Link href="/objects">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-6 w-6 text-primary" />
-                  <span className="font-bold text-xl">{APP_ACRONYM}</span>
+                  <span className="font-bold text-xl">{config.appAcronym}</span>
                 </div>
               </Link>
 

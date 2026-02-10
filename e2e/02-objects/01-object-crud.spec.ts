@@ -341,16 +341,18 @@ test.describe('01 - Object CRUD Operations', () => {
     await page.getByRole('tab', { name: /metadata/i }).click()
 
     // Find address section edit button (sibling of Address heading)
-    await page
+    const a = await page
       .getByRole('heading', { name: 'Address' })
       .scrollIntoViewIfNeeded()
-    await page
+    console.log(a)
+    const b = await page
       .getByRole('heading', { name: 'Address' })
       .locator('..')
       .getByRole('button', { name: 'Edit' })
       .click()
-
+    console.log(b)
     const addressInput = page.getByPlaceholder(/search.*address/i)
+    console.log(addressInput)
     await addressInput.fill('Munich')
 
     const suggestion = page
