@@ -1,9 +1,9 @@
 'use client'
 
-import type { Attachment } from '@/types'
-import { logger } from './logger'
-import { useIomSdkClient } from '@/contexts'
 import type { Client } from 'iom-sdk'
+import type { Attachment } from '@/types'
+import { useIomSdkClient } from '@/contexts'
+import { logger } from './logger'
 
 // Use the actual SDK Client type
 type ApiClient = Client
