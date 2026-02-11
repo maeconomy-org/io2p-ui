@@ -129,9 +129,11 @@ export function QRCodeModal({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>QR Code for {objectName}</DialogTitle>
+          <DialogTitle>
+            {t('objects.qrCodeTitle', { name: objectName })}
+          </DialogTitle>
           <DialogDescription>
-            Scan this code to access the object details
+            {t('objects.qrCodeDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -153,7 +155,7 @@ export function QRCodeModal({
               disabled={!qrRendered || isDownloading}
             >
               <FileImage className="mr-2 h-4 w-4" />
-              PNG
+              {t('objects.qrCodeDownloadPng')}
             </Button>
 
             <Button
@@ -163,13 +165,12 @@ export function QRCodeModal({
               disabled={!qrRendered || isDownloading}
             >
               <FileCode className="mr-2 h-4 w-4" />
-              SVG
+              {t('objects.qrCodeDownloadSvg')}
             </Button>
           </div>
 
           <p className="mt-2 text-xs text-center text-muted-foreground">
-            Downloads a high-resolution (1200×1200) version suitable for
-            printing
+            {t('objects.qrCodeDownloadDescription')}
           </p>
         </div>
       </DialogContent>

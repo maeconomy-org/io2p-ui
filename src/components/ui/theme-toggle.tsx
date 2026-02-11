@@ -82,7 +82,7 @@ export function ThemeSelect({ className }: { className?: string }) {
           <DropdownMenuItem
             key={item.value}
             onClick={() => setTheme(item.value)}
-            className="flex items-center justify-between"
+            className="flex items-center justify-between cursor-pointer"
           >
             <span className="flex items-center gap-2">
               <item.icon className="h-4 w-4" />
@@ -107,7 +107,7 @@ export function ThemeDropdownItem() {
 
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger>
+      <DropdownMenuSubTrigger className="cursor-pointer">
         <Sun className="h-4 w-4 rotate-0 scale-100 dark:-rotate-90 dark:scale-0" />
         <Moon className="absolute h-4 w-4 ml-0 rotate-90 scale-0 dark:rotate-0 dark:scale-100" />
         <span className="ml-2">{t('toggle')}</span>
@@ -115,7 +115,11 @@ export function ThemeDropdownItem() {
       <DropdownMenuSubContent>
         <DropdownMenuRadioGroup value={theme} onValueChange={handleChange}>
           {THEMES.map((item) => (
-            <DropdownMenuRadioItem key={item.value} value={item.value}>
+            <DropdownMenuRadioItem
+              key={item.value}
+              value={item.value}
+              className="cursor-pointer"
+            >
               <span className="flex items-center gap-2 justify-between w-full">
                 <span className="flex items-center gap-2">
                   <item.icon className="h-4 w-4" />
