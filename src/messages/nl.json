@@ -949,5 +949,56 @@
     "customProperties": "Aangepaste eigenschappen",
     "processNotes": "Procesnotities",
     "close": "Sluiten"
+  },
+  "processTable": {
+    "process": "Proces",
+    "quantity": "Hoeveelheid",
+    "inputMaterial": "Invoermateriaal",
+    "outputMaterial": "Uitvoermateriaal",
+    "flow": "Flow",
+    "emissions": "Emissies",
+    "loss": "Verlies %",
+    "quality": "Kwaliteit",
+    "noRelationshipsFound": "Geen relaties gevonden",
+    "noRelationshipsOnPage": "Geen relaties op deze pagina"
+  },
+  "lifecycleStages": {
+    "PRIMARY_INPUT": "Primaire invoer",
+    "SECONDARY_INPUT": "Secundaire invoer",
+    "REUSED_COMPONENT": "Hergebruikt component",
+    "PROCESSING": "Verwerking",
+    "COMPONENT": "Component",
+    "PRODUCT": "Product",
+    "USE_PHASE": "Gebruiksfase",
+    "WASTE": "Afval",
+    "DISPOSAL": "Afvoer"
+  },
+  "processCategories": {
+    "CONSTRUCTION": "Bouw",
+    "DECONSTRUCTION": "Demontage",
+    "SORTING": "Sortering",
+    "RECYCLING": "Recycling",
+    "REFURBISHMENT": "Renovatie",
+    "TRANSPORT": "Transport",
+    "DEMOLITION": "Sloop",
+    "DISPOSAL": "Afvoer"
+  },
+  "materialCategories": {
+    "CONCRETE": "Beton en betonproducten",
+    "STEEL": "Staal en staalproducten",
+    "TIMBER": "Hout en houtproducten",
+    "MASONRY": "Baksteen, steen en metselwerk",
+    "WINDOW_UNIT": "Ramen en beglazingssystemen",
+    "DOOR_UNIT": "Deuren en deursystemen",
+    "ROOFING": "Dakbedekking en daksystemen",
+    "INSULATION": "Thermische en akoestische isolatie",
+    "HVAC": "Verwarming, ventilatie en airconditioning",
+    "ELECTRICAL": "Elektrische systemen en componenten",
+    "PLUMBING": "Sanitair en watersystemen",
+    "FLOORING": "Vloermaterialen en -systemen",
+    "WALL_FINISH": "Wandafwerking en gevelbekleding",
+    "CEILING": "Plafond systemen en afwerking",
+    "MIXED_WASTE": "Gemengd bouwafval",
+    "HAZARDOUS_WASTE": "Gevaarlijke materialen en afval"
   }
 }

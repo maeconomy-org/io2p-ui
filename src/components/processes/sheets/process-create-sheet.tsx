@@ -59,6 +59,8 @@ export function ProcessCreateSheet({
   onSave,
 }: ProcessCreateSheetProps) {
   const t = useTranslations()
+  const tProcessCategories = useTranslations('processCategories')
+  const tLifecycle = useTranslations('lifecycleStages')
   const [formData, setFormData] = useState<ProcessFlowData>({
     uuid: '',
     name: '',
@@ -308,7 +310,7 @@ export function ProcessCreateSheet({
                         <SelectContent>
                           {PROCESS_CATEGORIES.map((category) => (
                             <SelectItem key={category} value={category}>
-                              {formatCategoryName(category)}
+                              {tProcessCategories(category)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -511,10 +513,10 @@ export function ProcessCreateSheet({
                                       variant="outline"
                                       className="text-xs"
                                     >
-                                      {(
+                                      {tLifecycle(
                                         material.metadata.lifecycleStage ||
-                                        material.metadata.inputLifecycleStage
-                                      )?.replace(/_/g, ' ')}
+                                          material.metadata.inputLifecycleStage
+                                      )}
                                     </Badge>
                                   )}
                                   {material.metadata.categoryCode && (
@@ -582,7 +584,7 @@ export function ProcessCreateSheet({
                         onClick={() => addNewMaterial('output')}
                       >
                         <Plus className="h-4 w-4 mr-1" />
-                        Add
+                        {t('processes.form.add')}
                       </Button>
                     </div>
                   </CardHeader>
@@ -615,10 +617,10 @@ export function ProcessCreateSheet({
                                       variant="outline"
                                       className="text-xs"
                                     >
-                                      {(
+                                      {tLifecycle(
                                         material.metadata.lifecycleStage ||
-                                        material.metadata.outputLifecycleStage
-                                      )?.replace(/_/g, ' ')}
+                                          material.metadata.outputLifecycleStage
+                                      )}
                                     </Badge>
                                   )}
                                   {material.metadata.categoryCode && (
@@ -639,7 +641,7 @@ export function ProcessCreateSheet({
                                 size="sm"
                                 onClick={() => editMaterial(material, 'output')}
                               >
-                                Edit
+                                {t('processes.form.edit')}
                               </Button>
                               <Button
                                 type="button"
@@ -657,7 +659,7 @@ export function ProcessCreateSheet({
                       </div>
                     ) : (
                       <div className="text-center py-8 text-gray-500">
-                        <p className="text-sm">Click "Add" to get started</p>
+                        <p className="text-sm">{t('processes.form.empty')}</p>
                       </div>
                     )}
                     {errors.outputs && (

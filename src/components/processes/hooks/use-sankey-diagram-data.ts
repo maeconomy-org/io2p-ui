@@ -48,16 +48,6 @@ export function useSankeyDiagramData(
     ? useObjectRelationships(objectUuid, { predicate: 'IS_INPUT_OF' })
     : useStatementsByPredicate('IS_INPUT_OF')
 
-  // Debug: Log raw API responses
-  logger.info('Raw API responses:', {
-    objectUuid,
-    inputStatementsQuery: {
-      data: inputStatementsQuery.data,
-      isLoading: inputStatementsQuery.isLoading,
-      error: inputStatementsQuery.error,
-    },
-  })
-
   // Extract participating object UUIDs
   const participatingUUIDs = useMemo(() => {
     let statements: UUStatementDTO[] = []

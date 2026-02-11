@@ -1,4 +1,4 @@
-import { ProcessCategory } from '@/types/sankey-metadata'
+import { ProcessCategory, LifecycleStage } from '@/types/sankey-metadata'
 
 export const PROCESS_CATEGORIES: ProcessCategory[] = [
   'CONSTRUCTION',
@@ -8,6 +8,18 @@ export const PROCESS_CATEGORIES: ProcessCategory[] = [
   'REFURBISHMENT',
   'TRANSPORT',
   'DEMOLITION',
+  'DISPOSAL',
+]
+
+export const LIFECYCLE_STAGES: LifecycleStage[] = [
+  'PRIMARY_INPUT',
+  'SECONDARY_INPUT',
+  'REUSED_COMPONENT',
+  'PROCESSING',
+  'COMPONENT',
+  'PRODUCT',
+  'USE_PHASE',
+  'WASTE',
   'DISPOSAL',
 ]
 
@@ -48,3 +60,31 @@ export const LIFECYCLE_STAGE_COLORS = [
   '#F97316', // orange
   '#84CC16', // lime
 ]
+
+export const DOMAIN_CATEGORY_CODES = {
+  // Structural materials
+  CONCRETE: 'CONCRETE',
+  STEEL: 'STEEL',
+  TIMBER: 'TIMBER',
+  MASONRY: 'MASONRY',
+
+  // Building components
+  WINDOW_UNIT: 'WINDOW_UNIT',
+  DOOR_UNIT: 'DOOR_UNIT',
+  ROOFING: 'ROOFING',
+  INSULATION: 'INSULATION',
+
+  // Systems
+  HVAC: 'HVAC',
+  ELECTRICAL: 'ELECTRICAL',
+  PLUMBING: 'PLUMBING',
+
+  // Finishes
+  FLOORING: 'FLOORING',
+  WALL_FINISH: 'WALL_FINISH',
+  CEILING: 'CEILING',
+
+  // Waste streams
+  MIXED_WASTE: 'MIXED_WASTE',
+  HAZARDOUS_WASTE: 'HAZARDOUS_WASTE',
+} as const

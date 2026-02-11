@@ -949,5 +949,56 @@
     "customProperties": "Custom Properties",
     "processNotes": "Process Notes",
     "close": "Close"
+  },
+  "processTable": {
+    "process": "Process",
+    "quantity": "Quantity",
+    "inputMaterial": "Input Material",
+    "outputMaterial": "Output Material",
+    "flow": "Flow",
+    "emissions": "Emissions",
+    "loss": "Loss %",
+    "quality": "Quality",
+    "noRelationshipsFound": "No relationships found",
+    "noRelationshipsOnPage": "No relationships on this page"
+  },
+  "lifecycleStages": {
+    "PRIMARY_INPUT": "Primary Input",
+    "SECONDARY_INPUT": "Secondary Input",
+    "REUSED_COMPONENT": "Reused Component",
+    "PROCESSING": "Processing",
+    "COMPONENT": "Component",
+    "PRODUCT": "Product",
+    "USE_PHASE": "Use Phase",
+    "WASTE": "Waste",
+    "DISPOSAL": "Disposal"
+  },
+  "processCategories": {
+    "CONSTRUCTION": "Construction",
+    "DECONSTRUCTION": "Deconstruction",
+    "SORTING": "Sorting",
+    "RECYCLING": "Recycling",
+    "REFURBISHMENT": "Refurbishment",
+    "TRANSPORT": "Transport",
+    "DEMOLITION": "Demolition",
+    "DISPOSAL": "Disposal"
+  },
+  "materialCategories": {
+    "CONCRETE": "Concrete and concrete products",
+    "STEEL": "Steel and steel products",
+    "TIMBER": "Timber and wood products",
+    "MASONRY": "Brick, stone, and masonry",
+    "WINDOW_UNIT": "Windows and glazing systems",
+    "DOOR_UNIT": "Doors and door systems",
+    "ROOFING": "Roofing materials and systems",
+    "INSULATION": "Thermal and acoustic insulation",
+    "HVAC": "Heating, ventilation, and air conditioning",
+    "ELECTRICAL": "Electrical systems and components",
+    "PLUMBING": "Plumbing and water systems",
+    "FLOORING": "Flooring materials and systems",
+    "WALL_FINISH": "Wall finishes and cladding",
+    "CEILING": "Ceiling systems and finishes",
+    "MIXED_WASTE": "Mixed construction waste",
+    "HAZARDOUS_WASTE": "Hazardous materials and waste"
   }
 }

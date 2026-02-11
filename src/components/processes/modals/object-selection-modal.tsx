@@ -22,23 +22,9 @@ import {
 } from '@/components/ui'
 import { useCommonApi } from '@/hooks/api'
 import { UNIT_CATEGORIES } from '@/constants'
-import {
-  LifecycleStage,
-  MaterialFlowMetadata,
-  DOMAIN_CATEGORY_CODES,
-} from '@/types/sankey-metadata'
-
-const LIFECYCLE_STAGES: LifecycleStage[] = [
-  'PRIMARY_INPUT',
-  'SECONDARY_INPUT',
-  'REUSED_COMPONENT',
-  'PROCESSING',
-  'COMPONENT',
-  'PRODUCT',
-  'USE_PHASE',
-  'WASTE',
-  'DISPOSAL',
-]
+import { logger } from '@/lib'
+import { LifecycleStage, MaterialFlowMetadata } from '@/types/sankey-metadata'
+import { LIFECYCLE_STAGES, DOMAIN_CATEGORY_CODES } from '../constants'
 
 interface ObjectSelectionData {
   object: UUObjectDTO
@@ -66,6 +52,8 @@ export function ObjectSelectionModal({
   showMetadataFields = true,
 }: ObjectSelectionModalProps) {
   const t = useTranslations()
+  const tLifecycle = useTranslations('lifecycleStages')
+  const tMaterialCategories = useTranslations('materialCategories')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedObject, setSelectedObject] = useState<UUObjectDTO | null>(null)
   const [quantity, setQuantity] = useState<number | undefined>(undefined)
@@ -100,7 +88,7 @@ export function ObjectSelectionModal({
             setObjects(response?.content || [])
           })
           .catch((error) => {
-            console.error('Search failed:', error)
+            logger.error('Search failed:', error)
             setObjects([])
           })
           .finally(() => {
@@ -370,10 +358,7 @@ export function ObjectSelectionModal({
                       <SelectContent>
                         {LIFECYCLE_STAGES.map((stage) => (
                           <SelectItem key={stage} value={stage}>
-                            {stage
-                              .replace(/_/g, ' ')
-                              .toLowerCase()
-                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                            {tLifecycle(stage)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -396,13 +381,11 @@ export function ObjectSelectionModal({
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(DOMAIN_CATEGORY_CODES).map(
-                          ([key, value]) => (
-                            <SelectItem key={key} value={key}>
-                              {value}
-                            </SelectItem>
-                          )
-                        )}
+                        {Object.keys(DOMAIN_CATEGORY_CODES).map((key) => (
+                          <SelectItem key={key} value={key}>
+                            {tMaterialCategories(key)}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -446,11 +429,27 @@ export function ObjectSelectionModal({
                   placeholder={t('objectSelection.propertyName')}
                   value={newPropertyKey}
                   onChange={(e) => setNewPropertyKey(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (newPropertyKey.trim() && newPropertyValue.trim()) {
+                        addCustomProperty()
+                      }
+                    }
+                  }}
                 />
                 <Input
                   placeholder={t('objectSelection.propertyValue')}
                   value={newPropertyValue}
                   onChange={(e) => setNewPropertyValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (newPropertyKey.trim() && newPropertyValue.trim()) {
+                        addCustomProperty()
+                      }
+                    }
+                  }}
                 />
                 <Button
                   type="button"

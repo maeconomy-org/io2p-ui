@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { ArrowRight } from 'lucide-react'
 
 import {
@@ -32,6 +33,7 @@ export function ProcessTableView({
   selectedRelationship,
   pageSize = 10,
 }: ProcessTableViewProps) {
+  const t = useTranslations('processTable')
   const [searchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
 
@@ -126,15 +128,15 @@ export function ProcessTableView({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Process</TableHead>
-              <TableHead className="text-right">Quantity</TableHead>
-              <TableHead>Input Material</TableHead>
+              <TableHead>{t('process')}</TableHead>
+              <TableHead className="text-right">{t('quantity')}</TableHead>
+              <TableHead>{t('inputMaterial')}</TableHead>
               <TableHead className="text-center w-12"></TableHead>
-              <TableHead>Output Material</TableHead>
-              <TableHead className="text-center">Flow</TableHead>
-              <TableHead className="text-right">Emissions</TableHead>
-              <TableHead className="text-right">Loss %</TableHead>
-              <TableHead className="text-center">Quality</TableHead>
+              <TableHead>{t('outputMaterial')}</TableHead>
+              <TableHead className="text-center">{t('flow')}</TableHead>
+              <TableHead className="text-right">{t('emissions')}</TableHead>
+              <TableHead className="text-right">{t('loss')}</TableHead>
+              <TableHead className="text-center">{t('quality')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -145,8 +147,8 @@ export function ProcessTableView({
                   {...{ colSpan: 9 }}
                 >
                   {filteredRelationships.length === 0
-                    ? 'No relationships found'
-                    : 'No relationships on this page'}
+                    ? t('noRelationshipsFound')
+                    : t('noRelationshipsOnPage')}
                 </TableCell>
               </TableRow>
             ) : (

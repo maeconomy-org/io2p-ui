@@ -159,33 +159,10 @@ export interface EnhancedMaterialRelationship {
 
 /**
  * Domain category codes for material classification
+ * @deprecated Import from '@/components/processes/constants' instead
+ * Re-exported here for backward compatibility
  */
-export const DOMAIN_CATEGORY_CODES = {
-  // Structural materials
-  CONCRETE: 'Concrete and concrete products',
-  STEEL: 'Steel and steel products',
-  TIMBER: 'Timber and wood products',
-  MASONRY: 'Brick, stone, and masonry',
+import { DOMAIN_CATEGORY_CODES as _DOMAIN_CATEGORY_CODES } from '@/components/processes/constants'
 
-  // Building components
-  WINDOW_UNIT: 'Windows and glazing systems',
-  DOOR_UNIT: 'Doors and door systems',
-  ROOFING: 'Roofing materials and systems',
-  INSULATION: 'Thermal and acoustic insulation',
-
-  // Systems
-  HVAC: 'Heating, ventilation, and air conditioning',
-  ELECTRICAL: 'Electrical systems and components',
-  PLUMBING: 'Plumbing and water systems',
-
-  // Finishes
-  FLOORING: 'Flooring materials and systems',
-  WALL_FINISH: 'Wall finishes and cladding',
-  CEILING: 'Ceiling systems and finishes',
-
-  // Waste streams
-  MIXED_WASTE: 'Mixed construction waste',
-  HAZARDOUS_WASTE: 'Hazardous materials and waste',
-} as const
-
-export type DomainCategoryCode = keyof typeof DOMAIN_CATEGORY_CODES
+export { DOMAIN_CATEGORY_CODES } from '@/components/processes/constants'
+export type DomainCategoryCode = keyof typeof _DOMAIN_CATEGORY_CODES
