@@ -33,7 +33,9 @@ export function getColumnTitle(
   if (!t) {
     return index === 0 ? 'Root Objects' : `Level ${index + 1}`
   }
-  return index === 0 ? t('rootObjects') : t('level', { level: index + 1 })
+  return index === 0
+    ? t('objects.columnsView.rootObjects')
+    : t('objects.columnsView.level', { level: index + 1 })
 }
 
 // Helper function to check if item has children

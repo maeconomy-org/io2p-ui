@@ -3,6 +3,7 @@
 import { ReactNode, useState } from 'react'
 import { Edit, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
 import { Button } from '@/components/ui'
@@ -26,11 +27,13 @@ export function EditableSection({
   renderDisplay,
   renderEdit,
   onSave,
-  successMessage = 'Changes saved successfully',
+  successMessage,
   showToast = true,
   headerExtra,
 }: EditableSectionProps) {
   const [isSaving, setIsSaving] = useState(false)
+  const t = useTranslations()
+  const resolvedSuccessMessage = successMessage ?? t('common.savedSuccessfully')
 
   const handleSave = async () => {
     if (!onSave) {
@@ -45,13 +48,13 @@ export function EditableSection({
 
       // Show a success toast with Sonner only if showToast is true
       if (showToast) {
-        toast.success(successMessage)
+        toast.success(resolvedSuccessMessage)
       }
     } catch (error) {
       logger.error('Error saving section:', error)
 
       // Always show error toasts
-      toast.error('Failed to save changes. Please try again.')
+      toast.error(t('common.saveFailed'))
     } finally {
       setIsSaving(false)
     }
@@ -76,7 +79,7 @@ export function EditableSection({
               disabled={isSaving}
             >
               <X className="h-4 w-4 mr-2" />
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               variant="default"
@@ -85,7 +88,7 @@ export function EditableSection({
               disabled={isSaving}
             >
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save'}
+              {isSaving ? t('common.saving') : t('common.save')}
             </Button>
           </div>
         ) : (
@@ -95,7 +98,7 @@ export function EditableSection({
             onClick={() => onEditToggle(true)}
           >
             <Edit className="h-4 w-4 mr-2" />
-            Edit
+            {t('common.edit')}
           </Button>
         )}
       </div>

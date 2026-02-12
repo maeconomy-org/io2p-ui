@@ -112,7 +112,7 @@ export function ObjectColumnsView({
                   onSearchChange={(searchTerm) =>
                     handleColumnSearchChange(index, searchTerm)
                   }
-                  columnTitle={getColumnTitle(index)}
+                  columnTitle={getColumnTitle(index, t)}
                 />
               )
             })}

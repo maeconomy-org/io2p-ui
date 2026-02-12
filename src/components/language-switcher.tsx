@@ -54,7 +54,7 @@ export function LanguageSelect({ className }: { className?: string }) {
           <DropdownMenuItem
             key={item.value}
             onClick={() => handleChange(item.value)}
-            className="flex items-center justify-between"
+            className="flex items-center cursor-pointer justify-between"
           >
             <span>{item.label}</span>
             {locale === item.value && <Check className="h-3 w-3" />}
@@ -76,14 +76,18 @@ export function LanguageDropdownItem() {
 
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger>
+      <DropdownMenuSubTrigger className="cursor-pointer">
         <Languages className="h-4 w-4 mr-2" />
         {t('footer.language')}
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
         <DropdownMenuRadioGroup value={locale} onValueChange={handleChange}>
           {LOCALES.map((item) => (
-            <DropdownMenuRadioItem key={item.value} value={item.value}>
+            <DropdownMenuRadioItem
+              key={item.value}
+              value={item.value}
+              className="cursor-pointer"
+            >
               <span className="flex items-center gap-2 justify-between w-full">
                 {item.label}
                 {locale === item.value && <Check className="h-3 w-3" />}

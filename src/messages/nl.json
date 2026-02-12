@@ -63,7 +63,11 @@
     "confirm": "Bevestigen",
     "new": "Nieuw",
     "deleted": "Verwijderd",
-    "download": "Downloaden"
+    "download": "Downloaden",
+    "save": "Opslaan",
+    "saving": "Opslaan...",
+    "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",
+    "savedSuccessfully": "Wijzigingen succesvol opgeslagen"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -342,6 +346,8 @@
     "doNotReload": "⚠️ Herlaad de pagina niet tijdens het uploaden",
     "qrCodeTitle": "QR-code voor {name}",
     "qrCodeDescription": "Scan deze code om de objectdetails te openen",
+    "qrCodeDownloadPng": "Download PNG",
+    "qrCodeDownloadSvg": "Download SVG",
     "qrCodeDownloadDescription": "Download een hoge resolutie (1200×1200) versie geschikt voor afdrukken",
     "templateDialogTitle": "Sjabloon aanmaken",
     "templateDialogDescription": "Configureer de sjabloondetails voordat u deze aanmaakt vanuit dit object.",
@@ -417,7 +423,9 @@
     },
     "columnsView": {
       "noObjects": "Geen objecten gevonden",
-      "loadData": "Laad gegevens om de objecthiërarchie te verkennen"
+      "loadData": "Laad gegevens om de objecthiërarchie te verkennen",
+      "rootObjects": "Hoofdobjecten",
+      "level": "Niveau {level}"
     },
     "properties": {
       "noProperties": "Geen eigenschappen gedefinieerd",
