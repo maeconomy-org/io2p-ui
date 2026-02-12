@@ -72,6 +72,15 @@ export function filterNoisyErrors(event: SentryEvent): SentryEvent | null {
     return null
   }
 
+  // Next.js Server Action errors (bot traffic and version skew)
+  // These are logged but don't affect legitimate users
+  if (
+    errorMessage.includes('Failed to find Server Action') ||
+    errorMessage.includes("Missing 'next-action' header")
+  ) {
+    return null
+  }
+
   // Client-side noise
   if (
     errorMessage.includes('NetworkError') ||
