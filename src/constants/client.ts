@@ -15,6 +15,7 @@ export interface ClientConfig {
 
   // Environment
   nodeEnv: string
+  emailLoginEnabled: string
 
   // App information
   appName: string
@@ -39,6 +40,7 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   sentryEnabled: 'false',
   sentryRelease: '',
   nodeEnv: 'development',
+  emailLoginEnabled: 'false',
   appName: 'Internet of Materials',
   appDescription: 'Material Management System',
   appAcronym: 'IoM',

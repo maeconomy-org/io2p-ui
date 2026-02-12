@@ -85,6 +85,12 @@ export default function LoginPage() {
   }
 
   const onEmailSubmit = async (data: LoginFormData) => {
+    // check if emaillogin is enabled
+    if (config.emailLoginEnabled === 'false') {
+      setError(t('auth.errors.emailLoginDisabled'))
+      return
+    }
+
     setSubmitting(true)
     setError(null)
 
@@ -146,93 +152,100 @@ export default function LoginPage() {
             </div>
           )}
 
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onEmailSubmit)}
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem className="text-left">
-                    <FormLabel>{t('auth.email.label')}</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder={t('auth.email.placeholder')}
-                          className="pl-10"
-                          disabled={isLoading}
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage>
-                      {form.formState.errors.email?.message &&
-                        (form.formState.errors.email.message.startsWith('auth.')
-                          ? t(form.formState.errors.email.message)
-                          : form.formState.errors.email.message)}
-                    </FormMessage>
-                  </FormItem>
-                )}
-              />
+          {config.emailLoginEnabled === 'true' && (
+            <>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onEmailSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem className="text-left">
+                        <FormLabel>{t('auth.email.label')}</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder={t('auth.email.placeholder')}
+                              className="pl-10"
+                              disabled={isLoading}
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <p className="text-red-500 text-sm">
+                          {form.formState.errors.email?.message &&
+                            (form.formState.errors.email.message.startsWith(
+                              'auth.'
+                            )
+                              ? t(form.formState.errors.email.message)
+                              : form.formState.errors.email.message)}
+                        </p>
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem className="text-left">
-                    <FormLabel>{t('auth.password.label')}</FormLabel>
-                    <FormControl>
-                      <PasswordInput
-                        placeholder={t('auth.password.placeholder')}
-                        disabled={isLoading}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage>
-                      {form.formState.errors.password?.message &&
-                        (form.formState.errors.password.message.startsWith(
-                          'auth.'
-                        )
-                          ? t(form.formState.errors.password.message)
-                          : form.formState.errors.password.message)}
-                    </FormMessage>
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem className="text-left">
+                        <FormLabel>{t('auth.password.label')}</FormLabel>
+                        <FormControl>
+                          <PasswordInput
+                            placeholder={t('auth.password.placeholder')}
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <p className="text-red-500 text-sm">
+                          {form.formState.errors.password?.message &&
+                            (form.formState.errors.password.message.startsWith(
+                              'auth.'
+                            )
+                              ? t(form.formState.errors.password.message)
+                              : form.formState.errors.password.message)}
+                        </p>
+                      </FormItem>
+                    )}
+                  />
 
-              <Button
-                type="submit"
-                className="w-full py-6 text-base"
-                disabled={isLoading}
-              >
-                {submitting ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (
-                  <Mail className="mr-2 h-5 w-5" />
-                )}
-                {t('auth.email.signIn')}
-                {!submitting && <ArrowRight className="ml-2 h-4 w-4" />}
-              </Button>
-            </form>
-          </Form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                {t('auth.orContinueWith')}
-              </span>
-            </div>
-          </div>
+                  <Button
+                    type="submit"
+                    className="w-full py-6 text-base"
+                    disabled={isLoading}
+                  >
+                    {submitting ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                      <Mail className="mr-2 h-5 w-5" />
+                    )}
+                    {t('auth.email.signIn')}
+                    {!submitting && <ArrowRight className="ml-2 h-4 w-4" />}
+                  </Button>
+                </form>
+              </Form>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    {t('auth.orContinueWith')}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
 
           <Button
             onClick={handleCertificateAuth}
-            variant="outline"
+            variant={
+              config.emailLoginEnabled === 'true' ? 'outline' : 'default'
+            }
             className="w-full py-6 text-base"
             disabled={isLoading}
           >
