@@ -17,6 +17,7 @@ export async function GET() {
 
     // Environment
     nodeEnv: process.env.NODE_ENV || 'development',
+    emailLoginEnabled: process.env.EMAIL_LOGIN_ENABLED || 'false',
 
     // App information (client-side needed)
     appName: process.env.APP_NAME || 'Internet of Materials',
