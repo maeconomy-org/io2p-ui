@@ -8,6 +8,9 @@ import {
   FileUp,
 } from 'lucide-react'
 
+export const PUBLIC_PAGES: string[] = ['/', '/help', '/terms', '/privacy']
+export const PUBLIC_PAGES_SET = new Set(PUBLIC_PAGES)
+
 export const AUTH_FEATURES = [
   { icon: Boxes, key: 'featureObjects' },
   { icon: ArrowLeftRight, key: 'featureProcesses' },

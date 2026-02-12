@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { Trash2, Loader2, FileText, RotateCcw } from 'lucide-react'
+import { Trash2, Loader2, FileText, RotateCcw, Copy } from 'lucide-react'
 
 import { logger } from '@/lib'
 import {
@@ -26,6 +26,7 @@ import {
   DeleteConfirmationDialog,
   TemplateCreationDialog,
 } from '@/components/modals'
+import { CopyObjectsSheet } from './copy-objects-sheet'
 
 // Import our extracted hooks and utilities
 import {
@@ -73,6 +74,9 @@ export function ObjectDetailsSheet({
   // Template creation state
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+
+  // Copy objects state
+  const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
 
   // Property and value attachment modal states
   const [attachmentModal, setAttachmentModal] = useState<{
@@ -523,25 +527,36 @@ export function ObjectDetailsSheet({
                 )}
               </div>
               {object?.uuid && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCreateTemplate}
-                  disabled={isCreatingTemplate}
-                  className="w-full"
-                >
-                  {isCreatingTemplate ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {t('objects.creatingTemplate')}
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-2" />
-                      {t('objects.createTemplate')}
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2 w-full">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCreateTemplate}
+                    disabled={isCreatingTemplate}
+                    className="flex-1"
+                  >
+                    {isCreatingTemplate ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {t('objects.creatingTemplate')}
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4 mr-2" />
+                        {t('objects.createTemplate')}
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsCopySheetOpen(true)}
+                    className="flex-1"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    {t('objects.duplicate.action')}
+                  </Button>
+                </div>
               )}
             </div>
           </SheetFooter>
@@ -611,6 +626,22 @@ export function ObjectDetailsSheet({
         onConfirm={handleConfirmTemplateCreation}
         isCreating={isCreatingTemplate}
       />
+
+      {/* Copy Objects Sheet */}
+      {object?.uuid && (
+        <CopyObjectsSheet
+          open={isCopySheetOpen}
+          onOpenChange={setIsCopySheetOpen}
+          preselectedObjects={[
+            {
+              uuid: object.uuid,
+              name: object.name,
+              hasChildren: object.children && object.children.length > 0,
+              childCount: object.children?.length || 0,
+            },
+          ]}
+        />
+      )}
     </>
   )
 }

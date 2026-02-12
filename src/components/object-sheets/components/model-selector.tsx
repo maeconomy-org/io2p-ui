@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Check, ChevronsUpDown, FileText, Loader2 } from 'lucide-react'
 
@@ -55,6 +55,8 @@ export function ModelSelector({
   // Use the global search API
   const { useSearch } = useCommonApi()
   const searchMutation = useSearch()
+  const searchMutationRef = useRef(searchMutation)
+  searchMutationRef.current = searchMutation
 
   // Unified search function
   const performSearch = useCallback(
@@ -63,7 +65,7 @@ export function ModelSelector({
 
       setIsSearching(true)
       try {
-        const results = await searchMutation.mutateAsync({
+        const results = await searchMutationRef.current.mutateAsync({
           searchBy: {
             isTemplate: true,
             softDeleted: false,
@@ -101,7 +103,7 @@ export function ModelSelector({
         setIsSearching(false)
       }
     },
-    [open, searchMutation]
+    [open]
   )
 
   // Handle search logic (debounced)

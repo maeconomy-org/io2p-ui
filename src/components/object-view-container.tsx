@@ -11,6 +11,7 @@ interface ObjectViewContainerProps {
   viewData: ViewData
   onViewObject?: (object: any) => void
   onObjectDoubleClick?: (object: any) => void
+  onDuplicate?: (object: any) => void
   showDeleted?: boolean
 }
 
@@ -19,6 +20,7 @@ export function ObjectViewContainer({
   viewData,
   onViewObject,
   onObjectDoubleClick,
+  onDuplicate,
   showDeleted = false,
 }: ObjectViewContainerProps) {
   switch (viewType) {
@@ -63,6 +65,7 @@ export function ObjectViewContainer({
           fetching={viewData.fetching}
           rootPagination={viewData.rootPagination}
           onViewObject={onViewObject}
+          onDuplicate={onDuplicate}
           showDeleted={showDeleted}
         />
       )

@@ -119,12 +119,12 @@
     "selectCertificate": "Please select your certificate when prompted by your browser",
     "browserPromptTitle": "Browser Prompt:",
     "browserPrompt": "You may see a certificate selection dialog. Choose your organization's client certificate to continue.",
-    "success": "Successfully authenticated with certificate",
+    "success": "Successfully authenticated",
     "redirecting": "You are being redirected to the application...",
     "openApp": "Open Application",
     "tryAgain": "Try Again",
     "loading": "Loading",
-    "needHelp": "Need help with certificates?",
+    "needHelp": "Need help with authentication?",
     "requiresCertificate": "This application requires a valid client certificate for secure access",
     "mtls": "mTLS Authentication",
     "secureAccess": "Secure Access",
@@ -140,8 +140,57 @@
     "featureProcesses": "I/O Process Tracking",
     "featureModels": "Material Models",
     "featureImport": "Bulk Data Import",
+    "orContinueWith": "Or continue with",
+    "email": {
+      "label": "Email",
+      "placeholder": "your.email@example.com",
+      "signIn": "Sign in with Email",
+      "authorizing": "Signing in..."
+    },
+    "password": {
+      "label": "Password",
+      "placeholder": "Enter your password"
+    },
+    "certificate": {
+      "signIn": "Sign in with Certificate"
+    },
+    "forgotPassword": {
+      "link": "Forgot password?",
+      "title": "Reset Password",
+      "description": "Enter your email address and we'll send you a link to reset your password.",
+      "emailLabel": "Email Address",
+      "emailPlaceholder": "your.email@example.com",
+      "sendReset": "Send Reset Link",
+      "sending": "Sending...",
+      "success": "Password reset link sent! Check your email for instructions.",
+      "error": "Failed to send reset link. Please try again.",
+      "cancel": "Cancel",
+      "close": "Close"
+    },
+    "backToLogin": "Back to Login",
+    "emailVerification": {
+      "title": "Email Verification Required",
+      "description": "We've sent a verification email to {email}. Please check your inbox and click the verification link.",
+      "resend": "Resend Email",
+      "sending": "Sending...",
+      "sent": "Email Sent!"
+    },
+    "verifyEmail": {
+      "title": "Email Verification",
+      "verifying": "Verifying your email address...",
+      "success": "Your email has been verified successfully! You can now sign in.",
+      "error": "Email verification failed. The link may have expired.",
+      "noToken": "No verification token found. Please check the link in your email.",
+      "loginNow": "Sign In Now"
+    },
+    "validation": {
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "passwordRequired": "Password is required"
+    },
     "errors": {
       "authFailed": "Authentication failed",
+      "invalidCredentials": "Invalid email or password. Please try again.",
       "certificateFailed": "Certificate authentication failed. Please ensure you have selected a valid certificate.",
       "networkFailed": "Network connection failed. Please check your internet connection and try again.",
       "timeout": "Authentication timed out. This may indicate a network issue or certificate problem.",
@@ -329,15 +378,19 @@
     "attachmentsTitle": "Attachments",
     "children": "Children",
     "doubleClick": "(double-click to view)",
+    "childrenTooltip": "{count} {count, plural, one {child} other {children}} — double-click to view",
     "deletedBadge": "(deleted)",
     "loadingChildren": "Loading children...",
     "childrenPage": {
       "loadingParent": "Loading parent object...",
       "parentNotFound": "Parent object not found",
       "backToObjects": "Back to Objects",
+      "breadcrumbRoot": "Root",
       "addChild": "Add Child",
       "childrenTitle": "Children",
-      "childrenCount": "{count} children"
+      "childrenCount": "{count} children",
+      "noChildrenTitle": "No Children Yet",
+      "noChildrenDescription": "This object has no child objects. Add a new child or copy existing objects here."
     },
     "modelSelector": {
       "label": "Model",
@@ -372,6 +425,34 @@
       "add": "Add Property",
       "detailedView": "Detailed View",
       "passportView": "Passport Overview"
+    },
+    "duplicate": {
+      "title": "Copy Objects",
+      "description": "Select objects to copy and configure copy options",
+      "singleTitle": "Copy Object",
+      "singleDescription": "Create a copy of this object and optionally its children",
+      "sourceObjects": "Source Objects",
+      "sourceObjectsHint": "Search and select objects to copy",
+      "selectedCount": "{count} object{count, plural, one {} other {s}} selected",
+      "noObjectsSelected": "No objects selected",
+      "targetParent": "Target Parent",
+      "namePrefix": "Name Prefix",
+      "namePrefixPlaceholder": "e.g. Copy of",
+      "namePrefixHint": "Optional prefix added before each object name. Leave empty to keep original names.",
+      "options": "Copy Options",
+      "includeChildren": "Include children (subtree)",
+      "includeChildrenHint": "Recursively copy all child objects",
+      "copyProperties": "Copy properties & values",
+      "copyFiles": "Copy file attachments",
+      "copyFilesReferences": "Copy file references",
+      "copyAddress": "Copy address",
+      "childCount": "{count} child object{count, plural, one {} other {s}} will be copied",
+      "confirm": "Copy",
+      "copying": "Copying...",
+      "success": "Objects copied successfully",
+      "failed": "Failed to copy objects",
+      "action": "Copy",
+      "copyHere": "Copy Objects Here"
     }
   },
   "processes": {

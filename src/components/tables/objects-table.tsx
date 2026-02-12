@@ -2,7 +2,14 @@
 
 import { MouseEvent, useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { FileText, Trash2, QrCode, RotateCcw } from 'lucide-react'
+import {
+  FileText,
+  Trash2,
+  QrCode,
+  RotateCcw,
+  Copy,
+  ChevronRight,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -15,9 +22,14 @@ import {
   TableRow,
   CopyButton,
   TablePagination,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@/components/ui'
 import { cn, logger } from '@/lib'
 import { useUnifiedDelete, useObjects } from '@/hooks'
+import { CopyObjectsSheet } from '@/components/object-sheets'
 import { QRCodeModal, DeleteConfirmationDialog } from '@/components/modals'
 
 interface ObjectsTableProps {
@@ -65,6 +77,10 @@ export function ObjectsTable({
   const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
   const [selectedQRObject, setSelectedQRObject] = useState<any>(null)
 
+  // Copy objects state
+  const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
+  const [copyTarget, setCopyTarget] = useState<any>(null)
+
   // Unified delete hook
   const {
     isDeleteModalOpen,
@@ -104,22 +120,14 @@ export function ObjectsTable({
   }
 
   const navigateToChildren = (object: any) => {
-    if (object.children && object.children.length > 0) {
-      router.push(`/objects/${object.uuid}`)
-    }
+    router.push(`/objects/${object.uuid}`)
   }
 
   const handleRowDoubleClick = (object: any) => {
     if (onObjectDoubleClick) {
       onObjectDoubleClick(object)
-    } else if (
-      object.hasChildren ||
-      (object.children && object.children.length > 0)
-    ) {
-      // Fallback behavior
-      navigateToChildren(object)
     } else {
-      handleViewDetails(object)
+      navigateToChildren(object)
     }
   }
 
@@ -143,8 +151,6 @@ export function ObjectsTable({
 
   const renderRows = (objects: any[], level = 0) => {
     return objects.flatMap((object) => {
-      const hasChildren =
-        object.hasChildren || (object.children && object.children.length > 0)
       const childCount =
         object.childCount || (object.children ? object.children.length : 0)
       const isDeleted = isObjectDeleted(object)
@@ -155,16 +161,17 @@ export function ObjectsTable({
           onDoubleClick={() => handleRowDoubleClick(object)}
           className={cn(
             'cursor-pointer hover:bg-muted/50',
-            isDeleted ? 'bg-destructive/10' : ''
+            isDeleted && 'bg-destructive/10'
           )}
         >
           <TableCell className="font-medium">
             <div className="flex items-center">
               <div style={{ width: `${level * 16}px` }} />
               <span
-                className={`truncate max-w-[200px] ${
-                  isDeleted ? 'line-through text-destructive' : ''
-                }`}
+                className={cn(
+                  'truncate max-w-[200px]',
+                  isDeleted && 'line-through text-destructive'
+                )}
               >
                 {object.name}
               </span>
@@ -173,39 +180,43 @@ export function ObjectsTable({
                   {t('objects.deletedBadge')}
                 </span>
               )}
+              {childCount > 0 && (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {childCount}
+                        <ChevronRight className="h-2.5 w-2.5" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {t('objects.childrenTooltip', { count: childCount })}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </TableCell>
-          <TableCell className="font-mono text-xs text-muted-foreground truncate">
-            <div className="flex items-center gap-2">
-              <span className="truncate flex">{object.uuid}</span>
+          <TableCell className="font-mono text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <span className="">{object.uuid}</span>
               <CopyButton text={object.uuid} label={t('objects.fields.uuid')} />
             </div>
           </TableCell>
-          <TableCell>
-            {hasChildren && (
-              <div className="flex items-center gap-1">
-                <span className="text-sm">{childCount}</span>
-                {hasChildren && (
-                  <span className="text-xs text-muted-foreground">
-                    {t('objects.doubleClick')}
-                  </span>
-                )}
-              </div>
-            )}
-          </TableCell>
-          <TableCell>{formatDate(object.createdAt)}</TableCell>
-          <TableCell>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => handleShowQRCode(object, e)}
-              title={t('objects.showQr')}
-            >
-              <QrCode className="h-4 w-4" />
-            </Button>
+          <TableCell className="text-muted-foreground text-sm">
+            {formatDate(object.createdAt)}
           </TableCell>
           <TableCell className="text-right">
             <div className="flex justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => handleShowQRCode(object, e)}
+                title={t('objects.showQr')}
+              >
+                <QrCode className="h-4 w-4" />
+              </Button>
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -213,9 +224,25 @@ export function ObjectsTable({
                   e.stopPropagation()
                   handleViewDetails(object)
                 }}
+                title={t('objects.viewDetails')}
               >
                 <FileText className="h-4 w-4" />
               </Button>
+
+              {!isDeleted && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCopyTarget(object)
+                    setIsCopySheetOpen(true)
+                  }}
+                  title={t('objects.duplicate.action')}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              )}
 
               {isDeleted ? (
                 <Button
@@ -272,9 +299,7 @@ export function ObjectsTable({
             <TableRow>
               <TableHead>{t('objects.fields.name')}</TableHead>
               <TableHead>{t('objects.fields.uuid')}</TableHead>
-              <TableHead>{t('objects.children')}</TableHead>
               <TableHead>{t('objects.fields.created')}</TableHead>
-              <TableHead>{t('objects.qrCode')}</TableHead>
               <TableHead className="text-right">
                 {t('common.actions')}
               </TableHead>
@@ -283,7 +308,7 @@ export function ObjectsTable({
           <TableBody>
             {fetching ? (
               <TableRow>
-                <TableCell className="text-center py-4" {...{ colSpan: 6 }}>
+                <TableCell className="text-center py-4" {...{ colSpan: 4 }}>
                   <div className="flex items-center justify-center">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2"></div>
                     {t('common.updating')}
@@ -292,7 +317,7 @@ export function ObjectsTable({
               </TableRow>
             ) : data.length === 0 ? (
               <TableRow>
-                <TableCell className="text-center py-8" {...{ colSpan: 6 }}>
+                <TableCell className="text-center py-8" {...{ colSpan: 4 }}>
                   <div className="flex flex-col items-center">
                     <FileText className="h-10 w-10 text-muted-foreground/50 mb-4" />
                     <h3 className="text-lg font-medium mb-2">
@@ -345,6 +370,25 @@ export function ObjectsTable({
           onOpenChange={handleDeleteCancel}
           objectName={objectToDelete.name}
           onDelete={handleDeleteConfirm}
+        />
+      )}
+
+      {/* Copy Objects Sheet */}
+      {isCopySheetOpen && copyTarget && (
+        <CopyObjectsSheet
+          open={isCopySheetOpen}
+          onOpenChange={setIsCopySheetOpen}
+          preselectedObjects={[
+            {
+              uuid: copyTarget.uuid,
+              name: copyTarget.name,
+              hasChildren:
+                copyTarget.hasChildren ||
+                (copyTarget.children && copyTarget.children.length > 0),
+              childCount:
+                copyTarget.childCount || copyTarget.children?.length || 0,
+            },
+          ]}
         />
       )}
     </div>

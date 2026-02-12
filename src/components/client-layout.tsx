@@ -6,9 +6,8 @@ import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
 import { useKeyboardShortcuts } from '@/hooks'
 import { UploadProgressIndicator } from '@/components/ui'
+import { PUBLIC_PAGES } from '@/constants'
 import DemoTour from './onboarding/demo-tour'
-
-const PUBLIC_PAGES = ['/', '/help', '/terms', '/privacy']
 
 /**
  * Layout shell — navbar, footer, keyboard shortcuts, and page chrome.

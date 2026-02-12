@@ -119,12 +119,12 @@
     "selectCertificate": "Selecteer uw certificaat wanneer uw browser hierom vraagt",
     "browserPromptTitle": "Browsermelding:",
     "browserPrompt": "U kunt een dialoog voor certificaatselectie zien. Kies het clientcertificaat van uw organisatie om verder te gaan.",
-    "success": "Succesvol geauthenticeerd met certificaat",
+    "success": "Succesvol geauthenticeerd",
     "redirecting": "U wordt doorgestuurd naar de applicatie...",
     "openApp": "Applicatie openen",
     "tryAgain": "Opnieuw proberen",
     "loading": "Laden",
-    "needHelp": "Hulp nodig met certificaten?",
+    "needHelp": "Hulp nodig met authenticatie?",
     "requiresCertificate": "Deze applicatie vereist een geldig clientcertificaat voor veilige toegang",
     "mtls": "mTLS-authenticatie",
     "secureAccess": "Veilige toegang",
@@ -140,8 +140,57 @@
     "featureProcesses": "I/O Procesvolging",
     "featureModels": "Materiaalmodellen",
     "featureImport": "Bulk data-import",
+    "orContinueWith": "Of ga verder met",
+    "email": {
+      "label": "E-mail",
+      "placeholder": "uw.email@voorbeeld.nl",
+      "signIn": "Inloggen met e-mail",
+      "authorizing": "Inloggen..."
+    },
+    "password": {
+      "label": "Wachtwoord",
+      "placeholder": "Voer uw wachtwoord in"
+    },
+    "certificate": {
+      "signIn": "Inloggen met certificaat"
+    },
+    "forgotPassword": {
+      "link": "Wachtwoord vergeten?",
+      "title": "Wachtwoord resetten",
+      "description": "Voer uw e-mailadres in en we sturen u een link om uw wachtwoord te resetten.",
+      "emailLabel": "E-mailadres",
+      "emailPlaceholder": "uw.email@voorbeeld.nl",
+      "sendReset": "Resetlink verzenden",
+      "sending": "Verzenden...",
+      "success": "Wachtwoord resetlink verzonden! Controleer uw e-mail voor instructies.",
+      "error": "Verzenden van resetlink mislukt. Probeer het opnieuw.",
+      "cancel": "Annuleren",
+      "close": "Sluiten"
+    },
+    "backToLogin": "Terug naar inloggen",
+    "emailVerification": {
+      "title": "E-mailverificatie vereist",
+      "description": "We hebben een verificatie-e-mail gestuurd naar {email}. Controleer uw inbox en klik op de verificatielink.",
+      "resend": "E-mail opnieuw verzenden",
+      "sending": "Verzenden...",
+      "sent": "E-mail verzonden!"
+    },
+    "verifyEmail": {
+      "title": "E-mailverificatie",
+      "verifying": "Uw e-mailadres wordt geverifieerd...",
+      "success": "Uw e-mailadres is succesvol geverifieerd! U kunt nu inloggen.",
+      "error": "E-mailverificatie mislukt. De link is mogelijk verlopen.",
+      "noToken": "Geen verificatietoken gevonden. Controleer de link in uw e-mail.",
+      "loginNow": "Nu inloggen"
+    },
+    "validation": {
+      "emailRequired": "E-mailadres is verplicht",
+      "emailInvalid": "Voer een geldig e-mailadres in",
+      "passwordRequired": "Wachtwoord is verplicht"
+    },
     "errors": {
       "authFailed": "Authenticatie mislukt",
+      "invalidCredentials": "Ongeldig e-mailadres of wachtwoord. Probeer het opnieuw.",
       "certificateFailed": "Certificaatauthenticatie mislukt. Controleer of u een geldig certificaat heeft geselecteerd.",
       "networkFailed": "Netwerkverbinding mislukt. Controleer uw internetverbinding en probeer opnieuw.",
       "timeout": "Authenticatie is verlopen. Dit kan duiden op een netwerkprobleem of certificaatprobleem.",
@@ -169,6 +218,7 @@
     "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",
     "clearSearch": "Zoekopdracht wissen",
     "doubleClick": "(dubbelklik)",
+    "childrenTooltip": "{count} {count, plural, one {kind} other {kinderen}} — dubbelklik om te bekijken",
     "children": "Kinderen",
     "deleted": "Verwijderd",
     "restoreTitle": "Object herstellen",
@@ -348,9 +398,12 @@
       "loadingParent": "Bovenliggend object laden...",
       "parentNotFound": "Bovenliggend object niet gevonden",
       "backToObjects": "Terug naar objecten",
+      "breadcrumbRoot": "Root",
       "addChild": "Kind toevoegen",
       "childrenTitle": "Kinderen",
-      "childrenCount": "{count} kinderen"
+      "childrenCount": "{count} kinderen",
+      "noChildrenTitle": "Nog geen kinderen",
+      "noChildrenDescription": "Dit object heeft geen onderliggende objecten. Voeg een nieuw kind toe of kopieer bestaande objecten hierheen."
     },
     "modelSelector": {
       "label": "Model",
@@ -372,6 +425,34 @@
       "add": "Eigenschap toevoegen",
       "detailedView": "Gedetailleerde weergave",
       "passportView": "Paspoort overzicht"
+    },
+    "duplicate": {
+      "title": "Objecten kopiëren",
+      "description": "Selecteer objecten om te kopiëren en configureer kopieeropties",
+      "singleTitle": "Object kopiëren",
+      "singleDescription": "Maak een kopie van dit object en optioneel de onderliggende objecten",
+      "sourceObjects": "Bronobjecten",
+      "sourceObjectsHint": "Zoek en selecteer objecten om te kopiëren",
+      "selectedCount": "{count} object{count, plural, one {} other {en}} geselecteerd",
+      "noObjectsSelected": "Geen objecten geselecteerd",
+      "targetParent": "Doelouder",
+      "namePrefix": "Naamprefix",
+      "namePrefixPlaceholder": "bijv. Kopie van",
+      "namePrefixHint": "Optioneel voorvoegsel voor elke objectnaam. Laat leeg om originele namen te behouden.",
+      "options": "Kopieeropties",
+      "includeChildren": "Inclusief kinderen (subboom)",
+      "includeChildrenHint": "Kopieer recursief alle onderliggende objecten",
+      "copyProperties": "Eigenschappen & waarden kopiëren",
+      "copyFiles": "Bestandsbijlagen kopiëren",
+      "copyFilesReferences": "Bestandsreferenties kopiëren",
+      "copyAddress": "Adres kopiëren",
+      "childCount": "{count} onderliggend{count, plural, one { object} other {e objecten}} worden gekopieerd",
+      "confirm": "Kopiëren",
+      "copying": "Bezig met kopiëren...",
+      "success": "Objecten succesvol gekopieerd",
+      "failed": "Objecten kopiëren mislukt",
+      "action": "Kopiëren",
+      "copyHere": "Objecten hier kopiëren"
     }
   },
   "processes": {

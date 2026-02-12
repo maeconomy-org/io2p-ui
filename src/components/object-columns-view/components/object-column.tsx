@@ -54,6 +54,7 @@ interface ObjectColumnProps {
   onSelect: (item: ObjectItem) => void
   onShowDetails: (item: ObjectItem) => void
   onDelete: (item: ObjectItem) => void
+  onDuplicate?: (item: ObjectItem) => void
   searchTerm?: string
   onSearchChange?: (search: string) => void
   columnTitle?: string
@@ -67,6 +68,7 @@ export function ObjectColumn({
   onSelect,
   onShowDetails,
   onDelete,
+  onDuplicate,
   searchTerm = '',
   onSearchChange,
   columnTitle,
@@ -174,6 +176,11 @@ export function ObjectColumn({
                         <DropdownMenuItem onClick={() => onShowDetails(item)}>
                           {t('objects.viewDetails')}
                         </DropdownMenuItem>
+                        {onDuplicate && !isSoftDeleted && (
+                          <DropdownMenuItem onClick={() => onDuplicate(item)}>
+                            {t('objects.duplicate.action')}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => onDelete(item)}
                           className="text-destructive"

@@ -13,7 +13,11 @@ import InitialLoginTour from '@/components/onboarding/initial-login-tour'
 import { Button, Badge, DeletedFilter } from '@/components/ui'
 import { ViewSelector, ViewType } from '@/components/view-selector'
 import { ObjectViewContainer } from '@/components/object-view-container'
-import { ObjectDetailsSheet, ObjectAddSheet } from '@/components/object-sheets'
+import {
+  ObjectDetailsSheet,
+  ObjectAddSheet,
+  CopyObjectsSheet,
+} from '@/components/object-sheets'
 
 function ObjectsPageContent() {
   const t = useTranslations()
@@ -22,6 +26,10 @@ function ObjectsPageContent() {
   const [isObjectEditSheetOpen, setIsObjectEditSheetOpen] = useState(false)
   const [selectedObject, setSelectedObject] = useState<any>(null)
   const [showDeleted, setShowDeleted] = useState<boolean>(false)
+
+  // Copy objects state (for columns view — table handles its own)
+  const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
+  const [copyTarget, setCopyTarget] = useState<any>(null)
 
   const router = useRouter()
   const {
@@ -59,12 +67,7 @@ function ObjectsPageContent() {
 
   // Handle double-click to navigate to children page
   const handleObjectDoubleClick = (object: any) => {
-    if (object.hasChildren) {
-      router.push(`/objects/${object.uuid}`)
-    } else {
-      // For objects without children, just open details
-      handleViewObject(object)
-    }
+    router.push(`/objects/${object.uuid}`)
   }
 
   return (
@@ -97,19 +100,16 @@ function ObjectsPageContent() {
 
         {/* Search Mode Indicator */}
         {isSearchMode && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mb-4 p-3 bg-muted/50 border border-border rounded-lg">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <Search className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                  <span className="text-sm font-medium text-blue-900 truncate">
+                  <Search className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span className="text-sm font-medium truncate">
                     {t('objects.searchResults', { query: searchQuery })}
                   </span>
                 </div>
-                <Badge
-                  variant="secondary"
-                  className="bg-blue-100 text-blue-700 whitespace-nowrap"
-                >
+                <Badge variant="secondary" className="whitespace-nowrap">
                   {searchPagination
                     ? t('objects.resultsPage', {
                         count: searchPagination.totalElements,
@@ -125,7 +125,7 @@ function ObjectsPageContent() {
                 variant="ghost"
                 size="sm"
                 onClick={clearSearch}
-                className="text-blue-600 hover:text-blue-800 hover:bg-blue-100 flex-shrink-0"
+                className="flex-shrink-0"
               >
                 <X className="h-4 w-4 mr-1" />
                 {t('objects.clearSearch')}
@@ -139,6 +139,10 @@ function ObjectsPageContent() {
           viewData={viewData}
           onViewObject={handleViewObject}
           onObjectDoubleClick={handleObjectDoubleClick}
+          onDuplicate={(object) => {
+            setCopyTarget(object)
+            setIsCopySheetOpen(true)
+          }}
           showDeleted={showDeleted}
         />
       </div>
@@ -160,6 +164,25 @@ function ObjectsPageContent() {
           setSelectedObject(null)
         }}
       />
+
+      {/* Copy Objects Sheet (columns view) */}
+      {isCopySheetOpen && copyTarget && (
+        <CopyObjectsSheet
+          open={isCopySheetOpen}
+          onOpenChange={setIsCopySheetOpen}
+          preselectedObjects={[
+            {
+              uuid: copyTarget.uuid,
+              name: copyTarget.name,
+              hasChildren:
+                copyTarget.hasChildren ||
+                (copyTarget.children && copyTarget.children.length > 0),
+              childCount:
+                copyTarget.childCount || copyTarget.children?.length || 0,
+            },
+          ]}
+        />
+      )}
     </div>
   )
 }

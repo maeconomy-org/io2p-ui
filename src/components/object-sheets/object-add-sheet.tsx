@@ -41,12 +41,14 @@ interface ObjectAddSheetProps {
   isOpen: boolean
   onClose: () => void
   onSave?: (object: any) => void
+  defaultParentUuids?: string[]
 }
 
 export function ObjectAddSheet({
   isOpen,
   onClose,
   onSave,
+  defaultParentUuids,
 }: ObjectAddSheetProps) {
   const t = useTranslations()
   const { createObject, isCreating } = useObjectOperations({
@@ -95,7 +97,7 @@ export function ObjectAddSheet({
         abbreviation: '',
         version: '',
         description: '',
-        parents: [],
+        parents: defaultParentUuids || [],
         properties: [],
         files: [],
         isTemplate: false,
@@ -103,7 +105,7 @@ export function ObjectAddSheet({
       })
       setSelectedModel(null) // Reset model selection
     }
-  }, [isOpen, form])
+  }, [isOpen, form, defaultParentUuids])
 
   // Handle model selection and populate form with template data
   const handleModelSelect = (model: ModelOption | null) => {

@@ -5,11 +5,11 @@ import {
   useContext,
   useState,
   useEffect,
-  useMemo,
   ReactNode,
 } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import type { AuthResponse, Client } from 'iom-sdk'
+import { PUBLIC_PAGES_SET } from '@/constants'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -19,6 +19,19 @@ interface AuthContextType {
   userInfo: AuthResponse | null
   logout: () => void
   handleAuth: () => Promise<{ success: boolean; error?: string }>
+  handleEmailLogin: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string }>
+  handleForgotPassword: (
+    email: string
+  ) => Promise<{ success: boolean; error?: string }>
+  handleEmailVerification: (
+    token: string
+  ) => Promise<{ success: boolean; error?: string }>
+  handleResendVerification: (
+    email: string
+  ) => Promise<{ success: boolean; error?: string }>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +42,10 @@ const AuthContext = createContext<AuthContextType>({
   userInfo: null,
   logout: () => {},
   handleAuth: async () => ({ success: false }),
+  handleEmailLogin: async () => ({ success: false }),
+  handleForgotPassword: async () => ({ success: false }),
+  handleEmailVerification: async () => ({ success: false }),
+  handleResendVerification: async () => ({ success: false }),
 })
 
 interface AuthProviderProps {
@@ -45,11 +62,6 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [userInfo, setUserInfo] = useState<AuthResponse | null>(null)
 
-  const publicPages = useMemo(
-    () => new Set(['/', '/help', '/terms', '/privacy']),
-    []
-  )
-
   useEffect(() => {
     if (!client) return
 
@@ -65,10 +77,8 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
         setUserInfo(state.user)
         setAuthLoading(false)
 
-        const isPublicPage = publicPages.has(pathname)
-
         // Only redirect if truly logged out
-        if (!state.isAuthenticated && !isPublicPage) {
+        if (!state.isAuthenticated && !PUBLIC_PAGES_SET.has(pathname)) {
           router.replace('/')
         }
       })
@@ -79,7 +89,7 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
     return () => {
       unsubscribe?.()
     }
-  }, [client, pathname, publicPages, router])
+  }, [client, pathname, router])
 
   const logout = () => {
     if (!client) return
@@ -105,6 +115,45 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
     }
   }
 
+  const handleEmailLogin = async (email: string, password: string) => {
+    if (!client) {
+      return { success: false, error: 'SDK client not initialized' }
+    }
+
+    // TODO: Implement email/password login when API is ready
+    // const result = await client.loginWithEmail(email, password)
+    // For now, return a placeholder response
+    return {
+      success: false,
+      error: 'Email/password authentication not yet implemented',
+    }
+  }
+
+  const handleForgotPassword = async (email: string) => {
+    // TODO: Implement forgot password when API is ready
+    // await client.requestPasswordReset(email)
+    return {
+      success: true,
+    }
+  }
+
+  const handleEmailVerification = async (token: string) => {
+    // TODO: Implement email verification when API is ready
+    // const result = await client.verifyEmail(token)
+    return {
+      success: false,
+      error: 'Email verification not yet implemented',
+    }
+  }
+
+  const handleResendVerification = async (email: string) => {
+    // TODO: Implement resend verification when API is ready
+    // await client.resendVerificationEmail(email)
+    return {
+      success: true,
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -115,6 +164,10 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
         userInfo,
         logout,
         handleAuth,
+        handleEmailLogin,
+        handleForgotPassword,
+        handleEmailVerification,
+        handleResendVerification,
       }}
     >
       {children}

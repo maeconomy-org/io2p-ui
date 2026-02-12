@@ -3,15 +3,28 @@
 import { useState, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
-import { PlusCircle, ArrowLeft } from 'lucide-react'
+import { PlusCircle, Copy, FolderOpen, HomeIcon } from 'lucide-react'
+import Link from 'next/link'
 
-import { useAggregate } from '@/hooks'
-import { Button } from '@/components/ui'
-import { ObjectsTable } from '@/components/tables'
+import { useAggregate, useAncestorChain } from '@/hooks'
+import {
+  Button,
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui'
 import { isObjectDeleted } from '@/lib'
+import { ObjectsTable } from '@/components/tables'
 import ProtectedRoute from '@/components/protected-route'
 import { ContentSkeleton } from '@/components/skeletons'
-import { ObjectDetailsSheet, ObjectAddSheet } from '@/components/object-sheets'
+import {
+  ObjectDetailsSheet,
+  ObjectAddSheet,
+  CopyObjectsSheet,
+} from '@/components/object-sheets'
 
 function ObjectChildrenPageContent() {
   const t = useTranslations()
@@ -25,6 +38,7 @@ function ObjectChildrenPageContent() {
 
   // Hooks
   const { useAggregateByUUID, useAggregateEntities } = useAggregate()
+  const { data: ancestors = [] } = useAncestorChain(parentUuid)
 
   // Get parent object details
   const { data: parentData, isLoading: parentLoading } = useAggregateByUUID(
@@ -74,6 +88,9 @@ function ObjectChildrenPageContent() {
   const [isObjectEditSheetOpen, setIsObjectEditSheetOpen] = useState(false)
   const [selectedObject, setSelectedObject] = useState<any>(null)
 
+  // Copy objects state
+  const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
+
   // Pagination info
   const totalPages = childrenResponse?.totalPages || 0
   const totalElements = childrenResponse?.totalElements || 0
@@ -87,11 +104,7 @@ function ObjectChildrenPageContent() {
 
   // Handle double-click to navigate to sub-children
   const handleObjectDoubleClick = (object: any) => {
-    if (object.hasChildren) {
-      router.push(`/objects/${object.uuid}`)
-    } else {
-      handleViewObject(object)
-    }
+    router.push(`/objects/${object.uuid}`)
   }
 
   const handleAddChild = () => {
@@ -118,65 +131,113 @@ function ObjectChildrenPageContent() {
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="flex flex-col space-y-4">
-        {/* Header with parent info and back button */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/objects')}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t('objects.childrenPage.backToObjects')}
-            </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold">{parentObject.name}</h1>
-              </div>
-              <p className="text-sm text-muted-foreground font-mono mt-1">
-                {parentObject.uuid}
+        {/* Breadcrumbs */}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/objects" className="flex items-center gap-2">
+                  <HomeIcon className="size-4" />
+                  {t('objects.childrenPage.breadcrumbRoot')}
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            {ancestors.map((ancestor) => (
+              <span key={ancestor.uuid} className="contents">
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href={`/objects/${ancestor.uuid}`}>
+                      {ancestor.name}
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              </span>
+            ))}
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{parentObject.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        {/* Header with parent info */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold">{parentObject.name}</h1>
+              <p className="text-sm font-medium text-muted-foreground">
+                (
+                {t('objects.childrenPage.childrenCount', {
+                  count: totalElements,
+                })}
+                )
               </p>
             </div>
+            <p className="text-sm text-muted-foreground font-mono mt-1">
+              {parentObject.uuid}
+            </p>
           </div>
 
-          <Button onClick={handleAddChild}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            {t('objects.childrenPage.addChild')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setIsCopySheetOpen(true)}>
+              <Copy className="mr-2 h-4 w-4" />
+              {t('objects.duplicate.copyHere')}
+            </Button>
+            <Button onClick={handleAddChild}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {t('objects.childrenPage.addChild')}
+            </Button>
+          </div>
         </div>
 
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold">
-            {t('objects.childrenPage.childrenTitle')}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {t('objects.childrenPage.childrenCount', { count: totalElements })}
-          </p>
-        </div>
-
-        {/* Children Table */}
-        <ObjectsTable
-          initialData={childrenData}
-          onViewObject={handleViewObject}
-          onObjectDoubleClick={handleObjectDoubleClick}
-          fetching={childrenLoading}
-          pagination={{
-            currentPage: currentPage + 1,
-            totalPages,
-            totalElements,
-            pageSize,
-            isFirstPage,
-            isLastPage,
-          }}
-          onPageChange={(page) => setCurrentPage(page)}
-          onFirstPage={() => setCurrentPage(0)}
-          onPreviousPage={() => setCurrentPage(Math.max(0, currentPage - 1))}
-          onNextPage={() =>
-            setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
-          }
-          onLastPage={() => setCurrentPage(totalPages - 1)}
-        />
+        {/* Children Table or Empty State */}
+        {!childrenLoading && childrenData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12">
+            <FolderOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-medium mb-2">
+              {t('objects.childrenPage.noChildrenTitle')}
+            </h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+              {t('objects.childrenPage.noChildrenDescription')}
+            </p>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsCopySheetOpen(true)}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                {t('objects.duplicate.copyHere')}
+              </Button>
+              <Button onClick={handleAddChild}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {t('objects.childrenPage.addChild')}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <ObjectsTable
+            initialData={childrenData}
+            onViewObject={handleViewObject}
+            onObjectDoubleClick={handleObjectDoubleClick}
+            fetching={childrenLoading}
+            pagination={{
+              currentPage: currentPage + 1,
+              totalPages,
+              totalElements,
+              pageSize,
+              isFirstPage,
+              isLastPage,
+            }}
+            onPageChange={(page) => setCurrentPage(page)}
+            onFirstPage={() => setCurrentPage(0)}
+            onPreviousPage={() => setCurrentPage(Math.max(0, currentPage - 1))}
+            onNextPage={() =>
+              setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
+            }
+            onLastPage={() => setCurrentPage(totalPages - 1)}
+          />
+        )}
       </div>
 
       {/* Child Object Details Sheet */}
@@ -195,7 +256,17 @@ function ObjectChildrenPageContent() {
           setIsObjectEditSheetOpen(false)
           setSelectedObject(null)
         }}
+        defaultParentUuids={[parentUuid]}
       />
+
+      {/* Copy Objects Sheet */}
+      {isCopySheetOpen && (
+        <CopyObjectsSheet
+          open={isCopySheetOpen}
+          onOpenChange={setIsCopySheetOpen}
+          defaultParentUuid={parentUuid}
+        />
+      )}
     </div>
   )
 }

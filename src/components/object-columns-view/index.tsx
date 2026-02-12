@@ -19,6 +19,7 @@ interface ObjectColumnsViewProps {
     onPageChange: (page: number) => void
   }
   onViewObject?: (object: any) => void
+  onDuplicate?: (object: any) => void
   showDeleted?: boolean
 }
 
@@ -27,6 +28,7 @@ export function ObjectColumnsView({
   fetching = false,
   rootPagination,
   onViewObject,
+  onDuplicate,
   showDeleted = false,
 }: ObjectColumnsViewProps) {
   const t = useTranslations()
@@ -105,6 +107,7 @@ export function ObjectColumnsView({
                   onDelete={(item) =>
                     handleDelete({ uuid: item.uuid, name: item.name })
                   }
+                  onDuplicate={onDuplicate}
                   searchTerm={getSearchTermForColumn(index)}
                   onSearchChange={(searchTerm) =>
                     handleColumnSearchChange(index, searchTerm)

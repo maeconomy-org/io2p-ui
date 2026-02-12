@@ -8,10 +8,11 @@ import {
   useEffect,
   useMemo,
 } from 'react'
+import { usePathname } from 'next/navigation'
 import type { Client } from 'iom-sdk'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fetchClientConfig, ClientConfig } from '@/constants'
+import { fetchClientConfig, ClientConfig, PUBLIC_PAGES_SET } from '@/constants'
 import { getSdkClient } from '@/lib/sdk-client'
 import { NavbarSkeleton, ContentSkeleton } from '@/components/skeletons'
 
@@ -37,6 +38,7 @@ export function useAppConfig(): ClientConfig {
 }
 
 export function QueryProvider({ children }: PropsWithChildren) {
+  const pathname = usePathname()
   const [client, setClient] = useState<Client | null>(null)
   const [config, setConfig] = useState<ClientConfig | null>(null)
   const [error, setError] = useState<Error | null>(null)
@@ -105,6 +107,13 @@ export function QueryProvider({ children }: PropsWithChildren) {
   }
 
   if (!client || !config) {
+    if (PUBLIC_PAGES_SET.has(pathname)) {
+      return (
+        <div className="flex flex-1 items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      )
+    }
     return (
       <div className="flex-1 flex flex-col min-h-screen">
         <NavbarSkeleton />

@@ -1,3 +1,5 @@
 export { ObjectDetailsSheet } from './object-details-sheet'
 export { ObjectAddSheet } from './object-add-sheet'
 export { ObjectModelSheet } from './object-model-sheet'
+export { CopyObjectsSheet } from './copy-objects-sheet'
+export type { CopySourceObject, CopyObjectsOptions } from './copy-objects-sheet'

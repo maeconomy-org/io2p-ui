@@ -53,8 +53,6 @@ export function ParentSelector({
 
   // Initialize selected parents from UUIDs
   useEffect(() => {
-    if (!isOpen) return
-
     const parentObjects = initialParentUuids.map((uuid) => ({
       uuid,
       name: undefined, // Will be enriched from search results
