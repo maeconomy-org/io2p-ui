@@ -87,6 +87,7 @@ export function CopyObjectsSheet({
   const [sourceSearchResults, setSourceSearchResults] = useState<any[]>([])
   const [isSourceSearching, setIsSourceSearching] = useState(false)
   const [hasSourceLoaded, setHasSourceLoaded] = useState(false)
+  const lastSourceQueryRef = useRef('')
 
   // Target & options
   const [targetParentUuids, setTargetParentUuids] = useState<string[]>([])
@@ -159,13 +160,18 @@ export function CopyObjectsSheet({
     if (!isSourceOpen) return
 
     const timeoutId = setTimeout(() => {
+      const isClearingSearch =
+        lastSourceQueryRef.current.length >= 2 && sourceSearchQuery.length < 2
+
       if (!sourceSearchQuery || sourceSearchQuery.length < 2) {
-        if (!hasSourceLoaded || (hasSourceLoaded && sourceSearchQuery === '')) {
+        if (!hasSourceLoaded || isClearingSearch) {
           performSourceSearch()
         }
       } else {
         performSourceSearch(sourceSearchQuery)
       }
+
+      lastSourceQueryRef.current = sourceSearchQuery
     }, 300)
 
     return () => clearTimeout(timeoutId)

@@ -51,6 +51,7 @@ export function ModelSelector({
   const [totalResultsCount, setTotalResultsCount] = useState<number>(0)
   const [isSearching, setIsSearching] = useState(false)
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
+  const lastSearchQueryRef = useRef('')
 
   // Use the global search API
   const { useSearch } = useCommonApi()
@@ -111,13 +112,18 @@ export function ModelSelector({
     if (!open) return
 
     const timeoutId = setTimeout(() => {
+      const isClearingSearch =
+        lastSearchQueryRef.current.length >= 2 && searchQuery.length < 2
+
       if (!searchQuery || searchQuery.length < 2) {
-        if (!hasInitiallyLoaded || (hasInitiallyLoaded && searchQuery === '')) {
+        if (!hasInitiallyLoaded || isClearingSearch) {
           performSearch()
         }
       } else {
         performSearch(searchQuery)
       }
+
+      lastSearchQueryRef.current = searchQuery
     }, 300)
 
     return () => clearTimeout(timeoutId)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { X, Loader2, ChevronsUpDown, Users, Check } from 'lucide-react'
 
@@ -50,6 +50,7 @@ export function ParentSelector({
   const [isSearching, setIsSearching] = useState(false)
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
   const [selectedParents, setSelectedParents] = useState<ParentObject[]>([])
+  const lastSearchQueryRef = useRef('')
 
   // Initialize selected parents from UUIDs
   useEffect(() => {
@@ -63,59 +64,71 @@ export function ParentSelector({
   // Use the global search API
   const { useSearch } = useCommonApi()
   const searchMutation = useSearch()
+  const searchMutationRef = useRef(searchMutation)
+  searchMutationRef.current = searchMutation
 
   // Unified search function
-  const performSearch = async (query: string = '') => {
-    if (!isOpen) return
+  const performSearch = useCallback(
+    async (query: string = '') => {
+      if (!isOpen) return
 
-    setIsSearching(true)
-    try {
-      const results = await searchMutation.mutateAsync({
-        searchBy: {
-          isTemplate: false,
-          softDeleted: false,
-        },
-        ...(query && { searchTerm: query.trim() }),
-        size: 8,
-        page: 0,
-      })
+      setIsSearching(true)
+      try {
+        const results = await searchMutationRef.current.mutateAsync({
+          searchBy: {
+            isTemplate: false,
+            softDeleted: false,
+          },
+          ...(query && { searchTerm: query.trim() }),
+          size: 8,
+          page: 0,
+        })
 
-      if (results && results.content) {
-        const allFilteredResults = results.content.filter(
-          (obj: any) => obj.uuid !== currentObjectUuid
-        )
+        if (results && results.content) {
+          const allFilteredResults = results.content.filter(
+            (obj: any) => obj.uuid !== currentObjectUuid
+          )
 
-        setSearchResults(allFilteredResults)
-        setTotalResultsCount(results.totalElements || allFilteredResults.length)
-        setHasInitiallyLoaded(true)
-      } else {
+          setSearchResults(allFilteredResults)
+          setTotalResultsCount(
+            results.totalElements || allFilteredResults.length
+          )
+          setHasInitiallyLoaded(true)
+        } else {
+          setSearchResults([])
+          setTotalResultsCount(0)
+          setHasInitiallyLoaded(true)
+        }
+      } catch (error) {
+        logger.error('Search failed:', error)
         setSearchResults([])
-        setTotalResultsCount(0)
-        setHasInitiallyLoaded(true)
+      } finally {
+        setIsSearching(false)
       }
-    } catch (error) {
-      logger.error('Search failed:', error)
-      setSearchResults([])
-    } finally {
-      setIsSearching(false)
-    }
-  }
+    },
+    [isOpen, currentObjectUuid]
+  )
 
   // Handle search logic (debounced)
   useEffect(() => {
     if (!isOpen) return
     const timeoutId = setTimeout(() => {
+      const isClearingSearch =
+        lastSearchQueryRef.current.length >= 2 && searchQuery.length < 2
+
       if (!searchQuery || searchQuery.length < 2) {
-        if (!hasInitiallyLoaded || (hasInitiallyLoaded && searchQuery === '')) {
+        if (!hasInitiallyLoaded || isClearingSearch) {
           performSearch()
         }
       } else {
         performSearch(searchQuery)
       }
+
+      lastSearchQueryRef.current = searchQuery
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [searchQuery, isOpen])
+  }, [searchQuery, isOpen, hasInitiallyLoaded, performSearch])
 
   const handleSelectParent = (object: any) => {
     // Check if already selected
