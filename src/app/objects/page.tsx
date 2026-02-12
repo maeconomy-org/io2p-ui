@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PlusCircle, Search, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
+import dynamic from 'next/dynamic'
 import { useViewData } from '@/hooks'
 import { useSearch } from '@/contexts'
 import { isObjectDeleted } from '@/lib'
@@ -13,11 +14,29 @@ import InitialLoginTour from '@/components/onboarding/initial-login-tour'
 import { Button, Badge, DeletedFilter } from '@/components/ui'
 import { ViewSelector, ViewType } from '@/components/view-selector'
 import { ObjectViewContainer } from '@/components/object-view-container'
-import {
-  ObjectDetailsSheet,
-  ObjectAddSheet,
-  CopyObjectsSheet,
-} from '@/components/object-sheets'
+
+// Lazy-load sheet components — only rendered when opened by user interaction
+const ObjectDetailsSheet = dynamic(
+  () =>
+    import('@/components/object-sheets/object-details-sheet').then(
+      (mod) => mod.ObjectDetailsSheet
+    ),
+  { ssr: false }
+)
+const ObjectAddSheet = dynamic(
+  () =>
+    import('@/components/object-sheets/object-add-sheet').then(
+      (mod) => mod.ObjectAddSheet
+    ),
+  { ssr: false }
+)
+const CopyObjectsSheet = dynamic(
+  () =>
+    import('@/components/object-sheets/copy-objects-sheet').then(
+      (mod) => mod.CopyObjectsSheet
+    ),
+  { ssr: false }
+)
 
 function ObjectsPageContent() {
   const t = useTranslations()

@@ -904,31 +904,6 @@
     ],
     "contactSupport": "Neem contact op met ondersteuning: {email}"
   },
-  "privacy": {
-    "title": "Privacybeleid",
-    "lastUpdated": "Laatst bijgewerkt: {date}",
-    "introduction": "Inleiding",
-    "introText": "{appName} (\"wij\", \"ons\" of \"onze\") zet zich in voor de bescherming van uw privacy. Dit privacybeleid legt uit hoe we informatie over u verzamelen, gebruiken en delen wanneer u ons materiaalbeheersysteem en gerelateerde diensten gebruikt.",
-    "infoWeCollect": "Informatie die we verzamelen",
-    "infoWeCollectText": "We verzamelen op verschillende manieren informatie wanneer u onze dienst gebruikt:",
-    "clientCertInfo": "Clientcertificaatinformatie:",
-    "clientCertInfoText": "We verzamelen informatie van uw clientcertificaten die worden gebruikt voor authenticatie.",
-    "usageInfo": "Gebruiksinformatie:",
-    "usageInfoText": "We verzamelen informatie over hoe u met onze dienst omgaat, inclusief de objecten en processen die u bekijkt en wijzigt.",
-    "logData": "Loggegevens:",
-    "logDataText": "Onze servers registreren automatisch informatie die wordt aangemaakt wanneer u onze diensten gebruikt.",
-    "howWeUse": "Hoe we uw informatie gebruiken",
-    "howWeUseText": "We gebruiken de informatie die we verzamelen om:",
-    "howWeUseItems": [
-      "Onze diensten te leveren, onderhouden en verbeteren",
-      "Uw identiteit te authenticeren en veilige toegang te bieden",
-      "Gebruikspatronen en trends te monitoren en analyseren",
-      "Te beschermen tegen ongeautoriseerde toegang en potentiële beveiligingsbedreigingen",
-      "Met u te communiceren over de dienst"
-    ],
-    "contactUs": "Neem contact met ons op",
-    "contactUsText": "Als u vragen of zorgen heeft over dit privacybeleid of onze gegevenspraktijken, neem dan contact met ons op via:"
-  },
   "onboarding": {
     "initialLogin": {
       "welcome": "Welkom bij IoM - Objecten",
@@ -972,22 +947,6 @@
       "title": "Maak uw eerste object",
       "description": "Gebruik deze knop om een nieuw object aan het systeem toe te voegen."
     }
-  },
-  "terms": {
-    "title": "Servicevoorwaarden",
-    "lastUpdated": "Laatst bijgewerkt: {date}",
-    "acceptanceTitle": "1. Aanvaarding van voorwaarden",
-    "acceptanceText": "Door toegang te krijgen tot of gebruik te maken van het {appName} materiaalbeheersysteem (\"Dienst\"), gaat u akkoord met deze Servicevoorwaarden (\"Voorwaarden\"). Als u niet akkoord gaat met deze Voorwaarden, gebruik de Dienst dan niet.",
-    "useOfServiceTitle": "2. Gebruik van dienst",
-    "useOfServiceText": "U gaat ermee akkoord de Dienst alleen te gebruiken voor het beoogde doel als materiaalbeheersysteem voor gebouwen. U mag de Dienst niet misbruiken, inclusief maar niet beperkt tot het deelnemen aan onwettige activiteiten of het overtreden van toepasselijke regelgeving.",
-    "certAuthTitle": "3. Clientcertificaatauthenticatie",
-    "certAuthText": "Toegang tot de Dienst vereist geldige clientcertificaten. U bent verantwoordelijk voor het onderhouden van de beveiliging van uw certificaten en voor alle activiteiten die plaatsvinden onder uw account. U moet ons onmiddellijk op de hoogte stellen van ongeautoriseerd gebruik van uw certificaten of enige andere inbreuk op de beveiliging.",
-    "limitationTitle": "4. Beperking van aansprakelijkheid",
-    "limitationText": "Voor zover maximaal toegestaan door de wet, is {appName} niet aansprakelijk voor indirecte, incidentele, speciale, gevolgschade of bestraffende schade, inclusief maar niet beperkt tot verlies van winst, gegevens of gebruik, voortvloeiend uit of op enigerlei wijze verbonden met het gebruik van of het onvermogen om de Dienst te gebruiken.",
-    "changesTitle": "5. Wijzigingen in voorwaarden",
-    "changesText": "We behouden ons het recht voor om deze Voorwaarden op elk moment te wijzigen. We zullen kennisgeving geven van belangrijke wijzigingen in deze Voorwaarden door een prominente kennisgeving op onze Dienst te plaatsen. Uw voortgezet gebruik van de Dienst na dergelijke wijzigingen vormt uw erkenning en instemming met de gewijzigde Voorwaarden.",
-    "contactTitle": "6. Neem contact met ons op",
-    "contactText": "Als u vragen heeft over deze Voorwaarden, neem dan contact met ons op via:"
   },
   "search": {
     "filters": {

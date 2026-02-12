@@ -2,16 +2,22 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-
-// Disable static generation for this page since it requires client-side SDK
-export const dynamic = 'force-dynamic'
 import { PlusCircle } from 'lucide-react'
+import dynamic from 'next/dynamic'
 
 import { Button, DeletedFilter } from '@/components/ui'
 import { ObjectModelsTable } from '@/components/tables'
-import { ObjectModelSheet } from '@/components/object-sheets'
 import { useModelData, useUnifiedDelete } from '@/hooks'
 import { DeleteConfirmationDialog } from '@/components/modals'
+
+// Lazy-load sheet component — only rendered when opened by user interaction
+const ObjectModelSheet = dynamic(
+  () =>
+    import('@/components/object-sheets/object-model-sheet').then(
+      (mod) => mod.ObjectModelSheet
+    ),
+  { ssr: false }
+)
 
 export default function ObjectModelsPage() {
   const t = useTranslations()

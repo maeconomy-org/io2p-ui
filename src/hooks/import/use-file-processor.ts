@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react'
-import ExcelJS from 'exceljs'
 import Papa from 'papaparse'
 
 import { logger } from '@/lib'
@@ -164,8 +163,9 @@ export function useFileProcessor({
       const buffer = await file.arrayBuffer()
       updateProgress(40)
 
-      // Parse workbook with ExcelJS
-      const workbook = new ExcelJS.Workbook()
+      // Parse workbook with ExcelJS (dynamic import to reduce bundle)
+      const ExcelJSModule = await import('exceljs')
+      const workbook = new ExcelJSModule.default.Workbook()
       await workbook.xlsx.load(buffer)
       updateProgress(70)
 
@@ -215,7 +215,8 @@ export function useFileProcessor({
                   }
 
                   // Parse the workbook from the combined chunks
-                  const workbook = new ExcelJS.Workbook()
+                  const ExcelJSModule = await import('exceljs')
+                  const workbook = new ExcelJSModule.default.Workbook()
                   await workbook.xlsx.load(combinedChunks.buffer)
                   const sheetData = await extractSheetData(workbook)
                   updateProgress(100)
@@ -255,27 +256,24 @@ export function useFileProcessor({
 
   // Helper to extract sheet data from a workbook
   const extractSheetData = useCallback(
-    async (workbook: ExcelJS.Workbook): Promise<SheetData[]> => {
+    async (workbook: any): Promise<SheetData[]> => {
       const sheets: SheetData[] = []
 
       // Process each worksheet
-      workbook.eachSheet((worksheet: ExcelJS.Worksheet) => {
+      workbook.eachSheet((worksheet: any) => {
         const rawData: any[][] = []
 
         // Convert worksheet to 2D array
-        worksheet.eachRow((row: ExcelJS.Row, rowNumber: number) => {
+        worksheet.eachRow((row: any, rowNumber: number) => {
           const rowData: any[] = []
           row.eachCell(
             { includeEmpty: true },
-            (cell: ExcelJS.Cell, colNumber: number) => {
+            (cell: any, colNumber: number) => {
               // Get cell value, handling different types
               let value = cell.value
 
-              // Handle formula results
-              if (
-                cell.type === ExcelJS.ValueType.Formula &&
-                cell.result !== undefined
-              ) {
+              // Handle formula results (ExcelJS.ValueType.Formula = 6)
+              if (cell.type === 6 && cell.result !== undefined) {
                 value = cell.result
               }
 

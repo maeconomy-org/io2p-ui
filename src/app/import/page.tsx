@@ -30,12 +30,10 @@ type ImportStep = 'upload' | 'map-columns' | 'preview'
 export default function ImportPage() {
   const t = useTranslations()
   const [step, setStep] = useState<ImportStep>('upload')
-  // const [file, setFile] = useState<File | null>(null)
   const [sheets, setSheets] = useState<SheetData[]>([])
   const [selectedSheet, setSelectedSheet] = useState<string>('')
   const [selectedSheetData, setSelectedSheetData] = useState<any[]>([])
   const [suggestedStartRow, setSuggestedStartRow] = useState<number>(0)
-  // const [columnMapping, setColumnMapping] = useState<Record<string, string>>({})
   const [mappedData, setMappedData] = useState<any[]>([])
 
   // Use the new bulk import hook
@@ -72,7 +70,6 @@ export default function ImportPage() {
     selectedFile: File,
     parsedSheets: SheetData[]
   ) => {
-    // setFile(selectedFile)
     setSheets(parsedSheets)
 
     // If there's only one sheet, select it automatically
@@ -125,11 +122,9 @@ export default function ImportPage() {
     if (result.success) {
       // Reset form after successful import
       setStep('upload')
-      // setFile(null)
       setSheets([])
       setSelectedSheet('')
       setSelectedSheetData([])
-      // setColumnMapping({})
       setMappedData([])
       clearSessionStorage()
     }

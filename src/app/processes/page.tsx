@@ -1,18 +1,18 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useTranslations } from 'next-intl'
 import { useSearchParams, useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
 import { PlusCircle, Loader2, Filter } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import type { UUID } from 'iom-sdk'
+import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 
 import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
-import type { UUID } from 'iom-sdk'
 import { useStatements } from '@/hooks'
-import { LoadingState } from '@/components/processes/loading-state'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
 import {
+  LoadingState,
   ProcessViewSelector,
   ProcessCreateSheet,
   RelationshipDetailsSheet,
@@ -265,12 +265,12 @@ const MaterialFlowPage = () => {
       {/* Filter Mode Indicator */}
       {(objectUuid || selectedMaterialUuids.length > 0) && (
         <div className="mb-4">
-          <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/50 rounded-lg">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex flex-col gap-2 flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-orange-600 flex-shrink-0" />
-                  <span className="text-sm font-medium text-orange-900">
+                  <Filter className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-orange-900 dark:text-orange-200">
                     {t('processes.filters')}
                   </span>
                 </div>
@@ -278,7 +278,7 @@ const MaterialFlowPage = () => {
                   {objectUuid && (
                     <Badge
                       variant="secondary"
-                      className="bg-orange-100 text-orange-700 font-mono text-xs"
+                      className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-mono text-xs"
                     >
                       {t('processes.object')}: {objectUuid.slice(0, 8)}...
                     </Badge>
@@ -289,7 +289,7 @@ const MaterialFlowPage = () => {
                       <Badge
                         key={uuid}
                         variant="secondary"
-                        className="bg-orange-100 text-orange-700 text-xs"
+                        className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-xs"
                       >
                         {material?.name || `${uuid.slice(0, 8)}...`}
                       </Badge>
@@ -303,7 +303,7 @@ const MaterialFlowPage = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => setSelectedMaterialUuids([])}
-                    className="text-orange-600 hover:text-orange-800 hover:bg-orange-100 flex-shrink-0 text-xs"
+                    className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 flex-shrink-0 text-xs"
                   >
                     {t('processes.clearMaterials')}
                   </Button>
@@ -313,7 +313,7 @@ const MaterialFlowPage = () => {
                     variant="ghost"
                     size="sm"
                     onClick={clearFilter}
-                    className="text-orange-600 hover:text-orange-800 hover:bg-orange-100 flex-shrink-0 text-xs"
+                    className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 flex-shrink-0 text-xs"
                   >
                     {t('processes.clearObject')}
                   </Button>
@@ -326,7 +326,7 @@ const MaterialFlowPage = () => {
                       setSelectedMaterialUuids([])
                       clearFilter()
                     }}
-                    className="text-orange-600 hover:text-orange-800 hover:bg-orange-100 flex-shrink-0 text-xs"
+                    className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 flex-shrink-0 text-xs"
                   >
                     {t('processes.clearAll')}
                   </Button>

@@ -904,31 +904,6 @@
     ],
     "contactSupport": "Contact Support: {email}"
   },
-  "privacy": {
-    "title": "Privacy Policy",
-    "lastUpdated": "Last updated: {date}",
-    "introduction": "Introduction",
-    "introText": "{appName} (\"we\", \"our\", or \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share information about you when you use our materials management system and related services.",
-    "infoWeCollect": "Information We Collect",
-    "infoWeCollectText": "We collect information in several ways when you use our service:",
-    "clientCertInfo": "Client Certificate Information:",
-    "clientCertInfoText": "We collect information from your client certificates used for authentication.",
-    "usageInfo": "Usage Information:",
-    "usageInfoText": "We collect information about how you interact with our service, including the objects and processes you view and modify.",
-    "logData": "Log Data:",
-    "logDataText": "Our servers automatically record information created when you use our services.",
-    "howWeUse": "How We Use Your Information",
-    "howWeUseText": "We use the information we collect to:",
-    "howWeUseItems": [
-      "Provide, maintain, and improve our services",
-      "Authenticate your identity and provide secure access",
-      "Monitor and analyze usage patterns and trends",
-      "Protect against unauthorized access and potential security threats",
-      "Communicate with you about the service"
-    ],
-    "contactUs": "Contact Us",
-    "contactUsText": "If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at:"
-  },
   "onboarding": {
     "initialLogin": {
       "welcome": "Welcome to IoM - Objects",
@@ -972,22 +947,6 @@
       "title": "Create your first object",
       "description": "Use this button to add a new object to the system."
     }
-  },
-  "terms": {
-    "title": "Terms of Service",
-    "lastUpdated": "Last updated: {date}",
-    "acceptanceTitle": "1. Acceptance of Terms",
-    "acceptanceText": "By accessing or using the {appName} materials management system (\"Service\"), you agree to be bound by these Terms of Service (\"Terms\"). If you do not agree to these Terms, please do not use the Service.",
-    "useOfServiceTitle": "2. Use of Service",
-    "useOfServiceText": "You agree to use the Service only for its intended purpose as a materials management system for buildings. You must not misuse the Service, including but not limited to engaging in any unlawful activities or violating any applicable regulations.",
-    "certAuthTitle": "3. Client Certificate Authentication",
-    "certAuthText": "Access to the Service requires valid client certificates. You are responsible for maintaining the security of your certificates and for all activities that occur under your account. You must notify us immediately of any unauthorized use of your certificates or any other breach of security.",
-    "limitationTitle": "4. Limitation of Liability",
-    "limitationText": "To the maximum extent permitted by law, {appName} shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to, loss of profits, data, or use, arising out of or in any way connected with the use of or inability to use the Service.",
-    "changesTitle": "5. Changes to Terms",
-    "changesText": "We reserve the right to modify these Terms at any time. We will provide notice of significant changes to these Terms by placing a prominent notice on our Service. Your continued use of the Service after such modifications will constitute your acknowledgment and agreement to the modified Terms.",
-    "contactTitle": "6. Contact Us",
-    "contactText": "If you have any questions about these Terms, please contact us at:"
   },
   "search": {
     "filters": {
