@@ -384,7 +384,7 @@
     "attachmentsTitle": "Attachments",
     "children": "Children",
     "doubleClick": "(double-click to view)",
-    "childrenTooltip": "{count} {count, plural, one {child} other {children}} — double-click to view",
+    "childrenTooltip": "{count} {count, plural, one {child} other {children}} - double-click to view",
     "deletedBadge": "(deleted)",
     "loadingChildren": "Loading children...",
     "childrenPage": {

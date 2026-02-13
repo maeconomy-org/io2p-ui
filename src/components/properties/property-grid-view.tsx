@@ -63,12 +63,12 @@ export function PropertyGridView({ properties }: PropertyGridViewProps) {
                     className="text-sm font-medium"
                   >
                     {value.value || (
-                      <span className="text-muted-foreground italic">—</span>
+                      <span className="text-muted-foreground italic">-</span>
                     )}
                   </div>
                 ))
               ) : (
-                <span className="text-sm text-muted-foreground italic">—</span>
+                <span className="text-sm text-muted-foreground italic">-</span>
               )}
             </div>
           </div>

@@ -222,7 +222,7 @@
     "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",
     "clearSearch": "Zoekopdracht wissen",
     "doubleClick": "(dubbelklik)",
-    "childrenTooltip": "{count} {count, plural, one {kind} other {kinderen}} — dubbelklik om te bekijken",
+    "childrenTooltip": "{count} {count, plural, one {kind} other {kinderen}} - dubbelklik om te bekijken",
     "children": "Kinderen",
     "deleted": "Verwijderd",
     "restoreTitle": "Object herstellen",

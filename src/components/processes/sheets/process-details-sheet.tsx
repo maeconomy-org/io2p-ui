@@ -261,7 +261,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                           : 'text-muted-foreground'
                       )}
                     >
-                      {hasEmissions ? enhanced?.emissionsTotal : '—'}
+                      {hasEmissions ? enhanced?.emissionsTotal : '-'}
                     </div>
                     <div
                       className={cn(
@@ -314,7 +314,7 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                           : 'text-muted-foreground'
                       )}
                     >
-                      {hasLoss ? `${enhanced?.materialLossPercent}%` : '—'}
+                      {hasLoss ? `${enhanced?.materialLossPercent}%` : '-'}
                     </div>
                     <div
                       className={cn(

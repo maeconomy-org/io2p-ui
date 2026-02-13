@@ -12,7 +12,7 @@ export * from './api/use-uuid'
 // Data Hooks - Complex data operations
 export * from './data/use-view-data'
 export * from './data/use-model-data'
-export * from './data/use-ancestor-chain'
+export * from './data/use-breadcrumb-trail'
 
 // Import Hooks - File processing and imports
 export * from './import/use-bulk-import'

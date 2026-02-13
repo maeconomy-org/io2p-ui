@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
 import { PlusCircle, Copy, FolderOpen, HomeIcon } from 'lucide-react'
 import Link from 'next/link'
 
-import { useAggregate, useAncestorChain } from '@/hooks'
+import { useAggregate, useBreadcrumbTrail } from '@/hooks'
 import {
   Button,
   Breadcrumb,
@@ -15,6 +15,11 @@ import {
   BreadcrumbLink,
   BreadcrumbPage,
   BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@/components/ui'
 import { isObjectDeleted } from '@/lib'
 import { ObjectsTable } from '@/components/tables'
@@ -25,6 +30,35 @@ import {
   ObjectAddSheet,
   CopyObjectsSheet,
 } from '@/components/object-sheets'
+
+// Truncate text with ellipsis and show full text on hover using Radix tooltip
+function TruncateWithTooltip({
+  text,
+  maxLength,
+}: {
+  text: string
+  maxLength: number
+}) {
+  const shouldTruncate = text.length > maxLength
+  const displayText = shouldTruncate ? text.slice(0, maxLength) + '...' : text
+
+  if (!shouldTruncate) {
+    return <>{displayText}</>
+  }
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>{displayText}</span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="max-w-xs">{text}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
 
 function ObjectChildrenPageContent() {
   const t = useTranslations()
@@ -38,7 +72,8 @@ function ObjectChildrenPageContent() {
 
   // Hooks
   const { useAggregateByUUID, useAggregateEntities } = useAggregate()
-  const { data: ancestors = [] } = useAncestorChain(parentUuid)
+  const { ancestors, pushAncestor, navigateToAncestor, clearTrail } =
+    useBreadcrumbTrail(parentUuid)
 
   // Get parent object details
   const { data: parentData, isLoading: parentLoading } = useAggregateByUUID(
@@ -103,9 +138,34 @@ function ObjectChildrenPageContent() {
   }
 
   // Handle double-click to navigate to sub-children
-  const handleObjectDoubleClick = (object: any) => {
-    router.push(`/objects/${object.uuid}`)
-  }
+  const handleObjectDoubleClick = useCallback(
+    (object: any) => {
+      // Push the current parent onto the breadcrumb trail before navigating
+      if (parentObject) {
+        pushAncestor({
+          uuid: parentUuid,
+          name: (parentObject.name || parentUuid) as string,
+        })
+      }
+      router.push(`/objects/${object.uuid}`)
+    },
+    [parentObject, parentUuid, pushAncestor, router]
+  )
+
+  // Truncate breadcrumb: show first 3 + ... + last 3 when > 6 ancestors
+  const MAX_VISIBLE = 4
+  const EDGE_COUNT = 2
+
+  const truncatedAncestors = useMemo(() => {
+    if (ancestors.length <= MAX_VISIBLE) {
+      return { leading: ancestors, trailing: [], truncated: false }
+    }
+    return {
+      leading: ancestors.slice(0, EDGE_COUNT),
+      trailing: ancestors.slice(-1),
+      truncated: true,
+    }
+  }, [ancestors])
 
   const handleAddChild = () => {
     setSelectedObject(null)
@@ -136,27 +196,68 @@ function ObjectChildrenPageContent() {
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/objects" className="flex items-center gap-2">
+                <Link
+                  href="/objects"
+                  className="flex items-center gap-2"
+                  onClick={() => clearTrail()}
+                >
                   <HomeIcon className="size-4" />
                   {t('objects.childrenPage.breadcrumbRoot')}
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            {ancestors.map((ancestor) => (
+            {truncatedAncestors.leading.map((ancestor) => (
               <span key={ancestor.uuid} className="contents">
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href={`/objects/${ancestor.uuid}`}>
-                      {ancestor.name}
+                    <Link
+                      href={`/objects/${ancestor.uuid}`}
+                      onClick={() => navigateToAncestor(ancestor.uuid)}
+                    >
+                      <TruncateWithTooltip
+                        text={ancestor.name}
+                        maxLength={25}
+                      />
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
               </span>
             ))}
+            {truncatedAncestors.truncated && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbEllipsis />
+                </BreadcrumbItem>
+                {truncatedAncestors.trailing.map((ancestor) => (
+                  <span key={ancestor.uuid} className="contents">
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <Link
+                          href={`/objects/${ancestor.uuid}`}
+                          onClick={() => navigateToAncestor(ancestor.uuid)}
+                        >
+                          <TruncateWithTooltip
+                            text={ancestor.name}
+                            maxLength={25}
+                          />
+                        </Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                  </span>
+                ))}
+              </>
+            )}
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>{parentObject.name}</BreadcrumbPage>
+              <BreadcrumbPage>
+                <TruncateWithTooltip
+                  text={parentObject.name || parentUuid}
+                  maxLength={25}
+                />
+              </BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>

@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { PlusCircle, Search, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import dynamic from 'next/dynamic'
-import { useViewData } from '@/hooks'
+import { useViewData, useBreadcrumbTrail } from '@/hooks'
 import { useSearch } from '@/contexts'
 import { isObjectDeleted } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
@@ -51,6 +51,7 @@ function ObjectsPageContent() {
   const [copyTarget, setCopyTarget] = useState<any>(null)
 
   const router = useRouter()
+  const { clearTrail } = useBreadcrumbTrail(undefined)
   const {
     isSearchMode,
     searchQuery,
@@ -85,9 +86,14 @@ function ObjectsPageContent() {
   }
 
   // Handle double-click to navigate to children page
-  const handleObjectDoubleClick = (object: any) => {
-    router.push(`/objects/${object.uuid}`)
-  }
+  const handleObjectDoubleClick = useCallback(
+    (object: any) => {
+      // Clear the trail — navigating from root means no ancestors
+      clearTrail()
+      router.push(`/objects/${object.uuid}`)
+    },
+    [clearTrail, router]
+  )
 
   return (
     <div className="container mx-auto p-4">
