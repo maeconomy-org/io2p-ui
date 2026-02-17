@@ -813,7 +813,8 @@
     "jobId": "Job ID:",
     "loadingDetails": "Loading job details...",
     "processed": "Processed",
-    "jobTitle": "Import Job {id} - {status}"
+    "jobTitle": "Import Job {id} - {status}",
+    "cancelJob": "Cancel Import"
   },
   "filters": {
     "filterOptions": "Filter Options"

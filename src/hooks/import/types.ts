@@ -9,6 +9,7 @@ export type ImportJobStatus =
   | 'completed'
   | 'completed_with_errors'
   | 'failed'
+  | 'cancelled'
 
 export interface ImportJobSummary {
   jobId: string
@@ -36,5 +37,7 @@ export function isActiveJobStatus(status: ImportJobStatus): boolean {
  * Check if a job status is considered "finished"
  */
 export function isFinishedJobStatus(status: ImportJobStatus): boolean {
-  return ['completed', 'completed_with_errors', 'failed'].includes(status)
+  return ['completed', 'completed_with_errors', 'failed', 'cancelled'].includes(
+    status
+  )
 }

@@ -27,6 +27,10 @@ interface UseImportManagerResult {
   // Job selection
   selectJob: (jobId: string | null) => void
   selectedJobId: string | null
+
+  // Job cancellation
+  cancelJob: (jobId: string) => Promise<void>
+  cancellingJobId: string | null
 }
 
 export function useImportManager(
@@ -50,6 +54,9 @@ export function useImportManager(
 
   // Auto-refresh state
   const [autoRefresh, setAutoRefresh] = useState(false)
+
+  // Cancel job state
+  const [cancellingJobId, setCancellingJobId] = useState<string | null>(null)
 
   // Fetch all jobs
   const fetchJobs = useCallback(async () => {
@@ -155,6 +162,39 @@ export function useImportManager(
     setAutoRefresh((prev) => !prev)
   }, [])
 
+  // Cancel a job
+  const cancelJob = useCallback(
+    async (jobId: string) => {
+      try {
+        setCancellingJobId(jobId)
+        const response = await fetch('/api/import/cancel', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ jobId }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to cancel job')
+        }
+
+        // Refresh jobs list and selected job
+        await fetchJobs()
+        if (selectedJobId === jobId) {
+          await fetchSelectedJob(true)
+        }
+      } catch (err) {
+        logger.error('Error cancelling job:', err)
+        throw err
+      } finally {
+        setCancellingJobId(null)
+      }
+    },
+    [fetchJobs, fetchSelectedJob, selectedJobId]
+  )
+
   return {
     // Jobs list
     jobs,
@@ -175,5 +215,9 @@ export function useImportManager(
     // Job selection
     selectJob,
     selectedJobId,
+
+    // Job cancellation
+    cancelJob,
+    cancellingJobId,
   }
 }

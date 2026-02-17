@@ -21,9 +21,10 @@ export async function processImportJob(jobId: string) {
     if (
       !jobData ||
       jobData.status === 'completed' ||
-      jobData.status === 'failed'
+      jobData.status === 'failed' ||
+      jobData.status === 'cancelled'
     ) {
-      // Job already processed or invalid - no logging needed
+      // Job already processed, cancelled, or invalid - no logging needed
       return
     }
 
@@ -100,6 +101,17 @@ export async function processImportJob(jobId: string) {
 
     // Process objects in batches by calling the Node API directly
     for (let i = 0; i < allObjects.length; i += batchSize) {
+      // Check if job has been cancelled before processing next batch
+      const currentJobData = await redis.hgetall(REDIS_KEYS.job(jobId))
+      if (currentJobData.status === 'cancelled') {
+        logger.import(`Job cancelled during processing`, {
+          jobId,
+          processed,
+          remaining: allObjects.length - i,
+        })
+        return
+      }
+
       const batch = allObjects.slice(i, i + batchSize)
 
       try {

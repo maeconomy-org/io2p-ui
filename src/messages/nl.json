@@ -813,7 +813,8 @@
     "jobId": "Opdracht-ID:",
     "loadingDetails": "Opdrachtdetails laden...",
     "processed": "Verwerkt",
-    "jobTitle": "Importopdracht {id} - {status}"
+    "jobTitle": "Importopdracht {id} - {status}",
+    "cancelJob": "Import annuleren"
   },
   "filters": {
     "filterOptions": "Filteropties"

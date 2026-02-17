@@ -17,6 +17,7 @@ import {
   Package,
   Clock,
   CalendarCheck,
+  Ban,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -38,6 +39,8 @@ function JobStatusIcon({ status }: { status: string }) {
       return <AlertCircle className="h-4 w-4 text-yellow-500" />
     case 'failed':
       return <XCircle className="h-4 w-4 text-red-500" />
+    case 'cancelled':
+      return <Ban className="h-4 w-4 text-muted-foreground" />
     default:
       return <AlertCircle className="h-4 w-4 text-muted-foreground" />
   }
@@ -76,6 +79,8 @@ export default function ImportStatusPage() {
     toggleAutoRefresh,
     selectJob,
     selectedJobId,
+    cancelJob,
+    cancellingJobId,
   } = useImportManager(initialJobId)
 
   // Check if we should redirect to objects page after completion
@@ -401,6 +406,35 @@ export default function ImportStatusPage() {
                                     {t('importStatus.viewObjects')}
                                   </Button>
                                 </Link>
+                              )}
+                              {['pending', 'receiving', 'processing'].includes(
+                                selectedJob.status
+                              ) && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={async () => {
+                                    try {
+                                      await cancelJob(selectedJob.jobId)
+                                    } catch (error) {
+                                      console.error(
+                                        'Failed to cancel job:',
+                                        error
+                                      )
+                                    }
+                                  }}
+                                  disabled={
+                                    cancellingJobId === selectedJob.jobId
+                                  }
+                                  className="gap-2"
+                                >
+                                  {cancellingJobId === selectedJob.jobId ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Ban className="h-3 w-3" />
+                                  )}
+                                  {t('importStatus.cancelJob')}
+                                </Button>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
