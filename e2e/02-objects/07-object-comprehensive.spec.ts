@@ -300,7 +300,7 @@ test.describe('07 - Comprehensive Realistic Object', () => {
     })
   })
 
-  test.skip('TC003: Verify child object has all comprehensive data', async ({
+  test('TC003: Verify child object has all comprehensive data', async ({
     page,
   }) => {
     test.slow()
@@ -384,7 +384,7 @@ test.describe('07 - Comprehensive Realistic Object', () => {
     await page.getByRole('button', { name: 'Close' }).first().click()
   })
 
-  test.skip('TC004: Add file attachments to child object properties', async ({
+  test('TC004: Add file attachments to child object properties', async ({
     page,
   }) => {
     await page.goto('/objects')
@@ -445,7 +445,7 @@ test.describe('07 - Comprehensive Realistic Object', () => {
     await page.getByRole('button', { name: 'Close' }).first().click()
   })
 
-  test.skip('TC005: Edit child object properties and add new ones', async ({
+  test('TC005: Edit child object properties and add new ones', async ({
     page,
   }) => {
     await page.goto('/objects')

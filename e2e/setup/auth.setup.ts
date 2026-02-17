@@ -117,9 +117,9 @@ setup('authenticate with certificate', async ({ page }) => {
     timeout: 10000,
   })
 
-  // Click the "Authorize with Certificate" button
+  // Click the "Sign in with Certificate" button
   const authorizeButton = page.getByRole('button', {
-    name: /authorize with certificate/i,
+    name: /(authorize|sign in) with certificate/i,
   })
   await expect(authorizeButton).toBeVisible()
   await authorizeButton.click()

@@ -41,7 +41,7 @@ const openObject = async (page: Page, name: string) => {
   }
 
   await expect(row).toBeVisible({ timeout: 15000 })
-  await row.dblclick()
+  await row.locator('[data-testid="object-details-button"]').click()
   await page.waitForTimeout(1000)
 
   // Wait for sheet to open
@@ -224,13 +224,13 @@ test.describe('03 - Object File Attachments', () => {
     await openObject(page, name)
     await page.getByRole('tab', { name: /files/i }).click()
 
-    await page.getByRole('button', { name: /add files/i }).click()
+    await page.locator('[data-testid="add-files-button"]').click()
     await page.waitForTimeout(1000)
 
     // Look for the modal with drag/drop area (last one is the modal, first is sheet)
-    await expect(page.getByText('Drag and drop files here').last()).toBeVisible(
-      { timeout: 10000 }
-    )
+    await expect(
+      page.locator('[data-testid="attachment-modal"]').last()
+    ).toBeVisible({ timeout: 10000 })
 
     // Upload file using the file input
     await page
@@ -244,12 +244,12 @@ test.describe('03 - Object File Attachments', () => {
     await page.waitForTimeout(1000)
 
     await page
-      .locator('[data-test="attachment-modal-done-button"]')
+      .locator('[data-testid="attachment-modal-done-button"]')
       .last()
       .click()
     // Upload confirmation dialog should appear - wait and click confirm
     await page.waitForTimeout(500)
-    await page.locator('[data-test="upload-files-confirm-button"]').click()
+    await page.locator('[data-testid="upload-files-confirm-button"]').click()
 
     // Verify
     await expect(page.getByText('added-later.pdf').first()).toBeVisible({
@@ -267,13 +267,13 @@ test.describe('03 - Object File Attachments', () => {
     await openObject(page, name)
     await page.getByRole('tab', { name: /files/i }).click()
 
-    await page.getByRole('button', { name: /add files/i }).click()
+    await page.locator('[data-testid="add-files-button"]').click()
     await page.waitForTimeout(1000)
 
     // Wait for modal with drag/drop area
-    await expect(page.getByText('Drag and drop files here').last()).toBeVisible(
-      { timeout: 10000 }
-    )
+    await expect(
+      page.locator('[data-testid="attachment-modal"]').last()
+    ).toBeVisible({ timeout: 10000 })
 
     // Upload file
     await page
@@ -298,7 +298,7 @@ test.describe('03 - Object File Attachments', () => {
     await page.getByRole('button', { name: 'Close' }).first().click()
   })
 
-  test('TC027: Add file to property', async ({ page }) => {
+  test('TC027: Add file to property (non-edit mode)', async ({ page }) => {
     const name = `TC027 Object ${runId}`
 
     // Create object with property
@@ -322,16 +322,23 @@ test.describe('03 - Object File Attachments', () => {
     await page.getByRole('tab', { name: /properties/i }).click()
     await page.waitForTimeout(500)
 
-    // Click to expand property first
-    await page.getByText('Test Property').first().click()
+    // Click to expand property using data-testid
+    const propertyHeader = page.locator('[data-testid="property-header-0"]')
+    await expect(propertyHeader).toBeVisible({ timeout: 5000 })
+    await propertyHeader.click()
 
-    // Click Attach button on property
-    await page.getByRole('button', { name: 'Attach' }).first().click()
+    // Wait for expanded content
+    await expect(
+      page.locator('[data-testid="property-expanded-0"]')
+    ).toBeVisible({ timeout: 5000 })
 
-    // Modal is visible (now only one modal after fix)
-    const attachModal = page
-      .getByRole('dialog')
-      .filter({ hasText: 'Attach Files to Property' })
+    // Click attach button using data-testid
+    const attachButton = page.locator('[data-testid="property-attach-file-0"]')
+    await expect(attachButton).toBeVisible({ timeout: 5000 })
+    await attachButton.click()
+
+    // Modal is visible
+    const attachModal = page.locator('[data-testid="attachment-modal"]')
     await expect(attachModal).toBeVisible({ timeout: 10000 })
 
     // Add external reference
@@ -355,9 +362,92 @@ test.describe('03 - Object File Attachments', () => {
     await expect(page.getByRole('alertdialog')).toBeVisible({ timeout: 5000 })
     await page.getByRole('button', { name: 'Upload Files' }).click()
 
-    // Verify attachment shows on property
+    // Verify attachment shows on property (allow extra time for background upload + query invalidation)
+    await page.waitForTimeout(3000)
     await expect(page.getByText('Property Spec')).toBeVisible({
-      timeout: 10000,
+      timeout: 20000,
+    })
+
+    await page.getByRole('button', { name: 'Close' }).first().click()
+  })
+
+  test('TC028: Add file to property value (non-edit mode)', async ({
+    page,
+  }) => {
+    const name = `TC028 Object ${runId}`
+
+    // Create object with property and value
+    await page.getByRole('button', { name: /create object/i }).click()
+    const sheet = getDialog(page, 'Add Object')
+    await expect(sheet).toBeVisible()
+
+    await sheet.getByLabel('Name').fill(name)
+    await sheet.getByRole('button', { name: 'Add Property' }).click()
+    await sheet.getByLabel('Property Name').fill('Value File Prop')
+    await sheet
+      .getByPlaceholder('Enter property value')
+      .first()
+      .fill('value with file')
+
+    await sheet.getByRole('button', { name: 'Create' }).click()
+    await expect(sheet).toBeHidden({ timeout: 15000 })
+
+    // Open and attach file to property value
+    await openObject(page, name)
+    await page.getByRole('tab', { name: /properties/i }).click()
+    await page.waitForTimeout(500)
+
+    // Expand property using data-testid
+    const propertyHeader = page.locator('[data-testid="property-header-0"]')
+    await expect(propertyHeader).toBeVisible({ timeout: 5000 })
+    await propertyHeader.click()
+
+    // Wait for expanded content and value item
+    await expect(
+      page.locator('[data-testid="property-expanded-0"]')
+    ).toBeVisible({ timeout: 5000 })
+    await expect(
+      page.locator('[data-testid="property-0-value-0"]')
+    ).toBeVisible({ timeout: 5000 })
+
+    // Click attach button on the value using data-testid
+    const valueAttachButton = page.locator(
+      '[data-testid="value-attach-file-0-0"]'
+    )
+    await expect(valueAttachButton).toBeVisible({ timeout: 5000 })
+    await valueAttachButton.click()
+
+    // Modal is visible
+    const attachModal = page.locator('[data-testid="attachment-modal"]')
+    await expect(attachModal).toBeVisible({ timeout: 10000 })
+
+    // Add external reference to value
+    await attachModal
+      .getByPlaceholder('Enter external file URL')
+      .fill('https://example.com/value-doc.pdf')
+    await attachModal
+      .getByPlaceholder('Label (optional)')
+      .fill('Value Document')
+
+    // Click Add button
+    await attachModal.getByRole('button', { name: 'Add' }).click()
+
+    // Verify the attachment was added in the modal list
+    await expect(attachModal.getByText('Value Document')).toBeVisible({
+      timeout: 5000,
+    })
+
+    // Click Done button
+    await attachModal.getByRole('button', { name: 'Done' }).click()
+
+    // Confirm upload dialog (AlertDialog)
+    await expect(page.getByRole('alertdialog')).toBeVisible({ timeout: 5000 })
+    await page.getByRole('button', { name: 'Upload Files' }).click()
+
+    // Verify attachment shows on value (allow extra time for background upload + query invalidation)
+    await page.waitForTimeout(3000)
+    await expect(page.getByText('Value Document')).toBeVisible({
+      timeout: 20000,
     })
 
     await page.getByRole('button', { name: 'Close' }).first().click()

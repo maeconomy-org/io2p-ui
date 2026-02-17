@@ -56,7 +56,10 @@ test.describe('03 - Import Flow', () => {
       // Should show preview or mapping step
       await expect(
         page.locator('text=/preview|mapping|column|next/i').first()
-      ).toBeVisible({ timeout: 10000 })
+      ).toBeVisible({ timeout: 15000 })
+
+      // Wait for the next step to be ready
+      await page.waitForLoadState('networkidle')
     }
   })
 
@@ -79,8 +82,12 @@ test.describe('03 - Import Flow', () => {
       await page.waitForTimeout(2000)
 
       // Should show column headers from CSV
-      const nameColumn = page.locator('text=/name/i').first()
-      await expect(nameColumn).toBeVisible({ timeout: 10000 })
+      await expect(
+        page
+          .locator('th, td, [role="columnheader"]')
+          .filter({ hasText: /name/i })
+          .first()
+      ).toBeVisible({ timeout: 15000 })
     }
   })
 })

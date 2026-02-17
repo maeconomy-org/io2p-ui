@@ -63,7 +63,8 @@ export async function openObject(page: Page, name: string) {
   }
 
   await expect(row).toBeVisible({ timeout: 15000 })
-  await row.dblclick()
+  // Click "View Details" button instead of dblclick (which navigates to children)
+  await row.locator('[data-testid="object-details-button"]').click()
   await page.waitForTimeout(1000)
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 })
 }
@@ -112,19 +113,19 @@ export async function addExternalFileToModal(
 
 /**
  * Close attachment modal and confirm upload if needed
- * Uses data-test attributes for reliable selection
+ * Uses data-testid attributes for reliable selection
  */
 export async function closeAttachmentModalAndConfirm(page: Page) {
-  // Click Done button using data-test attribute
+  // Click Done button using data-testid attribute
   await page
-    .locator('[data-test="attachment-modal-done-button"]')
+    .locator('[data-testid="attachment-modal-done-button"]')
     .last()
     .click()
   await page.waitForTimeout(500)
 
   // Click confirm button if upload dialog appears
   const confirmButton = page.locator(
-    '[data-test="upload-files-confirm-button"]'
+    '[data-testid="upload-files-confirm-button"]'
   )
   if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
     await confirmButton.click()
@@ -166,7 +167,11 @@ export async function openObjectFromChildrenTable(
     .filter({ hasText: objectName })
     .first()
   await expect(childRow).toBeVisible({ timeout: 10000 })
-  await childRow.dblclick()
+  const detailsButton = childRow.locator(
+    '[data-testid="object-details-button"]'
+  )
+  await expect(detailsButton).toBeVisible({ timeout: 5000 })
+  await detailsButton.click()
   await page.waitForLoadState('networkidle')
 }
 

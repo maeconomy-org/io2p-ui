@@ -68,7 +68,7 @@ test.describe('05 - Object Templates', () => {
       .filter({ hasText: sourceObjectName })
       .first()
     await expect(row).toBeVisible({ timeout: 15000 })
-    await row.dblclick()
+    await row.locator('[data-testid="object-details-button"]').click()
 
     await expect(
       page.getByRole('heading', { name: sourceObjectName })
@@ -205,7 +205,7 @@ test.describe('05 - Object Templates', () => {
 
     if ((await row.count()) > 0) {
       await expect(row).toBeVisible({ timeout: 15000 })
-      await row.dblclick()
+      await row.locator('[data-testid="object-details-button"]').click()
 
       await expect(page.getByText(objectFromTemplateName).first()).toBeVisible()
 

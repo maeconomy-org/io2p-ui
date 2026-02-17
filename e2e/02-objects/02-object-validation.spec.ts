@@ -146,10 +146,10 @@ test.describe('02 - Object Validation', () => {
     // Open and try to edit
     const row = page.locator('tbody tr').filter({ hasText: name }).first()
     await expect(row).toBeVisible({ timeout: 15000 })
-    await row.dblclick()
+    await row.locator('[data-testid="object-details-button"]').click()
 
     await page.getByRole('tab', { name: /metadata/i }).click()
-    await page.getByRole('button', { name: 'Edit' }).first().click()
+    await page.locator('[data-testid="section-metadata-edit-button"]').click()
 
     // Make changes
     await page.getByLabel('Name').fill('SHOULD NOT SAVE')
@@ -187,10 +187,10 @@ test.describe('02 - Object Validation', () => {
     // Open and try to edit property
     const row = page.locator('tbody tr').filter({ hasText: name }).first()
     await expect(row).toBeVisible({ timeout: 15000 })
-    await row.dblclick()
+    await row.locator('[data-testid="object-details-button"]').click()
 
     await page.getByRole('tab', { name: /properties/i }).click()
-    await page.getByRole('button', { name: 'Edit' }).first().click()
+    await page.locator('[data-testid="section-properties-edit-button"]').click()
 
     // Click on property to expand it in edit mode
     await page.getByText('Original Key').first().click()
@@ -226,10 +226,10 @@ test.describe('02 - Object Validation', () => {
     // Open and edit
     const row = page.locator('tbody tr').filter({ hasText: name }).first()
     await expect(row).toBeVisible({ timeout: 15000 })
-    await row.dblclick()
+    await row.locator('[data-testid="object-details-button"]').click()
 
     await page.getByRole('tab', { name: /metadata/i }).click()
-    await page.getByRole('button', { name: 'Edit' }).first().click()
+    await page.locator('[data-testid="section-metadata-edit-button"]').click()
 
     // Make change but don't save
     await page.getByLabel('Abbreviation').fill('CHANGED')
@@ -259,10 +259,10 @@ test.describe('02 - Object Validation', () => {
     // Open, enter edit mode, save without changes
     const row = page.locator('tbody tr').filter({ hasText: name }).first()
     await expect(row).toBeVisible({ timeout: 15000 })
-    await row.dblclick()
+    await row.locator('[data-testid="object-details-button"]').click()
 
     await page.getByRole('tab', { name: /metadata/i }).click()
-    await page.getByRole('button', { name: 'Edit' }).first().click()
+    await page.locator('[data-testid="section-metadata-edit-button"]').click()
 
     // Save without changes
     await page.getByRole('button', { name: 'Save' }).click()

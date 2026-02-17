@@ -106,7 +106,7 @@ test.describe('06 - Object Regression Flow', () => {
     })
   })
 
-  test.skip('TC003: Edit details, properties, files, relationships, and QR code', async ({
+  test('TC003: Edit details, properties, files, relationships, and QR code', async ({
     page,
   }) => {
     await page.goto('/objects')
@@ -117,7 +117,7 @@ test.describe('06 - Object Regression Flow', () => {
       .filter({ hasText: childObjectName })
       .first()
     await expect(row).toBeVisible({ timeout: 15000 })
-    await row.dblclick()
+    await row.locator('[data-testid="object-details-button"]').click()
 
     // Wait for object details to load
     await page.waitForLoadState('networkidle')
@@ -174,7 +174,7 @@ test.describe('06 - Object Regression Flow', () => {
       timeout: 10000,
     })
 
-    await page.getByRole('button', { name: 'Edit' }).first().click()
+    await page.locator('[data-testid="section-properties-edit-button"]').click()
     await page.waitForTimeout(1000) // Wait for edit mode to activate
 
     // Click on the property to expand it in edit mode
@@ -194,7 +194,7 @@ test.describe('06 - Object Regression Flow', () => {
     })
 
     await page.getByRole('tab', { name: 'Metadata' }).click()
-    await page.getByRole('button', { name: 'Edit' }).first().click()
+    await page.locator('[data-testid="section-metadata-edit-button"]').click()
 
     childObjectUpdatedName = `${childObjectName} Updated`
     await page.getByLabel('Name').fill(childObjectUpdatedName)
@@ -208,7 +208,7 @@ test.describe('06 - Object Regression Flow', () => {
     })
 
     await page.getByRole('tab', { name: 'Relationships' }).click()
-    await page.getByRole('button', { name: 'Edit' }).first().click()
+    await page.locator('[data-testid="section-parents-edit-button"]').click()
     await page.waitForTimeout(1000)
 
     // Click combobox trigger to open parent selector - use button role or placeholder
@@ -245,7 +245,7 @@ test.describe('06 - Object Regression Flow', () => {
     await page.getByRole('tab', { name: 'Files' }).click()
     await page.getByRole('button', { name: /add files/i }).click()
 
-    const objectFilesDialog = getDialogByTitle(page, 'Object Files')
+    const objectFilesDialog = getDialogByTitle(page, 'Files')
     await expect(objectFilesDialog).toBeVisible()
     await objectFilesDialog.locator('input[type="file"]').setInputFiles({
       name: 'details-file.pdf',
@@ -293,7 +293,7 @@ test.describe('06 - Object Regression Flow', () => {
     const updatedUuid = (
       await updatedRow.locator('td').nth(1).innerText()
     ).trim()
-    await updatedRow.getByTitle('Show QR Code').click()
+    await updatedRow.locator('[data-testid="object-qr-button"]').click()
 
     const qrDialog = getDialogByTitle(
       page,

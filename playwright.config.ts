@@ -1,14 +1,15 @@
 import { defineConfig, devices } from '@playwright/test'
+import * as dotenv from 'dotenv'
 import path from 'path'
 
-const API_PORTS = [6443, 7443, 8443, 9443]
-const API_HOST = 'https://maeconomy-dev.recheck.io'
+dotenv.config({ path: '.env.local' })
 
 // Resolve certificate paths to absolute paths
 const certsDir = path.resolve(__dirname, 'certs')
 
 export default defineConfig({
   testDir: './e2e',
+
   fullyParallel: false, // Run tests serially for stability
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -28,18 +29,15 @@ export default defineConfig({
       // Slow down actions for better visibility (set to 0 for fast execution)
       slowMo: process.env.SLOW_MO ? parseInt(process.env.SLOW_MO) : 1000,
     },
-    // viewport: {
-    //   width: 1800,
-    //   height: 1169,
-    // },
-
     // Certificate for API servers (mTLS)
-    clientCertificates: API_PORTS.map((port) => ({
-      origin: `${API_HOST}:${port}`,
-      certPath: path.join(certsDir, 'client1.crt'),
-      keyPath: path.join(certsDir, 'client1.key'),
-      passphrase: process.env.CLIENT_CERT_PASSPHRASE || '',
-    })),
+    clientCertificates: [
+      {
+        origin: process.env.AUTH_API_URL || '',
+        certPath: path.join(certsDir, 'client1.crt'),
+        keyPath: path.join(certsDir, 'client1.key'),
+        passphrase: process.env.CLIENT_CERT_PASSPHRASE || '',
+      },
+    ],
   },
   projects: [
     {

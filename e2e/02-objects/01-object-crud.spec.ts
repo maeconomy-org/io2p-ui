@@ -49,7 +49,8 @@ const openObject = async (page: Page, name: string) => {
   }
 
   await expect(row).toBeVisible({ timeout: 15000 })
-  await row.dblclick()
+  // Click "View Details" button instead of dblclick (which navigates to children)
+  await row.locator('[data-testid="object-details-button"]').click()
   await page.waitForTimeout(500)
 }
 
@@ -340,19 +341,10 @@ test.describe('01 - Object CRUD Operations', () => {
     await openObject(page, name)
     await page.getByRole('tab', { name: /metadata/i }).click()
 
-    // Find address section edit button (sibling of Address heading)
-    const a = await page
-      .getByRole('heading', { name: 'Address' })
-      .scrollIntoViewIfNeeded()
-    console.log(a)
-    const b = await page
-      .getByRole('heading', { name: 'Address' })
-      .locator('..')
-      .getByRole('button', { name: 'Edit' })
-      .click()
-    console.log(b)
+    // Find address section edit button
+    await page.locator('[data-testid="section-address-edit-button"]').click()
+
     const addressInput = page.getByPlaceholder(/search.*address/i)
-    console.log(addressInput)
     await addressInput.fill('Munich')
 
     const suggestion = page

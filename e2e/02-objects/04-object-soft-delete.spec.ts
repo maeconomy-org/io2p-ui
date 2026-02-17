@@ -169,7 +169,7 @@ test.describe('04 - Object Soft Delete & Restore', () => {
       .filter({ hasText: detailsTestName })
       .first()
     await expect(row).toBeVisible({ timeout: 15000 })
-    await row.dblclick()
+    await row.locator('[data-testid="object-details-button"]').click()
 
     await expect(
       page.getByRole('heading', { name: detailsTestName })
@@ -266,8 +266,10 @@ test.describe('04 - Object Soft Delete & Restore', () => {
           // Object should be restored
           await page.waitForTimeout(3000)
         } else {
-          // Try double-clicking to open details and restore from there
-          await deletedRow.dblclick()
+          // Try using details button to open sheet and restore from there
+          await deletedRow
+            .locator('[data-testid="object-details-button"]')
+            .click()
 
           const restoreInDetails = page.locator(
             'button:has-text("Restore"), [data-testid*="restore"]'
