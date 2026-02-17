@@ -211,8 +211,12 @@ export function ObjectsTable({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={(e) => handleShowQRCode(object, e)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleShowQRCode(object, e)
+                }}
                 title={t('objects.showQr')}
+                data-testid="object-qr-button"
               >
                 <QrCode className="h-4 w-4" />
               </Button>
@@ -225,6 +229,7 @@ export function ObjectsTable({
                   handleViewDetails(object)
                 }}
                 title={t('objects.viewDetails')}
+                data-testid="object-details-button"
               >
                 <FileText className="h-4 w-4" />
               </Button>
@@ -239,6 +244,7 @@ export function ObjectsTable({
                     setIsCopySheetOpen(true)
                   }}
                   title={t('objects.duplicate.action')}
+                  data-testid="object-copy-button"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -254,6 +260,7 @@ export function ObjectsTable({
                   }}
                   disabled={revertObjectMutation.isPending}
                   title={t('objects.restoreTitle')}
+                  data-testid="object-restore-button"
                 >
                   <RotateCcw className="h-4 w-4 text-blue-600" />
                 </Button>
@@ -269,6 +276,7 @@ export function ObjectsTable({
                     })
                   }}
                   disabled={isDeleting}
+                  data-testid="object-delete-button"
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>

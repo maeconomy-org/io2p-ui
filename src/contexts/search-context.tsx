@@ -119,6 +119,16 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 
   // Execute search from parsed search object (for CommandCenter)
   const executeSearchFromParsed = (parsed: ParsedSearch) => {
+    // Reconstruct the display query from the parsed search
+    const displayQuery = [
+      parsed.searchTerm,
+      ...parsed.filters
+        .filter((f) => f.type !== 'text')
+        .map((f) => `${f.type}:${f.value}`),
+    ]
+      .filter(Boolean)
+      .join(' ')
+    setSearchQuery(displayQuery || parsed.searchTerm || '')
     setCurrentParsedSearch(parsed)
     executeSearchWithPagination(parsed, 0)
   }

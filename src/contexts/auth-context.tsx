@@ -23,15 +23,6 @@ interface AuthContextType {
     email: string,
     password: string
   ) => Promise<{ success: boolean; error?: string }>
-  handleForgotPassword: (
-    email: string
-  ) => Promise<{ success: boolean; error?: string }>
-  handleEmailVerification: (
-    token: string
-  ) => Promise<{ success: boolean; error?: string }>
-  handleResendVerification: (
-    email: string
-  ) => Promise<{ success: boolean; error?: string }>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -43,9 +34,6 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
   handleAuth: async () => ({ success: false }),
   handleEmailLogin: async () => ({ success: false }),
-  handleForgotPassword: async () => ({ success: false }),
-  handleEmailVerification: async () => ({ success: false }),
-  handleResendVerification: async () => ({ success: false }),
 })
 
 interface AuthProviderProps {
@@ -68,20 +56,26 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
     let unsubscribe: (() => void) | undefined
 
     const init = async () => {
-      // Wait for SDK startup refresh
-      await client.ready
-
+      // Subscribe immediately to get initial state from SDK (including cached values)
       unsubscribe = client.onAuthStateChange((state) => {
         setIsAuthenticated(state.isAuthenticated)
         setIsRefreshing(state.isRefreshing)
         setUserInfo(state.user)
-        setAuthLoading(false)
 
-        // Only redirect if truly logged out
+        // Only hide loading if we are not currently refreshing tokens
+        if (!state.isRefreshing) {
+          setAuthLoading(false)
+        }
+
+        // Only redirect if truly logged out and on a private page
         if (!state.isAuthenticated && !PUBLIC_PAGES_SET.has(pathname)) {
           router.replace('/')
         }
       })
+
+      // Wait for SDK startup refresh to complete, then ensure loading is finished
+      await client.ready
+      setAuthLoading(false)
     }
 
     init()
@@ -93,8 +87,8 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
 
   const logout = () => {
     if (!client) return
-    client.logout()
     router.push('/')
+    client.logout()
   }
 
   const handleAuth = async () => {
@@ -129,31 +123,6 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
     }
   }
 
-  const handleForgotPassword = async (email: string) => {
-    // TODO: Implement forgot password when API is ready
-    // await client.requestPasswordReset(email)
-    return {
-      success: true,
-    }
-  }
-
-  const handleEmailVerification = async (token: string) => {
-    // TODO: Implement email verification when API is ready
-    // const result = await client.verifyEmail(token)
-    return {
-      success: false,
-      error: 'Email verification not yet implemented',
-    }
-  }
-
-  const handleResendVerification = async (email: string) => {
-    // TODO: Implement resend verification when API is ready
-    // await client.resendVerificationEmail(email)
-    return {
-      success: true,
-    }
-  }
-
   return (
     <AuthContext.Provider
       value={{
@@ -165,9 +134,6 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
         logout,
         handleAuth,
         handleEmailLogin,
-        handleForgotPassword,
-        handleEmailVerification,
-        handleResendVerification,
       }}
     >
       {children}

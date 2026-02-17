@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 
-import { Control, Controller, useFieldArray } from 'react-hook-form'
+import {
+  Control,
+  Controller,
+  useFieldArray,
+  useWatch,
+  useFormContext,
+} from 'react-hook-form'
 import { PlusIcon, UploadIcon, XIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -17,12 +23,188 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui'
+import { FormulaEditor } from './formula-editor'
+import { ValueModeToggle } from './value-mode-toggle'
+import type { AvailableProperty } from './hooks/use-formula-evaluation'
 
 interface PropertyFieldProps {
   control: Control<any>
   name: string
   index: number
   onRemove: () => void
+  availableProperties?: AvailableProperty[]
+}
+
+interface ValueFieldItemProps {
+  control: Control<any>
+  valuesName: string
+  valueIndex: number
+  valueField: any
+  arrayVersion: number
+  availableProperties: AvailableProperty[]
+  canRemove: boolean
+  onRemove: () => void
+  openValueIndex: number | null
+  setOpenValueIndex: (index: number | null) => void
+}
+
+function ValueFieldItem({
+  control,
+  valuesName,
+  valueIndex,
+  valueField,
+  arrayVersion,
+  availableProperties,
+  canRemove,
+  onRemove,
+  openValueIndex,
+  setOpenValueIndex,
+}: ValueFieldItemProps) {
+  const t = useTranslations()
+  const { setValue } = useFormContext()
+
+  // Watch formulaData to initialize mode
+  const formulaData = useWatch({
+    control,
+    name: `${valuesName}.${valueIndex}.formulaData`,
+  })
+
+  const [isFormulaMode, setIsFormulaMode] = useState(!!formulaData?.formula)
+
+  const switchToTextMode = () => {
+    if (!isFormulaMode) return
+    setIsFormulaMode(false)
+    // Keep result as the text value, clear formulaData
+    setValue(
+      `${valuesName}.${valueIndex}.value`,
+      formulaData?.result?.toString() || ''
+    )
+    setValue(`${valuesName}.${valueIndex}.formulaData`, undefined)
+  }
+
+  const switchToFormulaMode = () => {
+    if (isFormulaMode) return
+    setIsFormulaMode(true)
+    setValue(`${valuesName}.${valueIndex}.formulaData`, {
+      formula: '',
+      variableMapping: {},
+      result: null,
+      isValid: false,
+    })
+  }
+
+  return (
+    <div className="space-y-2 border rounded-md p-2 bg-muted/5">
+      {/* Value Label + Toggle + Actions */}
+      <div className="flex items-center justify-between">
+        <Label className="text-xs text-muted-foreground">
+          {t('objects.propertyValue')}
+        </Label>
+        <div className="flex items-center gap-1">
+          <ValueModeToggle
+            isFormulaMode={isFormulaMode}
+            onTextMode={switchToTextMode}
+            onFormulaMode={switchToFormulaMode}
+          />
+
+          {/* Upload + Delete buttons (always visible) */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setOpenValueIndex(valueIndex)}
+            data-tour="property-value-upload"
+          >
+            <UploadIcon className="h-4 w-4" />
+          </Button>
+
+          {canRemove && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onRemove}
+            >
+              <XIcon className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Value Input (full width) */}
+      {isFormulaMode ? (
+        <Controller
+          control={control}
+          name={`${valuesName}.${valueIndex}.formulaData`}
+          render={({ field }) => (
+            <FormulaEditor
+              availableProperties={availableProperties}
+              initialFormula={field.value?.formula || ''}
+              initialMapping={field.value?.variableMapping}
+              onChange={(data) => {
+                field.onChange({
+                  formula: data.formula,
+                  variableMapping: data.variableMapping,
+                  result: data.result,
+                  resolvedExpression: data.resolvedExpression,
+                  isValid: data.isValid,
+                })
+                // Update the value field with the result
+                setValue(
+                  `${valuesName}.${valueIndex}.value`,
+                  data.result?.toString() || ''
+                )
+              }}
+            />
+          )}
+        />
+      ) : (
+        <FormField
+          key={`${valueField.id}-${arrayVersion}`}
+          control={control}
+          name={`${valuesName}.${valueIndex}.value`}
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Input
+                  placeholder={t('objects.propertyValuePlaceholder')}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      {/* File Attachments */}
+      <Controller
+        key={`${valueField.id}-files-${arrayVersion}`}
+        control={control}
+        name={`${valuesName}.${valueIndex}.files`}
+        render={({ field }) => (
+          <div className="space-y-2">
+            {(field.value?.length || 0) > 0 && (
+              <Label className="text-xs text-muted-foreground">
+                {t('objects.fields.files')}
+              </Label>
+            )}
+            <AttachmentList attachments={field.value || []} />
+            <AttachmentModal
+              open={openValueIndex === valueIndex}
+              onOpenChange={(open) =>
+                setOpenValueIndex(open ? valueIndex : null)
+              }
+              attachments={field.value || []}
+              onChange={field.onChange}
+              title={t('objects.attachFilesValue')}
+            />
+          </div>
+        )}
+      />
+    </div>
+  )
 }
 
 export function PropertyField({
@@ -30,6 +212,7 @@ export function PropertyField({
   name,
   index,
   onRemove,
+  availableProperties = [],
 }: PropertyFieldProps) {
   const t = useTranslations()
   const valuesName = `${name}.values`
@@ -106,6 +289,7 @@ export function PropertyField({
               size="sm"
               onClick={() => setIsPropertyFilesOpen(true)}
               data-tour="property-name-upload"
+              data-testid="attach-file-button"
             >
               <UploadIcon className="h-4 w-4" />
             </Button>
@@ -137,79 +321,24 @@ export function PropertyField({
         </div>
       </div>
 
+      {/* Values Section */}
       <div className="space-y-3">
         <Label className="text-sm">{t('objects.propertyValues')}</Label>
 
         {valueFields.map((valueField, valueIndex) => (
-          <div key={valueField.id} className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center justify-between gap-2 w-full">
-                <FormField
-                  key={`${valueField.id}-${arrayVersion}`}
-                  control={control}
-                  name={`${valuesName}.${valueIndex}.value`}
-                  render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <FormControl>
-                        <Input
-                          placeholder={t('objects.propertyValuePlaceholder')}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setOpenValueIndex(valueIndex)}
-                  data-tour="property-value-upload"
-                >
-                  <UploadIcon className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {valueFields.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => removeValue(valueIndex)}
-                >
-                  <XIcon className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            <Controller
-              key={`${valueField.id}-files-${arrayVersion}`}
-              control={control}
-              name={`${valuesName}.${valueIndex}.files`}
-              render={({ field }) => (
-                <div className="mt-2 space-y-2">
-                  {(field.value?.length || 0) > 0 && (
-                    <Label className="text-sm">
-                      {t('objects.fields.files')}
-                    </Label>
-                  )}
-                  <AttachmentList attachments={field.value || []} />
-                  <AttachmentModal
-                    open={openValueIndex === valueIndex}
-                    onOpenChange={(open) =>
-                      setOpenValueIndex(open ? valueIndex : null)
-                    }
-                    attachments={field.value || []}
-                    onChange={field.onChange}
-                    title={t('objects.attachFilesValue')}
-                  />
-                </div>
-              )}
-            />
-          </div>
+          <ValueFieldItem
+            key={valueField.id}
+            control={control}
+            valuesName={valuesName}
+            valueIndex={valueIndex}
+            valueField={valueField}
+            arrayVersion={arrayVersion}
+            availableProperties={availableProperties}
+            canRemove={valueFields.length > 1}
+            onRemove={() => removeValue(valueIndex)}
+            openValueIndex={openValueIndex}
+            setOpenValueIndex={setOpenValueIndex}
+          />
         ))}
 
         <Button

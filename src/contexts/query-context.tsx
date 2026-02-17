@@ -12,7 +12,12 @@ import { usePathname } from 'next/navigation'
 import type { Client } from 'iom-sdk'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fetchClientConfig, ClientConfig, PUBLIC_PAGES_SET } from '@/constants'
+import {
+  fetchClientConfig,
+  getCachedConfig,
+  ClientConfig,
+  PUBLIC_PAGES_SET,
+} from '@/constants'
 import { getSdkClient } from '@/lib/sdk-client'
 import { NavbarSkeleton, ContentSkeleton } from '@/components/skeletons'
 
@@ -39,8 +44,8 @@ export function useAppConfig(): ClientConfig {
 
 export function QueryProvider({ children }: PropsWithChildren) {
   const pathname = usePathname()
-  const [client, setClient] = useState<Client | null>(null)
   const [config, setConfig] = useState<ClientConfig | null>(null)
+  const [client, setClient] = useState<Client | null>(null)
   const [error, setError] = useState<Error | null>(null)
 
   const queryClient = useMemo(
@@ -62,8 +67,16 @@ export function QueryProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     let mounted = true
 
+    // Optimistic init from cache
+    const cached = getCachedConfig()
+    if (cached) {
+      setConfig(cached)
+      setClient(getSdkClient(cached))
+    }
+
     async function init() {
       try {
+        // fetchClientConfig handles background refresh/cache logic
         const fetchedConfig = await fetchClientConfig()
         const sdk = getSdkClient(fetchedConfig)
 

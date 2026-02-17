@@ -1,10 +1,11 @@
 import { Plus } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui'
 import { CollapsibleProperty } from './collapsible-property'
+import type { AvailableProperty } from './hooks/use-formula-evaluation'
 
 interface PropertySectionEditorProps {
   properties: any[]
@@ -190,26 +191,80 @@ export function PropertySectionEditor({
     )
   }
 
+  // Build available properties list for formula variable mapping.
+  // Each property value becomes a separate selectable option.
+  // Use deep dependency to trigger updates when property keys or values change
+  const propertiesKey = JSON.stringify(
+    editedProperties.map((p) => ({
+      id: p.uuid || p._tempId,
+      key: p.key,
+      values: p.values?.map((v: any) => ({
+        uuid: v.uuid,
+        value: v.value,
+      })),
+      deleted: p._deleted,
+    }))
+  )
+  const availableProperties = useMemo((): AvailableProperty[] => {
+    const result: AvailableProperty[] = []
+
+    editedProperties
+      .filter((p) => !p._deleted && p.key)
+      .forEach((p) => {
+        const propId = p.uuid || p._tempId || ''
+        const propKey = p.key
+        const propLabel = p.label || p.key
+
+        // Create one entry per value so each is independently selectable
+        if (p.values && p.values.length > 0) {
+          p.values.forEach((v: any, idx: number) => {
+            // Skip truly empty placeholder values
+            if (!v.value && v._needsInput) return
+
+            result.push({
+              // Composite ID: propertyId::valueIndex for unique Select keys
+              uuid: `${propId}::${idx}`,
+              key: propKey,
+              label: propLabel,
+              value: v.value || '',
+              valueIndex: idx,
+            })
+          })
+        }
+      })
+
+    return result
+  }, [propertiesKey, editedProperties])
+
   return (
     <div className="space-y-4">
-      {editedProperties.map((property, index) => (
-        <CollapsibleProperty
-          key={property.uuid || property._tempId || `new_${index}`}
-          property={property}
-          isExpanded={
-            expandedPropertyId ===
-            (property.uuid || property._tempId || `new_${index}`)
-          }
-          onToggle={() =>
-            togglePropertyExpansion(
-              property.uuid || property._tempId || `new_${index}`
-            )
-          }
-          isEditable={isEditable}
-          onUpdate={(updated) => handlePropertyUpdate(index, updated)}
-          onRemove={() => handleRemoveProperty(index)}
-        />
-      ))}
+      {editedProperties.map((property, index) => {
+        // Exclude current property's values from available properties for its own formula
+        const propId = property.uuid || property._tempId || ''
+        const siblingProperties = availableProperties.filter(
+          (p) => !p.uuid.startsWith(`${propId}::`)
+        )
+
+        return (
+          <CollapsibleProperty
+            key={property.uuid || property._tempId || `new_${index}`}
+            property={property}
+            isExpanded={
+              expandedPropertyId ===
+              (property.uuid || property._tempId || `new_${index}`)
+            }
+            onToggle={() =>
+              togglePropertyExpansion(
+                property.uuid || property._tempId || `new_${index}`
+              )
+            }
+            isEditable={isEditable}
+            onUpdate={(updated) => handlePropertyUpdate(index, updated)}
+            onRemove={() => handleRemoveProperty(index)}
+            availableProperties={siblingProperties}
+          />
+        )
+      })}
 
       {editedProperties.length === 0 ? (
         <div className="text-center p-4 border rounded-md bg-muted/10">

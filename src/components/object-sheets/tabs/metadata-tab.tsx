@@ -67,6 +67,7 @@ export function MetadataTab({
     <div className="space-y-2 py-4">
       {/* Metadata Section - Editable */}
       <EditableSection
+        id="section-metadata"
         title={t('objects.tabs.metadata')}
         isEditing={isMetadataEditing}
         onEditToggle={(isEditing) => handleEditToggle('metadata', isEditing)}
@@ -263,6 +264,7 @@ export function MetadataTab({
       {/* Address Section */}
       <Separator />
       <EditableSection
+        id="section-address"
         title={t('objects.fields.address')}
         isEditing={isAddressEditing}
         onEditToggle={(isEditing) => handleEditToggle('address', isEditing)}

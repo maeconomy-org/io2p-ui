@@ -162,7 +162,7 @@ export function AttachmentSection({
             size="sm"
             onClick={handleAddReference}
             disabled={disabled}
-            data-test="add-reference-button"
+            data-testid="add-reference-button"
           >
             <LinkIcon className="h-4 w-4 mr-1" /> {t('common.add')}
           </Button>

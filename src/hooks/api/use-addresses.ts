@@ -24,6 +24,7 @@ export function useAddresses() {
         // Also invalidate related object queries since addresses are linked to objects
         queryClient.invalidateQueries({ queryKey: ['objects'] })
         queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }
@@ -41,6 +42,7 @@ export function useAddresses() {
         // Also invalidate related object queries since addresses are linked to objects
         queryClient.invalidateQueries({ queryKey: ['objects'] })
         queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }
@@ -58,6 +60,7 @@ export function useAddresses() {
         // Also invalidate related object queries since addresses are linked to objects
         queryClient.invalidateQueries({ queryKey: ['objects'] })
         queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }

@@ -44,6 +44,8 @@ export function useProperties() {
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['properties'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }
@@ -59,6 +61,8 @@ export function useProperties() {
         queryClient.invalidateQueries({ queryKey: ['properties'] })
         queryClient.invalidateQueries({ queryKey: ['property', property.uuid] })
         queryClient.invalidateQueries({ queryKey: ['object'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }
@@ -73,6 +77,8 @@ export function useProperties() {
       onSuccess: (deletedUuid) => {
         queryClient.invalidateQueries({ queryKey: ['properties'] })
         queryClient.removeQueries({ queryKey: ['property', deletedUuid] })
+        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }
@@ -101,6 +107,8 @@ export function useProperties() {
         })
         queryClient.invalidateQueries({ queryKey: ['properties'] })
         queryClient.invalidateQueries({ queryKey: ['object', objectUuid] })
+        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }
@@ -126,6 +134,8 @@ export function useProperties() {
 
         queryClient.invalidateQueries({ queryKey: ['property', propertyUuid] })
         queryClient.invalidateQueries({ queryKey: ['object'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }
@@ -150,6 +160,8 @@ export function useProperties() {
       onSuccess: ({ propertyUuid }) => {
         queryClient.invalidateQueries({ queryKey: ['property', propertyUuid] })
         queryClient.invalidateQueries({ queryKey: ['object'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }

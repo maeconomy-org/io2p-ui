@@ -1,8 +1,12 @@
 /** @type {import('next').NextConfig} */
 import { withSentryConfig } from '@sentry/nextjs'
 import createNextIntlPlugin from 'next-intl/plugin'
+import withBundleAnalyzer from '@next/bundle-analyzer'
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
+const analyzeBundles = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+})
 
 const nextConfig = {
   output: 'standalone',
@@ -14,6 +18,12 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+  },
+  compiler: {
+    reactRemoveProperties:
+      process.env.NODE_ENV === 'production'
+        ? { properties: ['^data-testid$'] }
+        : false,
   },
   experimental: {
     webpackBuildWorker: true,
@@ -93,4 +103,4 @@ const configuredNextConfig =
       })
     : nextConfig
 
-export default withNextIntl(configuredNextConfig)
+export default analyzeBundles(withNextIntl(configuredNextConfig))

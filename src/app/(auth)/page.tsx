@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import { logger } from '@/lib'
+import { logger, cn } from '@/lib'
 import { useAuth, useAppConfig } from '@/contexts'
 import { loginSchema, type LoginFormData } from '@/lib/validations/auth'
 import {
@@ -116,6 +116,7 @@ export default function LoginPage() {
 
     try {
       const result = await handleAuth()
+      console.log(result)
       if (!result.success) {
         throw new Error(result.error)
       }
@@ -135,7 +136,7 @@ export default function LoginPage() {
       <h1 className="text-3xl font-bold tracking-tight">
         {t('auth.welcome', { acronym: config.appAcronym })}
       </h1>
-      <p className="mt-2 text-muted-foreground">
+      <p className="mt-2 text-muted-foreground transition-all duration-300">
         {t('auth.subtitle', {
           name: config.appName,
           description: config.appDescription,
@@ -143,10 +144,37 @@ export default function LoginPage() {
       </p>
 
       {/* Auth Card */}
-      <Card className="p-6 shadow-lg mt-8">
-        <div className="space-y-6">
+      <Card className="p-6 shadow-lg mt-8 relative overflow-hidden min-h-[400px]">
+        {/* Loading Overlay */}
+        <div
+          className={cn(
+            'absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm transition-all duration-500 ease-in-out',
+            isLoading
+              ? 'pointer-events-auto opacity-100'
+              : 'pointer-events-none opacity-0'
+          )}
+        >
+          <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative">
+              <div className="h-16 w-16 rounded-full border-4 border-primary/0" />
+              <Loader2 className="absolute top-0 h-16 w-16 animate-spin text-primary" />
+            </div>
+            <p className="text-sm font-medium animate-pulse text-muted-foreground">
+              {t('auth.loading')}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            'space-y-6 transition-all duration-500 ease-in-out',
+            isLoading
+              ? 'scale-[0.98] opacity-0 blur-sm'
+              : 'scale-100 opacity-100'
+          )}
+        >
           {error && (
-            <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive animate-in slide-in-from-top-2 duration-300">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -218,13 +246,9 @@ export default function LoginPage() {
                     className="w-full py-6 text-base"
                     disabled={isLoading}
                   >
-                    {submitting ? (
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    ) : (
-                      <Mail className="mr-2 h-5 w-5" />
-                    )}
+                    {!isLoading && <Mail className="mr-2 h-5 w-5" />}
                     {t('auth.email.signIn')}
-                    {!submitting && <ArrowRight className="ml-2 h-4 w-4" />}
+                    {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
                   </Button>
                 </form>
               </Form>
@@ -246,14 +270,10 @@ export default function LoginPage() {
             variant={
               config.emailLoginEnabled === 'true' ? 'outline' : 'default'
             }
-            className="w-full py-6 text-base"
+            className="w-full py-6 text-base transition-colors"
             disabled={isLoading}
           >
-            {certLoading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <Shield className="mr-2 h-5 w-5" />
-            )}
+            {!isLoading && <Shield className="mr-2 h-5 w-5" />}
             {t('auth.certificate.signIn')}
           </Button>
         </div>

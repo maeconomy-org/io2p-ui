@@ -59,6 +59,8 @@ export function useStatements() {
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['statements'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
       },
     })
   }

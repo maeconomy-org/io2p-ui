@@ -1,8 +1,9 @@
 import { useTranslations } from 'next-intl'
-import { Paperclip } from 'lucide-react'
+import { FunctionSquare, Paperclip } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui'
+import { FormulaDisplay } from './formula-display'
 
 interface PropertyGridViewProps {
   properties: any[]
@@ -33,11 +34,13 @@ export function PropertyGridView({ properties }: PropertyGridViewProps) {
             0
           )
 
+        const hasAnyFormula = values.some((v: any) => !!v.formulaData?.formula)
+
         return (
           <div
             key={prop.uuid || `prop-${idx}`}
             className={cn(
-              'border-b border-border/50 pb-2.5',
+              'border-b border-border/50 pb-2.5 min-w-0',
               'last:border-b-0 [&:nth-last-child(2)]:border-b-0'
             )}
           >
@@ -45,6 +48,15 @@ export function PropertyGridView({ properties }: PropertyGridViewProps) {
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 {prop.label || prop.key}
               </span>
+              {hasAnyFormula && (
+                <Badge
+                  variant="secondary"
+                  className="h-4 px-1 text-[10px] gap-0.5 bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                >
+                  <FunctionSquare className="h-2.5 w-2.5" />
+                  fx
+                </Badge>
+              )}
               {hasFiles && (
                 <Badge
                   variant="secondary"
@@ -55,15 +67,27 @@ export function PropertyGridView({ properties }: PropertyGridViewProps) {
                 </Badge>
               )}
             </div>
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 min-w-0">
               {values.length > 0 ? (
                 values.map((value: any, vIdx: number) => (
                   <div
                     key={value.uuid || `val-${vIdx}`}
-                    className="text-sm font-medium"
+                    className="text-sm font-medium break-all overflow-hidden text-ellipsis"
                   >
-                    {value.value || (
-                      <span className="text-muted-foreground italic">-</span>
+                    {value.formulaData?.formula ? (
+                      <FormulaDisplay
+                        formula={value.formulaData.formula}
+                        resolvedExpression={
+                          value.formulaData.resolvedExpression
+                        }
+                        result={value.formulaData.result}
+                        variableMapping={value.formulaData.variableMapping}
+                        compact
+                      />
+                    ) : (
+                      value.value || (
+                        <span className="text-muted-foreground italic">-</span>
+                      )
                     )}
                   </div>
                 ))

@@ -129,6 +129,7 @@ export function PropertiesTab({
     <div className="space-y-4 pt-4">
       {/* Properties Section - Uses PropertySectionEditor */}
       <EditableSection
+        id="section-properties"
         title={t('objects.tabs.properties')}
         isEditing={isPropertiesEditing}
         onEditToggle={(isEditing) => handleEditToggle('properties', isEditing)}
@@ -143,6 +144,7 @@ export function PropertiesTab({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
+                      data-testid="properties-detailed-view-toggle"
                       onClick={() => setViewMode('detailed')}
                       className={cn(
                         'p-1.5 transition-colors',
@@ -162,6 +164,7 @@ export function PropertiesTab({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
+                      data-testid="properties-grid-view-toggle"
                       onClick={() => setViewMode('grid')}
                       className={cn(
                         'p-1.5 transition-colors',
@@ -191,10 +194,12 @@ export function PropertiesTab({
                   <div
                     key={prop.uuid || idx}
                     className="border rounded-md overflow-hidden"
+                    data-testid={`property-item-${idx}`}
                   >
                     {/* Property header - always visible */}
                     <div
                       className="py-2 px-3 hover:bg-muted/20 cursor-pointer"
+                      data-testid={`property-header-${idx}`}
                       onClick={() =>
                         togglePropertyExpansion(prop.uuid || `idx-${idx}`)
                       }
@@ -208,7 +213,7 @@ export function PropertiesTab({
                           }`}
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="font-medium text-sm mb-1 break-words">
+                          <div className="font-medium text-sm break-words">
                             {prop.label || prop.key}
                           </div>
                         </div>
@@ -217,7 +222,10 @@ export function PropertiesTab({
 
                     {/* Expanded content */}
                     {expandedPropertyId === (prop.uuid || `idx-${idx}`) && (
-                      <div className="border-t bg-muted/10 px-4 py-3 space-y-4">
+                      <div
+                        className="border-t bg-muted/10 px-4 py-3 space-y-4"
+                        data-testid={`property-expanded-${idx}`}
+                      >
                         {/* Property Details Header */}
                         <div className="flex items-center justify-between pb-2 border-b">
                           <div>
@@ -241,6 +249,7 @@ export function PropertiesTab({
                             <Button
                               variant="outline"
                               size="sm"
+                              data-testid={`property-attach-file-${idx}`}
                               onClick={() =>
                                 handleOpenPropertyAttachmentModal(
                                   prop.uuid,
@@ -257,7 +266,7 @@ export function PropertiesTab({
 
                         {/* Property Files Section */}
                         {prop.files && prop.files.length > 0 && (
-                          <div>
+                          <div data-testid={`property-files-${idx}`}>
                             <div className="flex items-center gap-2 mb-2">
                               <div className="text-sm font-medium">
                                 {t('objects.filesAttachedProperty')}
@@ -286,6 +295,7 @@ export function PropertiesTab({
                                 <div
                                   key={value.uuid || `value-${index}`}
                                   className="p-3 border rounded-md bg-background space-y-2"
+                                  data-testid={`property-${idx}-value-${index}`}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 flex-1">
@@ -306,6 +316,7 @@ export function PropertiesTab({
                                         <Button
                                           variant="outline"
                                           size="sm"
+                                          data-testid={`value-attach-file-${idx}-${index}`}
                                           onClick={() =>
                                             handleOpenValueAttachmentModal(
                                               prop.uuid,
@@ -325,7 +336,10 @@ export function PropertiesTab({
 
                                   {/* Value Files */}
                                   {value.files && value.files.length > 0 && (
-                                    <div className="border-t pt-2">
+                                    <div
+                                      className="border-t pt-2"
+                                      data-testid={`value-files-${idx}-${index}`}
+                                    >
                                       <FileList
                                         files={convertApiFilesToFileData(
                                           value.files

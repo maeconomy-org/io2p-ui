@@ -202,7 +202,10 @@ export function AttachmentModal({
   return (
     <>
       <Dialog open={open} onOpenChange={handleModalClose}>
-        <DialogContent className="sm:max-w-[640px]">
+        <DialogContent
+          className="sm:max-w-[640px]"
+          data-testid="attachment-modal"
+        >
           <DialogHeader>
             <DialogTitle>{title || t('title')}</DialogTitle>
           </DialogHeader>
@@ -219,7 +222,7 @@ export function AttachmentModal({
           <DialogFooter>
             <Button
               type="button"
-              data-test="attachment-modal-done-button"
+              data-testid="attachment-modal-done-button"
               onClick={() => {
                 // Check if there are uploadable files
                 const uploadableFiles = getUploadableAttachments(attachments)
@@ -260,7 +263,7 @@ export function AttachmentModal({
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmUpload}
-              data-test="upload-files-confirm-button"
+              data-testid="upload-files-confirm-button"
             >
               {t('uploadFiles')}
             </AlertDialogAction>

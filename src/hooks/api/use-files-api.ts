@@ -21,6 +21,7 @@ export function useFilesApi() {
         toast.success(t('objects.fileDeletedSuccess'))
 
         queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
       },
       onError: (error) => {
         logger.error('Failed to delete file:', error)

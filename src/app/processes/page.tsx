@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { PlusCircle, Loader2, Filter } from 'lucide-react'
+import { PlusCircle, Loader2, Filter, Layers } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import type { UUID } from 'iom-sdk'
 import dynamic from 'next/dynamic'
@@ -63,6 +63,7 @@ const MaterialFlowPage = () => {
   const [selectedMaterialUuids, setSelectedMaterialUuids] = useState<string[]>(
     []
   )
+  const [isDepthLimited, setIsDepthLimited] = useState(true)
 
   // Load saved view preference from localStorage
   useEffect(() => {
@@ -77,12 +78,22 @@ const MaterialFlowPage = () => {
     router.push('/processes')
   }, [router])
 
-  // Enhanced data fetching using new metadata-driven hook
+  // Data fetching with depth limiting at the fetch level.
+  // When depth-limited, the hook only fetches objects within 3 topological levels,
+  // avoiding unnecessary API calls for deep nodes in large graphs.
   const {
     materials: allMaterials,
     relationships: allRelationships,
     isLoading,
-  } = useSankeyDiagramData(objectUuid as UUID | undefined)
+    totalNodeCount,
+  } = useSankeyDiagramData(objectUuid as UUID | undefined, {
+    maxDepth: isDepthLimited ? 3 : undefined,
+  })
+
+  // Truncated count = total nodes in graph minus nodes actually fetched
+  const truncatedCount = isDepthLimited
+    ? Math.max(0, totalNodeCount - allMaterials.length)
+    : 0
 
   // Filter data based on selected materials
   const { materials, relationships } = useMemo(() => {
@@ -90,27 +101,21 @@ const MaterialFlowPage = () => {
       return { materials: allMaterials, relationships: allRelationships }
     }
 
-    // Filter relationships that involve any of the selected materials
-    const filteredRelationships = allRelationships.filter(
+    const filteredRels = allRelationships.filter(
       (rel) =>
         selectedMaterialUuids.includes(rel.subject.uuid) ||
         selectedMaterialUuids.includes(rel.object.uuid)
     )
 
-    // Get all materials involved in the filtered relationships
     const involvedMaterialUuids = new Set<string>()
-    filteredRelationships.forEach((rel) => {
+    filteredRels.forEach((rel) => {
       involvedMaterialUuids.add(rel.subject.uuid)
       involvedMaterialUuids.add(rel.object.uuid)
     })
 
-    const filteredMaterials = allMaterials.filter((material) =>
-      involvedMaterialUuids.has(material.uuid)
-    )
-
     return {
-      materials: filteredMaterials,
-      relationships: filteredRelationships,
+      materials: allMaterials.filter((m) => involvedMaterialUuids.has(m.uuid)),
+      relationships: filteredRels,
     }
   }, [allMaterials, allRelationships, selectedMaterialUuids])
 
@@ -246,6 +251,26 @@ const MaterialFlowPage = () => {
             placeholder={t('processes.filterObjects')}
             maxSelections={10}
           />
+          {/* Depth Limit Toggle */}
+          <Button
+            variant={isDepthLimited ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setIsDepthLimited(!isDepthLimited)}
+            className="flex-shrink-0 gap-1.5"
+          >
+            <Layers className="h-4 w-4" />
+            {isDepthLimited
+              ? t('processes.depthLimited')
+              : t('processes.depthFull')}
+            {isDepthLimited && truncatedCount > 0 && (
+              <Badge
+                variant="secondary"
+                className="ml-1 h-5 px-1.5 text-[10px]"
+              >
+                +{truncatedCount}
+              </Badge>
+            )}
+          </Button>
           <ProcessViewSelector view={activeView} onChange={setActiveView} />
           <Button
             onClick={handleOpenProcessForm}

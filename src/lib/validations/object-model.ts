@@ -2,8 +2,17 @@ import * as z from 'zod'
 
 export const propertyValueSchema = z.object({
   uuid: z.string().optional(),
-  value: z.string().min(1, 'Value is required'),
+  value: z.string(),
   files: z.array(z.any()),
+  formulaData: z
+    .object({
+      formula: z.string(),
+      variableMapping: z.record(z.string(), z.any()).optional(),
+      result: z.union([z.number(), z.null()]).optional(),
+      resolvedExpression: z.string().optional(),
+      isValid: z.boolean().optional(),
+    })
+    .optional(),
 })
 
 export const propertySchema = z.object({

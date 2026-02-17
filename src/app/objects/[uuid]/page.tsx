@@ -281,7 +281,11 @@ function ObjectChildrenPageContent() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setIsCopySheetOpen(true)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCopySheetOpen(true)}
+              data-testid="page-header-copy-button"
+            >
               <Copy className="mr-2 h-4 w-4" />
               {t('objects.duplicate.copyHere')}
             </Button>

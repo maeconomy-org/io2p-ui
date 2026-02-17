@@ -18,6 +18,7 @@ export interface EditableSectionProps {
   successMessage?: string
   showToast?: boolean
   headerExtra?: ReactNode
+  id?: string
 }
 
 export function EditableSection({
@@ -30,6 +31,7 @@ export function EditableSection({
   successMessage,
   showToast = true,
   headerExtra,
+  id,
 }: EditableSectionProps) {
   const [isSaving, setIsSaving] = useState(false)
   const t = useTranslations()
@@ -77,6 +79,7 @@ export function EditableSection({
               size="sm"
               onClick={() => onEditToggle(false)}
               disabled={isSaving}
+              data-testid={id ? `${id}-cancel-button` : undefined}
             >
               <X className="h-4 w-4 mr-2" />
               {t('common.cancel')}
@@ -86,6 +89,7 @@ export function EditableSection({
               size="sm"
               onClick={handleSave}
               disabled={isSaving}
+              data-testid={id ? `${id}-save-button` : undefined}
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? t('common.saving') : t('common.save')}
@@ -96,6 +100,7 @@ export function EditableSection({
             variant="outline"
             size="sm"
             onClick={() => onEditToggle(true)}
+            data-testid={id ? `${id}-edit-button` : undefined}
           >
             <Edit className="h-4 w-4 mr-2" />
             {t('common.edit')}

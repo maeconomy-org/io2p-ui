@@ -11,12 +11,14 @@ import type {
   QualityChangeCode,
 } from '@/types'
 import { logger } from '@/lib'
+import { limitStatementDepth } from '@/components/processes/utils'
 
 interface SankeyDiagramData {
   materials: EnhancedMaterialObject[]
   relationships: EnhancedMaterialRelationship[]
   isLoading: boolean
   error?: Error
+  totalNodeCount: number
 }
 
 interface SankeyLayoutData {
@@ -37,10 +39,12 @@ interface SankeyLayoutData {
  * Replaces the old chain of useSankeyData + useMaterialFlowProcessing + createLayeredLayout
  */
 export function useSankeyDiagramData(
-  objectUuid?: UUID
+  objectUuid?: UUID,
+  options?: { maxDepth?: number }
 ): SankeyDiagramData & { layoutData: SankeyLayoutData | null } {
   const { useStatementsByPredicate, useObjectRelationships } = useStatements()
   const { useObjectsByUUIDs } = useObjects()
+  const maxDepth = options?.maxDepth
 
   // Fetch input relationships
 
@@ -48,8 +52,10 @@ export function useSankeyDiagramData(
     ? useObjectRelationships(objectUuid, { predicate: 'IS_INPUT_OF' })
     : useStatementsByPredicate('IS_INPUT_OF')
 
-  // Extract participating object UUIDs
-  const participatingUUIDs = useMemo(() => {
+  // Extract participating object UUIDs (with optional depth limiting)
+  // When maxDepth is set, we compute topological depth from statements alone
+  // and only fetch objects within the depth limit — avoids fetching deep nodes.
+  const uuidResult = useMemo(() => {
     let statements: UUStatementDTO[] = []
 
     if (objectUuid) {
@@ -63,14 +69,27 @@ export function useSankeyDiagramData(
         : []
     }
 
-    const uuids = new Set<UUID>()
-    statements.forEach((stmt: UUStatementDTO) => {
-      uuids.add(stmt.subject)
-      uuids.add(stmt.object)
-    })
+    if (!statements.length) return { kept: [] as UUID[], total: 0 }
 
-    return Array.from(uuids)
-  }, [inputStatementsQuery.data, objectUuid])
+    // Collect all unique UUIDs
+    const allUuids = new Set<UUID>()
+    statements.forEach((stmt: UUStatementDTO) => {
+      allUuids.add(stmt.subject)
+      allUuids.add(stmt.object)
+    })
+    const total = allUuids.size
+
+    // If maxDepth is set, only include UUIDs within the depth limit
+    if (maxDepth !== undefined) {
+      const keptSet = limitStatementDepth(statements, maxDepth)
+      return { kept: Array.from(keptSet) as UUID[], total }
+    }
+
+    return { kept: Array.from(allUuids) as UUID[], total }
+  }, [inputStatementsQuery.data, objectUuid, maxDepth])
+
+  const participatingUUIDs = uuidResult.kept
+  const totalNodeCount = uuidResult.total
 
   // Fetch participating objects
   const objectsQuery = useObjectsByUUIDs(participatingUUIDs, {
@@ -119,6 +138,7 @@ export function useSankeyDiagramData(
     relationships: processedData.relationships,
     layoutData,
     isLoading,
+    totalNodeCount,
     error: inputStatementsQuery.error || objectsQuery.error || undefined,
   }
 }

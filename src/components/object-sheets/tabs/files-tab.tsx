@@ -51,6 +51,7 @@ export function FilesTab({
               variant="outline"
               size="sm"
               onClick={handleOpenObjectFilesModal}
+              data-testid="add-files-button"
             >
               <Plus className="h-4 w-4 mr-2" />
               {t('objects.addFiles')}

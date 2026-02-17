@@ -91,6 +91,7 @@ export default function GroupsPage() {
             size="sm"
             onClick={() => setShowSearchInput(!showSearchInput)}
             className="h-8 w-8 p-0"
+            data-testid="group-search-toggle"
           >
             <Search className="h-4 w-4" />
           </Button>

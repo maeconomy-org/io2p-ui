@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -88,6 +88,41 @@ export function ObjectAddSheet({
 
   // Watch parent objects field
   const watchedParents = form.watch('parents') || []
+
+  // Watch properties to build available properties list for formula variable mapping
+  // Use JSON.stringify to create a deep dependency that triggers on nested changes
+  const watchedProperties = form.watch('properties') || []
+  const propertiesKey = JSON.stringify(
+    watchedProperties.map((p: any) => ({
+      key: p?.key,
+      values: p?.values?.map((v: any) => v?.value),
+    }))
+  )
+  const availableProperties = useMemo(() => {
+    const result: {
+      uuid: string
+      key: string
+      label: string
+      value: string
+      valueIndex: number
+    }[] = []
+    watchedProperties
+      .filter((p: any) => p?.key)
+      .forEach((p: any, i: number) => {
+        const values = p.values || []
+        values.forEach((v: any, vIdx: number) => {
+          if (!v?.value && v?._needsInput) return
+          result.push({
+            uuid: `prop-${i}::${vIdx}`,
+            key: p.key,
+            label: p.key,
+            value: v?.value || '',
+            valueIndex: vIdx,
+          })
+        })
+      })
+    return result
+  }, [propertiesKey, watchedProperties])
 
   // Reset form when sheet opens
   useEffect(() => {
@@ -382,6 +417,9 @@ export function ObjectAddSheet({
                       name={`properties.${index}`}
                       index={index}
                       onRemove={() => remove(index)}
+                      availableProperties={availableProperties.filter(
+                        (p: any) => !p.uuid.startsWith(`prop-${index}::`)
+                      )}
                     />
                   ))}
                 </div>

@@ -55,7 +55,7 @@ const CONFIG_CACHE_KEY = 'iom-client-config'
 const CONFIG_CACHE_VERSION = 'v1' // Increment to invalidate cache
 
 // Get cached config from localStorage
-function getCachedConfig(): ClientConfig | null {
+export function getCachedConfig(): ClientConfig | null {
   if (typeof window === 'undefined') return null
 
   try {

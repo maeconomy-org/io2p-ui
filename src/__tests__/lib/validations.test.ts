@@ -17,12 +17,27 @@ describe('validations/object-model', () => {
       expect(result.success).toBe(true)
     })
 
-    it('should reject empty value', () => {
+    it('should allow empty value (formula values start empty)', () => {
       const result = propertyValueSchema.safeParse({
         value: '',
         files: [],
       })
-      expect(result.success).toBe(false)
+      expect(result.success).toBe(true)
+    })
+
+    it('should allow value with formulaData', () => {
+      const result = propertyValueSchema.safeParse({
+        value: '42',
+        files: [],
+        formulaData: {
+          formula: 'x + y',
+          variableMapping: { x: { propertyKey: 'a', propertyUuid: 'uuid-1' } },
+          result: 42,
+          resolvedExpression: '20 + 22',
+          isValid: true,
+        },
+      })
+      expect(result.success).toBe(true)
     })
 
     it('should allow optional uuid', () => {

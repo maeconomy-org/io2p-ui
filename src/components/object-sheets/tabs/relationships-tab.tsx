@@ -93,6 +93,7 @@ export function RelationshipsTab({
     <div className="pt-4 space-y-6">
       {/* Parent Objects Section */}
       <EditableSection
+        id="section-parents"
         title={t('objects.parentsTitle')}
         isEditing={isParentsEditing}
         onEditToggle={(isEditing) => handleEditToggle('parents', isEditing)}
