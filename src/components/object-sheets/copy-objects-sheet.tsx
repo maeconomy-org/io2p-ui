@@ -104,22 +104,26 @@ export function CopyObjectsSheet({
   searchMutationRef.current = searchMutation
 
   // Reset form when sheet opens
+  const resetForm = useCallback(() => {
+    setSelectedObjects(preselectedObjects)
+    setTargetParentUuids(defaultParentUuid ? [defaultParentUuid] : [])
+    setNamePrefix('')
+    setIncludeChildren(false)
+    setCopyProperties(true)
+    setCopyFiles(false)
+    setCopyAddress(false)
+    setSourceSearchQuery('')
+    setSourceSearchResults([])
+    setHasSourceLoaded(false)
+  }, [preselectedObjects, defaultParentUuid])
+
   const prevOpenRef = useRef(false)
   useEffect(() => {
     if (open && !prevOpenRef.current) {
-      setSelectedObjects(preselectedObjects)
-      setTargetParentUuids(defaultParentUuid ? [defaultParentUuid] : [])
-      setNamePrefix('')
-      setIncludeChildren(false)
-      setCopyProperties(true)
-      setCopyFiles(false)
-      setCopyAddress(false)
-      setSourceSearchQuery('')
-      setSourceSearchResults([])
-      setHasSourceLoaded(false)
+      resetForm()
     }
     prevOpenRef.current = open
-  }, [open, defaultParentUuid, preselectedObjects])
+  }, [open, resetForm])
 
   // Source object search
   const performSourceSearch = useCallback(
@@ -276,6 +280,7 @@ export function CopyObjectsSheet({
                   variant="outline"
                   role="combobox"
                   aria-expanded={isSourceOpen}
+                  aria-controls="copy-source-listbox"
                   className="w-full justify-between"
                   disabled={isCopying}
                 >
@@ -300,7 +305,7 @@ export function CopyObjectsSheet({
                 className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0"
                 align="start"
               >
-                <Command shouldFilter={false}>
+                <Command shouldFilter={false} id="copy-source-listbox">
                   <div className="relative">
                     <CommandInput
                       placeholder={t('objects.duplicate.sourceObjectsHint')}

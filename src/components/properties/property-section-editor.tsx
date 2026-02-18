@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui'
@@ -22,7 +22,7 @@ export function PropertySectionEditor({
   const [expandedPropertyId, setExpandedPropertyId] = useState<string | null>(
     null
   )
-  const [editedProperties, setEditedProperties] = useState(properties)
+  const [editedProperties, setEditedProperties] = useState<any[]>([])
   const [allProperties, setAllProperties] = useState<any[]>([]) // Including deleted properties
 
   // Handle expanding/collapsing properties
@@ -94,9 +94,11 @@ export function PropertySectionEditor({
     onUpdate(allUpdated)
   }
 
-  // Also update the initialization from props to set up proper comparison basis
-  useEffect(() => {
-    // Initialize the edited properties when the input properties change
+  const prevPropertiesRef = useRef<any[]>(undefined)
+
+  if (properties !== prevPropertiesRef.current) {
+    prevPropertiesRef.current = properties
+
     const visibleProps = properties.map((prop) => ({
       ...prop,
       _modified: false,
@@ -106,7 +108,6 @@ export function PropertySectionEditor({
 
     setEditedProperties(visibleProps)
 
-    // Set all properties including any previously deleted ones
     const allProps = [...visibleProps]
     allProperties
       .filter((p) => p._deleted)
@@ -117,7 +118,7 @@ export function PropertySectionEditor({
       })
 
     setAllProperties(allProps)
-  }, [properties])
+  }
 
   // Add a new property
   const handleAddProperty = () => {
@@ -216,17 +217,20 @@ export function PropertySectionEditor({
         const propLabel = p.label || p.key
 
         // Create one entry per value so each is independently selectable
+        // Only include values that are non-empty and numeric (usable in formulas)
         if (p.values && p.values.length > 0) {
           p.values.forEach((v: any, idx: number) => {
-            // Skip truly empty placeholder values
-            if (!v.value && v._needsInput) return
+            // Skip empty, placeholder, or non-numeric values
+            if (!v.value || v._needsInput) return
+            const trimmed = v.value.trim()
+            if (trimmed === '' || isNaN(Number(trimmed))) return
 
             result.push({
               // Composite ID: propertyId::valueIndex for unique Select keys
               uuid: `${propId}::${idx}`,
               key: propKey,
               label: propLabel,
-              value: v.value || '',
+              value: trimmed,
               valueIndex: idx,
             })
           })

@@ -192,7 +192,7 @@ export default function GroupsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(currentPage - 1)}
+              onClick={() => setCurrentPage((prev) => prev - 1)}
               disabled={currentPage === 1}
             >
               {t('common.previous')}
@@ -215,7 +215,7 @@ export default function GroupsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(currentPage + 1)}
+              onClick={() => setCurrentPage((prev) => prev + 1)}
               disabled={currentPage === totalPages}
             >
               {t('common.next')}

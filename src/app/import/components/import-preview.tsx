@@ -202,7 +202,7 @@ export function ImportPreview({
                 </TableHeader>
                 <TableBody>
                   {previewData.map((item, index) => (
-                    <TableRow key={index}>
+                    <TableRow key={JSON.stringify(item)}>
                       <TableCell className="sticky left-0 bg-background z-20">
                         {index + 1}
                       </TableCell>

@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
@@ -50,30 +51,34 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [userInfo, setUserInfo] = useState<AuthResponse | null>(null)
 
+  const handleAuthStateChange = useCallback(
+    (state: {
+      isAuthenticated: boolean
+      isRefreshing: boolean
+      user: AuthResponse | null
+    }) => {
+      setIsAuthenticated(state.isAuthenticated)
+      setIsRefreshing(state.isRefreshing)
+      setUserInfo(state.user)
+      if (!state.isRefreshing) {
+        setAuthLoading(false)
+      }
+
+      if (!state.isAuthenticated && !PUBLIC_PAGES_SET.has(pathname)) {
+        router.replace('/')
+      }
+    },
+    [pathname, router]
+  )
+
   useEffect(() => {
     if (!client) return
 
     let unsubscribe: (() => void) | undefined
 
     const init = async () => {
-      // Subscribe immediately to get initial state from SDK (including cached values)
-      unsubscribe = client.onAuthStateChange((state) => {
-        setIsAuthenticated(state.isAuthenticated)
-        setIsRefreshing(state.isRefreshing)
-        setUserInfo(state.user)
+      unsubscribe = client.onAuthStateChange(handleAuthStateChange)
 
-        // Only hide loading if we are not currently refreshing tokens
-        if (!state.isRefreshing) {
-          setAuthLoading(false)
-        }
-
-        // Only redirect if truly logged out and on a private page
-        if (!state.isAuthenticated && !PUBLIC_PAGES_SET.has(pathname)) {
-          router.replace('/')
-        }
-      })
-
-      // Wait for SDK startup refresh to complete, then ensure loading is finished
       await client.ready
       setAuthLoading(false)
     }
@@ -83,7 +88,7 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
     return () => {
       unsubscribe?.()
     }
-  }, [client, pathname, router])
+  }, [client, handleAuthStateChange])
 
   const logout = () => {
     if (!client) return
@@ -114,12 +119,15 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
       return { success: false, error: 'SDK client not initialized' }
     }
 
-    // TODO: Implement email/password login when API is ready
-    // const result = await client.loginWithEmail(email, password)
-    // For now, return a placeholder response
+    const result = await client.loginWithEmailPassword({ email, password })
+
+    if (result.success) {
+      return { success: true }
+    }
+
     return {
       success: false,
-      error: 'Email/password authentication not yet implemented',
+      error: 'Authentication failed. Please check your credentials.',
     }
   }
 

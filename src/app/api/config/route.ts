@@ -9,6 +9,7 @@ export async function GET() {
     authRefreshApiUrl: process.env.AUTH_REFRESH_API_URL || '',
     registryApiUrl: process.env.REGISTRY_API_URL || '',
     nodeApiUrl: process.env.NODE_API_URL || '',
+    upApiUrl: process.env.UP_API_URL || '',
 
     // Sentry config (client-side)
     sentryDsn: process.env.SENTRY_DSN || '',

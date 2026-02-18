@@ -77,7 +77,7 @@ export function GroupBadges({
     <div className={cn('flex items-center gap-1 flex-wrap', className)}>
       {visibleGroups.map((group, index) => (
         <GroupBadge
-          key={index}
+          key={`${group.name}-${group.type}`}
           groupName={group.name}
           groupType={group.type}
           size={size}

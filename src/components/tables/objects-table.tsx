@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Copy,
   ChevronRight,
+  MoreHorizontal,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -20,17 +21,28 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  CopyButton,
   TablePagination,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  CopyButton,
 } from '@/components/ui'
+import { toast } from 'sonner'
 import { cn, logger } from '@/lib'
 import { useUnifiedDelete, useObjects } from '@/hooks'
 import { CopyObjectsSheet } from '@/components/object-sheets'
-import { QRCodeModal, DeleteConfirmationDialog } from '@/components/modals'
+import { useObjectOperations } from '@/components/object-sheets/hooks/use-object-operations'
+import {
+  QRCodeModal,
+  DeleteConfirmationDialog,
+  TemplateCreationDialog,
+} from '@/components/modals'
 
 interface ObjectsTableProps {
   initialData?: any[]
@@ -71,8 +83,11 @@ export function ObjectsTable({
 }: ObjectsTableProps) {
   const t = useTranslations()
   const router = useRouter()
-  const [data, setData] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [tableState, setTableState] = useState({
+    data: [] as any[],
+    isLoading: true,
+  })
+  const { data, isLoading } = tableState
 
   const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
   const [selectedQRObject, setSelectedQRObject] = useState<any>(null)
@@ -80,6 +95,17 @@ export function ObjectsTable({
   // Copy objects state
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
   const [copyTarget, setCopyTarget] = useState<any>(null)
+
+  // Template creation state
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+  const [templateSource, setTemplateSource] = useState<any>(null)
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
+
+  // Template creation hook
+  const { createObject: createTemplate } = useObjectOperations({
+    isEditing: false,
+    isTemplate: true,
+  })
 
   // Unified delete hook
   const {
@@ -97,12 +123,7 @@ export function ObjectsTable({
 
   // Load data from props
   useEffect(() => {
-    if (initialData) {
-      setData(initialData)
-    } else {
-      setData([])
-    }
-    setIsLoading(false)
+    setTableState({ data: initialData ?? [], isLoading: false })
   }, [initialData])
 
   const handleViewDetails = (object: any) => {
@@ -146,6 +167,69 @@ export function ObjectsTable({
       })
     } catch (error) {
       logger.error('Error reverting object:', error)
+    }
+  }
+
+  // Get initial template data from the source object
+  const getInitialTemplateData = (sourceObj: any) => {
+    if (!sourceObj)
+      return { name: '', abbreviation: '', version: '1.0', description: '' }
+
+    return {
+      name: `${sourceObj.name} Template`,
+      abbreviation: sourceObj.abbreviation || '',
+      version: '1.0',
+      description: `Template created from ${sourceObj.name}`,
+    }
+  }
+
+  // Handle confirming template creation
+  const handleConfirmTemplateCreation = async (templateData: {
+    name: string
+    abbreviation: string
+    version: string
+    description: string
+  }) => {
+    if (!templateSource) return
+
+    setIsCreatingTemplate(true)
+    try {
+      // Transform object data to template format
+      const fullTemplateData = {
+        name: templateData.name,
+        abbreviation: templateData.abbreviation,
+        version: templateData.version,
+        description: templateData.description,
+        properties:
+          templateSource.properties?.map((prop: any) => ({
+            key: prop.key,
+            label: prop.label || prop.key,
+            type: prop.type || 'string',
+            values: prop.values?.map((val: any) => ({
+              value: 'Variable',
+              valueTypeCast: val.valueTypeCast || 'string',
+              files: [],
+            })) || [
+              {
+                value: 'Variable',
+                valueTypeCast: 'string',
+                sourceType: 'manual',
+                files: [],
+              },
+            ],
+            files: [],
+          })) || [],
+        files: [],
+        parents: [],
+      }
+
+      await createTemplate(fullTemplateData)
+      setIsTemplateDialogOpen(false)
+      setTemplateSource(null)
+    } catch (error) {
+      logger.error('Error creating template:', error)
+    } finally {
+      setIsCreatingTemplate(false)
     }
   }
 
@@ -213,19 +297,6 @@ export function ObjectsTable({
                 size="icon"
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleShowQRCode(object, e)
-                }}
-                title={t('objects.showQr')}
-                data-testid="object-qr-button"
-              >
-                <QrCode className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation()
                   handleViewDetails(object)
                 }}
                 title={t('objects.viewDetails')}
@@ -234,53 +305,78 @@ export function ObjectsTable({
                 <FileText className="h-4 w-4" />
               </Button>
 
-              {!isDeleted && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCopyTarget(object)
-                    setIsCopySheetOpen(true)
-                  }}
-                  title={t('objects.duplicate.action')}
-                  data-testid="object-copy-button"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              )}
-
-              {isDeleted ? (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleRevertObject(object)
-                  }}
-                  disabled={revertObjectMutation.isPending}
-                  title={t('objects.restoreTitle')}
-                  data-testid="object-restore-button"
-                >
-                  <RotateCcw className="h-4 w-4 text-blue-600" />
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDelete({
-                      uuid: object.uuid,
-                      name: object.name,
-                    })
-                  }}
-                  disabled={isDeleting}
-                  data-testid="object-delete-button"
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => e.stopPropagation()}
+                    data-testid="object-actions-dropdown"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => handleShowQRCode(object, e)}
+                  >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    {t('objects.actions.showQrCode')}
+                  </DropdownMenuItem>
+                  {!isDeleted && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setCopyTarget(object)
+                          setIsCopySheetOpen(true)
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        {t('objects.duplicate.action')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setTemplateSource(object)
+                          setIsTemplateDialogOpen(true)
+                        }}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        {t('objects.createTemplate')}
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  {isDeleted ? (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRevertObject(object)
+                      }}
+                      disabled={revertObjectMutation.isPending}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2 text-blue-600" />
+                      {t('objects.restoreTitle')}
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete({
+                          uuid: object.uuid,
+                          name: object.name,
+                        })
+                      }}
+                      disabled={isDeleting}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {t('common.delete')}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </TableCell>
         </TableRow>,
@@ -397,6 +493,17 @@ export function ObjectsTable({
                 copyTarget.childCount || copyTarget.children?.length || 0,
             },
           ]}
+        />
+      )}
+
+      {/* Template Creation Dialog */}
+      {isTemplateDialogOpen && templateSource && (
+        <TemplateCreationDialog
+          open={isTemplateDialogOpen}
+          onOpenChange={setIsTemplateDialogOpen}
+          initialData={getInitialTemplateData(templateSource)}
+          onConfirm={handleConfirmTemplateCreation}
+          isCreating={isCreatingTemplate}
         />
       )}
     </div>

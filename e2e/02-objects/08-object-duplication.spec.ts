@@ -68,7 +68,10 @@ test.describe('08 - Object Duplication', () => {
     const row = page.locator('tbody tr').filter({ hasText: objectName }).first()
     await expect(row).toBeVisible()
 
-    await row.locator('[data-testid="object-copy-button"]').click()
+    // Click dropdown menu
+    await row.locator('[data-testid="object-actions-dropdown"]').click()
+    // Click duplicate option
+    await page.getByRole('menuitem', { name: /duplicate/i }).click()
 
     const copySheet = getDialog(page, /copy object/i)
     await expect(copySheet).toBeVisible()
@@ -91,8 +94,9 @@ test.describe('08 - Object Duplication', () => {
     const row = page.locator('tbody tr').filter({ hasText: parentName }).first()
     await expect(row).toBeVisible()
 
-    // Click duplicate
-    await row.locator('[data-testid="object-copy-button"]').click()
+    // Click dropdown menu and duplicate
+    await row.locator('[data-testid="object-actions-dropdown"]').click()
+    await page.getByRole('menuitem', { name: /duplicate/i }).click()
 
     const copySheet = getDialog(page, /copy object/i)
     await expect(copySheet).toBeVisible()

@@ -1,13 +1,22 @@
 'use client'
 
-import { ChevronRight, FileText, MoreHorizontal } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
+import {
+  ChevronRight,
+  Copy,
+  FileText,
+  MoreHorizontal,
+  QrCode,
+  Trash2,
+} from 'lucide-react'
 import {
   Button,
   ScrollArea,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui'
 import { truncateText } from '@/lib'
@@ -55,6 +64,7 @@ interface ObjectColumnProps {
   onShowDetails: (item: ObjectItem) => void
   onDelete: (item: ObjectItem) => void
   onDuplicate?: (item: ObjectItem) => void
+  onShowQRCode?: (item: ObjectItem) => void
   searchTerm?: string
   onSearchChange?: (search: string) => void
   columnTitle?: string
@@ -69,6 +79,7 @@ export function ObjectColumn({
   onShowDetails,
   onDelete,
   onDuplicate,
+  onShowQRCode,
   searchTerm = '',
   onSearchChange,
   columnTitle,
@@ -174,20 +185,42 @@ export function ObjectColumn({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onShowDetails(item)}>
+                          <FileText className="h-4 w-4 mr-2" />
                           {t('objects.viewDetails')}
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            navigator.clipboard.writeText(item.uuid)
+                            toast.success(
+                              t('copyButton.copiedWithLabel', { label: 'UUID' })
+                            )
+                          }}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          {t('objects.actions.copyUuid')}
+                        </DropdownMenuItem>
+                        {onShowQRCode && (
+                          <DropdownMenuItem onClick={() => onShowQRCode(item)}>
+                            <QrCode className="h-4 w-4 mr-2" />
+                            {t('objects.actions.showQrCode')}
+                          </DropdownMenuItem>
+                        )}
                         {onDuplicate && !isSoftDeleted && (
                           <DropdownMenuItem onClick={() => onDuplicate(item)}>
+                            <Copy className="h-4 w-4 mr-2" />
                             {t('objects.duplicate.action')}
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem
-                          onClick={() => onDelete(item)}
-                          className="text-destructive"
-                          disabled={isSoftDeleted}
-                        >
-                          {t('common.delete')}
-                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {!isSoftDeleted && (
+                          <DropdownMenuItem
+                            onClick={() => onDelete(item)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {t('common.delete')}
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
 

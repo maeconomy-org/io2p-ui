@@ -1,16 +1,17 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
+import Link from 'next/link'
 import {
   Building2,
   LogOut,
   Menu,
   ChevronRight,
   Shield,
+  Mail,
   Search,
   User,
   Sun,
@@ -30,8 +31,8 @@ import {
   Separator,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { useAuth, useAppConfig } from '@/contexts'
 import { NAV_ITEMS } from '@/constants'
+import { useAuth, useAppConfig } from '@/contexts'
 
 const LOCALES = [
   { value: 'en', label: 'EN' },
@@ -57,6 +58,14 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
   const config = useAppConfig()
   const locale = useLocale()
   const { theme, setTheme } = useTheme()
+
+  const displayIdentity =
+    userInfo?.certificateInfo?.subjectFields?.CN ||
+    (userInfo as any)?.credentialValue ||
+    (userInfo as any)?.usernamePasswordCredentials?.username ||
+    (userInfo as any)?.usernamePasswordCredentials?.credentialValue ||
+    userInfo?.credentials ||
+    t('nav.user')
 
   const handleLocaleChange = useCallback((value: string) => {
     document.cookie = `NEXT_LOCALE=${value}; path=/; max-age=${60 * 60 * 24 * 365}`
@@ -173,14 +182,24 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-sm font-medium truncate">
-                    {userInfo?.certificateInfo.subjectFields.CN ||
-                      t('nav.user')}
+                    {displayIdentity}
                   </span>
                   <div className="flex items-center gap-1">
-                    <Shield className="h-2.5 w-2.5 text-green-600 dark:text-green-400 shrink-0" />
-                    <span className="text-[10px] text-muted-foreground truncate">
-                      {t('nav.certificateAuthenticated')}
-                    </span>
+                    {userInfo?.certificateInfo ? (
+                      <>
+                        <Shield className="h-2.5 w-2.5 text-green-600 dark:text-green-400 shrink-0" />
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {t('nav.certificateAuthenticated')}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {t('nav.emailAuthenticated')}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 {userInfo?.userUUID && (

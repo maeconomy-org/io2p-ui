@@ -16,6 +16,11 @@ export function getSdkClient(config: ClientConfig) {
       timeout: 30000,
       retries: 3,
     },
+    up: {
+      baseUrl: config.upApiUrl,
+      timeout: 30000,
+      retries: 3,
+    },
     registry: {
       baseUrl: config.registryApiUrl,
       timeout: 30000,

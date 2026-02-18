@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { ChevronRight, LayoutGrid, List, Upload } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
+import { cn, formatNumericValue } from '@/lib/utils'
 import {
   Button,
   EditableSection,
@@ -300,7 +300,7 @@ export function PropertiesTab({
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 flex-1">
                                       <div className="font-medium text-sm">
-                                        {value.value}
+                                        {formatNumericValue(value.value)}
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">

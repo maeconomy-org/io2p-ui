@@ -38,7 +38,7 @@ export const consoleLevels = ['error', 'warn', 'log'] as const
  * GDPR-compliant data scrubbing for beforeSend hook
  * Removes IP addresses, emails, and sensitive headers
  */
-export function scrubSensitiveData(event: SentryEvent): SentryEvent | null {
+function scrubSensitiveData(event: SentryEvent): SentryEvent | null {
   // Remove user PII for GDPR compliance
   if (event.user) {
     delete event.user.ip_address

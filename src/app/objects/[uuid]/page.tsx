@@ -336,11 +336,13 @@ function ObjectChildrenPageContent() {
             }}
             onPageChange={(page) => setCurrentPage(page)}
             onFirstPage={() => setCurrentPage(0)}
-            onPreviousPage={() => setCurrentPage(Math.max(0, currentPage - 1))}
-            onNextPage={() =>
-              setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
+            onPreviousPage={() =>
+              setCurrentPage((prev) => Math.max(0, prev - 1))
             }
-            onLastPage={() => setCurrentPage(totalPages - 1)}
+            onNextPage={() =>
+              setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))
+            }
+            onLastPage={() => setCurrentPage(() => totalPages - 1)}
           />
         )}
       </div>

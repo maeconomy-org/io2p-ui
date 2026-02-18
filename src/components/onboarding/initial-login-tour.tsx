@@ -28,7 +28,7 @@ const READY_SELECTORS = [
 type DriverApi = ReturnType<typeof driver>
 type DriverHookOptions = { driver?: DriverApi }
 
-const useSteps = (t: ReturnType<typeof useTranslations>) => [
+const getSteps = (t: ReturnType<typeof useTranslations>) => [
   {
     element: NAV_OBJECTS_SELECTOR,
     popover: {
@@ -173,7 +173,7 @@ export default function InitialLoginTour() {
       }
 
       hasStartedRef.current = true
-      const steps = useSteps(t)
+      const steps = getSteps(t)
       const onboardingDriver = driver({
         nextBtnText: t('common.next'),
         prevBtnText: t('common.previous'),

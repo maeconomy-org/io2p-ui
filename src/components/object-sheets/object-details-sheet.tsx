@@ -526,38 +526,6 @@ export function ObjectDetailsSheet({
                   </>
                 )}
               </div>
-              {object?.uuid && (
-                <div className="flex gap-2 w-full">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCreateTemplate}
-                    disabled={isCreatingTemplate}
-                    className="flex-1"
-                  >
-                    {isCreatingTemplate ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {t('objects.creatingTemplate')}
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="h-4 w-4 mr-2" />
-                        {t('objects.createTemplate')}
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCopySheetOpen(true)}
-                    className="flex-1"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    {t('objects.duplicate.action')}
-                  </Button>
-                </div>
-              )}
             </div>
           </SheetFooter>
         </SheetContent>

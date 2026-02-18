@@ -24,7 +24,7 @@ export function Steps({ children, currentStep }: StepsProps) {
         const isLast = index === steps.length - 1
 
         return (
-          <div key={index} className="flex items-center">
+          <div key={step.props.title} className="flex items-center">
             <div className="flex flex-col items-center">
               <div
                 className={cn(

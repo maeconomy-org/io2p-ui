@@ -152,9 +152,9 @@ export function ProcessTableView({
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedRelationships.map((relationship, index) => (
+              paginatedRelationships.map((relationship) => (
                 <TableRow
-                  key={`${relationship.subject.uuid}-${relationship.object.uuid}-${relationship.processName}-${relationship.inputMaterial?.quantity || 0}-${relationship.inputMaterial?.unit || ''}-${index}`}
+                  key={`${relationship.subject.uuid}-${relationship.object.uuid}-${relationship.processName}-${relationship.inputMaterial?.quantity || 0}-${relationship.inputMaterial?.unit || ''}`}
                   className={`cursor-pointer transition-colors ${
                     selectedRelationship?.subject.uuid ===
                       relationship.subject.uuid &&

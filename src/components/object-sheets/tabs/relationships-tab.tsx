@@ -178,8 +178,10 @@ export function RelationshipsTab({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {limitedRelationships.createdBy.map((rel, index) => (
-                    <TableRow key={`created-${index}`}>
+                  {limitedRelationships.createdBy.map((rel) => (
+                    <TableRow
+                      key={`created-${rel.inputObjectUuid}-${rel.outputObjectUuid}-${rel.processName}`}
+                    >
                       <TableCell className="font-medium">
                         {rel.processName}
                       </TableCell>
@@ -222,8 +224,10 @@ export function RelationshipsTab({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {limitedRelationships.usedIn.map((rel, index) => (
-                    <TableRow key={`used-${index}`}>
+                  {limitedRelationships.usedIn.map((rel) => (
+                    <TableRow
+                      key={`used-${rel.inputObjectUuid}-${rel.outputObjectUuid}-${rel.processName}`}
+                    >
                       <TableCell className="font-medium">
                         {rel.processName}
                       </TableCell>

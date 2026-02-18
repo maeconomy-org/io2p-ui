@@ -250,9 +250,9 @@ export function CommandCenter({
           {/* Active Filters Pills */}
           {activeFilters.length > 0 && (
             <div className="px-4 pb-3 flex flex-wrap gap-2">
-              {activeFilters.map((filter, index) => (
+              {activeFilters.map((filter) => (
                 <Badge
-                  key={index}
+                  key={`${filter.type}-${filter.value}`}
                   variant="secondary"
                   className="pl-2 pr-1 py-1 gap-1.5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 transition-colors text-xs"
                 >
@@ -339,9 +339,9 @@ export function CommandCenter({
                 <Clock className="h-3 w-3" />
                 {t('commandCenter.recent')}
               </div>
-              {recentSearches.map((query, index) => (
+              {recentSearches.map((query) => (
                 <button
-                  key={index}
+                  key={query}
                   onClick={() => handleRecentClick(query)}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left hover:bg-muted/50 transition-colors"
                 >

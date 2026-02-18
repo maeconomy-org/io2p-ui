@@ -44,9 +44,16 @@ export function useAppConfig(): ClientConfig {
 
 export function QueryProvider({ children }: PropsWithChildren) {
   const pathname = usePathname()
-  const [config, setConfig] = useState<ClientConfig | null>(null)
-  const [client, setClient] = useState<Client | null>(null)
-  const [error, setError] = useState<Error | null>(null)
+  const [initState, setInitState] = useState<{
+    config: ClientConfig | null
+    client: Client | null
+    error: Error | null
+  }>({
+    config: null,
+    client: null,
+    error: null,
+  })
+  const { config, client, error } = initState
 
   const queryClient = useMemo(
     () =>
@@ -70,8 +77,11 @@ export function QueryProvider({ children }: PropsWithChildren) {
     // Optimistic init from cache
     const cached = getCachedConfig()
     if (cached) {
-      setConfig(cached)
-      setClient(getSdkClient(cached))
+      setInitState({
+        config: cached,
+        client: getSdkClient(cached),
+        error: null,
+      })
     }
 
     async function init() {
@@ -81,16 +91,17 @@ export function QueryProvider({ children }: PropsWithChildren) {
         const sdk = getSdkClient(fetchedConfig)
 
         if (mounted) {
-          setClient(sdk)
-          setConfig(fetchedConfig)
+          setInitState({ config: fetchedConfig, client: sdk, error: null })
         }
       } catch (err) {
         if (mounted) {
-          setError(
-            err instanceof Error
-              ? err
-              : new Error('Failed to initialize SDK client')
-          )
+          setInitState((prev) => ({
+            ...prev,
+            error:
+              err instanceof Error
+                ? err
+                : new Error('Failed to initialize SDK client'),
+          }))
         }
       }
     }

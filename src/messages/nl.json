@@ -15,6 +15,7 @@
     "groups": "Groepen",
     "user": "Gebruiker",
     "certificateAuthenticated": "Certificaat geverifieerd",
+    "emailAuthenticated": "E-mail geverifieerd",
     "userUuid": "Gebruikers-UUID",
     "certificateAuthentication": "Certificaatauthenticatie",
     "active": "ACTIEF",
@@ -190,7 +191,12 @@
     "validation": {
       "emailRequired": "E-mailadres is verplicht",
       "emailInvalid": "Voer een geldig e-mailadres in",
-      "passwordRequired": "Wachtwoord is verplicht"
+      "passwordRequired": "Wachtwoord is verplicht",
+      "passwordMinLength": "Wachtwoord moet minimaal 8 tekens bevatten",
+      "passwordLowercase": "Wachtwoord moet minimaal één kleine letter bevatten",
+      "passwordUppercase": "Wachtwoord moet minimaal één hoofdletter bevatten",
+      "passwordDigit": "Wachtwoord moet minimaal één cijfer bevatten",
+      "passwordSpecial": "Wachtwoord moet minimaal één speciaal teken bevatten"
     },
     "errors": {
       "authFailed": "Authenticatie mislukt",
@@ -310,6 +316,10 @@
     "addProperty": "Eigenschap toevoegen",
     "qrCode": "QR-code",
     "showQr": "QR tonen",
+    "actions": {
+      "copyUuid": "UUID kopiëren",
+      "showQrCode": "QR-code tonen"
+    },
     "noObjectsTitle": "Geen objecten gevonden",
     "noObjectsDescription": "Begin met het aanmaken van uw eerste object",
     "viewDetails": "Details bekijken",

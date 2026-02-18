@@ -162,6 +162,7 @@ export function ModelSelector({
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            aria-controls="model-selector-listbox"
             className="w-full justify-between"
             disabled={disabled}
             data-tour={dataTour}
@@ -183,7 +184,7 @@ export function ModelSelector({
           className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0"
           align="start"
         >
-          <Command shouldFilter={false}>
+          <Command shouldFilter={false} id="model-selector-listbox">
             <div className="relative">
               <CommandInput
                 placeholder={t('objects.modelSelector.searchPlaceholder')}

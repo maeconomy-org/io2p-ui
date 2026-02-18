@@ -293,7 +293,9 @@ test.describe('06 - Object Regression Flow', () => {
     const updatedUuid = (
       await updatedRow.locator('td').nth(1).innerText()
     ).trim()
-    await updatedRow.locator('[data-testid="object-qr-button"]').click()
+    // Click dropdown menu and QR code option
+    await updatedRow.locator('[data-testid="object-actions-dropdown"]').click()
+    await page.getByRole('menuitem', { name: /qr code/i }).click()
 
     const qrDialog = getDialogByTitle(
       page,

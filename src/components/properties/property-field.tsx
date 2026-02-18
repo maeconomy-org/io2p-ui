@@ -27,6 +27,8 @@ import { FormulaEditor } from './formula-editor'
 import { ValueModeToggle } from './value-mode-toggle'
 import type { AvailableProperty } from './hooks/use-formula-evaluation'
 
+const EMPTY_AVAILABLE_PROPERTIES: AvailableProperty[] = []
+
 interface PropertyFieldProps {
   control: Control<any>
   name: string
@@ -212,7 +214,7 @@ export function PropertyField({
   name,
   index,
   onRemove,
-  availableProperties = [],
+  availableProperties = EMPTY_AVAILABLE_PROPERTIES,
 }: PropertyFieldProps) {
   const t = useTranslations()
   const valuesName = `${name}.values`

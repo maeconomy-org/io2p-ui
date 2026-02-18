@@ -7,9 +7,9 @@ import {
   ChevronDown,
   Shield,
   Hash,
-  CheckCircle,
   User,
   RocketIcon,
+  Mail,
 } from 'lucide-react'
 
 import {
@@ -32,8 +32,17 @@ import { ThemeDropdownItem } from '@/components/ui/theme-toggle'
 
 export function UserProfileDropdown() {
   const t = useTranslations()
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const { userInfo, logout } = useAuth()
+
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+
+  const displayIdentity =
+    userInfo?.certificateInfo?.subjectFields?.CN ||
+    (userInfo as any)?.credentialValue ||
+    (userInfo as any)?.usernamePasswordCredentials?.username ||
+    (userInfo as any)?.usernamePasswordCredentials?.credentialValue ||
+    userInfo?.credentials ||
+    t('nav.user')
 
   useEffect(() => {
     const handleToggle = (event: Event) => {
@@ -59,7 +68,7 @@ export function UserProfileDropdown() {
           <User className="h-4 w-4 text-primary" />
           <div className="flex flex-col items-start text-left">
             <span className="text-sm font-medium max-w-32 truncate leading-tight">
-              {userInfo?.certificateInfo.subjectFields.CN || t('nav.user')}
+              {displayIdentity}
             </span>
           </div>
           <ChevronDown className="h-3 w-3 text-muted-foreground ml-1" />
@@ -73,13 +82,24 @@ export function UserProfileDropdown() {
             </div>
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-semibold leading-none">
-                {userInfo?.certificateInfo.subjectFields.CN || t('nav.user')}
+                {displayIdentity}
               </p>
               <div className="flex items-center gap-1">
-                <Shield className="h-3 w-3 text-green-600" />
-                <p className="text-xs leading-none text-muted-foreground">
-                  {t('nav.certificateAuthenticated')}
-                </p>
+                {userInfo?.certificateInfo ? (
+                  <>
+                    <Shield className="h-3 w-3 text-green-600" />
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {t('nav.certificateAuthenticated')}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-3 w-3 text-blue-600" />
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {t('nav.emailAuthenticated')}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>

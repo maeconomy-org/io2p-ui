@@ -286,8 +286,8 @@ export const SankeyDiagram = memo(function SankeyDiagram({
                   {cycleInfo.cycles.length > 1 ? 's' : ''})
                 </summary>
                 <div className="mt-1.5 ml-4 space-y-0.5 text-[10px] font-mono text-amber-600 dark:text-amber-400">
-                  {cycleInfo.cycles.slice(0, 3).map((cycle, idx) => (
-                    <div key={idx}>
+                  {cycleInfo.cycles.slice(0, 3).map((cycle) => (
+                    <div key={cycle.join('-')}>
                       {cycle.join(' → ')} → {cycle[0]}
                     </div>
                   ))}

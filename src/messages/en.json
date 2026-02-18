@@ -15,6 +15,7 @@
     "groups": "Groups",
     "user": "User",
     "certificateAuthenticated": "Certificate Authenticated",
+    "emailAuthenticated": "Email Authenticated",
     "userUuid": "User UUID",
     "certificateAuthentication": "Certificate Authentication",
     "active": "ACTIVE",
@@ -190,7 +191,12 @@
     "validation": {
       "emailRequired": "Email is required",
       "emailInvalid": "Please enter a valid email address",
-      "passwordRequired": "Password is required"
+      "passwordRequired": "Password is required",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordLowercase": "Password must contain at least one lowercase letter",
+      "passwordUppercase": "Password must contain at least one uppercase letter",
+      "passwordDigit": "Password must contain at least one digit",
+      "passwordSpecial": "Password must contain at least one special character"
     },
     "errors": {
       "authFailed": "Authentication failed",
@@ -331,6 +337,10 @@
     "addProperty": "Add Property",
     "qrCode": "QR Code",
     "showQr": "Show QR",
+    "actions": {
+      "copyUuid": "Copy UUID",
+      "showQrCode": "QR Code"
+    },
     "noObjectsTitle": "No Objects Found",
     "noObjectsDescription": "Start by creating your first object",
     "viewDetails": "View Details",
@@ -476,7 +486,7 @@
       "copying": "Copying...",
       "success": "Objects copied successfully",
       "failed": "Failed to copy objects",
-      "action": "Copy",
+      "action": "Duplicate",
       "copyHere": "Copy Objects Here"
     }
   },

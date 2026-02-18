@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
@@ -13,20 +13,22 @@ import { NAV_ITEMS } from '@/constants'
 import { UserProfileDropdown } from './user-profile-dropdown'
 import { MobileMenu } from './mobile-menu'
 
+const emptySubscribe = () => () => {}
+
 export default function Navbar() {
   const pathname = usePathname()
   const t = useTranslations()
-  const [isMac, setIsMac] = useState(false)
+  const isMac = useSyncExternalStore(
+    emptySubscribe,
+    () => navigator.platform.toUpperCase().indexOf('MAC') >= 0,
+    () => false
+  )
   const { searchQuery, isSearching, isSearchMode, executeSearchFromParsed } =
     useSearch()
   const config = useAppConfig()
 
   const { open: commandCenterOpen, setOpen: setCommandCenterOpen } =
     useCommandCenter()
-
-  useEffect(() => {
-    setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0)
-  }, [])
 
   return (
     <>
@@ -85,7 +87,10 @@ export default function Navbar() {
                     : t('common.search') + '...'}
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0">
-                  <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm">
+                  <kbd
+                    className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm"
+                    suppressHydrationWarning
+                  >
                     {isMac ? '⌘' : 'Ctrl'}
                   </kbd>
                   <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm">

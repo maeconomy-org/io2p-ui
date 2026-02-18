@@ -7,6 +7,7 @@ export interface ClientConfig {
   authRefreshApiUrl: string
   registryApiUrl: string
   nodeApiUrl: string
+  upApiUrl: string
 
   // Sentry config
   sentryDsn: string
@@ -36,6 +37,8 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   authRefreshApiUrl: '',
   registryApiUrl: '',
   nodeApiUrl: '',
+  upApiUrl: '',
+
   sentryDsn: '',
   sentryEnabled: 'false',
   sentryRelease: '',

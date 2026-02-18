@@ -362,7 +362,7 @@ export function ColumnMapper({
                         .map(String)
 
                       return (
-                        <TableRow key={index}>
+                        <TableRow key={`${header}-${index}`}>
                           <TableCell className="py-1">
                             {useFirstRowAsHeaders ? (
                               <div className="font-medium text-sm">

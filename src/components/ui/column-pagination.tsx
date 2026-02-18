@@ -29,7 +29,7 @@ export function ColumnPagination({
   loading = false,
 }: ColumnPaginationProps) {
   const t = useTranslations()
-  const [pageInput, setPageInput] = useState(currentPage.toString())
+  const [pageInput, setPageInput] = useState(() => currentPage.toString())
 
   const handleInputChange = (value: string) => {
     setPageInput(value)

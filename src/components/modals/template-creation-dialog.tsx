@@ -41,7 +41,12 @@ export function TemplateCreationDialog({
   isCreating = false,
 }: TemplateCreationDialogProps) {
   const t = useTranslations()
-  const [templateData, setTemplateData] = useState<TemplateData>(initialData)
+  const [templateData, setTemplateData] = useState<TemplateData>({
+    name: '',
+    abbreviation: '',
+    version: '',
+    description: '',
+  })
 
   // Reset form data when dialog opens with new initial data
   useEffect(() => {

@@ -19,6 +19,8 @@ import {
 import { cn } from '@/lib/utils'
 import type { EnhancedMaterialObject } from '@/types'
 
+const EMPTY_MATERIAL_UUIDS: string[] = []
+
 interface MaterialSelectorProps {
   materials: EnhancedMaterialObject[]
   selectedMaterialUuids?: string[]
@@ -30,7 +32,7 @@ interface MaterialSelectorProps {
 
 export function MaterialSelector({
   materials,
-  selectedMaterialUuids = [],
+  selectedMaterialUuids = EMPTY_MATERIAL_UUIDS,
   onMaterialsChange,
   placeholder,
   maxSelections = 10,
@@ -102,6 +104,7 @@ export function MaterialSelector({
           variant="outline"
           role="combobox"
           aria-expanded={isOpen}
+          aria-controls="material-selector-listbox"
           className="w-[350px] mr-[2px] justify-between"
           disabled={disabled}
         >
@@ -131,7 +134,7 @@ export function MaterialSelector({
         className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0"
         align="start"
       >
-        <Command shouldFilter={false}>
+        <Command shouldFilter={false} id="material-selector-listbox">
           <div className="relative">
             <CommandInput
               placeholder={t('processes.materialSelector.searchPlaceholder')}

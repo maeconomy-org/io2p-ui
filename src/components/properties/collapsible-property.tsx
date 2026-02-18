@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ChevronRight, FunctionSquare, Plus, Trash2, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
+import { formatNumericValue } from '@/lib'
 import { Badge, Button, Input, Label } from '@/components/ui'
 import { FileList } from '@/components/object-sheets/components/file-display'
 import { FormulaDisplay } from './formula-display'
 import { FormulaEditor } from './formula-editor'
 import { ValueModeToggle } from './value-mode-toggle'
 import type { AvailableProperty } from './hooks/use-formula-evaluation'
+
+const EMPTY_AVAILABLE_PROPERTIES: AvailableProperty[] = []
 
 interface CollapsiblePropertyProps {
   property: any
@@ -130,7 +133,7 @@ function CollapsibleValueItem({
         />
       ) : (
         <div className="p-2 border rounded-md bg-background w-full">
-          {value.value}
+          {formatNumericValue(value.value)}
         </div>
       )}
 
@@ -151,10 +154,16 @@ export function CollapsibleProperty({
   isEditable,
   onUpdate,
   onRemove,
-  availableProperties = [],
+  availableProperties = EMPTY_AVAILABLE_PROPERTIES,
 }: CollapsiblePropertyProps) {
   const t = useTranslations()
-  const [editedProperty, setEditedProperty] = useState(property)
+  const [editedProperty, setEditedProperty] = useState<any>({})
+  const prevPropertyRef = useRef<any>(undefined)
+
+  if (property !== prevPropertyRef.current) {
+    prevPropertyRef.current = property
+    setEditedProperty(property)
+  }
 
   // Check if any value has a formula
   const hasAnyFormula = (editedProperty.values || []).some(
@@ -271,8 +280,8 @@ export function CollapsibleProperty({
           <div className="ml-4 text-sm text-muted-foreground">
             {property.values?.length === 1
               ? property.values[0].formulaData?.formula
-                ? `= ${property.values[0].formulaData.result ?? '...'}`
-                : property.values[0].value
+                ? `= ${formatNumericValue(property.values[0].formulaData.result) ?? '...'}`
+                : formatNumericValue(property.values[0].value)
               : t('objects.values', {
                   count: property.values?.length || 0,
                 })}

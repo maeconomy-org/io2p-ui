@@ -34,7 +34,7 @@ export function HereAddressAutocomplete({
   className = '',
   dataTour,
 }: HereAddressAutocompleteProps) {
-  const [query, setQuery] = useState(value)
+  const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
@@ -44,11 +44,15 @@ export function HereAddressAutocomplete({
   const dropdownRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line no-undef
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const prevValueRef = useRef<string>(undefined)
 
-  // Update query when value prop changes
-  useEffect(() => {
-    setQuery(value)
-  }, [value])
+  // Sync query with value prop only when value changes externally
+  if (value !== prevValueRef.current) {
+    prevValueRef.current = value
+    if (query !== value) {
+      setQuery(value)
+    }
+  }
 
   const searchAddresses = (searchQuery: string) => {
     if (!searchQuery || searchQuery.length < 2) {
@@ -206,7 +210,7 @@ export function HereAddressAutocomplete({
         >
           {suggestions.map((suggestion, index) => (
             <div
-              key={index}
+              key={suggestion.id}
               className={`px-4 py-3 cursor-pointer hover:bg-muted/50 border-b border-border last:border-b-0 ${
                 index === selectedIndex ? 'bg-muted' : ''
               }`}

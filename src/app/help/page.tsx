@@ -59,8 +59,8 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h3 className="font-semibold">{t('help.windows')}</h3>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
-                    {(t.raw('help.windowsSteps') as string[]).map((step, i) => (
-                      <li key={i}>{step}</li>
+                    {(t.raw('help.windowsSteps') as string[]).map((step) => (
+                      <li key={step}>{step}</li>
                     ))}
                   </ol>
                 </div>
@@ -68,8 +68,8 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h3 className="font-semibold">{t('help.macos')}</h3>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
-                    {(t.raw('help.macosSteps') as string[]).map((step, i) => (
-                      <li key={i}>{step}</li>
+                    {(t.raw('help.macosSteps') as string[]).map((step) => (
+                      <li key={step}>{step}</li>
                     ))}
                   </ol>
                 </div>
@@ -97,8 +97,8 @@ export default function HelpPage() {
                   <h3 className="font-semibold">{t('help.firstTimeLogin')}</h3>
                   <ol className="list-decimal list-inside space-y-1 ml-4">
                     {(t.raw('help.firstTimeLoginSteps') as string[]).map(
-                      (step, i) => (
-                        <li key={i}>{step}</li>
+                      (step) => (
+                        <li key={step}>{step}</li>
                       )
                     )}
                   </ol>
@@ -107,11 +107,9 @@ export default function HelpPage() {
                 <div className="space-y-2">
                   <h3 className="font-semibold">{t('help.dailyUsage')}</h3>
                   <ul className="list-disc list-inside space-y-1 ml-4">
-                    {(t.raw('help.dailyUsageItems') as string[]).map(
-                      (item, i) => (
-                        <li key={i}>{item}</li>
-                      )
-                    )}
+                    {(t.raw('help.dailyUsageItems') as string[]).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
                   </ul>
                 </div>
               </CardContent>
@@ -133,8 +131,8 @@ export default function HelpPage() {
                     <ul className="list-disc list-inside space-y-1 ml-4">
                       {(
                         t.raw('help.certificateNotShowingItems') as string[]
-                      ).map((item, i) => (
-                        <li key={i}>{item}</li>
+                      ).map((item) => (
+                        <li key={item}>{item}</li>
                       ))}
                     </ul>
                   </div>
@@ -143,8 +141,8 @@ export default function HelpPage() {
                     <h3 className="font-semibold">{t('help.accessDenied')}</h3>
                     <ul className="list-disc list-inside space-y-1 ml-4">
                       {(t.raw('help.accessDeniedItems') as string[]).map(
-                        (item, i) => (
-                          <li key={i}>{item}</li>
+                        (item) => (
+                          <li key={item}>{item}</li>
                         )
                       )}
                     </ul>

@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils'
 import { useCommonApi } from '@/hooks/api'
 import type { ParentObject } from '@/types'
 
+const EMPTY_PARENT_UUIDS: string[] = []
+
 interface ParentSelectorProps {
   currentObjectUuid?: string
   initialParentUuids?: string[]
@@ -35,7 +37,7 @@ interface ParentSelectorProps {
 
 export function ParentSelector({
   currentObjectUuid,
-  initialParentUuids = [],
+  initialParentUuids = EMPTY_PARENT_UUIDS,
   onParentsChange,
   placeholder,
   maxSelections = 10,
@@ -196,6 +198,7 @@ export function ParentSelector({
             variant="outline"
             role="combobox"
             aria-expanded={isOpen}
+            aria-controls="parent-selector-listbox"
             className="w-full justify-between"
             disabled={disabled}
             data-tour={dataTour}
@@ -226,7 +229,7 @@ export function ParentSelector({
           className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0"
           align="start"
         >
-          <Command shouldFilter={false}>
+          <Command shouldFilter={false} id="parent-selector-listbox">
             <div className="relative">
               <CommandInput
                 placeholder={t('objects.parentSelector.searchPlaceholder')}
@@ -302,7 +305,7 @@ export function ParentSelector({
 
             return (
               <Badge
-                key={`${parent.uuid}-${index}`}
+                key={parent.uuid}
                 variant="secondary"
                 className="flex items-center gap-1 pr-1"
                 title={parent.uuid} // Show full UUID on hover

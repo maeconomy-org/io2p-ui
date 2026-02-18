@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { Search, Package } from 'lucide-react'
 import type { UUObjectDTO } from 'iom-sdk'
@@ -73,37 +73,45 @@ export function ObjectSelectionModal({
   const [objects, setObjects] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
+  const executeSearch = useCallback(
+    async (term: string) => {
+      setIsSearching(true)
+      try {
+        const response = await searchMutation.mutateAsync({
+          searchTerm: term,
+          size: 50,
+          page: 0,
+        })
+        setObjects(response?.content || [])
+      } catch (error) {
+        logger.error('Search failed:', error)
+        setObjects([])
+      } finally {
+        setIsSearching(false)
+      }
+    },
+    [searchMutation]
+  )
+
+  const clearSearch = useCallback(() => {
+    setObjects([])
+    setIsSearching(false)
+  }, [])
+
   // Debounce search execution
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (isOpen && searchTerm.trim().length >= 2) {
-        setIsSearching(true)
-        searchMutation
-          .mutateAsync({
-            searchTerm: searchTerm.trim(),
-            size: 50, // Limit to 50 results
-            page: 0,
-          })
-          .then((response) => {
-            setObjects(response?.content || [])
-          })
-          .catch((error) => {
-            logger.error('Search failed:', error)
-            setObjects([])
-          })
-          .finally(() => {
-            setIsSearching(false)
-          })
+        executeSearch(searchTerm.trim())
       } else if (searchTerm.trim().length < 2) {
-        setObjects([])
-        setIsSearching(false)
+        clearSearch()
       }
     }, 300)
 
     return () => clearTimeout(timeout)
-  }, [searchTerm, isOpen, searchMutation])
+  }, [searchTerm, isOpen, executeSearch, clearSearch])
 
-  useEffect(() => {
+  const resetForm = useCallback(() => {
     if (initialData) {
       setSelectedObject(initialData.object)
       setQuantity(initialData.quantity)
@@ -120,7 +128,11 @@ export function ObjectSelectionModal({
     setSearchTerm('')
     setNewPropertyKey('')
     setNewPropertyValue('')
-  }, [initialData, isOpen])
+  }, [initialData])
+
+  useEffect(() => {
+    resetForm()
+  }, [isOpen, resetForm])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

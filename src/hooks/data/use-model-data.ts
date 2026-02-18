@@ -28,6 +28,7 @@ export function useModelData({
     {
       page: currentPage,
       size: pageSize,
+      readDefaultGroup: true,
       ...(showDeleted ? {} : { searchBy: { softDeleted: false } }),
     },
     {

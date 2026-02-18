@@ -80,7 +80,7 @@ export function ObjectColumnsView({
 
               return (
                 <ObjectColumn
-                  key={index}
+                  key={`column-${index}`}
                   items={items}
                   selectedId={selectedIds[index] || null}
                   isLoading={isColumnLoadingOrSearching(index)}

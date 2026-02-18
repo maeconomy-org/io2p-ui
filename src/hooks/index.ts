@@ -6,6 +6,7 @@ export * from './api/use-files-api'
 export * from './api/use-import-api'
 export * from './api/use-objects'
 export * from './api/use-properties'
+export * from './api/use-groups'
 export * from './api/use-statements'
 export * from './api/use-uuid'
 

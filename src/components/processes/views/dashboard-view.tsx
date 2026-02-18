@@ -24,6 +24,9 @@ import type {
 
 import { PROCESS_CATEGORY_COLORS, LIFECYCLE_STAGE_COLORS } from '../constants'
 
+const EMPTY_MATERIALS: EnhancedMaterialObject[] = []
+const EMPTY_RELATIONSHIPS: EnhancedMaterialRelationship[] = []
+
 interface DashboardViewProps {
   materials?: EnhancedMaterialObject[]
   relationships?: EnhancedMaterialRelationship[]
@@ -31,8 +34,8 @@ interface DashboardViewProps {
 }
 
 export function DashboardView({
-  materials = [],
-  relationships = [],
+  materials = EMPTY_MATERIALS,
+  relationships = EMPTY_RELATIONSHIPS,
   onCreateProcess = () => {},
 }: DashboardViewProps) {
   const t = useTranslations()
