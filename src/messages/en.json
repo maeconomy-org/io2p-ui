@@ -331,6 +331,18 @@
     "createTemplate": "Create Template",
     "attachFilesProperty": "Attach Files to Property",
     "attachFilesValue": "Attach Files to Value",
+    "unsavedChanges": {
+      "title": "Unsaved Changes",
+      "description": "You have entered data that hasn't been saved yet. Would you like to continue editing or discard your changes?",
+      "keepEditing": "Continue Editing",
+      "discard": "Discard Changes"
+    },
+    "restoreDraft": {
+      "title": "Unfinished Object Creation",
+      "description": "You have previously entered data for creating an object. Would you like to continue where you left off or start fresh?",
+      "continueEditing": "Continue Editing",
+      "startFresh": "Start Fresh"
+    },
     "addTitle": "Add Object",
     "addDescription": "Create a new object by filling in the details below",
     "modelTemplatePlaceholder": "Select a model template (optional)",

@@ -144,7 +144,7 @@ export default function LoginPage() {
       </p>
 
       {/* Auth Card */}
-      <Card className="p-6 shadow-lg mt-8 relative overflow-hidden min-h-[400px]">
+      <Card className="p-6 shadow-lg mt-8 relative overflow-hidden ">
         {/* Loading Overlay */}
         <div
           className={cn(
@@ -154,7 +154,7 @@ export default function LoginPage() {
               : 'pointer-events-none opacity-0'
           )}
         >
-          <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+          <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
             <div className="relative">
               <div className="h-16 w-16 rounded-full border-4 border-primary/0" />
               <Loader2 className="absolute top-0 h-16 w-16 animate-spin text-primary" />

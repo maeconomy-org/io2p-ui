@@ -310,6 +310,18 @@
     "createTemplate": "Sjabloon aanmaken",
     "attachFilesProperty": "Bestanden koppelen aan eigenschap",
     "attachFilesValue": "Bestanden koppelen aan waarde",
+    "unsavedChanges": {
+      "title": "Niet-opgeslagen wijzigingen",
+      "description": "U heeft gegevens ingevoerd die nog niet zijn opgeslagen. Wilt u doorgaan met bewerken of uw wijzigingen verwijderen?",
+      "keepEditing": "Doorgaan met bewerken",
+      "discard": "Wijzigingen verwijderen"
+    },
+    "restoreDraft": {
+      "title": "Onvoltooide objectcreatie",
+      "description": "U heeft eerder gegevens ingevoerd voor het aanmaken van een object. Wilt u verdergaan waar u gebleven was of opnieuw beginnen?",
+      "continueEditing": "Doorgaan met bewerken",
+      "startFresh": "Opnieuw beginnen"
+    },
     "addTitle": "Nieuw object toevoegen",
     "addDescription": "Maak een nieuw object aan door de onderstaande gegevens in te vullen",
     "modelTemplatePlaceholder": "Selecteer een modelsjabloon (optioneel)",
