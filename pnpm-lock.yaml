@@ -135,8 +135,8 @@ importers:
         specifier: 1.4.1
         version: 1.4.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       iom-sdk:
-        specifier: file:../iom-sdk
-        version: file:../iom-sdk(axios@1.13.5)
+        specifier: ^0.1.14
+        version: 0.1.14(axios@1.13.5)
       ioredis:
         specifier: ^5.6.1
         version: 5.9.2
@@ -3606,8 +3606,8 @@ packages:
   intl-messageformat@11.1.2:
     resolution: {integrity: sha512-ucSrQmZGAxfiBHfBRXW/k7UC8MaGFlEj4Ry1tKiDcmgwQm1y3EDl40u+4VNHYomxJQMJi9NEI3riDRlth96jKg==}
 
-  iom-sdk@file:../iom-sdk:
-    resolution: {directory: ../iom-sdk, type: directory}
+  iom-sdk@0.1.14:
+    resolution: {integrity: sha512-5RW36apUGYLU0myDaIWjz/+3rYnaF1IFCspHw6yDqQUyrGSTUgEiP/9Pzu09HDvhhk7nZTu0fVVqbGO2wgpTTw==}
     peerDependencies:
       axios: ^1.6.0
 
@@ -8732,7 +8732,7 @@ snapshots:
       '@formatjs/icu-messageformat-parser': 3.5.1
       tslib: 2.8.1
 
-  iom-sdk@file:../iom-sdk(axios@1.13.5):
+  iom-sdk@0.1.14(axios@1.13.5):
     dependencies:
       axios: 1.13.5
       zod: 3.25.76

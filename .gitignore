@@ -251,6 +251,7 @@ e2e/.auth/
 certs/
 memory-bank/
 .cursorrules
+.windsurf
 dump.rdb
 
 docs/

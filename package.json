@@ -70,7 +70,7 @@
     "embla-carousel-react": "8.5.1",
     "exceljs": "^4.4.0",
     "input-otp": "1.4.1",
-    "iom-sdk": "file:../iom-sdk",
+    "iom-sdk": "^0.1.14",
     "ioredis": "^5.6.1",
     "jsep": "^1.4.0",
     "lucide-react": "^0.454.0",
