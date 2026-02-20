@@ -187,9 +187,9 @@ export default function ImportPage() {
         <Steps
           currentStep={step === 'upload' ? 0 : step === 'map-columns' ? 1 : 2}
         >
-          <Step />
-          <Step />
-          <Step />
+          <Step title={t('import.steps.upload')} />
+          <Step title={t('import.steps.map')} />
+          <Step title={t('import.steps.preview')} />
         </Steps>
       </div>
 

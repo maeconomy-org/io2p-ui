@@ -476,6 +476,21 @@ export function ObjectAddSheet({
                         )}
                       />
                     ))}
+
+                    {/* Add Property button at the bottom for better UX */}
+                    {fields.length > 0 && (
+                      <div className="flex justify-center pt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={addProperty}
+                          className="w-full"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          {t('objects.addAnotherProperty')}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

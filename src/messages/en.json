@@ -347,6 +347,7 @@
     "addDescription": "Create a new object by filling in the details below",
     "modelTemplatePlaceholder": "Select a model template (optional)",
     "addProperty": "Add Property",
+    "addAnotherProperty": "Add Another Property",
     "qrCode": "QR Code",
     "showQr": "Show QR",
     "actions": {

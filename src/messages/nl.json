@@ -889,6 +889,7 @@
     "propertyName": "Eigenschapsnaam",
     "propertyValue": "Eigenschapswaarde",
     "addProperty": "Eigenschap toevoegen",
+    "addAnotherProperty": "Voeg nog een eigenschap toe",
     "addMaterial": "Materiaal toevoegen",
     "updateMaterial": "Materiaal bijwerken"
   },
