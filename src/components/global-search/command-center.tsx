@@ -176,8 +176,9 @@ export function CommandCenter({
     // Save to recent searches
     saveRecentSearch(inputValue)
 
-    // Trigger search callback
-    onSearch?.(parsedSearch)
+    // Parse inline to avoid stale state from useEffect
+    const freshParsed = parseSearchQuery(inputValue)
+    onSearch?.(freshParsed)
     onOpenChange?.(false)
   }
 

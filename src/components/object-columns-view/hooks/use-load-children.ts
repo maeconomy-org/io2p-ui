@@ -43,7 +43,10 @@ export function useLoadChildren() {
       const response = await queryClient.fetchQuery({
         queryKey: ['aggregates', params],
         queryFn: async () => {
-          const response = await client.node.searchAggregates(params)
+          const response = await client.node.searchAggregates({
+            readDefaultGroup: true,
+            ...params,
+          })
           return response
         },
         staleTime: 0, // Always fetch fresh data for children

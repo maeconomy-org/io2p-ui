@@ -25,7 +25,10 @@ export function useCommonApi() {
   const useSearch = () => {
     return useMutation({
       mutationFn: async (params: AggregateFindDTO) => {
-        const response = await client.node.searchAggregates(params)
+        const response = await client.node.searchAggregates({
+          ...params,
+          readDefaultGroup: true,
+        })
         return response
       },
     })

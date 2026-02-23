@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { PlusCircle, Loader2, Filter, Layers } from 'lucide-react'
+import {
+  PlusCircle,
+  Loader2,
+  Filter,
+  Layers,
+  ChevronRight,
+  RotateCcw,
+} from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import type { UUID } from 'iom-sdk'
 import dynamic from 'next/dynamic'
@@ -65,6 +72,16 @@ const MaterialFlowPage = () => {
   )
   const [isDepthLimited, setIsDepthLimited] = useState(true)
 
+  // Drill-down state: stack of focus nodes for breadcrumb navigation
+  // Each entry is { uuid, name } — empty stack means showing from roots
+  const [drillDownStack, setDrillDownStack] = useState<
+    Array<{ uuid: string; name: string }>
+  >([])
+  const currentFocusNode =
+    drillDownStack.length > 0
+      ? drillDownStack[drillDownStack.length - 1].uuid
+      : undefined
+
   // Load saved view preference from localStorage
   useEffect(() => {
     const savedView = localStorage.getItem('processView') as ProcessViewType
@@ -81,6 +98,7 @@ const MaterialFlowPage = () => {
   // Data fetching with depth limiting at the fetch level.
   // When depth-limited, the hook only fetches objects within 3 topological levels,
   // avoiding unnecessary API calls for deep nodes in large graphs.
+  // focusNode enables drill-down: BFS starts from that node instead of roots.
   const {
     materials: allMaterials,
     relationships: allRelationships,
@@ -88,6 +106,7 @@ const MaterialFlowPage = () => {
     totalNodeCount,
   } = useSankeyDiagramData(objectUuid as UUID | undefined, {
     maxDepth: isDepthLimited ? 3 : undefined,
+    focusNode: isDepthLimited ? currentFocusNode : undefined,
   })
 
   // Truncated count = total nodes in graph minus nodes actually fetched
@@ -197,6 +216,33 @@ const MaterialFlowPage = () => {
     setIsProcessFormOpen(true)
   }, [])
 
+  // Drill-down: click a node to make it the new focus (first level)
+  const handleNodeDrillDown = useCallback(
+    (nodeUuid: string, nodeName: string) => {
+      if (!isDepthLimited) return
+      // Only drill down if the node has outgoing edges (children in the graph)
+      const hasOutgoing = allRelationships.some(
+        (rel) => rel.subject.uuid === nodeUuid
+      )
+      if (hasOutgoing) {
+        setDrillDownStack((prev) => [
+          ...prev,
+          { uuid: nodeUuid, name: nodeName },
+        ])
+      }
+    },
+    [isDepthLimited, allRelationships]
+  )
+
+  // Navigate back in drill-down breadcrumb
+  const handleDrillDownBack = useCallback((index: number) => {
+    setDrillDownStack((prev) => prev.slice(0, index))
+  }, [])
+
+  const handleDrillDownReset = useCallback(() => {
+    setDrillDownStack([])
+  }, [])
+
   // Memoize diagram components to prevent unnecessary re-renders
   // Remove selectedRelationship from dependencies to prevent flicker on selection
   const diagramContent = useMemo(() => {
@@ -226,6 +272,7 @@ const MaterialFlowPage = () => {
         relationships={relationships}
         selectedRelationship={null} // Always null to prevent visual selection
         onLinkSelect={handleRelationshipSelect}
+        onNodeClick={isDepthLimited ? handleNodeDrillDown : undefined}
         className="bg-card"
       />
     )
@@ -236,6 +283,8 @@ const MaterialFlowPage = () => {
     activeView,
     objectUuid,
     handleRelationshipSelect,
+    handleNodeDrillDown,
+    isDepthLimited,
   ])
 
   return (
@@ -382,6 +431,50 @@ const MaterialFlowPage = () => {
           )}
         </>
       )}
+
+      {/* Drill-down Breadcrumb */}
+      {isDepthLimited &&
+        drillDownStack.length > 0 &&
+        (activeView === 'sankey' || activeView === 'network') && (
+          <div className="mb-4 p-3 bg-muted/50 border border-border rounded-lg">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 text-sm flex-wrap min-w-0">
+                <button
+                  onClick={handleDrillDownReset}
+                  className="text-primary hover:underline font-medium shrink-0"
+                >
+                  {t('processes.drillDown.root')}
+                </button>
+                {drillDownStack.map((node, index) => (
+                  <span key={node.uuid} className="flex items-center gap-1.5">
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    {index < drillDownStack.length - 1 ? (
+                      <button
+                        onClick={() => handleDrillDownBack(index + 1)}
+                        className="text-primary hover:underline truncate max-w-[200px]"
+                      >
+                        {node.name}
+                      </button>
+                    ) : (
+                      <span className="font-medium truncate max-w-[200px]">
+                        {node.name}
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDrillDownReset}
+                className="shrink-0 gap-1.5"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                {t('processes.drillDown.reset')}
+              </Button>
+            </div>
+          </div>
+        )}
 
       {/* Diagram Views */}
       {(activeView === 'sankey' || activeView === 'network') && (

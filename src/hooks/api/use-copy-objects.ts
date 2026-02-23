@@ -145,6 +145,7 @@ export async function fetchDescendants(
 
   while (hasMore) {
     const response = await client.node.searchAggregates({
+      readDefaultGroup: true,
       parentUUID: parentUuid,
       hasParentUUIDFilter: true,
       page,
@@ -205,6 +206,7 @@ export function useCopyObjects() {
       for (const sourceUuid of sourceUuids) {
         // 1. Fetch the full aggregate for this source
         const response = await client.node.searchAggregates({
+          readDefaultGroup: true,
           searchBy: { uuid: sourceUuid },
           page: 0,
           size: 1,

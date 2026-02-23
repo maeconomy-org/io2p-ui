@@ -512,6 +512,10 @@
     "clearAll": "Alles wissen",
     "depthLimited": "3 Niveaus",
     "depthFull": "Volledige diepte",
+    "drillDown": {
+      "root": "Basis",
+      "reset": "Weergave resetten"
+    },
     "object": "Object",
     "inputs": "Invoer",
     "outputs": "Uitvoer",
@@ -634,7 +638,11 @@
     "loading": "Sjablonen laden...",
     "noTemplatesTitle": "Geen sjablonen gevonden",
     "noTemplatesDescription": "Er zijn geen sjablonen om weer te geven",
-    "restoreTitle": "Model herstellen"
+    "restoreTitle": "Model herstellen",
+    "searchResults": "Zoekresultaten voor: \"{query}\"",
+    "results": "{count} resultaat{count, plural, one {} other {en}}",
+    "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",
+    "clearSearch": "Zoekopdracht wissen"
   },
   "groups": {
     "title": "Groepen & projecten",

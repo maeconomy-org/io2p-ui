@@ -1,9 +1,10 @@
 'use client'
 
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useRef } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 
 import { logger } from '@/lib'
-import { useIomSdkClient } from './query-context'
+import { useCommonApi } from '@/hooks/api'
 import type { ParsedSearch } from '@/lib/search-parser'
 import { parseSearchQuery } from '@/lib/search-parser'
 
@@ -36,6 +37,10 @@ const SearchContext = createContext<SearchContextType | undefined>(undefined)
 
 const MIN_SEARCH_CHARS = 2
 
+// Pages where search results are displayed directly
+const OBJECTS_PAGE = '/objects'
+const MODELS_PAGE = '/models'
+
 export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
@@ -47,7 +52,57 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [currentParsedSearch, setCurrentParsedSearch] =
     useState<ParsedSearch | null>(null)
 
-  const client = useIomSdkClient()
+  const pathname = usePathname()
+  const router = useRouter()
+
+  // Use centralized search mutation from useCommonApi
+  const { useSearch: useSearchMutation } = useCommonApi()
+  const searchMutation = useSearchMutation()
+  const searchMutationRef = useRef(searchMutation)
+  searchMutationRef.current = searchMutation
+
+  // Determine the isTemplate value based on the current page and parsed filters
+  const getIsTemplateForSearch = (
+    parsed: ParsedSearch
+  ): boolean | undefined => {
+    // If user explicitly set template: filter, respect it
+    if (parsed.searchBy.isTemplate !== undefined) {
+      return parsed.searchBy.isTemplate as boolean
+    }
+    // On models page, search templates only
+    if (pathname.startsWith(MODELS_PAGE)) {
+      return true
+    }
+    // On objects page (or any other page), search objects only
+    return false
+  }
+
+  // Determine the correct target page for search and redirect if needed
+  const resolveSearchPage = (parsed: ParsedSearch): void => {
+    const hasTemplateFilter = parsed.searchBy.isTemplate !== undefined
+    const isTemplateSearch = hasTemplateFilter
+      ? (parsed.searchBy.isTemplate as boolean)
+      : pathname.startsWith(MODELS_PAGE)
+
+    const targetPage = isTemplateSearch ? MODELS_PAGE : OBJECTS_PAGE
+
+    // If not on a search-capable page, redirect
+    if (
+      !pathname.startsWith(OBJECTS_PAGE) &&
+      !pathname.startsWith(MODELS_PAGE)
+    ) {
+      router.push(targetPage)
+    } else if (isTemplateSearch && !pathname.startsWith(MODELS_PAGE)) {
+      // User used template:true filter while on objects page → redirect to models
+      router.push(MODELS_PAGE)
+    } else if (
+      !isTemplateSearch &&
+      pathname.startsWith(MODELS_PAGE) &&
+      !hasTemplateFilter
+    ) {
+      // On models page but no explicit template filter → stay on models, search templates
+    }
+  }
 
   // Execute search with pagination support
   const executeSearchWithPagination = async (
@@ -57,17 +112,18 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     setIsSearching(true)
 
     try {
-      if (!client) {
-        throw new Error('SDK client not initialized')
+      // Inject isTemplate based on page context
+      const isTemplate = getIsTemplateForSearch(parsed)
+      const contextSearchBy = {
+        ...parsed.searchBy,
+        ...(isTemplate !== undefined ? { isTemplate } : {}),
       }
 
-      // Search with pagination parameters using new SDK with searchBy support
-      // For simple queries (no filters), use searchTerm only
-      // For advanced queries (with filters), use searchBy (and optionally searchTerm for remaining text)
-      const hasFilters = Object.keys(parsed.searchBy).length > 0
-      const results = await client.node.searchAggregates({
+      // Search with pagination parameters using centralized search hook
+      const hasFilters = Object.keys(contextSearchBy).length > 0
+      const results = await searchMutationRef.current.mutateAsync({
         searchTerm: parsed.searchTerm || undefined,
-        searchBy: hasFilters ? parsed.searchBy : undefined,
+        searchBy: hasFilters ? contextSearchBy : undefined,
         size: searchPageSize,
         page: page,
       })
@@ -130,6 +186,10 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
       .join(' ')
     setSearchQuery(displayQuery || parsed.searchTerm || '')
     setCurrentParsedSearch(parsed)
+
+    // Redirect to the correct page based on search context
+    resolveSearchPage(parsed)
+
     executeSearchWithPagination(parsed, 0)
   }
 

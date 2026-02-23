@@ -16,6 +16,7 @@ interface SankeyDiagramProps {
   relationships?: EnhancedMaterialRelationship[]
   selectedRelationship?: EnhancedMaterialRelationship | null
   onLinkSelect?: (relationship: EnhancedMaterialRelationship) => void
+  onNodeClick?: (nodeUuid: string, nodeName: string) => void
   className?: string
 }
 
@@ -24,6 +25,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
   relationships = [],
   selectedRelationship = null,
   onLinkSelect = () => {},
+  onNodeClick,
   className = '',
 }: SankeyDiagramProps) {
   const { resolvedTheme } = useTheme()
@@ -218,6 +220,12 @@ export const SankeyDiagram = memo(function SankeyDiagram({
               onLinkSelect
             ) {
               onLinkSelect(params.data.relationship)
+            } else if (
+              params.dataType === 'node' &&
+              params.data?.original &&
+              onNodeClick
+            ) {
+              onNodeClick(params.data.original.uuid, params.data.original.name)
             }
           },
         }}

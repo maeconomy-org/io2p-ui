@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { PlusCircle } from 'lucide-react'
+import { PlusCircle, Search, X } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
-import { Button, DeletedFilter } from '@/components/ui'
+import { Button, Badge, DeletedFilter } from '@/components/ui'
 import { ObjectModelsTable } from '@/components/tables'
 import { useModelData, useUnifiedDelete } from '@/hooks'
+import { useSearch } from '@/contexts'
 import { DeleteConfirmationDialog } from '@/components/modals'
 
 // Lazy-load sheet component — only rendered when opened by user interaction
@@ -26,6 +27,14 @@ export default function ObjectModelsPage() {
   const [selectedModel, setSelectedModel] = useState<any | null>(null)
   const [isEditing, setIsEditing] = useState<boolean>(false)
   const [showDeleted, setShowDeleted] = useState<boolean>(false)
+
+  const {
+    isSearchMode,
+    searchQuery,
+    searchViewResults,
+    searchPagination,
+    clearSearch,
+  } = useSearch()
 
   // Use model data hook with pagination and filtering
   const {
@@ -79,13 +88,51 @@ export default function ObjectModelsPage() {
             </div>
           </div>
 
+          {/* Search Mode Indicator */}
+          {isSearchMode && (
+            <div className="p-3 bg-muted/50 border border-border rounded-lg">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="text-sm font-medium truncate">
+                      {t('models.searchResults', {
+                        query: searchQuery || '...',
+                      })}
+                    </span>
+                  </div>
+                  <Badge variant="secondary" className="whitespace-nowrap">
+                    {searchPagination
+                      ? t('models.resultsPage', {
+                          count: searchPagination.totalElements,
+                          page: searchPagination.currentPage + 1,
+                          pages: searchPagination.totalPages,
+                        })
+                      : t('models.results', {
+                          count: searchViewResults.length,
+                        })}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSearch}
+                  className="flex-shrink-0"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  {t('models.clearSearch')}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <ObjectModelsTable
-            models={models}
+            models={isSearchMode ? searchViewResults : models}
             onEdit={handleEditModel}
             onDelete={handleDelete}
             loading={loading}
             fetching={fetching}
-            pagination={pagination}
+            pagination={isSearchMode ? undefined : pagination}
           />
         </div>
       </div>

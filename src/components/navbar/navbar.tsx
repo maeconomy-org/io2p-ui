@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { Building2, Search } from 'lucide-react'
 
-import { CommandCenter, useCommandCenter } from '@/components/ui'
+import { CommandCenter, useCommandCenter } from '@/components/global-search'
 import { cn } from '@/lib/utils'
 import { useSearch, useAppConfig } from '@/contexts'
 import { NAV_ITEMS } from '@/constants'

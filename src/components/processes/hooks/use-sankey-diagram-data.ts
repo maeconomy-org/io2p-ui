@@ -10,7 +10,6 @@ import type {
   ProcessCategory,
   QualityChangeCode,
 } from '@/types'
-import { logger } from '@/lib'
 import { limitStatementDepth } from '@/components/processes/utils'
 
 interface SankeyDiagramData {
@@ -40,11 +39,12 @@ interface SankeyLayoutData {
  */
 export function useSankeyDiagramData(
   objectUuid?: UUID,
-  options?: { maxDepth?: number }
+  options?: { maxDepth?: number; focusNode?: string }
 ): SankeyDiagramData & { layoutData: SankeyLayoutData | null } {
   const { useStatementsByPredicate, useObjectRelationships } = useStatements()
   const { useObjectsByUUIDs } = useObjects()
   const maxDepth = options?.maxDepth
+  const focusNode = options?.focusNode
 
   // Fetch input relationships
 
@@ -81,12 +81,12 @@ export function useSankeyDiagramData(
 
     // If maxDepth is set, only include UUIDs within the depth limit
     if (maxDepth !== undefined) {
-      const keptSet = limitStatementDepth(statements, maxDepth)
+      const keptSet = limitStatementDepth(statements, maxDepth, focusNode)
       return { kept: Array.from(keptSet) as UUID[], total }
     }
 
     return { kept: Array.from(allUuids) as UUID[], total }
-  }, [inputStatementsQuery.data, objectUuid, maxDepth])
+  }, [inputStatementsQuery.data, objectUuid, maxDepth, focusNode])
 
   const participatingUUIDs = uuidResult.kept
   const totalNodeCount = uuidResult.total

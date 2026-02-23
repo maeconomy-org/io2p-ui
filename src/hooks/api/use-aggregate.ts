@@ -14,6 +14,7 @@ export function useAggregate() {
         if (!uuid) return null
 
         const response = await client.node.searchAggregates({
+          readDefaultGroup: true,
           searchBy: { uuid },
           page: 0,
           size: 1,
@@ -30,7 +31,10 @@ export function useAggregate() {
     return useQuery({
       queryKey: ['aggregates', params],
       queryFn: async () => {
-        const response = await client.node.searchAggregates(params || {})
+        const response = await client.node.searchAggregates({
+          readDefaultGroup: true,
+          ...params,
+        })
         return response
       },
       ...options,
@@ -49,7 +53,10 @@ export function useAggregate() {
           },
         }
 
-        const response = await client.node.searchAggregates(searchParams)
+        const response = await client.node.searchAggregates({
+          readDefaultGroup: true,
+          ...searchParams,
+        })
         return response
       },
       ...options,
@@ -69,7 +76,81 @@ export function useAggregate() {
           hasHistory: true,
         }
 
-        const response = await client.node.searchAggregates(searchParams)
+        const response = await client.node.searchAggregates({
+          readDefaultGroup: true,
+          ...searchParams,
+        })
+        return response
+      },
+      ...options,
+    })
+  }
+
+  // Get aggregate entities from user's own groups
+  const useOwnGroupEntities = (params?: AggregateFindDTO, options = {}) => {
+    return useQuery({
+      queryKey: ['aggregates', 'ownGroups', params],
+      queryFn: async () => {
+        const response = await client.node.searchAggregates({
+          readOwnGroups: true,
+          ...params,
+        })
+        return response
+      },
+      ...options,
+    })
+  }
+
+  // Get aggregate entities from public groups
+  const usePublicGroupEntities = (params?: AggregateFindDTO, options = {}) => {
+    return useQuery({
+      queryKey: ['aggregates', 'publicGroups', params],
+      queryFn: async () => {
+        const response = await client.node.searchAggregates({
+          readPublicGroups: true,
+          ...params,
+        })
+        return response
+      },
+      ...options,
+    })
+  }
+
+  // Get aggregate entities from groups shared with the current user
+  const useSharedGroupEntities = (params?: AggregateFindDTO, options = {}) => {
+    return useQuery({
+      queryKey: ['aggregates', 'sharedGroups', params],
+      queryFn: async () => {
+        const response = await client.node.searchAggregates({
+          readUserSharedGroups: true,
+          ...params,
+        })
+        return response
+      },
+      ...options,
+    })
+  }
+
+  // Generic hook for fetching entities with custom group parameters
+  const useGroupEntities = (
+    groupParams: Pick<
+      AggregateFindDTO,
+      | 'readDefaultGroup'
+      | 'readOwnGroups'
+      | 'readPublicGroups'
+      | 'readUserSharedGroups'
+      | 'groupUUIDList'
+    >,
+    params?: AggregateFindDTO,
+    options = {}
+  ) => {
+    return useQuery({
+      queryKey: ['aggregates', 'groups', groupParams, params],
+      queryFn: async () => {
+        const response = await client.node.searchAggregates({
+          ...groupParams,
+          ...params,
+        })
         return response
       },
       ...options,
@@ -81,5 +162,9 @@ export function useAggregate() {
     useAggregateEntities,
     useModelEntities,
     useAggregateEntitiesWithHistory,
+    useOwnGroupEntities,
+    usePublicGroupEntities,
+    useSharedGroupEntities,
+    useGroupEntities,
   }
 }

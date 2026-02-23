@@ -84,7 +84,6 @@ export function useViewData({
     {
       page: currentPage,
       size: pageSize,
-      readDefaultGroup: true,
       // if we have only hasParentUUIDFilter then we are fetching root objects only no childrens if we add parentUUID then we are fetchins childrens only of this parent UUID if we skip both hasParentUUIDFilter and parentUUID then we are fetching all objects root and childrens together in one level
       hasParentUUIDFilter: true, // No parent UUID filter
       // Add softDeleted parameter for filtering deleted items

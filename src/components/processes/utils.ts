@@ -208,10 +208,14 @@ export function limitSankeyDepth(
  * Compute topological depth for statement UUIDs without needing full objects.
  * Used to filter participating UUIDs before fetching objects.
  * Returns only UUIDs within the depth limit.
+ *
+ * When focusNode is provided, BFS starts from that node instead of graph roots,
+ * enabling drill-down navigation (always showing maxLevels from the focus point).
  */
 export function limitStatementDepth(
   statements: Array<{ subject: string; object: string }>,
-  maxLevels: number
+  maxLevels: number,
+  focusNode?: string
 ): Set<string> {
   if (statements.length === 0) return new Set()
 
@@ -234,15 +238,19 @@ export function limitStatementDepth(
     inDegree.set(s.object, (inDegree.get(s.object) || 0) + 1)
   })
 
-  // BFS from roots (in-degree 0)
-  const roots: string[] = []
-  inDegree.forEach((deg, id) => {
-    if (deg === 0) roots.push(id)
-  })
+  // BFS starting points: focusNode if provided, otherwise graph roots (in-degree 0)
+  const startNodes: string[] = []
+  if (focusNode && allIds.has(focusNode)) {
+    startNodes.push(focusNode)
+  } else {
+    inDegree.forEach((deg, id) => {
+      if (deg === 0) startNodes.push(id)
+    })
+  }
 
   const depth = new Map<string, number>()
-  const queue: string[] = [...roots]
-  roots.forEach((id) => depth.set(id, 0))
+  const queue: string[] = [...startNodes]
+  startNodes.forEach((id) => depth.set(id, 0))
 
   while (queue.length > 0) {
     const current = queue.shift()!
@@ -265,10 +273,13 @@ export function limitStatementDepth(
   depth.forEach((d, id) => {
     if (d < maxLevels) kept.add(id)
   })
-  // Include unreachable nodes (isolated/cycles)
-  allIds.forEach((id) => {
-    if (!depth.has(id)) kept.add(id)
-  })
+
+  // When no focusNode, include unreachable nodes (isolated/cycles)
+  if (!focusNode) {
+    allIds.forEach((id) => {
+      if (!depth.has(id)) kept.add(id)
+    })
+  }
 
   return kept
 }

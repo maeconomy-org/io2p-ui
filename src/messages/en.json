@@ -513,6 +513,10 @@
     "clearAll": "Clear All",
     "depthLimited": "3 Levels",
     "depthFull": "Full Depth",
+    "drillDown": {
+      "root": "Root",
+      "reset": "Reset View"
+    },
     "object": "Object",
     "inputs": "Inputs",
     "outputs": "Outputs",
@@ -635,7 +639,11 @@
     "loading": "Loading templates...",
     "noTemplatesTitle": "No Templates Found",
     "noTemplatesDescription": "There are no templates to display",
-    "restoreTitle": "Restore model"
+    "restoreTitle": "Restore model",
+    "searchResults": "Search Results for: \"{query}\"",
+    "results": "{count} result{count, plural, one {} other {s}}",
+    "resultsPage": "{count} result{count, plural, one {} other {s}} (page {page} of {pages})",
+    "clearSearch": "Clear Search"
   },
   "groups": {
     "title": "Groups & Projects",
