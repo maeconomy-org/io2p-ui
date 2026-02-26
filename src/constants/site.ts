@@ -6,6 +6,7 @@
 export const NAV_ITEMS = [
   { key: 'objects', path: '/objects', dataTour: 'nav-objects' },
   { key: 'processes', path: '/processes', dataTour: 'nav-processes' },
+  { key: 'groups', path: '/groups', dataTour: 'nav-groups' },
   { key: 'models', path: '/models', dataTour: 'nav-models' },
   { key: 'import', path: '/import', dataTour: 'nav-import' },
 ] as const

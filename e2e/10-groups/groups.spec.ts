@@ -31,7 +31,7 @@ test.describe('10 - Groups Smoke', () => {
     await expect(page.getByText(/create new group/i)).toBeVisible()
 
     // Close Sheet (assuming clicking outside given specific close button might not be labeled "Cancel" in all sheets)
-    // Actually looking at code, it uses GroupCreateEditSheet. We can press Escape or click outside.
+    // Actually looking at code, it uses GroupCreateSheet. We can press Escape or click outside.
     await page.keyboard.press('Escape')
     await expect(page.getByText(/create new group/i)).toBeHidden()
 

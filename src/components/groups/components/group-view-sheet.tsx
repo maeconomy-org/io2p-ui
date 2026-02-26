@@ -1,11 +1,32 @@
 'use client'
 
-import { useState } from 'react'
-import { Package, Globe, Lock, Edit, Plus, Minus, X } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import {
+  Globe,
+  Lock,
+  Plus,
+  X,
+  Loader2,
+  Users,
+  Info,
+  Trash2,
+  Check,
+  Pencil,
+  UserPlus,
+  Crown,
+  AlertCircle,
+} from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import type {
+  GroupCreateDTO,
+  GroupPermission,
+  GroupShareToUserDTO,
+} from 'iom-sdk'
+
 import {
   Button,
   Badge,
+  Input,
   Tabs,
   TabsContent,
   TabsList,
@@ -16,101 +37,203 @@ import {
   SheetTitle,
   CopyButton,
   ScrollArea,
+  Checkbox,
+  Separator,
 } from '@/components/ui'
-import { dummyObjects } from '../data'
-
-interface Group {
-  uuid: string
-  name: string
-  description?: string
-  type: 'public' | 'private'
-  permissions: {
-    level: 'read' | 'write' // write includes read access
-  }
-  objectCount: number
-  createdBy: string
-  createdAt: string
-  updatedAt: string
-  objects: string[]
-  isDeleted?: boolean
-}
+import { cn } from '@/lib/utils'
+import { logger } from '@/lib'
+import { useGroups } from '@/hooks/api'
+import { useAuth } from '@/contexts'
+import { canEditGroup, deduplicateUsersShare } from '@/lib/group-utils'
 
 interface GroupViewSheetProps {
-  group: Group | null
+  group: GroupCreateDTO | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onEdit?: () => void
 }
 
+const PERMISSION_OPTIONS: GroupPermission[] = [
+  'READ' as GroupPermission,
+  'GROUP_WRITE' as GroupPermission,
+  'GROUP_WRITE_RECORDS' as GroupPermission,
+]
+
 export function GroupViewSheet({
-  group,
+  group: groupProp,
   open,
   onOpenChange,
-  onEdit,
 }: GroupViewSheetProps) {
-  const [activeTab, setActiveTab] = useState('objects')
-  const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState('users')
   const t = useTranslations()
+  const { useCreateGroup, useGetGroup } = useGroups()
+  const updateGroup = useCreateGroup()
+  const { userUUID } = useAuth()
 
-  if (!group) return null
+  // Fetch live group data so changes (from mutations) are reflected immediately
+  const { data: liveGroup } = useGetGroup(groupProp?.groupUUID ?? '', {
+    enabled: open && !!groupProp?.groupUUID,
+  })
+  // Prefer live data; fall back to the prop
+  const group = (liveGroup ?? groupProp) as GroupCreateDTO | null
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  // Inline name editing state
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editedName, setEditedName] = useState('')
 
-  const getTypeIcon = () => {
-    return group.type === 'public' ? (
-      <Globe className="h-4 w-4" />
-    ) : (
-      <Lock className="h-4 w-4" />
+  // Add user state
+  const [showAddUser, setShowAddUser] = useState(false)
+  const [newUserUUID, setNewUserUUID] = useState('')
+  const [newUserPermissions, setNewUserPermissions] = useState<
+    GroupPermission[]
+  >(['READ' as GroupPermission])
+  const [addUserError, setAddUserError] = useState<string | null>(null)
+
+  // Edit user permission state
+  const [editingUserUUID, setEditingUserUUID] = useState<string | null>(null)
+  const [pendingPermissions, setPendingPermissions] = useState<
+    GroupPermission[]
+  >([])
+
+  const toggleNewUserPermission = (perm: GroupPermission) => {
+    if (perm === ('READ' as GroupPermission)) return
+    setNewUserPermissions((prev) =>
+      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]
     )
   }
 
-  const getTypeColor = () => {
-    return group.type === 'public'
-      ? 'bg-green-100 text-green-800 border-green-200'
-      : 'bg-blue-100 text-blue-800 border-blue-200'
+  const togglePendingPermission = (perm: GroupPermission) => {
+    if (perm === ('READ' as GroupPermission)) return
+    setPendingPermissions((prev) =>
+      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]
+    )
   }
 
-  const getPermissionBadge = () => {
-    if (group.permissions.level === 'write') {
-      return (
-        <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-          Write Access
-        </Badge>
-      )
-    } else {
-      return (
-        <Badge className="bg-gray-100 text-gray-600 border-gray-200">
-          Read Only
-        </Badge>
-      )
-    }
-  }
-
-  // Filter dummy objects that belong to this group
-  const groupObjects = dummyObjects.filter((obj) =>
-    group.objects.includes(obj.uuid)
+  // Deduplicate usersShare to avoid duplicate key errors and stale data
+  const usersShare = useMemo(
+    () => deduplicateUsersShare(group?.usersShare ?? []),
+    [group?.usersShare]
   )
-  const isDeleted = group.isDeleted === true
 
-  const handleRemoveObject = (objectUuid: string) => {
-    if (confirmingRemove === objectUuid) {
-      // Second click - confirm removal
-      setConfirmingRemove(null)
-      // In real implementation, this would call the API
-    } else {
-      // First click - show confirm state
-      setConfirmingRemove(objectUuid)
-      // Reset confirm state after 3 seconds
-      setTimeout(() => setConfirmingRemove(null), 3000)
+  // Early return after all hooks
+  if (!group) return null
+
+  const isPublic = !!group.publicShare
+
+  // Check if current user is the owner (full access)
+  const isOwner = userUUID === group.ownerUserUUID
+
+  // If not owner, check usersShare for current user's permissions
+  const currentUserShare = usersShare.find((u) => u.userUUID === userUUID)
+  const currentUserPermissions = isOwner
+    ? (['GROUP_WRITE', 'GROUP_WRITE_RECORDS'] as GroupPermission[])
+    : (currentUserShare?.permissions ?? [])
+
+  // Can edit group if owner or has GROUP_WRITE permission
+  const canWrite = isOwner || canEditGroup(currentUserPermissions)
+
+  const handleSaveName = async () => {
+    if (!editedName.trim() || editedName === group.name) {
+      setIsEditingName(false)
+      return
     }
+
+    try {
+      await updateGroup.mutateAsync({
+        ...group,
+        usersShare,
+        name: editedName.trim(),
+      })
+      setIsEditingName(false)
+    } catch (error) {
+      logger.error('Failed to update group name', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  const handleStartEditName = () => {
+    setEditedName(group.name)
+    setIsEditingName(true)
+  }
+
+  const handleAddUser = async () => {
+    const trimmedUUID = newUserUUID.trim()
+    if (!trimmedUUID) return
+
+    setAddUserError(null)
+
+    // Prevent adding the owner as a participant
+    if (trimmedUUID === group.ownerUserUUID) {
+      setAddUserError(t('groups.cannotAddOwner'))
+      return
+    }
+
+    // Prevent adding duplicate user
+    if (usersShare.some((u) => u.userUUID === trimmedUUID)) {
+      setAddUserError(t('groups.userAlreadyExists'))
+      return
+    }
+
+    const newShare: GroupShareToUserDTO = {
+      userUUID: trimmedUUID,
+      // Always include READ; merge with any extra permissions selected
+      permissions: Array.from(
+        new Set(['READ' as GroupPermission, ...newUserPermissions])
+      ),
+    }
+
+    try {
+      await updateGroup.mutateAsync({
+        ...group,
+        usersShare: [...usersShare, newShare],
+      })
+      setNewUserUUID('')
+      setNewUserPermissions(['READ' as GroupPermission])
+      setShowAddUser(false)
+    } catch (error) {
+      logger.error('Failed to add user to group', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  const handleRemoveUser = async (targetUserUUID: string) => {
+    try {
+      await updateGroup.mutateAsync({
+        ...group,
+        usersShare: usersShare.filter((u) => u.userUUID !== targetUserUUID),
+      })
+    } catch (error) {
+      logger.error('Failed to remove user from group', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  const handleConfirmPermissionChange = async () => {
+    if (!editingUserUUID || pendingPermissions.length === 0) return
+
+    try {
+      await updateGroup.mutateAsync({
+        ...group,
+        usersShare: usersShare.map((u) =>
+          u.userUUID === editingUserUUID
+            ? { ...u, permissions: pendingPermissions }
+            : u
+        ),
+      })
+      setEditingUserUUID(null)
+      setPendingPermissions([])
+    } catch (error) {
+      logger.error('Failed to update user permission', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  const handleCancelPermissionChange = () => {
+    setEditingUserUUID(null)
+    setPendingPermissions([])
   }
 
   return (
@@ -118,127 +241,346 @@ export function GroupViewSheet({
       <SheetContent className="w-full sm:max-w-2xl">
         <SheetHeader className="space-y-4 mb-4">
           <div className="space-y-3">
-            <SheetTitle
-              className={`text-2xl ${isDeleted ? 'line-through text-red-600' : ''}`}
-            >
-              {group.name}
-            </SheetTitle>
-            {group.description && (
-              <p
-                className={`${isDeleted ? 'text-red-500 line-through' : 'text-muted-foreground'}`}
-              >
-                {group.description}
-              </p>
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName()
+                    if (e.key === 'Escape') setIsEditingName(false)
+                  }}
+                  className="text-2xl font-semibold h-auto py-1"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleSaveName}
+                  disabled={updateGroup.isPending}
+                >
+                  {updateGroup.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsEditingName(false)}
+                  disabled={updateGroup.isPending}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <SheetTitle className="text-2xl">{group.name}</SheetTitle>
+                {canWrite && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleStartEditName}
+                    className="h-7 w-7 p-0"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             )}
 
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge className={getTypeColor()}>
-                {getTypeIcon()}
-                <span className="ml-1 capitalize">{group.type}</span>
+              <Badge
+                className={cn(
+                  isPublic
+                    ? 'bg-green-100 text-green-800 border-green-200'
+                    : 'bg-blue-100 text-blue-800 border-blue-200'
+                )}
+              >
+                {isPublic ? (
+                  <Globe className="h-4 w-4" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                <span className="ml-1 capitalize">
+                  {isPublic ? t('groups.public') : t('groups.private')}
+                </span>
               </Badge>
-              {getPermissionBadge()}
-              {isDeleted && (
+              {isOwner ? (
                 <Badge
-                  variant="destructive"
-                  className="bg-red-100 text-red-700 border-red-200"
+                  variant="secondary"
+                  className="bg-amber-100 text-amber-700 border-amber-200"
                 >
-                  Deleted
+                  <Crown className="h-3.5 w-3.5 mr-1" />
+                  {t('groups.owner')}
                 </Badge>
+              ) : (
+                currentUserPermissions.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    {currentUserPermissions.map((perm) => (
+                      <Badge
+                        key={perm}
+                        variant="secondary"
+                        className="text-[10px] h-5 px-1 bg-gray-100 text-gray-600 border-gray-200"
+                      >
+                        {t(`groups.permissions.${perm}`)}
+                      </Badge>
+                    ))}
+                  </div>
+                )
               )}
-            </div>
-
-            {/* Group UUID with copy */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Group UUID:</span>
-              <code className="font-mono bg-muted px-1 py-0.5 rounded text-xs text-muted-foreground">
-                {group.uuid}
-              </code>
-              <CopyButton
-                text={group.uuid}
-                label={t('groups.groupUuid')}
-                size="sm"
-                variant="ghost"
-                showToast={true}
-                className="h-4 w-4 p-0"
-              />
-            </div>
-
-            {/* Owner info */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Created by:</span>
-              <code className="font-mono bg-muted px-1 py-0.5 rounded text-xs">
-                {group.createdBy}
-              </code>
-              <CopyButton
-                text={group.createdBy}
-                label={t('groups.creatorUuid')}
-                size="sm"
-                variant="ghost"
-                showToast={true}
-                className="h-4 w-4 p-0"
-              />
             </div>
           </div>
         </SheetHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="objects">Objects</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              {t('groups.users')}
+            </TabsTrigger>
+            <TabsTrigger value="info" className="flex items-center gap-1.5">
+              <Info className="h-3.5 w-3.5" />
+              {t('groups.info')}
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="objects" className="space-y-4">
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">
-                Group Objects ({groupObjects.length})
+              <h3 className="text-sm font-medium text-muted-foreground">
+                {t('groups.sharedUsers')} ({usersShare.length})
               </h3>
-              {group.permissions.level === 'write' && !isDeleted && (
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Objects
+              {canWrite && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setShowAddUser(!showAddUser)
+                    setAddUserError(null)
+                  }}
+                  variant={showAddUser ? 'secondary' : 'default'}
+                  className="h-7 text-xs"
+                >
+                  {showAddUser ? (
+                    <>
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      {t('common.cancel')}
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-3.5 w-3.5 mr-1" />
+                      {t('groups.addUser')}
+                    </>
+                  )}
                 </Button>
               )}
             </div>
 
-            <ScrollArea className="h-[400px] w-full">
-              <div className="space-y-2 pr-4">
-                {groupObjects.length > 0 ? (
-                  groupObjects.map((obj) => (
-                    <div
-                      key={obj.uuid}
-                      className="flex items-center justify-between p-2 border rounded-lg hover:bg-muted/50"
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="font-medium">{obj.name}</div>
-                      </div>
-                      {group.permissions.level === 'write' && !isDeleted && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`h-6 px-2 text-xs ${
-                            confirmingRemove === obj.uuid
-                              ? 'text-destructive bg-destructive/10'
-                              : 'text-destructive hover:text-destructive hover:bg-destructive/10'
-                          }`}
-                          onClick={() => handleRemoveObject(obj.uuid)}
-                        >
-                          {confirmingRemove === obj.uuid ? (
-                            'Confirm?'
-                          ) : (
-                            <Minus className="h-3 w-3" />
-                          )}
-                        </Button>
+            {/* Add User Form */}
+            {showAddUser && (
+              <div className="space-y-2 p-3 border rounded-lg bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newUserUUID}
+                    onChange={(e) => {
+                      setNewUserUUID(e.target.value)
+                      setAddUserError(null)
+                    }}
+                    placeholder={t('groups.userUuidPlaceholder')}
+                    className="font-mono text-xs h-8 flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleAddUser}
+                    disabled={!newUserUUID.trim() || updateGroup.isPending}
+                    className="h-8"
+                  >
+                    {updateGroup.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </div>
+                <div className="flex items-center gap-4">
+                  {PERMISSION_OPTIONS.map((perm) => (
+                    <label
+                      key={perm}
+                      className={cn(
+                        'flex items-center gap-1.5 text-xs',
+                        perm === 'READ'
+                          ? 'cursor-not-allowed opacity-60'
+                          : 'cursor-pointer'
                       )}
+                    >
+                      <Checkbox
+                        checked={
+                          perm === 'READ'
+                            ? true
+                            : newUserPermissions.includes(perm)
+                        }
+                        onCheckedChange={
+                          perm === 'READ'
+                            ? undefined
+                            : () => toggleNewUserPermission(perm)
+                        }
+                        disabled={perm === 'READ'}
+                      />
+                      {t(`groups.permissions.${perm}`)}
+                    </label>
+                  ))}
+                </div>
+                {addUserError && (
+                  <div className="flex items-center gap-1.5 text-xs text-destructive">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span>{addUserError}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <ScrollArea className="h-[400px] w-full">
+              <div className="space-y-1 pr-4">
+                {usersShare.length > 0 ? (
+                  usersShare.map((user) => (
+                    <div
+                      key={user.userUUID}
+                      className="flex items-center justify-between px-2 py-1.5 border rounded-md hover:bg-muted/50 group/user"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <code className="text-[11px] font-mono text-muted-foreground truncate">
+                          {user.userUUID}
+                        </code>
+                        {user.userUUID && (
+                          <CopyButton
+                            text={user.userUUID}
+                            label={t('groups.userUuid')}
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0 shrink-0 opacity-0 group-hover/user:opacity-100 transition-opacity"
+                            showToast={true}
+                          />
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        {editingUserUUID === user.userUUID ? (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                              {PERMISSION_OPTIONS.map((perm) => (
+                                <label
+                                  key={perm}
+                                  className={cn(
+                                    'flex items-center gap-1 text-[10px]',
+                                    perm === 'READ'
+                                      ? 'cursor-not-allowed opacity-60'
+                                      : 'cursor-pointer'
+                                  )}
+                                >
+                                  <Checkbox
+                                    checked={
+                                      perm === 'READ'
+                                        ? true
+                                        : pendingPermissions.includes(perm)
+                                    }
+                                    onCheckedChange={
+                                      perm === 'READ'
+                                        ? undefined
+                                        : () => togglePendingPermission(perm)
+                                    }
+                                    disabled={perm === 'READ'}
+                                    className="h-3.5 w-3.5"
+                                  />
+                                  {t(`groups.permissions.${perm}`)}
+                                </label>
+                              ))}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
+                              onClick={handleConfirmPermissionChange}
+                              disabled={
+                                pendingPermissions.length === 0 ||
+                                updateGroup.isPending
+                              }
+                            >
+                              {updateGroup.isPending ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3" />
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={handleCancelPermissionChange}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-1">
+                              {(user.permissions ?? []).map((perm) => (
+                                <Badge
+                                  key={perm}
+                                  variant="secondary"
+                                  className="text-[10px] h-5 px-1"
+                                >
+                                  {t(`groups.permissions.${perm}`)}
+                                </Badge>
+                              ))}
+                            </div>
+                            {canWrite && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => {
+                                    setEditingUserUUID(user.userUUID ?? null)
+                                    setPendingPermissions(
+                                      user.permissions ?? []
+                                    )
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                  onClick={() =>
+                                    user.userUUID &&
+                                    handleRemoveUser(user.userUUID)
+                                  }
+                                  disabled={updateGroup.isPending}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No objects in this group yet.</p>
-                    {group.permissions.level === 'write' && !isDeleted && (
-                      <Button variant="outline" size="sm" className="mt-2">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add First Object
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>{t('groups.noUsers')}</p>
+                    {canWrite && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => setShowAddUser(true)}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {t('groups.addFirstUser')}
                       </Button>
                     )}
                   </div>
@@ -247,87 +589,125 @@ export function GroupViewSheet({
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-6">
+          {/* Info Tab */}
+          <TabsContent value="info" className="space-y-6">
             <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-medium mb-3">Group Settings</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">Group Type</div>
-                      <div className="text-sm text-muted-foreground">
-                        {group.type === 'public'
-                          ? 'Anyone can view this group'
-                          : 'Only specific users can access'}
-                      </div>
-                    </div>
-                    <Badge className={getTypeColor()}>
-                      {getTypeIcon()}
-                      <span className="ml-1 capitalize">{group.type}</span>
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">Your Permissions</div>
-                      <div className="text-sm text-muted-foreground">
-                        {group.permissions.level === 'write'
-                          ? 'You can read and edit objects in this group'
-                          : 'You can only view objects in this group'}
-                      </div>
-                    </div>
-                    {getPermissionBadge()}
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">Group UUID</div>
-                      <div className="text-sm text-muted-foreground font-mono">
-                        {group.uuid}
-                      </div>
+              <h3 className="text-lg font-medium">{t('groups.info')}</h3>
+              <div className="space-y-3">
+                {/* Visibility */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <div className="font-medium">{t('groups.visibility')}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {isPublic
+                        ? t('groups.publicDescription')
+                        : t('groups.privateDescription')}
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">Created</div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatDate(group.createdAt)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-medium">Last Updated</div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatDate(group.updatedAt)}
-                      </div>
-                    </div>
-                  </div>
+                  <Badge
+                    className={cn(
+                      isPublic
+                        ? 'bg-green-100 text-green-800 border-green-200'
+                        : 'bg-blue-100 text-blue-800 border-blue-200'
+                    )}
+                  >
+                    {isPublic ? (
+                      <Globe className="h-4 w-4" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                    <span className="ml-1 capitalize">
+                      {isPublic ? t('groups.public') : t('groups.private')}
+                    </span>
+                  </Badge>
                 </div>
+
+                {/* Your Permissions */}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <div className="font-medium">
+                      {t('groups.yourPermissions')}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {isOwner
+                        ? t('groups.ownerDescription')
+                        : currentUserPermissions.length > 0
+                          ? currentUserPermissions
+                              .map((p) => t(`groups.permissions.${p}`))
+                              .join(', ')
+                          : t('groups.permissions.READ')}
+                    </div>
+                  </div>
+                  {isOwner ? (
+                    <Badge
+                      variant="secondary"
+                      className="bg-amber-100 text-amber-700 border-amber-200"
+                    >
+                      <Crown className="h-3.5 w-3.5 mr-1" />
+                      {t('groups.owner')}
+                    </Badge>
+                  ) : (
+                    currentUserPermissions.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        {currentUserPermissions.map((perm) => (
+                          <Badge
+                            key={perm}
+                            variant="secondary"
+                            className="text-[10px] h-5 px-1 bg-gray-100 text-gray-600 border-gray-200"
+                          >
+                            {t(`groups.permissions.${perm}`)}
+                          </Badge>
+                        ))}
+                      </div>
+                    )
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Group UUID */}
+                {group.groupUUID && (
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium">{t('groups.groupUuid')}</div>
+                      <div className="text-sm text-muted-foreground font-mono truncate">
+                        {group.groupUUID}
+                      </div>
+                    </div>
+                    <CopyButton
+                      text={group.groupUUID}
+                      label={t('groups.groupUuid')}
+                      size="sm"
+                      variant="ghost"
+                      showToast={true}
+                      className="shrink-0"
+                    />
+                  </div>
+                )}
+
+                {/* Owner UUID */}
+                {group.ownerUserUUID && (
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium">{t('groups.ownerUuid')}</div>
+                      <div className="text-sm text-muted-foreground font-mono truncate">
+                        {group.ownerUserUUID}
+                      </div>
+                    </div>
+                    <CopyButton
+                      text={group.ownerUserUUID}
+                      label={t('groups.ownerUuid')}
+                      size="sm"
+                      variant="ghost"
+                      showToast={true}
+                      className="shrink-0"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
         </Tabs>
-
-        {/* Edit Button at Bottom */}
-        {group.permissions.level === 'write' && !isDeleted && onEdit && (
-          <div className="pt-4 flex items-center gap-2">
-            <Button onClick={onEdit} className="w-full">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Group
-            </Button>
-            <Button
-              onClick={() => onOpenChange(false)}
-              className="w-full"
-              variant="outline"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Close
-            </Button>
-          </div>
-        )}
       </SheetContent>
     </Sheet>
   )

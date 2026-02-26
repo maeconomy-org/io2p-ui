@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { GroupCreateDTO, GroupAddRecordsDTO } from 'iom-sdk'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
+import type { GroupCreateDTO, GroupAddRecordsDTO, UUID } from 'iom-sdk'
 
 import { useIomSdkClient } from '@/contexts'
 
@@ -17,7 +18,7 @@ export function useGroups() {
     })
   }
 
-  const useGetGroup = (groupUUID: string, options = {}) => {
+  const useGetGroup = (groupUUID: UUID, options = {}) => {
     return useQuery({
       queryKey: ['groups', groupUUID],
       queryFn: async () => {
@@ -28,7 +29,7 @@ export function useGroups() {
     })
   }
 
-  const useListGroupRecords = (groupUUID: string, options = {}) => {
+  const useListGroupRecords = (groupUUID: UUID, options = {}) => {
     return useQuery({
       queryKey: ['groups', groupUUID, 'records'],
       queryFn: async () => {
@@ -56,7 +57,7 @@ export function useGroups() {
         groupUUID,
         records,
       }: {
-        groupUUID: string
+        groupUUID: UUID
         records: GroupAddRecordsDTO
       }) => {
         return client.node.addGroupRecords(groupUUID, records)

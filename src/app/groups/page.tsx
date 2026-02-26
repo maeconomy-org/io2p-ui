@@ -1,45 +1,56 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Loader2, X } from 'lucide-react'
+import type { GroupCreateDTO } from 'iom-sdk'
 
 import { logger } from '@/lib'
-import { Button, Input, DeletedFilter } from '@/components/ui'
+import { Button, Input, FilterDropdown } from '@/components/ui'
 import {
   GroupCard,
   GroupViewSheet,
-  GroupCreateEditSheet,
-  dummyGroups,
+  GroupCreateSheet,
 } from '@/components/groups'
+import { useGroups } from '@/hooks/api'
+import { useAuth } from '@/contexts'
+
+type GroupFilter = 'all' | 'my' | 'shared'
 
 export default function GroupsPage() {
   const t = useTranslations()
-  const [groups] = useState(dummyGroups)
+  const { useListGroups } = useGroups()
+  const { data: groups, isLoading, isError } = useListGroups()
+  const { userUUID } = useAuth()
+
   const [searchTerm, setSearchTerm] = useState('')
-  const [showDeleted, setShowDeleted] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [showSearchInput, setShowSearchInput] = useState(false)
-  const [selectedGroup, setSelectedGroup] = useState<
-    (typeof dummyGroups)[0] | null
-  >(null)
+  const [activeFilter, setActiveFilter] = useState<GroupFilter>('all')
+  const [selectedGroup, setSelectedGroup] = useState<GroupCreateDTO | null>(
+    null
+  )
   const [isViewSheetOpen, setIsViewSheetOpen] = useState(false)
-  const [isCreateEditSheetOpen, setIsCreateEditSheetOpen] = useState(false)
-  const [editingGroup, setEditingGroup] = useState<
-    (typeof dummyGroups)[0] | null
-  >(null)
+  const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false)
 
   const itemsPerPage = 12
 
-  const filteredGroups = groups.filter((group) => {
-    const matchesSearch =
-      group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      group.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredGroups = useMemo(() => {
+    if (!groups) return []
+    return groups.filter((group) => {
+      if (group.default) return false
 
-    const matchesDeleted = showDeleted ? true : !group.isDeleted
+      // Quick filter
+      if (activeFilter === 'my' && group.ownerUserUUID !== userUUID)
+        return false
+      if (activeFilter === 'shared' && group.ownerUserUUID === userUUID)
+        return false
 
-    return matchesSearch && matchesDeleted
-  })
+      const matchesSearch = group.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+      return matchesSearch
+    })
+  }, [groups, searchTerm, activeFilter, userUUID])
 
   // Pagination logic
   const totalPages = Math.ceil(filteredGroups.length / itemsPerPage)
@@ -49,31 +60,28 @@ export default function GroupsPage() {
     startIndex + itemsPerPage
   )
 
-  // Reset to first page when search changes
+  // Reset to first page when search/filter changes
   const handleSearchChange = (value: string) => {
     setSearchTerm(value)
     setCurrentPage(1)
   }
 
-  const handleViewGroup = (group: (typeof dummyGroups)[0]) => {
+  const handleFilterChange = (filter: GroupFilter) => {
+    setActiveFilter(filter)
+    setCurrentPage(1)
+  }
+
+  const handleViewGroup = (group: GroupCreateDTO) => {
     setSelectedGroup(group)
     setIsViewSheetOpen(true)
   }
 
-  const handleEditGroup = (group: (typeof dummyGroups)[0]) => {
-    setEditingGroup(group)
-    setIsCreateEditSheetOpen(true)
-  }
-
   const handleCreateGroup = () => {
-    setEditingGroup(null)
-    setIsCreateEditSheetOpen(true)
+    setIsCreateSheetOpen(true)
   }
 
-  const handleDeleteGroup = (group: (typeof dummyGroups)[0]) => {
-    // In real implementation, this would call the delete API
-    logger.info('Deleting group:', { uuid: group.uuid })
-    // For now, just show a confirmation
+  const handleDeleteGroup = (group: GroupCreateDTO) => {
+    logger.info('Deleting group:', { uuid: group.groupUUID })
     if (confirm(t('groups.confirmDelete', { name: group.name }))) {
       logger.info('Group deleted (soft delete)')
     }
@@ -81,155 +89,145 @@ export default function GroupsPage() {
 
   return (
     <div className="container mx-auto p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">{t('groups.title')}</h1>
-        <div className="flex items-center gap-2">
-          {/* Search Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowSearchInput(!showSearchInput)}
-            className="h-8 w-8 p-0"
-            data-testid="group-search-toggle"
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-
-          {/* Filter Button */}
-          <DeletedFilter
-            showDeleted={showDeleted}
-            onShowDeletedChange={setShowDeleted}
-            label={t('groups.showDeleted')}
-          />
-
-          <Button
-            onClick={handleCreateGroup}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            {t('groups.create')}
-          </Button>
-        </div>
-      </div>
-
-      {/* Search Input (conditionally shown) */}
-      {showSearchInput && (
-        <div className="mb-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+      {/* Header row: title + search + filter + create */}
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <h1 className="text-2xl font-bold shrink-0">{t('groups.title')}</h1>
+        <div className="flex items-center gap-2 flex-wrap justify-end flex-1">
+          {/* Search */}
+          <div className="relative w-56">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder={t('groups.search')}
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-10"
-              autoFocus
+              className="pl-8 pr-7 h-9 text-sm"
             />
+            {searchTerm && (
+              <button
+                onClick={() => handleSearchChange('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
+          {/* Quick filter dropdown (like DeletedFilter on objects page) */}
+          <FilterDropdown
+            label={t('groups.filter.label')}
+            options={
+              [
+                {
+                  id: 'all',
+                  label: t('groups.filter.all'),
+                  checked: activeFilter === 'all',
+                },
+                {
+                  id: 'my',
+                  label: t('groups.filter.my'),
+                  checked: activeFilter === 'my',
+                },
+                {
+                  id: 'shared',
+                  label: t('groups.filter.shared'),
+                  checked: activeFilter === 'shared',
+                },
+              ] as const
+            }
+            onOptionChange={(id) => handleFilterChange(id as GroupFilter)}
+          />
+          {/* Create */}
+          <Button onClick={handleCreateGroup}>
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{t('groups.create')}</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-        <div className="bg-card rounded-lg border p-4">
-          <div className="text-2xl font-bold">{filteredGroups.length}</div>
-          <div className="text-sm text-muted-foreground">
-            {searchTerm || showDeleted
-              ? t('groups.filtered')
-              : t('groups.total')}
-          </div>
+      {/* Error state */}
+      {isError && (
+        <div className="text-center py-12">
+          <div className="text-destructive">{t('groups.loadError')}</div>
         </div>
-        <div className="bg-card rounded-lg border p-4">
-          <div className="text-2xl font-bold">
-            {filteredGroups.filter((g) => g.type === 'public').length}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {t('groups.public')}
-          </div>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
-          <div className="text-2xl font-bold">
-            {filteredGroups.filter((g) => g.type === 'private').length}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {t('groups.private')}
-          </div>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
-          <div className="text-2xl font-bold">
-            {filteredGroups.reduce((sum, g) => sum + g.objectCount, 0)}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {t('groups.totalObjects')}
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Groups Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        {paginatedGroups.map((group) => (
-          <GroupCard
-            key={group.uuid}
-            group={group}
-            onView={() => handleViewGroup(group)}
-            onEdit={() => handleEditGroup(group)}
-            onDelete={() => handleDeleteGroup(group)}
-          />
-        ))}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {t('groups.showing', {
-              start: startIndex + 1,
-              end: Math.min(startIndex + itemsPerPage, filteredGroups.length),
-              total: filteredGroups.length,
-            })}
+      {!isLoading && !isError && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            {paginatedGroups.map((group) => (
+              <GroupCard
+                key={group.groupUUID}
+                group={group}
+                onView={() => handleViewGroup(group)}
+                onDelete={() => handleDeleteGroup(group)}
+              />
+            ))}
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => prev - 1)}
-              disabled={currentPage === 1}
-            >
-              {t('common.previous')}
-            </Button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setCurrentPage(page)}
-                    className="w-8 h-8 p-0"
-                  >
-                    {page}
-                  </Button>
-                )
-              )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {t('groups.showing', {
+                  start: startIndex + 1,
+                  end: Math.min(
+                    startIndex + itemsPerPage,
+                    filteredGroups.length
+                  ),
+                  total: filteredGroups.length,
+                })}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => prev - 1)}
+                  disabled={currentPage === 1}
+                >
+                  {t('common.previous')}
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    )
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  {t('common.next')}
+                </Button>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => prev + 1)}
-              disabled={currentPage === totalPages}
-            >
-              {t('common.next')}
-            </Button>
-          </div>
-        </div>
-      )}
+          )}
 
-      {filteredGroups.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-muted-foreground">
-            {searchTerm ? t('groups.noMatches') : t('groups.noGroups')}
-          </div>
-        </div>
+          {filteredGroups.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-muted-foreground">
+                {searchTerm ? t('groups.noMatches') : t('groups.noGroups')}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Sheets */}
@@ -237,18 +235,12 @@ export default function GroupsPage() {
         group={selectedGroup}
         open={isViewSheetOpen}
         onOpenChange={setIsViewSheetOpen}
-        onEdit={() => {
-          if (selectedGroup) {
-            handleEditGroup(selectedGroup)
-            setIsViewSheetOpen(false)
-          }
-        }}
       />
 
-      <GroupCreateEditSheet
-        group={editingGroup}
-        open={isCreateEditSheetOpen}
-        onOpenChange={setIsCreateEditSheetOpen}
+      <GroupCreateSheet
+        group={null}
+        open={isCreateSheetOpen}
+        onOpenChange={setIsCreateSheetOpen}
       />
     </div>
   )

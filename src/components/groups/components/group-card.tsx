@@ -1,104 +1,143 @@
 'use client'
 
-import { MoreHorizontal, Lock, Globe, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import {
+  MoreHorizontal,
+  Lock,
+  Globe,
+  Trash2,
+  Users,
+  Crown,
+  Pencil,
+  Check,
+  X,
+  Loader2,
+} from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import type { GroupCreateDTO, GroupPermission } from 'iom-sdk'
+
 import {
   Button,
   Badge,
+  Input,
   Card,
   CardContent,
   CardHeader,
-  CopyButton,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui'
-
-interface Group {
-  uuid: string
-  name: string
-  description?: string
-  type: 'public' | 'private'
-  permissions: {
-    level: 'read' | 'write' // write includes read access
-  }
-  objectCount: number
-  createdBy: string
-  createdAt: string
-  updatedAt: string
-  isDeleted?: boolean
-}
+import { cn } from '@/lib/utils'
+import { logger } from '@/lib'
+import { useAuth } from '@/contexts'
+import { useGroups } from '@/hooks/api'
+import { canEditGroup, deduplicateUsersShare } from '@/lib/group-utils'
 
 interface GroupCardProps {
-  group: Group
+  group: GroupCreateDTO
   onView: () => void
-  onEdit: () => void
   onDelete: () => void
 }
 
-export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
+export function GroupCard({ group, onView, onDelete }: GroupCardProps) {
   const t = useTranslations()
+  const { userUUID } = useAuth()
+  const { useCreateGroup } = useGroups()
+  const updateGroup = useCreateGroup()
 
-  const getTypeIcon = () => {
-    if (group.type === 'public') {
-      return <Globe className="h-4 w-4" />
-    }
-    return <Lock className="h-4 w-4" />
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editedName, setEditedName] = useState('')
+
+  const isPublic = !!group.publicShare
+  const usersShare = deduplicateUsersShare(group.usersShare ?? [])
+  const sharedUsersCount = usersShare.length
+
+  // Check if current user is the owner (full access)
+  const isOwner = userUUID === group.ownerUserUUID
+
+  // If not owner, check usersShare for current user's permissions
+  const currentUserShare = usersShare.find((u) => u.userUUID === userUUID)
+  const currentUserPermissions = isOwner
+    ? (['GROUP_WRITE', 'GROUP_WRITE_RECORDS'] as GroupPermission[])
+    : (currentUserShare?.permissions ?? [])
+
+  // Can edit group if owner or has GROUP_WRITE permission
+  const canWrite = isOwner || canEditGroup(currentUserPermissions)
+
+  const handleStartEditName = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditedName(group.name)
+    setIsEditingName(true)
   }
 
-  const getTypeColor = () => {
-    if (group.type === 'public') {
-      return 'bg-green-100 text-green-800 border-green-200'
+  const handleSaveName = async () => {
+    if (!editedName.trim() || editedName === group.name) {
+      setIsEditingName(false)
+      return
     }
-    return 'bg-blue-100 text-blue-800 border-blue-200'
-  }
 
-  const getPermissionBadge = () => {
-    if (group.permissions.level === 'write') {
-      return (
-        <Badge
-          variant="secondary"
-          className="bg-orange-100 text-orange-700 border-orange-200"
-        >
-          Write Access
-        </Badge>
-      )
-    } else {
-      return (
-        <Badge
-          variant="secondary"
-          className="bg-gray-100 text-gray-600 border-gray-200"
-        >
-          Read Only
-        </Badge>
-      )
+    try {
+      await updateGroup.mutateAsync({
+        ...group,
+        usersShare,
+        name: editedName.trim(),
+      })
+      setIsEditingName(false)
+    } catch (error) {
+      logger.error('Failed to update group name', {
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
   }
-
-  const isDeleted = group.isDeleted === true
 
   return (
     <Card
-      className={`hover:shadow-md transition-shadow cursor-pointer ${
-        isDeleted ? 'bg-red-50 border-red-200 opacity-75' : ''
-      }`}
+      className={cn(
+        'hover:shadow-md transition-shadow cursor-pointer group/card'
+      )}
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className={getTypeColor()}>
-              {getTypeIcon()}
-              <span className="ml-1 capitalize">{group.type}</span>
+            <Badge
+              className={cn(
+                isPublic
+                  ? 'bg-green-100 text-green-800 border-green-200'
+                  : 'bg-blue-100 text-blue-800 border-blue-200'
+              )}
+            >
+              {isPublic ? (
+                <Globe className="h-3.5 w-3.5" />
+              ) : (
+                <Lock className="h-3.5 w-3.5" />
+              )}
+              <span className="ml-1 capitalize text-xs">
+                {isPublic ? t('groups.public') : t('groups.private')}
+              </span>
             </Badge>
-            {getPermissionBadge()}
-            {isDeleted && (
+            {isOwner ? (
               <Badge
-                variant="destructive"
-                className="bg-red-100 text-red-700 border-red-200"
+                variant="secondary"
+                className="bg-amber-100 text-amber-700 border-amber-200 text-xs"
               >
-                🗑️ Deleted
+                <Crown className="h-3 w-3 mr-0.5" />
+                {t('groups.owner')}
               </Badge>
+            ) : (
+              currentUserPermissions.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {currentUserPermissions.map((perm) => (
+                    <Badge
+                      key={perm}
+                      variant="secondary"
+                      className="text-[10px] h-5 px-1 bg-gray-100 text-gray-600 border-gray-200"
+                    >
+                      {t(`groups.permissions.${perm}`)}
+                    </Badge>
+                  ))}
+                </div>
+              )
             )}
           </div>
           <DropdownMenu>
@@ -108,71 +147,86 @@ export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onView}>View Details</DropdownMenuItem>
-              {group.permissions.level === 'write' && !isDeleted && (
-                <DropdownMenuItem onClick={onEdit}>Edit Group</DropdownMenuItem>
-              )}
-              {group.permissions.level === 'write' && !isDeleted && (
+              <DropdownMenuItem onClick={onView}>
+                {t('groups.viewDetails')}
+              </DropdownMenuItem>
+              {canWrite && (
                 <DropdownMenuItem
                   onClick={onDelete}
                   className="text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Group
+                  {t('groups.deleteGroup')}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        <div onClick={onView} className="cursor-pointer">
-          <h3
-            className={`font-semibold text-lg leading-tight ${
-              isDeleted ? 'line-through text-red-600' : ''
-            }`}
+        {isEditingName ? (
+          <div
+            className="flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
           >
-            {group.name}
-          </h3>
-          {group.description && (
-            <p
-              className={`text-sm mt-1 line-clamp-2 ${
-                isDeleted
-                  ? 'text-red-500 line-through'
-                  : 'text-muted-foreground'
-              }`}
-              title={
-                group.description.length > 120 ? group.description : undefined
-              }
+            <Input
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveName()
+                if (e.key === 'Escape') setIsEditingName(false)
+              }}
+              className="h-8 text-base font-semibold"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              onClick={handleSaveName}
+              disabled={updateGroup.isPending}
             >
-              {group.description.length > 120
-                ? `${group.description.substring(0, 120)}...`
-                : group.description}
-            </p>
-          )}
-        </div>
+              {updateGroup.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              onClick={() => setIsEditingName(false)}
+              disabled={updateGroup.isPending}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-1 cursor-pointer"
+            onClick={onView}
+          >
+            <h3 className="font-semibold text-lg leading-tight">
+              {group.name}
+            </h3>
+            {canWrite && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 opacity-0 group-hover/card:opacity-100 transition-opacity"
+                onClick={handleStartEditName}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="pt-0" onClick={onView}>
-        {/* <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-          <div className="flex items-center gap-1">
-            <Package className="h-4 w-4" />
-            <span>{group.objectCount} objects</span>
-          </div>
-        </div> */}
-
-        {/* UUID with copy button */}
-        <div className="flex items-center gap-2">
-          <code className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded">
-            {group.uuid}
-          </code>
-          <CopyButton
-            text={group.uuid}
-            label={t('groups.groupUuid')}
-            size="sm"
-            variant="ghost"
-            className="h-5 w-5 p-0"
-            showToast={true}
-          />
+        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+          <Users className="h-3.5 w-3.5" />
+          <span>{t('groups.usersCount', { count: sharedUsersCount })}</span>
         </div>
       </CardContent>
     </Card>
