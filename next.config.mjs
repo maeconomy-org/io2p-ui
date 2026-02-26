@@ -94,9 +94,15 @@ const configuredNextConfig =
           automaticVercelMonitors: false, // Replaces deprecated automaticVercelMonitors
         },
 
+        bundleSizeOptimizations: {
+          excludeDebugStatements: true,
+          excludeReplayIframe: true,
+          excludeReplayShadowDom: true,
+          excludeReplayWorker: true,
+        },
+
         // Disable source map upload during build - we do runtime-only config
         hideSourceMaps: true,
-
         // Disable release creation during build - we handle this at runtime
         disableClientWebpackPlugin: false,
         disableServerWebpackPlugin: false,

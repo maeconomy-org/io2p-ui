@@ -5,8 +5,9 @@ import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
 import { PlusCircle, Copy, FolderOpen, HomeIcon } from 'lucide-react'
 import Link from 'next/link'
+import type { RowSelectionState, VisibilityState } from '@tanstack/react-table'
 
-import { useAggregate, useBreadcrumbTrail } from '@/hooks'
+import { useAggregate, useBreadcrumbTrail, useBulkActions } from '@/hooks'
 import {
   Button,
   Breadcrumb,
@@ -22,7 +23,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui'
 import { isObjectDeleted } from '@/lib'
-import { ObjectsTable } from '@/components/tables'
+import {
+  ObjectsTable,
+  BulkActionsToolbar,
+  DataTableColumnToggle,
+} from '@/components/tables'
 import ProtectedRoute from '@/components/protected-route'
 import { ContentSkeleton } from '@/components/skeletons'
 import {
@@ -30,6 +35,12 @@ import {
   ObjectAddSheet,
   CopyObjectsSheet,
 } from '@/components/object-sheets'
+
+const TOGGLEABLE_COLUMNS = [
+  { id: 'name', labelKey: 'objects.fields.name' },
+  { id: 'uuid', labelKey: 'objects.fields.uuid' },
+  { id: 'createdAt', labelKey: 'objects.fields.created' },
+]
 
 // Truncate text with ellipsis and show full text on hover using Radix tooltip
 function TruncateWithTooltip({
@@ -68,7 +79,11 @@ function ObjectChildrenPageContent() {
 
   // Pagination state for children
   const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize] = useState(15)
+  const [pageSize, setPageSize] = useState(15)
+
+  // Row selection state
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
   // Hooks
   const { useAggregateByUUID, useAggregateEntities } = useAggregate()
@@ -117,6 +132,82 @@ function ObjectChildrenPageContent() {
       childCount: obj.children ? obj.children.length : 0,
     }))
   }, [childrenResponse])
+
+  // Bulk actions
+  const {
+    bulkDeleteMutation,
+    bulkRevertMutation,
+    bulkAddToGroupMutation,
+    bulkCreateAndAddToGroupMutation,
+    bulkSetParentMutation,
+  } = useBulkActions()
+
+  // Derive selected objects from children data
+  const selectedObjects = useMemo(() => {
+    return childrenData.filter(
+      (obj) => obj.uuid && rowSelection[obj.uuid]
+    ) as any[]
+  }, [childrenData, rowSelection])
+
+  const selectedCount = Object.keys(rowSelection).length
+  const allSelectedDeleted =
+    selectedObjects.length > 0 &&
+    selectedObjects.every((obj: any) => isObjectDeleted(obj))
+  const hasNonDeletedSelected = selectedObjects.some(
+    (obj: any) => !isObjectDeleted(obj)
+  )
+
+  const clearSelection = useCallback(() => setRowSelection({}), [])
+
+  const handleBulkDelete = useCallback(() => {
+    const nonDeleted = selectedObjects.filter(
+      (obj: any) => !isObjectDeleted(obj)
+    )
+    if (nonDeleted.length === 0) return
+    bulkDeleteMutation.mutate(nonDeleted, { onSuccess: clearSelection })
+  }, [selectedObjects, bulkDeleteMutation, clearSelection])
+
+  const handleBulkRestore = useCallback(() => {
+    const deleted = selectedObjects.filter((obj: any) => isObjectDeleted(obj))
+    if (deleted.length === 0) return
+    bulkRevertMutation.mutate(deleted, { onSuccess: clearSelection })
+  }, [selectedObjects, bulkRevertMutation, clearSelection])
+
+  const handleAddToGroup = useCallback(
+    (groupUUID: string) => {
+      const uuids = selectedObjects.map((obj: any) => obj.uuid)
+      if (uuids.length === 0) return
+      bulkAddToGroupMutation.mutate(
+        { groupUUID, objectUUIDs: uuids },
+        { onSuccess: clearSelection }
+      )
+    },
+    [selectedObjects, bulkAddToGroupMutation, clearSelection]
+  )
+
+  const handleCreateAndAddToGroup = useCallback(
+    (name: string) => {
+      const uuids = selectedObjects.map((obj: any) => obj.uuid)
+      if (uuids.length === 0) return
+      bulkCreateAndAddToGroupMutation.mutate(
+        { groupName: name, objectUUIDs: uuids },
+        { onSuccess: clearSelection }
+      )
+    },
+    [selectedObjects, bulkCreateAndAddToGroupMutation, clearSelection]
+  )
+
+  const handleSetParent = useCallback(
+    (parentUUID: string) => {
+      const childUUIDs = selectedObjects.map((obj: any) => obj.uuid)
+      if (childUUIDs.length === 0) return
+      bulkSetParentMutation.mutate(
+        { parentUUID, childUUIDs },
+        { onSuccess: clearSelection }
+      )
+    },
+    [selectedObjects, bulkSetParentMutation, clearSelection]
+  )
 
   // State
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
@@ -282,6 +373,7 @@ function ObjectChildrenPageContent() {
 
           <div className="flex items-center gap-2">
             <Button
+              size="sm"
               variant="outline"
               onClick={() => setIsCopySheetOpen(true)}
               data-testid="page-header-copy-button"
@@ -289,12 +381,34 @@ function ObjectChildrenPageContent() {
               <Copy className="mr-2 h-4 w-4" />
               {t('objects.duplicate.copyHere')}
             </Button>
-            <Button onClick={handleAddChild}>
+            <Button onClick={handleAddChild} size="sm">
               <PlusCircle className="mr-2 h-4 w-4" />
               {t('objects.childrenPage.addChild')}
             </Button>
           </div>
         </div>
+
+        {/* Bulk Actions Toolbar */}
+        {selectedCount > 0 && (
+          <BulkActionsToolbar
+            selectedCount={selectedCount}
+            allSelectedDeleted={allSelectedDeleted}
+            hasNonDeletedSelected={hasNonDeletedSelected}
+            onBulkDelete={handleBulkDelete}
+            onBulkRestore={handleBulkRestore}
+            onAddToGroup={handleAddToGroup}
+            onCreateAndAddToGroup={handleCreateAndAddToGroup}
+            onSetParent={handleSetParent}
+            onClearSelection={clearSelection}
+            isDeleting={bulkDeleteMutation.isPending}
+            isRestoring={bulkRevertMutation.isPending}
+            isAddingToGroup={
+              bulkAddToGroupMutation.isPending ||
+              bulkCreateAndAddToGroupMutation.isPending
+            }
+            isSettingParent={bulkSetParentMutation.isPending}
+          />
+        )}
 
         {/* Children Table or Empty State */}
         {!childrenLoading && childrenData.length === 0 ? (
@@ -343,6 +457,15 @@ function ObjectChildrenPageContent() {
               setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))
             }
             onLastPage={() => setCurrentPage(() => totalPages - 1)}
+            onPageSizeChange={(size) => {
+              setPageSize(size)
+              setCurrentPage(0)
+            }}
+            enableRowSelection
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            columnVisibility={columnVisibility}
+            onColumnVisibilityChange={setColumnVisibility}
           />
         )}
       </div>

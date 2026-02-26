@@ -153,11 +153,9 @@ export function RelationshipsTab({
       </div>
 
       {limitedRelationships.totalCount === 0 ? (
-        <div className="flex flex-col items-center justify-center py-4">
-          <h4 className="text-md font-semibold mb-2">
-            {t('objects.noIoProcesses')}
-          </h4>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {t('objects.noIoProcesses')}
+        </p>
       ) : (
         <div className="space-y-6">
           {/* Created By Section */}

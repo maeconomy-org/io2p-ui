@@ -1,2 +1,4 @@
+export * from './bulk-actions-toolbar'
+export * from './data-table'
 export * from './object-model-table'
 export * from './objects-table'

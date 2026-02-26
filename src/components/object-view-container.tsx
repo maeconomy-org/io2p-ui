@@ -1,5 +1,7 @@
 'use client'
 
+import type { RowSelectionState, VisibilityState } from '@tanstack/react-table'
+
 import { logger } from '@/lib'
 import { ViewData } from '@/hooks'
 import { ObjectsTable } from '@/components/tables'
@@ -13,6 +15,15 @@ interface ObjectViewContainerProps {
   onObjectDoubleClick?: (object: any) => void
   onDuplicate?: (object: any) => void
   showDeleted?: boolean
+  // Selection
+  rowSelection?: RowSelectionState
+  onRowSelectionChange?: (selection: RowSelectionState) => void
+  enableRowSelection?: boolean
+  // Column visibility
+  columnVisibility?: VisibilityState
+  onColumnVisibilityChange?: (visibility: VisibilityState) => void
+  // Page size
+  onPageSizeChange?: (size: number) => void
 }
 
 export function ObjectViewContainer({
@@ -22,37 +33,23 @@ export function ObjectViewContainer({
   onObjectDoubleClick,
   onDuplicate,
   showDeleted = false,
+  rowSelection,
+  onRowSelectionChange,
+  enableRowSelection = false,
+  columnVisibility,
+  onColumnVisibilityChange,
+  onPageSizeChange,
 }: ObjectViewContainerProps) {
+  const tableProps = {
+    rowSelection,
+    onRowSelectionChange,
+    enableRowSelection,
+    columnVisibility,
+    onColumnVisibilityChange,
+    onPageSizeChange,
+  }
+
   switch (viewType) {
-    case 'table': {
-      if (viewData.type !== 'table') {
-        logger.error('Expected table data but received:', viewData.type)
-        return null
-      }
-
-      return (
-        <ObjectsTable
-          initialData={viewData.data}
-          fetching={viewData.fetching}
-          onViewObject={onViewObject}
-          onObjectDoubleClick={onObjectDoubleClick}
-          pagination={{
-            currentPage: viewData.pagination.currentPage + 1,
-            totalPages: viewData.pagination.totalPages,
-            totalElements: viewData.pagination.totalElements,
-            pageSize: viewData.pagination.pageSize,
-            isFirstPage: viewData.pagination.isFirstPage,
-            isLastPage: viewData.pagination.isLastPage,
-          }}
-          onPageChange={viewData.pagination.handlePageChange}
-          onFirstPage={viewData.pagination.handleFirst}
-          onPreviousPage={viewData.pagination.handlePrevious}
-          onNextPage={viewData.pagination.handleNext}
-          onLastPage={viewData.pagination.handleLast}
-        />
-      )
-    }
-
     case 'columns': {
       if (viewData.type !== 'columns') {
         logger.error('Expected columns data but received:', viewData.type)
@@ -84,11 +81,11 @@ export function ObjectViewContainer({
       return (
         <ObjectsTable
           initialData={viewData.data}
-          fetching={viewData.fetching} // Pass fetching state for internal loading
+          fetching={viewData.fetching}
           onViewObject={onViewObject}
           onObjectDoubleClick={onObjectDoubleClick}
           pagination={{
-            currentPage: viewData.pagination.currentPage + 1, // Convert to 1-based for display
+            currentPage: viewData.pagination.currentPage + 1,
             totalPages: viewData.pagination.totalPages,
             totalElements: viewData.pagination.totalElements,
             pageSize: viewData.pagination.pageSize,
@@ -100,6 +97,7 @@ export function ObjectViewContainer({
           onPreviousPage={viewData.pagination.handlePrevious}
           onNextPage={viewData.pagination.handleNext}
           onLastPage={viewData.pagination.handleLast}
+          {...tableProps}
         />
       )
     }

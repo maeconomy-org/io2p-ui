@@ -51,6 +51,8 @@ interface UseViewDataProps {
   columnsPageSize?: number
   // Filter options
   showDeleted?: boolean
+  // Group filter
+  groupUUIDList?: string[]
 }
 
 /**
@@ -62,6 +64,7 @@ export function useViewData({
   tablePageSize = 15, // Smaller for detailed table pagination
   columnsPageSize = 15, // Same as child pagination for consistency
   showDeleted = false, // Default to not showing deleted items
+  groupUUIDList,
 }: UseViewDataProps): ViewData {
   const { useAggregateEntities } = useAggregate()
   const { isSearchMode, searchViewResults, searchPagination } = useSearch()
@@ -91,6 +94,18 @@ export function useViewData({
         isTemplate: false,
         ...(showDeleted ? {} : { softDeleted: false }),
       },
+      // Group filter — pass groupUUIDList + all 4 read flags when active
+      ...(groupUUIDList && groupUUIDList.length > 0
+        ? {
+            groupUUIDList,
+            readDefaultGroup: true,
+            readOwnGroups: true,
+            readPublicGroups: true,
+            readUserSharedGroups: true,
+          }
+        : {
+            readDefaultGroup: true,
+          }),
     },
     {
       enabled: !isSearchMode, // Fetch for both table and columns view when not in search mode

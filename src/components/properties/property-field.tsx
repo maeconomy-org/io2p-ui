@@ -286,9 +286,9 @@ export function PropertyField({
               )}
             />
             <Button
+              size="sm"
               type="button"
               variant="outline"
-              size="sm"
               onClick={() => setIsPropertyFilesOpen(true)}
               data-tour="property-name-upload"
               data-testid="attach-file-button"

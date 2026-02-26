@@ -1,19 +1,21 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { PlusCircle, Search, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import type { RowSelectionState, VisibilityState } from '@tanstack/react-table'
 
 import dynamic from 'next/dynamic'
-import { useViewData, useBreadcrumbTrail } from '@/hooks'
+import { useViewData, useBreadcrumbTrail, useBulkActions } from '@/hooks'
 import { useSearch } from '@/contexts'
 import { isObjectDeleted } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
 import InitialLoginTour from '@/components/onboarding/initial-login-tour'
-import { Button, Badge, DeletedFilter } from '@/components/ui'
+import { Button, Badge, DeletedFilter, GroupFilter } from '@/components/ui'
 import { ViewSelector, ViewType } from '@/components/view-selector'
 import { ObjectViewContainer } from '@/components/object-view-container'
+import { BulkActionsToolbar, DataTableColumnToggle } from '@/components/tables'
 
 // Lazy-load sheet components — only rendered when opened by user interaction
 const ObjectDetailsSheet = dynamic(
@@ -40,12 +42,18 @@ const CopyObjectsSheet = dynamic(
 
 function ObjectsPageContent() {
   const t = useTranslations()
+  const [pageSize, setPageSize] = useState(20)
   const [viewType, setViewType] = useState<ViewType>('table')
+  const [showDeleted, setShowDeleted] = useState<boolean>(false)
+  const [selectedObject, setSelectedObject] = useState<any>(null)
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
   const [isObjectEditSheetOpen, setIsObjectEditSheetOpen] = useState(false)
-  const [selectedObject, setSelectedObject] = useState<any>(null)
-  const [showDeleted, setShowDeleted] = useState<boolean>(false)
+  const [selectedGroupUUID, setSelectedGroupUUID] = useState<string | null>(
+    null
+  )
 
+  // Row selection state (keyed by object UUID)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   // Copy objects state (for columns view — table handles its own)
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
   const [copyTarget, setCopyTarget] = useState<any>(null)
@@ -61,7 +69,94 @@ function ObjectsPageContent() {
   } = useSearch()
 
   // Use the data adapter hook - handles all data fetching internally
-  const viewData = useViewData({ viewType, showDeleted })
+  const viewData = useViewData({
+    viewType,
+    showDeleted,
+    tablePageSize: pageSize,
+    groupUUIDList: selectedGroupUUID ? [selectedGroupUUID] : undefined,
+  })
+
+  // Bulk actions
+  const {
+    bulkDeleteMutation,
+    bulkRevertMutation,
+    bulkAddToGroupMutation,
+    bulkCreateAndAddToGroupMutation,
+    bulkSetParentMutation,
+  } = useBulkActions()
+
+  // Derive selected objects from current data
+  const selectedObjects = useMemo(() => {
+    if (viewData.type !== 'table') return []
+    const data = viewData.data ?? []
+    return data.filter((obj: any) => rowSelection[obj.uuid])
+  }, [viewData, rowSelection])
+
+  const selectedCount = Object.keys(rowSelection).length
+  const allSelectedDeleted =
+    selectedObjects.length > 0 &&
+    selectedObjects.every((obj: any) => isObjectDeleted(obj))
+  const hasNonDeletedSelected = selectedObjects.some(
+    (obj: any) => !isObjectDeleted(obj)
+  )
+
+  // Clear selection on view type change or search mode change
+  useEffect(() => {
+    setRowSelection({})
+  }, [viewType, isSearchMode])
+
+  // Clear selection after successful bulk operations
+  const clearSelection = useCallback(() => setRowSelection({}), [])
+
+  const handleBulkDelete = useCallback(() => {
+    const nonDeleted = selectedObjects.filter(
+      (obj: any) => !isObjectDeleted(obj)
+    )
+    if (nonDeleted.length === 0) return
+    bulkDeleteMutation.mutate(nonDeleted, { onSuccess: clearSelection })
+  }, [selectedObjects, bulkDeleteMutation, clearSelection])
+
+  const handleBulkRestore = useCallback(() => {
+    const deleted = selectedObjects.filter((obj: any) => isObjectDeleted(obj))
+    if (deleted.length === 0) return
+    bulkRevertMutation.mutate(deleted, { onSuccess: clearSelection })
+  }, [selectedObjects, bulkRevertMutation, clearSelection])
+
+  const handleAddToGroup = useCallback(
+    (groupUUID: string) => {
+      const uuids = selectedObjects.map((obj: any) => obj.uuid)
+      if (uuids.length === 0) return
+      bulkAddToGroupMutation.mutate(
+        { groupUUID, objectUUIDs: uuids },
+        { onSuccess: clearSelection }
+      )
+    },
+    [selectedObjects, bulkAddToGroupMutation, clearSelection]
+  )
+
+  const handleCreateAndAddToGroup = useCallback(
+    (name: string) => {
+      const uuids = selectedObjects.map((obj: any) => obj.uuid)
+      if (uuids.length === 0) return
+      bulkCreateAndAddToGroupMutation.mutate(
+        { groupName: name, objectUUIDs: uuids },
+        { onSuccess: clearSelection }
+      )
+    },
+    [selectedObjects, bulkCreateAndAddToGroupMutation, clearSelection]
+  )
+
+  const handleSetParent = useCallback(
+    (parentUUID: string) => {
+      const childUUIDs = selectedObjects.map((obj: any) => obj.uuid)
+      if (childUUIDs.length === 0) return
+      bulkSetParentMutation.mutate(
+        { parentUUID, childUUIDs },
+        { onSuccess: clearSelection }
+      )
+    },
+    [selectedObjects, bulkSetParentMutation, clearSelection]
+  )
 
   // Initialize view type from localStorage after the component mounts
   useEffect(() => {
@@ -108,6 +203,10 @@ function ObjectsPageContent() {
               label={t('objects.showDeleted')}
               data-tour="filters"
             />
+            <GroupFilter
+              selectedGroupUUID={selectedGroupUUID}
+              onGroupChange={setSelectedGroupUUID}
+            />
             <ViewSelector
               view={viewType}
               onChange={(value: ViewType) => {
@@ -116,12 +215,38 @@ function ObjectsPageContent() {
               }}
               data-tour="view-selector"
             />
-            <Button onClick={handleAddObject} data-tour="create-object">
+            <Button
+              size="sm"
+              onClick={handleAddObject}
+              data-tour="create-object"
+            >
               <PlusCircle className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">{t('objects.create')}</span>
             </Button>
           </div>
         </div>
+
+        {/* Bulk Actions Toolbar — sits between header and table */}
+        {viewType === 'table' && selectedCount > 0 && (
+          <BulkActionsToolbar
+            selectedCount={selectedCount}
+            allSelectedDeleted={allSelectedDeleted}
+            hasNonDeletedSelected={hasNonDeletedSelected}
+            onBulkDelete={handleBulkDelete}
+            onBulkRestore={handleBulkRestore}
+            onAddToGroup={handleAddToGroup}
+            onCreateAndAddToGroup={handleCreateAndAddToGroup}
+            onSetParent={handleSetParent}
+            onClearSelection={clearSelection}
+            isDeleting={bulkDeleteMutation.isPending}
+            isRestoring={bulkRevertMutation.isPending}
+            isAddingToGroup={
+              bulkAddToGroupMutation.isPending ||
+              bulkCreateAndAddToGroupMutation.isPending
+            }
+            isSettingParent={bulkSetParentMutation.isPending}
+          />
+        )}
 
         {/* Search Mode Indicator */}
         {isSearchMode && (
@@ -169,6 +294,10 @@ function ObjectsPageContent() {
             setIsCopySheetOpen(true)
           }}
           showDeleted={showDeleted}
+          enableRowSelection={viewType === 'table'}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          onPageSizeChange={setPageSize}
         />
       </div>
 

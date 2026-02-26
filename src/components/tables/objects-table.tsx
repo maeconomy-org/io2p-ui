@@ -1,6 +1,6 @@
 'use client'
 
-import { MouseEvent, useState, useEffect } from 'react'
+import { MouseEvent, useState, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   FileText,
@@ -8,20 +8,18 @@ import {
   QrCode,
   RotateCcw,
   Copy,
+  ChevronDown,
   ChevronRight,
-  MoreHorizontal,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import type {
+  ColumnDef,
+  RowSelectionState,
+  VisibilityState,
+} from '@tanstack/react-table'
 
 import {
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TablePagination,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -33,7 +31,6 @@ import {
   DropdownMenuTrigger,
   CopyButton,
 } from '@/components/ui'
-import { toast } from 'sonner'
 import { cn, logger } from '@/lib'
 import { useUnifiedDelete, useObjects } from '@/hooks'
 import { CopyObjectsSheet } from '@/components/object-sheets'
@@ -43,10 +40,11 @@ import {
   DeleteConfirmationDialog,
   TemplateCreationDialog,
 } from '@/components/modals'
+import { DataTable, getSelectColumn } from './data-table'
 
 interface ObjectsTableProps {
   initialData?: any[]
-  fetching?: boolean // Loading state for pagination/refresh
+  fetching?: boolean
   onViewObject?: (object: any) => void
   onObjectDoubleClick?: (object: any) => void
   pagination?: {
@@ -62,6 +60,14 @@ interface ObjectsTableProps {
   onPreviousPage?: () => void
   onNextPage?: () => void
   onLastPage?: () => void
+  onPageSizeChange?: (size: number) => void
+  // Selection
+  rowSelection?: RowSelectionState
+  onRowSelectionChange?: (selection: RowSelectionState) => void
+  enableRowSelection?: boolean
+  // Column visibility
+  columnVisibility?: VisibilityState
+  onColumnVisibilityChange?: (visibility: VisibilityState) => void
 }
 
 const isObjectDeleted = (object: any) => {
@@ -80,14 +86,16 @@ export function ObjectsTable({
   onPreviousPage,
   onNextPage,
   onLastPage,
+  onPageSizeChange,
+  rowSelection = {},
+  onRowSelectionChange,
+  enableRowSelection = false,
+  columnVisibility = {},
+  onColumnVisibilityChange,
 }: ObjectsTableProps) {
   const t = useTranslations()
   const router = useRouter()
-  const [tableState, setTableState] = useState({
-    data: [] as any[],
-    isLoading: true,
-  })
-  const { data, isLoading } = tableState
+  const [data, setData] = useState<any[]>([])
 
   const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
   const [selectedQRObject, setSelectedQRObject] = useState<any>(null)
@@ -123,14 +131,12 @@ export function ObjectsTable({
 
   // Load data from props
   useEffect(() => {
-    setTableState({ data: initialData ?? [], isLoading: false })
+    setData(initialData ?? [])
   }, [initialData])
 
   const handleViewDetails = (object: any) => {
-    if (onViewObject) {
-      if (object && object.uuid) {
-        onViewObject(object)
-      }
+    if (onViewObject && object?.uuid) {
+      onViewObject(object)
     }
   }
 
@@ -194,7 +200,6 @@ export function ObjectsTable({
 
     setIsCreatingTemplate(true)
     try {
-      // Transform object data to template format
       const fullTemplateData = {
         name: templateData.name,
         abbreviation: templateData.abbreviation,
@@ -233,87 +238,122 @@ export function ObjectsTable({
     }
   }
 
-  const renderRows = (objects: any[], level = 0) => {
-    return objects.flatMap((object) => {
-      const childCount =
-        object.childCount || (object.children ? object.children.length : 0)
-      const isDeleted = isObjectDeleted(object)
+  // --- Column definitions ---
+  const columns = useMemo<ColumnDef<any, unknown>[]>(() => {
+    const cols: ColumnDef<any, unknown>[] = []
 
-      const rows = [
-        <TableRow
-          key={object.uuid}
-          onDoubleClick={() => handleRowDoubleClick(object)}
-          className={cn(
-            'cursor-pointer hover:bg-muted/50',
-            isDeleted && 'bg-destructive/10'
-          )}
-        >
-          <TableCell className="font-medium">
-            <div className="flex items-center">
-              <div style={{ width: `${level * 16}px` }} />
-              <span
-                className={cn(
-                  'truncate max-w-[200px]',
-                  isDeleted && 'line-through text-destructive'
-                )}
-              >
-                {object.name}
+    // Checkbox column (only when selection enabled)
+    if (enableRowSelection) {
+      cols.push(getSelectColumn())
+    }
+
+    // Name column
+    cols.push({
+      accessorKey: 'name',
+      header: () => t('objects.fields.name'),
+      cell: ({ row }) => {
+        const object = row.original
+        const childCount =
+          object.childCount || (object.children ? object.children.length : 0)
+        const isDeleted = isObjectDeleted(object)
+
+        return (
+          <div className="flex items-center font-medium">
+            <span
+              className={cn(
+                'truncate max-w-[200px]',
+                isDeleted && 'line-through text-destructive'
+              )}
+            >
+              {object.name}
+            </span>
+            {isDeleted && (
+              <span className="ml-2 text-xs text-destructive">
+                {t('objects.deletedBadge')}
               </span>
-              {isDeleted && (
-                <span className="ml-2 text-xs text-destructive">
-                  {t('objects.deletedBadge')}
-                </span>
-              )}
-              {childCount > 0 && (
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                        {childCount}
-                        <ChevronRight className="h-2.5 w-2.5" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      {t('objects.childrenTooltip', { count: childCount })}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
-          </TableCell>
-          <TableCell className="font-mono text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <span className="">{object.uuid}</span>
-              <CopyButton text={object.uuid} label={t('objects.fields.uuid')} />
-            </div>
-          </TableCell>
-          <TableCell className="text-muted-foreground text-sm">
-            {formatDate(object.createdAt)}
-          </TableCell>
-          <TableCell className="text-right">
-            <div className="flex justify-end gap-1">
+            )}
+            {childCount > 0 && (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      {childCount}
+                      <ChevronRight className="h-2.5 w-2.5" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    {t('objects.childrenTooltip', { count: childCount })}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+        )
+      },
+    })
+
+    // UUID column
+    cols.push({
+      accessorKey: 'uuid',
+      header: () => t('objects.fields.uuid'),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
+          <span>{row.original.uuid}</span>
+          <CopyButton
+            text={row.original.uuid}
+            label={t('objects.fields.uuid')}
+          />
+        </div>
+      ),
+    })
+
+    // Created column
+    cols.push({
+      accessorKey: 'createdAt',
+      header: () => t('objects.fields.created'),
+      cell: ({ row }) => (
+        <span className="text-muted-foreground text-sm">
+          {formatDate(row.original.createdAt)}
+        </span>
+      ),
+    })
+
+    // Actions column — inline button group
+    cols.push({
+      id: 'actions',
+      header: () => (
+        <span className="text-right block">{t('common.actions')}</span>
+      ),
+      enableHiding: false,
+      cell: ({ row }) => {
+        const object = row.original
+        const isDeleted = isObjectDeleted(object)
+
+        return (
+          <div className="flex justify-end">
+            <div className="inline-flex items-center rounded-md border">
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
+                className="h-7 rounded-r-none border-r px-2.5 text-xs"
                 onClick={(e) => {
                   e.stopPropagation()
                   handleViewDetails(object)
                 }}
-                title={t('objects.viewDetails')}
                 data-testid="object-details-button"
               >
-                <FileText className="h-4 w-4" />
+                {t('objects.viewDetails')}
               </Button>
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-7 w-7 rounded-l-none"
                     onClick={(e) => e.stopPropagation()}
                     data-testid="object-actions-dropdown"
                   >
-                    <MoreHorizontal className="h-4 w-4" />
+                    <ChevronDown className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -378,84 +418,59 @@ export function ObjectsTable({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </TableCell>
-        </TableRow>,
-      ]
-
-      return rows
+          </div>
+        )
+      },
     })
-  }
 
-  // Only show full loading screen on initial load when there's no data
-  if (isLoading && data.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-40">
-        {t('common.loading')}
-      </div>
-    )
-  }
+    return cols
+  }, [enableRowSelection, t])
 
   return (
-    <div className="flex flex-col">
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('objects.fields.name')}</TableHead>
-              <TableHead>{t('objects.fields.uuid')}</TableHead>
-              <TableHead>{t('objects.fields.created')}</TableHead>
-              <TableHead className="text-right">
-                {t('common.actions')}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {fetching ? (
-              <TableRow>
-                <TableCell className="text-center py-4" {...{ colSpan: 4 }}>
-                  <div className="flex items-center justify-center">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2"></div>
-                    {t('common.updating')}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : data.length === 0 ? (
-              <TableRow>
-                <TableCell className="text-center py-8" {...{ colSpan: 4 }}>
-                  <div className="flex flex-col items-center">
-                    <FileText className="h-10 w-10 text-muted-foreground/50 mb-4" />
-                    <h3 className="text-lg font-medium mb-2">
-                      {t('objects.noObjectsTitle')}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t('objects.noObjectsDescription')}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              renderRows(data)
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Table Pagination */}
-      {pagination && (
-        <TablePagination
-          currentPage={pagination.currentPage - 1} // Convert to 0-based
-          totalPages={pagination.totalPages}
-          totalElements={pagination.totalElements}
-          pageSize={pagination.pageSize}
-          isFirstPage={pagination.isFirstPage}
-          isLastPage={pagination.isLastPage}
-          onPageChange={(page) => onPageChange?.(page)}
-          onFirst={() => onFirstPage?.()}
-          onPrevious={() => onPreviousPage?.()}
-          onNext={() => onNextPage?.()}
-          onLast={() => onLastPage?.()}
-        />
-      )}
+    <>
+      <DataTable
+        columns={columns}
+        data={data}
+        getRowId={(row) => row.uuid}
+        enableRowSelection={enableRowSelection}
+        rowSelection={rowSelection}
+        onRowSelectionChange={
+          onRowSelectionChange
+            ? (updater) => {
+                const next =
+                  typeof updater === 'function'
+                    ? updater(rowSelection)
+                    : updater
+                onRowSelectionChange(next)
+              }
+            : undefined
+        }
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={
+          onColumnVisibilityChange
+            ? (updater) => {
+                const next =
+                  typeof updater === 'function'
+                    ? updater(columnVisibility)
+                    : updater
+                onColumnVisibilityChange(next)
+              }
+            : undefined
+        }
+        pagination={pagination}
+        onPageChange={onPageChange}
+        onFirstPage={onFirstPage}
+        onPreviousPage={onPreviousPage}
+        onNextPage={onNextPage}
+        onLastPage={onLastPage}
+        onPageSizeChange={onPageSizeChange}
+        onRowDoubleClick={handleRowDoubleClick}
+        rowClassName={(row) => cn(isObjectDeleted(row) && 'bg-destructive/10')}
+        fetching={fetching}
+        emptyIcon={<FileText className="h-10 w-10 text-muted-foreground/50" />}
+        emptyTitle={t('objects.noObjectsTitle')}
+        emptyDescription={t('objects.noObjectsDescription')}
+      />
 
       {/* QR Code Modal */}
       {isQRCodeModalOpen && selectedQRObject && (
@@ -506,6 +521,6 @@ export function ObjectsTable({
           isCreating={isCreatingTemplate}
         />
       )}
-    </div>
+    </>
   )
 }

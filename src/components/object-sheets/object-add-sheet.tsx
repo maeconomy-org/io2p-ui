@@ -453,6 +453,7 @@ export function ObjectAddSheet({
                   <div className="flex justify-between items-center">
                     <FormLabel>{t('objects.fields.properties')}</FormLabel>
                     <Button
+                      size="sm"
                       type="button"
                       variant="outline"
                       onClick={addProperty}
@@ -481,6 +482,7 @@ export function ObjectAddSheet({
                     {fields.length > 0 && (
                       <div className="flex justify-center pt-2">
                         <Button
+                          size="sm"
                           type="button"
                           variant="outline"
                           onClick={addProperty}

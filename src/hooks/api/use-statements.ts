@@ -65,6 +65,21 @@ export function useStatements() {
     })
   }
 
+  // Create multiple statements in a single batch call
+  const useCreateStatements = () => {
+    return useMutation({
+      mutationFn: async (statements: UUStatementDTO[]) => {
+        const response = await client.node.createStatements(statements)
+        return response
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['statements'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+      },
+    })
+  }
+
   // Create process-enhanced statement with direct properties (internal - no auto-invalidation)
   const useCreateProcessStatement = (skipInvalidation = false) => {
     return useMutation({
@@ -367,6 +382,7 @@ export function useStatements() {
     useAllStatements,
     useStatementsByPredicate,
     useCreateStatement,
+    useCreateStatements,
     useCreateProcessStatement,
     useCreateProcessFlow,
     useFindAllRelationships,

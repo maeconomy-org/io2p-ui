@@ -68,7 +68,8 @@
     "save": "Opslaan",
     "saving": "Opslaan...",
     "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",
-    "savedSuccessfully": "Wijzigingen succesvol opgeslagen"
+    "savedSuccessfully": "Wijzigingen succesvol opgeslagen",
+    "noResults": "Geen resultaten."
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -104,7 +105,8 @@
     "of": "/ {count}",
     "items": "{count} item{count, plural, one {} other {s}}",
     "showing": "Toont {start}-{end} van {total} resultaten",
-    "pageOf": "Pagina {page} van {pages}"
+    "pageOf": "Pagina {page} van {pages}",
+    "rowsPerPage": "Rijen per pagina"
   },
   "units": {
     "volume": "Volume",
@@ -331,6 +333,42 @@
     "actions": {
       "copyUuid": "UUID kopiëren",
       "showQrCode": "QR-code tonen"
+    },
+    "bulk": {
+      "selected": "{selected} van {total} rij(en) geselecteerd",
+      "deleteSelected": "Verwijderen",
+      "restoreSelected": "Herstellen",
+      "addToGroup": "Toevoegen aan groep",
+      "setParent": "Bovenliggend instellen",
+      "createNewGroup": "Nieuwe groep aanmaken",
+      "groupNamePlaceholder": "Voer groepsnaam in...",
+      "confirmBulkDelete": "{count} objecten verwijderen?",
+      "confirmBulkDeleteDescription": "Dit zal {count} geselecteerde object(en) zacht verwijderen. Deze actie kan niet ongedaan worden gemaakt.",
+      "bulkDeleteSuccess": "{count} object(en) succesvol verwijderd",
+      "bulkDeleteFailed": "Sommige objecten konden niet worden verwijderd",
+      "bulkRestoreSuccess": "{count} object(en) succesvol hersteld",
+      "bulkRestoreFailed": "Sommige objecten konden niet worden hersteld",
+      "addedToGroup": "{count} object(en) toegevoegd aan groep",
+      "addedToGroupFailed": "Objecten konden niet aan groep worden toegevoegd",
+      "parentSet": "Bovenliggend ingesteld voor {count} object(en)",
+      "parentSetFailed": "Bovenliggend kon niet worden ingesteld voor sommige objecten",
+      "selectAll": "Alles selecteren",
+      "deselectAll": "Alles deselecteren",
+      "columns": "Kolommen",
+      "searchParent": "Zoek naar bovenliggend...",
+      "selectParent": "Selecteer bovenliggend object",
+      "noGroupsFound": "Geen groepen gevonden",
+      "deleting": "Objecten verwijderen...",
+      "restoring": "Objecten herstellen...",
+      "settingParent": "Bovenliggend instellen...",
+      "addingToGroup": "Toevoegen aan groep..."
+    },
+    "groupFilter": {
+      "title": "Filteren op groep",
+      "allGroups": "Alle groepen",
+      "search": "Groepen zoeken...",
+      "noGroups": "Geen groepen gevonden",
+      "clear": "Groepsfilter wissen"
     },
     "noObjectsTitle": "Geen objecten gevonden",
     "noObjectsDescription": "Begin met het aanmaken van uw eerste object",

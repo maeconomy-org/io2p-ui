@@ -7,6 +7,8 @@ import {
   isObjectDeleted,
 } from '@/lib/utils'
 
+const isFalse = false
+
 describe('utils', () => {
   describe('cn', () => {
     it('should merge class names correctly', () => {
@@ -14,7 +16,7 @@ describe('utils', () => {
     })
 
     it('should handle conditional classes', () => {
-      expect(cn('foo', false && 'bar', 'baz')).toBe('foo baz')
+      expect(cn('foo', isFalse && 'bar', 'baz')).toBe('foo baz')
     })
 
     it('should merge tailwind classes correctly', () => {

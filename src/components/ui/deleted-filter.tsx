@@ -47,11 +47,11 @@ export function FilterDropdown({
             size="sm"
             className="h-8"
             data-tour={dataTour}
+            title={label}
           >
-            <Filter className="h-3 w-3 mr-2" />
-            {label}
+            <Filter className="h-3 w-3" />
             {activeFiltersCount > 0 && (
-              <Badge variant="secondary" className="ml-2 h-5 px-1 text-xs">
+              <Badge variant="secondary" className="ml-1 h-5 px-1 text-xs">
                 {activeFiltersCount}
               </Badge>
             )}

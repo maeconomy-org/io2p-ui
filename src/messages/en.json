@@ -68,7 +68,8 @@
     "save": "Save",
     "saving": "Saving...",
     "saveFailed": "Failed to save changes. Please try again.",
-    "savedSuccessfully": "Changes saved successfully"
+    "savedSuccessfully": "Changes saved successfully",
+    "noResults": "No results."
   },
   "copyButton": {
     "copied": "Copied!",
@@ -104,7 +105,8 @@
     "of": "/ {count}",
     "items": "{count} item{count, plural, one {} other {s}}",
     "showing": "Showing {start}-{end} of {total} results",
-    "pageOf": "Page {page} of {pages}"
+    "pageOf": "Page {page} of {pages}",
+    "rowsPerPage": "Rows per page"
   },
   "units": {
     "volume": "Volume",
@@ -353,6 +355,42 @@
     "actions": {
       "copyUuid": "Copy UUID",
       "showQrCode": "QR Code"
+    },
+    "bulk": {
+      "selected": "{selected} of {total} row(s) selected",
+      "deleteSelected": "Delete",
+      "restoreSelected": "Restore",
+      "addToGroup": "Add to Group",
+      "setParent": "Set Parent",
+      "createNewGroup": "Create New Group",
+      "groupNamePlaceholder": "Enter group name...",
+      "confirmBulkDelete": "Delete {count} objects?",
+      "confirmBulkDeleteDescription": "This will soft delete {count} selected object(s). This action cannot be undone.",
+      "bulkDeleteSuccess": "{count} object(s) deleted successfully",
+      "bulkDeleteFailed": "Failed to delete some objects",
+      "bulkRestoreSuccess": "{count} object(s) restored successfully",
+      "bulkRestoreFailed": "Failed to restore some objects",
+      "addedToGroup": "{count} object(s) added to group",
+      "addedToGroupFailed": "Failed to add objects to group",
+      "parentSet": "Parent set for {count} object(s)",
+      "parentSetFailed": "Failed to set parent for some objects",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "columns": "Columns",
+      "searchParent": "Search for parent...",
+      "selectParent": "Select parent object",
+      "noGroupsFound": "No groups found",
+      "deleting": "Deleting objects...",
+      "restoring": "Restoring objects...",
+      "settingParent": "Setting parent...",
+      "addingToGroup": "Adding to group..."
+    },
+    "groupFilter": {
+      "title": "Filter by Group",
+      "allGroups": "All Groups",
+      "search": "Search groups...",
+      "noGroups": "No groups found",
+      "clear": "Clear group filter"
     },
     "noObjectsTitle": "No Objects Found",
     "noObjectsDescription": "Start by creating your first object",
