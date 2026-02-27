@@ -22,6 +22,8 @@ export function useAggregate() {
         return response.content?.[0] || null
       },
       enabled: !!uuid,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
       ...options,
     })
   }
@@ -32,11 +34,13 @@ export function useAggregate() {
       queryKey: ['aggregates', params],
       queryFn: async () => {
         const response = await client.node.searchAggregates({
-          readDefaultGroup: true,
+          // readDefaultGroup: true,
           ...params,
         })
         return response
       },
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
       ...options,
     })
   }
@@ -59,6 +63,8 @@ export function useAggregate() {
         })
         return response
       },
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
       ...options,
     })
   }
@@ -82,6 +88,8 @@ export function useAggregate() {
         })
         return response
       },
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
       ...options,
     })
   }
@@ -97,6 +105,8 @@ export function useAggregate() {
         })
         return response
       },
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
       ...options,
     })
   }
@@ -112,6 +122,8 @@ export function useAggregate() {
         })
         return response
       },
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
       ...options,
     })
   }
@@ -127,6 +139,8 @@ export function useAggregate() {
         })
         return response
       },
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
       ...options,
     })
   }
@@ -153,6 +167,8 @@ export function useAggregate() {
         })
         return response
       },
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
       ...options,
     })
   }

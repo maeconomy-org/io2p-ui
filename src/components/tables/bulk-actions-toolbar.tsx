@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Trash2,
@@ -10,8 +10,6 @@ import {
   Loader2,
   Plus,
   X,
-  Check,
-  ChevronsUpDown,
 } from 'lucide-react'
 import type { GroupCreateDTO } from 'iom-sdk'
 
@@ -24,19 +22,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  Command,
-  CommandInput,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandList,
 } from '@/components/ui'
-import { cn, logger } from '@/lib'
+import { cn } from '@/lib'
 import { useGroups } from '@/hooks'
-import { useCommonApi } from '@/hooks/api'
+import { ParentSelector } from '@/components/object-sheets/components'
 
 interface BulkActionsToolbarProps {
   /** Number of selected rows */
@@ -81,67 +70,8 @@ export function BulkActionsToolbar({
   const [newGroupName, setNewGroupName] = useState('')
   const [showNewGroupInput, setShowNewGroupInput] = useState(false)
 
-  // Set Parent popover state
-  const [isParentOpen, setIsParentOpen] = useState(false)
-  const [parentSearchQuery, setParentSearchQuery] = useState('')
-  const [parentSearchResults, setParentSearchResults] = useState<any[]>([])
-  const [isParentSearching, setIsParentSearching] = useState(false)
-  const [hasParentLoaded, setHasParentLoaded] = useState(false)
-
-  const { useSearch } = useCommonApi()
-  const searchMutation = useSearch()
-  const searchMutationRef = useRef(searchMutation)
-  searchMutationRef.current = searchMutation
-
-  const performParentSearch = useCallback(
-    async (query: string = '') => {
-      if (!isParentOpen) return
-      setIsParentSearching(true)
-      try {
-        const results = await searchMutationRef.current.mutateAsync({
-          searchBy: { isTemplate: false, softDeleted: false },
-          ...(query && { searchTerm: query.trim() }),
-          size: 8,
-          page: 0,
-        })
-        if (results?.content) {
-          setParentSearchResults(results.content)
-          setHasParentLoaded(true)
-        } else {
-          setParentSearchResults([])
-          setHasParentLoaded(true)
-        }
-      } catch (error) {
-        logger.error('Parent search failed:', error)
-        setParentSearchResults([])
-      } finally {
-        setIsParentSearching(false)
-      }
-    },
-    [isParentOpen]
-  )
-
-  // Debounced parent search
-  useEffect(() => {
-    if (!isParentOpen) return
-    const timeoutId = setTimeout(() => {
-      if (!parentSearchQuery || parentSearchQuery.length < 2) {
-        if (!hasParentLoaded) performParentSearch()
-      } else {
-        performParentSearch(parentSearchQuery)
-      }
-    }, 300)
-    return () => clearTimeout(timeoutId)
-  }, [parentSearchQuery, isParentOpen, hasParentLoaded, performParentSearch])
-
-  // Reset parent search when popover closes
-  useEffect(() => {
-    if (!isParentOpen) {
-      setParentSearchQuery('')
-      setParentSearchResults([])
-      setHasParentLoaded(false)
-    }
-  }, [isParentOpen])
+  // Track selected parents for bulk set parent
+  const [selectedParentUuids, setSelectedParentUuids] = useState<string[]>([])
 
   const handleCreateGroup = () => {
     if (!newGroupName.trim()) return
@@ -150,9 +80,15 @@ export function BulkActionsToolbar({
     setShowNewGroupInput(false)
   }
 
-  const handleSelectParent = (object: any) => {
-    onSetParent(object.uuid)
-    setIsParentOpen(false)
+  // Handle parent selection - just track selection, don't auto-submit
+  const handleParentsChange = (parentUuids: string[]) => {
+    setSelectedParentUuids(parentUuids)
+  }
+
+  // Apply parent selection - call onSetParent for each selected parent
+  const handleApplyParents = () => {
+    selectedParentUuids.forEach((uuid) => onSetParent(uuid))
+    setSelectedParentUuids([]) // Clear after applying
   }
 
   if (selectedCount === 0) return null
@@ -310,73 +246,53 @@ export function BulkActionsToolbar({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Set Parent — popover with search */}
+          {/* Set Parent — using ParentSelector in compact mode */}
           {hasNonDeletedSelected && (
-            <Popover open={isParentOpen} onOpenChange={setIsParentOpen}>
-              <PopoverTrigger asChild>
+            <div className="flex items-center">
+              <ParentSelector
+                initialParentUuids={selectedParentUuids}
+                onParentsChange={handleParentsChange}
+                placeholder={t('objects.bulk.setParent')}
+                compact
+                disabled={isSettingParent}
+                triggerContent={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-none rounded-l-md gap-1.5"
+                    disabled={isSettingParent}
+                  >
+                    {isSettingParent ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <GitBranch className="h-3.5 w-3.5" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {t('objects.bulk.setParent')}
+                    </span>
+                    {selectedParentUuids.length > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="ml-1 h-5 px-1 text-xs"
+                      >
+                        {selectedParentUuids.length}
+                      </Badge>
+                    )}
+                  </Button>
+                }
+              />
+              {selectedParentUuids.length > 0 && (
                 <Button
-                  variant="ghost"
+                  variant="default"
                   size="sm"
-                  className="h-8 rounded-none first:rounded-l-md last:rounded-r-md gap-1.5"
+                  className="h-8 rounded-none rounded-r-md px-2"
+                  onClick={handleApplyParents}
                   disabled={isSettingParent}
                 >
-                  {isSettingParent ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <GitBranch className="h-3.5 w-3.5" />
-                  )}
-                  <span className="hidden sm:inline">
-                    {t('objects.bulk.setParent')}
-                  </span>
-                  <ChevronsUpDown className="h-3 w-3 opacity-50" />
+                  {t('common.apply')}
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-0" align="end">
-                <Command shouldFilter={false}>
-                  <div className="relative">
-                    <CommandInput
-                      placeholder={t(
-                        'objects.parentSelector.searchPlaceholder'
-                      )}
-                      value={parentSearchQuery}
-                      onValueChange={setParentSearchQuery}
-                    />
-                    {isParentSearching && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                  <CommandList className="max-h-[200px]">
-                    <CommandEmpty>
-                      {isParentSearching
-                        ? t('objects.parentSelector.searching')
-                        : t('objects.parentSelector.noResults')}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {parentSearchResults.map((object: any) => (
-                        <CommandItem
-                          key={object.uuid}
-                          value={object.uuid}
-                          onSelect={() => handleSelectParent(object)}
-                          className="cursor-pointer"
-                        >
-                          <Check className="h-4 w-4 opacity-0 mr-2" />
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-medium truncate text-sm">
-                              {object.name || object.uuid}
-                            </span>
-                            <span className="text-xs text-muted-foreground font-mono truncate">
-                              {object.uuid?.slice(0, 20)}...
-                            </span>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+              )}
+            </div>
           )}
         </div>
       </div>

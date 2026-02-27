@@ -57,6 +57,7 @@
     "selected": "Geselecteerd",
     "clear": "Wissen",
     "clearAll": "Alles wissen",
+    "clearFilters": "Filters wissen",
     "refresh": "Vernieuwen",
     "retry": "Opnieuw proberen",
     "optional": "(Optioneel)",
@@ -69,7 +70,8 @@
     "saving": "Opslaan...",
     "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",
     "savedSuccessfully": "Wijzigingen succesvol opgeslagen",
-    "noResults": "Geen resultaten."
+    "noResults": "Geen resultaten.",
+    "apply": "Toepassen"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -223,7 +225,7 @@
   },
   "objects": {
     "title": "Objecten",
-    "showDeleted": "Verwijderde objecten tonen",
+    "showDeleted": "Soft Deleted",
     "create": "Object aanmaken",
     "searchResults": "Zoekresultaten voor: \"{query}\"",
     "results": "{count} resultaat{count, plural, one {} other {en}}",
@@ -253,7 +255,8 @@
       "updated": "Bijgewerkt",
       "address": "Adres",
       "properties": "Eigenschappen",
-      "files": "Bestanden"
+      "files": "Bestanden",
+      "group": "Groep"
     },
     "address": {
       "street": "Straat",
@@ -364,7 +367,7 @@
       "addingToGroup": "Toevoegen aan groep..."
     },
     "groupFilter": {
-      "title": "Filteren op groep",
+      "title": "Groepen",
       "allGroups": "Alle groepen",
       "search": "Groepen zoeken...",
       "noGroups": "Geen groepen gevonden",

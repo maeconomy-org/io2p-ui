@@ -32,7 +32,8 @@ import {
   CopyButton,
 } from '@/components/ui'
 import { cn, logger } from '@/lib'
-import { useUnifiedDelete, useObjects } from '@/hooks'
+import { useUnifiedDelete, useObjects, useGroups } from '@/hooks'
+import { GroupBadge } from '@/components/ui/group-badge'
 import { CopyObjectsSheet } from '@/components/object-sheets'
 import { useObjectOperations } from '@/components/object-sheets/hooks/use-object-operations'
 import {
@@ -41,6 +42,7 @@ import {
   TemplateCreationDialog,
 } from '@/components/modals'
 import { DataTable, getSelectColumn } from './data-table'
+import { ObjectActionsCell } from './object-actions-cell'
 
 interface ObjectsTableProps {
   initialData?: any[]
@@ -128,6 +130,19 @@ export function ObjectsTable({
   // Revert functionality
   const { useRevertObject } = useObjects()
   const revertObjectMutation = useRevertObject()
+
+  // Fetch groups for group column display
+  const { useListGroups } = useGroups()
+  const { data: groups = [] } = useListGroups()
+  const groupsMap = useMemo(() => {
+    const map = new Map<string, any>()
+    groups.forEach((group: any) => {
+      if (group.groupUUID) {
+        map.set(group.groupUUID, group)
+      }
+    })
+    return map
+  }, [groups])
 
   // Load data from props
   useEffect(() => {
@@ -292,19 +307,48 @@ export function ObjectsTable({
       },
     })
 
-    // UUID column
+    // UUID column - truncated on mobile
     cols.push({
       accessorKey: 'uuid',
       header: () => t('objects.fields.uuid'),
       cell: ({ row }) => (
         <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
-          <span>{row.original.uuid}</span>
+          {/* Full UUID on desktop, truncated on mobile */}
+          <span className="hidden sm:inline">{row.original.uuid}</span>
+          <span className="sm:hidden">{row.original.uuid.slice(0, 5)}...</span>
           <CopyButton
             text={row.original.uuid}
             label={t('objects.fields.uuid')}
           />
         </div>
       ),
+    })
+
+    // Group column
+    cols.push({
+      id: 'group',
+      header: () => t('objects.fields.group'),
+      cell: ({ row }) => {
+        const groupUUID = row.original.groupUUID
+        if (!groupUUID) return <span className="text-muted-foreground">—</span>
+
+        const group = groupsMap.get(groupUUID)
+        if (!group)
+          return (
+            <span className="text-muted-foreground text-xs font-mono">
+              {groupUUID.slice(0, 8)}...
+            </span>
+          )
+        const isPublic =
+          group.publicShare && group.publicShare.permissions?.length > 0
+        return (
+          <GroupBadge
+            groupName={group.name}
+            groupType={isPublic ? 'public' : 'private'}
+            size="sm"
+          />
+        )
+      },
     })
 
     // Created column
@@ -318,7 +362,7 @@ export function ObjectsTable({
       ),
     })
 
-    // Actions column — inline button group
+    // Actions column — using ObjectActionsCell component
     cols.push({
       id: 'actions',
       header: () => (
@@ -330,101 +374,35 @@ export function ObjectsTable({
         const isDeleted = isObjectDeleted(object)
 
         return (
-          <div className="flex justify-end">
-            <div className="inline-flex items-center rounded-md border">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 rounded-r-none border-r px-2.5 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleViewDetails(object)
-                }}
-                data-testid="object-details-button"
-              >
-                {t('objects.viewDetails')}
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-l-none"
-                    onClick={(e) => e.stopPropagation()}
-                    data-testid="object-actions-dropdown"
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={(e) => handleShowQRCode(object, e)}
-                  >
-                    <QrCode className="h-4 w-4 mr-2" />
-                    {t('objects.actions.showQrCode')}
-                  </DropdownMenuItem>
-                  {!isDeleted && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setCopyTarget(object)
-                          setIsCopySheetOpen(true)
-                        }}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        {t('objects.duplicate.action')}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setTemplateSource(object)
-                          setIsTemplateDialogOpen(true)
-                        }}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        {t('objects.createTemplate')}
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  {isDeleted ? (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleRevertObject(object)
-                      }}
-                      disabled={revertObjectMutation.isPending}
-                    >
-                      <RotateCcw className="h-4 w-4 mr-2 text-blue-600" />
-                      {t('objects.restoreTitle')}
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDelete({
-                          uuid: object.uuid,
-                          name: object.name,
-                        })
-                      }}
-                      disabled={isDeleting}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {t('common.delete')}
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
+          <ObjectActionsCell
+            object={object}
+            isDeleted={isDeleted}
+            onViewDetails={handleViewDetails}
+            onShowQRCode={handleShowQRCode}
+            onDuplicate={(obj) => {
+              setCopyTarget(obj)
+              setIsCopySheetOpen(true)
+            }}
+            onCreateTemplate={(obj) => {
+              setTemplateSource(obj)
+              setIsTemplateDialogOpen(true)
+            }}
+            onDelete={(obj) => {
+              handleDelete({
+                uuid: obj.uuid,
+                name: obj.name,
+              })
+            }}
+            onRestore={handleRevertObject}
+            isDeleting={isDeleting}
+            isRestoring={revertObjectMutation.isPending}
+          />
         )
       },
     })
 
     return cols
-  }, [enableRowSelection, t])
+  }, [enableRowSelection, t, groupsMap])
 
   return (
     <>

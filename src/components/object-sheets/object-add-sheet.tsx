@@ -253,14 +253,17 @@ export function ObjectAddSheet({
           !open && !showUnsavedDialog && handleCloseAttempt()
         }
       >
-        <SheetContent className="sm:max-w-xl overflow-y-auto">
+        <SheetContent className="sm:max-w-xl flex flex-col">
           <Form {...form}>
             <SheetHeader>
               <SheetTitle>{t('objects.addTitle')}</SheetTitle>
               <SheetDescription>{t('objects.addDescription')}</SheetDescription>
             </SheetHeader>
-            <form onSubmit={form.handleSubmit(handleSubmit)}>
-              <div className="space-y-4 pt-6 pb-2">
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="flex flex-col flex-1 overflow-hidden px-1 -mx-1"
+            >
+              <div className="flex-1 overflow-y-auto space-y-4 pt-6 pb-2 px-1 -mx-1">
                 <div className="space-y-2">
                   <ModelSelector
                     selectedModel={selectedModel}
@@ -497,7 +500,7 @@ export function ObjectAddSheet({
                 </div>
               </div>
 
-              <SheetFooter className="border-t pt-4">
+              <SheetFooter className="border-t pt-4 mt-auto">
                 <div className="flex flex-col-reverse sm:flex-row w-full justify-between items-center gap-2">
                   <Button
                     className="w-full"

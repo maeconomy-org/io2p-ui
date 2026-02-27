@@ -6,7 +6,8 @@ import { Plus, Search, Loader2, X } from 'lucide-react'
 import type { GroupCreateDTO } from 'iom-sdk'
 
 import { logger } from '@/lib'
-import { Button, Input, FilterDropdown } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
+import { FacetedFilter } from '@/components/filters'
 import {
   GroupCard,
   GroupViewSheet,
@@ -112,28 +113,19 @@ export default function GroupsPage() {
             )}
           </div>
           {/* Quick filter dropdown (like DeletedFilter on objects page) */}
-          <FilterDropdown
-            label={t('groups.filter.label')}
-            options={
-              [
-                {
-                  id: 'all',
-                  label: t('groups.filter.all'),
-                  checked: activeFilter === 'all',
-                },
-                {
-                  id: 'my',
-                  label: t('groups.filter.my'),
-                  checked: activeFilter === 'my',
-                },
-                {
-                  id: 'shared',
-                  label: t('groups.filter.shared'),
-                  checked: activeFilter === 'shared',
-                },
-              ] as const
+          <FacetedFilter
+            title={t('groups.filter.label')}
+            options={[
+              { value: 'all', label: t('groups.filter.all') },
+              { value: 'my', label: t('groups.filter.my') },
+              { value: 'shared', label: t('groups.filter.shared') },
+            ]}
+            selected={[activeFilter]}
+            onSelectionChange={(values) =>
+              handleFilterChange((values[0] as GroupFilter) || 'all')
             }
-            onOptionChange={(id) => handleFilterChange(id as GroupFilter)}
+            showSearch={false}
+            clearLabel={t('common.clearFilters')}
           />
           {/* Create */}
           <Button onClick={handleCreateGroup}>

@@ -29,6 +29,8 @@ export function useStatements() {
         return response
       },
       enabled,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
     })
   }
 
@@ -47,6 +49,8 @@ export function useStatements() {
         return response
       },
       enabled: !!predicate && options?.enabled !== false,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
     })
   }
 
@@ -307,6 +311,8 @@ export function useStatements() {
         return response
       },
       enabled: !!entityUuid && options?.enabled !== false,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
     })
   }
 
@@ -356,6 +362,8 @@ export function useStatements() {
         }
       },
       enabled: !!objectUuid && enabled,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
     })
   }
 

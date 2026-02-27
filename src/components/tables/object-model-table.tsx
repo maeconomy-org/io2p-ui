@@ -119,12 +119,12 @@ export function ObjectModelsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {fetching ? (
+            {loading || fetching ? (
               <TableRow>
                 <TableCell className="text-center py-4" {...{ colSpan: 6 }}>
                   <div className="flex items-center justify-center">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2"></div>
-                    {t('common.updating')}
+                    {loading ? t('common.loading') : t('common.updating')}
                   </div>
                 </TableCell>
               </TableRow>

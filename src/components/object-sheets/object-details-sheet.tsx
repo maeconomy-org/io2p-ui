@@ -362,48 +362,25 @@ export function ObjectDetailsSheet({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto">
+        <SheetContent className="sm:max-w-xl flex flex-col">
           <SheetHeader>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <SheetTitle>{objectName}</SheetTitle>
-                {(object?.softDeleted || isDeleted) && (
-                  <Badge variant="destructive">{t('objects.deleted')}</Badge>
-                )}
-              </span>
-              {object?.uuid && (
-                <div className="flex items-center gap-2">
-                  {isDeleted && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRevertObject}
-                      disabled={isReverting}
-                      className="text-muted-foreground hover:text-foreground"
-                      title={t('objects.restoreTitle')}
-                    >
-                      {isReverting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RotateCcw className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
+            <span className="flex items-center gap-2">
+              <SheetTitle>{objectName}</SheetTitle>
+              {(object?.softDeleted || isDeleted) && (
+                <Badge variant="destructive">{t('objects.deleted')}</Badge>
               )}
-            </div>
+            </span>
             <SheetDescription>
               {t('objects.detailsDescription')}
             </SheetDescription>
           </SheetHeader>
 
           {isLoading ? (
-            <div className="flex justify-center items-center h-full">
+            <div className="flex justify-center items-center flex-1">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           ) : (
-            <div className="py-6">
+            <div className="flex-1 overflow-y-auto py-6 px-1 -mx-1">
               <Tabs
                 value={activeTab}
                 onValueChange={handleTabChange}
@@ -476,7 +453,7 @@ export function ObjectDetailsSheet({
             </div>
           )}
 
-          <SheetFooter className="border-t pt-4">
+          <SheetFooter className="border-t pt-4 mt-auto">
             <div className="flex w-full flex-col gap-2">
               <div className="flex flex-col-reverse sm:flex-row w-full items-center gap-2">
                 <Button

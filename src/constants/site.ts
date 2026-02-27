@@ -37,3 +37,6 @@ export const UNIT_CATEGORIES = {
     units: ['kWh', 'kg CO2e', 'MJ', 'BTU'],
   },
 } as const
+
+export const DEFAULT_TABLE_PAGE_SIZE = 20
+export const DEFAULT_TABLE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]

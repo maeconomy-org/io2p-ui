@@ -19,6 +19,8 @@ export function useProperties() {
         return response
       },
       enabled,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
     })
   }
 
@@ -32,6 +34,8 @@ export function useProperties() {
         return response?.[0] || null
       },
       enabled: !!uuid && options?.enabled !== false,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
     })
   }
 

@@ -23,6 +23,7 @@ import {
   FormMessage,
   PasswordInput,
 } from '@/components/ui'
+import { BrickLoader } from '@/components/brick-loader'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -156,8 +157,9 @@ export default function LoginPage() {
         >
           <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
             <div className="relative">
-              <div className="h-16 w-16 rounded-full border-4 border-primary/0" />
-              <Loader2 className="absolute top-0 h-16 w-16 animate-spin text-primary" />
+              <BrickLoader />
+              {/* <div className="h-16 w-16 rounded-full border-4 border-primary/0" /> */}
+              {/* <Loader2 className="absolute top-0 h-16 w-16 animate-spin text-primary" /> */}
             </div>
             <p className="text-sm font-medium animate-pulse text-muted-foreground">
               {t('auth.loading')}

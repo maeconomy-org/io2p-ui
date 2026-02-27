@@ -255,7 +255,7 @@ export function CopyObjectsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-lg overflow-y-auto">
+      <SheetContent className="sm:max-w-lg flex flex-col">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Copy className="h-5 w-5" />
@@ -270,7 +270,7 @@ export function CopyObjectsSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="grid gap-5 py-4">
+        <div className="flex-1 overflow-y-auto grid gap-5 py-4 px-1 -mx-1">
           {/* Source objects selector */}
           <div className="grid gap-2">
             <Label>{t('objects.duplicate.sourceObjects')}</Label>
@@ -529,7 +529,7 @@ export function CopyObjectsSheet({
           </div>
         </div>
 
-        <SheetFooter className="flex w-full gap-2 pt-4">
+        <SheetFooter className="flex w-full gap-2 border-t pt-4 mt-auto">
           <Button
             type="button"
             variant="outline"

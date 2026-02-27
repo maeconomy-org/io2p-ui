@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { keepPreviousData } from '@tanstack/react-query'
 
 import { useSearch } from '@/contexts'
 import { usePagination, useAggregate } from '@/hooks'
@@ -53,6 +54,8 @@ interface UseViewDataProps {
   showDeleted?: boolean
   // Group filter
   groupUUIDList?: string[]
+  // Parent UUID for child pages (when set, fetches children of this parent)
+  parentUUID?: string
 }
 
 /**
@@ -65,6 +68,7 @@ export function useViewData({
   columnsPageSize = 15, // Same as child pagination for consistency
   showDeleted = false, // Default to not showing deleted items
   groupUUIDList,
+  parentUUID,
 }: UseViewDataProps): ViewData {
   const { useAggregateEntities } = useAggregate()
   const { isSearchMode, searchViewResults, searchPagination } = useSearch()
@@ -72,13 +76,17 @@ export function useViewData({
   // Internal pagination state for table view
   const [currentPage, setCurrentPage] = useState(0)
 
-  // Simple state for columns view (no more infinite scroll)
-  const [columnsData, setColumnsData] = useState<any[]>([])
-
   // Determine page size based on view type
   const pageSize = viewType === 'table' ? tablePageSize : columnsPageSize
 
-  // Fetch root objects with performance optimizations (for table view)
+  // Reset to page 0 when page size changes to avoid requesting invalid pages
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [tablePageSize])
+
+  // Fetch objects with performance optimizations
+  // When parentUUID is set, fetch children of that parent
+  // Otherwise, fetch root objects (no parent)
   const {
     data: aggregateResponse,
     isLoading,
@@ -87,8 +95,11 @@ export function useViewData({
     {
       page: currentPage,
       size: pageSize,
-      // if we have only hasParentUUIDFilter then we are fetching root objects only no childrens if we add parentUUID then we are fetchins childrens only of this parent UUID if we skip both hasParentUUIDFilter and parentUUID then we are fetching all objects root and childrens together in one level
-      hasParentUUIDFilter: true, // No parent UUID filter
+      // When parentUUID is set, fetch children of that parent
+      // Otherwise, fetch root objects only (hasParentUUIDFilter: true means "has no parent")
+      ...(parentUUID
+        ? { parentUUID, hasParentUUIDFilter: true }
+        : { hasParentUUIDFilter: true }),
       // Add softDeleted parameter for filtering deleted items
       searchBy: {
         isTemplate: false,
@@ -98,8 +109,8 @@ export function useViewData({
       ...(groupUUIDList && groupUUIDList.length > 0
         ? {
             groupUUIDList,
-            readDefaultGroup: true,
-            readOwnGroups: true,
+            // readDefaultGroup: true,
+            // readOwnGroups: true,
             readPublicGroups: true,
             readUserSharedGroups: true,
           }
@@ -108,10 +119,11 @@ export function useViewData({
           }),
     },
     {
-      enabled: !isSearchMode, // Fetch for both table and columns view when not in search mode
+      // For child pages, also check parentUUID is set
+      enabled: parentUUID ? !!parentUUID && !isSearchMode : !isSearchMode,
       staleTime: 30000, // Cache for 30 seconds
-      keepPreviousData: true, // Smooth pagination transitions - keeps old data visible
-      cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+      placeholderData: keepPreviousData, // React Query v5: keeps old data visible during transitions
+      gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes (renamed from cacheTime in v5)
     }
   )
 
@@ -122,7 +134,7 @@ export function useViewData({
     }
 
     const allObjects = aggregateResponse?.content || []
-    return allObjects.map((obj) => ({
+    return allObjects.map((obj: any) => ({
       ...obj,
       hasChildren: obj.children && obj.children.length > 0,
       childCount: obj.children ? obj.children.length : 0,
@@ -165,13 +177,6 @@ export function useViewData({
     onPageChange: setCurrentPage,
   })
 
-  // For columns view, use enhanced data (from table view or search)
-  useEffect(() => {
-    if (viewType === 'columns') {
-      setColumnsData(enhancedData)
-    }
-  }, [viewType, enhancedData])
-
   return useMemo(() => {
     if (viewType === 'table') {
       // Use search pagination when in search mode
@@ -205,8 +210,6 @@ export function useViewData({
     }
 
     if (viewType === 'columns') {
-      const dataToUse = isSearchMode ? enhancedData : columnsData
-
       // Use search pagination for root when in search mode
       const rootPaginationToUse =
         isSearchMode && searchPagination
@@ -226,8 +229,8 @@ export function useViewData({
 
       return {
         type: 'columns',
-        rootObjects: dataToUse,
-        loading: isSearchMode ? false : isLoading && columnsData.length === 0,
+        rootObjects: enhancedData,
+        loading: isSearchMode ? false : isLoading,
         fetching: isSearchMode ? false : isFetching,
         rootPagination: rootPaginationToUse,
       }
@@ -268,8 +271,7 @@ export function useViewData({
     isFetching,
     paginationInfo,
     paginationHandlers,
-    columnsData,
     isSearchMode,
-    searchPagination, // Add search pagination to dependencies
+    searchPagination,
   ])
 }

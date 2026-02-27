@@ -57,6 +57,7 @@
     "selected": "Selected",
     "clear": "Clear",
     "clearAll": "Clear All",
+    "clearFilters": "Clear filters",
     "refresh": "Refresh",
     "retry": "Retry",
     "optional": "(Optional)",
@@ -69,7 +70,8 @@
     "saving": "Saving...",
     "saveFailed": "Failed to save changes. Please try again.",
     "savedSuccessfully": "Changes saved successfully",
-    "noResults": "No results."
+    "noResults": "No results.",
+    "apply": "Apply"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -223,7 +225,7 @@
   },
   "objects": {
     "title": "Objects",
-    "showDeleted": "Show deleted objects",
+    "showDeleted": "Soft Deleted",
     "create": "Create Object",
     "searchResults": "Search Results for: \"{query}\"",
     "results": "{count} result{count, plural, one {} other {s}}",
@@ -250,7 +252,8 @@
       "updated": "Updated",
       "address": "Address",
       "properties": "Properties",
-      "files": "Files"
+      "files": "Files",
+      "group": "Group"
     },
     "address": {
       "street": "Street",
@@ -386,7 +389,7 @@
       "addingToGroup": "Adding to group..."
     },
     "groupFilter": {
-      "title": "Filter by Group",
+      "title": "Groups",
       "allGroups": "All Groups",
       "search": "Search groups...",
       "noGroups": "No groups found",

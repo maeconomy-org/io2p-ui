@@ -3,25 +3,18 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
-import { PlusCircle, Copy, FolderOpen, HomeIcon } from 'lucide-react'
-import Link from 'next/link'
+import { PlusCircle, Copy, FolderOpen } from 'lucide-react'
 import type { RowSelectionState, VisibilityState } from '@tanstack/react-table'
 
-import { useAggregate, useBreadcrumbTrail, useBulkActions } from '@/hooks'
 import {
-  Button,
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-  BreadcrumbEllipsis,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui'
+  useAggregate,
+  useBreadcrumbTrail,
+  useBulkSelection,
+  useViewData,
+} from '@/hooks'
+import { Button } from '@/components/ui'
+import { DeletedFilter } from '@/components/filters'
+import { ObjectBreadcrumb } from '@/components/object-breadcrumb'
 import { isObjectDeleted } from '@/lib'
 import {
   ObjectsTable,
@@ -35,6 +28,7 @@ import {
   ObjectAddSheet,
   CopyObjectsSheet,
 } from '@/components/object-sheets'
+import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
 const TOGGLEABLE_COLUMNS = [
   { id: 'name', labelKey: 'objects.fields.name' },
@@ -42,51 +36,21 @@ const TOGGLEABLE_COLUMNS = [
   { id: 'createdAt', labelKey: 'objects.fields.created' },
 ]
 
-// Truncate text with ellipsis and show full text on hover using Radix tooltip
-function TruncateWithTooltip({
-  text,
-  maxLength,
-}: {
-  text: string
-  maxLength: number
-}) {
-  const shouldTruncate = text.length > maxLength
-  const displayText = shouldTruncate ? text.slice(0, maxLength) + '...' : text
-
-  if (!shouldTruncate) {
-    return <>{displayText}</>
-  }
-
-  return (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span>{displayText}</span>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="max-w-xs">{text}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  )
-}
-
 function ObjectChildrenPageContent() {
   const t = useTranslations()
   const params = useParams()
   const router = useRouter()
   const parentUuid = params.uuid as string
 
-  // Pagination state for children
-  const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize, setPageSize] = useState(15)
+  // Filter state
+  const [showDeleted, setShowDeleted] = useState<boolean>(false)
 
   // Row selection state
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
   // Hooks
-  const { useAggregateByUUID, useAggregateEntities } = useAggregate()
+  const { useAggregateByUUID } = useAggregate()
   const { ancestors, pushAncestor, navigateToAncestor, clearTrail } =
     useBreadcrumbTrail(parentUuid)
 
@@ -98,21 +62,19 @@ function ObjectChildrenPageContent() {
     }
   )
 
-  // Get children with pagination
-  const { data: childrenResponse, isLoading: childrenLoading } =
-    useAggregateEntities(
-      {
-        parentUUID: parentUuid,
-        hasParentUUIDFilter: true,
-        page: currentPage,
-        size: pageSize,
-      },
-      {
-        enabled: !!parentUuid,
-        staleTime: 30000,
-        keepPreviousData: true,
-      }
-    )
+  // Get children with pagination using useViewData
+  const viewData = useViewData({
+    viewType: 'table',
+    tablePageSize: DEFAULT_TABLE_PAGE_SIZE,
+    showDeleted,
+    parentUUID: parentUuid,
+  })
+
+  // Extract data from viewData (always table type for child pages)
+  const childrenData = viewData.type === 'table' ? viewData.data : []
+  const childrenLoading = viewData.loading
+  const childrenFetching = viewData.type === 'table' ? viewData.fetching : false
+  const pagination = viewData.type === 'table' ? viewData.pagination : null
 
   // Process parent object data
   const parentObject = useMemo(() => {
@@ -122,92 +84,25 @@ function ObjectChildrenPageContent() {
     return null
   }, [parentData])
 
-  // Process children data and enhance with child info
-  const childrenData = useMemo(() => {
-    const allChildren = childrenResponse?.content || []
-
-    return allChildren.map((obj) => ({
-      ...obj,
-      hasChildren: obj.children && obj.children.length > 0,
-      childCount: obj.children ? obj.children.length : 0,
-    }))
-  }, [childrenResponse])
-
-  // Bulk actions
+  // Bulk selection hook - consolidates all bulk selection logic
   const {
-    bulkDeleteMutation,
-    bulkRevertMutation,
-    bulkAddToGroupMutation,
-    bulkCreateAndAddToGroupMutation,
-    bulkSetParentMutation,
-  } = useBulkActions()
-
-  // Derive selected objects from children data
-  const selectedObjects = useMemo(() => {
-    return childrenData.filter(
-      (obj) => obj.uuid && rowSelection[obj.uuid]
-    ) as any[]
-  }, [childrenData, rowSelection])
-
-  const selectedCount = Object.keys(rowSelection).length
-  const allSelectedDeleted =
-    selectedObjects.length > 0 &&
-    selectedObjects.every((obj: any) => isObjectDeleted(obj))
-  const hasNonDeletedSelected = selectedObjects.some(
-    (obj: any) => !isObjectDeleted(obj)
-  )
-
-  const clearSelection = useCallback(() => setRowSelection({}), [])
-
-  const handleBulkDelete = useCallback(() => {
-    const nonDeleted = selectedObjects.filter(
-      (obj: any) => !isObjectDeleted(obj)
-    )
-    if (nonDeleted.length === 0) return
-    bulkDeleteMutation.mutate(nonDeleted, { onSuccess: clearSelection })
-  }, [selectedObjects, bulkDeleteMutation, clearSelection])
-
-  const handleBulkRestore = useCallback(() => {
-    const deleted = selectedObjects.filter((obj: any) => isObjectDeleted(obj))
-    if (deleted.length === 0) return
-    bulkRevertMutation.mutate(deleted, { onSuccess: clearSelection })
-  }, [selectedObjects, bulkRevertMutation, clearSelection])
-
-  const handleAddToGroup = useCallback(
-    (groupUUID: string) => {
-      const uuids = selectedObjects.map((obj: any) => obj.uuid)
-      if (uuids.length === 0) return
-      bulkAddToGroupMutation.mutate(
-        { groupUUID, objectUUIDs: uuids },
-        { onSuccess: clearSelection }
-      )
+    selectedCount,
+    allSelectedDeleted,
+    hasNonDeletedSelected,
+    clearSelection,
+    handlers: {
+      handleBulkDelete,
+      handleBulkRestore,
+      handleAddToGroup,
+      handleCreateAndAddToGroup,
+      handleSetParent,
     },
-    [selectedObjects, bulkAddToGroupMutation, clearSelection]
-  )
-
-  const handleCreateAndAddToGroup = useCallback(
-    (name: string) => {
-      const uuids = selectedObjects.map((obj: any) => obj.uuid)
-      if (uuids.length === 0) return
-      bulkCreateAndAddToGroupMutation.mutate(
-        { groupName: name, objectUUIDs: uuids },
-        { onSuccess: clearSelection }
-      )
-    },
-    [selectedObjects, bulkCreateAndAddToGroupMutation, clearSelection]
-  )
-
-  const handleSetParent = useCallback(
-    (parentUUID: string) => {
-      const childUUIDs = selectedObjects.map((obj: any) => obj.uuid)
-      if (childUUIDs.length === 0) return
-      bulkSetParentMutation.mutate(
-        { parentUUID, childUUIDs },
-        { onSuccess: clearSelection }
-      )
-    },
-    [selectedObjects, bulkSetParentMutation, clearSelection]
-  )
+    mutations: { isDeleting, isRestoring, isAddingToGroup, isSettingParent },
+  } = useBulkSelection({
+    data: childrenData,
+    rowSelection,
+    setRowSelection,
+  })
 
   // State
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
@@ -217,11 +112,9 @@ function ObjectChildrenPageContent() {
   // Copy objects state
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
 
-  // Pagination info
-  const totalPages = childrenResponse?.totalPages || 0
-  const totalElements = childrenResponse?.totalElements || 0
-  const isFirstPage = childrenResponse?.first ?? true
-  const isLastPage = childrenResponse?.last ?? true
+  // Pagination info from useViewData
+  const totalPages = pagination?.totalPages || 0
+  const totalElements = pagination?.totalElements || 0
 
   const handleViewObject = (object: any) => {
     setSelectedObject(object)
@@ -242,21 +135,6 @@ function ObjectChildrenPageContent() {
     },
     [parentObject, parentUuid, pushAncestor, router]
   )
-
-  // Truncate breadcrumb: show first 3 + ... + last 3 when > 6 ancestors
-  const MAX_VISIBLE = 4
-  const EDGE_COUNT = 2
-
-  const truncatedAncestors = useMemo(() => {
-    if (ancestors.length <= MAX_VISIBLE) {
-      return { leading: ancestors, trailing: [], truncated: false }
-    }
-    return {
-      leading: ancestors.slice(0, EDGE_COUNT),
-      trailing: ancestors.slice(-1),
-      truncated: true,
-    }
-  }, [ancestors])
 
   const handleAddChild = () => {
     setSelectedObject(null)
@@ -283,75 +161,15 @@ function ObjectChildrenPageContent() {
     <div className="container mx-auto py-6 px-4">
       <div className="flex flex-col space-y-4">
         {/* Breadcrumbs */}
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link
-                  href="/objects"
-                  className="flex items-center gap-2"
-                  onClick={() => clearTrail()}
-                >
-                  <HomeIcon className="size-4" />
-                  {t('objects.childrenPage.breadcrumbRoot')}
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            {truncatedAncestors.leading.map((ancestor) => (
-              <span key={ancestor.uuid} className="contents">
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link
-                      href={`/objects/${ancestor.uuid}`}
-                      onClick={() => navigateToAncestor(ancestor.uuid)}
-                    >
-                      <TruncateWithTooltip
-                        text={ancestor.name}
-                        maxLength={25}
-                      />
-                    </Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-              </span>
-            ))}
-            {truncatedAncestors.truncated && (
-              <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbEllipsis />
-                </BreadcrumbItem>
-                {truncatedAncestors.trailing.map((ancestor) => (
-                  <span key={ancestor.uuid} className="contents">
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      <BreadcrumbLink asChild>
-                        <Link
-                          href={`/objects/${ancestor.uuid}`}
-                          onClick={() => navigateToAncestor(ancestor.uuid)}
-                        >
-                          <TruncateWithTooltip
-                            text={ancestor.name}
-                            maxLength={25}
-                          />
-                        </Link>
-                      </BreadcrumbLink>
-                    </BreadcrumbItem>
-                  </span>
-                ))}
-              </>
-            )}
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>
-                <TruncateWithTooltip
-                  text={parentObject.name || parentUuid}
-                  maxLength={25}
-                />
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <ObjectBreadcrumb
+          currentObject={{
+            uuid: parentUuid,
+            name: parentObject.name || parentUuid,
+          }}
+          ancestors={ancestors}
+          onNavigateToAncestor={navigateToAncestor}
+          onNavigateToRoot={clearTrail}
+        />
 
         {/* Header with parent info */}
         <div className="flex items-center justify-between">
@@ -372,6 +190,12 @@ function ObjectChildrenPageContent() {
           </div>
 
           <div className="flex items-center gap-2">
+            <DeletedFilter
+              showDeleted={showDeleted}
+              onShowDeletedChange={setShowDeleted}
+              label={t('objects.showDeleted')}
+              data-tour="filters"
+            />
             <Button
               size="sm"
               variant="outline"
@@ -400,13 +224,10 @@ function ObjectChildrenPageContent() {
             onCreateAndAddToGroup={handleCreateAndAddToGroup}
             onSetParent={handleSetParent}
             onClearSelection={clearSelection}
-            isDeleting={bulkDeleteMutation.isPending}
-            isRestoring={bulkRevertMutation.isPending}
-            isAddingToGroup={
-              bulkAddToGroupMutation.isPending ||
-              bulkCreateAndAddToGroupMutation.isPending
-            }
-            isSettingParent={bulkSetParentMutation.isPending}
+            isDeleting={isDeleting}
+            isRestoring={isRestoring}
+            isAddingToGroup={isAddingToGroup}
+            isSettingParent={isSettingParent}
           />
         )}
 
@@ -439,28 +260,20 @@ function ObjectChildrenPageContent() {
             initialData={childrenData}
             onViewObject={handleViewObject}
             onObjectDoubleClick={handleObjectDoubleClick}
-            fetching={childrenLoading}
+            fetching={childrenFetching}
             pagination={{
-              currentPage: currentPage + 1,
+              currentPage: (pagination?.currentPage || 0) + 1,
               totalPages,
               totalElements,
-              pageSize,
-              isFirstPage,
-              isLastPage,
+              pageSize: pagination?.pageSize || DEFAULT_TABLE_PAGE_SIZE,
+              isFirstPage: pagination?.isFirstPage ?? true,
+              isLastPage: pagination?.isLastPage ?? true,
             }}
-            onPageChange={(page) => setCurrentPage(page)}
-            onFirstPage={() => setCurrentPage(0)}
-            onPreviousPage={() =>
-              setCurrentPage((prev) => Math.max(0, prev - 1))
-            }
-            onNextPage={() =>
-              setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))
-            }
-            onLastPage={() => setCurrentPage(() => totalPages - 1)}
-            onPageSizeChange={(size) => {
-              setPageSize(size)
-              setCurrentPage(0)
-            }}
+            onPageChange={(page) => pagination?.handlePageChange(page)}
+            onFirstPage={() => pagination?.handleFirst()}
+            onPreviousPage={() => pagination?.handlePrevious()}
+            onNextPage={() => pagination?.handleNext()}
+            onLastPage={() => pagination?.handleLast()}
             enableRowSelection
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}

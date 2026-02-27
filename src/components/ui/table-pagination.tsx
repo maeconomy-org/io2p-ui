@@ -22,8 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 50]
+import { DEFAULT_TABLE_PAGE_SIZE_OPTIONS } from '@/constants'
 
 interface TablePaginationProps {
   currentPage: number // 0-based
@@ -54,7 +53,7 @@ export function TablePagination({
   onNext,
   onLast,
   onPageSizeChange,
-  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
+  pageSizeOptions = DEFAULT_TABLE_PAGE_SIZE_OPTIONS,
 }: TablePaginationProps) {
   const t = useTranslations()
   if (totalPages <= 1) {

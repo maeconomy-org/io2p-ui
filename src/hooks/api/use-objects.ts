@@ -19,6 +19,8 @@ export function useObjects() {
         return response
       },
       enabled,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
     })
   }
 
@@ -32,6 +34,8 @@ export function useObjects() {
         return response?.[0] || null
       },
       enabled: !!uuid && options?.enabled !== false,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
     })
   }
 
@@ -99,6 +103,7 @@ export function useObjects() {
       },
       enabled: uuids.length > 0 && options?.enabled !== false,
       staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
     })
   }
 

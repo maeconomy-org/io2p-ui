@@ -19,7 +19,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui'
-import { cn } from '@/lib/utils'
+import { cn, truncateText } from '@/lib/utils'
 import { useCommonApi } from '@/hooks/api'
 import type { ParentObject } from '@/types'
 
@@ -33,6 +33,10 @@ interface ParentSelectorProps {
   maxSelections?: number
   disabled?: boolean
   dataTour?: string
+  /** Compact mode for toolbar usage - hides label and selected parents display */
+  compact?: boolean
+  /** Custom trigger content for compact mode */
+  triggerContent?: React.ReactNode
 }
 
 export function ParentSelector({
@@ -43,6 +47,8 @@ export function ParentSelector({
   maxSelections = 10,
   disabled = false,
   dataTour,
+  compact = false,
+  triggerContent,
 }: ParentSelectorProps) {
   const t = useTranslations()
   const [isOpen, setIsOpen] = useState(false)
@@ -82,7 +88,7 @@ export function ParentSelector({
             softDeleted: false,
           },
           ...(query && { searchTerm: query.trim() }),
-          size: 8,
+          size: query ? 20 : 10, // Fetch more when searching, 10 initially
           page: 0,
         })
 
@@ -176,57 +182,70 @@ export function ParentSelector({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label>{t('objects.parentSelector.label')}</Label>
-        {selectedParents.length > 0 && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleClearAllParents}
-            className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            {t('objects.parentSelector.clearAll')}
-          </Button>
-        )}
-      </div>
+    <div className={compact ? '' : 'space-y-2'}>
+      {!compact && (
+        <div className="flex items-center justify-between">
+          <Label>{t('objects.parentSelector.label')}</Label>
+          {selectedParents.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleClearAllParents}
+              className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              {t('objects.parentSelector.clearAll')}
+            </Button>
+          )}
+        </div>
+      )}
 
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <Popover open={isOpen} onOpenChange={setIsOpen} modal={true}>
         <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={isOpen}
-            aria-controls="parent-selector-listbox"
-            className="w-full justify-between"
-            disabled={disabled}
-            data-tour={dataTour}
-          >
-            {selectedParents.length > 0 ? (
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span className="truncate">
-                  {t('objects.parentSelector.selectedCount', {
-                    count: selectedParents.length,
-                  })}
+          {triggerContent ? (
+            triggerContent
+          ) : (
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={isOpen}
+              aria-controls="parent-selector-listbox"
+              className={cn('justify-between', compact ? 'h-8' : 'w-full')}
+              disabled={disabled}
+              data-tour={dataTour}
+            >
+              {selectedParents.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span className="truncate">
+                    {compact
+                      ? selectedParents.length.toString()
+                      : t('objects.parentSelector.selectedCount', {
+                          count: selectedParents.length,
+                        })}
+                  </span>
+                  {!compact && selectedParents.length >= maxSelections && (
+                    <Badge variant="secondary" className="text-xs">
+                      {t('objects.parentSelector.maxBadge')}
+                    </Badge>
+                  )}
+                </div>
+              ) : (
+                <span className="text-muted-foreground">
+                  {placeholder ?? t('objects.parentSelector.placeholder')}
                 </span>
-                {selectedParents.length >= maxSelections && (
-                  <Badge variant="secondary" className="text-xs">
-                    {t('objects.parentSelector.maxBadge')}
-                  </Badge>
-                )}
-              </div>
-            ) : (
-              <span className="text-muted-foreground">
-                {placeholder ?? t('objects.parentSelector.placeholder')}
-              </span>
-            )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
+              )}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          )}
         </PopoverTrigger>
         <PopoverContent
-          className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0"
+          className={cn(
+            'p-0',
+            compact
+              ? 'w-[320px]'
+              : 'w-[--radix-popover-trigger-width] min-w-[280px]'
+          )}
           align="start"
         >
           <Command shouldFilter={false} id="parent-selector-listbox">
@@ -243,7 +262,7 @@ export function ParentSelector({
                 </div>
               )}
             </div>
-            <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
+            <CommandList className="max-h-[300px] overflow-y-auto">
               <CommandEmpty>
                 {isSearching
                   ? t('objects.parentSelector.searching')
@@ -265,35 +284,31 @@ export function ParentSelector({
                     >
                       <Check
                         className={cn(
-                          'h-4 w-4',
+                          'h-4 w-4 shrink-0',
                           isSelected ? 'opacity-100' : 'opacity-0'
                         )}
                       />
-                      <span className="font-medium truncate">
-                        {object.name || object.uuid}
-                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-medium truncate">
+                          {object.name || object.uuid}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-mono truncate">
+                          {truncateText(object.uuid, 30, true)}
+                        </span>
+                      </div>
                     </CommandItem>
                   )
                 })}
               </CommandGroup>
-              {searchResults.length > 0 &&
-                totalResultsCount > searchResults.length && (
-                  <div className="px-2 py-1.5 text-xs text-muted-foreground border-t bg-muted/20">
-                    {t('objects.parentSelector.showingTop', {
-                      shown: searchResults.length,
-                      total: totalResultsCount,
-                    })}
-                  </div>
-                )}
             </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
 
-      {/* Selected Parents Display */}
-      {selectedParents.length > 0 && (
+      {/* Selected Parents Display - hidden in compact mode */}
+      {!compact && selectedParents.length > 0 && (
         <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-md">
-          {selectedParents.map((parent, index) => {
+          {selectedParents.map((parent) => {
             // Try to find the name from search results, fallback to stored name or UUID
             const searchResult = searchResults.find(
               (obj) => obj.uuid === parent.uuid
@@ -327,8 +342,8 @@ export function ParentSelector({
         </div>
       )}
 
-      {/* Max selections reached message */}
-      {selectedParents.length >= maxSelections && !disabled && (
+      {/* Max selections reached message - hidden in compact mode */}
+      {!compact && selectedParents.length >= maxSelections && !disabled && (
         <p className="text-xs text-muted-foreground">
           {t('objects.parentSelector.maxSelections', { max: maxSelections })}
         </p>

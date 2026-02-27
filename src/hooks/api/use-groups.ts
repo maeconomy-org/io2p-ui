@@ -14,6 +14,8 @@ export function useGroups() {
       queryFn: async () => {
         return client.node.listGroups()
       },
+      staleTime: 60000, // Groups rarely change — cache for 1 minute
+      gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
       ...options,
     })
   }
@@ -25,6 +27,8 @@ export function useGroups() {
         return client.node.getGroup(groupUUID)
       },
       enabled: !!groupUUID,
+      staleTime: 60000,
+      gcTime: 10 * 60 * 1000,
       ...options,
     })
   }
@@ -36,6 +40,8 @@ export function useGroups() {
         return client.node.listGroupRecords(groupUUID)
       },
       enabled: !!groupUUID,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
       ...options,
     })
   }

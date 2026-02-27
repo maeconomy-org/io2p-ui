@@ -35,14 +35,17 @@ export function GroupBadge({
     <Badge
       variant="outline"
       className={cn(
-        'flex items-center gap-1 font-normal',
+        'flex w-fit items-center gap-1 font-normal',
         getTypeColor(),
         size === 'sm' ? 'text-xs px-2 py-0.5' : 'text-sm px-2.5 py-1',
         className
       )}
     >
       {getTypeIcon()}
-      <span className="truncate max-w-[100px]" title={groupName}>
+      <span
+        className="max-w-[100px] truncate w-fit text-center"
+        title={groupName}
+      >
         {groupName}
       </span>
     </Badge>

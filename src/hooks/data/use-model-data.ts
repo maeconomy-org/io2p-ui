@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { keepPreviousData } from '@tanstack/react-query'
 
 import { useAggregate, usePagination } from '@/hooks'
 
@@ -32,8 +33,8 @@ export function useModelData({
     },
     {
       staleTime: 30000, // Cache for 30 seconds
-      keepPreviousData: true, // Smooth pagination transitions
-      cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+      placeholderData: keepPreviousData, // React Query v5: smooth pagination transitions
+      gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     }
   )
 

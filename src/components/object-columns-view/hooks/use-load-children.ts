@@ -41,7 +41,7 @@ export function useLoadChildren() {
       // Use queryClient.fetchQuery with the same query key and function as useAggregateEntities
       // This ensures proper caching and follows the centralized API pattern
       const response = await queryClient.fetchQuery({
-        queryKey: ['aggregates', params],
+        queryKey: ['aggregates', 'children', params],
         queryFn: async () => {
           const response = await client.node.searchAggregates({
             readDefaultGroup: true,
@@ -49,7 +49,8 @@ export function useLoadChildren() {
           })
           return response
         },
-        staleTime: 0, // Always fetch fresh data for children
+        staleTime: 30000, // Cache children for 30 seconds like main objects
+        gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
       })
 
       // Transform and return the children data with pagination info
