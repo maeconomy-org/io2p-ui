@@ -15,8 +15,10 @@ import {
   UserPlus,
   Crown,
   AlertCircle,
+  LayoutGrid,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import type {
   GroupCreateDTO,
   GroupPermission,
@@ -68,6 +70,7 @@ export function GroupViewSheet({
   const { useCreateGroup, useGetGroup } = useGroups()
   const updateGroup = useCreateGroup()
   const { userUUID } = useAuth()
+  const router = useRouter()
 
   // Fetch live group data so changes (from mutations) are reflected immediately
   const { data: liveGroup } = useGetGroup(groupProp?.groupUUID ?? '', {
@@ -708,6 +711,22 @@ export function GroupViewSheet({
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* View Objects Action - Always visible outside tabs */}
+        {group.groupUUID && (
+          <div className="mt-6 pt-6 border-t">
+            <Button
+              className="w-full"
+              onClick={() => {
+                router.push(`/objects?groupId=${group.groupUUID}`)
+                onOpenChange(false)
+              }}
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              {t('groups.viewObjects')}
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   )

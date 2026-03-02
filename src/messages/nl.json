@@ -703,6 +703,8 @@
     "userUuid": "Gebruikers-UUID",
     "userUuidPlaceholder": "Voer gebruikers-UUID in...",
     "viewDetails": "Details bekijken",
+    "viewObjects": "Objecten bekijken",
+    "groupDetails": "Groepdetails",
     "deleteGroup": "Groep verwijderen",
     "owner": "Eigenaar",
     "ownerDescription": "U bent de eigenaar van deze groep en heeft volledige toegang",

@@ -704,6 +704,8 @@
     "userUuid": "User UUID",
     "userUuidPlaceholder": "Enter user UUID...",
     "viewDetails": "View Details",
+    "viewObjects": "View Objects",
+    "groupDetails": "Group Details",
     "deleteGroup": "Delete Group",
     "owner": "Owner",
     "ownerDescription": "You are the owner of this group and have full access",

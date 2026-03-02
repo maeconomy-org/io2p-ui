@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import {
-  MoreHorizontal,
   Lock,
   Globe,
   Trash2,
@@ -12,8 +11,11 @@ import {
   Check,
   X,
   Loader2,
+  LayoutGrid,
+  Settings2,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import type { GroupCreateDTO, GroupPermission } from 'iom-sdk'
 
 import {
@@ -23,10 +25,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib'
@@ -45,6 +43,7 @@ export function GroupCard({ group, onView, onDelete }: GroupCardProps) {
   const { userUUID } = useAuth()
   const { useCreateGroup } = useGroups()
   const updateGroup = useCreateGroup()
+  const router = useRouter()
 
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState('')
@@ -91,47 +90,138 @@ export function GroupCard({ group, onView, onDelete }: GroupCardProps) {
     }
   }
 
+  const handleViewObjects = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (group.groupUUID) {
+      router.push(`/objects?groupId=${group.groupUUID}`)
+    }
+  }
+
   return (
     <Card
       className={cn(
-        'hover:shadow-md transition-shadow cursor-pointer group/card'
+        'hover:shadow-md transition-shadow group/card flex flex-col overflow-hidden'
       )}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
+      <CardHeader className="pb-3 flex-1">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex-1 min-w-0">
+            {isEditingName ? (
+              <div
+                className="flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Input
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName()
+                    if (e.key === 'Escape') setIsEditingName(false)
+                  }}
+                  className="h-8 text-base font-semibold"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={handleSaveName}
+                  disabled={updateGroup.isPending}
+                >
+                  {updateGroup.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setIsEditingName(false)}
+                  disabled={updateGroup.isPending}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 group/name">
+                <h3
+                  className="font-semibold text-lg leading-tight cursor-pointer hover:text-primary transition-colors truncate"
+                  onClick={onView}
+                >
+                  {group.name}
+                </h3>
+                {canWrite && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-5 w-5 p-0 shrink-0 opacity-0 group-hover/name:opacity-100 transition-opacity"
+                    onClick={handleStartEditName}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {canWrite && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete()
+              }}
+              title={t('groups.deleteGroup')}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Users className="h-3.5 w-3.5 shrink-0" />
+            <span>{t('groups.usersCount', { count: sharedUsersCount })}</span>
+          </div>
+
+          <div className="flex items-center gap-1 flex-wrap justify-end">
             <Badge
               className={cn(
+                'gap-1 pointer-events-none',
                 isPublic
-                  ? 'bg-green-100 text-green-800 border-green-200'
-                  : 'bg-blue-100 text-blue-800 border-blue-200'
+                  ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
+                  : 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
               )}
             >
               {isPublic ? (
-                <Globe className="h-3.5 w-3.5" />
+                <Globe className="h-3 w-3" />
               ) : (
-                <Lock className="h-3.5 w-3.5" />
+                <Lock className="h-3 w-3" />
               )}
-              <span className="ml-1 capitalize text-xs">
+              <span className="capitalize text-[10px] font-medium leading-none">
                 {isPublic ? t('groups.public') : t('groups.private')}
               </span>
             </Badge>
             {isOwner ? (
               <Badge
                 variant="secondary"
-                className="bg-amber-100 text-amber-700 border-amber-200 text-xs"
+                className="gap-1 pointer-events-none bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 text-[10px]"
               >
-                <Crown className="h-3 w-3 mr-0.5" />
+                <Crown className="h-3 w-3" />
                 {t('groups.owner')}
               </Badge>
             ) : (
               currentUserPermissions.length > 0 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
                   {currentUserPermissions.map((perm) => (
                     <Badge
                       key={perm}
                       variant="secondary"
-                      className="text-[10px] h-5 px-1 bg-gray-100 text-gray-600 border-gray-200"
+                      className="text-[9px] h-4 px-1 pointer-events-none bg-muted text-muted-foreground border-border"
                     >
                       {t(`groups.permissions.${perm}`)}
                     </Badge>
@@ -140,95 +230,29 @@ export function GroupCard({ group, onView, onDelete }: GroupCardProps) {
               )
             )}
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onView}>
-                {t('groups.viewDetails')}
-              </DropdownMenuItem>
-              {canWrite && (
-                <DropdownMenuItem
-                  onClick={onDelete}
-                  className="text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('groups.deleteGroup')}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
-
-        {isEditingName ? (
-          <div
-            className="flex items-center gap-1"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Input
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveName()
-                if (e.key === 'Escape') setIsEditingName(false)
-              }}
-              className="h-8 text-base font-semibold"
-              autoFocus
-            />
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 w-7 p-0"
-              onClick={handleSaveName}
-              disabled={updateGroup.isPending}
-            >
-              {updateGroup.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Check className="h-3.5 w-3.5" />
-              )}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 w-7 p-0"
-              onClick={() => setIsEditingName(false)}
-              disabled={updateGroup.isPending}
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ) : (
-          <div
-            className="flex items-center gap-1 cursor-pointer"
-            onClick={onView}
-          >
-            <h3 className="font-semibold text-lg leading-tight">
-              {group.name}
-            </h3>
-            {canWrite && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 opacity-0 group-hover/card:opacity-100 transition-opacity"
-                onClick={handleStartEditName}
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-        )}
       </CardHeader>
 
-      <CardContent className="pt-0" onClick={onView}>
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <Users className="h-3.5 w-3.5" />
-          <span>{t('groups.usersCount', { count: sharedUsersCount })}</span>
-        </div>
-      </CardContent>
+      {/* Bottom action bar */}
+      <div className="border-t grid grid-cols-2 divide-x">
+        <button
+          className="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          onClick={handleViewObjects}
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+          {t('groups.viewObjects')}
+        </button>
+        <button
+          className="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation()
+            onView()
+          }}
+        >
+          <Settings2 className="h-3.5 w-3.5" />
+          {t('groups.groupDetails')}
+        </button>
+      </div>
     </Card>
   )
 }
