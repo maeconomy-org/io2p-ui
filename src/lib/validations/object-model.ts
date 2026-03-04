@@ -1,7 +1,30 @@
 import * as z from 'zod'
 
+// UUID validation helper - accepts standard UUID format or specific formats
+export const uuidSchema = z
+  .string()
+  .regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    'Invalid UUID format'
+  )
+
+// Optional UUID that validates format when present
+export const optionalUuidSchema = z
+  .string()
+  .optional()
+  .refine(
+    (val) =>
+      !val ||
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        val
+      ),
+    {
+      message: 'Invalid UUID format',
+    }
+  )
+
 export const propertyValueSchema = z.object({
-  uuid: z.string().optional(),
+  uuid: optionalUuidSchema,
   value: z.string(),
   files: z.array(z.any()),
   formulaData: z
@@ -16,7 +39,7 @@ export const propertyValueSchema = z.object({
 })
 
 export const propertySchema = z.object({
-  uuid: z.string().optional(),
+  uuid: optionalUuidSchema,
   key: z.string().min(1, 'Property name is required'),
   values: z.array(propertyValueSchema),
   files: z.array(z.any()),
@@ -44,7 +67,7 @@ export const objectModelSchema = z.object({
 })
 
 export const objectSchema = z.object({
-  uuid: z.string().optional(),
+  uuid: optionalUuidSchema,
   name: z
     .string()
     .min(1, 'Name is required')
@@ -55,10 +78,10 @@ export const objectSchema = z.object({
   version: z.string().optional(),
   description: z.string().optional(),
   address: addressSchema.optional(),
-  parents: z.array(z.string()).optional(), // New field for multiple parents
+  parents: z.array(optionalUuidSchema).optional(),
   properties: z.array(propertySchema),
   files: z.array(z.any()).optional(),
-  modelUuid: z.string().optional(),
+  modelUuid: optionalUuidSchema,
   isTemplate: z.boolean().optional().default(false),
 })
 

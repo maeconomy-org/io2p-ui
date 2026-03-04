@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Save,
   X,
@@ -11,13 +8,12 @@ import {
   Plus,
   Trash2,
   AlertCircle,
+  Globe,
+  Lock,
+  HelpCircle,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import type {
-  GroupCreateDTO,
-  GroupPermission,
-  GroupShareToUserDTO,
-} from 'iom-sdk'
+import type { GroupCreateDTO } from 'iom-sdk'
 
 import {
   Button,
@@ -28,6 +24,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
   ScrollArea,
   Checkbox,
   Form,
@@ -36,17 +33,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+  Switch,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib'
 import { useGroups } from '@/hooks/api'
-import { groupSchema, GroupFormValues } from '@/lib/validations'
-
-const PERMISSION_OPTIONS: GroupPermission[] = [
-  'READ' as GroupPermission,
-  'GROUP_WRITE' as GroupPermission,
-  'GROUP_WRITE_RECORDS' as GroupPermission,
-]
+import { useGroupForm } from '../hooks'
 
 interface GroupCreateSheetProps {
   group: GroupCreateDTO | null
@@ -63,83 +58,37 @@ export function GroupCreateSheet({
   const { useCreateGroup } = useGroups()
   const createGroup = useCreateGroup()
 
-  // Users to add (collected before submission)
-  const [pendingUsers, setPendingUsers] = useState<GroupShareToUserDTO[]>([])
-  const [newUserUUID, setNewUserUUID] = useState('')
-  const [newUserPermissions, setNewUserPermissions] = useState<
-    GroupPermission[]
-  >(['READ' as GroupPermission])
-  const [addUserError, setAddUserError] = useState<string | null>(null)
-
-  const togglePermission = (perm: GroupPermission) => {
-    if (perm === ('READ' as GroupPermission)) return
-    setNewUserPermissions((prev) =>
-      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]
-    )
-  }
-
-  const form = useForm<GroupFormValues>({
-    resolver: zodResolver(groupSchema),
-    defaultValues: {
-      name: '',
-    },
+  const {
+    form,
+    pendingUsers,
+    newUserUUID,
+    newUserPermissions,
+    addUserError,
+    isPublic,
+    publicPermissions,
+    permissionOptions,
+    setNewUserUUID,
+    setAddUserError,
+    setIsPublic,
+    togglePermission,
+    togglePublicPermission,
+    handleAddPendingUser,
+    handleRemovePendingUser,
+    buildGroupDTO,
+    resetForm,
+    clearUserError,
+  } = useGroupForm({
+    open,
+    defaultName: group?.name ?? '',
   })
 
-  // Reset form when sheet opens/closes
-  useEffect(() => {
-    if (open) {
-      form.reset({ name: group?.name ?? '' })
-      setPendingUsers([])
-      setNewUserUUID('')
-      setNewUserPermissions(['READ' as GroupPermission])
-      setAddUserError(null)
-    }
-  }, [group, open, form])
-
-  const handleAddPendingUser = () => {
-    const trimmedUUID = newUserUUID.trim()
-    if (!trimmedUUID) return
-
-    setAddUserError(null)
-
-    // Check for duplicates
-    if (pendingUsers.some((u) => u.userUUID === trimmedUUID)) {
-      setAddUserError(t('groups.userAlreadyExists'))
-      return
-    }
-
-    setPendingUsers((prev) => [
-      ...prev,
-      {
-        userUUID: trimmedUUID,
-        permissions: Array.from(
-          new Set(['READ' as GroupPermission, ...newUserPermissions])
-        ),
-      },
-    ])
-    setNewUserUUID('')
-    setNewUserPermissions(['READ' as GroupPermission])
-  }
-
-  const handleRemovePendingUser = (userUUID: string) => {
-    setPendingUsers((prev) => prev.filter((u) => u.userUUID !== userUUID))
-  }
-
-  const onSubmit = async (data: GroupFormValues) => {
+  const onSubmit = async (data: any) => {
     try {
-      const dto: GroupCreateDTO = {
-        name: data.name,
-        ...(group?.groupUUID ? { groupUUID: group.groupUUID } : {}),
-        ...(pendingUsers.length > 0 ? { usersShare: pendingUsers } : {}),
-      }
-
+      const dto = buildGroupDTO(data, group?.groupUUID)
       await createGroup.mutateAsync(dto)
-
       logger.info('Group created', { name: data.name })
-
       onOpenChange(false)
-      form.reset()
-      setPendingUsers([])
+      resetForm()
     } catch (error) {
       logger.error('Error saving group:', {
         error: error instanceof Error ? error.message : String(error),
@@ -148,199 +97,334 @@ export function GroupCreateSheet({
   }
 
   const handleCancel = () => {
-    form.reset()
-    setPendingUsers([])
+    resetForm()
     onOpenChange(false)
   }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl">
-        <SheetHeader>
+      <SheetContent className="w-full sm:max-w-2xl gap-0 flex flex-col overflow-hidden">
+        <SheetHeader className="pb-3 border-b flex-shrink-0">
           <SheetTitle>{t('groups.form.createTitle')}</SheetTitle>
+          <SheetDescription>
+            {t('groups.form.createDescription')}
+          </SheetDescription>
         </SheetHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            {/* Group Name */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('groups.form.name')} *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t('groups.form.namePlaceholder')}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <Form {...form}>
+              <form className="space-y-4 py-3 px-1">
+                {/* Group Name */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('groups.form.name')} *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={t('groups.form.namePlaceholder')}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <Separator />
+                <Separator />
 
-            {/* Add Users Section */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <UserPlus className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">
-                  {t('groups.form.addUsers')}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  ({t('groups.form.addUsersOptional')})
-                </span>
-              </div>
-
-              {/* Add User Input Row */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={newUserUUID}
-                    onChange={(e) => {
-                      setNewUserUUID(e.target.value)
-                      setAddUserError(null)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        handleAddPendingUser()
-                      }
-                    }}
-                    placeholder={t('groups.userUuidPlaceholder')}
-                    className="font-mono text-xs h-8 flex-1"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleAddPendingUser}
-                    disabled={!newUserUUID.trim()}
-                    className="h-8"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                  {PERMISSION_OPTIONS.map((perm) => (
-                    <label
-                      key={perm}
+                {/* Public/Private Toggle */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FormLabel className="!mt-0">
+                        {t('groups.visibility')}
+                      </FormLabel>
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                          >
+                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">
+                              {t('groups.public')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t('groups.publicDescription')}
+                            </p>
+                            <p className="text-sm font-medium mt-2">
+                              {t('groups.private')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {t('groups.privateDescription')}
+                            </p>
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    </div>
+                    <Badge
+                      variant="outline"
                       className={cn(
-                        'flex items-center gap-1.5 text-xs',
-                        perm === 'READ'
-                          ? 'cursor-not-allowed opacity-60'
-                          : 'cursor-pointer'
+                        'gap-1',
+                        isPublic
+                          ? 'bg-green-50 text-green-700 border-green-200'
+                          : 'bg-blue-50 text-blue-700 border-blue-200'
                       )}
                     >
-                      <Checkbox
-                        checked={
-                          perm === 'READ'
-                            ? true
-                            : newUserPermissions.includes(perm)
-                        }
-                        onCheckedChange={
-                          perm === 'READ'
-                            ? undefined
-                            : () => togglePermission(perm)
-                        }
-                        disabled={perm === 'READ'}
-                      />
-                      {t(`groups.permissions.${perm}`)}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              {addUserError && (
-                <div className="flex items-center gap-1.5 text-xs text-destructive">
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                  <span>{addUserError}</span>
-                </div>
-              )}
-
-              {/* Pending Users List */}
-              {pendingUsers.length > 0 && (
-                <ScrollArea className="max-h-[200px]">
-                  <div className="space-y-1">
-                    {pendingUsers.map((user, index) => (
-                      <div
-                        key={user.userUUID ?? index}
-                        className="flex items-center justify-between px-2 py-1.5 border rounded-md bg-muted/30"
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <code className="text-[11px] font-mono text-muted-foreground truncate">
-                            {user.userUUID}
-                          </code>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {(user.permissions ?? []).map((perm) => (
-                              <Badge
-                                key={perm}
-                                variant="secondary"
-                                className="text-[10px] h-5 px-1"
-                              >
-                                {t(`groups.permissions.${perm}`)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0 text-destructive hover:text-destructive shrink-0"
-                          onClick={() =>
-                            user.userUUID &&
-                            handleRemovePendingUser(user.userUUID)
-                          }
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
+                      {isPublic ? (
+                        <Globe className="h-3 w-3" />
+                      ) : (
+                        <Lock className="h-3 w-3" />
+                      )}
+                      {isPublic ? t('groups.public') : t('groups.private')}
+                    </Badge>
                   </div>
-                </ScrollArea>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                    <div className="space-y-1">
+                      <div className="font-medium text-sm">
+                        {t('groups.form.isPublic')}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {isPublic
+                          ? t('groups.publicShortDescription')
+                          : t('groups.privateShortDescription')}
+                      </div>
+                    </div>
+                    <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+                  </div>
+
+                  {/* Public permissions - only shown when public */}
+                  {isPublic && (
+                    <div className="space-y-2 p-3 border rounded-lg">
+                      <div className="text-sm font-medium">
+                        {t('groups.form.publicPermissions')}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {permissionOptions.map((perm) => (
+                          <label
+                            key={perm}
+                            className={cn(
+                              'flex items-center gap-1.5 text-xs',
+                              perm === 'READ'
+                                ? 'cursor-not-allowed opacity-60'
+                                : 'cursor-pointer'
+                            )}
+                          >
+                            <Checkbox
+                              checked={
+                                perm === 'READ'
+                                  ? true
+                                  : publicPermissions.includes(perm)
+                              }
+                              onCheckedChange={
+                                perm === 'READ'
+                                  ? undefined
+                                  : () => togglePublicPermission(perm)
+                              }
+                              disabled={perm === 'READ'}
+                            />
+                            <HoverCard>
+                              <HoverCardTrigger asChild>
+                                <span className="border-b border-dotted border-muted-foreground cursor-help">
+                                  {t(`groups.permissions.${perm}`)}
+                                </span>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-64">
+                                <p className="text-xs text-muted-foreground">
+                                  {t(`groups.permissionDescription.${perm}`)}
+                                </p>
+                              </HoverCardContent>
+                            </HoverCard>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Add Users Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">
+                      {t('groups.form.addUsers')}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({t('groups.form.addUsersOptional')})
+                    </span>
+                  </div>
+
+                  {/* Add User Input Row */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={newUserUUID}
+                        onChange={(e) => {
+                          setNewUserUUID(e.target.value)
+                          clearUserError()
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleAddPendingUser()
+                          }
+                        }}
+                        placeholder={t('groups.userUuidPlaceholder')}
+                        className="font-mono text-xs flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddPendingUser}
+                        disabled={!newUserUUID.trim()}
+                        className="px-3"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {permissionOptions.map((perm) => (
+                        <label
+                          key={perm}
+                          className={cn(
+                            'flex items-center gap-1.5 text-xs',
+                            perm === 'READ'
+                              ? 'cursor-not-allowed opacity-60'
+                              : 'cursor-pointer'
+                          )}
+                        >
+                          <Checkbox
+                            checked={
+                              perm === 'READ'
+                                ? true
+                                : newUserPermissions.includes(perm)
+                            }
+                            onCheckedChange={
+                              perm === 'READ'
+                                ? undefined
+                                : () => togglePermission(perm)
+                            }
+                            disabled={perm === 'READ'}
+                          />
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <span className="border-b border-dotted border-muted-foreground cursor-help">
+                                {t(`groups.permissions.${perm}`)}
+                              </span>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-64">
+                              <p className="text-xs text-muted-foreground">
+                                {t(`groups.permissionDescription.${perm}`)}
+                              </p>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  {addUserError && (
+                    <div className="flex items-center gap-1.5 text-xs text-destructive">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{addUserError}</span>
+                    </div>
+                  )}
+
+                  {/* Pending Users List */}
+                  {pendingUsers.length > 0 && (
+                    <ScrollArea className="max-h-[200px]">
+                      <div className="space-y-1">
+                        {pendingUsers.map((user, index) => (
+                          <div
+                            key={user.userUUID ?? index}
+                            className="flex items-center justify-between px-2 py-1.5 border rounded-md bg-muted/30"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <code className="text-[11px] font-mono text-muted-foreground truncate">
+                                {user.userUUID}
+                              </code>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {(user.permissions ?? []).map((perm) => (
+                                  <Badge
+                                    key={perm}
+                                    variant="secondary"
+                                    className="text-[10px] h-5 px-1"
+                                  >
+                                    {t(`groups.permissions.${perm}`)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-destructive hover:text-destructive shrink-0"
+                              onClick={() =>
+                                user.userUUID &&
+                                handleRemovePendingUser(user.userUUID)
+                              }
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </div>
+              </form>
+            </Form>
+          </ScrollArea>
+        </div>
+
+        {/* Fixed Actions at Bottom */}
+        <div className="flex-shrink-0 pt-4 border-t mt-4">
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              onClick={form.handleSubmit(onSubmit)}
+              disabled={createGroup.isPending}
+              className="flex-1"
+            >
+              {createGroup.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
               )}
-            </div>
-
-            <Separator />
-
-            {/* Actions */}
-            <div className="flex items-center gap-3">
-              <Button
-                type="submit"
-                disabled={createGroup.isPending}
-                className="flex-1"
-              >
-                {createGroup.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {createGroup.isPending
-                  ? t('groups.form.creating')
-                  : t('groups.form.createGroup')}
-                {pendingUsers.length > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="ml-2 h-5 px-1.5 text-[11px]"
-                  >
-                    +{pendingUsers.length}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={createGroup.isPending}
-              >
-                <X className="h-4 w-4 mr-2" />
-                {t('common.cancel')}
-              </Button>
-            </div>
-          </form>
-        </Form>
+              {createGroup.isPending
+                ? t('groups.form.creating')
+                : t('groups.form.createGroup')}
+              {pendingUsers.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-2 h-5 px-1.5 text-[11px]"
+                >
+                  +{pendingUsers.length}
+                </Badge>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={createGroup.isPending}
+            >
+              <X className="h-4 w-4 mr-2" />
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   )

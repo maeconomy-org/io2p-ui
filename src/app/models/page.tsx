@@ -82,9 +82,9 @@ export default function ObjectModelsPage() {
                 onShowDeletedChange={setShowDeleted}
                 label={t('models.showDeleted')}
               />
-              <Button onClick={handleAddModel}>
+              <Button size="sm" onClick={handleAddModel}>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                {t('models.add')}
+                {t('models.create')}
               </Button>
             </div>
           </div>

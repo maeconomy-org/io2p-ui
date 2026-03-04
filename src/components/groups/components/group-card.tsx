@@ -35,10 +35,11 @@ import { canEditGroup, deduplicateUsersShare } from '@/lib/group-utils'
 interface GroupCardProps {
   group: GroupCreateDTO
   onView: () => void
+  onEdit?: () => void
   onDelete: () => void
 }
 
-export function GroupCard({ group, onView, onDelete }: GroupCardProps) {
+export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
   const t = useTranslations()
   const { userUUID } = useAuth()
   const { useCreateGroup } = useGroups()
@@ -66,8 +67,12 @@ export function GroupCard({ group, onView, onDelete }: GroupCardProps) {
 
   const handleStartEditName = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setEditedName(group.name)
-    setIsEditingName(true)
+    if (onEdit) {
+      onEdit()
+    } else {
+      setEditedName(group.name)
+      setIsEditingName(true)
+    }
   }
 
   const handleSaveName = async () => {
@@ -99,6 +104,7 @@ export function GroupCard({ group, onView, onDelete }: GroupCardProps) {
 
   return (
     <Card
+      data-testid={`group-card-${group.groupUUID}`}
       className={cn(
         'hover:shadow-md transition-shadow group/card flex flex-col overflow-hidden'
       )}

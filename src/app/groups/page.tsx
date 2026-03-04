@@ -1,9 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { Plus, Search, Loader2, X } from 'lucide-react'
 import type { GroupCreateDTO } from 'iom-sdk'
+import { Search, Loader2, X, PlusCircle } from 'lucide-react'
 
 import { logger } from '@/lib'
 import { Button, Input } from '@/components/ui'
@@ -12,65 +12,41 @@ import {
   GroupCard,
   GroupViewSheet,
   GroupCreateSheet,
+  useGroupFilters,
 } from '@/components/groups'
-import { useGroups } from '@/hooks/api'
 import { useAuth } from '@/contexts'
+import { useGroups } from '@/hooks/api'
 
 type GroupFilter = 'all' | 'my' | 'shared'
 
 export default function GroupsPage() {
   const t = useTranslations()
+  const { userUUID } = useAuth()
   const { useListGroups } = useGroups()
   const { data: groups, isLoading, isError } = useListGroups()
-  const { userUUID } = useAuth()
 
-  const [searchTerm, setSearchTerm] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [activeFilter, setActiveFilter] = useState<GroupFilter>('all')
   const [selectedGroup, setSelectedGroup] = useState<GroupCreateDTO | null>(
     null
   )
   const [isViewSheetOpen, setIsViewSheetOpen] = useState(false)
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false)
 
-  const itemsPerPage = 12
-
-  const filteredGroups = useMemo(() => {
-    if (!groups) return []
-    return groups.filter((group) => {
-      if (group.default) return false
-
-      // Quick filter
-      if (activeFilter === 'my' && group.ownerUserUUID !== userUUID)
-        return false
-      if (activeFilter === 'shared' && group.ownerUserUUID === userUUID)
-        return false
-
-      const matchesSearch = group.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-      return matchesSearch
-    })
-  }, [groups, searchTerm, activeFilter, userUUID])
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredGroups.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedGroups = filteredGroups.slice(
+  const {
+    searchTerm,
+    currentPage,
+    activeFilter,
+    paginatedGroups,
+    totalPages,
     startIndex,
-    startIndex + itemsPerPage
-  )
-
-  // Reset to first page when search/filter changes
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value)
-    setCurrentPage(1)
-  }
-
-  const handleFilterChange = (filter: GroupFilter) => {
-    setActiveFilter(filter)
-    setCurrentPage(1)
-  }
+    filteredGroups,
+    handleSearchChange,
+    handleFilterChange,
+    handlePageChange,
+  } = useGroupFilters({
+    groups,
+    userUUID,
+    itemsPerPage: 12,
+  })
 
   const handleViewGroup = (group: GroupCreateDTO) => {
     setSelectedGroup(group)
@@ -81,23 +57,26 @@ export default function GroupsPage() {
     setIsCreateSheetOpen(true)
   }
 
-  const handleDeleteGroup = (group: GroupCreateDTO) => {
-    logger.info('Deleting group:', { uuid: group.groupUUID })
-    if (confirm(t('groups.confirmDelete', { name: group.name }))) {
-      logger.info('Group deleted (soft delete)')
-    }
-  }
+  const handleDeleteGroup = useCallback(
+    (group: GroupCreateDTO) => {
+      logger.info('Deleting group:', { uuid: group.groupUUID })
+      if (confirm(t('groups.confirmDelete', { name: group.name }))) {
+        logger.info('Group deleted (soft delete)')
+      }
+    },
+    [t]
+  )
 
   return (
     <div className="container mx-auto p-4">
-      {/* Header row: title + search + filter + create */}
       <div className="flex items-center justify-between mb-4 gap-2">
         <h1 className="text-2xl font-bold shrink-0">{t('groups.title')}</h1>
         <div className="flex items-center gap-2 flex-wrap justify-end flex-1">
           {/* Search */}
-          <div className="relative w-56">
+          <div className="relative w-56" data-testid="group-search-container">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
+              data-testid="group-search-input"
               placeholder={t('groups.search')}
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -105,6 +84,7 @@ export default function GroupsPage() {
             />
             {searchTerm && (
               <button
+                data-testid="group-search-clear-button"
                 onClick={() => handleSearchChange('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
@@ -112,7 +92,7 @@ export default function GroupsPage() {
               </button>
             )}
           </div>
-          {/* Quick filter dropdown (like DeletedFilter on objects page) */}
+          {/* Quick filter dropdown */}
           <FacetedFilter
             title={t('groups.filter.label')}
             options={[
@@ -120,7 +100,7 @@ export default function GroupsPage() {
               { value: 'my', label: t('groups.filter.my') },
               { value: 'shared', label: t('groups.filter.shared') },
             ]}
-            selected={[activeFilter]}
+            selected={activeFilter === 'all' ? [] : [activeFilter]}
             onSelectionChange={(values) =>
               handleFilterChange((values[0] as GroupFilter) || 'all')
             }
@@ -128,8 +108,12 @@ export default function GroupsPage() {
             clearLabel={t('common.clearFilters')}
           />
           {/* Create */}
-          <Button onClick={handleCreateGroup}>
-            <Plus className="h-4 w-4 sm:mr-2" />
+          <Button
+            data-testid="create-group-button"
+            size="sm"
+            onClick={handleCreateGroup}
+          >
+            <PlusCircle className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">{t('groups.create')}</span>
           </Button>
         </div>
@@ -152,7 +136,10 @@ export default function GroupsPage() {
       {/* Groups Grid */}
       {!isLoading && !isError && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+          <div
+            data-testid="groups-grid"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6"
+          >
             {paginatedGroups.map((group) => (
               <GroupCard
                 key={group.groupUUID}
@@ -169,10 +156,7 @@ export default function GroupsPage() {
               <div className="text-sm text-muted-foreground">
                 {t('groups.showing', {
                   start: startIndex + 1,
-                  end: Math.min(
-                    startIndex + itemsPerPage,
-                    filteredGroups.length
-                  ),
+                  end: Math.min(startIndex + 12, filteredGroups.length),
                   total: filteredGroups.length,
                 })}
               </div>
@@ -180,7 +164,7 @@ export default function GroupsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((prev) => prev - 1)}
+                  onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   {t('common.previous')}
@@ -192,7 +176,7 @@ export default function GroupsPage() {
                         key={page}
                         variant={currentPage === page ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => setCurrentPage(page)}
+                        onClick={() => handlePageChange(page)}
                         className="w-8 h-8 p-0"
                       >
                         {page}
@@ -203,7 +187,7 @@ export default function GroupsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((prev) => prev + 1)}
+                  onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
                   {t('common.next')}
@@ -213,7 +197,7 @@ export default function GroupsPage() {
           )}
 
           {filteredGroups.length === 0 && (
-            <div className="text-center py-12">
+            <div data-testid="no-groups-message" className="text-center py-12">
               <div className="text-muted-foreground">
                 {searchTerm ? t('groups.noMatches') : t('groups.noGroups')}
               </div>

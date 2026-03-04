@@ -322,8 +322,9 @@ const MaterialFlowPage = () => {
           </Button>
           <ProcessViewSelector view={activeView} onChange={setActiveView} />
           <Button
-            onClick={handleOpenProcessForm}
+            size="sm"
             className="flex-shrink-0"
+            onClick={handleOpenProcessForm}
             disabled={createProcessFlowMutation.isPending}
           >
             {createProcessFlowMutation.isPending ? (

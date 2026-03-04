@@ -410,6 +410,7 @@ describe('fetchDescendants', () => {
       page: 0,
       size: 50,
       searchBy: { softDeleted: false },
+      readDefaultGroup: true,
     })
   })
 

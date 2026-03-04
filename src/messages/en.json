@@ -659,7 +659,6 @@
   "models": {
     "title": "Models",
     "showDeleted": "Show deleted items",
-    "add": "Add Model",
     "defaultName": "Model",
     "editTitle": "Edit Model",
     "createTitle": "Create New Model",
@@ -722,6 +721,8 @@
     "visibility": "Visibility",
     "publicDescription": "Anyone can view this group",
     "privateDescription": "Only shared users can access",
+    "publicShortDescription": "Visible to everyone on the platform",
+    "privateShortDescription": "Restricted to specific users",
     "yourPermissions": "Your Permissions",
     "filter": {
       "label": "Filter",
@@ -742,12 +743,19 @@
     },
     "form": {
       "createTitle": "Create New Group",
+      "createDescription": "Create a new group to organize and share objects with other users.",
+      "editTitle": "Edit Group",
+      "viewTitle": "Group Details",
       "name": "Group Name",
       "namePlaceholder": "Enter group name...",
       "creating": "Creating...",
+      "saving": "Saving...",
       "createGroup": "Create Group",
+      "saveChanges": "Save Changes",
       "addUsers": "Add Users",
-      "addUsersOptional": "optional"
+      "addUsersOptional": "optional",
+      "isPublic": "Make this group public",
+      "publicPermissions": "Public permissions level"
     }
   },
   "import": {

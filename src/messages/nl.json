@@ -658,7 +658,6 @@
   "models": {
     "title": "Modellen",
     "showDeleted": "Verwijderde items tonen",
-    "add": "Model toevoegen",
     "defaultName": "Model",
     "editTitle": "Model bewerken",
     "createTitle": "Nieuw model maken",
@@ -721,6 +720,8 @@
     "visibility": "Zichtbaarheid",
     "publicDescription": "Iedereen kan deze groep bekijken",
     "privateDescription": "Alleen gedeelde gebruikers hebben toegang",
+    "publicShortDescription": "Zichtbaar voor iedereen op het platform",
+    "privateShortDescription": "Beperkt tot specifieke gebruikers",
     "yourPermissions": "Uw rechten",
     "filter": {
       "label": "Filter",
@@ -741,12 +742,19 @@
     },
     "form": {
       "createTitle": "Nieuwe groep aanmaken",
+      "createDescription": "Maak een nieuwe groep om objecten te organiseren en te delen met andere gebruikers.",
+      "editTitle": "Groep bewerken",
+      "viewTitle": "Groepsdetails",
       "name": "Groepsnaam",
       "namePlaceholder": "Voer groepsnaam in...",
       "creating": "Bezig met aanmaken...",
+      "saving": "Bezig met opslaan...",
       "createGroup": "Groep aanmaken",
+      "saveChanges": "Wijzigingen opslaan",
       "addUsers": "Gebruikers toevoegen",
-      "addUsersOptional": "optioneel"
+      "addUsersOptional": "optioneel",
+      "isPublic": "Maak deze groep openbaar",
+      "publicPermissions": "Openbare rechtenniveau"
     }
   },
   "import": {

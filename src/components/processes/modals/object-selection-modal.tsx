@@ -73,25 +73,22 @@ export function ObjectSelectionModal({
   const [objects, setObjects] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
-  const executeSearch = useCallback(
-    async (term: string) => {
-      setIsSearching(true)
-      try {
-        const response = await searchMutation.mutateAsync({
-          searchTerm: term,
-          size: 50,
-          page: 0,
-        })
-        setObjects(response?.content || [])
-      } catch (error) {
-        logger.error('Search failed:', error)
-        setObjects([])
-      } finally {
-        setIsSearching(false)
-      }
-    },
-    [searchMutation]
-  )
+  const executeSearch = useCallback(async (term: string) => {
+    setIsSearching(true)
+    try {
+      const response = await searchMutation.mutateAsync({
+        searchTerm: term,
+        size: 50,
+        page: 0,
+      })
+      setObjects(response?.content || [])
+    } catch (error) {
+      logger.error('Search failed:', error)
+      setObjects([])
+    } finally {
+      setIsSearching(false)
+    }
+  }, [])
 
   const clearSearch = useCallback(() => {
     setObjects([])
