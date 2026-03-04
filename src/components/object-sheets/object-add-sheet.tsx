@@ -122,7 +122,9 @@ export function ObjectAddSheet({
   const watchedAddress = form.watch('address')
 
   // Watch parent objects field
-  const watchedParents = form.watch('parents') || []
+  const watchedParents = (form.watch('parents') || []).filter(
+    (p): p is string => !!p
+  )
 
   // Watch properties to build available properties list for formula variable mapping
   // Use JSON.stringify to create a deep dependency that triggers on nested changes
