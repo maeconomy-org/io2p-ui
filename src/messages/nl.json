@@ -723,6 +723,7 @@
     "publicShortDescription": "Zichtbaar voor iedereen op het platform",
     "privateShortDescription": "Beperkt tot specifieke gebruikers",
     "yourPermissions": "Uw rechten",
+    "permissionsFromGroup": "Overgenomen van openbare groepsrechten",
     "filter": {
       "label": "Filter",
       "all": "Alle",

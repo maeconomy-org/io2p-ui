@@ -100,10 +100,18 @@ export default function GroupsPage() {
               { value: 'my', label: t('groups.filter.my') },
               { value: 'shared', label: t('groups.filter.shared') },
             ]}
-            selected={activeFilter === 'all' ? [] : [activeFilter]}
-            onSelectionChange={(values) =>
-              handleFilterChange((values[0] as GroupFilter) || 'all')
-            }
+            selected={[activeFilter]}
+            onSelectionChange={(values) => {
+              // If clicking the currently active filter to deselect, reset to 'all'
+              if (values.length === 0) {
+                handleFilterChange('all')
+                return
+              }
+              // Pick the newly selected value (the one that wasn't previously active)
+              const newValue =
+                values.find((v) => v !== activeFilter) ?? values[0]
+              handleFilterChange((newValue as GroupFilter) || 'all')
+            }}
             showSearch={false}
             clearLabel={t('common.clearFilters')}
           />

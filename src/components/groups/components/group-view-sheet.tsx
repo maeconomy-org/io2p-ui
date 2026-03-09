@@ -41,12 +41,17 @@ import {
   ScrollArea,
   Checkbox,
   Separator,
+  Switch,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib'
 import { useGroups } from '@/hooks/api'
 import { useAuth } from '@/contexts'
-import { canEditGroup, deduplicateUsersShare } from '@/lib/group-utils'
+import {
+  canEditGroup,
+  deduplicateUsersShare,
+  getEffectivePermissions,
+} from '@/lib/group-utils'
 
 interface GroupViewSheetProps {
   group: GroupCreateDTO | null
@@ -122,14 +127,12 @@ export function GroupViewSheet({
 
   const isPublic = !!group.publicShare
 
-  // Check if current user is the owner (full access)
-  const isOwner = userUUID === group.ownerUserUUID
-
-  // If not owner, check usersShare for current user's permissions
-  const currentUserShare = usersShare.find((u) => u.userUUID === userUUID)
-  const currentUserPermissions = isOwner
-    ? (['GROUP_WRITE', 'GROUP_WRITE_RECORDS'] as GroupPermission[])
-    : (currentUserShare?.permissions ?? [])
+  // Resolve effective permissions (user-specific > public group-level > none)
+  const {
+    permissions: currentUserPermissions,
+    isOwner,
+    source: permSource,
+  } = getEffectivePermissions(group, userUUID)
 
   // Can edit group if owner or has GROUP_WRITE permission
   const canWrite = isOwner || canEditGroup(currentUserPermissions)
@@ -325,7 +328,12 @@ export function GroupViewSheet({
                       <Badge
                         key={perm}
                         variant="secondary"
-                        className="text-[10px] h-5 px-1 bg-gray-100 text-gray-600 border-gray-200"
+                        className={cn(
+                          'text-[10px] h-5 px-1',
+                          permSource === 'public'
+                            ? 'bg-green-100 text-green-700 border-green-200'
+                            : 'bg-gray-100 text-gray-600 border-gray-200'
+                        )}
                       >
                         {t(`groups.permissions.${perm}`)}
                       </Badge>
@@ -610,56 +618,179 @@ export function GroupViewSheet({
                 <div className="space-y-3">
                   {/* Visibility */}
                   <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
+                    <div className="space-y-1">
                       <div className="font-medium">
                         {t('groups.visibility')}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {isPublic
-                          ? t('groups.publicDescription')
-                          : t('groups.privateDescription')}
+                          ? t('groups.publicShortDescription')
+                          : t('groups.privateShortDescription')}
                       </div>
                     </div>
-                    <Badge
-                      className={cn(
-                        isPublic
-                          ? 'bg-green-100 text-green-800 border-green-200'
-                          : 'bg-blue-100 text-blue-800 border-blue-200'
-                      )}
-                    >
-                      {isPublic ? (
-                        <Globe className="h-4 w-4" />
-                      ) : (
-                        <Lock className="h-4 w-4" />
-                      )}
-                      <span className="ml-1 capitalize">
-                        {isPublic ? t('groups.public') : t('groups.private')}
-                      </span>
-                    </Badge>
+                    {canWrite ? (
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'gap-1',
+                            isPublic
+                              ? 'bg-green-50 text-green-700 border-green-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          )}
+                        >
+                          {isPublic ? (
+                            <Globe className="h-3 w-3" />
+                          ) : (
+                            <Lock className="h-3 w-3" />
+                          )}
+                          {isPublic ? t('groups.public') : t('groups.private')}
+                        </Badge>
+                        <Switch
+                          checked={isPublic}
+                          disabled={updateGroup.isPending}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              await updateGroup.mutateAsync({
+                                ...group,
+                                usersShare,
+                                publicShare: checked
+                                  ? {
+                                      permissions: group.publicShare
+                                        ?.permissions ?? [
+                                        'READ' as GroupPermission,
+                                      ],
+                                    }
+                                  : undefined,
+                              })
+                            } catch (error) {
+                              logger.error(
+                                'Failed to update group visibility',
+                                {
+                                  error:
+                                    error instanceof Error
+                                      ? error.message
+                                      : String(error),
+                                }
+                              )
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <Badge
+                        className={cn(
+                          isPublic
+                            ? 'bg-green-100 text-green-800 border-green-200'
+                            : 'bg-blue-100 text-blue-800 border-blue-200'
+                        )}
+                      >
+                        {isPublic ? (
+                          <Globe className="h-4 w-4" />
+                        ) : (
+                          <Lock className="h-4 w-4" />
+                        )}
+                        <span className="ml-1 capitalize">
+                          {isPublic ? t('groups.public') : t('groups.private')}
+                        </span>
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Public Permission Level - only shown for public groups */}
-                  {isPublic && group.publicShare?.permissions && (
-                    <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50/50">
-                      <div>
-                        <div className="font-medium">
-                          {t('groups.permissionLevel')}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {t('groups.publicShortDescription')}
+                  {isPublic && (
+                    <div className="p-3 border rounded-lg bg-green-50/50 dark:bg-green-900/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">
+                            {t('groups.permissionLevel')}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {t('groups.publicShortDescription')}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {group.publicShare.permissions.map((perm) => (
-                          <Badge
-                            key={perm}
-                            variant="secondary"
-                            className="text-[10px] h-5 px-1.5 bg-green-100 text-green-700 border-green-200"
-                          >
-                            {t(`groups.permissions.${perm}`)}
-                          </Badge>
-                        ))}
-                      </div>
+                      {canWrite ? (
+                        <div className="flex items-center gap-4 pt-1">
+                          {PERMISSION_OPTIONS.map((perm) => {
+                            const currentPublicPerms =
+                              group.publicShare?.permissions ?? []
+                            const isChecked =
+                              perm === ('READ' as GroupPermission)
+                                ? true
+                                : currentPublicPerms.includes(perm)
+                            return (
+                              <label
+                                key={perm}
+                                className={cn(
+                                  'flex items-center gap-1.5 text-xs',
+                                  perm === 'READ'
+                                    ? 'cursor-not-allowed opacity-60'
+                                    : 'cursor-pointer'
+                                )}
+                              >
+                                <Checkbox
+                                  checked={isChecked}
+                                  disabled={
+                                    perm === ('READ' as GroupPermission) ||
+                                    updateGroup.isPending
+                                  }
+                                  onCheckedChange={
+                                    perm === ('READ' as GroupPermission)
+                                      ? undefined
+                                      : async () => {
+                                          const newPerms = isChecked
+                                            ? currentPublicPerms.filter(
+                                                (p) => p !== perm
+                                              )
+                                            : [...currentPublicPerms, perm]
+                                          try {
+                                            await updateGroup.mutateAsync({
+                                              ...group,
+                                              usersShare,
+                                              publicShare: {
+                                                permissions: Array.from(
+                                                  new Set([
+                                                    'READ' as GroupPermission,
+                                                    ...newPerms,
+                                                  ])
+                                                ),
+                                              },
+                                            })
+                                          } catch (error) {
+                                            logger.error(
+                                              'Failed to update public permissions',
+                                              {
+                                                error:
+                                                  error instanceof Error
+                                                    ? error.message
+                                                    : String(error),
+                                              }
+                                            )
+                                          }
+                                        }
+                                  }
+                                />
+                                {t(`groups.permissions.${perm}`)}
+                              </label>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 pt-1">
+                          {(group.publicShare?.permissions ?? []).map(
+                            (perm) => (
+                              <Badge
+                                key={perm}
+                                variant="secondary"
+                                className="text-[10px] h-5 px-1.5 bg-green-100 text-green-700 border-green-200"
+                              >
+                                {t(`groups.permissions.${perm}`)}
+                              </Badge>
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -672,11 +803,13 @@ export function GroupViewSheet({
                       <div className="text-sm text-muted-foreground">
                         {isOwner
                           ? t('groups.ownerDescription')
-                          : currentUserPermissions.length > 0
-                            ? currentUserPermissions
-                                .map((p) => t(`groups.permissions.${p}`))
-                                .join(', ')
-                            : t('groups.permissions.READ')}
+                          : permSource === 'public'
+                            ? t('groups.permissionsFromGroup')
+                            : currentUserPermissions.length > 0
+                              ? currentUserPermissions
+                                  .map((p) => t(`groups.permissions.${p}`))
+                                  .join(', ')
+                              : t('groups.permissions.READ')}
                       </div>
                     </div>
                     {isOwner ? (
@@ -694,7 +827,12 @@ export function GroupViewSheet({
                             <Badge
                               key={perm}
                               variant="secondary"
-                              className="text-[10px] h-5 px-1 bg-gray-100 text-gray-600 border-gray-200"
+                              className={cn(
+                                'text-[10px] h-5 px-1',
+                                permSource === 'public'
+                                  ? 'bg-green-100 text-green-700 border-green-200'
+                                  : 'bg-gray-100 text-gray-600 border-gray-200'
+                              )}
                             >
                               {t(`groups.permissions.${perm}`)}
                             </Badge>

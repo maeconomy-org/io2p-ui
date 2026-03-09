@@ -724,6 +724,7 @@
     "publicShortDescription": "Visible to everyone on the platform",
     "privateShortDescription": "Restricted to specific users",
     "yourPermissions": "Your Permissions",
+    "permissionsFromGroup": "Inherited from public group-level rights",
     "filter": {
       "label": "Filter",
       "all": "All",

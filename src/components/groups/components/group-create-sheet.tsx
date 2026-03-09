@@ -147,7 +147,8 @@ export function GroupCreateSheet({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 cursor-help"
+                            type="button"
                           >
                             <HelpCircle className="h-4 w-4 text-muted-foreground" />
                           </Button>

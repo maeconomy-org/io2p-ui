@@ -25,6 +25,8 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib'
 import { useGroups } from '@/hooks'
+import { useAuth } from '@/contexts'
+import { canUserWriteRecords } from '@/lib/group-utils'
 import { ParentSelector } from '@/components/object-sheets/components'
 
 interface BulkActionsToolbarProps {
@@ -65,7 +67,13 @@ export function BulkActionsToolbar({
 }: BulkActionsToolbarProps) {
   const t = useTranslations()
   const { useListGroups } = useGroups()
-  const { data: groups } = useListGroups({ enabled: selectedCount > 0 })
+  const { data: allGroups } = useListGroups({ enabled: selectedCount > 0 })
+  const { userUUID } = useAuth()
+
+  // Only show groups where the user can write records
+  const groups = (allGroups ?? []).filter((g: GroupCreateDTO) =>
+    canUserWriteRecords(g, userUUID)
+  )
 
   const [newGroupName, setNewGroupName] = useState('')
   const [showNewGroupInput, setShowNewGroupInput] = useState(false)

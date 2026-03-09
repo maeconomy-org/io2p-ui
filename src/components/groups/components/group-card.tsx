@@ -30,7 +30,11 @@ import { cn } from '@/lib/utils'
 import { logger } from '@/lib'
 import { useAuth } from '@/contexts'
 import { useGroups } from '@/hooks/api'
-import { canEditGroup, deduplicateUsersShare } from '@/lib/group-utils'
+import {
+  canEditGroup,
+  deduplicateUsersShare,
+  getEffectivePermissions,
+} from '@/lib/group-utils'
 
 interface GroupCardProps {
   group: GroupCreateDTO
@@ -53,14 +57,12 @@ export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
   const usersShare = deduplicateUsersShare(group.usersShare ?? [])
   const sharedUsersCount = usersShare.length
 
-  // Check if current user is the owner (full access)
-  const isOwner = userUUID === group.ownerUserUUID
-
-  // If not owner, check usersShare for current user's permissions
-  const currentUserShare = usersShare.find((u) => u.userUUID === userUUID)
-  const currentUserPermissions = isOwner
-    ? (['GROUP_WRITE', 'GROUP_WRITE_RECORDS'] as GroupPermission[])
-    : (currentUserShare?.permissions ?? [])
+  // Resolve effective permissions (user-specific > public group-level > none)
+  const {
+    permissions: currentUserPermissions,
+    isOwner,
+    source: permSource,
+  } = getEffectivePermissions(group, userUUID)
 
   // Can edit group if owner or has GROUP_WRITE permission
   const canWrite = isOwner || canEditGroup(currentUserPermissions)
