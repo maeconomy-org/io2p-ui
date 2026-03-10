@@ -66,10 +66,18 @@ export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
     GroupPermission[]
   >(['READ' as GroupPermission])
   const [addUserError, setAddUserError] = useState<string | null>(null)
-  const [isPublic, setIsPublic] = useState(false)
+  const [isPublic, setIsPublicRaw] = useState(false)
   const [publicPermissions, setPublicPermissions] = useState<GroupPermission[]>(
     ['READ' as GroupPermission]
   )
+
+  // When toggling to public, force permissions to READ-only
+  const setIsPublic = useCallback((value: boolean) => {
+    setIsPublicRaw(value)
+    if (value) {
+      setPublicPermissions(['READ' as GroupPermission])
+    }
+  }, [])
 
   const togglePermission = useCallback(
     (perm: GroupPermission) => {
@@ -137,7 +145,7 @@ export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
     setNewUserUUID('')
     setNewUserPermissions(['READ' as GroupPermission])
     setAddUserError(null)
-    setIsPublic(false)
+    setIsPublicRaw(false)
     setPublicPermissions(['READ' as GroupPermission])
   }, [form])
 
@@ -152,7 +160,7 @@ export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
       setNewUserUUID('')
       setNewUserPermissions(['READ' as GroupPermission])
       setAddUserError(null)
-      setIsPublic(false)
+      setIsPublicRaw(false)
       setPublicPermissions(['READ' as GroupPermission])
     }
   }, [open, defaultName, form])

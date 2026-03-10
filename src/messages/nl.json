@@ -697,6 +697,8 @@
     "noGroups": "Geen groepen beschikbaar.",
     "loadError": "Kan groepen niet laden. Probeer het opnieuw.",
     "confirmDelete": "Weet u zeker dat u \"{name}\" wilt verwijderen?",
+    "deleteConfirmTitle": "Groep verwijderen?",
+    "deleteConfirmDescription": "Dit zal de groep \"{name}\" verwijderen. Deze actie kan niet ongedaan worden gemaakt.",
     "groupUuid": "Groeps-UUID",
     "ownerUuid": "Eigenaar-UUID",
     "userUuid": "Gebruikers-UUID",
@@ -724,6 +726,8 @@
     "privateShortDescription": "Beperkt tot specifieke gebruikers",
     "yourPermissions": "Uw rechten",
     "permissionsFromGroup": "Overgenomen van openbare groepsrechten",
+    "publicReadOnlyHint": "Openbare groepen geven alleen-lezen toegang aan iedereen. Voeg gebruikers per UUID toe voor extra rechten.",
+    "permissionsSummary": "{count} rechten",
     "filter": {
       "label": "Filter",
       "all": "Alle",

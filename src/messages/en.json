@@ -698,6 +698,8 @@
     "noGroups": "No groups available.",
     "loadError": "Failed to load groups. Please try again.",
     "confirmDelete": "Are you sure you want to delete \"{name}\"?",
+    "deleteConfirmTitle": "Delete Group?",
+    "deleteConfirmDescription": "This will delete the group \"{name}\". This action cannot be undone.",
     "groupUuid": "Group UUID",
     "ownerUuid": "Owner UUID",
     "userUuid": "User UUID",
@@ -725,6 +727,8 @@
     "privateShortDescription": "Restricted to specific users",
     "yourPermissions": "Your Permissions",
     "permissionsFromGroup": "Inherited from public group-level rights",
+    "publicReadOnlyHint": "Public groups grant Read-only access to everyone. To give additional permissions, add users by UUID below.",
+    "permissionsSummary": "{count} permissions",
     "filter": {
       "label": "Filter",
       "all": "All",

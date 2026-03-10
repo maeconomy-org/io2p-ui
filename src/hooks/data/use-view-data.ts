@@ -111,8 +111,8 @@ export function useViewData({
             groupUUIDList,
             // readDefaultGroup: true,
             // readOwnGroups: true,
-            readPublicGroups: true,
-            readUserSharedGroups: true,
+            // readPublicGroups: true,
+            // readUserSharedGroups: true,
           }
         : {
             readDefaultGroup: true,

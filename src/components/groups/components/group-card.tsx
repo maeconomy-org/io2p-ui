@@ -25,6 +25,9 @@ import {
   Card,
   CardContent,
   CardHeader,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib'
@@ -196,13 +199,14 @@ export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
             <span>{t('groups.usersCount', { count: sharedUsersCount })}</span>
           </div>
 
-          <div className="flex items-center gap-1 flex-wrap justify-end">
+          <div className="flex items-center gap-1.5">
             <Badge
+              variant="outline"
               className={cn(
-                'gap-1 pointer-events-none',
+                'gap-1 pointer-events-none text-[10px] h-5 px-1.5',
                 isPublic
-                  ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
-                  : 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
+                  ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
+                  : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
               )}
             >
               {isPublic ? (
@@ -210,32 +214,51 @@ export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
               ) : (
                 <Lock className="h-3 w-3" />
               )}
-              <span className="capitalize text-[10px] font-medium leading-none">
-                {isPublic ? t('groups.public') : t('groups.private')}
-              </span>
+              {isPublic ? t('groups.public') : t('groups.private')}
             </Badge>
             {isOwner ? (
               <Badge
-                variant="secondary"
-                className="gap-1 pointer-events-none bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 text-[10px]"
+                variant="outline"
+                className="gap-1 pointer-events-none text-[10px] h-5 px-1.5 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
               >
                 <Crown className="h-3 w-3" />
                 {t('groups.owner')}
               </Badge>
             ) : (
-              currentUserPermissions.length > 0 && (
-                <div className="flex items-center gap-1 flex-wrap">
-                  {currentUserPermissions.map((perm) => (
+              currentUserPermissions.length > 0 &&
+              (currentUserPermissions.length === 1 ? (
+                <Badge
+                  variant="outline"
+                  className="pointer-events-none text-[10px] h-5 px-1.5 bg-muted/50 text-muted-foreground border-border"
+                >
+                  {t(`groups.permissions.${currentUserPermissions[0]}`)}
+                </Badge>
+              ) : (
+                <HoverCard>
+                  <HoverCardTrigger asChild>
                     <Badge
-                      key={perm}
-                      variant="secondary"
-                      className="text-[9px] h-4 px-1 pointer-events-none bg-muted text-muted-foreground border-border"
+                      variant="outline"
+                      className="cursor-help text-[10px] h-5 px-1.5 bg-muted/50 text-muted-foreground border-border"
                     >
-                      {t(`groups.permissions.${perm}`)}
+                      {t('groups.permissionsSummary', {
+                        count: currentUserPermissions.length,
+                      })}
                     </Badge>
-                  ))}
-                </div>
-              )
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-auto p-2" side="top">
+                    <ul className="flex flex-col gap-1">
+                      {currentUserPermissions.map((perm) => (
+                        <li
+                          key={perm}
+                          className="text-[10px] font-semibold h-5 px-1.5 justify-start"
+                        >
+                          {t(`groups.permissions.${perm}`)}
+                        </li>
+                      ))}
+                    </ul>
+                  </HoverCardContent>
+                </HoverCard>
+              ))
             )}
           </div>
         </div>

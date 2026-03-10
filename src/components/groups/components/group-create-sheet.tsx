@@ -202,54 +202,6 @@ export function GroupCreateSheet({
                     </div>
                     <Switch checked={isPublic} onCheckedChange={setIsPublic} />
                   </div>
-
-                  {/* Public permissions - only shown when public */}
-                  {isPublic && (
-                    <div className="space-y-2 p-3 border rounded-lg">
-                      <div className="text-sm font-medium">
-                        {t('groups.form.publicPermissions')}
-                      </div>
-                      <div className="flex items-center gap-4">
-                        {permissionOptions.map((perm) => (
-                          <label
-                            key={perm}
-                            className={cn(
-                              'flex items-center gap-1.5 text-xs',
-                              perm === 'READ'
-                                ? 'cursor-not-allowed opacity-60'
-                                : 'cursor-pointer'
-                            )}
-                          >
-                            <Checkbox
-                              checked={
-                                perm === 'READ'
-                                  ? true
-                                  : publicPermissions.includes(perm)
-                              }
-                              onCheckedChange={
-                                perm === 'READ'
-                                  ? undefined
-                                  : () => togglePublicPermission(perm)
-                              }
-                              disabled={perm === 'READ'}
-                            />
-                            <HoverCard>
-                              <HoverCardTrigger asChild>
-                                <span className="border-b border-dotted border-muted-foreground cursor-help">
-                                  {t(`groups.permissions.${perm}`)}
-                                </span>
-                              </HoverCardTrigger>
-                              <HoverCardContent className="w-64">
-                                <p className="text-xs text-muted-foreground">
-                                  {t(`groups.permissionDescription.${perm}`)}
-                                </p>
-                              </HoverCardContent>
-                            </HoverCard>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <Separator />

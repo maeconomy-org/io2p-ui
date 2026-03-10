@@ -6,7 +6,18 @@ import type { GroupCreateDTO } from 'iom-sdk'
 import { Search, Loader2, X, PlusCircle } from 'lucide-react'
 
 import { logger } from '@/lib'
-import { Button, Input } from '@/components/ui'
+import {
+  Button,
+  Input,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui'
 import { FacetedFilter } from '@/components/filters'
 import {
   GroupCard,
@@ -30,6 +41,9 @@ export default function GroupsPage() {
   )
   const [isViewSheetOpen, setIsViewSheetOpen] = useState(false)
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false)
+  const [groupToDelete, setGroupToDelete] = useState<GroupCreateDTO | null>(
+    null
+  )
 
   const {
     searchTerm,
@@ -57,15 +71,17 @@ export default function GroupsPage() {
     setIsCreateSheetOpen(true)
   }
 
-  const handleDeleteGroup = useCallback(
-    (group: GroupCreateDTO) => {
-      logger.info('Deleting group:', { uuid: group.groupUUID })
-      if (confirm(t('groups.confirmDelete', { name: group.name }))) {
-        logger.info('Group deleted (soft delete)')
-      }
-    },
-    [t]
-  )
+  const handleDeleteGroup = useCallback((group: GroupCreateDTO) => {
+    setGroupToDelete(group)
+  }, [])
+
+  const handleConfirmDeleteGroup = useCallback(() => {
+    if (!groupToDelete) return
+    logger.info('Deleting group:', { uuid: groupToDelete.groupUUID })
+    // TODO: call delete API when available
+    logger.info('Group deleted (soft delete)')
+    setGroupToDelete(null)
+  }, [groupToDelete])
 
   return (
     <div className="container mx-auto p-4">
@@ -226,6 +242,36 @@ export default function GroupsPage() {
         open={isCreateSheetOpen}
         onOpenChange={setIsCreateSheetOpen}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!groupToDelete}
+        onOpenChange={(open) => !open && setGroupToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('groups.deleteConfirmTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('groups.deleteConfirmDescription', {
+                name: groupToDelete?.name ?? '',
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex w-full gap-2">
+            <AlertDialogCancel className="flex-1">
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white flex-1"
+              onClick={handleConfirmDeleteGroup}
+            >
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

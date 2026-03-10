@@ -656,10 +656,7 @@ export function GroupViewSheet({
                                 usersShare,
                                 publicShare: checked
                                   ? {
-                                      permissions: group.publicShare
-                                        ?.permissions ?? [
-                                        'READ' as GroupPermission,
-                                      ],
+                                      permissions: ['READ' as GroupPermission],
                                     }
                                   : undefined,
                               })
@@ -696,103 +693,6 @@ export function GroupViewSheet({
                       </Badge>
                     )}
                   </div>
-
-                  {/* Public Permission Level - only shown for public groups */}
-                  {isPublic && (
-                    <div className="p-3 border rounded-lg bg-green-50/50 dark:bg-green-900/10 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">
-                            {t('groups.permissionLevel')}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {t('groups.publicShortDescription')}
-                          </div>
-                        </div>
-                      </div>
-                      {canWrite ? (
-                        <div className="flex items-center gap-4 pt-1">
-                          {PERMISSION_OPTIONS.map((perm) => {
-                            const currentPublicPerms =
-                              group.publicShare?.permissions ?? []
-                            const isChecked =
-                              perm === ('READ' as GroupPermission)
-                                ? true
-                                : currentPublicPerms.includes(perm)
-                            return (
-                              <label
-                                key={perm}
-                                className={cn(
-                                  'flex items-center gap-1.5 text-xs',
-                                  perm === 'READ'
-                                    ? 'cursor-not-allowed opacity-60'
-                                    : 'cursor-pointer'
-                                )}
-                              >
-                                <Checkbox
-                                  checked={isChecked}
-                                  disabled={
-                                    perm === ('READ' as GroupPermission) ||
-                                    updateGroup.isPending
-                                  }
-                                  onCheckedChange={
-                                    perm === ('READ' as GroupPermission)
-                                      ? undefined
-                                      : async () => {
-                                          const newPerms = isChecked
-                                            ? currentPublicPerms.filter(
-                                                (p) => p !== perm
-                                              )
-                                            : [...currentPublicPerms, perm]
-                                          try {
-                                            await updateGroup.mutateAsync({
-                                              ...group,
-                                              usersShare,
-                                              publicShare: {
-                                                permissions: Array.from(
-                                                  new Set([
-                                                    'READ' as GroupPermission,
-                                                    ...newPerms,
-                                                  ])
-                                                ),
-                                              },
-                                            })
-                                          } catch (error) {
-                                            logger.error(
-                                              'Failed to update public permissions',
-                                              {
-                                                error:
-                                                  error instanceof Error
-                                                    ? error.message
-                                                    : String(error),
-                                              }
-                                            )
-                                          }
-                                        }
-                                  }
-                                />
-                                {t(`groups.permissions.${perm}`)}
-                              </label>
-                            )
-                          })}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 pt-1">
-                          {(group.publicShare?.permissions ?? []).map(
-                            (perm) => (
-                              <Badge
-                                key={perm}
-                                variant="secondary"
-                                className="text-[10px] h-5 px-1.5 bg-green-100 text-green-700 border-green-200"
-                              >
-                                {t(`groups.permissions.${perm}`)}
-                              </Badge>
-                            )
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
 
                   {/* Your Permissions */}
                   <div className="flex items-center justify-between p-3 border rounded-lg">

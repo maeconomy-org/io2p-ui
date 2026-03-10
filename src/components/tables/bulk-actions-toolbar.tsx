@@ -22,6 +22,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Input,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction,
 } from '@/components/ui'
 import { cn } from '@/lib'
 import { useGroups } from '@/hooks'
@@ -77,6 +85,7 @@ export function BulkActionsToolbar({
 
   const [newGroupName, setNewGroupName] = useState('')
   const [showNewGroupInput, setShowNewGroupInput] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Track selected parents for bulk set parent
   const [selectedParentUuids, setSelectedParentUuids] = useState<string[]>([])
@@ -135,7 +144,7 @@ export function BulkActionsToolbar({
               variant="ghost"
               size="sm"
               className="h-8 rounded-none first:rounded-l-md last:rounded-r-md gap-1.5 text-destructive hover:text-destructive"
-              onClick={onBulkDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
             >
               {isDeleting ? (
@@ -304,6 +313,35 @@ export function BulkActionsToolbar({
           )}
         </div>
       </div>
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('objects.bulk.confirmBulkDelete', { count: selectedCount })}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('objects.bulk.confirmBulkDeleteDescription', {
+                count: selectedCount,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex w-full gap-2">
+            <AlertDialogCancel className="flex-1">
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white flex-1"
+              onClick={() => {
+                onBulkDelete()
+                setShowDeleteConfirm(false)
+              }}
+            >
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
