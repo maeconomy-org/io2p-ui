@@ -24,6 +24,8 @@ interface ObjectViewContainerProps {
   onColumnVisibilityChange?: (visibility: VisibilityState) => void
   // Page size
   onPageSizeChange?: (size: number) => void
+  // Read-only mode (hides edit/delete actions when user lacks GROUP_WRITE_RECORDS)
+  readOnly?: boolean
 }
 
 export function ObjectViewContainer({
@@ -39,6 +41,7 @@ export function ObjectViewContainer({
   columnVisibility,
   onColumnVisibilityChange,
   onPageSizeChange,
+  readOnly = false,
 }: ObjectViewContainerProps) {
   const tableProps = {
     rowSelection,
@@ -64,6 +67,7 @@ export function ObjectViewContainer({
           onViewObject={onViewObject}
           onDuplicate={onDuplicate}
           showDeleted={showDeleted}
+          readOnly={readOnly}
         />
       )
     }
@@ -84,6 +88,7 @@ export function ObjectViewContainer({
           fetching={viewData.fetching}
           onViewObject={onViewObject}
           onObjectDoubleClick={onObjectDoubleClick}
+          readOnly={readOnly}
           pagination={{
             currentPage: viewData.pagination.currentPage + 1,
             totalPages: viewData.pagination.totalPages,

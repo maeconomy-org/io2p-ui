@@ -41,6 +41,7 @@ import {
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib'
 import { useGroups } from '@/hooks/api'
+import { useAuth } from '@/contexts'
 import { useGroupForm } from '../hooks'
 
 interface GroupCreateSheetProps {
@@ -57,6 +58,7 @@ export function GroupCreateSheet({
   const t = useTranslations()
   const { useCreateGroup } = useGroups()
   const createGroup = useCreateGroup()
+  const { userUUID } = useAuth()
 
   const {
     form,
@@ -80,6 +82,7 @@ export function GroupCreateSheet({
   } = useGroupForm({
     open,
     defaultName: group?.name ?? '',
+    ownerUserUUID: userUUID,
   })
 
   const onSubmit = async (data: any) => {

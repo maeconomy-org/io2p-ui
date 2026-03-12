@@ -25,10 +25,10 @@ import {
 import { useGroups } from '@/hooks'
 
 interface GroupFilterProps {
-  /** Array of selected group UUIDs */
-  selectedGroupUUIDs: string[]
+  /** Selected group UUID (single selection) */
+  selectedGroupUUID?: string | null
   /** Callback when selection changes */
-  onGroupChange: (groupUUIDs: string[]) => void
+  onGroupChange: (groupUUID: string | null) => void
   className?: string
 }
 
@@ -37,7 +37,7 @@ interface GroupFilterProps {
  * Shows a dashed border button with checkbox dropdown for group selection.
  */
 export function GroupFilter({
-  selectedGroupUUIDs,
+  selectedGroupUUID,
   onGroupChange,
   className,
 }: GroupFilterProps) {
@@ -46,21 +46,22 @@ export function GroupFilter({
   const { useListGroups } = useGroups()
   const { data: groups = [], isLoading } = useListGroups()
 
-  const selectedSet = new Set(selectedGroupUUIDs)
-  const hasSelection = selectedGroupUUIDs.length > 0
+  const hasSelection = !!selectedGroupUUID
+  const selectedGroup = groups.find(
+    (g: any) => g.groupUUID === selectedGroupUUID
+  )
 
-  const handleToggleGroup = (groupUUID: string) => {
-    const newSet = new Set(selectedSet)
-    if (newSet.has(groupUUID)) {
-      newSet.delete(groupUUID)
+  const handleSelectGroup = (groupUUID: string) => {
+    // If clicking the already selected group, clear selection
+    if (selectedGroupUUID === groupUUID) {
+      onGroupChange(null)
     } else {
-      newSet.add(groupUUID)
+      onGroupChange(groupUUID)
     }
-    onGroupChange(Array.from(newSet))
   }
 
   const handleClear = () => {
-    onGroupChange([])
+    onGroupChange(null)
   }
 
   return (
@@ -80,9 +81,10 @@ export function GroupFilter({
                 <Separator orientation="vertical" className="mx-2 h-4" />
                 <Badge
                   variant="secondary"
-                  className="rounded-sm px-1 font-normal"
+                  className="rounded-sm px-1 font-normal max-w-32"
+                  title={selectedGroup?.name || ''}
                 >
-                  {selectedGroupUUIDs.length}
+                  {selectedGroup?.name || ''}
                 </Badge>
               </>
             )}
@@ -99,12 +101,12 @@ export function GroupFilter({
               </CommandEmpty>
               <CommandGroup>
                 {groups.map((group: any) => {
-                  const isSelected = selectedSet.has(group.groupUUID)
+                  const isSelected = selectedGroupUUID === group.groupUUID
                   return (
                     <CommandItem
                       key={group.groupUUID}
                       value={group.name}
-                      onSelect={() => handleToggleGroup(group.groupUUID)}
+                      onSelect={() => handleSelectGroup(group.groupUUID)}
                     >
                       <div
                         className={cn(

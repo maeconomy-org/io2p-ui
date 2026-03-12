@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib'
+import { logger, isForbiddenError } from '@/lib'
 import { useUploadService } from '@/lib/upload-service'
 import { useImportApi, useObjects, useStatements } from '@/hooks'
 import {
@@ -118,7 +118,11 @@ export function useObjectOperations({
       }
     } catch (error) {
       logger.error('Error saving metadata:', error)
-      toast.error(t('objects.objectMetadataUpdateFailed'))
+      toast.error(
+        isForbiddenError(error)
+          ? t('objects.permissionDenied')
+          : t('objects.objectMetadataUpdateFailed')
+      )
       throw error
     }
   }
@@ -136,6 +140,9 @@ export function useObjectOperations({
       })
     } catch (error) {
       logger.error('Error deleting object:', error)
+      if (isForbiddenError(error)) {
+        toast.error(t('objects.permissionDenied'))
+      }
       throw error
     }
   }

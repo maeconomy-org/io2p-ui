@@ -17,6 +17,7 @@ const PERMISSION_OPTIONS: GroupPermission[] = [
 interface UseGroupFormOptions {
   open: boolean
   defaultName?: string
+  ownerUserUUID?: string
   onClose?: () => void
 }
 
@@ -50,7 +51,7 @@ interface UseGroupFormReturn {
 }
 
 export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
-  const { open, defaultName = '', onClose } = options
+  const { open, defaultName = '', ownerUserUUID, onClose } = options
   const t = useTranslations()
 
   const form = useForm<GroupFormValues>({
@@ -104,6 +105,11 @@ export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
     if (!trimmedUUID) return
 
     setAddUserError(null)
+
+    if (ownerUserUUID && trimmedUUID === ownerUserUUID) {
+      setAddUserError(t('groups.cannotAddOwner'))
+      return
+    }
 
     if (pendingUsers.some((u) => u.userUUID === trimmedUUID)) {
       setAddUserError(t('groups.userAlreadyExists'))
