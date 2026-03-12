@@ -82,9 +82,8 @@ export function GroupFilter({
                 <Badge
                   variant="secondary"
                   className="rounded-sm px-1 font-normal max-w-32"
-                  title={selectedGroup?.name || ''}
                 >
-                  {selectedGroup?.name || ''}
+                  <span className="truncate">{selectedGroup?.name || ''}</span>
                 </Badge>
               </>
             )}
