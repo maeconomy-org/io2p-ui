@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Globe,
   Lock,
@@ -101,6 +101,19 @@ export function GroupViewSheet({
   const [pendingPermissions, setPendingPermissions] = useState<
     GroupPermission[]
   >([])
+
+  // Reset all local state when sheet opens/closes or group changes
+  useEffect(() => {
+    setActiveTab('users')
+    setIsEditingName(false)
+    setEditedName('')
+    setShowAddUser(false)
+    setNewUserUUID('')
+    setNewUserPermissions(['READ' as GroupPermission])
+    setAddUserError(null)
+    setEditingUserUUID(null)
+    setPendingPermissions([])
+  }, [open, groupProp?.groupUUID])
 
   const toggleNewUserPermission = (perm: GroupPermission) => {
     if (perm === ('READ' as GroupPermission)) return

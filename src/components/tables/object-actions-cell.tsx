@@ -41,6 +41,8 @@ interface ObjectActionsCellProps {
   isDeleting?: boolean
   /** Whether restore action is pending */
   isRestoring?: boolean
+  /** Whether the user is in read-only mode (no edit/delete actions) */
+  readOnly?: boolean
 }
 
 /**
@@ -58,8 +60,28 @@ export function ObjectActionsCell({
   onRestore,
   isDeleting = false,
   isRestoring = false,
+  readOnly = false,
 }: ObjectActionsCellProps) {
   const t = useTranslations()
+
+  if (readOnly) {
+    return (
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2.5 text-xs border rounded-md"
+          onClick={(e) => {
+            e.stopPropagation()
+            onViewDetails(object)
+          }}
+          data-testid="object-details-button"
+        >
+          {t('objects.viewDetails')}
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex justify-end">

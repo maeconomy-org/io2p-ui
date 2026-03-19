@@ -1,6 +1,9 @@
 // Core utilities
 export * from './utils'
 
+// Error utilities
+export * from './error-utils'
+
 // File upload service
 export * from './upload-service'
 

@@ -393,6 +393,7 @@
     "parentObjectsUpdateFailed": "Bovenliggende objecten bijwerken mislukt",
     "addressUpdatedSuccess": "Adres succesvol bijgewerkt",
     "addressUpdateFailed": "Adresupdates verwerken mislukt",
+    "permissionDenied": "Toegang geweigerd. U heeft niet de vereiste rechten om deze actie uit te voeren.",
     "creatingObject": "Object aanmaken...",
     "objectCreatedSuccess": "Object succesvol aangemaakt!",
     "objectCreatedWithFiles": "Object aangemaakt met {count} bestand{count, plural, one {} other {en}}",

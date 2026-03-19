@@ -3,7 +3,7 @@ import { Predicate } from 'iom-sdk'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib'
+import { logger, isForbiddenError } from '@/lib'
 import { useStatements } from '@/hooks/api'
 import type { ParentObject } from '@/types'
 
@@ -133,7 +133,11 @@ export function useParentManagement({
       }
     } catch (error) {
       logger.error('Error saving parents:', error)
-      toast.error(t('objects.parentObjectsUpdateFailed'))
+      toast.error(
+        isForbiddenError(error)
+          ? t('objects.permissionDenied')
+          : t('objects.parentObjectsUpdateFailed')
+      )
       throw error
     } finally {
       setIsSaving(false)

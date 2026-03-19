@@ -21,6 +21,7 @@ interface ObjectColumnsViewProps {
   onViewObject?: (object: any) => void
   onDuplicate?: (object: any) => void
   showDeleted?: boolean
+  readOnly?: boolean
 }
 
 export function ObjectColumnsView({
@@ -30,6 +31,7 @@ export function ObjectColumnsView({
   onViewObject,
   onDuplicate,
   showDeleted = false,
+  readOnly = false,
 }: ObjectColumnsViewProps) {
   const t = useTranslations()
   // Create loadChildren function locally for columns view
@@ -104,10 +106,13 @@ export function ObjectColumnsView({
                   }
                   onSelect={(item) => handleSelectItem(item, index)}
                   onShowDetails={handleShowDetails}
-                  onDelete={(item) =>
-                    handleDelete({ uuid: item.uuid, name: item.name })
+                  onDelete={
+                    readOnly
+                      ? undefined
+                      : (item) =>
+                          handleDelete({ uuid: item.uuid, name: item.name })
                   }
-                  onDuplicate={onDuplicate}
+                  onDuplicate={readOnly ? undefined : onDuplicate}
                   searchTerm={getSearchTermForColumn(index)}
                   onSearchChange={(searchTerm) =>
                     handleColumnSearchChange(index, searchTerm)

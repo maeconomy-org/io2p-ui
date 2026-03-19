@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib'
+import { logger, isForbiddenError } from '@/lib'
 import { useAddresses } from '@/hooks/api'
 
 export interface AddressData {
@@ -110,7 +110,11 @@ export function useAddressManagement({
       toast.success(t('objects.addressUpdatedSuccess'))
     } catch (error) {
       logger.error('Error in address update process:', error)
-      toast.error(t('objects.addressUpdateFailed'))
+      toast.error(
+        isForbiddenError(error)
+          ? t('objects.permissionDenied')
+          : t('objects.addressUpdateFailed')
+      )
       throw error
     }
   }

@@ -415,6 +415,7 @@
     "parentObjectsUpdateFailed": "Failed to update parent objects",
     "addressUpdatedSuccess": "Address updated successfully",
     "addressUpdateFailed": "Failed to process address updates",
+    "permissionDenied": "Permission denied. You don't have the required permissions to perform this action.",
     "creatingObject": "Creating object...",
     "objectCreatedSuccess": "Object created successfully!",
     "objectCreatedWithFiles": "Object created with {count} file{count, plural, one {} other {s}}",

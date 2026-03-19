@@ -62,7 +62,7 @@ interface ObjectColumnProps {
   }
   onSelect: (item: ObjectItem) => void
   onShowDetails: (item: ObjectItem) => void
-  onDelete: (item: ObjectItem) => void
+  onDelete?: (item: ObjectItem) => void
   onDuplicate?: (item: ObjectItem) => void
   onShowQRCode?: (item: ObjectItem) => void
   searchTerm?: string
@@ -211,15 +211,19 @@ export function ObjectColumn({
                             {t('objects.duplicate.action')}
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuSeparator />
-                        {!isSoftDeleted && (
-                          <DropdownMenuItem
-                            onClick={() => onDelete(item)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            {t('common.delete')}
-                          </DropdownMenuItem>
+                        {onDelete && (
+                          <>
+                            <DropdownMenuSeparator />
+                            {!isSoftDeleted && (
+                              <DropdownMenuItem
+                                onClick={() => onDelete(item)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                {t('common.delete')}
+                              </DropdownMenuItem>
+                            )}
+                          </>
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>

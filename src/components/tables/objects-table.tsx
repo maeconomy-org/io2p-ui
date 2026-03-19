@@ -70,6 +70,8 @@ interface ObjectsTableProps {
   // Column visibility
   columnVisibility?: VisibilityState
   onColumnVisibilityChange?: (visibility: VisibilityState) => void
+  // Read-only mode (hides edit/delete actions when user lacks GROUP_WRITE_RECORDS)
+  readOnly?: boolean
 }
 
 const isObjectDeleted = (object: any) => {
@@ -94,6 +96,7 @@ export function ObjectsTable({
   enableRowSelection = false,
   columnVisibility = {},
   onColumnVisibilityChange,
+  readOnly = false,
 }: ObjectsTableProps) {
   const t = useTranslations()
   const router = useRouter()
@@ -396,13 +399,14 @@ export function ObjectsTable({
             onRestore={handleRevertObject}
             isDeleting={isDeleting}
             isRestoring={revertObjectMutation.isPending}
+            readOnly={readOnly}
           />
         )
       },
     })
 
     return cols
-  }, [enableRowSelection, t, groupsMap])
+  }, [enableRowSelection, t, groupsMap, readOnly])
 
   return (
     <>

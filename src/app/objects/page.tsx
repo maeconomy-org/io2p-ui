@@ -7,9 +7,15 @@ import { useTranslations } from 'next-intl'
 import { PlusCircle } from 'lucide-react'
 import type { RowSelectionState } from '@tanstack/react-table'
 
-import { useViewData, useBreadcrumbTrail, useBulkSelection } from '@/hooks'
-import { useSearch } from '@/contexts'
+import {
+  useViewData,
+  useBreadcrumbTrail,
+  useBulkSelection,
+  useGroups,
+} from '@/hooks'
+import { useSearch, useAuth } from '@/contexts'
 import { isObjectDeleted } from '@/lib'
+import { canUserWriteRecords } from '@/lib/group-utils'
 import ProtectedRoute from '@/components/protected-route'
 import InitialLoginTour from '@/components/onboarding/initial-login-tour'
 import { Button } from '@/components/ui'
@@ -57,7 +63,9 @@ function ObjectsPageContent() {
   const [selectedObject, setSelectedObject] = useState<any>(null)
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
   const [isObjectEditSheetOpen, setIsObjectEditSheetOpen] = useState(false)
-  const [selectedGroupUUIDs, setSelectedGroupUUIDs] = useState<string[]>([])
+  const [selectedGroupUUID, setSelectedGroupUUID] = useState<string | null>(
+    null
+  )
 
   // Row selection state (keyed by object UUID)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -79,15 +87,15 @@ function ObjectsPageContent() {
   // Handle groupId query param - preselect group from URL
   useEffect(() => {
     const groupId = searchParams.get('groupId')
-    if (groupId && !selectedGroupUUIDs.includes(groupId)) {
-      setSelectedGroupUUIDs([groupId])
+    if (groupId && selectedGroupUUID !== groupId) {
+      setSelectedGroupUUID(groupId)
     }
-  }, [searchParams])
+  }, [searchParams, selectedGroupUUID])
 
   // Clear groupId from URL when group filter changes
   const handleGroupChange = useCallback(
-    (groupUUIDs: string[]) => {
-      setSelectedGroupUUIDs(groupUUIDs)
+    (groupUUID: string | null) => {
+      setSelectedGroupUUID(groupUUID)
       // Clear groupId from URL if it exists
       const groupId = searchParams.get('groupId')
       if (groupId) {
@@ -97,13 +105,24 @@ function ObjectsPageContent() {
     [searchParams, router]
   )
 
+  // Determine if user has write permissions for the selected group(s)
+  const { useListGroups } = useGroups()
+  const { data: allGroups } = useListGroups()
+  const { userUUID } = useAuth()
+
+  const groupReadOnly = useMemo(() => {
+    if (!selectedGroupUUID || !allGroups) return false
+    const group = allGroups.find((g: any) => g.groupUUID === selectedGroupUUID)
+    if (!group) return false
+    return !canUserWriteRecords(group, userUUID)
+  }, [selectedGroupUUID, allGroups, userUUID])
+
   // Use the data adapter hook - handles all data fetching internally
   const viewData = useViewData({
     viewType,
     showDeleted,
     tablePageSize: pageSize,
-    groupUUIDList:
-      selectedGroupUUIDs.length > 0 ? selectedGroupUUIDs : undefined,
+    groupUUIDList: selectedGroupUUID ? [selectedGroupUUID] : undefined,
   })
 
   // Bulk selection hook - consolidates all bulk selection logic
@@ -166,7 +185,7 @@ function ObjectsPageContent() {
               data-tour="filters"
             />
             <GroupFilter
-              selectedGroupUUIDs={selectedGroupUUIDs}
+              selectedGroupUUID={selectedGroupUUID}
               onGroupChange={handleGroupChange}
             />
             <ViewSelector
@@ -188,8 +207,8 @@ function ObjectsPageContent() {
           </div>
         </div>
 
-        {/* Bulk Actions Toolbar — sits between header and table */}
-        {viewType === 'table' && selectedCount > 0 && (
+        {/* Bulk Actions Toolbar — sits between header and table (hidden when group is read-only) */}
+        {viewType === 'table' && selectedCount > 0 && !groupReadOnly && (
           <BulkActionsToolbar
             selectedCount={selectedCount}
             allSelectedDeleted={allSelectedDeleted}
@@ -227,15 +246,20 @@ function ObjectsPageContent() {
             viewData={viewData}
             onViewObject={handleViewObject}
             onObjectDoubleClick={handleObjectDoubleClick}
-            onDuplicate={(object) => {
-              setCopyTarget(object)
-              setIsCopySheetOpen(true)
-            }}
+            onDuplicate={
+              groupReadOnly
+                ? undefined
+                : (object) => {
+                    setCopyTarget(object)
+                    setIsCopySheetOpen(true)
+                  }
+            }
             showDeleted={showDeleted}
-            enableRowSelection={viewType === 'table'}
+            enableRowSelection={viewType === 'table' && !groupReadOnly}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             onPageSizeChange={setPageSize}
+            readOnly={groupReadOnly}
           />
         )}
       </div>
