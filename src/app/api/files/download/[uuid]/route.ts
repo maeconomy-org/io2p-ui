@@ -35,7 +35,7 @@ export async function GET(
 
     // Download file content
     const downloadResponse = await fetch(
-      `${nodeApiUrl}/api/UUFile/download/${params.uuid}`,
+      `${nodeApiUrl}/api/UUFile/${params.uuid}/download`,
       {
         headers: {
           Authorization: `Bearer ${authToken}`,

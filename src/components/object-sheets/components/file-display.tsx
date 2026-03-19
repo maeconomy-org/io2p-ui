@@ -121,7 +121,7 @@ async function handleFileOpen(file: FileData): Promise<void> {
   // For internal files, use server-side download endpoint (better for large files)
   try {
     const uuidMatch = file.fileReference.match(
-      /\/api\/UUFile\/download\/([^/?]+)/
+      /\/api\/UUFile\/([^/?]+)\/download/
     )
     if (!uuidMatch) {
       console.error(
@@ -202,7 +202,7 @@ export function FileDisplay({
     // For internal files, fetch with auth
     try {
       const uuidMatch = file.fileReference.match(
-        /\/api\/UUFile\/download\/([^/?]+)/
+        /\/api\/UUFile\/([^/?]+)\/download/
       )
       if (!uuidMatch) {
         console.error(
@@ -241,9 +241,9 @@ export function FileDisplay({
 
     // For internal files, use SDK with auth
     try {
-      // Extract UUID from fileReference URL like /api/UUFile/download/uuid
+      // Extract UUID from fileReference URL like /api/UUFile/{uuid}/download
       const uuidMatch = file.fileReference.match(
-        /\/api\/UUFile\/download\/([^/?]+)/
+        /\/api\/UUFile\/([^/?]+)\/download/
       )
       if (!uuidMatch) {
         console.error(

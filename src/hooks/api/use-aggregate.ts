@@ -14,7 +14,7 @@ export function useAggregate() {
         if (!uuid) return null
 
         const response = await client.node.searchAggregates({
-          readDefaultGroup: true,
+          accessFind: { readDefaultGroup: true },
           searchBy: { uuid },
           page: 0,
           size: 1,
@@ -58,7 +58,7 @@ export function useAggregate() {
         }
 
         const response = await client.node.searchAggregates({
-          readDefaultGroup: true,
+          accessFind: { readDefaultGroup: true },
           ...searchParams,
         })
         return response
@@ -83,7 +83,7 @@ export function useAggregate() {
         }
 
         const response = await client.node.searchAggregates({
-          readDefaultGroup: true,
+          accessFind: { readDefaultGroup: true },
           ...searchParams,
         })
         return response
@@ -100,7 +100,7 @@ export function useAggregate() {
       queryKey: ['aggregates', 'ownGroups', params],
       queryFn: async () => {
         const response = await client.node.searchAggregates({
-          readOwnGroups: true,
+          accessFind: { readOwnGroups: true },
           ...params,
         })
         return response
@@ -117,7 +117,7 @@ export function useAggregate() {
       queryKey: ['aggregates', 'publicGroups', params],
       queryFn: async () => {
         const response = await client.node.searchAggregates({
-          readPublicGroups: true,
+          accessFind: { readPublicGroups: true },
           ...params,
         })
         return response
@@ -134,7 +134,7 @@ export function useAggregate() {
       queryKey: ['aggregates', 'sharedGroups', params],
       queryFn: async () => {
         const response = await client.node.searchAggregates({
-          readUserSharedGroups: true,
+          accessFind: { readUserSharedGroups: true },
           ...params,
         })
         return response
@@ -147,14 +147,7 @@ export function useAggregate() {
 
   // Generic hook for fetching entities with custom group parameters
   const useGroupEntities = (
-    groupParams: Pick<
-      AggregateFindDTO,
-      | 'readDefaultGroup'
-      | 'readOwnGroups'
-      | 'readPublicGroups'
-      | 'readUserSharedGroups'
-      | 'groupUUIDList'
-    >,
+    groupParams: Pick<AggregateFindDTO, 'accessFind'>,
     params?: AggregateFindDTO,
     options = {}
   ) => {

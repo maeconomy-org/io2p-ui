@@ -255,7 +255,7 @@ export function ObjectAddSheet({
           !open && !showUnsavedDialog && handleCloseAttempt()
         }
       >
-        <SheetContent className="sm:max-w-xl flex flex-col">
+        <SheetContent className="sm:max-w-xl flex flex-col gap-y-0">
           <Form {...form}>
             <SheetHeader>
               <SheetTitle>{t('objects.addTitle')}</SheetTitle>

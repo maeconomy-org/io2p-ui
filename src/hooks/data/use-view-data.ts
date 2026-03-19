@@ -105,17 +105,13 @@ export function useViewData({
         isTemplate: false,
         ...(showDeleted ? {} : { softDeleted: false }),
       },
-      // Group filter — pass groupUUIDList + all 4 read flags when active
+      // Group filter — pass groupUUIDList under accessFind when active
       ...(groupUUIDList && groupUUIDList.length > 0
         ? {
-            groupUUIDList,
-            // readDefaultGroup: true,
-            // readOwnGroups: true,
-            // readPublicGroups: true,
-            // readUserSharedGroups: true,
+            accessFind: { groupUUIDList },
           }
         : {
-            readDefaultGroup: true,
+            accessFind: { readDefaultGroup: true },
           }),
     },
     {

@@ -5,7 +5,7 @@ import path from 'path'
 dotenv.config({ path: '.env.local' })
 
 // Resolve certificate paths to absolute paths
-const certsDir = path.resolve(__dirname, 'certs')
+const certsDir = './certs'
 
 export default defineConfig({
   testDir: './e2e',

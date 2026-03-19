@@ -120,8 +120,8 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       iom-sdk:
-        specifier: ^0.1.14
-        version: 0.1.14(axios@1.13.5)
+        specifier: ^0.1.15
+        version: 0.1.15(axios@1.13.5)
       ioredis:
         specifier: ^5.6.1
         version: 5.9.2
@@ -3437,8 +3437,8 @@ packages:
   intl-messageformat@11.1.2:
     resolution: {integrity: sha512-ucSrQmZGAxfiBHfBRXW/k7UC8MaGFlEj4Ry1tKiDcmgwQm1y3EDl40u+4VNHYomxJQMJi9NEI3riDRlth96jKg==}
 
-  iom-sdk@0.1.14:
-    resolution: {integrity: sha512-5RW36apUGYLU0myDaIWjz/+3rYnaF1IFCspHw6yDqQUyrGSTUgEiP/9Pzu09HDvhhk7nZTu0fVVqbGO2wgpTTw==}
+  iom-sdk@0.1.15:
+    resolution: {integrity: sha512-Ey9CIYsJQi8kIgUC9qyiGMO1BgcQHWERIIqknoV496B1n7aJjLYYkysbpMF6y4SehbdsvBvss6hMA1BCS0hnAA==}
     peerDependencies:
       axios: ^1.6.0
 
@@ -8371,7 +8371,7 @@ snapshots:
       '@formatjs/icu-messageformat-parser': 3.5.1
       tslib: 2.8.1
 
-  iom-sdk@0.1.14(axios@1.13.5):
+  iom-sdk@0.1.15(axios@1.13.5):
     dependencies:
       axios: 1.13.5
       zod: 3.25.76

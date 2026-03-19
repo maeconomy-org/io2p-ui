@@ -48,7 +48,10 @@ export function toApiFilePayload(att: Attachment): {
 export function isExternalFileReference(fileReference: string): boolean {
   if (!fileReference) return false
 
-  if (!fileReference.includes('api/UUFile/download')) {
+  if (
+    !fileReference.includes('api/UUFile/') ||
+    !fileReference.includes('/download')
+  ) {
     return true
   }
 

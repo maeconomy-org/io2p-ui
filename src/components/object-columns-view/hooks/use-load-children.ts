@@ -44,7 +44,7 @@ export function useLoadChildren() {
         queryKey: ['aggregates', 'children', params],
         queryFn: async () => {
           const response = await client.node.searchAggregates({
-            readDefaultGroup: true,
+            accessFind: { readDefaultGroup: true },
             ...params,
           })
           return response
