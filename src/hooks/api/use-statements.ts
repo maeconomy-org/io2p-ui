@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type {
   UUStatementDTO,
-  StatementQueryParams,
+  UUStatementsAccessFindDTO,
+  UUStatementFindDTO,
   UUID,
   UUStatementsProperty,
   Predicate,
@@ -17,16 +18,15 @@ export function useStatements() {
   const queryClient = useQueryClient()
   const t = useTranslations()
 
-  // Get all statements using the new unified API
+  // Search statements via POST /api/UUStatements/search
   const useAllStatements = (
-    options?: StatementQueryParams & { enabled?: boolean }
+    options?: UUStatementsAccessFindDTO & { enabled?: boolean }
   ) => {
-    const { enabled = true, ...queryParams } = options || {}
+    const { enabled = true, ...body } = options || {}
     return useQuery({
-      queryKey: ['statements', queryParams],
+      queryKey: ['statements', body],
       queryFn: async () => {
-        const response = await client.node.getStatements(queryParams)
-        return response
+        return await client.node.searchStatements(body)
       },
       enabled,
       staleTime: 30000,
@@ -34,7 +34,8 @@ export function useStatements() {
     })
   }
 
-  // Get statements by predicate (useful for filtering process relationships)
+  // Search statements by predicate (useful for filtering process relationships)
+  // Uses accessFind: { readDefaultGroup: true } to search within user's groups
   const useStatementsByPredicate = (
     predicate: string,
     options?: { enabled?: boolean }
@@ -42,11 +43,13 @@ export function useStatements() {
     return useQuery({
       queryKey: ['statements', 'predicate', predicate],
       queryFn: async () => {
-        const response = await client.node.getStatements({
-          predicate: predicate as any,
-          softDeleted: false, // Only get non-deleted statements
+        return await client.node.searchStatements({
+          uuStatementFind: {
+            predicate: predicate as Predicate,
+            softDeleted: false,
+          },
+          accessFind: { readDefaultGroup: true },
         })
-        return response
       },
       enabled: !!predicate && options?.enabled !== false,
       staleTime: 30000,
@@ -305,10 +308,9 @@ export function useStatements() {
     return useQuery({
       queryKey: ['statements', 'relationships', entityUuid],
       queryFn: async () => {
-        const response = await client.node.getStatements({
-          subject: entityUuid,
+        return await client.node.searchStatements({
+          uuStatementFind: { subject: entityUuid },
         })
-        return response
       },
       enabled: !!entityUuid && options?.enabled !== false,
       staleTime: 30000,
@@ -338,15 +340,19 @@ export function useStatements() {
       queryFn: async () => {
         // Make parallel requests for both directions
         const [asSubjectResponse, asObjectResponse] = await Promise.all([
-          client.node.getStatements({
-            subject: objectUuid,
-            predicate: predicate as any,
-            softDeleted: includeDeleted,
+          client.node.searchStatements({
+            uuStatementFind: {
+              subject: objectUuid,
+              predicate: predicate as Predicate,
+              softDeleted: includeDeleted,
+            },
           }),
-          client.node.getStatements({
-            object: objectUuid,
-            predicate: predicate as any,
-            softDeleted: includeDeleted,
+          client.node.searchStatements({
+            uuStatementFind: {
+              object: objectUuid,
+              predicate: predicate as Predicate,
+              softDeleted: includeDeleted,
+            },
           }),
         ])
 
