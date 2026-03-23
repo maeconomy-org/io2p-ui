@@ -13,7 +13,7 @@ upstream ui-app {
 
 server {
     listen 443 ssl http2;
-    server_name xxxx.xxxx.io www.xxxx.xxxx.io;
+    server_name maeconomy-dev.recheck.io www.maeconomy-dev.recheck.io;
     
     # recommended security headers
     add_header X-Frame-Options "DENY" always;
@@ -36,7 +36,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Connection "";
 
-        proxy_pass http://$ui-app;
+        proxy_pass http://ui-app;
 
         proxy_buffering off;
         proxy_read_timeout 120s;
@@ -48,18 +48,18 @@ server {
         proxy_pass_header Authorization;
     }
 
-    access_log /var/log/nginx/xxxx.access.log;
-    error_log /var/log/nginx/xxxx.error.log;
+    access_log /var/log/nginx/maeconomy-dev.access.log;
+    error_log /var/log/nginx/maeconomy-dev.error.log;
 }
 
 server {
     listen 80;
-    server_name xxxx.xxxx.io www.xxxx.xxxx.io;
+    server_name maeconomy-dev.recheck.io www.maeconomy-dev.recheck.io;
 
     location / {
        return 301 https://$host$request_uri;
     }
 
     access_log off;
-    error_log /var/log/nginx/xxxx.error.log;
+    error_log /var/log/nginx/maeconomy-dev.error.log;
 }
