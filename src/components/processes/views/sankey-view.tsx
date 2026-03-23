@@ -55,7 +55,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
         !!node.isReusedComponent
 
       // Enhanced border styling for different material types
-      let borderColor = '#FFFFFF'
+      let borderColor = '#06B6D4'
       let borderWidth = 1
       let borderType: 'solid' | 'dashed' = 'solid'
 
