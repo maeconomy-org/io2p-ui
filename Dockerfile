@@ -15,10 +15,8 @@
 FROM node:25-alpine AS deps
 WORKDIR /app
 
-RUN apk add --no-cache libc6-compat
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm globally
+RUN npm install -g pnpm
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
@@ -32,14 +30,15 @@ RUN pnpm install --frozen-lockfile
 FROM node:25-alpine AS builder
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy dependencies
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build application (no NEXT_PUBLIC_* needed - config served at runtime)
+# Build environment
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build application (no NEXT_PUBLIC_* needed - config served at runtime)
 RUN pnpm build
 
 # -----------------------------------------------------------------------------
