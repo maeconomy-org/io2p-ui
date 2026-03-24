@@ -39,6 +39,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build application (no NEXT_PUBLIC_* needed - config served at runtime)
+RUN npm install -g pnpm
 RUN pnpm build
 
 # -----------------------------------------------------------------------------
