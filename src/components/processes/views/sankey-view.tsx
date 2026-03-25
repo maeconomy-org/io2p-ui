@@ -54,22 +54,19 @@ export const SankeyDiagram = memo(function SankeyDiagram({
         !!node.isRecyclingMaterial ||
         !!node.isReusedComponent
 
-      // Enhanced border styling for different material types
-      let borderColor = '#06B6D4'
-      let borderWidth = 1
+      // Subtle border styling — only special nodes get a visible border
+      let borderColor = 'transparent'
+      let borderWidth = 0
       let borderType: 'solid' | 'dashed' = 'solid'
 
       if (node.isReusedComponent) {
-        borderColor = '#06B6D4' // Cyan for reused components
-        borderWidth = 3
+        borderColor = '#7DD3FC'
+        borderWidth = 2
         borderType = 'dashed'
       } else if (node.isRecyclingMaterial) {
-        borderColor = '#10B981' // Green for recycled materials
+        borderColor = '#6EE7B7'
         borderWidth = 2
         borderType = 'dashed'
-      } else if (isRecyclingRelated) {
-        borderColor = '#059669' // Dark green for other recycling-related
-        borderWidth = 2
       }
 
       return {
@@ -88,7 +85,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
           borderColor,
           borderWidth,
           borderType,
-          opacity: 0.85,
+          opacity: 1,
         },
         tooltip: {
           formatter: createNodeTooltip(node, isRecyclingRelated),
@@ -111,8 +108,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
       const inputNode = nodes.find((n) => n.uuid === rel.subject.uuid)
       const outputNode = nodes.find((n) => n.uuid === rel.object.uuid)
 
-      // Determine flow type and styling based on metadata
-      const { color, width, curveness, lineType } = getFlowStyling(
+      const { overrideColor, width, curveness, lineType } = getFlowStyling(
         rel,
         inputNode?.layer || 0,
         outputNode?.layer || 0,
@@ -124,7 +120,9 @@ export const SankeyDiagram = memo(function SankeyDiagram({
         target: rel.object.uuid,
         value: rel.inputMaterial?.quantity || 1,
         lineStyle: {
-          color,
+          // Only override color for selected or special-category flows;
+          // otherwise leave undefined so the series-level 'source' color mode applies
+          ...(overrideColor ? { color: overrideColor } : {}),
           width,
           opacity: getFlowOpacity(rel),
           curveness,
@@ -187,7 +185,9 @@ export const SankeyDiagram = memo(function SankeyDiagram({
             color: isDark ? '#D1D5DB' : '#374151',
           },
           lineStyle: {
+            color: 'source',
             curveness: 0.5,
+            opacity: 0.35,
           },
         },
       ],
@@ -238,38 +238,29 @@ export const SankeyDiagram = memo(function SankeyDiagram({
           <span className="font-medium text-foreground">Flow Types:</span>
           <div className="flex items-center gap-1.5">
             <div
-              className="w-6 h-0.5 bg-emerald-500"
-              style={{
-                borderStyle: 'dashed',
-                borderWidth: '2px',
-                borderColor: '#059669',
-              }}
+              className="w-6 h-1 rounded-sm"
+              style={{ backgroundColor: '#C8E6C3' }}
             ></div>
             <span>Recycling</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div
-              className="w-6 h-0.5 bg-cyan-500"
-              style={{
-                borderStyle: 'dashed',
-                borderWidth: '2px',
-                borderColor: '#06B6D4',
-              }}
+              className="w-6 h-1 rounded-sm"
+              style={{ backgroundColor: '#B4CDE3' }}
             ></div>
             <span>Reuse</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-6 h-0.5 bg-gray-400"></div>
+            <div
+              className="w-6 h-1 rounded-sm"
+              style={{ backgroundColor: '#CFC0E8' }}
+            ></div>
             <span>Standard</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div
-              className="w-6 h-0.5 bg-amber-500"
-              style={{
-                borderStyle: 'dotted',
-                borderWidth: '2px',
-                borderColor: '#F59E0B',
-              }}
+              className="w-6 h-1 rounded-sm"
+              style={{ backgroundColor: '#FFBCBA' }}
             ></div>
             <span>Waste</span>
           </div>
@@ -433,26 +424,28 @@ function getFlowStyling(
 ) {
   const isBackwardFlow = inputStage > outputStage + 0.5
 
-  // Color based on flow category
-  let color = '#64748B' // Default gray
+  // Only set overrideColor for selected or special-category flows.
+  // Standard flows leave it undefined so the series-level color:'source' applies.
+  let overrideColor: string | undefined
+
   if (isSelected) {
-    color = '#DC2626' // Red for selected
+    overrideColor = '#DC2626'
   } else {
     switch (rel.flowCategory) {
       case 'RECYCLING':
-        color = isBackwardFlow ? '#059669' : '#10B981' // Dark/light green
+        overrideColor = '#C8E6C3' // Sage green
         break
       case 'REUSE':
-        color = '#06B6D4' // Cyan for direct reuse
+        overrideColor = '#B4CDE3' // Steel blue
         break
       case 'DOWNCYCLING':
-        color = '#3B82F6' // Blue for downcycling
+        overrideColor = '#CFC0E8' // Lavender
         break
       case 'CIRCULAR':
-        color = '#047857' // Very dark green for circular
+        overrideColor = '#C8E6C3' // Sage green
         break
       case 'WASTE_FLOW':
-        color = '#F59E0B' // Amber for waste
+        overrideColor = '#FFBCBA' // Salmon pink
         break
     }
   }
@@ -488,7 +481,7 @@ function getFlowStyling(
     lineType = 'dotted'
   }
 
-  return { color, width, curveness, lineType }
+  return { overrideColor, width, curveness, lineType }
 }
 
 /**

@@ -285,6 +285,93 @@ export function limitStatementDepth(
 }
 
 /**
+ * Bidirectional depth limiting from a focus node.
+ * Traverses both backward (inputs/parents) and forward (outputs/children)
+ * up to `maxLevels` hops in each direction, placing the focus node in the middle.
+ *
+ * Example with maxLevels=3 and focus on "Brick":
+ *   Water(−1) → Brick(0) → Hotel Wall(1) → Hotel Building(2)
+ *   Sand(−1)  ↗
+ * Keeps all nodes within 3 hops upstream and 3 hops downstream.
+ */
+export function limitStatementDepthBidirectional(
+  statements: Array<{ subject: string; object: string }>,
+  maxLevels: number,
+  focusNode: string
+): Set<string> {
+  if (statements.length === 0) return new Set()
+
+  // Build forward (subject → object) and backward (object → subject) adjacency
+  const forwardAdj = new Map<string, Set<string>>()
+  const backwardAdj = new Map<string, Set<string>>()
+  const allIds = new Set<string>()
+
+  statements.forEach((s) => {
+    allIds.add(s.subject)
+    allIds.add(s.object)
+  })
+
+  allIds.forEach((id) => {
+    forwardAdj.set(id, new Set())
+    backwardAdj.set(id, new Set())
+  })
+
+  statements.forEach((s) => {
+    forwardAdj.get(s.subject)!.add(s.object)
+    backwardAdj.get(s.object)!.add(s.subject)
+  })
+
+  if (!allIds.has(focusNode)) return new Set()
+
+  const kept = new Set<string>()
+  kept.add(focusNode)
+
+  // BFS forward (downstream/outputs)
+  const forwardQueue: Array<{ id: string; depth: number }> = [
+    { id: focusNode, depth: 0 },
+  ]
+  const forwardVisited = new Set<string>([focusNode])
+
+  while (forwardQueue.length > 0) {
+    const { id, depth } = forwardQueue.shift()!
+    if (depth >= maxLevels) continue
+    const children = forwardAdj.get(id)
+    if (children) {
+      children.forEach((child) => {
+        kept.add(child)
+        if (!forwardVisited.has(child)) {
+          forwardVisited.add(child)
+          forwardQueue.push({ id: child, depth: depth + 1 })
+        }
+      })
+    }
+  }
+
+  // BFS backward (upstream/inputs)
+  const backwardQueue: Array<{ id: string; depth: number }> = [
+    { id: focusNode, depth: 0 },
+  ]
+  const backwardVisited = new Set<string>([focusNode])
+
+  while (backwardQueue.length > 0) {
+    const { id, depth } = backwardQueue.shift()!
+    if (depth >= maxLevels) continue
+    const parents = backwardAdj.get(id)
+    if (parents) {
+      parents.forEach((parent) => {
+        kept.add(parent)
+        if (!backwardVisited.has(parent)) {
+          backwardVisited.add(parent)
+          backwardQueue.push({ id: parent, depth: depth + 1 })
+        }
+      })
+    }
+  }
+
+  return kept
+}
+
+/**
  * Detect and remove cycles from relationships to ensure DAG compliance
  */
 export function detectAndRemoveCycles(

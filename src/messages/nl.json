@@ -558,6 +558,11 @@
       "root": "Basis",
       "reset": "Weergave resetten"
     },
+    "nodeFocus": {
+      "viewing": "Gefocust op",
+      "description": "Toont directe invoer & uitvoer",
+      "clear": "Focus wissen"
+    },
     "object": "Object",
     "inputs": "Invoer",
     "outputs": "Uitvoer",

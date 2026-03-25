@@ -36,14 +36,14 @@ export const NetworkDiagram = memo(function NetworkDiagram({
 
     // Simplified categories with better colors
     const categories = [
-      { name: 'Raw Materials', itemStyle: { color: '#3B82F6' } }, // Blue
-      { name: 'Processed', itemStyle: { color: '#8B5CF6' } }, // Purple
-      { name: 'Existing Buildings', itemStyle: { color: '#059669' } }, // Emerald
-      { name: 'Reclaimed', itemStyle: { color: '#06B6D4' } }, // Cyan
-      { name: 'Recycled', itemStyle: { color: '#10B981' } }, // Green
-      { name: 'New Buildings', itemStyle: { color: '#0891B2' } }, // Teal
-      { name: 'Recycling Hub', itemStyle: { color: '#F59E0B' } }, // Amber
-      { name: 'Waste', itemStyle: { color: '#EF4444' } }, // Red
+      { name: 'Raw Materials', itemStyle: { color: '#FFBCBA' } }, // Salmon pink
+      { name: 'Processed', itemStyle: { color: '#B4CDE3' } }, // Steel blue
+      { name: 'Existing Buildings', itemStyle: { color: '#CFC0E8' } }, // Lavender
+      { name: 'Reclaimed', itemStyle: { color: '#C8E6C3' } }, // Sage green
+      { name: 'Recycled', itemStyle: { color: '#C8E6C3' } }, // Sage green
+      { name: 'New Buildings', itemStyle: { color: '#CFC0E8' } }, // Lavender
+      { name: 'Recycling Hub', itemStyle: { color: '#C8E6C3' } }, // Sage green
+      { name: 'Waste', itemStyle: { color: '#FFBCBA' } }, // Salmon pink
     ]
 
     // Create nodes with positioning
@@ -247,7 +247,7 @@ export const NetworkDiagram = memo(function NetworkDiagram({
               style={{
                 borderStyle: 'dashed',
                 borderWidth: '2px',
-                borderColor: '#059669',
+                borderColor: '#C8E6C3',
               }}
             ></div>
             <span>Recycling</span>
@@ -258,7 +258,7 @@ export const NetworkDiagram = memo(function NetworkDiagram({
               style={{
                 borderStyle: 'dashed',
                 borderWidth: '2px',
-                borderColor: '#06B6D4',
+                borderColor: '#B4CDE3',
               }}
             ></div>
             <span>Reuse</span>
@@ -273,7 +273,7 @@ export const NetworkDiagram = memo(function NetworkDiagram({
               style={{
                 borderStyle: 'dotted',
                 borderWidth: '2px',
-                borderColor: '#F59E0B',
+                borderColor: '#FFBCBA',
               }}
             ></div>
             <span>Waste</span>
@@ -508,31 +508,31 @@ function getLinkProperties(
   } else {
     switch (rel.flowCategory) {
       case 'RECYCLING':
-        color = '#059669'
+        color = '#C8E6C3'
         width = Math.max(baseWidth, 2.5)
         type = 'dashed'
         opacity = 0.8
         break
       case 'REUSE':
-        color = '#06B6D4'
+        color = '#B4CDE3'
         width = Math.max(baseWidth, 3)
         type = 'dashed'
         opacity = 0.85
         break
       case 'DOWNCYCLING':
-        color = '#3B82F6'
+        color = '#CFC0E8'
         width = Math.max(baseWidth, 2.5)
         type = 'dashed'
         opacity = 0.75
         break
       case 'CIRCULAR':
-        color = '#047857'
+        color = '#C8E6C3'
         width = Math.max(baseWidth, 3)
         type = 'dotted'
         opacity = 0.8
         break
       case 'WASTE_FLOW':
-        color = '#F59E0B'
+        color = '#FFBCBA'
         width = baseWidth
         type = 'dotted'
         opacity = 0.65

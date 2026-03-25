@@ -559,6 +559,11 @@
       "root": "Root",
       "reset": "Reset View"
     },
+    "nodeFocus": {
+      "viewing": "Focused on",
+      "description": "Showing direct inputs & outputs",
+      "clear": "Clear Focus"
+    },
     "object": "Object",
     "inputs": "Inputs",
     "outputs": "Outputs",

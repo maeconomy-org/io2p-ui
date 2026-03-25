@@ -10,7 +10,10 @@ import type {
   ProcessCategory,
   QualityChangeCode,
 } from '@/types'
-import { limitStatementDepth } from '@/components/processes/utils'
+import {
+  limitStatementDepth,
+  limitStatementDepthBidirectional,
+} from '@/components/processes/utils'
 
 interface SankeyDiagramData {
   materials: EnhancedMaterialObject[]
@@ -39,12 +42,17 @@ interface SankeyLayoutData {
  */
 export function useSankeyDiagramData(
   objectUuid?: UUID,
-  options?: { maxDepth?: number; focusNode?: string }
+  options?: {
+    maxDepth?: number
+    focusNode?: string
+    focusNodeBidirectional?: string
+  }
 ): SankeyDiagramData & { layoutData: SankeyLayoutData | null } {
   const { useStatementsByPredicate, useObjectRelationships } = useStatements()
   const { useObjectsByUUIDs } = useObjects()
   const maxDepth = options?.maxDepth
   const focusNode = options?.focusNode
+  const focusNodeBidirectional = options?.focusNodeBidirectional
 
   // Fetch input relationships
 
@@ -79,6 +87,16 @@ export function useSankeyDiagramData(
     })
     const total = allUuids.size
 
+    // Bidirectional focus takes priority: show 1 level upstream + downstream from a node
+    if (focusNodeBidirectional) {
+      const keptSet = limitStatementDepthBidirectional(
+        statements,
+        1,
+        focusNodeBidirectional
+      )
+      return { kept: Array.from(keptSet) as UUID[], total }
+    }
+
     // If maxDepth is set, only include UUIDs within the depth limit
     if (maxDepth !== undefined) {
       const keptSet = limitStatementDepth(statements, maxDepth, focusNode)
@@ -86,7 +104,13 @@ export function useSankeyDiagramData(
     }
 
     return { kept: Array.from(allUuids) as UUID[], total }
-  }, [inputStatementsQuery.data, objectUuid, maxDepth, focusNode])
+  }, [
+    inputStatementsQuery.data,
+    objectUuid,
+    maxDepth,
+    focusNode,
+    focusNodeBidirectional,
+  ])
 
   const participatingUUIDs = uuidResult.kept
   const totalNodeCount = uuidResult.total
@@ -454,32 +478,32 @@ function getLifecycleStageColor(
 ): string {
   switch (stage) {
     case 'PRIMARY_INPUT':
-      return '#8B5CF6' // Purple - raw materials
+      return '#FFBCBA' // Salmon pink - raw materials
     case 'SECONDARY_INPUT':
-      return '#059669' // Emerald - recycled materials
+      return '#C8E6C3' // Sage green - recycled materials
     case 'REUSED_COMPONENT':
-      return '#0EA5E9' // Sky blue - reused components (highlighting reuse)
+      return '#B4CDE3' // Steel blue - reused components
     case 'PROCESSING':
-      return '#F59E0B' // Amber - processing steps
+      return '#B4CDE3' // Steel blue - processing steps
     case 'COMPONENT':
-      return '#10B981' // Green - building components
+      return '#C8E6C3' // Sage green - building components
     case 'PRODUCT':
-      return '#10B981' // Emerald - new buildings
+      return '#CFC0E8' // Lavender - finished products
     case 'USE_PHASE':
-      return '#6366F1' // Indigo - existing buildings
+      return '#CFC0E8' // Lavender - existing buildings
     case 'WASTE':
-      return '#F97316' // Orange - waste streams
+      return '#FFBCBA' // Salmon pink - waste streams
     case 'DISPOSAL':
-      return '#DC2626' // Red - disposal/landfill
+      return '#FFBCBA' // Salmon pink - disposal/landfill
     default:
-      // Fallback to enhanced color scheme
+      // Fallback using the same palette by graph role
       switch (fallbackType) {
         case 'input':
-          return '#64748B' // Slate gray
+          return '#FFBCBA' // Salmon pink
         case 'output':
-          return '#10B981' // Emerald
+          return '#CFC0E8' // Lavender
         default:
-          return '#9CA3AF' // Gray
+          return '#B4CDE3' // Steel blue
       }
   }
 }

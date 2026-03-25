@@ -2,14 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import {
-  PlusCircle,
-  Loader2,
-  Filter,
-  Layers,
-  ChevronRight,
-  RotateCcw,
-} from 'lucide-react'
+import { PlusCircle, Loader2, Filter, Layers, Focus, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import type { UUID } from 'iom-sdk'
 import dynamic from 'next/dynamic'
@@ -72,15 +65,11 @@ const MaterialFlowPage = () => {
   )
   const [isDepthLimited, setIsDepthLimited] = useState(true)
 
-  // Drill-down state: stack of focus nodes for breadcrumb navigation
-  // Each entry is { uuid, name } — empty stack means showing from roots
-  const [drillDownStack, setDrillDownStack] = useState<
-    Array<{ uuid: string; name: string }>
-  >([])
-  const currentFocusNode =
-    drillDownStack.length > 0
-      ? drillDownStack[drillDownStack.length - 1].uuid
-      : undefined
+  // Node focus state: click a node to show its inputs & outputs (bidirectional 3-level fetch)
+  const [focusedNode, setFocusedNode] = useState<{
+    uuid: string
+    name: string
+  } | null>(null)
 
   // Load saved view preference from localStorage
   useEffect(() => {
@@ -105,8 +94,8 @@ const MaterialFlowPage = () => {
     isLoading,
     totalNodeCount,
   } = useSankeyDiagramData(objectUuid as UUID | undefined, {
-    maxDepth: isDepthLimited ? 3 : undefined,
-    focusNode: isDepthLimited ? currentFocusNode : undefined,
+    maxDepth: isDepthLimited && !focusedNode ? 3 : undefined,
+    focusNodeBidirectional: focusedNode?.uuid,
   })
 
   // Truncated count = total nodes in graph minus nodes actually fetched
@@ -216,31 +205,21 @@ const MaterialFlowPage = () => {
     setIsProcessFormOpen(true)
   }, [])
 
-  // Drill-down: click a node to make it the new focus (first level)
-  const handleNodeDrillDown = useCallback(
+  // Node focus: click a node to show its inputs & outputs (bidirectional 3-level fetch)
+  const handleNodeFocus = useCallback(
     (nodeUuid: string, nodeName: string) => {
-      if (!isDepthLimited) return
-      // Only drill down if the node has outgoing edges (children in the graph)
-      const hasOutgoing = allRelationships.some(
-        (rel) => rel.subject.uuid === nodeUuid
-      )
-      if (hasOutgoing) {
-        setDrillDownStack((prev) => [
-          ...prev,
-          { uuid: nodeUuid, name: nodeName },
-        ])
+      // If already focused on this node, clear focus
+      if (focusedNode?.uuid === nodeUuid) {
+        setFocusedNode(null)
+        return
       }
+      setFocusedNode({ uuid: nodeUuid, name: nodeName })
     },
-    [isDepthLimited, allRelationships]
+    [focusedNode]
   )
 
-  // Navigate back in drill-down breadcrumb
-  const handleDrillDownBack = useCallback((index: number) => {
-    setDrillDownStack((prev) => prev.slice(0, index))
-  }, [])
-
-  const handleDrillDownReset = useCallback(() => {
-    setDrillDownStack([])
+  const handleClearNodeFocus = useCallback(() => {
+    setFocusedNode(null)
   }, [])
 
   // Memoize diagram components to prevent unnecessary re-renders
@@ -272,7 +251,7 @@ const MaterialFlowPage = () => {
         relationships={relationships}
         selectedRelationship={null} // Always null to prevent visual selection
         onLinkSelect={handleRelationshipSelect}
-        onNodeClick={isDepthLimited ? handleNodeDrillDown : undefined}
+        onNodeClick={handleNodeFocus}
         className="bg-card"
       />
     )
@@ -283,8 +262,7 @@ const MaterialFlowPage = () => {
     activeView,
     objectUuid,
     handleRelationshipSelect,
-    handleNodeDrillDown,
-    isDepthLimited,
+    handleNodeFocus,
   ])
 
   return (
@@ -433,49 +411,37 @@ const MaterialFlowPage = () => {
         </>
       )}
 
-      {/* Drill-down Breadcrumb */}
-      {isDepthLimited &&
-        drillDownStack.length > 0 &&
-        (activeView === 'sankey' || activeView === 'network') && (
-          <div className="mb-4 p-3 bg-muted/50 border border-border rounded-lg">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1.5 text-sm flex-wrap min-w-0">
-                <button
-                  onClick={handleDrillDownReset}
-                  className="text-primary hover:underline font-medium shrink-0"
-                >
-                  {t('processes.drillDown.root')}
-                </button>
-                {drillDownStack.map((node, index) => (
-                  <span key={node.uuid} className="flex items-center gap-1.5">
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    {index < drillDownStack.length - 1 ? (
-                      <button
-                        onClick={() => handleDrillDownBack(index + 1)}
-                        className="text-primary hover:underline truncate max-w-[200px]"
-                      >
-                        {node.name}
-                      </button>
-                    ) : (
-                      <span className="font-medium truncate max-w-[200px]">
-                        {node.name}
-                      </span>
-                    )}
-                  </span>
-                ))}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDrillDownReset}
-                className="shrink-0 gap-1.5"
+      {/* Node Focus Indicator */}
+      {focusedNode && (activeView === 'sankey' || activeView === 'network') && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Focus className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="text-blue-900 dark:text-blue-200">
+                {t('processes.nodeFocus.viewing')}
+              </span>
+              <Badge
+                variant="secondary"
+                className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
               >
-                <RotateCcw className="h-3.5 w-3.5" />
-                {t('processes.drillDown.reset')}
-              </Button>
+                {focusedNode.name}
+              </Badge>
+              <span className="text-blue-700 dark:text-blue-300 text-xs">
+                {t('processes.nodeFocus.description')}
+              </span>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearNodeFocus}
+              className="shrink-0 gap-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+            >
+              <X className="h-3.5 w-3.5" />
+              {t('processes.nodeFocus.clear')}
+            </Button>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Diagram Views */}
       {(activeView === 'sankey' || activeView === 'network') && (
