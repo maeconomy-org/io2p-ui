@@ -1,4 +1,14 @@
 {
+  "errors": {
+    "boundary": {
+      "title": "Something went wrong",
+      "description": "We apologize for the inconvenience. An unexpected error has occurred.",
+      "devDetails": "Error Details (Development)",
+      "tryAgain": "Try Again",
+      "goHome": "Go Home",
+      "persistMessage": "If this problem persists, please contact support."
+    }
+  },
   "app": {
     "name": "Internet of Materials",
     "description": "Material Management System",

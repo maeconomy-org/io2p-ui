@@ -54,12 +54,68 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   maxObjectsPerImport: 50000,
 }
 
+/**
+ * Build runtime config from process.env (server-side only).
+ * Single source of truth — used by both the /api/config route
+ * and the inline <script> in layout.tsx.
+ */
+export function buildRuntimeConfig(): ClientConfig {
+  return {
+    authApiUrl: process.env.AUTH_API_URL || '',
+    authRefreshApiUrl: process.env.AUTH_REFRESH_API_URL || '',
+    registryApiUrl: process.env.REGISTRY_API_URL || '',
+    nodeApiUrl: process.env.NODE_API_URL || '',
+    upApiUrl: process.env.UP_API_URL || '',
+    sentryDsn: process.env.SENTRY_DSN || '',
+    sentryEnabled: process.env.SENTRY_ENABLED || 'false',
+    sentryRelease: process.env.SENTRY_RELEASE || '',
+    nodeEnv: process.env.NODE_ENV || 'development',
+    emailLoginEnabled: process.env.EMAIL_LOGIN_ENABLED || 'false',
+    appName: process.env.APP_NAME || 'Internet of Materials',
+    appDescription: process.env.APP_DESCRIPTION || 'Material Management System',
+    appAcronym: process.env.APP_ACRONYM || 'IoM',
+    contactUrl: process.env.CONTACT_URL || 'https://example.com/contact',
+    supportEmail: process.env.SUPPORT_EMAIL || 'support@maeconomy.org',
+    maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '100'),
+    maxImportPayloadMB: parseInt(process.env.MAX_IMPORT_PAYLOAD_MB || '100'),
+    maxObjectsPerImport: parseInt(
+      process.env.MAX_OBJECTS_PER_IMPORT || '50000'
+    ),
+  }
+}
+
+/**
+ * Sanitize a JSON string for safe embedding inside a <script> tag.
+ * Prevents XSS via env vars containing </script> or <!-- sequences.
+ */
+function sanitizeForInlineScript(json: string): string {
+  return json.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--')
+}
+
+/**
+ * Build a safe inline script that sets window.__IOM_CONFIG__.
+ * Sanitizes the output to prevent script-tag breakout from env vars.
+ */
+export function buildInlineConfigScript(): string {
+  const config = buildRuntimeConfig()
+  const safeJson = sanitizeForInlineScript(JSON.stringify(config))
+  return `window.__IOM_CONFIG__=${safeJson};`
+}
+
 const CONFIG_CACHE_KEY = 'iom-client-config'
 const CONFIG_CACHE_VERSION = 'v1' // Increment to invalidate cache
 
-// Get cached config from localStorage
+// Get cached config — checks inline <script> first, then localStorage
 export function getCachedConfig(): ClientConfig | null {
   if (typeof window === 'undefined') return null
+
+  // Prefer server-injected inline config (zero network requests)
+  const inlineConfig = (window as any).__IOM_CONFIG__ as
+    | ClientConfig
+    | undefined
+  if (inlineConfig && inlineConfig.authApiUrl) {
+    return inlineConfig
+  }
 
   try {
     const cached = localStorage.getItem(CONFIG_CACHE_KEY)

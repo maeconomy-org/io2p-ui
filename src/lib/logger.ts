@@ -14,14 +14,19 @@ type LogContext = Record<string, unknown> | unknown
 // Determine if we're in production
 const isProduction = process.env.NODE_ENV === 'production'
 
-// Global logger configuration - simplified
-// In dev: console only, no Sentry (SENTRY_ENABLED=false by default)
-// In prod: Sentry for errors/warnings, console for errors only
+// Global logger configuration
+//
+// LOCAL DEV:  Console everything (info+), no Sentry
+// VM/STAGING: Console everything (debug available via LOG_LEVEL=debug),
+//             Sentry for errors+warnings when SENTRY_ENABLED=true
+// PRODUCTION: Sentry for errors+warnings, console for errors only
+//             (set LOG_LEVEL=debug to enable full console output on prod VMs)
 let loggerConfig: LoggerConfig = {
   level:
     (process.env.LOG_LEVEL as LogLevel) || (isProduction ? 'warn' : 'info'),
-  // Console: always enabled in dev, errors only in prod
-  enableConsole: !isProduction || process.env.LOG_LEVEL === 'debug',
+  // Console: always enabled in dev; in prod only when LOG_LEVEL is
+  // explicitly set (e.g., LOG_LEVEL=debug on a VM for troubleshooting)
+  enableConsole: !isProduction || !!process.env.LOG_LEVEL,
   // Sentry: only when explicitly enabled (default false in dev)
   enableSentry: process.env.SENTRY_ENABLED === 'true',
 }

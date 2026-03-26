@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 
 import { getRedis } from '@/lib/redis'
 import { hsetWithTTL, setWithTTL } from '@/lib/redis-utils'
+import { encrypt } from '@/lib/crypto-utils'
 import {
   validateRequestBasics,
   validateImportPayload,
@@ -20,7 +21,13 @@ import { getUserUUIDFromJWT } from '@/lib/jwt-utils'
  * Uses JWT token for authentication (passed in Authorization header)
  */
 export async function POST(req: Request) {
-  let body: any = {}
+  let body: {
+    aggregateEntityList?: unknown[]
+    total?: number
+    chunkIndex?: number
+    totalChunks?: number
+    sessionId?: string
+  } = {}
 
   try {
     // Validate basic request properties
@@ -127,7 +134,7 @@ export async function POST(req: Request) {
         status: 'receiving',
         userUUID: userUUID,
         clientId: clientId,
-        jwtToken: jwtToken, // Store JWT token for API calls
+        jwtToken: encrypt(jwtToken), // Store encrypted JWT token for API calls
         createdAt: Date.now().toString(),
         total: total.toString(),
         totalChunks: totalChunks.toString(),
@@ -142,7 +149,24 @@ export async function POST(req: Request) {
         6 * 3600 // 6 hours TTL for chunks
       )
     } else if (currentJobId) {
-      // For subsequent chunks, store them
+      // Verify session ownership — the user who started the session must be the same
+      const redis = getRedis()
+      const jobData = await redis.hgetall(`import:${currentJobId}`)
+      if (!jobData || jobData.userUUID !== userUUID) {
+        logSecurityEvent('chunk_session_ownership_mismatch', {
+          clientId,
+          chunkIndex,
+          sessionId: currentJobId,
+          expectedUser: jobData?.userUUID,
+          actualUser: userUUID,
+        })
+        return NextResponse.json(
+          { error: 'Invalid session: ownership mismatch' },
+          { status: 403 }
+        )
+      }
+
+      // Store subsequent chunk
       await setWithTTL(
         `import:${currentJobId}:chunk:${chunkIndex}`,
         JSON.stringify(chunk),

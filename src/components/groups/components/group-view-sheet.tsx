@@ -51,7 +51,7 @@ import {
   canEditGroup,
   deduplicateUsersShare,
   getEffectivePermissions,
-} from '@/lib/group-utils'
+} from '../utils/group-utils'
 
 interface GroupViewSheetProps {
   group: GroupCreateDTO | null

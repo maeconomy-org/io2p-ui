@@ -12,13 +12,14 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Dependencies
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS deps
+# TIP: For reproducible builds, pin to a specific digest:
+#   FROM node:25-alpine@sha256:<digest> AS deps
+# Get the current digest: docker pull node:25-alpine && docker inspect --format='{{.RepoDigests}}' node:25-alpine
+FROM node:25-alpine AS deps
 WORKDIR /app
 
-RUN apk add --no-cache libc6-compat
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm globally
+RUN npm install -g pnpm
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
@@ -29,23 +30,25 @@ RUN pnpm install --frozen-lockfile
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy dependencies
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build application (no NEXT_PUBLIC_* needed - config served at runtime)
+# Build environment
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build application (no NEXT_PUBLIC_* needed - config served at runtime)
+RUN npm install -g pnpm
 RUN pnpm build
 
 # -----------------------------------------------------------------------------
 # Stage 3: Runner (Production)
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 WORKDIR /app
 
 # Production environment

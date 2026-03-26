@@ -38,8 +38,8 @@ export function decodeJWTPayload(token: string): JWTPayload | null {
     const decoded = Buffer.from(base64, 'base64').toString('utf-8')
 
     return JSON.parse(decoded) as JWTPayload
-  } catch (error) {
-    console.error('Failed to decode JWT payload:', error)
+  } catch {
+    // Silently return null — callers handle the null case
     return null
   }
 }

@@ -1,12 +1,11 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import 'driver.js/dist/driver.css'
-import '@/styles/driver-custom.css'
 import './globals.css'
 import { getMessages, getLocale } from 'next-intl/server'
 
 import { Providers } from '@/components/providers'
 import ClientLayout from '@/components/client-layout'
+import { buildInlineConfigScript } from '@/constants/client'
 
 export const metadata: Metadata = {
   title: process.env.APP_NAME || 'Internet of Materials',
@@ -29,6 +28,13 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${inter.className} h-full`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: buildInlineConfigScript(),
+          }}
+        />
+      </head>
       <body className="flex flex-col min-h-screen h-full">
         <Providers
           locale={locale}

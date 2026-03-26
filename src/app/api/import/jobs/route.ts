@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRedis } from '@/lib/redis'
 import { logger } from '@/lib/logger'
+import { requireAuth } from '@/lib/api-auth'
 
 interface JobSummary {
   jobId: string
@@ -53,9 +54,14 @@ async function scanKeys(pattern: string): Promise<string[]> {
  *   - jobId: Specific job ID to get details for
  */
 export async function GET(req: NextRequest) {
+  // Authenticate request
+  const auth = requireAuth(req)
+  if (auth.error) return auth.error
+
   const url = new URL(req.url)
   const jobId = url.searchParams.get('jobId')
-  const userUUID = url.searchParams.get('userUUID')
+  // Use authenticated userUUID — ignore client-provided value
+  const userUUID = auth.userUUID
   const limit = parseInt(url.searchParams.get('limit') || '50')
 
   try {
@@ -66,6 +72,11 @@ export async function GET(req: NextRequest) {
       const jobData = await redis.hgetall(`import:${jobId}`)
 
       if (!jobData || Object.keys(jobData).length === 0) {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+      }
+
+      // Verify the job belongs to the authenticated user
+      if (jobData.userUUID && jobData.userUUID !== userUUID) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 })
       }
 

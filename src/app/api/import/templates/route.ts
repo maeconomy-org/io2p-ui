@@ -1,17 +1,22 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getRedis } from '@/lib/redis'
+import { scanKeys } from '@/lib/redis-utils'
 import { logger } from '@/lib/logger'
+import { requireAuth } from '@/lib/api-auth'
 
 // Template prefix for Redis keys
 const TEMPLATE_PREFIX = 'mapping_template:'
 
 // Get all templates
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = requireAuth(req)
+  if (auth.error) return auth.error
+
   try {
     const redis = getRedis()
 
     // Get all template keys
-    const keys = await redis.keys(`${TEMPLATE_PREFIX}*`)
+    const keys = await scanKeys(`${TEMPLATE_PREFIX}*`)
 
     if (keys.length === 0) {
       return NextResponse.json({ templates: [] })
@@ -48,7 +53,10 @@ export async function GET() {
 }
 
 // Create a new template
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const auth = requireAuth(req)
+  if (auth.error) return auth.error
+
   try {
     const redis = getRedis()
     const { name, mapping } = await req.json()
@@ -98,7 +106,10 @@ export async function POST(req: Request) {
 }
 
 // Delete a template
-export async function DELETE(req: Request) {
+export async function DELETE(req: NextRequest) {
+  const auth = requireAuth(req)
+  if (auth.error) return auth.error
+
   try {
     const redis = getRedis()
     const { searchParams } = new URL(req.url)

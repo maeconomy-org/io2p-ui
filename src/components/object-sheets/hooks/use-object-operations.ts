@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 
-import { logger, isForbiddenError } from '@/lib'
+import { logger, isForbiddenError, queryKeys } from '@/lib'
 import { useUploadService } from '@/lib/upload-service'
 import { useImportApi, useObjects, useStatements } from '@/hooks'
 import {
@@ -258,7 +258,7 @@ export function useObjectOperations({
             }, 2000)
           })
         } else {
-          console.warn(
+          logger.warn(
             'No file contexts could be mapped from Aggregate API response'
           )
         }
@@ -266,9 +266,15 @@ export function useObjectOperations({
 
       // Manually invalidate queries after everything is complete (object + relationships)
       // This ensures the object appears in the correct location immediately
-      queryClient.invalidateQueries({ queryKey: ['objects'] })
-      queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-      queryClient.invalidateQueries({ queryKey: ['statements'] })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.objects.all,
+      })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.aggregates.all,
+      })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.statements.all,
+      })
 
       // Trigger refetch if provided
       if (onRefetch) {

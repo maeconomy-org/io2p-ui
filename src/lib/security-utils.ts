@@ -8,6 +8,21 @@ import {
   RATE_LIMIT_WARNING_THRESHOLD,
 } from '@/constants'
 
+// In-memory fallback rate limiter when Redis is unavailable
+const memoryRateLimit = new Map<string, { count: number; resetAt: number }>()
+
+// Clean up expired entries every 60 seconds
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now()
+    for (const [key, entry] of memoryRateLimit) {
+      if (now >= entry.resetAt) {
+        memoryRateLimit.delete(key)
+      }
+    }
+  }, 60_000)
+}
+
 export interface SecurityValidationResult {
   allowed: boolean
   warning?: string
@@ -157,9 +172,9 @@ export async function checkImportRateLimit(
       rateLimitInfo,
     }
   } catch (error) {
-    // If Redis fails, log error but allow the request
+    // Redis unavailable — fall back to in-memory rate limiting
     logSecurityEvent(
-      'rate_limit_check_failed',
+      'rate_limit_redis_fallback',
       {
         identifier,
         userUUID,
@@ -168,9 +183,34 @@ export async function checkImportRateLimit(
       'error'
     )
 
+    const now = Date.now()
+    const windowMs = RATE_LIMIT_WINDOW_MINUTES * 60 * 1000
+    const entry = memoryRateLimit.get(identifier)
+
+    if (entry && now < entry.resetAt) {
+      entry.count += 1
+      if (entry.count > RATE_LIMIT_MAX_REQUESTS) {
+        return {
+          allowed: false,
+          error: 'Rate limit exceeded. Please try again later.',
+          rateLimitInfo: {
+            current: entry.count,
+            max: RATE_LIMIT_MAX_REQUESTS,
+            windowMinutes: RATE_LIMIT_WINDOW_MINUTES,
+            resetTime: entry.resetAt,
+          },
+        }
+      }
+    } else {
+      memoryRateLimit.set(identifier, {
+        count: 1,
+        resetAt: now + windowMs,
+      })
+    }
+
     return {
       allowed: true,
-      warning: 'Rate limiting temporarily unavailable',
+      warning: 'Rate limiting using fallback mode',
     }
   }
 }

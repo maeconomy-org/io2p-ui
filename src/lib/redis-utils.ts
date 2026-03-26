@@ -18,7 +18,7 @@ export const REDIS_KEYS = {
  * Scan Redis keys using SCAN instead of KEYS (production-safe)
  * KEYS is O(n) and blocks Redis, SCAN is incremental
  */
-async function scanKeys(pattern: string): Promise<string[]> {
+export async function scanKeys(pattern: string): Promise<string[]> {
   const redis = getRedis()
   const keys: string[] = []
   let cursor = '0'
