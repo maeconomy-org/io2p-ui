@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { PlusCircle } from 'lucide-react'
 import type { RowSelectionState } from '@tanstack/react-table'
+import type { AggregateEntity } from 'iom-sdk'
+import type { GroupCreateDTO } from 'iom-sdk'
 
 import {
   useViewData,
@@ -15,7 +17,7 @@ import {
 } from '@/hooks'
 import { useSearch, useAuth } from '@/contexts'
 import { isObjectDeleted } from '@/lib'
-import { canUserWriteRecords } from '@/lib/group-utils'
+import { canUserWriteRecords } from '@/components/groups'
 import ProtectedRoute from '@/components/protected-route'
 import InitialLoginTour from '@/components/onboarding/initial-login-tour'
 import { Button } from '@/components/ui'
@@ -60,7 +62,9 @@ function ObjectsPageContent() {
     return 'table'
   })
   const [showDeleted, setShowDeleted] = useState<boolean>(false)
-  const [selectedObject, setSelectedObject] = useState<any>(null)
+  const [selectedObject, setSelectedObject] = useState<AggregateEntity | null>(
+    null
+  )
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
   const [isObjectEditSheetOpen, setIsObjectEditSheetOpen] = useState(false)
   const [selectedGroupUUID, setSelectedGroupUUID] = useState<string | null>(
@@ -71,7 +75,7 @@ function ObjectsPageContent() {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   // Copy objects state (for columns view — table handles its own)
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
-  const [copyTarget, setCopyTarget] = useState<any>(null)
+  const [copyTarget, setCopyTarget] = useState<AggregateEntity | null>(null)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -112,7 +116,9 @@ function ObjectsPageContent() {
 
   const groupReadOnly = useMemo(() => {
     if (!selectedGroupUUID || !allGroups) return false
-    const group = allGroups.find((g: any) => g.groupUUID === selectedGroupUUID)
+    const group = allGroups.find(
+      (g: GroupCreateDTO) => g.groupUUID === selectedGroupUUID
+    )
     if (!group) return false
     return !canUserWriteRecords(group, userUUID)
   }, [selectedGroupUUID, allGroups, userUUID])
@@ -156,14 +162,14 @@ function ObjectsPageContent() {
     setIsObjectEditSheetOpen(true)
   }
 
-  const handleViewObject = (object: any) => {
+  const handleViewObject = (object: AggregateEntity) => {
     setSelectedObject(object)
     setIsObjectSheetOpen(true)
   }
 
   // Handle double-click to navigate to children page
   const handleObjectDoubleClick = useCallback(
-    (object: any) => {
+    (object: AggregateEntity) => {
       // Clear the trail — navigating from root means no ancestors
       clearTrail()
       router.push(`/objects/${object.uuid}`)
@@ -289,13 +295,12 @@ function ObjectsPageContent() {
           onOpenChange={setIsCopySheetOpen}
           preselectedObjects={[
             {
-              uuid: copyTarget.uuid,
-              name: copyTarget.name,
+              uuid: copyTarget.uuid ?? '',
+              name: copyTarget.name ?? '',
               hasChildren:
-                copyTarget.hasChildren ||
-                (copyTarget.children && copyTarget.children.length > 0),
-              childCount:
-                copyTarget.childCount || copyTarget.children?.length || 0,
+                (copyTarget.children && copyTarget.children.length > 0) ??
+                false,
+              childCount: copyTarget.children?.length ?? 0,
             },
           ]}
         />

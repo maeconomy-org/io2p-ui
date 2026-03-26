@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { logger } from '@/lib'
 import { useIomSdkClient } from '@/contexts'
+import { queryKeys } from '@/lib/query-keys'
 import type { ImportObjectData } from './use-import-api'
 
 export interface CopyObjectsParams {
@@ -294,9 +295,12 @@ export function useCopyObjects() {
     },
     onSuccess: (data) => {
       toast.success(t('objects.duplicate.success'))
-      queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-      queryClient.invalidateQueries({ queryKey: ['aggregate'] })
-      queryClient.invalidateQueries({ queryKey: ['statements'] })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.aggregates.all,
+      })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.statements.all,
+      })
       logger.info(`Successfully copied ${data.length} object(s)`)
     },
     onError: (error) => {

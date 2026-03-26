@@ -1,31 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/api-auth'
+import { logger } from '@/lib/logger'
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { uuid: string } }
 ) {
-  try {
-    // Get auth token from query parameter
-    const { searchParams } = new URL(request.url)
-    const authToken = searchParams.get('token')
+  // Authenticate via Authorization header
+  const auth = requireAuth(request)
+  if (auth.error) return auth.error
 
-    if (!authToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    // Validate UUID format
+    const { uuid } = await params
+    if (!UUID_REGEX.test(uuid)) {
+      return NextResponse.json(
+        { error: 'Invalid UUID format' },
+        { status: 400 }
+      )
     }
 
-    // Get backend URLs from environment
     const nodeApiUrl = process.env.NODE_API_URL
 
+    if (!nodeApiUrl) {
+      return NextResponse.json(
+        { error: 'Node API URL not configured' },
+        { status: 500 }
+      )
+    }
+
     // Get file metadata first
-    const fileResponse = await fetch(
-      `${nodeApiUrl}/api/UUFile/${params.uuid}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    const fileResponse = await fetch(`${nodeApiUrl}/api/UUFile/${uuid}`, {
+      headers: {
+        Authorization: `Bearer ${auth.token}`,
+        'Content-Type': 'application/json',
+      },
+    })
 
     if (!fileResponse.ok) {
       throw new Error(`Failed to get file metadata: ${fileResponse.status}`)
@@ -35,10 +48,10 @@ export async function GET(
 
     // Download file content
     const downloadResponse = await fetch(
-      `${nodeApiUrl}/api/UUFile/${params.uuid}/download`,
+      `${nodeApiUrl}/api/UUFile/${uuid}/download`,
       {
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${auth.token}`,
         },
       }
     )
@@ -49,21 +62,22 @@ export async function GET(
 
     const arrayBuffer = await downloadResponse.arrayBuffer()
 
+    // Sanitize filename to prevent header injection
+    const rawFileName = fileData.fileName || 'download'
+    const safeFileName = rawFileName.replace(/[^\w\s.-]/g, '_')
+
     // Set appropriate headers for download
     const headers = new Headers()
     headers.set(
       'Content-Type',
       fileData.contentType || 'application/octet-stream'
     )
-    headers.set(
-      'Content-Disposition',
-      `attachment; filename="${fileData.fileName || 'download'}"`
-    )
+    headers.set('Content-Disposition', `attachment; filename="${safeFileName}"`)
     headers.set('Content-Length', arrayBuffer.byteLength.toString())
 
     return new NextResponse(arrayBuffer, { headers })
   } catch (error) {
-    console.error('Download error:', error)
+    logger.error('Download error:', { error })
     return NextResponse.json({ error: 'Download failed' }, { status: 500 })
   }
 }

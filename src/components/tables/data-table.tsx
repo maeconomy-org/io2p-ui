@@ -28,6 +28,7 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuTrigger,
+  EmptyState,
 } from '@/components/ui'
 import { cn } from '@/lib'
 
@@ -81,6 +82,10 @@ export interface DataTableProps<TData> {
   onRowDoubleClick?: (row: TData) => void
   /** Return additional className(s) per row */
   rowClassName?: (row: TData) => string | undefined
+
+  // -- Column resizing --
+  /** Enable user-draggable column resizing */
+  enableColumnResizing?: boolean
 
   // -- Loading / empty --
   fetching?: boolean
@@ -197,6 +202,7 @@ export function DataTable<TData>({
   onRowClick,
   onRowDoubleClick,
   rowClassName,
+  enableColumnResizing = false,
   fetching = false,
   emptyIcon,
   emptyTitle,
@@ -217,6 +223,9 @@ export function DataTable<TData>({
     onRowSelectionChange,
     // Column visibility
     onColumnVisibilityChange,
+    // Column resizing
+    enableColumnResizing,
+    columnResizeMode: enableColumnResizing ? 'onChange' : undefined,
     state: {
       rowSelection,
       columnVisibility,
@@ -233,13 +242,33 @@ export function DataTable<TData>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={cn(enableColumnResizing && 'relative')}
+                    style={
+                      enableColumnResizing
+                        ? { width: header.getSize() }
+                        : undefined
+                    }
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
                           header.getContext()
                         )}
+                    {enableColumnResizing && header.column.getCanResize() && (
+                      <div
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        className={cn(
+                          'absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none',
+                          header.column.getIsResizing()
+                            ? 'bg-primary'
+                            : 'bg-border hover:bg-primary/50'
+                        )}
+                      />
+                    )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -257,23 +286,13 @@ export function DataTable<TData>({
               </TableRow>
             ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={colCount} className="text-center py-8">
-                  <div className="flex flex-col items-center">
-                    {emptyIcon && <div className="mb-4">{emptyIcon}</div>}
-                    {emptyTitle && (
-                      <h3 className="text-lg font-medium mb-2">{emptyTitle}</h3>
-                    )}
-                    {emptyDescription && (
-                      <p className="text-sm text-muted-foreground">
-                        {emptyDescription}
-                      </p>
-                    )}
-                    {!emptyTitle && !emptyDescription && (
-                      <p className="text-sm text-muted-foreground">
-                        {t('common.noResults')}
-                      </p>
-                    )}
-                  </div>
+                <TableCell colSpan={colCount} className="text-center">
+                  <EmptyState
+                    icon={emptyIcon}
+                    title={emptyTitle || t('common.noResults')}
+                    description={emptyDescription}
+                    className="py-8"
+                  />
                 </TableCell>
               </TableRow>
             ) : (

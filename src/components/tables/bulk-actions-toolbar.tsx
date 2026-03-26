@@ -34,7 +34,7 @@ import {
 import { cn } from '@/lib'
 import { useGroups } from '@/hooks'
 import { useAuth } from '@/contexts'
-import { canUserWriteRecords } from '@/lib/group-utils'
+import { canUserWriteRecords } from '@/components/groups'
 import { ParentSelector } from '@/components/object-sheets/components'
 
 interface BulkActionsToolbarProps {

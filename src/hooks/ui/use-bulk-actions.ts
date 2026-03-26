@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import type { Predicate, UUID } from 'iom-sdk'
 
 import { useIomSdkClient } from '@/contexts'
+import { queryKeys } from '@/lib/query-keys'
 
 export interface BulkObject {
   uuid: string
@@ -23,11 +24,14 @@ export function useBulkActions() {
   const t = useTranslations()
 
   const invalidateAll = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['objects'] })
-    queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-    queryClient.invalidateQueries({ queryKey: ['aggregate'] })
-    queryClient.invalidateQueries({ queryKey: ['groups'] })
-    queryClient.invalidateQueries({ queryKey: ['statements'] })
+    queryClient.invalidateQueries({ queryKey: queryKeys.objects.all })
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.aggregates.all,
+    })
+    queryClient.invalidateQueries({ queryKey: queryKeys.groups.all })
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.statements.all,
+    })
   }, [queryClient])
 
   // Bulk soft delete

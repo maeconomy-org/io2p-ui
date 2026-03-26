@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import {
   Lock,
   Globe,
@@ -37,7 +37,7 @@ import {
   canEditGroup,
   deduplicateUsersShare,
   getEffectivePermissions,
-} from '@/lib/group-utils'
+} from '../utils/group-utils'
 
 interface GroupCardProps {
   group: GroupCreateDTO
@@ -46,7 +46,12 @@ interface GroupCardProps {
   onDelete: () => void
 }
 
-export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
+export const GroupCard = memo(function GroupCard({
+  group,
+  onView,
+  onEdit,
+  onDelete,
+}: GroupCardProps) {
   const t = useTranslations()
   const { userUUID } = useAuth()
   const { useCreateGroup } = useGroups()
@@ -286,4 +291,4 @@ export function GroupCard({ group, onView, onEdit, onDelete }: GroupCardProps) {
       </div>
     </Card>
   )
-}
+})

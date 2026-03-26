@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getRedis } from '@/lib/redis'
 import { logger } from '@/lib/logger'
 import { REDIS_KEYS } from '@/lib/redis-utils'
+import { requireAuth } from '@/lib/api-auth'
 
 /**
  * PATCH /api/import/cancel - Cancel an import job
@@ -11,6 +12,9 @@ import { REDIS_KEYS } from '@/lib/redis-utils'
  * For jobs in 'processing' status, it stops processing remaining batches.
  */
 export async function PATCH(req: NextRequest) {
+  const auth = requireAuth(req)
+  if (auth.error) return auth.error
+
   try {
     const { jobId } = await req.json()
 
@@ -25,6 +29,11 @@ export async function PATCH(req: NextRequest) {
     const jobData = await redis.hgetall(jobKey)
 
     if (!jobData || Object.keys(jobData).length === 0) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+    }
+
+    // Verify the job belongs to the authenticated user
+    if (jobData.userUUID && jobData.userUUID !== auth.userUUID) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
 

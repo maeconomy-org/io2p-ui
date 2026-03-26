@@ -1,5 +1,7 @@
 'use client'
 
+import { memo } from 'react'
+
 interface CountListProps {
   data: Record<string, number>
   emptyMessage?: string
@@ -7,7 +9,7 @@ interface CountListProps {
   colorPalette?: string[]
 }
 
-export function CountList({
+export const CountList = memo(function CountList({
   data,
   emptyMessage = 'No data available',
   maxItems,
@@ -86,4 +88,4 @@ export function CountList({
       })}
     </div>
   )
-}
+})

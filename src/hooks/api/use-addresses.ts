@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UUAddressDTO } from 'iom-sdk'
 
 import { useIomSdkClient } from '@/contexts'
+import { queryKeys } from '@/lib/query-keys'
 
 export function useAddresses() {
   const client = useIomSdkClient()
@@ -20,11 +21,16 @@ export function useAddresses() {
         return response
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['addresses'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.addresses.all,
+        })
         // Also invalidate related object queries since addresses are linked to objects
-        queryClient.invalidateQueries({ queryKey: ['objects'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.objects.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -37,12 +43,21 @@ export function useAddresses() {
         return response
       },
       onSuccess: (data) => {
-        queryClient.invalidateQueries({ queryKey: ['addresses'] })
-        queryClient.invalidateQueries({ queryKey: ['address', data?.uuid] })
+        if (data?.uuid) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.addresses.detail(data.uuid),
+          })
+        }
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.addresses.all,
+        })
         // Also invalidate related object queries since addresses are linked to objects
-        queryClient.invalidateQueries({ queryKey: ['objects'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.objects.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -55,12 +70,19 @@ export function useAddresses() {
         return response
       },
       onSuccess: (_, deletedUuid) => {
-        queryClient.invalidateQueries({ queryKey: ['addresses'] })
-        queryClient.removeQueries({ queryKey: ['address', deletedUuid] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.addresses.all,
+        })
+        queryClient.removeQueries({
+          queryKey: queryKeys.addresses.detail(deletedUuid),
+        })
         // Also invalidate related object queries since addresses are linked to objects
-        queryClient.invalidateQueries({ queryKey: ['objects'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.objects.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
