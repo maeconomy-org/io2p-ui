@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts'
 import { logger } from '@/lib'
+import { authFetch } from '@/lib/auth-fetch'
 import { ImportJobSummary, isActiveJobStatus } from './types'
 
 export interface ImportManagerJobDetails extends ImportJobSummary {
@@ -63,12 +64,9 @@ export function useImportManager(
     try {
       setJobsLoading(true)
       const params = new URLSearchParams()
-      if (userUUID) {
-        params.set('userUUID', userUUID)
-      }
       params.set('limit', '100')
 
-      const response = await fetch(`/api/import/jobs?${params.toString()}`)
+      const response = await authFetch(`/api/import/jobs?${params.toString()}`)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -99,7 +97,9 @@ export function useImportManager(
         if (showLoading) {
           setSelectedJobLoading(true)
         }
-        const response = await fetch(`/api/import/jobs?jobId=${selectedJobId}`)
+        const response = await authFetch(
+          `/api/import/jobs?jobId=${selectedJobId}`
+        )
 
         if (!response.ok) {
           const errorData = await response.json()
@@ -167,7 +167,7 @@ export function useImportManager(
     async (jobId: string) => {
       try {
         setCancellingJobId(jobId)
-        const response = await fetch('/api/import/cancel', {
+        const response = await authFetch('/api/import/cancel', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

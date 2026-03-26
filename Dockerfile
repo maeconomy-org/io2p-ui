@@ -12,6 +12,9 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Dependencies
 # -----------------------------------------------------------------------------
+# TIP: For reproducible builds, pin to a specific digest:
+#   FROM node:25-alpine@sha256:<digest> AS deps
+# Get the current digest: docker pull node:25-alpine && docker inspect --format='{{.RepoDigests}}' node:25-alpine
 FROM node:25-alpine AS deps
 WORKDIR /app
 

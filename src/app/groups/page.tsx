@@ -3,12 +3,13 @@
 import { useState, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import type { GroupCreateDTO } from 'iom-sdk'
-import { Search, Loader2, X, PlusCircle } from 'lucide-react'
+import { Search, Loader2, X, PlusCircle, FolderOpen } from 'lucide-react'
 
 import { logger } from '@/lib'
 import {
   Button,
   Input,
+  EmptyState,
   AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
@@ -221,11 +222,11 @@ export default function GroupsPage() {
           )}
 
           {filteredGroups.length === 0 && (
-            <div data-testid="no-groups-message" className="text-center py-12">
-              <div className="text-muted-foreground">
-                {searchTerm ? t('groups.noMatches') : t('groups.noGroups')}
-              </div>
-            </div>
+            <EmptyState
+              icon={<FolderOpen className="h-10 w-10" />}
+              title={searchTerm ? t('groups.noMatches') : t('groups.noGroups')}
+              className="py-12"
+            />
           )}
         </>
       )}

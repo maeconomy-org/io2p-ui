@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
+import type { AggregateEntity } from 'iom-sdk'
 import { useIomSdkClient } from '@/contexts'
 import { logger } from '@/lib'
 
@@ -55,7 +56,7 @@ export function useLoadChildren() {
 
       // Transform and return the children data with pagination info
       const content = response?.content || []
-      const items = content.map((obj: any) => ({
+      const items = content.map((obj: AggregateEntity) => ({
         ...obj,
         hasChildren: obj.children && obj.children.length > 0,
         childCount: obj.children ? obj.children.length : 0,

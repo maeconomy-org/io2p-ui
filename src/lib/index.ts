@@ -16,6 +16,9 @@ export * from './logger'
 // Search parser (client-safe)
 export * from './search-parser'
 
+// React Query key factory
+export { queryKeys } from './query-keys'
+
 // Note: Redis, security, and auth utilities are server-side only
 // Import them directly in API routes:
 // - '@/lib/redis'

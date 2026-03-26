@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UUPropertyDTO, UUPropertyValueDTO, QueryParams } from 'iom-sdk'
 import { useIomSdkClient } from '@/contexts'
+import { queryKeys } from '@/lib/query-keys'
 
 export function useProperties() {
   const client = useIomSdkClient()
@@ -10,7 +11,7 @@ export function useProperties() {
   const useAllProperties = (options?: QueryParams & { enabled?: boolean }) => {
     const { enabled = true, ...queryParams } = options || {}
     return useQuery({
-      queryKey: ['properties', queryParams],
+      queryKey: queryKeys.properties.list(queryParams),
       queryFn: async () => {
         const response = await client.node.getProperties({
           softDeleted: false,
@@ -27,7 +28,7 @@ export function useProperties() {
   // Get property by UUID
   const useProperty = (uuid: string, options?: { enabled?: boolean }) => {
     return useQuery({
-      queryKey: ['property', uuid],
+      queryKey: queryKeys.properties.detail(uuid),
       queryFn: async () => {
         if (!uuid) return null
         const response = await client.node.getProperties({ uuid })
@@ -47,9 +48,12 @@ export function useProperties() {
         return response
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['properties'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -62,11 +66,17 @@ export function useProperties() {
         return response
       },
       onSuccess: (_, property) => {
-        queryClient.invalidateQueries({ queryKey: ['properties'] })
-        queryClient.invalidateQueries({ queryKey: ['property', property.uuid] })
-        queryClient.invalidateQueries({ queryKey: ['object'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        if (property.uuid) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.properties.detail(property.uuid),
+          })
+        }
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -75,14 +85,19 @@ export function useProperties() {
   const useDeleteProperty = () => {
     return useMutation({
       mutationFn: async (uuid: string) => {
-        const response = await client.node.softDeleteProperty(uuid)
-        return response
+        await client.node.softDeleteProperty(uuid)
+        return uuid
       },
       onSuccess: (deletedUuid) => {
-        queryClient.invalidateQueries({ queryKey: ['properties'] })
-        queryClient.removeQueries({ queryKey: ['property', deletedUuid] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.lists(),
+        })
+        queryClient.removeQueries({
+          queryKey: queryKeys.properties.detail(deletedUuid),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -103,16 +118,19 @@ export function useProperties() {
         )
         return { objectUuid, property: response }
       },
-      onSuccess: ({ objectUuid, property }) => {
-        if (!property) return
-
+      onSuccess: ({ objectUuid }) => {
         queryClient.invalidateQueries({
-          queryKey: ['object', objectUuid, 'withProperties'],
+          queryKey: queryKeys.objects.detail(objectUuid),
         })
-        queryClient.invalidateQueries({ queryKey: ['properties'] })
-        queryClient.invalidateQueries({ queryKey: ['object', objectUuid] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.detail(objectUuid),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -133,13 +151,13 @@ export function useProperties() {
         )
         return { propertyUuid, value: response }
       },
-      onSuccess: ({ propertyUuid, value }) => {
-        if (!value) return
-
-        queryClient.invalidateQueries({ queryKey: ['property', propertyUuid] })
-        queryClient.invalidateQueries({ queryKey: ['object'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+      onSuccess: ({ propertyUuid }) => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.detail(propertyUuid),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -162,10 +180,12 @@ export function useProperties() {
         return { propertyUuid, values: responses }
       },
       onSuccess: ({ propertyUuid }) => {
-        queryClient.invalidateQueries({ queryKey: ['property', propertyUuid] })
-        queryClient.invalidateQueries({ queryKey: ['object'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.detail(propertyUuid),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
