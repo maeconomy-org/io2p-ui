@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { MapPin, Loader2 } from 'lucide-react'
 
 import { logger } from '@/lib'
+import { authFetch } from '@/lib/auth-fetch'
 import { Input } from '@/components/ui'
 
 export interface AddressComponents {
@@ -64,7 +65,7 @@ export function HereAddressAutocomplete({
 
     try {
       // Use our API route to hide HERE API key
-      fetch(`/api/address?q=${encodeURIComponent(searchQuery)}`)
+      authFetch(`/api/address?q=${encodeURIComponent(searchQuery)}`)
         .then((res) => res.json())
         .then((data) => {
           setSuggestions(data.items || [])

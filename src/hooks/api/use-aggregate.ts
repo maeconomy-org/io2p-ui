@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { AggregateFindDTO } from 'iom-sdk'
 
 import { useIomSdkClient } from '@/contexts'
+import { queryKeys } from '@/lib/query-keys'
 
 export function useAggregate() {
   const client = useIomSdkClient()
@@ -9,7 +10,7 @@ export function useAggregate() {
   // Get aggregate entity by UUID (rich data with all relationships)
   const useAggregateByUUID = (uuid: string, options = {}) => {
     return useQuery({
-      queryKey: ['aggregate', uuid],
+      queryKey: queryKeys.aggregates.detail(uuid),
       queryFn: async () => {
         if (!uuid) return null
 
@@ -31,7 +32,7 @@ export function useAggregate() {
   // Get paginated aggregate entities (for tables/lists)
   const useAggregateEntities = (params?: AggregateFindDTO, options = {}) => {
     return useQuery({
-      queryKey: ['aggregates', params],
+      queryKey: queryKeys.aggregates.list(params),
       queryFn: async () => {
         const response = await client.node.searchAggregates({
           // readDefaultGroup: true,
@@ -47,7 +48,7 @@ export function useAggregate() {
 
   const useModelEntities = (params?: AggregateFindDTO, options = {}) => {
     return useQuery({
-      queryKey: ['aggregates', 'models', params],
+      queryKey: queryKeys.aggregates.models(params),
       queryFn: async () => {
         const searchParams = {
           ...params,
@@ -75,7 +76,7 @@ export function useAggregate() {
     options = {}
   ) => {
     return useQuery({
-      queryKey: ['aggregates', 'withHistory', params],
+      queryKey: queryKeys.aggregates.withHistory(params),
       queryFn: async () => {
         const searchParams = {
           ...params,
@@ -97,7 +98,7 @@ export function useAggregate() {
   // Get aggregate entities from user's own groups
   const useOwnGroupEntities = (params?: AggregateFindDTO, options = {}) => {
     return useQuery({
-      queryKey: ['aggregates', 'ownGroups', params],
+      queryKey: queryKeys.aggregates.ownGroups(params),
       queryFn: async () => {
         const response = await client.node.searchAggregates({
           accessFind: { readOwnGroups: true },
@@ -114,7 +115,7 @@ export function useAggregate() {
   // Get aggregate entities from public groups
   const usePublicGroupEntities = (params?: AggregateFindDTO, options = {}) => {
     return useQuery({
-      queryKey: ['aggregates', 'publicGroups', params],
+      queryKey: queryKeys.aggregates.publicGroups(params),
       queryFn: async () => {
         const response = await client.node.searchAggregates({
           accessFind: { readPublicGroups: true },
@@ -131,7 +132,7 @@ export function useAggregate() {
   // Get aggregate entities from groups shared with the current user
   const useSharedGroupEntities = (params?: AggregateFindDTO, options = {}) => {
     return useQuery({
-      queryKey: ['aggregates', 'sharedGroups', params],
+      queryKey: queryKeys.aggregates.sharedGroups(params),
       queryFn: async () => {
         const response = await client.node.searchAggregates({
           accessFind: { readUserSharedGroups: true },
@@ -152,7 +153,7 @@ export function useAggregate() {
     options = {}
   ) => {
     return useQuery({
-      queryKey: ['aggregates', 'groups', groupParams, params],
+      queryKey: queryKeys.aggregates.groups(groupParams, params),
       queryFn: async () => {
         const response = await client.node.searchAggregates({
           ...groupParams,

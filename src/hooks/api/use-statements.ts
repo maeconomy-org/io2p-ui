@@ -2,13 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type {
   UUStatementDTO,
   UUStatementsAccessFindDTO,
-  UUStatementFindDTO,
   UUID,
   UUStatementsProperty,
   Predicate,
 } from 'iom-sdk'
 
 import { useIomSdkClient } from '@/contexts'
+import { queryKeys } from '@/lib/query-keys'
 import type { ProcessMetadata, MaterialFlowMetadata } from '@/types'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
@@ -24,7 +24,7 @@ export function useStatements() {
   ) => {
     const { enabled = true, ...body } = options || {}
     return useQuery({
-      queryKey: ['statements', body],
+      queryKey: queryKeys.statements.list(body),
       queryFn: async () => {
         return await client.node.searchStatements(body)
       },
@@ -41,7 +41,7 @@ export function useStatements() {
     options?: { enabled?: boolean }
   ) => {
     return useQuery({
-      queryKey: ['statements', 'predicate', predicate],
+      queryKey: queryKeys.statements.byPredicate(predicate),
       queryFn: async () => {
         return await client.node.searchStatements({
           uuStatementFind: {
@@ -65,9 +65,12 @@ export function useStatements() {
         return response
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['statements'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.statements.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -80,9 +83,12 @@ export function useStatements() {
         return response
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['statements'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.statements.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -206,8 +212,12 @@ export function useStatements() {
       onSuccess: () => {
         // Only invalidate if not skipping (for batch operations)
         if (!skipInvalidation) {
-          queryClient.invalidateQueries({ queryKey: ['statements'] })
-          queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.statements.lists(),
+          })
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.aggregates.lists(),
+          })
         }
       },
     })
@@ -250,7 +260,9 @@ export function useStatements() {
             if (input.metadata) {
               Object.entries(input.metadata).forEach(([key, value]) => {
                 if (value !== undefined && value !== null) {
-                  ;(namespacedMetadata as any)[`input_${key}`] = value
+                  ;(namespacedMetadata as Record<string, unknown>)[
+                    `input_${key}`
+                  ] = value
                 }
               })
             }
@@ -259,7 +271,9 @@ export function useStatements() {
             if (output.metadata) {
               Object.entries(output.metadata).forEach(([key, value]) => {
                 if (value !== undefined && value !== null) {
-                  ;(namespacedMetadata as any)[`output_${key}`] = value
+                  ;(namespacedMetadata as Record<string, unknown>)[
+                    `output_${key}`
+                  ] = value
                 }
               })
             }
@@ -294,8 +308,12 @@ export function useStatements() {
       },
       onSuccess: () => {
         // Only invalidate once after all statements are created
-        queryClient.invalidateQueries({ queryKey: ['statements'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.statements.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -306,7 +324,7 @@ export function useStatements() {
     options?: { enabled?: boolean }
   ) => {
     return useQuery({
-      queryKey: ['statements', 'relationships', entityUuid],
+      queryKey: queryKeys.statements.relationships(entityUuid),
       queryFn: async () => {
         return await client.node.searchStatements({
           uuStatementFind: { subject: entityUuid },
@@ -330,13 +348,11 @@ export function useStatements() {
     const { enabled = true, predicate, includeDeleted = false } = options || {}
 
     return useQuery({
-      queryKey: [
-        'statements',
-        'object-relationships',
+      queryKey: queryKeys.statements.objectRelationships(
         objectUuid,
         predicate,
-        includeDeleted,
-      ],
+        includeDeleted
+      ),
       queryFn: async () => {
         // Make parallel requests for both directions
         const [asSubjectResponse, asObjectResponse] = await Promise.all([
@@ -384,7 +400,9 @@ export function useStatements() {
         return response
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['statements'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.statements.lists(),
+        })
       },
       onError: (error: Error) => {
         toast.error(t('import.statementDeleteFailed', { error: error.message }))

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib'
+import { requireAuth } from '@/lib/api-auth'
 
 // Proxy HERE API requests to hide API key from client
 export async function GET(request: NextRequest) {
+  const auth = requireAuth(request)
+  if (auth.error) return auth.error
+
   const searchParams = request.nextUrl.searchParams
   const query = searchParams.get('q')
 

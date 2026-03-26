@@ -1,4 +1,14 @@
 {
+  "errors": {
+    "boundary": {
+      "title": "Er is iets misgegaan",
+      "description": "Onze excuses voor het ongemak. Er is een onverwachte fout opgetreden.",
+      "devDetails": "Foutdetails (Ontwikkeling)",
+      "tryAgain": "Opnieuw proberen",
+      "goHome": "Naar startpagina",
+      "persistMessage": "Als dit probleem aanhoudt, neem dan contact op met de ondersteuning."
+    }
+  },
   "app": {
     "name": "Internet of Materials",
     "description": "Materiaalbeheersysteem",

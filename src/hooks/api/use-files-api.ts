@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 
 import { logger } from '@/lib'
 import { useIomSdkClient } from '@/contexts'
+import { queryKeys } from '@/lib/query-keys'
 
 export function useFilesApi() {
   const client = useIomSdkClient()
@@ -20,8 +21,12 @@ export function useFilesApi() {
       onSuccess: () => {
         toast.success(t('objects.fileDeletedSuccess'))
 
-        queryClient.invalidateQueries({ queryKey: ['aggregate'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.details(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
       onError: (error) => {
         logger.error('Failed to delete file:', error)

@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react'
-import Papa from 'papaparse'
 
 import { logger } from '@/lib'
 import { MAX_FILE_SIZE_MB, STREAM_CHUNK_SIZE } from '@/constants'
@@ -104,7 +103,8 @@ export function useFileProcessor({
 
       updateProgress(30)
 
-      // Parse CSV using papaparse
+      // Parse CSV using papaparse (dynamic import to reduce bundle)
+      const Papa = (await import('papaparse')).default
       const parseResult = Papa.parse(text, {
         header: false, // We want raw array data
         skipEmptyLines: true,

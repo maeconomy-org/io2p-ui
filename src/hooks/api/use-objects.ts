@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UUObjectDTO, UUID, QueryParams } from 'iom-sdk'
 import { useIomSdkClient } from '@/contexts'
+import { queryKeys } from '@/lib/query-keys'
 
 export function useObjects() {
   const client = useIomSdkClient()
@@ -10,7 +11,7 @@ export function useObjects() {
   const useAllObjects = (options?: QueryParams & { enabled?: boolean }) => {
     const { enabled = true, ...queryParams } = options || {}
     return useQuery({
-      queryKey: ['objects', queryParams],
+      queryKey: queryKeys.objects.list(queryParams),
       queryFn: async () => {
         const response = await client.node.getObjects({
           softDeleted: false,
@@ -27,7 +28,7 @@ export function useObjects() {
   // Get objects by specific UUID
   const useObject = (uuid: string, options?: { enabled?: boolean }) => {
     return useQuery({
-      queryKey: ['object', uuid],
+      queryKey: queryKeys.objects.detail(uuid),
       queryFn: async () => {
         if (!uuid) return null
         const response = await client.node.getObjects({ uuid })
@@ -45,12 +46,7 @@ export function useObjects() {
     options?: { enabled?: boolean; includeDeleted?: boolean }
   ) => {
     return useQuery({
-      queryKey: [
-        'objects',
-        'byUUIDs',
-        uuids.sort(),
-        options?.includeDeleted ?? true,
-      ],
+      queryKey: queryKeys.objects.byUUIDs(uuids, options?.includeDeleted),
       queryFn: async () => {
         if (!uuids.length) return []
 
@@ -68,34 +64,37 @@ export function useObjects() {
           )
         )
 
-        let objects = responses.flatMap((response) => response || [])
+        // API may return extra fields beyond UUObjectDTO (softDeleted, timestamps)
+        type ObjectWithMeta = UUObjectDTO & {
+          softDeleted?: boolean
+          updatedAt?: string
+          createdAt?: string
+        }
+
+        let objects: ObjectWithMeta[] = responses.flatMap(
+          (response) => (response || []) as ObjectWithMeta[]
+        )
 
         if (!options?.includeDeleted) {
-          const objectsByUuid = new Map<string, any[]>()
+          const objectsByUuid = new Map<string, ObjectWithMeta[]>()
 
-          objects.forEach((obj: any) => {
-            if (!objectsByUuid.has(obj.uuid)) {
-              objectsByUuid.set(obj.uuid, [])
+          objects.forEach((obj) => {
+            const key = obj.uuid ?? ''
+            if (!objectsByUuid.has(key)) {
+              objectsByUuid.set(key, [])
             }
-            objectsByUuid.get(obj.uuid)!.push(obj)
+            objectsByUuid.get(key)!.push(obj)
           })
 
           objects = Array.from(objectsByUuid.entries()).map(([, versions]) => {
-            const nonDeleted = versions.filter((v: any) => !v.softDeleted)
+            const nonDeleted = versions.filter((v) => !v.softDeleted)
+            const sortByDate = (a: ObjectWithMeta, b: ObjectWithMeta) =>
+              new Date(b.updatedAt || b.createdAt || 0).getTime() -
+              new Date(a.updatedAt || a.createdAt || 0).getTime()
 
-            if (nonDeleted.length > 0) {
-              return nonDeleted.sort(
-                (a: any, b: any) =>
-                  new Date(b.updatedAt || b.createdAt || 0).getTime() -
-                  new Date(a.updatedAt || a.createdAt || 0).getTime()
-              )[0]
-            } else {
-              return versions.sort(
-                (a: any, b: any) =>
-                  new Date(b.updatedAt || b.createdAt || 0).getTime() -
-                  new Date(a.updatedAt || a.createdAt || 0).getTime()
-              )[0]
-            }
+            return nonDeleted.length > 0
+              ? nonDeleted.sort(sortByDate)[0]
+              : versions.sort(sortByDate)[0]
           })
         }
 
@@ -115,8 +114,12 @@ export function useObjects() {
         return response
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['objects'] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.objects.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -150,19 +153,15 @@ export function useObjects() {
       onSuccess: (data) => {
         if (data?.uuid) {
           queryClient.invalidateQueries({
-            queryKey: ['object', data.uuid],
+            queryKey: queryKeys.objects.detail(data.uuid),
           })
           queryClient.invalidateQueries({
-            queryKey: ['object', data.uuid, 'withProperties'],
-          })
-          queryClient.invalidateQueries({
-            queryKey: ['object', data.uuid, 'full'],
-          })
-          queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-          queryClient.invalidateQueries({
-            queryKey: ['aggregate', data.uuid],
+            queryKey: queryKeys.aggregates.detail(data.uuid),
           })
         }
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }
@@ -171,15 +170,21 @@ export function useObjects() {
   const useDeleteObject = () => {
     return useMutation({
       mutationFn: async (uuid: string) => {
-        const response = await client.node.softDeleteObject(uuid)
-        return response
+        await client.node.softDeleteObject(uuid)
+        return uuid
       },
       onSuccess: (deletedUuid) => {
-        queryClient.invalidateQueries({ queryKey: ['objects'] })
-        queryClient.invalidateQueries({ queryKey: ['object', deletedUuid] })
-        queryClient.invalidateQueries({ queryKey: ['aggregates'] })
         queryClient.invalidateQueries({
-          queryKey: ['aggregate', deletedUuid],
+          queryKey: queryKeys.objects.detail(deletedUuid),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.detail(deletedUuid),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.objects.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
         })
       },
     })
@@ -217,20 +222,18 @@ export function useObjects() {
       onSuccess: (data) => {
         if (data?.uuid) {
           queryClient.invalidateQueries({
-            queryKey: ['object', data.uuid],
+            queryKey: queryKeys.objects.detail(data.uuid),
           })
           queryClient.invalidateQueries({
-            queryKey: ['object', data.uuid, 'withProperties'],
-          })
-          queryClient.invalidateQueries({
-            queryKey: ['object', data.uuid, 'full'],
-          })
-          queryClient.invalidateQueries({ queryKey: ['objects'] })
-          queryClient.invalidateQueries({ queryKey: ['aggregates'] })
-          queryClient.invalidateQueries({
-            queryKey: ['aggregate', data.uuid],
+            queryKey: queryKeys.aggregates.detail(data.uuid),
           })
         }
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.objects.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
       },
     })
   }

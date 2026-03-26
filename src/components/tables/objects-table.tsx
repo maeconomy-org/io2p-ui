@@ -1,6 +1,6 @@
 'use client'
 
-import { MouseEvent, useState, useEffect, useMemo } from 'react'
+import { MouseEvent, useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   FileText,
@@ -37,10 +37,15 @@ import { GroupBadge } from '@/components/ui/group-badge'
 import { CopyObjectsSheet } from '@/components/object-sheets'
 import { useObjectOperations } from '@/components/object-sheets/hooks/use-object-operations'
 import {
-  QRCodeModal,
   DeleteConfirmationDialog,
   TemplateCreationDialog,
 } from '@/components/modals'
+
+const QRCodeModal = lazy(() =>
+  import('@/components/modals/qr-code-modal').then((m) => ({
+    default: m.QRCodeModal,
+  }))
+)
 import { DataTable, getSelectColumn } from './data-table'
 import { ObjectActionsCell } from './object-actions-cell'
 
@@ -454,14 +459,16 @@ export function ObjectsTable({
         emptyDescription={t('objects.noObjectsDescription')}
       />
 
-      {/* QR Code Modal */}
+      {/* QR Code Modal (lazy-loaded) */}
       {isQRCodeModalOpen && selectedQRObject && (
-        <QRCodeModal
-          isOpen={isQRCodeModalOpen}
-          onClose={() => setIsQRCodeModalOpen(false)}
-          uuid={selectedQRObject.uuid}
-          objectName={selectedQRObject.name}
-        />
+        <Suspense fallback={null}>
+          <QRCodeModal
+            isOpen={isQRCodeModalOpen}
+            onClose={() => setIsQRCodeModalOpen(false)}
+            uuid={selectedQRObject.uuid}
+            objectName={selectedQRObject.name}
+          />
+        </Suspense>
       )}
 
       {/* Unified Delete Confirmation Dialog */}

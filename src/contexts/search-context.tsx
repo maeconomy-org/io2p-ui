@@ -8,13 +8,15 @@ import { useCommonApi } from '@/hooks/api'
 import type { ParsedSearch } from '@/lib/search-parser'
 import { parseSearchQuery } from '@/lib/search-parser'
 
+import type { AggregateEntity, PageAggregateEntity } from 'iom-sdk'
+
 interface SearchContextType {
   searchQuery: string
   setSearchQuery: (query: string) => void
   isSearching: boolean
   // New search mode functionality
   isSearchMode: boolean
-  searchViewResults: any[]
+  searchViewResults: AggregateEntity[]
   searchPagination: {
     currentPage: number
     totalPages: number
@@ -46,9 +48,12 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [isSearching, setIsSearching] = useState(false)
   const [searchPageSize] = useState(15) // Fixed page size for search
   const [isSearchMode, setIsSearchMode] = useState(false)
-  const [searchViewResults, setSearchViewResults] = useState<any[]>([])
+  const [searchViewResults, setSearchViewResults] = useState<AggregateEntity[]>(
+    []
+  )
   const [searchCurrentPage, setSearchCurrentPage] = useState(0)
-  const [searchPaginationData, setSearchPaginationData] = useState<any>(null)
+  const [searchPaginationData, setSearchPaginationData] =
+    useState<PageAggregateEntity | null>(null)
   const [currentParsedSearch, setCurrentParsedSearch] =
     useState<ParsedSearch | null>(null)
 
@@ -135,11 +140,13 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 
         if (results.content && results.content.length > 0) {
           // Transform search results to match view data format
-          const transformedResults = results.content.map((result: any) => ({
-            ...result,
-            hasChildren: result.children && result.children.length > 0,
-            childCount: result.children ? result.children.length : 0,
-          }))
+          const transformedResults = results.content.map(
+            (result: AggregateEntity) => ({
+              ...result,
+              hasChildren: result.children && result.children.length > 0,
+              childCount: result.children ? result.children.length : 0,
+            })
+          )
 
           setSearchViewResults(transformedResults)
           setIsSearchMode(true)

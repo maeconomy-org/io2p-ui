@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import type { MouseEvent, ReactElement } from 'react'
 import { Download, Link as LinkIcon, Trash2, Eye, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -107,7 +107,9 @@ function getDisplayName(file: FileData): string {
 }
 
 /**
- * Handle file opening - use authenticated download for internal files
+ * Handle file opening - use authenticated download for internal files.
+ * Downloads via fetch with Authorization header, then creates a blob URL
+ * to trigger the browser download. No token in URL.
  */
 async function handleFileOpen(file: FileData): Promise<void> {
   if (!file.fileReference) return
@@ -118,7 +120,6 @@ async function handleFileOpen(file: FileData): Promise<void> {
     return
   }
 
-  // For internal files, use server-side download endpoint (better for large files)
   try {
     const uuidMatch = file.fileReference.match(
       /\/api\/UUFile\/([^/?]+)\/download/
@@ -133,7 +134,7 @@ async function handleFileOpen(file: FileData): Promise<void> {
 
     const uuid = uuidMatch[1]
 
-    // Get auth token from localStorage and pass to API route
+    // Get auth token from localStorage
     const authToken = JSON.parse(
       localStorage.getItem('iom-auth-state') || '{}'
     ).token
@@ -142,19 +143,35 @@ async function handleFileOpen(file: FileData): Promise<void> {
       return
     }
 
-    // Use server-side download endpoint with auth token
+    // Fetch the file via API route with Authorization header (no token in URL)
+    const response = await fetch(`/api/files/download/${uuid}`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`)
+    }
+
+    // Create blob URL and trigger download
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = `/api/files/download/${uuid}?token=${encodeURIComponent(authToken)}`
+    link.href = blobUrl
     link.download = getDisplayName(file)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+
+    // Clean up blob URL
+    URL.revokeObjectURL(blobUrl)
   } catch (error) {
     console.error('Failed to open file:', error)
   }
 }
 
-export function FileDisplay({
+export const FileDisplay = memo(function FileDisplay({
   file,
   onClick,
   className,
@@ -431,7 +448,7 @@ export function FileDisplay({
       </AlertDialog>
     </>
   )
-}
+})
 
 /**
  * Display multiple files in a list

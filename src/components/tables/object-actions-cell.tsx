@@ -1,6 +1,6 @@
 'use client'
 
-import { MouseEvent } from 'react'
+import { memo, MouseEvent } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   FileText,
@@ -49,7 +49,7 @@ interface ObjectActionsCellProps {
  * Actions cell for object table rows.
  * Shows "View Details" button with dropdown for additional actions.
  */
-export function ObjectActionsCell({
+export const ObjectActionsCell = memo(function ObjectActionsCell({
   object,
   isDeleted,
   onViewDetails,
@@ -167,4 +167,4 @@ export function ObjectActionsCell({
       </div>
     </div>
   )
-}
+})

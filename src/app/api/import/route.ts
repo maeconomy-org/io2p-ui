@@ -16,6 +16,7 @@ import { logger } from '@/lib/logger'
 import { API_CHUNK_SIZE } from '@/constants'
 import { processImportJob } from '@/lib/import-processor'
 import { getUserUUIDFromJWT } from '@/lib/jwt-utils'
+import { encrypt } from '@/lib/crypto-utils'
 
 /**
  * Bulk import API route - handles JSON data from UI
@@ -123,7 +124,7 @@ export async function POST(req: Request) {
       status: 'receiving',
       userUUID: userUUID,
       clientId: clientId,
-      jwtToken: jwtToken, // Store JWT token for API calls
+      jwtToken: encrypt(jwtToken), // Store encrypted JWT token for API calls
       createdAt: Date.now().toString(),
       payloadSizeMB: payloadValidation.size?.toFixed(2) || '0',
       objectCount: payloadValidation.objectCount?.toString() || '0',

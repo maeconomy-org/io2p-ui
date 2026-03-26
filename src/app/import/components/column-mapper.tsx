@@ -33,8 +33,11 @@ import {
 import { useColumnMapper, DEFAULT_PROPERTIES } from '@/hooks'
 
 interface ColumnMapperProps {
-  sheetData: any[]
-  onColumnsMapped: (mapping: Record<string, string>, data: any[]) => void
+  sheetData: (string | number | boolean | null)[][]
+  onColumnsMapped: (
+    mapping: Record<string, string>,
+    data: (string | number | boolean | null)[][]
+  ) => void
   suggestedStartRow?: number
   onBack?: () => void
   title?: string
@@ -243,14 +246,19 @@ export function ColumnMapper({
                             </TableCell>
                             {row
                               .slice(0, 10)
-                              .map((cell: any, cellIndex: number) => (
-                                <TableCell
-                                  key={cellIndex}
-                                  className="text-xs truncate max-w-[150px] py-1"
-                                >
-                                  {String(cell || '')}
-                                </TableCell>
-                              ))}
+                              .map(
+                                (
+                                  cell: string | number | boolean | null,
+                                  cellIndex: number
+                                ) => (
+                                  <TableCell
+                                    key={cellIndex}
+                                    className="text-xs truncate max-w-[150px] py-1"
+                                  >
+                                    {String(cell || '')}
+                                  </TableCell>
+                                )
+                              )}
                           </TableRow>
                         )
                       })}
@@ -353,7 +361,7 @@ export function ColumnMapper({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {headers.map((header: any, index: number) => {
+                    {headers.map((header: string, index: number) => {
                       // Get preview data for this column
                       const previewValues = previewData
                         .slice(0, 3)

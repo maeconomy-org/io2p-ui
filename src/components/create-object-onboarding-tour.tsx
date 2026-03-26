@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import { driver } from 'driver.js'
+import 'driver.js/dist/driver.css'
+import '@/styles/driver-custom.css'
 import { useTranslations } from 'next-intl'
 
 import { useAuth } from '@/contexts'

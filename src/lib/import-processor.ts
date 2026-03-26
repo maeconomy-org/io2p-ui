@@ -3,6 +3,7 @@ import { getRedis } from '@/lib/redis'
 import { untrackUserJob } from '@/lib/security-utils'
 import { hsetWithTTL, REDIS_KEYS } from '@/lib/redis-utils'
 import { API_BATCH_SIZE, API_REQUEST_DELAY } from '@/constants'
+import { decrypt } from '@/lib/crypto-utils'
 
 export async function processImportJob(jobId: string) {
   const redis = getRedis()
@@ -31,7 +32,7 @@ export async function processImportJob(jobId: string) {
     const totalChunks = parseInt(jobData.totalChunks || '0')
     let processed = parseInt(jobData.processed || '0')
     let failed = parseInt(jobData.failed || '0')
-    const jwtToken = jobData.jwtToken
+    const jwtToken = jobData.jwtToken ? decrypt(jobData.jwtToken) : null
 
     if (!jwtToken) {
       logger.import('Missing JWT token for job', { jobId }, 'error')

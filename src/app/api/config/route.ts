@@ -1,37 +1,9 @@
 import { NextResponse } from 'next/server'
 
+import { buildRuntimeConfig } from '@/constants/client'
+
 // Runtime config API - serves env vars to client at runtime
 // This allows one Docker image to work on multiple VMs with different configs
 export async function GET() {
-  return NextResponse.json({
-    // API endpoints - New service-based URLs
-    authApiUrl: process.env.AUTH_API_URL || '',
-    authRefreshApiUrl: process.env.AUTH_REFRESH_API_URL || '',
-    registryApiUrl: process.env.REGISTRY_API_URL || '',
-    nodeApiUrl: process.env.NODE_API_URL || '',
-    upApiUrl: process.env.UP_API_URL || '',
-
-    // Sentry config (client-side)
-    sentryDsn: process.env.SENTRY_DSN || '',
-    sentryEnabled: process.env.SENTRY_ENABLED || 'false',
-    sentryRelease: process.env.SENTRY_RELEASE || '',
-
-    // Environment
-    nodeEnv: process.env.NODE_ENV || 'development',
-    emailLoginEnabled: process.env.EMAIL_LOGIN_ENABLED || 'false',
-
-    // App information (client-side needed)
-    appName: process.env.APP_NAME || 'Internet of Materials',
-    appDescription: process.env.APP_DESCRIPTION || 'Material Management System',
-    appAcronym: process.env.APP_ACRONYM || 'IoM',
-    contactUrl: process.env.CONTACT_URL || 'https://example.com/contact',
-    supportEmail: process.env.SUPPORT_EMAIL || 'support@maeconomy.org',
-
-    // Import limits (client-side needed for UI)
-    maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '100'),
-    maxImportPayloadMB: parseInt(process.env.MAX_IMPORT_PAYLOAD_MB || '100'),
-    maxObjectsPerImport: parseInt(
-      process.env.MAX_OBJECTS_PER_IMPORT || '50000'
-    ),
-  })
+  return NextResponse.json(buildRuntimeConfig())
 }
