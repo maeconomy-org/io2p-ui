@@ -202,7 +202,7 @@ export async function POST(req: Request) {
       errorStack: error.stack,
       timestamp: new Date().toISOString(),
       redisUrl: process.env.REDIS_URL ? 'configured' : 'missing',
-      nodeApiUrl: process.env.NODE_API_URL ? 'configured' : 'missing',
+      baseUrl: process.env.BASE_URL ? 'configured' : 'missing',
       requestSize: req.headers.get('content-length') || 'unknown',
       userAgent: req.headers.get('user-agent') || 'unknown',
       chunkIndex: body?.chunkIndex || 'unknown',

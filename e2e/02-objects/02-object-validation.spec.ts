@@ -305,6 +305,8 @@ test.describe('02 - Object Validation', () => {
       .filter({ hasText: parentName })
       .first()
       .click()
+    // Close parent selector popover (modal) so assertions can see elements behind it
+    await page.keyboard.press('Escape')
 
     // Verify 1 parent is selected
     await expect(sheet.getByText('1 parent selected')).toBeVisible({

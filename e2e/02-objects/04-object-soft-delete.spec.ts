@@ -12,6 +12,7 @@ const getDeleteConfirmDialog = (page: Page) =>
     .or(page.getByRole('dialog').filter({ hasText: /soft delete/i }))
 
 const setShowDeletedFilter = async (page: Page, enable: boolean) => {
+  // The deleted filter uses FacetedFilter (cmdk-based), not native menuitemcheckbox
   const filtersButton = page.getByRole('button', { name: /filters/i })
   const hasFiltersButton = await filtersButton
     .isVisible({ timeout: 2000 })
@@ -19,43 +20,24 @@ const setShowDeletedFilter = async (page: Page, enable: boolean) => {
 
   if (hasFiltersButton) {
     await filtersButton.click()
-    const showDeletedItem = page.getByRole('menuitemcheckbox', {
-      name: /show deleted/i,
-    })
+    // FacetedFilter uses cmdk CommandItem, find "Soft Deleted" option
+    const showDeletedItem = page
+      .locator('[cmdk-item]')
+      .filter({ hasText: /soft deleted|show deleted/i })
     await expect(showDeletedItem).toBeVisible({ timeout: 5000 })
-    const checked = await showDeletedItem.getAttribute('aria-checked')
-    const isEnabled = checked === 'true'
-    if (isEnabled !== enable) {
+
+    // Check if already selected by looking for the check icon opacity
+    const checkIcon = showDeletedItem.locator('svg').first()
+    const isCurrentlyEnabled = await checkIcon
+      .evaluate((el) => {
+        return !el.classList.contains('opacity-0') && !el.closest('.opacity-0')
+      })
+      .catch(() => false)
+
+    if (isCurrentlyEnabled !== enable) {
       await showDeletedItem.click()
     }
     await page.keyboard.press('Escape')
-    return true
-  }
-
-  const legacyToggle = page.locator(
-    'input[type="checkbox"]:near(:text("deleted")), button:has-text("Show deleted"), [data-testid*="deleted"]'
-  )
-
-  if ((await legacyToggle.count()) > 0) {
-    const toggle = legacyToggle.first()
-    const role = await toggle.getAttribute('role')
-    const type = await toggle.getAttribute('type')
-    const ariaPressed = await toggle.getAttribute('aria-pressed')
-
-    if (type === 'checkbox') {
-      const isChecked = await toggle.isChecked()
-      if (isChecked !== enable) {
-        await toggle.click()
-      }
-    } else if (role === 'switch' || ariaPressed !== null) {
-      const isPressed = ariaPressed === 'true'
-      if (isPressed !== enable) {
-        await toggle.click()
-      }
-    } else if (enable) {
-      await toggle.click()
-    }
-
     return true
   }
 
