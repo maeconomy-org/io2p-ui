@@ -45,6 +45,8 @@ test.describe('08 - Object Duplication', () => {
       .filter({ hasText: parentName })
       .first()
       .click()
+    // Close parent selector popover (modal) so Create button is clickable
+    await page.keyboard.press('Escape')
 
     await sheet.getByRole('button', { name: 'Create' }).click()
     await expect(sheet).toBeHidden()

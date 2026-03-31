@@ -23,11 +23,14 @@ export async function GET(
       )
     }
 
-    const nodeApiUrl = process.env.NODE_API_URL
+    const baseUrl = process.env.BASE_URL
+    const nodeApiUrl = baseUrl
+      ? `${baseUrl.replace(/\/$/, '')}/node-network`
+      : undefined
 
     if (!nodeApiUrl) {
       return NextResponse.json(
-        { error: 'Node API URL not configured' },
+        { error: 'BASE_URL not configured' },
         { status: 500 }
       )
     }

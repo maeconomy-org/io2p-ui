@@ -43,14 +43,17 @@ export async function processImportJob(jobId: string) {
       return
     }
 
-    // Get Node API URL from environment
-    const nodeApiUrl = process.env.NODE_API_URL
+    // Derive Node API URL from BASE_URL
+    const baseUrl = process.env.BASE_URL
+    const nodeApiUrl = baseUrl
+      ? `${baseUrl.replace(/\/$/, '')}/node-network`
+      : undefined
 
     if (!nodeApiUrl) {
-      logger.import('Node API URL not configured', { jobId }, 'error')
+      logger.import('BASE_URL not configured', { jobId }, 'error')
       await hsetWithTTL(REDIS_KEYS.job(jobId), {
         status: 'failed',
-        error: 'Node API URL not configured',
+        error: 'BASE_URL not configured',
       })
       return
     }
@@ -277,7 +280,7 @@ export async function processImportJob(jobId: string) {
       errorStack: error.stack,
       timestamp: new Date().toISOString(),
       redisConnected: 'unknown',
-      nodeApiUrl: process.env.NODE_API_URL ? 'configured' : 'missing',
+      baseUrl: process.env.BASE_URL ? 'configured' : 'missing',
       jobPhase: 'unknown', // Will be updated based on where the error occurred
     }
 

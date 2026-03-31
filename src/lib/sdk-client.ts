@@ -10,26 +10,12 @@ export function getSdkClient(config: ClientConfig) {
   const isDev = config.nodeEnv !== 'production'
 
   sdkClient = createClient({
-    auth: {
-      baseUrl: config.authApiUrl,
-      refreshBaseUrl: config.authRefreshApiUrl,
-      timeout: 30000,
-      retries: 3,
-    },
-    up: {
-      baseUrl: config.upApiUrl,
-      timeout: 30000,
-      retries: 3,
-    },
-    registry: {
-      baseUrl: config.registryApiUrl,
-      timeout: 30000,
-      retries: 3,
-    },
-    node: {
-      baseUrl: config.nodeApiUrl,
-      timeout: 30000,
-      retries: 3,
+    baseUrl: config.baseUrl,
+    certPort: config.certPort,
+    services: {
+      auth: { timeout: 30000, retries: 3 },
+      registry: { timeout: 30000, retries: 3 },
+      node: { timeout: 30000, retries: 3 },
     },
     tokenStorage: 'localStorage',
     errorHandling: {

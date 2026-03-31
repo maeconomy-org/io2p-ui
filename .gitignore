@@ -252,7 +252,7 @@ certs/
 memory-bank/
 .cursorrules
 .windsurf
-dump.rdb
+dump.rdb``
 
 docs/
 AGENTS.md

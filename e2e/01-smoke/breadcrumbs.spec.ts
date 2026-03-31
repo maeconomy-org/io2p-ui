@@ -96,6 +96,8 @@ async function createObject(page: Page, name: string, parentName?: string) {
       .filter({ hasText: parentName })
       .first()
       .click()
+    // Close parent selector popover (modal) so Create button is clickable
+    await page.keyboard.press('Escape')
   }
 
   await sheet.getByRole('button', { name: 'Create' }).click()

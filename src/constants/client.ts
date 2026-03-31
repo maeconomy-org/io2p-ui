@@ -2,12 +2,10 @@
 // This allows the same Docker image to work with different configurations
 
 export interface ClientConfig {
-  // API endpoints - New service-based URLs
-  authApiUrl: string
-  authRefreshApiUrl: string
-  registryApiUrl: string
-  nodeApiUrl: string
-  upApiUrl: string
+  // Base URL for all services (e.g. https://maeconomy-dev.recheck.io)
+  baseUrl: string
+  // Optional mTLS certificate port (default: 553)
+  certPort?: number
 
   // Sentry config
   sentryDsn: string
@@ -33,11 +31,7 @@ export interface ClientConfig {
 
 // Default values (fallback if config API fails)
 export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
-  authApiUrl: '',
-  authRefreshApiUrl: '',
-  registryApiUrl: '',
-  nodeApiUrl: '',
-  upApiUrl: '',
+  baseUrl: '',
 
   sentryDsn: '',
   sentryEnabled: 'false',
@@ -61,11 +55,10 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
  */
 export function buildRuntimeConfig(): ClientConfig {
   return {
-    authApiUrl: process.env.AUTH_API_URL || '',
-    authRefreshApiUrl: process.env.AUTH_REFRESH_API_URL || '',
-    registryApiUrl: process.env.REGISTRY_API_URL || '',
-    nodeApiUrl: process.env.NODE_API_URL || '',
-    upApiUrl: process.env.UP_API_URL || '',
+    baseUrl: process.env.BASE_URL || '',
+    certPort: process.env.CERT_PORT
+      ? parseInt(process.env.CERT_PORT)
+      : undefined,
     sentryDsn: process.env.SENTRY_DSN || '',
     sentryEnabled: process.env.SENTRY_ENABLED || 'false',
     sentryRelease: process.env.SENTRY_RELEASE || '',
@@ -113,7 +106,7 @@ export function getCachedConfig(): ClientConfig | null {
   const inlineConfig = (window as any).__IOM_CONFIG__ as
     | ClientConfig
     | undefined
-  if (inlineConfig && inlineConfig.authApiUrl) {
+  if (inlineConfig && inlineConfig.baseUrl) {
     return inlineConfig
   }
 

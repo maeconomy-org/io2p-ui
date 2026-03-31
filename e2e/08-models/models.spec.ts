@@ -19,10 +19,10 @@ test.describe('08 - Models Smoke', () => {
     ).toBeVisible()
 
     // Check Add Model button
-    const addButton = page.getByRole('button', { name: /add model/i })
+    const addButton = page.getByRole('button', { name: /create model/i })
     await expect(addButton).toBeVisible()
 
-    // Open Add Model Sheet
+    // Open Create Model Sheet
     await addButton.click()
     await expect(
       page.getByRole('dialog').filter({ hasText: /create new model/i })
