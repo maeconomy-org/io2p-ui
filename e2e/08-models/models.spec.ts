@@ -33,10 +33,7 @@ test.describe('08 - Models Smoke', () => {
     await expect(page.getByRole('dialog')).toBeHidden()
 
     // Check table presence (assuming table headers exist)
-    // Note: If empty, it might show "No Templates Found", which is also a valid state
-    const tableOrEmpty = page
-      .locator('table')
-      .or(page.getByText(/no templates found/i))
-    await expect(tableOrEmpty).toBeVisible()
+    // Note: If empty, it might show "No Templates Found" inside the table
+    await expect(page.locator('table')).toBeVisible()
   })
 })

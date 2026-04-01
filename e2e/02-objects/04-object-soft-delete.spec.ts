@@ -26,12 +26,12 @@ const setShowDeletedFilter = async (page: Page, enable: boolean) => {
       .filter({ hasText: /soft deleted|show deleted/i })
     await expect(showDeletedItem).toBeVisible({ timeout: 5000 })
 
-    // Check if already selected by looking for the check icon opacity
-    const checkIcon = showDeletedItem.locator('svg').first()
-    const isCurrentlyEnabled = await checkIcon
-      .evaluate((el) => {
-        return !el.classList.contains('opacity-0') && !el.closest('.opacity-0')
-      })
+    // Check if already selected by looking for the checkbox div's bg-primary class
+    const checkboxDiv = showDeletedItem
+      .locator('div.items-center.justify-center')
+      .first()
+    const isCurrentlyEnabled = await checkboxDiv
+      .evaluate((el) => el.classList.contains('bg-primary'))
       .catch(() => false)
 
     if (isCurrentlyEnabled !== enable) {
@@ -226,27 +226,13 @@ test.describe('04 - Object Soft Delete & Restore', () => {
         .first()
 
       if ((await deletedRow.count()) > 0) {
-        // Look for restore button
+        // Look for restore button in the row
         const restoreButton = deletedRow.locator(
           'button:has-text("Restore"), button[title*="Restore"], [data-testid*="restore"]'
         )
 
         if ((await restoreButton.count()) > 0) {
           await restoreButton.first().click()
-
-          // May show confirmation dialog
-          const confirmDialog = page
-            .getByRole('dialog')
-            .filter({ hasText: 'restore' })
-
-          if (await confirmDialog.isVisible()) {
-            await confirmDialog
-              .getByRole('button', { name: /restore|yes|confirm/i })
-              .click()
-          }
-
-          // Object should be restored
-          await page.waitForTimeout(3000)
         } else {
           // Try using details button to open sheet and restore from there
           await deletedRow
@@ -259,19 +245,41 @@ test.describe('04 - Object Soft Delete & Restore', () => {
 
           if ((await restoreInDetails.count()) > 0) {
             await restoreInDetails.first().click()
-
-            const confirmDialog = page
-              .getByRole('dialog')
-              .filter({ hasText: 'restore' })
-
-            if (await confirmDialog.isVisible()) {
-              await confirmDialog
-                .getByRole('button', { name: /restore|yes|confirm/i })
-                .click()
-            }
-
-            await page.getByRole('button', { name: 'Close' }).click()
           }
+        }
+
+        // Handle restore confirmation dialog if it appears
+        // The dialog may re-render, so use page.evaluate to click the button
+        const confirmDialog = page
+          .getByRole('dialog')
+          .filter({ hasText: /restore/i })
+
+        const dialogVisible = await confirmDialog
+          .isVisible({ timeout: 3000 })
+          .catch(() => false)
+
+        if (dialogVisible) {
+          // Wait for dialog to stabilize, then click via JS to avoid detachment issues
+          await page.waitForTimeout(500)
+          await page.evaluate(() => {
+            const buttons = Array.from(document.querySelectorAll('button'))
+            const restoreBtn = buttons.find(
+              (b) =>
+                b.textContent &&
+                /restore|confirm|yes/i.test(b.textContent) &&
+                b.closest('[role="dialog"]')
+            )
+            if (restoreBtn) restoreBtn.click()
+          })
+        }
+
+        // Wait for restore to complete (look for success toast or row change)
+        await page.waitForTimeout(3000)
+
+        // Close details sheet if open
+        const closeButton = page.getByRole('button', { name: 'Close' })
+        if (await closeButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await closeButton.click()
         }
       }
     }

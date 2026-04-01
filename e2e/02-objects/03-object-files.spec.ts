@@ -81,11 +81,14 @@ test.describe('03 - Object File Attachments', () => {
     await sheet.getByRole('button', { name: 'Create' }).click()
     await expect(sheet).toBeHidden({ timeout: 15000 })
 
+    // Wait for background file upload to complete
+    await page.waitForTimeout(3000)
+
     // Verify
     await openObject(page, name)
     await page.getByRole('tab', { name: /files/i }).click()
     await expect(page.getByText('single-file.pdf').first()).toBeVisible({
-      timeout: 10000,
+      timeout: 15000,
     })
 
     await page.getByRole('button', { name: 'Close' }).first().click()

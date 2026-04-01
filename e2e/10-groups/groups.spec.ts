@@ -35,10 +35,21 @@ test.describe('10 - Groups Page', () => {
     const filterButton = page.getByRole('button', { name: /filter/i })
     await expect(filterButton).toBeVisible()
 
-    // Groups grid or empty state should be visible
-    const groupsGrid = page.getByTestId('groups-grid')
-    const emptyState = page.getByText(/no groups available/i)
-    await expect(groupsGrid.or(emptyState)).toBeVisible()
+    // Groups grid with cards or empty state should be present
+    await page.waitForLoadState('networkidle')
+    const hasGroups = await page
+      .locator('[data-testid^="group-card-"]')
+      .first()
+      .isVisible({ timeout: 3000 })
+      .catch(() => false)
+
+    if (hasGroups) {
+      await expect(page.getByTestId('groups-grid')).toBeVisible()
+    } else {
+      await expect(
+        page.getByRole('heading', { name: /no groups available/i })
+      ).toBeVisible()
+    }
   })
 
   test('TC002: Search functionality works', async ({ page }) => {
@@ -145,14 +156,21 @@ test.describe('10 - Groups Page', () => {
   test('TC009: Pagination controls work when groups exist', async ({
     page,
   }) => {
-    // Check if pagination exists (only shown when more than 1 page of groups)
-    const nextButton = page.getByRole('button', { name: /next/i })
+    // Wait for content to load
+    await page.waitForLoadState('networkidle')
 
-    if (!(await nextButton.isVisible({ timeout: 3000 }).catch(() => false))) {
+    // Check if pagination exists (only shown when more than 1 page of groups)
+    const nextButton = page.getByRole('button', { name: /^next$/i })
+    const hasNext = await nextButton
+      .isVisible({ timeout: 3000 })
+      .catch(() => false)
+
+    if (!hasNext) {
       test.skip(true, 'No pagination controls — not enough groups')
+      return
     }
 
-    const prevButton = page.getByRole('button', { name: /previous/i })
+    const prevButton = page.getByRole('button', { name: /^previous$/i })
 
     // Check initial state - prev should be disabled on first page
     await expect(prevButton).toBeDisabled()
@@ -170,30 +188,41 @@ test.describe('10 - Groups Page', () => {
   })
 
   test('TC010: Filter selection filters groups', async ({ page }) => {
+    // Wait for content to load
+    await page.waitForLoadState('networkidle')
+
     const filterButton = page.getByRole('button', { name: /filter/i })
 
     // Test 'My Groups' filter (cmdk CommandItems render as [cmdk-item])
     await filterButton.click()
-    await page
+    const myGroupsItem = page
       .locator('[cmdk-item]')
       .filter({ hasText: /my groups/i })
-      .click()
+    await expect(myGroupsItem).toBeVisible({ timeout: 5000 })
+    await myGroupsItem.click()
+    await page.keyboard.press('Escape')
 
     // Filter should be applied (page may show filtered results or empty)
-    // Check that filter button still shows
     await expect(filterButton).toBeVisible()
+    await page.waitForTimeout(500)
 
     // Test 'Shared' filter
     await filterButton.click()
-    await page
+    const sharedItem = page
       .locator('[cmdk-item]')
       .filter({ hasText: /shared/i })
-      .click()
+    await expect(sharedItem).toBeVisible({ timeout: 5000 })
+    await sharedItem.click()
+    await page.keyboard.press('Escape')
     await expect(filterButton).toBeVisible()
+    await page.waitForTimeout(500)
 
     // Reset to 'All'
     await filterButton.click()
-    await page.locator('[cmdk-item]').filter({ hasText: /all/i }).click()
+    const allItem = page.locator('[cmdk-item]').filter({ hasText: /all/i })
+    await expect(allItem).toBeVisible({ timeout: 5000 })
+    await allItem.click()
+    await page.keyboard.press('Escape')
   })
 
   test('TC011: Group card inline edit button is visible', async ({ page }) => {

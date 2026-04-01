@@ -7,6 +7,15 @@ dotenv.config({ path: '.env.local' })
 // Resolve certificate paths to absolute paths
 const certsDir = './certs'
 
+// Build the cert auth origin from BASE_URL + CERT_PORT (default 553)
+function getCertAuthOrigin(): string {
+  const baseUrl = process.env.BASE_URL || ''
+  if (!baseUrl) return ''
+  const url = new URL(baseUrl)
+  url.port = process.env.CERT_PORT || '553'
+  return url.origin
+}
+
 export default defineConfig({
   testDir: './e2e',
 
@@ -32,7 +41,7 @@ export default defineConfig({
     // Certificate for API servers (mTLS)
     clientCertificates: [
       {
-        origin: process.env.AUTH_API_URL || '',
+        origin: getCertAuthOrigin(),
         certPath: path.join(certsDir, 'client1.crt'),
         keyPath: path.join(certsDir, 'client1.key'),
         passphrase: process.env.CLIENT_CERT_PASSPHRASE || '',

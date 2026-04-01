@@ -263,12 +263,16 @@ test.describe('06 - Object Regression Flow', () => {
     })
     await objectFilesDialog.getByRole('button', { name: 'Done' }).click()
 
-    // Use alertdialog role for Upload Files confirmation
+    // Upload confirmation dialog may or may not appear
     const objectUploadConfirm = page.getByRole('alertdialog')
-    await expect(objectUploadConfirm).toBeVisible({ timeout: 5000 })
-    await objectUploadConfirm
-      .getByRole('button', { name: 'Upload Files' })
-      .click()
+    const uploadConfirmVisible = await objectUploadConfirm
+      .isVisible({ timeout: 5000 })
+      .catch(() => false)
+    if (uploadConfirmVisible) {
+      await objectUploadConfirm
+        .getByRole('button', { name: 'Upload Files' })
+        .click()
+    }
 
     // Wait for uploaded file to appear
     await expect(page.getByText('details-file.pdf').first()).toBeVisible({

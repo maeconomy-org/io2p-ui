@@ -336,8 +336,14 @@ test.describe('01 - Object CRUD Operations', () => {
     await page.getByPlaceholder('Enter property value').last().fill('25 floors')
     await page.getByRole('button', { name: 'Save' }).click()
 
+    // Wait for save to complete and properties to reload
+    await page.waitForTimeout(2000)
+
     // Verify - click to expand
     await page.getByText('Floor Count').first().click()
+    await expect(
+      page.locator('[data-testid="property-expanded-0"]')
+    ).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('25 floors').first()).toBeVisible({
       timeout: 10000,
     })
