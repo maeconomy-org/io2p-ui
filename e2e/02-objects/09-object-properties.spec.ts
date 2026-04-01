@@ -95,7 +95,9 @@ test.describe('09 - Object Properties', () => {
     ).not.toBeVisible({ timeout: 3000 })
 
     // Verify property name and value are visible in grid view
-    await expect(page.getByText('Material')).toBeVisible({ timeout: 3000 })
+    await expect(page.getByText('Material', { exact: true })).toBeVisible({
+      timeout: 3000,
+    })
     await expect(page.getByText('Concrete')).toBeVisible({ timeout: 3000 })
 
     // Switch back to detailed view
