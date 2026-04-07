@@ -11,6 +11,7 @@ import { logger, cn } from '@/lib'
 import { useAuth, useAppConfig } from '@/contexts'
 import { loginSchema, type LoginFormData } from '@/lib/validations/auth'
 import {
+  Badge,
   Button,
   Card,
   Input,
@@ -20,7 +21,6 @@ import {
   FormItem,
   FormLabel,
   FormControl,
-  FormMessage,
   PasswordInput,
 } from '@/components/ui'
 import { BrickLoader } from '@/components/brick-loader'
@@ -34,6 +34,9 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [certLoading, setCertLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastAuthMethod, setLastAuthMethod] = useState<
+    'certificate' | 'email' | null
+  >(null)
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -42,6 +45,13 @@ export default function LoginPage() {
   })
 
   const isLoading = submitting || certLoading
+
+  useEffect(() => {
+    const stored = localStorage.getItem('iom-last-auth-method')
+    if (stored === 'certificate' || stored === 'email') {
+      setLastAuthMethod(stored)
+    }
+  }, [])
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -100,6 +110,7 @@ export default function LoginPage() {
       if (!result.success) {
         throw new Error(result.error)
       }
+      localStorage.setItem('iom-last-auth-method', 'email')
       router.replace('/objects')
     } catch (err) {
       logger.error('Email Login Error:', err)
@@ -117,10 +128,10 @@ export default function LoginPage() {
 
     try {
       const result = await handleAuth()
-      console.log(result)
       if (!result.success) {
         throw new Error(result.error)
       }
+      localStorage.setItem('iom-last-auth-method', 'certificate')
       router.replace('/objects')
     } catch (err) {
       logger.error('Certificate Authentication Error:', err)
@@ -243,15 +254,25 @@ export default function LoginPage() {
                     )}
                   />
 
-                  <Button
-                    type="submit"
-                    className="w-full py-6 text-base"
-                    disabled={isLoading}
-                  >
-                    {!isLoading && <Mail className="mr-2 h-5 w-5" />}
-                    {t('auth.email.signIn')}
-                    {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      type="submit"
+                      className="w-full py-6 text-base"
+                      disabled={isLoading}
+                    >
+                      {!isLoading && <Mail className="mr-2 h-5 w-5" />}
+                      {t('auth.email.signIn')}
+                      {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                    </Button>
+                    {lastAuthMethod === 'email' && (
+                      <Badge
+                        variant="outline"
+                        className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+                      >
+                        {t('auth.lastUsed')}
+                      </Badge>
+                    )}
+                  </div>
                 </form>
               </Form>
               <div className="relative">
@@ -267,17 +288,27 @@ export default function LoginPage() {
             </>
           )}
 
-          <Button
-            onClick={handleCertificateAuth}
-            variant={
-              config.emailLoginEnabled === 'true' ? 'outline' : 'default'
-            }
-            className="w-full py-6 text-base transition-colors"
-            disabled={isLoading}
-          >
-            {!isLoading && <Shield className="mr-2 h-5 w-5" />}
-            {t('auth.certificate.signIn')}
-          </Button>
+          <div className="relative">
+            <Button
+              onClick={handleCertificateAuth}
+              variant={
+                config.emailLoginEnabled === 'true' ? 'outline' : 'default'
+              }
+              className="w-full py-6 text-base transition-colors"
+              disabled={isLoading}
+            >
+              {!isLoading && <Shield className="mr-2 h-5 w-5" />}
+              {t('auth.certificate.signIn')}
+            </Button>
+            {lastAuthMethod === 'certificate' && (
+              <Badge
+                variant="outline"
+                className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+              >
+                {t('auth.lastUsed')}
+              </Badge>
+            )}
+          </div>
         </div>
       </Card>
     </>

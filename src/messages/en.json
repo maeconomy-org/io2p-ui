@@ -173,6 +173,7 @@
     "certificate": {
       "signIn": "Sign in with Certificate"
     },
+    "lastUsed": "Last used",
     "forgotPassword": {
       "link": "Forgot password?",
       "title": "Reset Password",

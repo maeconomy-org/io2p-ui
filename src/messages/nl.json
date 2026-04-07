@@ -173,6 +173,7 @@
     "certificate": {
       "signIn": "Inloggen met certificaat"
     },
+    "lastUsed": "Laatst gebruikt",
     "forgotPassword": {
       "link": "Wachtwoord vergeten?",
       "title": "Wachtwoord resetten",

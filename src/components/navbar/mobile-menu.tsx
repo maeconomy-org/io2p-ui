@@ -60,10 +60,9 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
   const { theme, setTheme } = useTheme()
 
   const displayIdentity =
-    userInfo?.certificateInfo?.subjectFields?.CN ||
-    (userInfo as any)?.credentialValue ||
-    (userInfo as any)?.usernamePasswordCredentials?.username ||
-    (userInfo as any)?.usernamePasswordCredentials?.credentialValue ||
+    userInfo?.username ||
+    userInfo?.identifier ||
+    userInfo?.credentialValue ||
     userInfo?.credentials ||
     t('nav.user')
 
@@ -184,19 +183,24 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
                   <span className="text-sm font-medium truncate">
                     {displayIdentity}
                   </span>
+                  {userInfo?.username && (
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {userInfo.username}
+                    </span>
+                  )}
                   <div className="flex items-center gap-1">
-                    {userInfo?.certificateInfo ? (
-                      <>
-                        <Shield className="h-2.5 w-2.5 text-green-600 dark:text-green-400 shrink-0" />
-                        <span className="text-[10px] text-muted-foreground truncate">
-                          {t('nav.certificateAuthenticated')}
-                        </span>
-                      </>
-                    ) : (
+                    {userInfo?.identifierType === 'UserAuthUP' ? (
                       <>
                         <Mail className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400 shrink-0" />
                         <span className="text-[10px] text-muted-foreground truncate">
                           {t('nav.emailAuthenticated')}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="h-2.5 w-2.5 text-green-600 dark:text-green-400 shrink-0" />
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {t('nav.certificateAuthenticated')}
                         </span>
                       </>
                     )}

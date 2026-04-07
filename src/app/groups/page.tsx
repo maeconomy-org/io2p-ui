@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import type { GroupCreateDTO } from 'iom-sdk'
 import { Search, Loader2, X, PlusCircle, FolderOpen } from 'lucide-react'
+import dynamic from 'next/dynamic'
 
 import { logger } from '@/lib'
 import {
@@ -20,12 +21,24 @@ import {
   AlertDialogAction,
 } from '@/components/ui'
 import { FacetedFilter } from '@/components/filters'
-import {
-  GroupCard,
-  GroupViewSheet,
-  GroupCreateSheet,
-  useGroupFilters,
-} from '@/components/groups'
+import { GroupCard, useGroupFilters } from '@/components/groups'
+
+// Lazy-load sheet components (only rendered on user interaction)
+const GroupViewSheet = dynamic(
+  () =>
+    import('@/components/groups/components/group-view-sheet').then(
+      (mod) => mod.GroupViewSheet
+    ),
+  { ssr: false }
+)
+
+const GroupCreateSheet = dynamic(
+  () =>
+    import('@/components/groups/components/group-create-sheet').then(
+      (mod) => mod.GroupCreateSheet
+    ),
+  { ssr: false }
+)
 import { useAuth } from '@/contexts'
 import { useGroups } from '@/hooks/api'
 
