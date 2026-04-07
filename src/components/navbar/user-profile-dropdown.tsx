@@ -37,10 +37,9 @@ export function UserProfileDropdown() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
   const displayIdentity =
-    userInfo?.certificateInfo?.subjectFields?.CN ||
-    (userInfo as any)?.credentialValue ||
-    (userInfo as any)?.usernamePasswordCredentials?.username ||
-    (userInfo as any)?.usernamePasswordCredentials?.credentialValue ||
+    userInfo?.username ||
+    userInfo?.identifier ||
+    userInfo?.credentialValue ||
     userInfo?.credentials ||
     t('nav.user')
 
@@ -84,19 +83,24 @@ export function UserProfileDropdown() {
               <p className="text-sm font-semibold leading-none">
                 {displayIdentity}
               </p>
+              {userInfo?.username && (
+                <p className="text-xs leading-none text-muted-foreground truncate max-w-48">
+                  {userInfo.username}
+                </p>
+              )}
               <div className="flex items-center gap-1">
-                {userInfo?.certificateInfo ? (
-                  <>
-                    <Shield className="h-3 w-3 text-green-600" />
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {t('nav.certificateAuthenticated')}
-                    </p>
-                  </>
-                ) : (
+                {userInfo?.identifierType === 'UserAuthUP' ? (
                   <>
                     <Mail className="h-3 w-3 text-blue-600" />
                     <p className="text-xs leading-none text-muted-foreground">
                       {t('nav.emailAuthenticated')}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-3 w-3 text-green-600" />
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {t('nav.certificateAuthenticated')}
                     </p>
                   </>
                 )}

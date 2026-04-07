@@ -263,3 +263,5 @@ deploy/certs/
 deploy/redis-data/
 deploy/logs/
 deploy/certbot/
+
+.claude/**.local.json

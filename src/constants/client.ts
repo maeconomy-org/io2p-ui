@@ -7,6 +7,16 @@ export interface ClientConfig {
   // Optional mTLS certificate port (default: 553)
   certPort?: number
 
+  // Optional per-service URL overrides (when services live on different hosts)
+  authBaseUrl?: string
+  registryBaseUrl?: string
+  nodeBaseUrl?: string
+
+  // Optional per-service timeout overrides in ms (default: 30000)
+  authTimeout?: number
+  registryTimeout?: number
+  nodeTimeout?: number
+
   // Sentry config
   sentryDsn: string
   sentryEnabled: string
@@ -58,6 +68,18 @@ export function buildRuntimeConfig(): ClientConfig {
     baseUrl: process.env.BASE_URL || '',
     certPort: process.env.CERT_PORT
       ? parseInt(process.env.CERT_PORT)
+      : undefined,
+    authBaseUrl: process.env.AUTH_BASE_URL || undefined,
+    registryBaseUrl: process.env.REGISTRY_BASE_URL || undefined,
+    nodeBaseUrl: process.env.NODE_BASE_URL || undefined,
+    authTimeout: process.env.AUTH_TIMEOUT
+      ? parseInt(process.env.AUTH_TIMEOUT)
+      : undefined,
+    registryTimeout: process.env.REGISTRY_TIMEOUT
+      ? parseInt(process.env.REGISTRY_TIMEOUT)
+      : undefined,
+    nodeTimeout: process.env.NODE_TIMEOUT
+      ? parseInt(process.env.NODE_TIMEOUT)
       : undefined,
     sentryDsn: process.env.SENTRY_DSN || '',
     sentryEnabled: process.env.SENTRY_ENABLED || 'false',

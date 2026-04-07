@@ -36,7 +36,7 @@ export async function GET(
     }
 
     // Get file metadata first
-    const fileResponse = await fetch(`${nodeApiUrl}/api/UUFile/${uuid}`, {
+    const fileResponse = await fetch(`${nodeApiUrl}/api/UUFile?uuid=${uuid}`, {
       headers: {
         Authorization: `Bearer ${auth.token}`,
         'Content-Type': 'application/json',
