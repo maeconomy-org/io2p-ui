@@ -34,7 +34,7 @@ cd "$PROJECT_ROOT"
 
 # Load SENTRY_AUTH_TOKEN from .env.local if not already set
 if [ -z "$SENTRY_AUTH_TOKEN" ] && [ -f ".env.local" ]; then
-    TOKEN=$(grep -E '^SENTRY_AUTH_TOKEN=' .env.local 2>/dev/null | head -1 | cut -d'=' -f2-)
+    TOKEN=$(grep -E '^SENTRY_AUTH_TOKEN=' .env.local 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '"' | tr -d "'")
     if [ -n "$TOKEN" ]; then
         export SENTRY_AUTH_TOKEN="$TOKEN"
         echo -e "${BLUE}Loaded SENTRY_AUTH_TOKEN from .env.local${NC}"
