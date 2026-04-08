@@ -113,27 +113,21 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-std
 
 ## Environment Variables
 
-### Build-time Variables (NEXT*PUBLIC*\*)
+All configuration is **runtime** via `.env` — no build-time variables needed. One Docker image works across all environments.
 
-These are baked into the Docker image during build. Set them in GitHub Actions:
-
-| Variable                   | Description         | Where to Set   |
-| -------------------------- | ------------------- | -------------- |
-| `NEXT_PUBLIC_BASE_API_URL` | Base API endpoint   | GitHub Vars    |
-| `NEXT_PUBLIC_UUID_API_URL` | UUID API endpoint   | GitHub Vars    |
-| `NEXT_PUBLIC_HERE_API_KEY` | HERE Maps API key   | GitHub Secrets |
-| `NEXT_PUBLIC_SENTRY_DSN`   | Sentry DSN (client) | GitHub Secrets |
-
-### Runtime Variables (Server-side)
-
-These are set in `.env` on each VM:
+See `.env.example` for the full list. Key variables:
 
 | Variable         | Description                    | Required |
 | ---------------- | ------------------------------ | -------- |
 | `IMAGE_TAG`      | Docker image tag to deploy     | Yes      |
+| `BASE_URL`       | Base API endpoint              | Yes      |
+| `GH_ORG`         | GitHub org for image registry  | Yes      |
+| `REDIS_PASSWORD` | Redis password                 | Yes      |
 | `PORT`           | Port to expose (default: 3000) | No       |
-| `SENTRY_DSN`     | Sentry DSN (server)            | Yes      |
-| `SENTRY_ENABLED` | Enable Sentry (true/false)     | No       |
+| `SENTRY_DSN`     | Sentry DSN                     | No       |
+| `SENTRY_ENABLED` | Enable Sentry (default: false) | No       |
+
+`SENTRY_RELEASE` is auto-detected from the app version baked into the image at build time. No need to set it unless you want to override.
 
 ## Directory Structure on VM
 
@@ -150,13 +144,14 @@ These are set in `.env` on each VM:
 
 ### Creating a Release
 
+Use the release scripts (see `docs/RELEASE-GUIDE.md`):
+
 ```bash
-# On your local machine
-git tag v1.0.0
-git push origin v1.0.0
+./scripts/release.sh patch        # Production: v1.0.1
+./scripts/release-dev.sh patch    # Dev: v1.0.1-dev
 ```
 
-This triggers a build with tags: `v1.0.0`, `1.0`, `1`
+This bumps the version, creates a git tag, pushes, and triggers CI to build the Docker image.
 
 ### Rollback Procedure
 

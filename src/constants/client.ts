@@ -83,7 +83,7 @@ export function buildRuntimeConfig(): ClientConfig {
       : undefined,
     sentryDsn: process.env.SENTRY_DSN || '',
     sentryEnabled: process.env.SENTRY_ENABLED || 'false',
-    sentryRelease: process.env.SENTRY_RELEASE || '',
+    sentryRelease: process.env.SENTRY_RELEASE || process.env.APP_VERSION || '',
     nodeEnv: process.env.NODE_ENV || 'development',
     emailLoginEnabled: process.env.EMAIL_LOGIN_ENABLED || 'false',
     appName: process.env.APP_NAME || 'Internet of Materials',

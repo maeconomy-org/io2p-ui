@@ -8,13 +8,19 @@ const analyzeBundles = withBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 })
 
+// Read version from package.json at build time — baked into the bundle
+// so every Docker image knows its own version regardless of tag (latest, dev, etc.)
+import { readFileSync } from 'fs'
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
+
 const nextConfig = {
   output: 'standalone',
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
+  productionBrowserSourceMaps: true,
   typescript: {
     ignoreBuildErrors: false,
+  },
+  env: {
+    APP_VERSION: pkg.version,
   },
   images: {
     unoptimized: false,
@@ -116,6 +122,9 @@ const configuredNextConfig =
         org: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,
 
+        // Only upload source maps when auth token is provided (CI or local script)
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+
         // Silent mode - no verbose logging during build
         silent: true,
 
@@ -125,12 +134,17 @@ const configuredNextConfig =
         // Route browser requests through tunnel to bypass ad-blockers
         tunnelRoute: '/monitoring',
 
-        // Use new webpack options instead of deprecated top-level options
-        webpack: {
-          treeshake: {
-            removeDebugLogging: true, // Replaces deprecated disableLogger
-          },
-          automaticVercelMonitors: false, // Replaces deprecated automaticVercelMonitors
+        sourcemaps: {
+          // Keep source maps in build output for extraction/upload
+          // They are deleted in the Dockerfile runner stage
+          deleteSourcemapsAfterUpload: false,
+        },
+
+        release: {
+          name: process.env.SENTRY_RELEASE || pkg.version,
+          create: true,
+          finalize: true,
+          setCommits: { auto: true },
         },
 
         bundleSizeOptimizations: {
@@ -139,12 +153,6 @@ const configuredNextConfig =
           excludeReplayShadowDom: true,
           excludeReplayWorker: true,
         },
-
-        // Disable source map upload during build - we do runtime-only config
-        hideSourceMaps: true,
-        // Disable release creation during build - we handle this at runtime
-        disableClientWebpackPlugin: false,
-        disableServerWebpackPlugin: false,
       })
     : nextConfig
 

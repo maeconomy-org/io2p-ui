@@ -7,6 +7,11 @@
       "tryAgain": "Opnieuw proberen",
       "goHome": "Naar startpagina",
       "persistMessage": "Als dit probleem aanhoudt, neem dan contact op met de ondersteuning."
+    },
+    "notFound": {
+      "title": "Pagina niet gevonden",
+      "description": "De pagina die u zoekt bestaat niet of is verplaatst.",
+      "goHome": "Naar startpagina"
     }
   },
   "app": {

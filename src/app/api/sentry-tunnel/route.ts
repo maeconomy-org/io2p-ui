@@ -61,14 +61,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Allow OPTIONS for CORS preflight
-export async function OPTIONS() {
+// CORS preflight — same-origin only (tunnel serves same domain)
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin') || ''
+  const host = request.headers.get('host') || ''
+
+  // Only allow same-origin requests
+  const isAllowed = origin && new URL(origin).host === host
+
   return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
+    status: isAllowed ? 200 : 403,
+    headers: isAllowed
+      ? {
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      : {},
   })
 }

@@ -66,6 +66,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Remove source maps from production image (uploaded separately to Sentry)
+RUN find .next -name '*.map' -delete 2>/dev/null || true
+
 # Create writable directories for runtime
 RUN mkdir -p ./logs ./.next/cache && \
     chown -R nextjs:nodejs ./logs ./.next

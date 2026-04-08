@@ -6,6 +6,7 @@ import {
   sharedSentryOptions,
   consoleLevels,
   beforeSend,
+  tracesSampler,
 } from '@/lib/sentry-config'
 
 // Fetch Sentry DSN from runtime config and initialize
@@ -25,6 +26,7 @@ async function initSentry() {
         release: config.sentryRelease || undefined,
 
         ...sharedSentryOptions,
+        tracesSampler,
 
         // Browser-specific integrations
         integrations: [

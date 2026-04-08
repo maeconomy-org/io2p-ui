@@ -10,9 +10,6 @@ type SentryEvent = ErrorEvent
  * Common Sentry options shared across all runtimes
  */
 export const sharedSentryOptions = {
-  // Enable performance monitoring with 10% sampling (free tier friendly)
-  tracesSampleRate: 0.1,
-
   // Enable session health tracking (crash rates, stability metrics)
   autoSessionTracking: true,
 
@@ -28,6 +25,30 @@ export const sharedSentryOptions = {
   // GDPR: Disable automatic PII collection
   sendDefaultPii: false,
 } as const
+
+/**
+ * Smart transaction sampler for free plan optimization
+ * Drops noise transactions that waste quota (health checks, config, sentry tunnel)
+ */
+export function tracesSampler(samplingContext: {
+  name?: string
+  attributes?: Record<string, unknown>
+}): number {
+  const name = samplingContext.name || ''
+
+  // Drop health check and config transactions (waste of quota)
+  if (name.includes('/api/config') || name.includes('/api/health')) {
+    return 0
+  }
+
+  // Drop Sentry tunnel transactions
+  if (name.includes('/monitoring') || name.includes('/api/sentry-tunnel')) {
+    return 0
+  }
+
+  // Default: 10% sampling (free tier friendly)
+  return 0.1
+}
 
 /**
  * Console logging levels to capture

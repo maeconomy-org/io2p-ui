@@ -247,15 +247,11 @@ yarn-error.log*
 next-env.d.ts
 
 e2e/.auth/
-
+docs/
 certs/
-memory-bank/
 .cursorrules
 .windsurf
-dump.rdb``
-
-docs/
-AGENTS.md
+dump.rdb
 # Deployment secrets (keep examples)
 deploy/.env
 deploy/.previous
@@ -265,3 +261,5 @@ deploy/logs/
 deploy/certbot/
 
 .claude/**.local.json
+
+.sentry-projects

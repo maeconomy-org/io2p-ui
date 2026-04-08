@@ -9,8 +9,22 @@ import {
   ReactNode,
 } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import type { AuthResponse, Client } from 'iom-sdk'
+import type { AuthResponse as BaseAuthResponse, Client } from 'iom-sdk'
 import { PUBLIC_PAGES_SET } from '@/constants'
+
+export interface CertificateInfo {
+  certificateSha256?: string
+  issuerFields?: Record<string, string>
+  subjectFields?: Record<string, string>
+  serialNumber?: string
+  subjectAlternativeNames?: string[]
+  validFrom?: string
+  validTo?: string
+}
+
+export type AuthResponse = BaseAuthResponse & {
+  certificateInfo?: CertificateInfo
+}
 
 interface AuthContextType {
   isAuthenticated: boolean

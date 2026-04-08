@@ -36,9 +36,13 @@ export function UserProfileDropdown() {
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
+  const certName =
+    userInfo?.certificateInfo?.subjectFields?.CN ||
+    userInfo?.certificateInfo?.issuerFields?.CN
+
   const displayIdentity =
     userInfo?.username ||
-    userInfo?.identifier ||
+    certName ||
     userInfo?.credentialValue ||
     userInfo?.credentials ||
     t('nav.user')
