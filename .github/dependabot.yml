@@ -1,27 +1,61 @@
-# Dependabot - Auto-update dependencies for security
+# Dependabot - Auto-update dependencies
 version: 2
 updates:
   # npm dependencies
   - package-ecosystem: 'npm'
     directory: '/'
+    target-branch: 'dev'
     schedule:
-      interval: 'weekly'
+      interval: 'monthly'
     open-pull-requests-limit: 5
     labels:
       - 'dependencies'
+    groups:
+      npm-production:
+        applies-to: version-updates
+        patterns:
+          - '*'
+        exclude-patterns:
+          - '@types/*'
+          - 'eslint*'
+          - '@next/eslint*'
+          - 'typescript'
+        update-types:
+          - 'minor'
+          - 'patch'
+      npm-dev:
+        applies-to: version-updates
+        patterns:
+          - '@types/*'
+          - 'eslint*'
+          - '@next/eslint*'
+          - 'typescript'
+        update-types:
+          - 'minor'
+          - 'patch'
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - '*'
 
   # Docker base images
   - package-ecosystem: 'docker'
     directory: '/'
+    target-branch: 'dev'
     schedule:
-      interval: 'weekly'
+      interval: 'monthly'
     labels:
       - 'dependencies'
 
   # GitHub Actions
   - package-ecosystem: 'github-actions'
     directory: '/'
+    target-branch: 'dev'
     schedule:
-      interval: 'weekly'
+      interval: 'monthly'
     labels:
       - 'dependencies'
+    groups:
+      github-actions-all:
+        patterns:
+          - '*'
