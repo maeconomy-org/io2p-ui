@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib'
 import { requireAuth } from '@/lib/api-auth'
+import { NextRequest, NextResponse } from 'next/server'
 
 // Proxy HERE API requests to hide API key from client
 export async function GET(request: NextRequest) {

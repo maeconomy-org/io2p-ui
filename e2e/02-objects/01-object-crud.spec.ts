@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { expect, Page, test } from '@playwright/test'
 
 /**
  * Object CRUD Operations - Core Flows
@@ -113,14 +113,7 @@ test.describe('01 - Object CRUD Operations', () => {
     const suggestion = page
       .locator('div.absolute.z-50 div.cursor-pointer')
       .first()
-    const suggestionVisible = await suggestion
-      .isVisible({ timeout: 10000 })
-      .catch(() => false)
-
-    if (!suggestionVisible) {
-      // HERE API may be unavailable — skip address step, create without it
-      test.skip(true, 'Address autocomplete API unavailable')
-    }
+    await expect(suggestion).toBeVisible({ timeout: 10000 })
 
     await suggestion.click()
 
@@ -339,8 +332,10 @@ test.describe('01 - Object CRUD Operations', () => {
     // Wait for save to complete and properties to reload
     await page.waitForTimeout(2000)
 
-    // Verify - click to expand
-    await page.getByText('Floor Count').first().click()
+    // Verify - click property header to expand
+    await page
+      .locator('[data-testid="property-header-0"]')
+      .click({ timeout: 10000 })
     await expect(
       page.locator('[data-testid="property-expanded-0"]')
     ).toBeVisible({ timeout: 10000 })
@@ -369,13 +364,7 @@ test.describe('01 - Object CRUD Operations', () => {
     const suggestion = page
       .locator('div.absolute.z-50 div.cursor-pointer')
       .first()
-    const suggestionVisible = await suggestion
-      .isVisible({ timeout: 10000 })
-      .catch(() => false)
-
-    if (!suggestionVisible) {
-      test.skip(true, 'Address autocomplete API unavailable')
-    }
+    await expect(suggestion).toBeVisible({ timeout: 10000 })
 
     await suggestion.click()
 
