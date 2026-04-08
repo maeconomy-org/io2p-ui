@@ -60,3 +60,8 @@ git push origin "$DEV_TAG"
 echo ""
 echo "Dev release $DEV_TAG created!"
 echo "Docker tags: ${NEW_VERSION}-dev, dev, sha-xxx"
+
+# Upload source maps to Sentry (dev projects only)
+echo ""
+echo "Uploading source maps to Sentry (dev projects)..."
+SENTRY_RELEASE="${NEW_VERSION}-dev" "$(dirname "$0")/upload-sourcemaps.sh" iob-ui-dev iom-ui-dev || echo "Source map upload failed (non-fatal)"

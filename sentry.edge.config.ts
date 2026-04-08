@@ -6,6 +6,7 @@ import {
   sharedSentryOptions,
   consoleLevels,
   beforeSend,
+  tracesSampler,
 } from './src/lib/sentry-config'
 
 // Only initialize in production or when explicitly enabled for testing
@@ -16,9 +17,10 @@ if (shouldInit && process.env.SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
-    release: process.env.SENTRY_RELEASE || undefined,
+    release: process.env.SENTRY_RELEASE || process.env.APP_VERSION || undefined,
 
     ...sharedSentryOptions,
+    tracesSampler,
 
     // Edge-specific integrations (limited runtime)
     integrations: [

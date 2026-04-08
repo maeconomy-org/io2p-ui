@@ -53,8 +53,8 @@ services:
     environment:
       # Override Redis URL for container networking (can't be in .env file)
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      # Docker-specific overrides
-      - SENTRY_RELEASE=${SENTRY_RELEASE:-Docker-${IMAGE_TAG}}
+      # SENTRY_RELEASE is auto-detected from APP_VERSION baked into the image
+      # Only set to override: SENTRY_RELEASE=1.0.12
       # All other variables are loaded from .env file automatically
     volumes:
       - ./logs:/app/logs:rw

@@ -54,3 +54,8 @@ git push origin "v$NEW_VERSION"
 echo ""
 echo "Release v$NEW_VERSION created!"
 echo "Docker tags: $NEW_VERSION, latest, main"
+
+# Upload source maps to Sentry (prod project only)
+echo ""
+echo "Uploading source maps to Sentry (prod)..."
+SENTRY_RELEASE="$NEW_VERSION" "$(dirname "$0")/upload-sourcemaps.sh" iom-ui-prod || echo "Source map upload failed (non-fatal)"
