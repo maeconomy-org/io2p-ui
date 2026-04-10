@@ -79,7 +79,7 @@
     "react-day-picker": "8.10.1",
     "react-dom": "^19.2.4",
     "react-dropzone": "^14.3.8",
-    "react-hook-form": "^7.54.1",
+    "react-hook-form": "^7.72.1",
     "react-hotkeys-hook": "^5.2.1",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
