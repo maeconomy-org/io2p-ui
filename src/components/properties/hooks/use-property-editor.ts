@@ -1,34 +1,87 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
 import { logger, isForbiddenError } from '@/lib'
 import { usePropertyManagement } from './use-property-management'
+import {
+  hasPropertyChanged,
+  getChangedProperties,
+} from '../utils/change-detection'
+import { makeCompositeId, isOwnCompositeId } from '../utils/composite-id'
+import type { Property, FormulaData } from '../types'
+import type { AvailableProperty } from './use-formula-evaluation'
+
+/** Get the stable ID for a property (uuid or temp ID). */
+function getPropertyId(property: Property): string {
+  return property.uuid || property._tempId || ''
+}
+
+/** Stable empty array to prevent re-render loops from default param. */
+const EMPTY_PROPERTIES: Property[] = []
 
 export interface UsePropertyEditorProps {
-  initialProperties?: any[]
+  initialProperties?: Property[]
   objectUuid?: string
-  isEditing: boolean
 }
 
 export interface UsePropertyEditorReturn {
-  editedProperties: any[]
-  setEditedProperties: (properties: any[]) => void
+  /** Visible properties (non-deleted) */
+  properties: Property[]
+  /** Set of expanded property IDs */
+  expandedIds: Set<string>
+  /** Toggle a property's expanded state */
+  toggleExpand: (id: string) => void
+  /** Add a new empty property */
+  addProperty: () => void
+  /** Update a property's name/key */
+  updatePropertyName: (propertyId: string, name: string) => void
+  /** Update a property value's text */
+  updatePropertyValue: (
+    propertyId: string,
+    valueIndex: number,
+    value: string
+  ) => void
+  /** Update a property value's formula data */
+  updatePropertyValueFormula: (
+    propertyId: string,
+    valueIndex: number,
+    formulaData: FormulaData | undefined
+  ) => void
+  /** Add a new empty value to a property */
+  addValue: (propertyId: string) => void
+  /** Remove a value from a property */
+  removeValue: (propertyId: string, valueIndex: number) => void
+  /** Mark a property for removal (or delete if new) */
+  removeProperty: (propertyId: string) => void
+  /** Save all changed properties (batch) */
   saveProperties: () => Promise<void>
-  hasPropertiesChanged: boolean
+  /** Save a single property by ID */
+  saveProperty: (propertyId: string) => Promise<void>
+  /** Whether any properties have unsaved changes */
+  hasChanges: boolean
+  /** ID of property currently being saved */
+  isSavingProperty: string | null
+  /** Get available sibling properties for formula mapping */
+  availablePropertiesFor: (propertyId: string) => AvailableProperty[]
+  /** Reset edited state back to initial properties (e.g. on cancel) */
+  resetProperties: () => void
 }
 
 /**
- * Hook for managing property editing operations
+ * Single source of truth for property editing.
+ * Manages all property state (UI + persistence) — no external
+ * setters needed. Consumers interact exclusively through methods.
  */
 export function usePropertyEditor({
-  initialProperties = [],
+  initialProperties = EMPTY_PROPERTIES,
   objectUuid,
-  isEditing,
 }: UsePropertyEditorProps): UsePropertyEditorReturn {
-  const [editedProperties, setEditedProperties] = useState<any[]>([])
+  // All properties including those marked for deletion
+  const [allProperties, setAllProperties] = useState<Property[]>([])
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [isSavingProperty, setIsSavingProperty] = useState<string | null>(null)
 
-  // Use our property management hook
   const {
     updatePropertyWithValues,
     createPropertyForObject,
@@ -38,194 +91,334 @@ export function usePropertyEditor({
   } = usePropertyManagement()
   const t = useTranslations()
 
-  // Reset editing properties when data changes or editing mode changes
+  // ── Sync from server data ────────────────────────────────────────
+  // Stabilize initialProperties reference: only react to actual content
+  // changes, not new array references with the same data.
+  const prevInitialRef = useRef<string>('')
   useEffect(() => {
-    if (initialProperties && !isEditing) {
-      setEditedProperties([...initialProperties])
-    }
-  }, [initialProperties, isEditing])
-
-  // Check if properties have changed
-  const hasPropertiesChanged = editedProperties.some((prop) => {
-    // Check if the property has been flagged as modified, deleted, or is new
-    if (prop._isNew || prop._deleted || prop._modified) {
-      return true
-    }
-
-    // Additional check: compare with original properties
-    const originalProp = initialProperties.find(
-      (p: any) => p.uuid === prop.uuid
+    const key = JSON.stringify(
+      initialProperties.map((p) => ({
+        uuid: p.uuid,
+        key: p.key,
+        values: p.values?.map((v) => ({
+          uuid: v.uuid,
+          value: v.value,
+          formulaData: v.formulaData,
+        })),
+      }))
     )
-    if (!originalProp) return false
-
-    // Check if key has changed
-    if (prop.key !== originalProp.key) return true
-
-    // Check if values have changed
-    if (prop.values?.length !== originalProp.values?.length) return true
-
-    // Check if any value content or formula has changed
-    const valuesChanged = prop.values?.some((val: any, i: number) => {
-      const origVal = originalProp.values?.[i]
-      if (!origVal || val.value !== origVal.value) return true
-      // Check formula changes
-      const hasNewFormula = !!val.formulaData?.formulaUuid
-      const hadOldFormula = !!origVal.formulaData?.formulaUuid
-      if (hasNewFormula !== hadOldFormula) return true
-      if (
-        hasNewFormula &&
-        hadOldFormula &&
-        val.formulaData.formulaUuid !== origVal.formulaData.formulaUuid
+    if (key !== prevInitialRef.current) {
+      prevInitialRef.current = key
+      setAllProperties(
+        initialProperties.map((prop) => ({
+          ...prop,
+          _modified: false,
+          _isNew: prop._isNew || false,
+          _deleted: false,
+        }))
       )
-        return true
-      return false
-    })
-
-    return valuesChanged
-  })
-
-  const saveProperties = async (): Promise<void> => {
-    if (!editedProperties || !objectUuid) {
-      throw new Error('Missing required data for property update')
     }
+  }, [initialProperties])
 
-    // Create an array of properties that need to be updated
-    const propertiesToUpdate = editedProperties.filter((prop) => {
-      // Check if the property has been flagged as modified, deleted, or is new
-      if (prop._isNew || prop._deleted || prop._modified) {
-        return true
-      }
+  // ── Derived state ────────────────────────────────────────────────
 
-      // Additional check: compare with original properties
-      const originalProp = initialProperties.find(
-        (p: any) => p.uuid === prop.uuid
+  const properties = useMemo(
+    () => allProperties.filter((p) => !p._deleted),
+    [allProperties]
+  )
+
+  const hasChanges = allProperties.some((prop) =>
+    hasPropertyChanged(prop, initialProperties as Property[])
+  )
+
+  // ── Internal helpers ─────────────────────────────────────────────
+
+  const updateById = useCallback(
+    (propertyId: string, updater: (prop: Property) => Property) => {
+      setAllProperties((prev) =>
+        prev.map((p) => (getPropertyId(p) === propertyId ? updater(p) : p))
       )
-      if (!originalProp) return false
+    },
+    []
+  )
 
-      // Check if key has changed
-      if (prop.key !== originalProp.key) return true
+  // ── UI state methods ─────────────────────────────────────────────
 
-      // Check if values have changed
-      if (prop.values?.length !== originalProp.values?.length) return true
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }, [])
 
-      // Check if any value content or formula has changed
-      const valuesChanged = prop.values?.some((val: any, i: number) => {
-        const origVal = originalProp.values?.[i]
-        if (!origVal || val.value !== origVal.value) return true
-        const hasNewFormula = !!val.formulaData?.formulaUuid
-        const hadOldFormula = !!origVal.formulaData?.formulaUuid
-        if (hasNewFormula !== hadOldFormula) return true
-        if (
-          hasNewFormula &&
-          hadOldFormula &&
-          val.formulaData.formulaUuid !== origVal.formulaData.formulaUuid
-        )
-          return true
-        return false
+  // ── Mutation methods ─────────────────────────────────────────────
+
+  const addProperty = useCallback(() => {
+    const tempId = `temp_${Date.now()}`
+    const newProperty: Property = {
+      key: '',
+      values: [{ value: '', _needsInput: true }],
+      _isNew: true,
+      _tempId: tempId,
+    }
+    setAllProperties((prev) => [...prev, newProperty])
+    setExpandedIds((prev) => new Set(prev).add(tempId))
+  }, [])
+
+  const updatePropertyName = useCallback(
+    (propertyId: string, name: string) => {
+      updateById(propertyId, (prop) => ({
+        ...prop,
+        key: name,
+        _modified: true,
+      }))
+    },
+    [updateById]
+  )
+
+  const updatePropertyValue = useCallback(
+    (propertyId: string, valueIndex: number, value: string) => {
+      updateById(propertyId, (prop) => {
+        const updatedValues = [...(prop.values || [])]
+        updatedValues[valueIndex] = {
+          ...updatedValues[valueIndex],
+          value,
+          ...(value !== '' ? { _needsInput: false } : {}),
+        }
+        return { ...prop, values: updatedValues, _modified: true }
+      })
+    },
+    [updateById]
+  )
+
+  const updatePropertyValueFormula = useCallback(
+    (
+      propertyId: string,
+      valueIndex: number,
+      formulaData: FormulaData | undefined
+    ) => {
+      updateById(propertyId, (prop) => {
+        const updatedValues = [...(prop.values || [])]
+        updatedValues[valueIndex] = {
+          ...updatedValues[valueIndex],
+          formulaData,
+        }
+        return { ...prop, values: updatedValues, _modified: true }
+      })
+    },
+    [updateById]
+  )
+
+  const addValue = useCallback(
+    (propertyId: string) => {
+      updateById(propertyId, (prop) => ({
+        ...prop,
+        values: [...(prop.values || []), { value: '', _needsInput: true }],
+        _modified: true,
+      }))
+    },
+    [updateById]
+  )
+
+  const removeValue = useCallback(
+    (propertyId: string, valueIndex: number) => {
+      updateById(propertyId, (prop) => {
+        const updatedValues = [...(prop.values || [])]
+        updatedValues.splice(valueIndex, 1)
+        return { ...prop, values: updatedValues, _modified: true }
+      })
+    },
+    [updateById]
+  )
+
+  const removeProperty = useCallback((propertyId: string) => {
+    setAllProperties((prev) => {
+      const prop = prev.find((p) => getPropertyId(p) === propertyId)
+      if (!prop) return prev
+
+      if (prop._isNew) {
+        return prev.filter((p) => getPropertyId(p) !== propertyId)
+      }
+      return prev.map((p) =>
+        getPropertyId(p) === propertyId ? { ...p, _deleted: true } : p
+      )
+    })
+  }, [])
+
+  const resetProperties = useCallback(() => {
+    setAllProperties(
+      initialProperties.map((prop) => ({
+        ...prop,
+        _modified: false,
+        _isNew: prop._isNew || false,
+        _deleted: false,
+      }))
+    )
+  }, [initialProperties])
+
+  // ── Available properties for formula mapping ─────────────────────
+
+  const propertiesKey = JSON.stringify(
+    properties.map((p) => ({
+      id: getPropertyId(p),
+      key: p.key,
+      values: p.values?.map((v) => ({
+        uuid: v.uuid,
+        value: v.value,
+      })),
+    }))
+  )
+
+  const allAvailableProperties = useMemo((): AvailableProperty[] => {
+    const result: AvailableProperty[] = []
+
+    properties
+      .filter((p) => !p._deleted && p.key)
+      .forEach((p) => {
+        const propId = getPropertyId(p)
+        const propKey = p.key
+        const propLabel = p.label || p.key
+
+        if (p.values && p.values.length > 0) {
+          p.values.forEach((v, idx) => {
+            if (!v.value || v._needsInput) return
+            const trimmed = v.value.trim()
+            if (trimmed === '' || isNaN(Number(trimmed))) return
+
+            result.push({
+              uuid: makeCompositeId(propId, idx),
+              key: propKey,
+              label: propLabel,
+              value: trimmed,
+              valueIndex: idx,
+            })
+          })
+        }
       })
 
-      return valuesChanged
-    })
+    return result
+  }, [propertiesKey])
 
-    // If no changes, just return
-    if (propertiesToUpdate.length === 0) {
-      return
-    }
+  const availablePropertiesFor = useCallback(
+    (propertyId: string): AvailableProperty[] => {
+      return allAvailableProperties.filter(
+        (p) => !isOwnCompositeId(p.uuid, propertyId)
+      )
+    },
+    [allAvailableProperties]
+  )
 
-    try {
-      // Create an array to track all API operations
+  // ── API operations ───────────────────────────────────────────────
+
+  const processPropertyOperations = useCallback(
+    async (property: Property) => {
+      if (!objectUuid) throw new Error('Missing objectUuid')
+
       const operations = []
 
-      // Process each property that needs updating
-      for (const property of propertiesToUpdate) {
-        if (property._deleted) {
-          // Delete property if marked for deletion
-          operations.push(removePropertyFromObject(objectUuid, property.uuid))
-        } else if (property._isNew) {
-          // Create new property with only key and values
-          // Filter out any empty values
-          const nonEmptyValues = (property.values || []).filter(
-            (val: any) =>
-              // Skip empty values
-              val.value !== undefined &&
-              val.value !== '' &&
-              // Skip values marked as needing input (from the collapsible-property component)
-              val._needsInput !== true
-          )
+      if (property._deleted) {
+        operations.push(removePropertyFromObject(objectUuid, property.uuid!))
+      } else if (property._isNew) {
+        const nonEmptyValues = (property.values || []).filter(
+          (val) =>
+            val.value !== undefined &&
+            val.value !== '' &&
+            val._needsInput !== true
+        )
 
-          operations.push(
-            createPropertyForObject(objectUuid, {
+        operations.push(
+          createPropertyForObject(objectUuid, {
+            key: property.key,
+            values: nonEmptyValues,
+          })
+        )
+      } else {
+        const nonEmptyValues = (property.values || []).filter(
+          (val) =>
+            val.value !== undefined &&
+            val.value !== '' &&
+            val._needsInput !== true
+        )
+
+        operations.push(
+          updatePropertyWithValues(
+            {
+              uuid: property.uuid!,
               key: property.key,
-              values: nonEmptyValues,
-            })
+            },
+            nonEmptyValues
           )
-        } else {
-          // Update existing property - don't rely on _modified flag exclusively
-          // Filter out any empty values
-          const nonEmptyValues = (property.values || []).filter(
-            (val: any) =>
-              // Skip empty values
-              val.value !== undefined &&
-              val.value !== '' &&
-              // Skip values marked as needing input (from the collapsible-property component)
-              val._needsInput !== true
-          )
+        )
 
-          operations.push(
-            updatePropertyWithValues(
-              {
-                uuid: property.uuid,
-                key: property.key, // This will update the key/name
-              },
-              nonEmptyValues // Only include non-empty values
-            )
-          )
+        // Handle formula changes (text↔formula conversion)
+        const originalProp = initialProperties.find(
+          (p) => p.uuid === property.uuid
+        )
+        for (const val of nonEmptyValues) {
+          if (!val.uuid) continue
+          const origVal = originalProp?.values?.find((v) => v.uuid === val.uuid)
+          const hadFormula = !!origVal?.formulaData?.formulaUuid
+          const hasFormula = !!val.formulaData?.formulaUuid
 
-          // Handle formula changes for each value (text↔formula conversion)
-          if (objectUuid) {
-            const originalProp = initialProperties.find(
-              (p: any) => p.uuid === property.uuid
-            )
-            for (const val of nonEmptyValues) {
-              if (!val.uuid) continue
-              const origVal = originalProp?.values?.find(
-                (v: any) => v.uuid === val.uuid
+          if (!hadFormula && hasFormula) {
+            operations.push(
+              createFormulaCalcForValue(
+                objectUuid,
+                val.formulaData!,
+                Object.entries(val.formulaData!.variableMapping || {}).map(
+                  ([name, mapping]) => ({
+                    name,
+                    propertyValueUUID: mapping.propertyUuid,
+                  })
+                ),
+                val.uuid
               )
-              const hadFormula = !!origVal?.formulaData?.formulaUuid
-              const hasFormula = !!val.formulaData?.formulaUuid
-
-              if (!hadFormula && hasFormula) {
-                // Text → Formula: create calc
-                operations.push(
-                  createFormulaCalcForValue(
-                    objectUuid,
-                    val.formulaData,
-                    Object.entries(val.formulaData.variableMapping || {}).map(
-                      ([name, mapping]: [string, any]) => ({
-                        name,
-                        propertyValueUUID: mapping.propertyUuid,
-                      })
-                    ),
-                    val.uuid
-                  )
-                )
-              } else if (hadFormula && !hasFormula) {
-                // Formula → Text: delete calc
-                const calcUuid = origVal.formulaData.calcUuid
-                if (calcUuid) {
-                  operations.push(
-                    deleteFormulaCalcForValue(objectUuid, calcUuid)
-                  )
-                }
-              }
+            )
+          } else if (hadFormula && !hasFormula) {
+            const calcUuid = origVal?.formulaData?.calcUuid
+            if (calcUuid) {
+              operations.push(deleteFormulaCalcForValue(objectUuid, calcUuid))
             }
           }
         }
       }
 
-      // Wait for all operations to complete
       await Promise.all(operations)
+    },
+    [
+      objectUuid,
+      initialProperties,
+      updatePropertyWithValues,
+      createPropertyForObject,
+      removePropertyFromObject,
+      createFormulaCalcForValue,
+      deleteFormulaCalcForValue,
+    ]
+  )
 
+  const saveProperties = useCallback(async (): Promise<void> => {
+    if (!objectUuid) {
+      throw new Error('Missing required data for property update')
+    }
+
+    const propertiesToUpdate = getChangedProperties(
+      allProperties,
+      initialProperties as Property[]
+    )
+
+    if (propertiesToUpdate.length === 0) {
+      return
+    }
+
+    try {
+      await Promise.all(
+        propertiesToUpdate.map((prop) => processPropertyOperations(prop))
+      )
       toast.success(t('objects.propertiesUpdated'))
     } catch (error) {
       logger.error('Error saving properties:', error)
@@ -236,12 +429,59 @@ export function usePropertyEditor({
       )
       throw error
     }
-  }
+  }, [
+    objectUuid,
+    allProperties,
+    initialProperties,
+    processPropertyOperations,
+    t,
+  ])
+
+  const saveProperty = useCallback(
+    async (propertyId: string): Promise<void> => {
+      const property = allProperties.find(
+        (p) => getPropertyId(p) === propertyId
+      )
+      if (!property || !objectUuid) {
+        throw new Error('Missing property or objectUuid')
+      }
+
+      setIsSavingProperty(propertyId)
+
+      try {
+        await processPropertyOperations(property)
+        toast.success(t('objects.propertiesUpdated'))
+      } catch (error) {
+        logger.error('Error saving property:', error)
+        toast.error(
+          isForbiddenError(error)
+            ? t('objects.permissionDenied')
+            : t('objects.propertiesUpdateFailed')
+        )
+        throw error
+      } finally {
+        setIsSavingProperty(null)
+      }
+    },
+    [objectUuid, allProperties, processPropertyOperations, t]
+  )
 
   return {
-    editedProperties,
-    setEditedProperties,
+    properties,
+    expandedIds,
+    toggleExpand,
+    addProperty,
+    updatePropertyName,
+    updatePropertyValue,
+    updatePropertyValueFormula,
+    addValue,
+    removeValue,
+    removeProperty,
     saveProperties,
-    hasPropertiesChanged,
+    saveProperty,
+    hasChanges,
+    isSavingProperty,
+    availablePropertiesFor,
+    resetProperties,
   }
 }

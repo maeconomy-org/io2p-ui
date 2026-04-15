@@ -46,6 +46,8 @@ interface FormulaEditorProps {
   disabled?: boolean
   /** When true, expression input is read-only but variable mapping is still interactive */
   readOnlyExpression?: boolean
+  /** When true, hides the expression input entirely (formula visible in picker) */
+  hideExpression?: boolean
 }
 
 export function FormulaEditor({
@@ -55,6 +57,7 @@ export function FormulaEditor({
   onChange,
   disabled = false,
   readOnlyExpression = false,
+  hideExpression = false,
 }: FormulaEditorProps) {
   const t = useTranslations()
   const onChangeRef = useRef(onChange)
@@ -110,88 +113,92 @@ export function FormulaEditor({
 
   return (
     <div className="space-y-3">
-      {/* Formula Input + Template Dropdown */}
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <Input
-            value={formula}
-            onChange={(e) => setFormula(e.target.value)}
-            placeholder={t('objects.properties.formulaPlaceholder')}
-            disabled={disabled || readOnlyExpression}
-            className={cn(
-              'font-mono text-sm flex-1',
-              evaluation.error && formula.trim()
-                ? 'border-destructive focus-visible:ring-destructive'
-                : evaluation.isValid && formula.trim()
-                  ? 'border-green-500 focus-visible:ring-green-500'
-                  : ''
-            )}
-          />
-          {!readOnlyExpression && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 gap-1 shrink-0"
-                  disabled={disabled}
+      {/* Formula Input + Template Dropdown — hidden when expression is in picker */}
+      {!hideExpression && (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Input
+              value={formula}
+              onChange={(e) => setFormula(e.target.value)}
+              placeholder={t('objects.properties.formulaPlaceholder')}
+              disabled={disabled || readOnlyExpression}
+              className={cn(
+                'font-mono text-sm flex-1',
+                evaluation.error && formula.trim()
+                  ? 'border-destructive focus-visible:ring-destructive'
+                  : evaluation.isValid && formula.trim()
+                    ? 'border-green-500 focus-visible:ring-green-500'
+                    : ''
+              )}
+            />
+            {!readOnlyExpression && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1 shrink-0"
+                    disabled={disabled}
+                  >
+                    {t('objects.properties.formulaTemplates')}
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-60 max-h-72 overflow-y-auto"
                 >
-                  {t('objects.properties.formulaTemplates')}
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-60 max-h-72 overflow-y-auto"
-              >
-                {(
-                  [
-                    'basic',
-                    'statistics',
-                    'geometry',
-                    'conversion',
-                    'finance',
-                  ] as const
-                ).map((cat, catIdx) => {
-                  const items = FORMULA_TEMPLATES.filter(
-                    (t) => t.category === cat
-                  )
-                  if (items.length === 0) return null
-                  return (
-                    <div key={cat}>
-                      {catIdx > 0 && <DropdownMenuSeparator />}
-                      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {cat}
-                      </DropdownMenuLabel>
-                      {items.map((tmpl) => (
-                        <DropdownMenuItem
-                          key={tmpl.label}
-                          onClick={() => handleTemplateSelect(tmpl.formula)}
-                          className="flex flex-col items-start gap-0.5"
-                        >
-                          <span className="font-medium text-sm">
-                            {tmpl.label}
-                          </span>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {tmpl.formula}
-                          </span>
-                        </DropdownMenuItem>
-                      ))}
-                    </div>
-                  )
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+                  {(
+                    [
+                      'basic',
+                      'statistics',
+                      'geometry',
+                      'conversion',
+                      'finance',
+                    ] as const
+                  ).map((cat, catIdx) => {
+                    const items = FORMULA_TEMPLATES.filter(
+                      (t) => t.category === cat
+                    )
+                    if (items.length === 0) return null
+                    return (
+                      <div key={cat}>
+                        {catIdx > 0 && <DropdownMenuSeparator />}
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {cat}
+                        </DropdownMenuLabel>
+                        {items.map((tmpl) => (
+                          <DropdownMenuItem
+                            key={tmpl.label}
+                            onClick={() => handleTemplateSelect(tmpl.formula)}
+                            className="flex flex-col items-start gap-0.5"
+                          >
+                            <span className="font-medium text-sm">
+                              {tmpl.label}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {tmpl.formula}
+                            </span>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
-        {evaluation.error && formula.trim() && (
-          <p className="text-xs text-destructive flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" />
-            {evaluation.error}
-          </p>
-        )}
-      </div>
+      )}
+
+      {/* Formula error — always visible, even when expression input is hidden */}
+      {evaluation.error && formula.trim() && (
+        <p className="text-xs text-destructive flex items-center gap-1">
+          <AlertCircle className="h-3 w-3" />
+          {evaluation.error}
+        </p>
+      )}
 
       {/* Variable Mapping */}
       {detectedVariables.length > 0 && (

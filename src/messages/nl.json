@@ -294,6 +294,8 @@
     "objectUuid": "Object-UUID",
     "propertyUuid": "Eigenschap-UUID",
     "attach": "Bijvoegen",
+    "attachToProperty": "Aan eigenschap",
+    "attachToValue": "Aan waarde",
     "filesAttachedProperty": "Bestanden gekoppeld aan eigenschap",
     "values": "{count} waarde{count, plural, one {} other {s}}",
     "filesCount": "{count} bestand{count, plural, one {} other {en}}",

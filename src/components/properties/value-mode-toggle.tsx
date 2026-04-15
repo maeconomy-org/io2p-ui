@@ -19,7 +19,7 @@ interface ValueModeToggleProps {
 
 /**
  * Compact icon-only toggle for switching between text and formula mode.
- * Used by both PropertyField (RHF) and CollapsibleProperty (local state).
+ * Styled to match the property view toggle (border group pattern).
  */
 export function ValueModeToggle({
   isFormulaMode,
@@ -29,7 +29,12 @@ export function ValueModeToggle({
 }: ValueModeToggleProps) {
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex items-center bg-muted rounded-md p-0.5 gap-0.5">
+      <div
+        className={cn(
+          'flex items-center border rounded-md overflow-hidden',
+          disabled && 'opacity-50 pointer-events-none'
+        )}
+      >
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -38,11 +43,10 @@ export function ValueModeToggle({
               disabled={disabled}
               data-testid="value-mode-text"
               className={cn(
-                'flex items-center justify-center rounded p-1.5 transition-colors',
+                'p-1 transition-colors',
                 !isFormulaMode
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-                disabled && 'opacity-50 cursor-not-allowed'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted text-muted-foreground'
               )}
             >
               <Type className="h-3.5 w-3.5" />
@@ -60,11 +64,10 @@ export function ValueModeToggle({
               disabled={disabled}
               data-testid="value-mode-formula"
               className={cn(
-                'flex items-center justify-center rounded p-1.5 transition-colors',
+                'p-1 transition-colors',
                 isFormulaMode
-                  ? 'bg-violet-600 text-white shadow-sm dark:bg-violet-700'
-                  : 'text-muted-foreground hover:text-foreground',
-                disabled && 'opacity-50 cursor-not-allowed'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted text-muted-foreground'
               )}
             >
               <FunctionSquare className="h-3.5 w-3.5" />

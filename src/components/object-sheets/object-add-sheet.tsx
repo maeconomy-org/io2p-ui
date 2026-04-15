@@ -25,7 +25,7 @@ import {
   SheetFooter,
   HereAddressAutocomplete,
 } from '@/components/ui'
-import { PropertyField } from '@/components/properties'
+import { PropertyItemRHF } from '@/components/properties'
 import { objectSchema, ObjectFormValues } from '@/lib/validations/object-model'
 import {
   AttachmentList,
@@ -150,7 +150,7 @@ export function ObjectAddSheet({
         values.forEach((v: any, vIdx: number) => {
           if (!v?.value && v?._needsInput) return
           result.push({
-            uuid: `prop-${i}::${vIdx}`,
+            uuid: `prop-${i}::${vIdx}`, // index-based composite ID
             key: p.key,
             label: p.key,
             value: v?.value || '',
@@ -471,7 +471,7 @@ export function ObjectAddSheet({
 
                   <div className="space-y-4">
                     {fields.map((field, index) => (
-                      <PropertyField
+                      <PropertyItemRHF
                         key={field.id || `property-${index}`}
                         control={form.control}
                         name={`properties.${index}`}

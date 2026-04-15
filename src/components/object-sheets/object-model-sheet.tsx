@@ -27,7 +27,7 @@ import {
   Property,
   logger,
 } from '@/lib'
-import { PropertyFieldTemplate } from '@/components/properties'
+import { PropertyItemRHF } from '@/components/properties'
 import { useObjectOperations } from './hooks'
 import { createEmptyProperty } from './utils'
 
@@ -247,12 +247,13 @@ export function ObjectModelSheet({
                 </div>
 
                 {fields.map((field, index) => (
-                  <PropertyFieldTemplate
+                  <PropertyItemRHF
                     key={field.uuid !== '' ? field.uuid : index}
                     control={form.control}
                     name={`properties.${index}`}
                     index={index}
                     onRemove={() => remove(index)}
+                    templateMode
                   />
                 ))}
 

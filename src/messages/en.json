@@ -291,6 +291,8 @@
     "objectUuid": "Object UUID",
     "propertyUuid": "Property UUID",
     "attach": "Attach",
+    "attachToProperty": "Attach to property",
+    "attachToValue": "Attach to value",
     "filesAttachedProperty": "Files Attached to Property",
     "values": "{count} value{count, plural, one {} other {s}}",
     "filesCount": "{count} file{count, plural, one {} other {s}}",

@@ -270,7 +270,7 @@ export function CopyObjectsSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto grid gap-5 py-4 px-1 -mx-1">
+        <div className="overflow-y-auto space-y-5 py-4 px-1 -mx-1">
           {/* Source objects selector */}
           <div className="grid gap-2">
             <Label>{t('objects.duplicate.sourceObjects')}</Label>

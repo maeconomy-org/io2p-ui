@@ -5,6 +5,12 @@ import type {
   UUMathFormulaCalcArg,
 } from 'iom-sdk'
 
+import {
+  makeCompositeId,
+  makeIndexCompositeId,
+  parseCompositeId,
+} from './composite-id'
+
 /**
  * Generate a temporary UUID for property values during object creation.
  * Uses crypto.randomUUID() which produces valid UUID v4 format.
@@ -22,8 +28,7 @@ export function buildTempUUIDMap(properties: any[]): Map<string, string> {
   const map = new Map<string, string>()
   properties?.forEach((prop: any, propIndex: number) => {
     prop.values?.forEach((_val: any, valIndex: number) => {
-      const compositeId = `prop-${propIndex}::${valIndex}`
-      map.set(compositeId, generateTempUUID())
+      map.set(makeIndexCompositeId(propIndex, valIndex), generateTempUUID())
     })
   })
   return map
@@ -66,7 +71,7 @@ export function mapFormulaToAggregatePayload(
   }
 
   // Result references the current value's temp UUID
-  const resultCompositeId = `prop-${propIndex}::${valIndex}`
+  const resultCompositeId = makeIndexCompositeId(propIndex, valIndex)
   const resultTempUUID = tempUUIDMap.get(resultCompositeId)
 
   if (!resultTempUUID || args.length === 0) return null
@@ -150,8 +155,8 @@ function resolvePropertyValueUUID(
       if (values[vIdx].uuid === propertyValueUUID) {
         return {
           propertyKey: prop.key || '',
-          compositeId: `prop-${pIdx}::${vIdx}`,
-          editCompositeId: `${prop.uuid || `prop-${pIdx}`}::${vIdx}`,
+          compositeId: makeIndexCompositeId(pIdx, vIdx),
+          editCompositeId: makeCompositeId(prop.uuid || `prop-${pIdx}`, vIdx),
         }
       }
     }
@@ -188,26 +193,25 @@ export function mapFormulaToStandaloneCalc(
     }
     // Resolve composite ID to real property value UUID
     // Supports both index-based (prop-{i}::{vIdx}) and UUID-based ({propUUID}::{vIdx})
-    const indexMatch = mappingData.propertyUuid.match(/^prop-(\d+)::(\d+)$/)
+    const parsed = parseCompositeId(mappingData.propertyUuid)
+    if (!parsed) continue
+
+    const { propertyId, valueIndex } = parsed
+    const indexMatch = propertyId.match(/^prop-(\d+)$/)
+
+    let realUUID: string | undefined
     if (indexMatch) {
+      // Index-based: prop-{i}
       const pIdx = parseInt(indexMatch[1], 10)
-      const vIdx = parseInt(indexMatch[2], 10)
-      const realUUID = properties[pIdx]?.values?.[vIdx]?.uuid
-      if (realUUID) {
-        args.push({ name: varName, propertyValueUUID: realUUID })
-      }
+      realUUID = properties[pIdx]?.values?.[valueIndex]?.uuid
     } else {
-      // UUID-based: {propUUID}::{vIdx}
-      const uuidMatch = mappingData.propertyUuid.match(/^(.+)::(\d+)$/)
-      if (uuidMatch) {
-        const propUUID = uuidMatch[1]
-        const vIdx = parseInt(uuidMatch[2], 10)
-        const prop = properties.find((p: any) => p.uuid === propUUID)
-        const realUUID = prop?.values?.[vIdx]?.uuid
-        if (realUUID) {
-          args.push({ name: varName, propertyValueUUID: realUUID })
-        }
-      }
+      // UUID-based: {propUUID}
+      const prop = properties.find((p: any) => p.uuid === propertyId)
+      realUUID = prop?.values?.[valueIndex]?.uuid
+    }
+
+    if (realUUID) {
+      args.push({ name: varName, propertyValueUUID: realUUID })
     }
   }
 

@@ -105,6 +105,7 @@ Providers → ThemeProvider → NextIntlClientProvider → QueryProvider → Aut
 - Barrel-export new UI components from `src/components/ui/index.ts`.
 - Keep components focused — extract sub-components when a file exceeds ~200 lines.
 - Use `lucide-react` for icons.
+- **Always add `type="button"`** to `<Button>` and `<button>` elements inside forms that are NOT the submit button. Without it, buttons default to `type="submit"` and trigger form submission on click.
 
 ### Error Handling
 

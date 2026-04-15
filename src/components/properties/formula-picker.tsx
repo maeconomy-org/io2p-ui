@@ -74,10 +74,13 @@ export function FormulaPicker({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] min-w-[280px] p-0"
+        align="start"
+      >
         <Command>
           <CommandInput placeholder={t('formulas.searchPlaceholder')} />
-          <CommandList>
+          <CommandList onWheel={(e) => e.stopPropagation()}>
             <CommandEmpty>{t('formulas.noFormulasTitle')}</CommandEmpty>
             <CommandGroup>
               {formulas.map((formula) => (

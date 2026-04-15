@@ -156,12 +156,10 @@ export function ObjectDetailsSheet({
     onRefetch: refetchAggregate,
   })
 
-  const { editedProperties, setEditedProperties, saveProperties } =
-    usePropertyEditor({
-      initialProperties: properties,
-      objectUuid: object?.uuid,
-      isEditing: activeEditingSection === 'properties',
-    })
+  const propertyEditor = usePropertyEditor({
+    initialProperties: properties,
+    objectUuid: object?.uuid,
+  })
 
   const {
     editedObject,
@@ -236,17 +234,11 @@ export function ObjectDetailsSheet({
     }
   }
 
-  const handleSaveProperties = async (): Promise<void> => {
-    try {
-      await saveProperties()
-      // Manually trigger a refetch to ensure UI updates immediately
-      if (uuid && refetchAggregate) {
-        refetchAggregate()
-      }
-      setActiveEditingSection(null)
-    } catch {
-      // Error handling is done in the hook
+  const handlePropertySaveComplete = () => {
+    if (uuid && refetchAggregate) {
+      refetchAggregate()
     }
+    setActiveEditingSection(null)
   }
 
   const handleSaveAddress = async (): Promise<void> => {
@@ -403,16 +395,10 @@ export function ObjectDetailsSheet({
 
                 <TabsContent value="properties" className="mt-0">
                   <PropertiesTab
-                    object={object}
                     properties={properties}
-                    editedProperties={editedProperties}
-                    setEditedProperties={setEditedProperties}
-                    activeEditingSection={activeEditingSection}
-                    setActiveEditingSection={setActiveEditingSection}
-                    onSaveProperties={handleSaveProperties}
-                    attachmentModal={attachmentModal}
+                    editor={propertyEditor}
+                    onSaveComplete={handlePropertySaveComplete}
                     setAttachmentModal={setAttachmentModal}
-                    onUploadComplete={handleUploadComplete}
                   />
                 </TabsContent>
                 <TabsContent value="files" className="mt-0">
