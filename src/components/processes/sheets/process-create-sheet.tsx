@@ -498,7 +498,7 @@ export function ProcessCreateSheet({
                               </div>
                               {(material.quantity !== undefined ||
                                 material.unit) && (
-                                <div className="text-sm text-gray-500">
+                                <div className="text-sm text-muted-foreground">
                                   {material.quantity !== undefined
                                     ? material.quantity
                                     : ''}{' '}
@@ -554,7 +554,7 @@ export function ProcessCreateSheet({
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
+                      <div className="text-center py-8 text-muted-foreground">
                         <p className="text-sm">{t('processes.form.empty')}</p>
                       </div>
                     )}
@@ -602,7 +602,7 @@ export function ProcessCreateSheet({
                               </div>
                               {(material.quantity !== undefined ||
                                 material.unit) && (
-                                <div className="text-sm text-gray-500">
+                                <div className="text-sm text-muted-foreground">
                                   {material.quantity !== undefined
                                     ? material.quantity
                                     : ''}{' '}
@@ -658,7 +658,7 @@ export function ProcessCreateSheet({
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
+                      <div className="text-center py-8 text-muted-foreground">
                         <p className="text-sm">{t('processes.form.empty')}</p>
                       </div>
                     )}
@@ -696,7 +696,7 @@ export function ProcessCreateSheet({
               {/* Process Summary */}
               {formData.inputMaterials.length > 0 &&
                 formData.outputMaterials.length > 0 && (
-                  <Card className="bg-gray-50">
+                  <Card className="bg-muted/50">
                     <CardHeader>
                       <CardTitle className="text-sm">
                         {t('processes.flowSummary')}
@@ -710,12 +710,12 @@ export function ProcessCreateSheet({
                             {t('processes.inputs')}
                           </div>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-gray-400" />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
                         <div className="text-center">
                           <div className="font-medium">
                             {formData.name || t('processes.form.process')}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             {selectedProcessType
                               ? t(
                                   `processes.types.${selectedProcessType.labelKey}`
@@ -723,7 +723,7 @@ export function ProcessCreateSheet({
                               : ''}
                           </div>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-gray-400" />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
                         <div className="text-center">
                           <div className="font-medium text-green-600">
                             {formData.outputMaterials.length}{' '}
@@ -731,7 +731,7 @@ export function ProcessCreateSheet({
                           </div>
                         </div>
                       </div>
-                      <div className="mt-3 text-xs text-gray-500 text-center">
+                      <div className="mt-3 text-xs text-muted-foreground text-center">
                         {t('processes.relationships', {
                           count:
                             formData.inputMaterials.length *

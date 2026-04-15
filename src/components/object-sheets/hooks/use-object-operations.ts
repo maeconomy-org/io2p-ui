@@ -275,6 +275,9 @@ export function useObjectOperations({
       queryClient.invalidateQueries({
         queryKey: queryKeys.statements.all,
       })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.formulas.all,
+      })
 
       // Trigger refetch if provided
       if (onRefetch) {

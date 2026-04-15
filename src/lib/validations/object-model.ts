@@ -26,10 +26,14 @@ export const optionalUuidSchema = z
 export const propertyValueSchema = z.object({
   uuid: optionalUuidSchema,
   value: z.string(),
+  valueTypeCast: z.string().optional(),
+  sourceType: z.string().optional(),
   files: z.array(z.any()),
   formulaData: z
     .object({
       formula: z.string(),
+      formulaUuid: z.string().optional(),
+      formulaName: z.string().optional(),
       variableMapping: z.record(z.string(), z.any()).optional(),
       result: z.union([z.number(), z.null()]).optional(),
       resolvedExpression: z.string().optional(),
@@ -41,6 +45,8 @@ export const propertyValueSchema = z.object({
 export const propertySchema = z.object({
   uuid: optionalUuidSchema,
   key: z.string().min(1, 'Property name is required'),
+  label: z.string().optional(),
+  type: z.string().optional(),
   values: z.array(propertyValueSchema),
   files: z.array(z.any()),
 })

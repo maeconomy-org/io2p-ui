@@ -44,6 +44,8 @@ interface FormulaEditorProps {
     isValid: boolean
   }) => void
   disabled?: boolean
+  /** When true, expression input is read-only but variable mapping is still interactive */
+  readOnlyExpression?: boolean
 }
 
 export function FormulaEditor({
@@ -52,6 +54,7 @@ export function FormulaEditor({
   initialMapping,
   onChange,
   disabled = false,
+  readOnlyExpression = false,
 }: FormulaEditorProps) {
   const t = useTranslations()
   const onChangeRef = useRef(onChange)
@@ -114,7 +117,7 @@ export function FormulaEditor({
             value={formula}
             onChange={(e) => setFormula(e.target.value)}
             placeholder={t('objects.properties.formulaPlaceholder')}
-            disabled={disabled}
+            disabled={disabled || readOnlyExpression}
             className={cn(
               'font-mono text-sm flex-1',
               evaluation.error && formula.trim()
@@ -124,61 +127,63 @@ export function FormulaEditor({
                   : ''
             )}
           />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 gap-1 shrink-0"
-                disabled={disabled}
+          {!readOnlyExpression && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1 shrink-0"
+                  disabled={disabled}
+                >
+                  {t('objects.properties.formulaTemplates')}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-60 max-h-72 overflow-y-auto"
               >
-                {t('objects.properties.formulaTemplates')}
-                <ChevronDown className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-60 max-h-72 overflow-y-auto"
-            >
-              {(
-                [
-                  'basic',
-                  'statistics',
-                  'geometry',
-                  'conversion',
-                  'finance',
-                ] as const
-              ).map((cat, catIdx) => {
-                const items = FORMULA_TEMPLATES.filter(
-                  (t) => t.category === cat
-                )
-                if (items.length === 0) return null
-                return (
-                  <div key={cat}>
-                    {catIdx > 0 && <DropdownMenuSeparator />}
-                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      {cat}
-                    </DropdownMenuLabel>
-                    {items.map((tmpl) => (
-                      <DropdownMenuItem
-                        key={tmpl.label}
-                        onClick={() => handleTemplateSelect(tmpl.formula)}
-                        className="flex flex-col items-start gap-0.5"
-                      >
-                        <span className="font-medium text-sm">
-                          {tmpl.label}
-                        </span>
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {tmpl.formula}
-                        </span>
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                )
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {(
+                  [
+                    'basic',
+                    'statistics',
+                    'geometry',
+                    'conversion',
+                    'finance',
+                  ] as const
+                ).map((cat, catIdx) => {
+                  const items = FORMULA_TEMPLATES.filter(
+                    (t) => t.category === cat
+                  )
+                  if (items.length === 0) return null
+                  return (
+                    <div key={cat}>
+                      {catIdx > 0 && <DropdownMenuSeparator />}
+                      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {cat}
+                      </DropdownMenuLabel>
+                      {items.map((tmpl) => (
+                        <DropdownMenuItem
+                          key={tmpl.label}
+                          onClick={() => handleTemplateSelect(tmpl.formula)}
+                          className="flex flex-col items-start gap-0.5"
+                        >
+                          <span className="font-medium text-sm">
+                            {tmpl.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {tmpl.formula}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         {evaluation.error && formula.trim() && (
           <p className="text-xs text-destructive flex items-center gap-1">

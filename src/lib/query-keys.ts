@@ -111,4 +111,13 @@ export const queryKeys = {
     all: ['addresses'] as const,
     detail: (uuid: string) => [...queryKeys.addresses.all, uuid] as const,
   },
+
+  // ─── Formulas ────────────────────────────────────────────
+  formulas: {
+    all: ['formulas'] as const,
+    lists: () => [...queryKeys.formulas.all, 'list'] as const,
+    list: (params?: any) => [...queryKeys.formulas.lists(), params] as const,
+    details: () => [...queryKeys.formulas.all, 'detail'] as const,
+    detail: (uuid: string) => [...queryKeys.formulas.details(), uuid] as const,
+  },
 } as const

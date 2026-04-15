@@ -4,15 +4,26 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { PlusCircle, Search, X } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { toast } from 'sonner'
+import type { UUMathFormulaDTO } from 'iom-sdk'
 
-import { Button, Badge } from '@/components/ui'
+import {
+  Badge,
+  Button,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui'
 import { DeletedFilter } from '@/components/filters'
-import { ObjectModelsTable } from '@/components/tables'
-import { useModelData, useUnifiedDelete } from '@/hooks'
+import { ObjectModelsTable, FormulasTable } from '@/components/tables'
+import { useModelData, useUnifiedDelete, useMathFormulas } from '@/hooks'
+import { useFormulaData } from '@/hooks/data/use-formula-data'
 import { useSearch } from '@/contexts'
 import { DeleteConfirmationDialog } from '@/components/modals'
+import { logger } from '@/lib'
 
-// Lazy-load sheet component — only rendered when opened by user interaction
+// Lazy-load sheet components — only rendered when opened by user interaction
 const ObjectModelSheet = dynamic(
   () =>
     import('@/components/object-sheets/object-model-sheet').then(
@@ -21,13 +32,22 @@ const ObjectModelSheet = dynamic(
   { ssr: false }
 )
 
-export default function ObjectModelsPage() {
+const FormulaSheet = dynamic(
+  () =>
+    import('@/components/formulas/formula-sheet').then(
+      (mod) => mod.FormulaSheet
+    ),
+  { ssr: false }
+)
+
+export default function TemplatesPage() {
   const t = useTranslations()
-  // State for UI controls
-  const [sheetOpen, setSheetOpen] = useState<boolean>(false)
+
+  // --- Object Templates state ---
+  const [modelSheetOpen, setModelSheetOpen] = useState(false)
   const [selectedModel, setSelectedModel] = useState<any | null>(null)
-  const [isEditing, setIsEditing] = useState<boolean>(false)
-  const [showDeleted, setShowDeleted] = useState<boolean>(false)
+  const [isEditingModel, setIsEditingModel] = useState(false)
+  const [showDeleted, setShowDeleted] = useState(false)
 
   const {
     isSearchMode,
@@ -37,121 +57,218 @@ export default function ObjectModelsPage() {
     clearSearch,
   } = useSearch()
 
-  // Use model data hook with pagination and filtering
   const {
     data: models,
-    loading,
-    fetching,
+    loading: modelsLoading,
+    fetching: modelsFetching,
     pagination,
-  } = useModelData({
-    showDeleted: showDeleted,
-  })
+  } = useModelData({ showDeleted })
 
-  // Use unified delete hook
+  // Unified delete for models
   const {
-    isDeleteModalOpen,
-    objectToDelete,
-    handleDelete,
-    handleDeleteConfirm,
-    handleDeleteCancel,
+    isDeleteModalOpen: isModelDeleteOpen,
+    objectToDelete: modelToDelete,
+    handleDelete: handleModelDelete,
+    handleDeleteConfirm: handleModelDeleteConfirm,
+    handleDeleteCancel: handleModelDeleteCancel,
   } = useUnifiedDelete()
 
-  // Handle opening the sheet for adding a new model
   const handleAddModel = () => {
     setSelectedModel(null)
-    setIsEditing(false)
-    setSheetOpen(true)
+    setIsEditingModel(false)
+    setModelSheetOpen(true)
   }
 
-  // Handle opening the sheet for editing an existing model
   const handleEditModel = (model: any) => {
     setSelectedModel(model)
-    setIsEditing(true)
-    setSheetOpen(true)
+    setIsEditingModel(true)
+    setModelSheetOpen(true)
+  }
+
+  // --- Formulas state ---
+  const [formulaSheetOpen, setFormulaSheetOpen] = useState(false)
+  const [selectedFormula, setSelectedFormula] =
+    useState<UUMathFormulaDTO | null>(null)
+  const [isEditingFormula, setIsEditingFormula] = useState(false)
+  const [formulaDeleteOpen, setFormulaDeleteOpen] = useState(false)
+  const [formulaToDelete, setFormulaToDelete] = useState<{
+    uuid: string
+    name: string
+  } | null>(null)
+
+  const {
+    data: formulas,
+    loading: formulasLoading,
+    fetching: formulasFetching,
+  } = useFormulaData()
+  const { useDeleteFormula } = useMathFormulas()
+  const deleteFormulaMutation = useDeleteFormula()
+
+  const handleAddFormula = () => {
+    setSelectedFormula(null)
+    setIsEditingFormula(false)
+    setFormulaSheetOpen(true)
+  }
+
+  const handleEditFormula = (formula: UUMathFormulaDTO) => {
+    setSelectedFormula(formula)
+    setIsEditingFormula(true)
+    setFormulaSheetOpen(true)
+  }
+
+  const handleFormulaDelete = (formula: { uuid: string; name: string }) => {
+    setFormulaToDelete(formula)
+    setFormulaDeleteOpen(true)
+  }
+
+  const handleFormulaDeleteConfirm = async () => {
+    if (!formulaToDelete) return
+    try {
+      await deleteFormulaMutation.mutateAsync(formulaToDelete.uuid)
+      toast.success(t('formulas.deleted'))
+    } catch (error) {
+      logger.error('Error deleting formula:', error)
+      toast.error(t('formulas.deleteFailed'))
+    } finally {
+      setFormulaDeleteOpen(false)
+      setFormulaToDelete(null)
+    }
   }
 
   return (
     <>
       <div className="container mx-auto p-4 flex-1">
         <div className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold">{t('models.title')}</h2>
-            <div className="flex items-center gap-4">
-              <DeletedFilter
-                showDeleted={showDeleted}
-                onShowDeletedChange={setShowDeleted}
-                label={t('models.showDeleted')}
-              />
-              <Button size="sm" onClick={handleAddModel}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                {t('models.create')}
-              </Button>
-            </div>
-          </div>
+          <h2 className="text-2xl font-semibold">{t('models.title')}</h2>
 
-          {/* Search Mode Indicator */}
-          {isSearchMode && (
-            <div className="p-3 bg-muted/50 border border-border rounded-lg">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Search className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span className="text-sm font-medium truncate">
-                      {t('models.searchResults', {
-                        query: searchQuery || '...',
-                      })}
-                    </span>
-                  </div>
-                  <Badge variant="secondary" className="whitespace-nowrap">
-                    {searchPagination
-                      ? t('models.resultsPage', {
-                          count: searchPagination.totalElements,
-                          page: searchPagination.currentPage + 1,
-                          pages: searchPagination.totalPages,
-                        })
-                      : t('models.results', {
-                          count: searchViewResults.length,
-                        })}
-                  </Badge>
+          <Tabs defaultValue="object-templates">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="object-templates">
+                {t('models.tabObjectTemplates')}
+              </TabsTrigger>
+              <TabsTrigger value="formulas">
+                {t('models.tabFormulas')}
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Object Templates Tab */}
+            <TabsContent value="object-templates" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <DeletedFilter
+                    showDeleted={showDeleted}
+                    onShowDeletedChange={setShowDeleted}
+                    label={t('models.showDeleted')}
+                  />
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearSearch}
-                  className="flex-shrink-0"
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  {t('models.clearSearch')}
+                <Button size="sm" onClick={handleAddModel}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  {t('models.create')}
                 </Button>
               </div>
-            </div>
-          )}
 
-          <ObjectModelsTable
-            models={isSearchMode ? searchViewResults : models}
-            onEdit={handleEditModel}
-            onDelete={handleDelete}
-            loading={loading}
-            fetching={fetching}
-            pagination={isSearchMode ? undefined : pagination}
-          />
+              {/* Search Mode Indicator */}
+              {isSearchMode && (
+                <div className="p-3 bg-muted/50 border border-border rounded-lg">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Search className="h-4 w-4 text-primary flex-shrink-0" />
+                        <span className="text-sm font-medium truncate">
+                          {t('models.searchResults', {
+                            query: searchQuery || '...',
+                          })}
+                        </span>
+                      </div>
+                      <Badge variant="secondary" className="whitespace-nowrap">
+                        {searchPagination
+                          ? t('models.resultsPage', {
+                              count: searchPagination.totalElements,
+                              page: searchPagination.currentPage + 1,
+                              pages: searchPagination.totalPages,
+                            })
+                          : t('models.results', {
+                              count: searchViewResults.length,
+                            })}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearSearch}
+                      className="flex-shrink-0"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      {t('models.clearSearch')}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <ObjectModelsTable
+                models={isSearchMode ? searchViewResults : models}
+                onEdit={handleEditModel}
+                onDelete={handleModelDelete}
+                loading={modelsLoading}
+                fetching={modelsFetching}
+                pagination={isSearchMode ? undefined : pagination}
+              />
+            </TabsContent>
+
+            {/* Formulas Tab */}
+            <TabsContent value="formulas" className="space-y-4">
+              <div className="flex justify-end items-center">
+                <Button size="sm" onClick={handleAddFormula}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  {t('formulas.create')}
+                </Button>
+              </div>
+
+              <FormulasTable
+                formulas={formulas}
+                onEdit={handleEditFormula}
+                onDelete={handleFormulaDelete}
+                loading={formulasLoading}
+                fetching={formulasFetching}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
-      {/* Sheet for adding/editing models */}
+      {/* Object Model Sheet */}
       <ObjectModelSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
+        open={modelSheetOpen}
+        onOpenChange={setModelSheetOpen}
         model={selectedModel}
-        isEditing={isEditing}
+        isEditing={isEditingModel}
       />
 
-      {/* Unified delete confirmation dialog */}
+      {/* Formula Sheet */}
+      <FormulaSheet
+        open={formulaSheetOpen}
+        onOpenChange={setFormulaSheetOpen}
+        formula={selectedFormula}
+        isEditing={isEditingFormula}
+      />
+
+      {/* Model Delete Confirmation */}
       <DeleteConfirmationDialog
-        open={isDeleteModalOpen}
-        onOpenChange={handleDeleteCancel}
-        onDelete={handleDeleteConfirm}
-        objectName={objectToDelete?.name || t('models.defaultName')}
+        open={isModelDeleteOpen}
+        onOpenChange={handleModelDeleteCancel}
+        onDelete={handleModelDeleteConfirm}
+        objectName={modelToDelete?.name || t('models.defaultName')}
+      />
+
+      {/* Formula Delete Confirmation */}
+      <DeleteConfirmationDialog
+        open={formulaDeleteOpen}
+        onOpenChange={() => {
+          setFormulaDeleteOpen(false)
+          setFormulaToDelete(null)
+        }}
+        onDelete={handleFormulaDeleteConfirm}
+        objectName={formulaToDelete?.name || t('formulas.defaultName')}
       />
     </>
   )

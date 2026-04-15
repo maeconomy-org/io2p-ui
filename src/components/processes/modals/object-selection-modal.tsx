@@ -20,6 +20,7 @@ import {
   Badge,
   ScrollArea,
 } from '@/components/ui'
+import { cn } from '@/lib/utils'
 import { useCommonApi } from '@/hooks/api'
 import { UNIT_CATEGORIES } from '@/constants'
 import { logger } from '@/lib'
@@ -225,7 +226,7 @@ export function ObjectSelectionModal({
                 {t('objectSelection.searchObjects')}
               </Label>
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search"
                   value={searchTerm}
@@ -241,11 +242,11 @@ export function ObjectSelectionModal({
               <Label>{t('objectSelection.availableObjects')}</Label>
               <ScrollArea className="h-48 border rounded-lg">
                 {isSearching ? (
-                  <div className="p-4 text-center text-gray-500">
+                  <div className="p-4 text-center text-muted-foreground">
                     {t('objectSelection.searching')}
                   </div>
                 ) : objects.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">
+                  <div className="p-4 text-center text-muted-foreground">
                     {searchTerm.trim().length >= 2
                       ? t('objectSelection.noObjects')
                       : t('objectSelection.typeToSearch')}
@@ -255,16 +256,17 @@ export function ObjectSelectionModal({
                     {objects.map((object) => (
                       <div
                         key={object.uuid}
-                        className={`px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                        className={cn(
+                          'px-3 py-2 rounded-lg border cursor-pointer transition-colors',
                           selectedObject?.uuid === object.uuid
-                            ? 'bg-blue-50 border-blue-300'
-                            : 'hover:bg-gray-50'
-                        }`}
+                            ? 'bg-primary/10 border-primary/30'
+                            : 'hover:bg-muted/50'
+                        )}
                         onClick={() => setSelectedObject(object)}
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-medium">{object.name}</div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-muted-foreground">
                             {object.uuid?.slice(-8)}
                           </div>
                         </div>
@@ -277,7 +279,7 @@ export function ObjectSelectionModal({
 
             {/* Selected Object Summary */}
             {selectedObject && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{t('common.selected')}</Badge>
                   <span className="font-medium">{selectedObject.name}</span>
@@ -319,7 +321,7 @@ export function ObjectSelectionModal({
                     {Object.entries(UNIT_CATEGORIES).map(
                       ([categoryKey, category]) => (
                         <div key={categoryKey}>
-                          <div className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100">
+                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground bg-muted">
                             {t(`units.${category.labelKey}`)}
                           </div>
                           {category.units.map((unitOption) => (
@@ -338,7 +340,7 @@ export function ObjectSelectionModal({
             {/* Metadata Fields */}
             {showMetadataFields && (
               <div className="space-y-4 border-t pt-4">
-                <h3 className="text-sm font-semibold text-gray-700">
+                <h3 className="text-sm font-semibold text-foreground">
                   {t('objectSelection.metadata')}
                 </h3>
 
@@ -404,7 +406,7 @@ export function ObjectSelectionModal({
 
             {/* Custom Properties */}
             <div className="space-y-4 border-t pt-4">
-              <h3 className="text-sm font-semibold text-gray-700">
+              <h3 className="text-sm font-semibold text-foreground">
                 {t('objectSelection.customProperties')}
               </h3>
 
@@ -414,7 +416,7 @@ export function ObjectSelectionModal({
                   {Object.entries(customProperties).map(([key, value]) => (
                     <div
                       key={key}
-                      className="flex items-center gap-2 p-2 bg-gray-50 rounded"
+                      className="flex items-center gap-2 p-2 bg-muted/50 rounded"
                     >
                       <span className="font-medium text-sm">{key}:</span>
                       <span className="text-sm flex-1">{value}</span>

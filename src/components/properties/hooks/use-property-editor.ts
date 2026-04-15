@@ -33,6 +33,8 @@ export function usePropertyEditor({
     updatePropertyWithValues,
     createPropertyForObject,
     removePropertyFromObject,
+    createFormulaCalcForValue,
+    deleteFormulaCalcForValue,
   } = usePropertyManagement()
   const t = useTranslations()
 
@@ -62,10 +64,21 @@ export function usePropertyEditor({
     // Check if values have changed
     if (prop.values?.length !== originalProp.values?.length) return true
 
-    // Check if any value content has changed
+    // Check if any value content or formula has changed
     const valuesChanged = prop.values?.some((val: any, i: number) => {
       const origVal = originalProp.values?.[i]
-      return !origVal || val.value !== origVal.value
+      if (!origVal || val.value !== origVal.value) return true
+      // Check formula changes
+      const hasNewFormula = !!val.formulaData?.formulaUuid
+      const hadOldFormula = !!origVal.formulaData?.formulaUuid
+      if (hasNewFormula !== hadOldFormula) return true
+      if (
+        hasNewFormula &&
+        hadOldFormula &&
+        val.formulaData.formulaUuid !== origVal.formulaData.formulaUuid
+      )
+        return true
+      return false
     })
 
     return valuesChanged
@@ -95,10 +108,20 @@ export function usePropertyEditor({
       // Check if values have changed
       if (prop.values?.length !== originalProp.values?.length) return true
 
-      // Check if any value content has changed
+      // Check if any value content or formula has changed
       const valuesChanged = prop.values?.some((val: any, i: number) => {
         const origVal = originalProp.values?.[i]
-        return !origVal || val.value !== origVal.value
+        if (!origVal || val.value !== origVal.value) return true
+        const hasNewFormula = !!val.formulaData?.formulaUuid
+        const hadOldFormula = !!origVal.formulaData?.formulaUuid
+        if (hasNewFormula !== hadOldFormula) return true
+        if (
+          hasNewFormula &&
+          hadOldFormula &&
+          val.formulaData.formulaUuid !== origVal.formulaData.formulaUuid
+        )
+          return true
+        return false
       })
 
       return valuesChanged
@@ -157,6 +180,46 @@ export function usePropertyEditor({
               nonEmptyValues // Only include non-empty values
             )
           )
+
+          // Handle formula changes for each value (text↔formula conversion)
+          if (objectUuid) {
+            const originalProp = initialProperties.find(
+              (p: any) => p.uuid === property.uuid
+            )
+            for (const val of nonEmptyValues) {
+              if (!val.uuid) continue
+              const origVal = originalProp?.values?.find(
+                (v: any) => v.uuid === val.uuid
+              )
+              const hadFormula = !!origVal?.formulaData?.formulaUuid
+              const hasFormula = !!val.formulaData?.formulaUuid
+
+              if (!hadFormula && hasFormula) {
+                // Text → Formula: create calc
+                operations.push(
+                  createFormulaCalcForValue(
+                    objectUuid,
+                    val.formulaData,
+                    Object.entries(val.formulaData.variableMapping || {}).map(
+                      ([name, mapping]: [string, any]) => ({
+                        name,
+                        propertyValueUUID: mapping.propertyUuid,
+                      })
+                    ),
+                    val.uuid
+                  )
+                )
+              } else if (hadFormula && !hasFormula) {
+                // Formula → Text: delete calc
+                const calcUuid = origVal.formulaData.calcUuid
+                if (calcUuid) {
+                  operations.push(
+                    deleteFormulaCalcForValue(objectUuid, calcUuid)
+                  )
+                }
+              }
+            }
+          }
         }
       }
 

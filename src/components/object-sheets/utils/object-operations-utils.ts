@@ -2,6 +2,10 @@ import { Predicate } from 'iom-sdk'
 import type { ImportObjectData } from '@/hooks/api/use-import-api'
 import { logger } from '@/lib'
 import type { Attachment } from '@/types'
+import {
+  buildTempUUIDMap,
+  mapFormulaToAggregatePayload,
+} from '@/components/properties/utils/formula-mapping'
 
 /**
  * Transform form object to import API format and separate upload files
@@ -14,6 +18,34 @@ export function transformToImportFormat(
   uploadFiles: Attachment[]
 } {
   const uploadFiles: Attachment[] = []
+
+  // Build temp UUID map for formula variable references
+  const tempUUIDMap = buildTempUUIDMap(object.properties || [])
+
+  // Collect math formula payloads
+  const mathFormulas: ImportObjectData['mathFormulas'] = []
+
+  // Pre-scan: collect all composite IDs that participate in any formula
+  // (both args via variableMapping and results) so we can set
+  // mathFormulaExternalUUID on all participating property values
+  const formulaParticipants = new Set<string>()
+  ;(object.properties || []).forEach((prop: any, pIdx: number) => {
+    ;(prop.values || []).forEach((val: any, vIdx: number) => {
+      if (val.formulaData?.formulaUuid) {
+        // This value is a formula result
+        formulaParticipants.add(`prop-${pIdx}::${vIdx}`)
+        // Its variable mapping references are formula args
+        const mapping = val.formulaData.variableMapping || {}
+        for (const m of Object.values(mapping)) {
+          const { propertyUuid } = m as {
+            propertyKey: string
+            propertyUuid: string
+          }
+          if (propertyUuid) formulaParticipants.add(propertyUuid)
+        }
+      }
+    })
+  })
 
   // Transform object-level files
   const objectFiles =
@@ -93,10 +125,34 @@ export function transformToImportFormat(
               })
               .filter(Boolean) || []
 
+          // Check if this value has formula data
+          const hasFormula = value.formulaData?.formulaUuid
+          if (hasFormula) {
+            const formulaPayload = mapFormulaToAggregatePayload(
+              value.formulaData,
+              tempUUIDMap,
+              propertyIndex,
+              valueIndex
+            )
+            if (formulaPayload) {
+              mathFormulas.push(formulaPayload)
+            }
+          }
+
+          // Set mathFormulaExternalUUID on all values that participate
+          // in a formula (both args and results) using their temp UUID
+          const compositeId = `prop-${propertyIndex}::${valueIndex}`
+          const participatesInFormula = formulaParticipants.has(compositeId)
+
           return {
             value: value.value,
             valueTypeCast: value.valueTypeCast || 'string',
-            sourceType: value.sourceType || 'manual',
+            sourceType: hasFormula ? 'formula' : value.sourceType || 'manual',
+            ...(participatesInFormula
+              ? {
+                  mathFormulaExternalUUID: tempUUIDMap.get(compositeId),
+                }
+              : {}),
             files: valueFiles,
           }
         }) || []
@@ -133,6 +189,7 @@ export function transformToImportFormat(
     parents: isTemplate ? [] : object.parents, // Templates don't have parents
     files: isTemplate ? [] : objectFiles, // Templates don't have files at object level
     properties,
+    ...(mathFormulas.length > 0 ? { mathFormulas } : {}),
   }
 
   return { importData, uploadFiles }

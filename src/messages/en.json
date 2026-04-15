@@ -22,7 +22,7 @@
   "nav": {
     "objects": "Objects",
     "processes": "I/O Processes",
-    "models": "Models",
+    "models": "Templates",
     "import": "Import",
     "importStatus": "Import Status",
     "help": "Help",
@@ -679,7 +679,9 @@
     }
   },
   "models": {
-    "title": "Models",
+    "title": "Templates",
+    "tabObjectTemplates": "Object Templates",
+    "tabFormulas": "Formulas",
     "showDeleted": "Show deleted items",
     "defaultName": "Model",
     "editTitle": "Edit Model",
@@ -706,6 +708,39 @@
     "results": "{count} result{count, plural, one {} other {s}}",
     "resultsPage": "{count} result{count, plural, one {} other {s}} (page {page} of {pages})",
     "clearSearch": "Clear Search"
+  },
+  "formulas": {
+    "title": "Formulas",
+    "name": "Name",
+    "expression": "Expression",
+    "description": "Description",
+    "version": "Version",
+    "defaultName": "Formula",
+    "create": "Create Formula",
+    "update": "Update Formula",
+    "creating": "Creating...",
+    "updating": "Updating...",
+    "created": "Formula created successfully",
+    "updated": "Formula updated successfully",
+    "deleted": "Formula deleted successfully",
+    "saveFailed": "Failed to save formula",
+    "deleteFailed": "Failed to delete formula",
+    "validSyntax": "Valid formula syntax",
+    "invalidSyntax": "Invalid formula syntax",
+    "createTitle": "Create New Formula",
+    "editTitle": "Edit Formula",
+    "createDescription": "Define a reusable math formula with variables.",
+    "editDescription": "Update this formula definition.",
+    "noFormulasTitle": "No Formulas Found",
+    "noFormulasDescription": "Create formulas to use in property calculations.",
+    "placeholders": {
+      "name": "e.g. Area Calculation",
+      "expression": "e.g. width * height",
+      "version": "e.g. 1.0 (optional)",
+      "description": "Describe the formula..."
+    },
+    "selectFormula": "Select a formula",
+    "searchPlaceholder": "Search formulas..."
   },
   "groups": {
     "title": "Groups & Projects",

@@ -19,15 +19,23 @@ export function PropertySectionEditor({
   onUpdate,
 }: PropertySectionEditorProps) {
   const t = useTranslations()
-  const [expandedPropertyId, setExpandedPropertyId] = useState<string | null>(
-    null
+  const [expandedPropertyIds, setExpandedPropertyIds] = useState<Set<string>>(
+    new Set()
   )
   const [editedProperties, setEditedProperties] = useState<any[]>([])
   const [allProperties, setAllProperties] = useState<any[]>([]) // Including deleted properties
 
   // Handle expanding/collapsing properties
   const togglePropertyExpansion = (propertyId: string) => {
-    setExpandedPropertyId(expandedPropertyId === propertyId ? null : propertyId)
+    setExpandedPropertyIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(propertyId)) {
+        next.delete(propertyId)
+      } else {
+        next.add(propertyId)
+      }
+      return next
+    })
   }
 
   // Update a property in the list
@@ -90,34 +98,43 @@ export function PropertySectionEditor({
 
     setAllProperties(allUpdated)
 
-    // Report changes to parent
+    // Report changes to parent — mark as self-update to skip reset on echo
+    selfUpdateRef.current = true
     onUpdate(allUpdated)
   }
 
   const prevPropertiesRef = useRef<any[]>(undefined)
+  // Track whether the prop change came from our own update to avoid reset loops
+  const selfUpdateRef = useRef(false)
 
   if (properties !== prevPropertiesRef.current) {
     prevPropertiesRef.current = properties
 
-    const visibleProps = properties.map((prop) => ({
-      ...prop,
-      _modified: false,
-      _isNew: prop._isNew || false,
-      _deleted: false,
-    }))
+    if (selfUpdateRef.current) {
+      // Prop change is the echo of our own onUpdate call — skip the reset
+      selfUpdateRef.current = false
+    } else {
+      // External change (e.g. initial load, edit mode toggle) — sync from props
+      const visibleProps = properties.map((prop) => ({
+        ...prop,
+        _modified: false,
+        _isNew: prop._isNew || false,
+        _deleted: false,
+      }))
 
-    setEditedProperties(visibleProps)
+      setEditedProperties(visibleProps)
 
-    const allProps = [...visibleProps]
-    allProperties
-      .filter((p) => p._deleted)
-      .forEach((deletedProp) => {
-        if (!allProps.some((p) => p.uuid === deletedProp.uuid)) {
-          allProps.push(deletedProp)
-        }
-      })
+      const allProps = [...visibleProps]
+      allProperties
+        .filter((p) => p._deleted)
+        .forEach((deletedProp) => {
+          if (!allProps.some((p) => p.uuid === deletedProp.uuid)) {
+            allProps.push(deletedProp)
+          }
+        })
 
-    setAllProperties(allProps)
+      setAllProperties(allProps)
+    }
   }
 
   // Add a new property
@@ -144,11 +161,12 @@ export function PropertySectionEditor({
     const updatedAll = [...allProperties, newProperty]
     setAllProperties(updatedAll)
 
-    // Notify parent
+    // Notify parent — mark as self-update to skip reset on echo
+    selfUpdateRef.current = true
     onUpdate(updatedAll)
 
     // Expand the new property immediately
-    setExpandedPropertyId(tempId)
+    setExpandedPropertyIds((prev) => new Set(prev).add(tempId))
   }
 
   // Remove a property
@@ -182,6 +200,7 @@ export function PropertySectionEditor({
     const updatedVisible = editedProperties.filter((_, i) => i !== index)
     setEditedProperties(updatedVisible)
     setAllProperties(updatedAll)
+    selfUpdateRef.current = true
     onUpdate(updatedAll)
 
     // Show toast notification with Sonner
@@ -253,10 +272,9 @@ export function PropertySectionEditor({
           <CollapsibleProperty
             key={property.uuid || property._tempId || `new_${index}`}
             property={property}
-            isExpanded={
-              expandedPropertyId ===
-              (property.uuid || property._tempId || `new_${index}`)
-            }
+            isExpanded={expandedPropertyIds.has(
+              property.uuid || property._tempId || `new_${index}`
+            )}
             onToggle={() =>
               togglePropertyExpansion(
                 property.uuid || property._tempId || `new_${index}`

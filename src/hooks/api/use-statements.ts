@@ -410,6 +410,35 @@ export function useStatements() {
     })
   }
 
+  /**
+   * Query formula calc statements for an object.
+   * Returns HAS_MATH_FORMULA_CALC statements where the object is the subject.
+   */
+  const useFormulaCalcStatements = (
+    objectUuid: UUID,
+    options?: { enabled?: boolean }
+  ) => {
+    return useQuery({
+      queryKey: queryKeys.statements.objectRelationships(
+        objectUuid,
+        'HAS_MATH_FORMULA_CALC'
+      ),
+      queryFn: async () => {
+        const response = await client.node.searchStatements({
+          uuStatementFind: {
+            subject: objectUuid,
+            predicate: 'HAS_MATH_FORMULA_CALC' as Predicate,
+            softDeleted: false,
+          },
+        })
+        return response || []
+      },
+      enabled: !!objectUuid && options?.enabled !== false,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
+    })
+  }
+
   return {
     useAllStatements,
     useStatementsByPredicate,
@@ -419,6 +448,7 @@ export function useStatements() {
     useCreateProcessFlow,
     useFindAllRelationships,
     useObjectRelationships,
+    useFormulaCalcStatements,
     useDeleteStatement,
   }
 }

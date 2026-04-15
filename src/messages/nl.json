@@ -22,7 +22,7 @@
   "nav": {
     "objects": "Objecten",
     "processes": "I/O-processen",
-    "models": "Modellen",
+    "models": "Sjablonen",
     "import": "Importeren",
     "importStatus": "Importstatus",
     "help": "Help",
@@ -678,7 +678,9 @@
     }
   },
   "models": {
-    "title": "Modellen",
+    "title": "Sjablonen",
+    "tabObjectTemplates": "Objectsjablonen",
+    "tabFormulas": "Formules",
     "showDeleted": "Verwijderde items tonen",
     "defaultName": "Model",
     "editTitle": "Model bewerken",
@@ -705,6 +707,39 @@
     "results": "{count} resultaat{count, plural, one {} other {en}}",
     "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",
     "clearSearch": "Zoekopdracht wissen"
+  },
+  "formulas": {
+    "title": "Formules",
+    "name": "Naam",
+    "expression": "Expressie",
+    "description": "Beschrijving",
+    "version": "Versie",
+    "defaultName": "Formule",
+    "create": "Formule maken",
+    "update": "Formule bijwerken",
+    "creating": "Bezig met maken...",
+    "updating": "Bezig met bijwerken...",
+    "created": "Formule succesvol aangemaakt",
+    "updated": "Formule succesvol bijgewerkt",
+    "deleted": "Formule succesvol verwijderd",
+    "saveFailed": "Formule opslaan mislukt",
+    "deleteFailed": "Formule verwijderen mislukt",
+    "validSyntax": "Geldige formule syntaxis",
+    "invalidSyntax": "Ongeldige formule syntaxis",
+    "createTitle": "Nieuwe formule maken",
+    "editTitle": "Formule bewerken",
+    "createDescription": "Definieer een herbruikbare wiskundige formule met variabelen.",
+    "editDescription": "Werk deze formuledefinitie bij.",
+    "noFormulasTitle": "Geen formules gevonden",
+    "noFormulasDescription": "Maak formules om te gebruiken in eigenschapsberekeningen.",
+    "placeholders": {
+      "name": "bijv. Oppervlakteberekening",
+      "expression": "bijv. breedte * hoogte",
+      "version": "bijv. 1.0 (optioneel)",
+      "description": "Beschrijf de formule..."
+    },
+    "selectFormula": "Selecteer een formule",
+    "searchPlaceholder": "Formules zoeken..."
   },
   "groups": {
     "title": "Groepen & projecten",

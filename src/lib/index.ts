@@ -9,6 +9,7 @@ export * from './upload-service'
 
 // Validation schemas
 export * from './validations/object-model'
+export * from './validations/formula'
 
 // Logging (client-safe)
 export * from './logger'

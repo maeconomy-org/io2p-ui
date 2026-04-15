@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react'
 import { ChevronRight, FunctionSquare, Plus, Trash2, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import type { UUMathFormulaDTO } from 'iom-sdk'
 
 import { formatNumericValue } from '@/lib'
 import { Badge, Button, Input, Label } from '@/components/ui'
 import { FileList } from '@/components/object-sheets/components/file-display'
 import { FormulaDisplay } from './formula-display'
 import { FormulaEditor } from './formula-editor'
+import { FormulaPicker } from './formula-picker'
 import { ValueModeToggle } from './value-mode-toggle'
 import type { AvailableProperty } from './hooks/use-formula-evaluation'
 
@@ -100,29 +102,50 @@ function CollapsibleValueItem({
 
       {/* Value content (full width) */}
       {isFormulaMode && isEditable ? (
-        <FormulaEditor
-          availableProperties={availableProperties}
-          initialFormula={value.formulaData?.formula || ''}
-          initialMapping={value.formulaData?.variableMapping}
-          onChange={(data) => {
-            onFormulaChange(valueIndex, {
-              formula: data.formula,
-              variableMapping: data.variableMapping,
-              result: data.result,
-              resolvedExpression: data.resolvedExpression,
-              isValid: data.isValid,
-            })
-            // Also update the value field with the result
-            if (data.result !== null && data.result !== undefined) {
-              onValueChange(valueIndex, data.result.toString())
-            }
-          }}
-        />
+        <>
+          <FormulaPicker
+            value={value.formulaData?.formulaUuid}
+            onSelect={(formula: UUMathFormulaDTO) => {
+              onFormulaChange(valueIndex, {
+                ...value.formulaData,
+                formula: formula.expression,
+                formulaUuid: formula.uuid,
+                formulaName: formula.name,
+                variableMapping: {},
+                result: null,
+                resolvedExpression: '',
+                isValid: false,
+              })
+            }}
+          />
+          {value.formulaData?.formulaUuid && (
+            <FormulaEditor
+              key={value.formulaData?.formulaUuid}
+              availableProperties={availableProperties}
+              initialFormula={value.formulaData?.formula || ''}
+              initialMapping={value.formulaData?.variableMapping}
+              readOnlyExpression
+              onChange={(data) => {
+                onFormulaChange(valueIndex, {
+                  ...value.formulaData,
+                  formula: data.formula,
+                  variableMapping: data.variableMapping,
+                  result: data.result,
+                  resolvedExpression: data.resolvedExpression,
+                  isValid: data.isValid,
+                })
+                if (data.result !== null && data.result !== undefined) {
+                  onValueChange(valueIndex, data.result.toString())
+                }
+              }}
+            />
+          )}
+        </>
       ) : isFormulaMode && !isEditable && hasFormula ? (
         <FormulaDisplay
           formula={value.formulaData.formula}
           resolvedExpression={value.formulaData.resolvedExpression}
-          result={value.formulaData.result}
+          result={value.value ?? value.formulaData.result}
           variableMapping={value.formulaData.variableMapping}
         />
       ) : isEditable ? (
@@ -280,7 +303,7 @@ export function CollapsibleProperty({
           <div className="ml-4 text-sm text-muted-foreground">
             {property.values?.length === 1
               ? property.values[0].formulaData?.formula
-                ? `= ${formatNumericValue(property.values[0].formulaData.result) ?? '...'}`
+                ? `= ${formatNumericValue(property.values[0].value ?? property.values[0].formulaData.result) || '...'}`
                 : formatNumericValue(property.values[0].value)
               : t('objects.values', {
                   count: property.values?.length || 0,

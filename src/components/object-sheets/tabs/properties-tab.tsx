@@ -2,10 +2,17 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { ChevronRight, LayoutGrid, List, Upload } from 'lucide-react'
+import {
+  ChevronRight,
+  FunctionSquare,
+  LayoutGrid,
+  List,
+  Upload,
+} from 'lucide-react'
 
 import { cn, formatNumericValue } from '@/lib/utils'
 import {
+  Badge,
   Button,
   EditableSection,
   CopyButton,
@@ -302,6 +309,15 @@ export function PropertiesTab({
                                       <div className="font-medium text-sm">
                                         {formatNumericValue(value.value)}
                                       </div>
+                                      {value.formulaData?.formulaName && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="h-5 px-1.5 text-[10px] gap-0.5 bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                                        >
+                                          <FunctionSquare className="h-3 w-3" />
+                                          {value.formulaData.formulaName}
+                                        </Badge>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {value.files &&

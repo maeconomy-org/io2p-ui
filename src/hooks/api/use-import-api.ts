@@ -36,6 +36,7 @@ export interface ImportObjectData {
       value: string
       valueTypeCast?: string
       sourceType?: string
+      mathFormulaExternalUUID?: string
       files?: Array<{
         uuid: string
         fileName: string
@@ -53,6 +54,13 @@ export interface ImportObjectData {
       contentType?: string
       size?: number
     }>
+  }>
+  mathFormulas?: Array<{
+    uuid?: string
+    mathFormulaCalc: {
+      args: Array<{ name: string; propertyValueUUID: string }>
+      result: { propertyValueUUID: string }
+    }
   }>
 }
 

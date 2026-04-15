@@ -24,8 +24,10 @@ import {
   FormMessage,
 } from '@/components/ui'
 import { FormulaEditor } from './formula-editor'
+import { FormulaPicker } from './formula-picker'
 import { ValueModeToggle } from './value-mode-toggle'
 import type { AvailableProperty } from './hooks/use-formula-evaluation'
+import type { UUMathFormulaDTO } from 'iom-sdk'
 
 const EMPTY_AVAILABLE_PROPERTIES: AvailableProperty[] = []
 
@@ -89,6 +91,19 @@ function ValueFieldItem({
     setIsFormulaMode(true)
     setValue(`${valuesName}.${valueIndex}.formulaData`, {
       formula: '',
+      formulaUuid: '',
+      formulaName: '',
+      variableMapping: {},
+      result: null,
+      isValid: false,
+    })
+  }
+
+  const handleFormulaSelect = (formula: UUMathFormulaDTO) => {
+    setValue(`${valuesName}.${valueIndex}.formulaData`, {
+      formula: formula.expression,
+      formulaUuid: formula.uuid,
+      formulaName: formula.name,
       variableMapping: {},
       result: null,
       isValid: false,
@@ -140,25 +155,41 @@ function ValueFieldItem({
           control={control}
           name={`${valuesName}.${valueIndex}.formulaData`}
           render={({ field }) => (
-            <FormulaEditor
-              availableProperties={availableProperties}
-              initialFormula={field.value?.formula || ''}
-              initialMapping={field.value?.variableMapping}
-              onChange={(data) => {
-                field.onChange({
-                  formula: data.formula,
-                  variableMapping: data.variableMapping,
-                  result: data.result,
-                  resolvedExpression: data.resolvedExpression,
-                  isValid: data.isValid,
-                })
-                // Update the value field with the result
-                setValue(
-                  `${valuesName}.${valueIndex}.value`,
-                  data.result?.toString() || ''
-                )
-              }}
-            />
+            <div className="space-y-3">
+              {/* Formula Picker — select existing formula */}
+              <FormulaPicker
+                value={field.value?.formulaUuid}
+                onSelect={(formula) => {
+                  handleFormulaSelect(formula)
+                }}
+              />
+
+              {/* FormulaEditor — shown after a formula is selected for variable mapping */}
+              {field.value?.formulaUuid && (
+                <FormulaEditor
+                  key={field.value?.formulaUuid}
+                  availableProperties={availableProperties}
+                  initialFormula={field.value?.formula || ''}
+                  initialMapping={field.value?.variableMapping}
+                  readOnlyExpression
+                  onChange={(data) => {
+                    field.onChange({
+                      ...field.value,
+                      formula: data.formula,
+                      variableMapping: data.variableMapping,
+                      result: data.result,
+                      resolvedExpression: data.resolvedExpression,
+                      isValid: data.isValid,
+                    })
+                    // Update the value field with the result
+                    setValue(
+                      `${valuesName}.${valueIndex}.value`,
+                      data.result?.toString() || ''
+                    )
+                  }}
+                />
+              )}
+            </div>
           )}
         />
       ) : (

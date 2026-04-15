@@ -1,5 +1,5 @@
 import { useTranslations } from 'next-intl'
-import { FunctionSquare, Paperclip } from 'lucide-react'
+import { Paperclip } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui'
@@ -34,8 +34,6 @@ export function PropertyGridView({ properties }: PropertyGridViewProps) {
             0
           )
 
-        const hasAnyFormula = values.some((v: any) => !!v.formulaData?.formula)
-
         return (
           <div
             key={prop.uuid || `prop-${idx}`}
@@ -48,15 +46,6 @@ export function PropertyGridView({ properties }: PropertyGridViewProps) {
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 {prop.label || prop.key}
               </span>
-              {hasAnyFormula && (
-                <Badge
-                  variant="secondary"
-                  className="h-4 px-1 text-[10px] gap-0.5 bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
-                >
-                  <FunctionSquare className="h-2.5 w-2.5" />
-                  fx
-                </Badge>
-              )}
               {hasFiles && (
                 <Badge
                   variant="secondary"
@@ -80,7 +69,7 @@ export function PropertyGridView({ properties }: PropertyGridViewProps) {
                         resolvedExpression={
                           value.formulaData.resolvedExpression
                         }
-                        result={value.formulaData.result}
+                        result={value.value ?? value.formulaData.result}
                         variableMapping={value.formulaData.variableMapping}
                         compact
                       />

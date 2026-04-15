@@ -151,7 +151,7 @@ export function ObjectModelSheet({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col flex-1 overflow-hidden"
+            className="flex flex-col flex-1 overflow-hidden px-1 -mx-1"
           >
             <div className="flex-1 overflow-y-auto space-y-6 py-6 px-1 -mx-1">
               {/* Basic information */}

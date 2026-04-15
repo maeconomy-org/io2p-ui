@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useAggregate } from '@/hooks'
+import { mapAggregateResponseToFormulaData } from '@/components/properties/utils/formula-mapping'
 
 export interface ObjectDataHookProps {
   uuid?: string
@@ -70,6 +71,44 @@ export function useObjectData({
           }
         : null
 
+      // Enrich properties with formula data from aggregate mathFormulas
+      const rawProperties = (source.properties || []).filter(
+        (prop: any) => !prop.softDeleted
+      )
+
+      const mathFormulas = source.mathFormulas || []
+      let enrichedProperties = rawProperties
+
+      if (mathFormulas.length > 0) {
+        // Build a map from result propertyValueUUID → formulaData
+        const formulaDataByValueUUID = new Map<string, any>()
+        for (const mf of mathFormulas) {
+          const resultUUID = mf.mathFormulaCalc?.result?.propertyValueUUID
+          if (resultUUID) {
+            const formulaData = mapAggregateResponseToFormulaData(mf, source)
+            if (formulaData) {
+              formulaDataByValueUUID.set(resultUUID, {
+                ...formulaData,
+                calcUuid: mf.mathFormulaCalc?.uuid,
+              })
+            }
+          }
+        }
+
+        // Attach formulaData to matching property values
+        if (formulaDataByValueUUID.size > 0) {
+          enrichedProperties = rawProperties.map((prop: any) => ({
+            ...prop,
+            values: (prop.values || []).map((val: any) => {
+              const formulaData = val.uuid
+                ? formulaDataByValueUUID.get(val.uuid)
+                : undefined
+              return formulaData ? { ...val, formulaData } : val
+            }),
+          }))
+        }
+      }
+
       return {
         object: {
           uuid: source.uuid || '',
@@ -85,9 +124,7 @@ export function useObjectData({
           parents: source.parents || [],
           ...(source.modelUuid && { modelUuid: source.modelUuid }),
         },
-        properties: (source.properties || []).filter(
-          (prop: any) => !prop.softDeleted
-        ),
+        properties: enrichedProperties,
         files: source.files || [],
         objectHistory: [],
         addressInfo,

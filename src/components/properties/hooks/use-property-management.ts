@@ -2,9 +2,12 @@
 
 import { useState, useCallback } from 'react'
 import type { UUPropertyDTO, UUPropertyValueDTO } from 'iom-sdk'
+import { Predicate } from 'iom-sdk'
 
 import { logger } from '@/lib'
 import { useProperties } from '@/hooks/api/use-properties'
+import { useMathFormulas } from '@/hooks/api/use-math-formulas'
+import { useStatements } from '@/hooks/api/use-statements'
 
 /**
  * A hook that provides comprehensive property management functions
@@ -18,11 +21,18 @@ export function usePropertyManagement() {
     useDeleteProperty,
   } = useProperties()
 
+  const { useCreateFormulaCalc, useDeleteFormulaCalc } = useMathFormulas()
+  const { useCreateStatement, useDeleteStatement } = useStatements()
+
   const updatePropertyMutation = useUpdatePropertyWithValues()
   const updatePropertyMetaMutation = useUpdateProperty()
   const addPropertyMutation = useAddPropertyToObject()
   const setValueMutation = useSetPropertyValue()
   const deletePropertyMutation = useDeleteProperty()
+  const createFormulaCalcMutation = useCreateFormulaCalc()
+  const deleteFormulaCalcMutation = useDeleteFormulaCalc()
+  const createStatementMutation = useCreateStatement()
+  const deleteStatementMutation = useDeleteStatement()
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -178,11 +188,73 @@ export function usePropertyManagement() {
     [deletePropertyMutation]
   )
 
+  /**
+   * Create a formula calculation for a property value (text → formula conversion)
+   */
+  const createFormulaCalcForValue = useCallback(
+    async (
+      objectUuid: string,
+      formulaData: any,
+      args: Array<{ name: string; propertyValueUUID: string }>,
+      resultPropertyValueUUID: string
+    ) => {
+      if (!formulaData?.formulaUuid || args.length === 0) return null
+
+      try {
+        // Create the formula calc
+        const calcUuid = crypto.randomUUID()
+        const calc = await createFormulaCalcMutation.mutateAsync({
+          uuid: calcUuid,
+          args,
+          result: { propertyValueUUID: resultPropertyValueUUID },
+        })
+
+        // Create HAS_MATH_FORMULA_CALC statement
+        await createStatementMutation.mutateAsync({
+          subject: objectUuid,
+          predicate: Predicate.HAS_MATH_FORMULA_CALC,
+          object: calc.uuid,
+        })
+
+        return calc
+      } catch (err) {
+        logger.error('Error creating formula calc:', err)
+        throw err
+      }
+    },
+    [createFormulaCalcMutation, createStatementMutation]
+  )
+
+  /**
+   * Delete a formula calculation (formula → text conversion)
+   */
+  const deleteFormulaCalcForValue = useCallback(
+    async (objectUuid: string, calcUuid: string) => {
+      try {
+        // Delete the HAS_MATH_FORMULA_CALC statement
+        await deleteStatementMutation.mutateAsync({
+          subject: objectUuid,
+          predicate: Predicate.HAS_MATH_FORMULA_CALC,
+          object: calcUuid,
+        })
+
+        // Soft-delete the formula calc
+        await deleteFormulaCalcMutation.mutateAsync(calcUuid)
+      } catch (err) {
+        logger.error('Error deleting formula calc:', err)
+        throw err
+      }
+    },
+    [deleteFormulaCalcMutation, deleteStatementMutation]
+  )
+
   return {
     createPropertyForObject,
     updatePropertyWithValues,
     addValueToProperty,
     removePropertyFromObject,
+    createFormulaCalcForValue,
+    deleteFormulaCalcForValue,
     isLoading,
     error,
   }
