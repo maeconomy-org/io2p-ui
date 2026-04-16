@@ -135,12 +135,24 @@ setup('authenticate with certificate', async ({ page }) => {
 
     // Check if we're on the objects page (success)
     if (page.url().includes('/objects')) {
-      await expect(page.getByText(/objects/i)).toBeVisible({ timeout: 10000 })
-
-      // Mark onboarding as completed so the tour overlay doesn't block tests
+      // Mark onboarding as completed and dismiss any active tour overlay
       await page.evaluate(() => {
         localStorage.setItem('onboarding:initial-login:v1', 'done')
       })
+
+      // If the onboarding tour overlay already started, dismiss it
+      const tourCloseBtn = page.locator('.driver-popover-close-btn')
+      if (await tourCloseBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await tourCloseBtn.click()
+        // Wait for the overlay to disappear
+        await tourCloseBtn.waitFor({ state: 'hidden', timeout: 3000 })
+      }
+
+      await expect(page.getByRole('heading', { name: /objects/i })).toBeVisible(
+        {
+          timeout: 10000,
+        }
+      )
 
       await page.context().storageState({ path: authFile })
       console.log('Authentication successful, state saved to', authFile)

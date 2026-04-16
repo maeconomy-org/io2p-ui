@@ -47,7 +47,9 @@ export function FormulaDisplay({
           <FunctionSquare className="h-2.5 w-2.5" />
           fx
         </Badge>
-        <span className="text-sm font-medium">{displayResult}</span>
+        <span data-testid="formula-result" className="text-sm font-medium">
+          {displayResult}
+        </span>
       </div>
     )
   }
@@ -62,7 +64,9 @@ export function FormulaDisplay({
           <FunctionSquare className="h-3 w-3" />
           {t('objects.properties.formulaType')}
         </Badge>
-        <span className="text-sm font-bold">{displayResult}</span>
+        <span data-testid="formula-result" className="text-sm font-bold">
+          {displayResult}
+        </span>
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}

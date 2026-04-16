@@ -110,8 +110,9 @@ describe('useFormulaEvaluation', () => {
     act(() => result.current.mapVariable('x', 'x', 'a::0'))
     act(() => result.current.mapVariable('y', 'y', 'b::0'))
 
-    // NaN result → null
+    // Division by zero now throws (matching exp4j), caught by hook
     expect(result.current.evaluation.result).toBeNull()
+    expect(result.current.evaluation.error).toContain('Division by zero')
   })
 
   it('returns null result when not all variables are mapped', () => {

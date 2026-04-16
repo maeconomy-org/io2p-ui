@@ -741,7 +741,63 @@
       "description": "Beschrijf de formule..."
     },
     "selectFormula": "Selecteer een formule",
-    "searchPlaceholder": "Formules zoeken..."
+    "searchPlaceholder": "Formules zoeken...",
+    "reference": {
+      "title": "Formule referentie",
+      "description": "Ondersteunde operatoren, functies en constanten",
+      "operatorsTitle": "Operatoren",
+      "operators": {
+        "add": "Optelling",
+        "subtract": "Aftrekking",
+        "multiply": "Vermenigvuldiging",
+        "divide": "Deling",
+        "modulo": "Modulo",
+        "power": "Macht (rechts-assoc.)",
+        "unaryPlus": "Unair plus",
+        "unaryMinus": "Unair min"
+      },
+      "functionsTitle": "Ingebouwde functies",
+      "functionGroups": {
+        "trigonometric": "Trigonometrisch",
+        "hyperbolic": "Hyperbolisch",
+        "logarithmic": "Logaritmisch",
+        "rounding": "Afronding",
+        "other": "Overig"
+      },
+      "logNote": "log() is de natuurlijke logaritme (grondtal e), niet grondtal 10. Gebruik log10() voor grondtal 10.",
+      "constantsTitle": "Ingebouwde constanten",
+      "examplesTitle": "Voorbeelden",
+      "examples": {
+        "simple": {
+          "formula": "x + y * 2",
+          "label": "Eenvoudige berekening"
+        },
+        "power": {
+          "formula": "x^2 + y^2",
+          "label": "Som van kwadraten"
+        },
+        "pythagorean": {
+          "formula": "sqrt(pow(a, 2) + pow(b, 2))",
+          "label": "Stelling van Pythagoras"
+        },
+        "circleArea": {
+          "formula": "pi * r^2",
+          "label": "Oppervlakte cirkel"
+        },
+        "compoundInterest": {
+          "formula": "P * (1 + rate)^years",
+          "label": "Samengestelde rente"
+        }
+      },
+      "unsupportedTitle": "Niet ondersteund",
+      "unsupported": {
+        "comparison": "Geen vergelijkingsoperatoren: <, >, <=, >=, ==, !=",
+        "logical": "Geen logische operatoren: &&, ||, !",
+        "bitwise": "Geen bitwise operatoren: &, |, ~, <<, >>",
+        "ternary": "Geen ternaire expressies: conditie ? a : b",
+        "implicitMul": "Geen impliciete vermenigvuldiging \u2014 schrijf 2*x, niet 2x"
+      }
+    }
   },
   "groups": {
     "title": "Groepen & projecten",

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, Search, X } from 'lucide-react'
+import { PlusCircle, Search, X, HelpCircle } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import type { UUMathFormulaDTO } from 'iom-sdk'
@@ -36,6 +36,14 @@ const FormulaSheet = dynamic(
   () =>
     import('@/components/formulas/formula-sheet').then(
       (mod) => mod.FormulaSheet
+    ),
+  { ssr: false }
+)
+
+const FormulaReferenceDialog = dynamic(
+  () =>
+    import('@/components/formulas/formula-reference-dialog').then(
+      (mod) => mod.FormulaReferenceDialog
     ),
   { ssr: false }
 )
@@ -86,6 +94,7 @@ export default function TemplatesPage() {
   }
 
   // --- Formulas state ---
+  const [formulaReferenceOpen, setFormulaReferenceOpen] = useState(false)
   const [formulaSheetOpen, setFormulaSheetOpen] = useState(false)
   const [selectedFormula, setSelectedFormula] =
     useState<UUMathFormulaDTO | null>(null)
@@ -217,7 +226,16 @@ export default function TemplatesPage() {
 
             {/* Formulas Tab */}
             <TabsContent value="formulas" className="space-y-4">
-              <div className="flex justify-end items-center">
+              <div className="flex justify-end items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setFormulaReferenceOpen(true)}
+                >
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  {t('formulas.reference.title')}
+                </Button>
                 <Button size="sm" onClick={handleAddFormula}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   {t('formulas.create')}
@@ -269,6 +287,12 @@ export default function TemplatesPage() {
         }}
         onDelete={handleFormulaDeleteConfirm}
         objectName={formulaToDelete?.name || t('formulas.defaultName')}
+      />
+
+      {/* Formula Reference Dialog */}
+      <FormulaReferenceDialog
+        open={formulaReferenceOpen}
+        onOpenChange={setFormulaReferenceOpen}
       />
     </>
   )

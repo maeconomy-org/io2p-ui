@@ -742,7 +742,63 @@
       "description": "Describe the formula..."
     },
     "selectFormula": "Select a formula",
-    "searchPlaceholder": "Search formulas..."
+    "searchPlaceholder": "Search formulas...",
+    "reference": {
+      "title": "Formula Reference",
+      "description": "Supported operators, functions, and constants",
+      "operatorsTitle": "Operators",
+      "operators": {
+        "add": "Addition",
+        "subtract": "Subtraction",
+        "multiply": "Multiplication",
+        "divide": "Division",
+        "modulo": "Modulo",
+        "power": "Power (right-assoc.)",
+        "unaryPlus": "Unary plus",
+        "unaryMinus": "Unary minus"
+      },
+      "functionsTitle": "Built-in Functions",
+      "functionGroups": {
+        "trigonometric": "Trigonometric",
+        "hyperbolic": "Hyperbolic",
+        "logarithmic": "Logarithmic",
+        "rounding": "Rounding",
+        "other": "Other"
+      },
+      "logNote": "log() is the natural logarithm (base e), not base 10. Use log10() for base 10.",
+      "constantsTitle": "Built-in Constants",
+      "examplesTitle": "Examples",
+      "examples": {
+        "simple": {
+          "formula": "x + y * 2",
+          "label": "Simple arithmetic"
+        },
+        "power": {
+          "formula": "x^2 + y^2",
+          "label": "Sum of squares"
+        },
+        "pythagorean": {
+          "formula": "sqrt(pow(a, 2) + pow(b, 2))",
+          "label": "Pythagorean theorem"
+        },
+        "circleArea": {
+          "formula": "pi * r^2",
+          "label": "Circle area"
+        },
+        "compoundInterest": {
+          "formula": "P * (1 + rate)^years",
+          "label": "Compound interest"
+        }
+      },
+      "unsupportedTitle": "Not Supported",
+      "unsupported": {
+        "comparison": "No comparison operators: <, >, <=, >=, ==, !=",
+        "logical": "No logical operators: &&, ||, !",
+        "bitwise": "No bitwise operators: &, |, ~, <<, >>",
+        "ternary": "No ternary expressions: condition ? a : b",
+        "implicitMul": "No implicit multiplication \u2014 write 2*x, not 2x"
+      }
+    }
   },
   "groups": {
     "title": "Groups & Projects",

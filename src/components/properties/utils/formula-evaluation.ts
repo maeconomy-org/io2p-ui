@@ -4,24 +4,87 @@ import type { Expression } from 'jsep'
 /**
  * Pure functions for formula parsing, variable extraction, and evaluation.
  * Uses jsep (~6KB) for safe expression parsing and a custom evaluator.
+ *
+ * ALIGNED WITH BACKEND exp4j (net.objecthunter.exp4j):
+ * - ^ means exponentiation (not XOR)
+ * - Supported operators: +, -, *, /, %, ^, unary +, unary -
+ * - No bitwise, comparison, logical, or ternary operators
+ *
+ * KNOWN LIMITATIONS vs backend exp4j:
+ * - No implicit multiplication: use "2*x" not "2x", "2*cos(x)" not "2cos(x)"
+ * - No factorial operator (!)
+ * - Custom backend functions/operators must be registered here manually
+ * - Scientific notation "1e5" works but conflicts with constant "e" are possible
+ * - Unary minus precedence: jsep parses -1^2 as (-1)^2=1, exp4j as -(1^2)=-1
+ *   Users should write -(1^2) explicitly when needed
  */
 
-// Built-in math functions supported in formulas
+// --- jsep configuration: align operator set with exp4j ---
+
+// Make ^ mean exponentiation (exp4j semantics), not XOR
+jsep.removeBinaryOp('^')
+jsep.addBinaryOp('^', 11, true) // high precedence, right-associative
+
+// Remove operators that exp4j does not support
+// Prevents formulas that validate on frontend but fail on backend
+;[
+  '>>>',
+  '>>',
+  '<<',
+  '|',
+  '&',
+  '===',
+  '!==',
+  '==',
+  '!=',
+  '||',
+  '&&',
+  '<=',
+  '>=',
+  '<',
+  '>',
+].forEach((op) => jsep.removeBinaryOp(op))
+jsep.removeUnaryOp('~')
+jsep.removeUnaryOp('!')
+
+// Built-in math functions supported in formulas (matches exp4j built-ins)
 export const MATH_FUNCTIONS: Record<string, (...args: number[]) => number> = {
   abs: Math.abs,
+  acos: Math.acos,
+  asin: Math.asin,
+  atan: Math.atan,
+  cbrt: Math.cbrt,
   ceil: Math.ceil,
+  cos: Math.cos,
+  cosh: Math.cosh,
+  exp: Math.exp,
   floor: Math.floor,
-  round: Math.round,
+  log: Math.log, // natural log, base e (matches exp4j)
+  log2: Math.log2,
+  log10: Math.log10,
+  sin: Math.sin,
+  sinh: Math.sinh,
   sqrt: Math.sqrt,
+  tan: Math.tan,
+  tanh: Math.tanh,
+  signum: Math.sign,
+  // Kept for backward compatibility with existing formulas.
+  // ⚠️ Verify with backend team: confirm whether round, pow, min, max are
+  // registered as custom functions on the backend ExpressionBuilder.
+  // If not, REMOVE these four.
+  round: Math.round,
   pow: Math.pow,
   min: Math.min,
   max: Math.max,
-  log: Math.log,
-  log10: Math.log10,
 }
 
-// Built-in constants (not user variables)
+// Built-in constants (matches exp4j: pi, π, e, φ)
 export const BUILTIN_CONSTANTS: Record<string, number> = {
+  pi: Math.PI,
+  '\u03C0': Math.PI, // π
+  e: Math.E,
+  '\u03C6': 1.61803398874, // φ (golden ratio)
+  // Keep uppercase aliases for backward compatibility with existing formulas
   PI: Math.PI,
   E: Math.E,
 }
@@ -62,7 +125,6 @@ export function extractVariables(expression: string): {
           }
           break
         case 'BinaryExpression':
-        case 'LogicalExpression':
           walk((node as any).left)
           walk((node as any).right)
           break
@@ -72,11 +134,6 @@ export function extractVariables(expression: string): {
         case 'CallExpression':
           // Don't add function name as variable, but walk arguments
           ;((node as any).arguments || []).forEach(walk)
-          break
-        case 'ConditionalExpression':
-          walk((node as any).test)
-          walk((node as any).consequent)
-          walk((node as any).alternate)
           break
         case 'MemberExpression':
           walk((node as any).object)
@@ -123,8 +180,6 @@ export function evaluateAst(
           return -arg
         case '+':
           return +arg
-        case '!':
-          return arg ? 0 : 1
         default:
           throw new Error(`Unknown unary operator: ${(node as any).operator}`)
       }
@@ -140,11 +195,14 @@ export function evaluateAst(
         case '*':
           return left * right
         case '/':
-          return right === 0 ? NaN : left / right
+          if (right === 0) throw new Error('Division by zero')
+          return left / right
         case '%':
           return left % right
-        case '**':
+        case '^':
           return Math.pow(left, right)
+        case '**':
+          return Math.pow(left, right) // backward compat alias
         default:
           throw new Error(`Unknown binary operator: ${(node as any).operator}`)
       }
@@ -160,12 +218,7 @@ export function evaluateAst(
       )
       return MATH_FUNCTIONS[fnName](...args)
     }
-    case 'ConditionalExpression': {
-      const test = evaluateAst((node as any).test, scope)
-      return test
-        ? evaluateAst((node as any).consequent, scope)
-        : evaluateAst((node as any).alternate, scope)
-    }
+    // ConditionalExpression (ternary) intentionally unsupported — exp4j has no ternary
     default:
       throw new Error(`Unsupported expression type: ${node.type}`)
   }
@@ -173,11 +226,16 @@ export function evaluateAst(
 
 /**
  * Parse and evaluate a formula string with the given scope.
+ * Throws if the result is NaN or Infinity (matching exp4j's throwing behavior).
  */
 export function safeEvaluate(
   expression: string,
   scope: Record<string, number>
 ): number {
   const ast = jsep(expression)
-  return evaluateAst(ast, scope)
+  const result = evaluateAst(ast, scope)
+  if (!Number.isFinite(result)) {
+    throw new Error(`Formula did not produce a finite number (got ${result})`)
+  }
+  return result
 }
