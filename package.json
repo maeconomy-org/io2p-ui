@@ -76,7 +76,7 @@
     "papaparse": "^5.5.3",
     "qr-code-styling": "^1.9.2",
     "react": "^19.2.4",
-    "react-day-picker": "8.10.1",
+    "react-day-picker": "9.14.0",
     "react-dom": "^19.2.4",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.54.1",
