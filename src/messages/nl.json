@@ -451,6 +451,7 @@
     "propertyName": "Eigenschapsnaam",
     "propertyValue": "Waarde",
     "propertyValues": "Eigenschapswaarden",
+    "propertyNameRequired": "Eigenschapsnaam is vereist",
     "propertyNamePlaceholder": "bijv. Totaal verdiepingen",
     "propertyValuePlaceholder": "Voer eigenschapswaarde in",
     "addAnotherValue": "Nog een waarde toevoegen",

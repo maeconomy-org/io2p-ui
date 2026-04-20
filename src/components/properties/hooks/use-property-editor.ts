@@ -66,6 +66,10 @@ export interface UsePropertyEditorReturn {
   availablePropertiesFor: (propertyId: string) => AvailableProperty[]
   /** Reset edited state back to initial properties (e.g. on cancel) */
   resetProperties: () => void
+  /** Map of propertyId -> validation error message for the name field */
+  nameErrors: Record<string, string>
+  /** Validate all visible properties; populates nameErrors. Returns true if valid. */
+  validateProperties: () => boolean
 }
 
 /**
@@ -81,6 +85,7 @@ export function usePropertyEditor({
   const [allProperties, setAllProperties] = useState<Property[]>([])
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [isSavingProperty, setIsSavingProperty] = useState<string | null>(null)
+  const [nameErrors, setNameErrors] = useState<Record<string, string>>({})
 
   const {
     updatePropertyWithValues,
@@ -117,6 +122,7 @@ export function usePropertyEditor({
           _deleted: false,
         }))
       )
+      setNameErrors({})
     }
   }, [initialProperties])
 
@@ -177,6 +183,14 @@ export function usePropertyEditor({
         key: name,
         _modified: true,
       }))
+      if (name.trim() !== '') {
+        setNameErrors((prev) => {
+          if (!prev[propertyId]) return prev
+          const next = { ...prev }
+          delete next[propertyId]
+          return next
+        })
+      }
     },
     [updateById]
   )
@@ -248,6 +262,12 @@ export function usePropertyEditor({
         getPropertyId(p) === propertyId ? { ...p, _deleted: true } : p
       )
     })
+    setNameErrors((prev) => {
+      if (!prev[propertyId]) return prev
+      const next = { ...prev }
+      delete next[propertyId]
+      return next
+    })
   }, [])
 
   const resetProperties = useCallback(() => {
@@ -259,7 +279,31 @@ export function usePropertyEditor({
         _deleted: false,
       }))
     )
+    setNameErrors({})
   }, [initialProperties])
+
+  const validateProperties = useCallback((): boolean => {
+    const errors: Record<string, string> = {}
+    const errorMsg = t('objects.propertyNameRequired')
+    allProperties.forEach((prop) => {
+      if (prop._deleted) return
+      if (!prop.key || prop.key.trim() === '') {
+        const id = getPropertyId(prop)
+        if (id) errors[id] = errorMsg
+      }
+    })
+    setNameErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      // Ensure invalid rows are visible
+      setExpandedIds((prev) => {
+        const next = new Set(prev)
+        Object.keys(errors).forEach((id) => next.add(id))
+        return next
+      })
+      return false
+    }
+    return true
+  }, [allProperties, t])
 
   // ── Available properties for formula mapping ─────────────────────
 
@@ -483,5 +527,7 @@ export function usePropertyEditor({
     isSavingProperty,
     availablePropertiesFor,
     resetProperties,
+    nameErrors,
+    validateProperties,
   }
 }

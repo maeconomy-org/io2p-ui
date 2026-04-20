@@ -219,6 +219,8 @@ export interface PropertyItemProps {
   onAttachFile?: (target: 'property' | 'value', valueIndex?: number) => void
   /** Show saving spinner on the property */
   isSaving?: boolean
+  /** Validation error for the property name field */
+  nameError?: string
   /** Extra content rendered inside the expanded card (e.g. file attachments) */
   children?: React.ReactNode
 }
@@ -237,6 +239,7 @@ export function PropertyItem({
   availableProperties = EMPTY_AVAILABLE_PROPERTIES,
   onAttachFile,
   isSaving = false,
+  nameError,
   children,
 }: PropertyItemProps) {
   const t = useTranslations()
@@ -382,7 +385,17 @@ export function PropertyItem({
                   value={property.key}
                   onChange={(e) => onNameChange(e.target.value)}
                   placeholder={t('objects.propertyNamePlaceholder')}
-                  className="h-8"
+                  className={cn(
+                    'h-8',
+                    nameError &&
+                      'border-destructive focus-visible:ring-destructive'
+                  )}
+                  aria-invalid={nameError ? true : undefined}
+                  aria-describedby={
+                    nameError
+                      ? `property-key-error-${propertyId || 'new'}`
+                      : undefined
+                  }
                   data-testid={`property-name-${propertyId}`}
                 />
                 {onAttachFile && (
@@ -397,6 +410,15 @@ export function PropertyItem({
                   </Button>
                 )}
               </div>
+              {nameError && (
+                <p
+                  id={`property-key-error-${propertyId || 'new'}`}
+                  className="text-xs text-destructive mt-1"
+                  data-testid={`property-name-error-${propertyId}`}
+                >
+                  {nameError}
+                </p>
+              )}
             </div>
           )}
 

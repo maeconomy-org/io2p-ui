@@ -6,6 +6,7 @@ import {
   useFieldArray,
   useWatch,
   useFormContext,
+  useFormState,
 } from 'react-hook-form'
 import { useTranslations } from 'next-intl'
 
@@ -47,9 +48,19 @@ export function PropertyItemRHF({
   const { setValue } = useFormContext()
   const valuesName = `${name}.values`
   const filesName = `${name}.files`
+  const keyName = `${name}.key`
 
   // Watch the full property to pass to PropertyItem
   const propertyData = useWatch({ control, name })
+
+  // Subscribe to the key field's validation error
+  const { errors } = useFormState({ control, name: keyName })
+  const keyFieldError = keyName
+    .split('.')
+    .reduce<any>((acc, part) => acc?.[part], errors as any)
+  const nameError = keyFieldError?.message
+    ? t('objects.propertyNameRequired')
+    : undefined
 
   // Field array for values
   const { append: appendValue, remove: removeValue } = useFieldArray({
@@ -78,7 +89,7 @@ export function PropertyItemRHF({
   }
 
   const handleNameChange = (newName: string) => {
-    setValue(`${name}.key`, newName)
+    setValue(`${name}.key`, newName, { shouldValidate: !!nameError })
   }
 
   const handleValueChange = (valueIndex: number, newValue: string) => {
@@ -135,6 +146,7 @@ export function PropertyItemRHF({
       onRemove={onRemove}
       availableProperties={templateMode ? undefined : availableProperties}
       onAttachFile={handleAttachFile}
+      nameError={nameError}
     >
       {/* File modals + file lists — only in non-template mode */}
       {!templateMode && (

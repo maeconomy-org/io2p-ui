@@ -72,6 +72,16 @@ export function PropertiesTab({
   }
 
   const handleSave = async () => {
+    if (!editor.validateProperties()) {
+      requestAnimationFrame(() => {
+        const el = document.querySelector(
+          '[aria-invalid="true"]'
+        ) as HTMLElement | null
+        el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        el?.focus?.()
+      })
+      return
+    }
     try {
       await editor.saveProperties()
       onSaveComplete?.()

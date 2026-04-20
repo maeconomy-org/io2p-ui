@@ -44,11 +44,12 @@ import { useGroups } from '@/hooks/api'
 
 type GroupFilter = 'all' | 'my' | 'shared'
 
+const ITEMS_PER_PAGE = 12
+
 export default function GroupsPage() {
   const t = useTranslations()
   const { userUUID } = useAuth()
   const { useListGroups } = useGroups()
-  const { data: groups, isLoading, isError } = useListGroups()
 
   const [selectedGroup, setSelectedGroup] = useState<GroupCreateDTO | null>(
     null
@@ -59,22 +60,40 @@ export default function GroupsPage() {
     null
   )
 
+  // Pagination + filter state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [activeFilter, setActiveFilter] = useState<GroupFilter>('all')
+
+  // Fetch groups with server-side pagination (API is 0-indexed)
   const {
-    searchTerm,
-    currentPage,
-    activeFilter,
-    paginatedGroups,
-    totalPages,
-    startIndex,
-    filteredGroups,
-    handleSearchChange,
-    handleFilterChange,
-    handlePageChange,
-  } = useGroupFilters({
-    groups,
+    data: page,
+    isLoading,
+    isError,
+    isFetching,
+  } = useListGroups({ page: currentPage - 1, size: ITEMS_PER_PAGE })
+
+  // Client-side search/filter on the current page content
+  const { filteredGroups, totalPages, totalElements } = useGroupFilters({
+    page,
     userUUID,
-    itemsPerPage: 12,
+    searchTerm,
+    activeFilter,
   })
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value)
+    setCurrentPage(1)
+  }, [])
+
+  const handleFilterChange = useCallback((filter: GroupFilter) => {
+    setActiveFilter(filter)
+    setCurrentPage(1)
+  }, [])
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage)
+  }, [])
 
   const handleViewGroup = (group: GroupCreateDTO) => {
     setSelectedGroup(group)
@@ -96,6 +115,10 @@ export default function GroupsPage() {
     logger.info('Group deleted (soft delete)')
     setGroupToDelete(null)
   }, [groupToDelete])
+
+  // Compute showing range from server pagination
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalElements)
 
   return (
     <div className="container mx-auto p-4">
@@ -178,7 +201,7 @@ export default function GroupsPage() {
             data-testid="groups-grid"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6"
           >
-            {paginatedGroups.map((group) => (
+            {filteredGroups.map((group) => (
               <GroupCard
                 key={group.groupUUID}
                 group={group}
@@ -194,8 +217,8 @@ export default function GroupsPage() {
               <div className="text-sm text-muted-foreground">
                 {t('groups.showing', {
                   start: startIndex + 1,
-                  end: Math.min(startIndex + 12, filteredGroups.length),
-                  total: filteredGroups.length,
+                  end: endIndex,
+                  total: totalElements,
                 })}
               </div>
               <div className="flex items-center gap-2">
@@ -203,21 +226,24 @@ export default function GroupsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
+                  disabled={currentPage === 1 || isFetching}
                 >
                   {t('common.previous')}
                 </Button>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
+                    (pageNum) => (
                       <Button
-                        key={page}
-                        variant={currentPage === page ? 'default' : 'outline'}
+                        key={pageNum}
+                        variant={
+                          currentPage === pageNum ? 'default' : 'outline'
+                        }
                         size="sm"
-                        onClick={() => handlePageChange(page)}
+                        onClick={() => handlePageChange(pageNum)}
+                        disabled={isFetching}
                         className="w-8 h-8 p-0"
                       >
-                        {page}
+                        {pageNum}
                       </Button>
                     )
                   )}
@@ -226,7 +252,7 @@ export default function GroupsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage === totalPages || isFetching}
                 >
                   {t('common.next')}
                 </Button>

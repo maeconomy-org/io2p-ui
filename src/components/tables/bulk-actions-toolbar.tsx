@@ -74,8 +74,8 @@ export function BulkActionsToolbar({
   isSettingParent = false,
 }: BulkActionsToolbarProps) {
   const t = useTranslations()
-  const { useListGroups } = useGroups()
-  const { data: allGroups } = useListGroups({ enabled: selectedCount > 0 })
+  const { useAllGroups } = useGroups()
+  const { data: allGroups } = useAllGroups({ enabled: selectedCount > 0 })
   const { userUUID } = useAuth()
 
   // Only show groups where the user can write records

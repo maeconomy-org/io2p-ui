@@ -414,4 +414,146 @@ describe('usePropertyEditor', () => {
       )
     })
   })
+
+  describe('validateProperties', () => {
+    it('returns true and produces no errors when all names are non-empty', () => {
+      const initial = [makeProperty()]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      let valid = false
+      act(() => {
+        valid = result.current.validateProperties()
+      })
+
+      expect(valid).toBe(true)
+      expect(result.current.nameErrors).toEqual({})
+    })
+
+    it('returns false and flags properties with empty names', () => {
+      const initial = [makeProperty({ key: '' })]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      let valid = true
+      act(() => {
+        valid = result.current.validateProperties()
+      })
+
+      expect(valid).toBe(false)
+      expect(result.current.nameErrors['prop-1']).toBe(
+        'objects.propertyNameRequired'
+      )
+    })
+
+    it('flags whitespace-only names as invalid', () => {
+      const initial = [makeProperty({ key: '   ' })]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      let valid = true
+      act(() => {
+        valid = result.current.validateProperties()
+      })
+
+      expect(valid).toBe(false)
+      expect(result.current.nameErrors['prop-1']).toBe(
+        'objects.propertyNameRequired'
+      )
+    })
+
+    it('expands invalid properties so the error becomes visible', () => {
+      const initial = [makeProperty({ key: '' })]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      expect(result.current.expandedIds.has('prop-1')).toBe(false)
+
+      act(() => {
+        result.current.validateProperties()
+      })
+
+      expect(result.current.expandedIds.has('prop-1')).toBe(true)
+    })
+
+    it('clears the error for a property once the user types a valid name', () => {
+      const initial = [makeProperty({ key: '' })]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => {
+        result.current.validateProperties()
+      })
+      expect(result.current.nameErrors['prop-1']).toBeDefined()
+
+      act(() => {
+        result.current.updatePropertyName('prop-1', 'Width')
+      })
+
+      expect(result.current.nameErrors['prop-1']).toBeUndefined()
+    })
+
+    it('does not flag a property that has been removed', () => {
+      const initial = [makeProperty({ key: '' })]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => {
+        result.current.removeProperty('prop-1')
+      })
+
+      let valid = false
+      act(() => {
+        valid = result.current.validateProperties()
+      })
+
+      expect(valid).toBe(true)
+      expect(result.current.nameErrors).toEqual({})
+    })
+
+    it('clears all errors when resetProperties is called', () => {
+      const initial = [makeProperty({ key: '' })]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => {
+        result.current.validateProperties()
+      })
+      expect(result.current.nameErrors['prop-1']).toBeDefined()
+
+      act(() => {
+        result.current.resetProperties()
+      })
+
+      expect(result.current.nameErrors).toEqual({})
+    })
+  })
 })

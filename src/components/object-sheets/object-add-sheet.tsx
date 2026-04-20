@@ -220,6 +220,16 @@ export function ObjectAddSheet({
     }
   }
 
+  const handleInvalidSubmit = () => {
+    requestAnimationFrame(() => {
+      const el = document.querySelector(
+        '[aria-invalid="true"]'
+      ) as HTMLElement | null
+      el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      el?.focus?.()
+    })
+  }
+
   // Intercept close attempts and show dialog if there are unsaved changes
   const handleCloseAttempt = useCallback(() => {
     if (hasUnsavedChanges()) {
@@ -262,7 +272,7 @@ export function ObjectAddSheet({
               <SheetDescription>{t('objects.addDescription')}</SheetDescription>
             </SheetHeader>
             <form
-              onSubmit={form.handleSubmit(handleSubmit)}
+              onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)}
               className="flex flex-col flex-1 overflow-hidden px-1 -mx-1"
             >
               <div className="flex-1 overflow-y-auto space-y-4 pt-6 pb-2 px-1 -mx-1">

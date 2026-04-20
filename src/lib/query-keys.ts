@@ -11,6 +11,7 @@
 
 import type {
   AggregateFindDTO,
+  GroupListParams,
   QueryParams,
   UUStatementsAccessFindDTO,
   AccessFindDTO,
@@ -64,7 +65,8 @@ export const queryKeys = {
   groups: {
     all: ['groups'] as const,
     lists: () => [...queryKeys.groups.all, 'list'] as const,
-    list: () => [...queryKeys.groups.lists()] as const,
+    list: (params?: GroupListParams) =>
+      [...queryKeys.groups.lists(), params] as const,
     details: () => [...queryKeys.groups.all, 'detail'] as const,
     detail: (uuid: UUID) => [...queryKeys.groups.details(), uuid] as const,
     records: (uuid: UUID) =>

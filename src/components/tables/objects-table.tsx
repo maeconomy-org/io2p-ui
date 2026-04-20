@@ -140,8 +140,8 @@ export function ObjectsTable({
   const revertObjectMutation = useRevertObject()
 
   // Fetch groups for group column display
-  const { useListGroups } = useGroups()
-  const { data: groups = [] } = useListGroups()
+  const { useAllGroups } = useGroups()
+  const { data: groups = [] } = useAllGroups()
   const groupsMap = useMemo(() => {
     const map = new Map<string, any>()
     groups.forEach((group: any) => {

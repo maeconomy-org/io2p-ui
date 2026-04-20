@@ -43,6 +43,7 @@ export function PropertySectionEditor({ editor }: PropertySectionEditorProps) {
             onRemove={() => editor.removeProperty(propertyId)}
             availableProperties={siblingProperties}
             isSaving={editor.isSavingProperty === propertyId}
+            nameError={editor.nameErrors[propertyId]}
           />
         )
       })}

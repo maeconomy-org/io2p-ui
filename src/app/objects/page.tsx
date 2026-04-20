@@ -110,8 +110,8 @@ function ObjectsPageContent() {
   )
 
   // Determine if user has write permissions for the selected group(s)
-  const { useListGroups } = useGroups()
-  const { data: allGroups } = useListGroups()
+  const { useAllGroups } = useGroups()
+  const { data: allGroups } = useAllGroups()
   const { userUUID } = useAuth()
 
   const groupReadOnly = useMemo(() => {

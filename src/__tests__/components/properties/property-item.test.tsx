@@ -424,6 +424,52 @@ describe('PropertyItem', () => {
     })
   })
 
+  describe('name validation error', () => {
+    it('does not render an error message when nameError is undefined', () => {
+      render(
+        <PropertyItem
+          property={makeProperty()}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onNameChange={vi.fn()}
+        />
+      )
+
+      expect(
+        screen.queryByTestId('property-name-error-prop-1')
+      ).not.toBeInTheDocument()
+      expect(screen.getByDisplayValue('Width')).not.toHaveAttribute(
+        'aria-invalid',
+        'true'
+      )
+    })
+
+    it('renders the error message and marks input invalid when nameError is set', () => {
+      render(
+        <PropertyItem
+          property={makeProperty({ key: '' })}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onNameChange={vi.fn()}
+          nameError="Property name is required"
+        />
+      )
+
+      const errorEl = screen.getByTestId('property-name-error-prop-1')
+      expect(errorEl).toBeInTheDocument()
+      expect(errorEl).toHaveTextContent('Property name is required')
+
+      const input = screen.getByTestId('property-name-prop-1')
+      expect(input).toHaveAttribute('aria-invalid', 'true')
+      expect(input).toHaveAttribute(
+        'aria-describedby',
+        'property-key-error-prop-1'
+      )
+    })
+  })
+
   describe('empty states', () => {
     it('shows placeholder when property key is empty', () => {
       render(

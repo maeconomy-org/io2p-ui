@@ -350,4 +350,99 @@ test.describe('02 - Object Validation', () => {
 
     await sheet.getByRole('button', { name: 'Cancel' }).click()
   })
+
+  test('TC021: Property with value but empty name shows validation error', async ({
+    page,
+  }) => {
+    const name = `TC021 Object ${runId}`
+
+    await page.getByRole('button', { name: /create object/i }).click()
+    const sheet = getDialog(page, 'Add Object')
+    await expect(sheet).toBeVisible()
+
+    await sheet.getByLabel('Name').fill(name)
+
+    // Add a property but leave the name empty, fill only the value
+    await sheet.getByRole('button', { name: 'Add Property' }).click()
+    await sheet.getByPlaceholder('Enter property value').first().fill('42')
+
+    // Attempt to submit — should not succeed
+    await sheet.getByRole('button', { name: 'Create' }).click()
+
+    // Sheet remains open and the inline error is visible
+    await expect(sheet).toBeVisible()
+    await expect(
+      sheet.getByText('Property name is required').first()
+    ).toBeVisible({ timeout: 3000 })
+
+    // The name input is marked invalid
+    const propertyNameInput = sheet.getByLabel('Property Name').first()
+    await expect(propertyNameInput).toHaveAttribute('aria-invalid', 'true')
+
+    // Fill in the name and submit again — succeeds
+    await propertyNameInput.fill('Width')
+    await sheet.getByRole('button', { name: 'Create' }).click()
+    await expect(sheet).toBeHidden({ timeout: 15000 })
+
+    // Object was created
+    const row = page.locator('tbody tr').filter({ hasText: name }).first()
+    await expect(row).toBeVisible({ timeout: 15000 })
+  })
+
+  test('TC022: Clearing a property name in edit mode blocks save', async ({
+    page,
+  }) => {
+    const name = `TC022 Object ${runId}`
+
+    // Create an object with a valid property first
+    await page.getByRole('button', { name: /create object/i }).click()
+    const addSheet = getDialog(page, 'Add Object')
+    await expect(addSheet).toBeVisible()
+
+    await addSheet.getByLabel('Name').fill(name)
+    await addSheet.getByRole('button', { name: 'Add Property' }).click()
+    await addSheet.getByLabel('Property Name').fill('Width')
+    await addSheet.getByPlaceholder('Enter property value').first().fill('42')
+
+    await addSheet.getByRole('button', { name: 'Create' }).click()
+    await expect(addSheet).toBeHidden({ timeout: 15000 })
+
+    // Open details sheet and enter properties-edit mode
+    const row = page.locator('tbody tr').filter({ hasText: name }).first()
+    await expect(row).toBeVisible({ timeout: 15000 })
+    await row.locator('[data-testid="object-details-button"]').click()
+
+    await page.getByRole('tab', { name: /properties/i }).click()
+    await page.locator('[data-testid="section-properties-edit-button"]').click()
+
+    // Expand the property and clear its name
+    await page.getByText('Width').first().click()
+    await page.waitForTimeout(300)
+
+    const nameInput = page.getByLabel('Property Name').first()
+    await nameInput.fill('')
+
+    // Click Save — should be blocked with inline error
+    await page.locator('[data-testid="section-properties-save-button"]').click()
+
+    await expect(
+      page.getByText('Property name is required').first()
+    ).toBeVisible({ timeout: 3000 })
+    await expect(nameInput).toHaveAttribute('aria-invalid', 'true')
+
+    // Still in edit mode (Save button still present)
+    await expect(
+      page.locator('[data-testid="section-properties-save-button"]')
+    ).toBeVisible()
+
+    // Fix the name and save — succeeds, returns to view mode
+    await nameInput.fill('Height')
+    await page.locator('[data-testid="section-properties-save-button"]').click()
+
+    await expect(
+      page.locator('[data-testid="section-properties-edit-button"]')
+    ).toBeVisible({ timeout: 10000 })
+
+    await page.getByRole('button', { name: 'Close' }).first().click()
+  })
 })

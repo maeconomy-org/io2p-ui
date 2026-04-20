@@ -301,6 +301,7 @@
     "propertyName": "Property Name",
     "propertyValue": "Value",
     "propertyValues": "Property Values",
+    "propertyNameRequired": "Property name is required",
     "propertyNamePlaceholder": "e.g. Total Floors",
     "propertyValuePlaceholder": "Enter property value",
     "addAnotherValue": "Add Another Value",

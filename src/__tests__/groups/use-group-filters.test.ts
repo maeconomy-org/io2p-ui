@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { renderHook } from '@testing-library/react'
 import { useGroupFilters } from '@/components/groups/hooks/use-group-filters'
-import type { GroupCreateDTO, GroupPermission } from 'iom-sdk'
+import type {
+  GroupCreateDTO,
+  GroupPermission,
+  PageImplGroupFullDTO,
+} from 'iom-sdk'
 
 // Mock group data for testing
 const createMockGroup = (
@@ -21,6 +25,7 @@ const createMockGroup = (
 })
 
 const MOCK_USER_UUID = 'user-123'
+
 const MOCK_GROUPS: GroupCreateDTO[] = [
   createMockGroup('group-1', 'My First Group', MOCK_USER_UUID, false, false),
   createMockGroup('group-2', 'My Second Group', MOCK_USER_UUID, true, false),
@@ -29,65 +34,92 @@ const MOCK_GROUPS: GroupCreateDTO[] = [
   createMockGroup('group-5', 'Default Group', MOCK_USER_UUID, false, true),
 ]
 
+// Helper to build a PageImpl response from a content array
+function createMockPage(
+  content: GroupCreateDTO[],
+  overrides?: Partial<PageImplGroupFullDTO>
+): PageImplGroupFullDTO {
+  return {
+    content,
+    totalPages: 3,
+    totalElements: 30,
+    size: content.length,
+    number: 0,
+    numberOfElements: content.length,
+    first: true,
+    last: false,
+    empty: content.length === 0,
+    pageable: {
+      paged: true,
+      pageNumber: 0,
+      pageSize: content.length,
+      offset: 0,
+      sort: { sorted: false, empty: true, unsorted: true },
+      unpaged: false,
+    },
+    sort: { sorted: false, empty: true, unsorted: true },
+    ...overrides,
+  }
+}
+
 describe('useGroupFilters', () => {
-  it('should return initial state correctly', () => {
+  it('should return filtered groups excluding defaults', () => {
+    const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
-      useGroupFilters({
-        groups: MOCK_GROUPS,
-        userUUID: MOCK_USER_UUID,
-        itemsPerPage: 2,
-      })
+      useGroupFilters({ page, userUUID: MOCK_USER_UUID })
     )
 
-    expect(result.current.searchTerm).toBe('')
-    expect(result.current.currentPage).toBe(1)
-    expect(result.current.activeFilter).toBe('all')
-    expect(result.current.showDeleted).toBe(false)
-    expect(result.current.totalPages).toBe(2) // 4 non-default groups / 2 per page
+    // 5 groups - 1 default = 4
+    expect(result.current.filteredGroups).toHaveLength(4)
+    expect(result.current.filteredGroups.some((g) => g.default)).toBe(false)
   })
 
-  it('should handle undefined groups', () => {
+  it('should return totalPages and totalElements from server', () => {
+    const page = createMockPage(MOCK_GROUPS, {
+      totalPages: 5,
+      totalElements: 50,
+    })
     const { result } = renderHook(() =>
-      useGroupFilters({
-        groups: undefined,
-        userUUID: MOCK_USER_UUID,
-      })
+      useGroupFilters({ page, userUUID: MOCK_USER_UUID })
+    )
+
+    expect(result.current.totalPages).toBe(5)
+    expect(result.current.totalElements).toBe(50)
+  })
+
+  it('should handle undefined page', () => {
+    const { result } = renderHook(() =>
+      useGroupFilters({ page: undefined, userUUID: MOCK_USER_UUID })
     )
 
     expect(result.current.filteredGroups).toEqual([])
-    expect(result.current.paginatedGroups).toEqual([])
     expect(result.current.totalPages).toBe(0)
+    expect(result.current.totalElements).toBe(0)
   })
 
   it('should filter by search term', () => {
+    const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
       useGroupFilters({
-        groups: MOCK_GROUPS,
+        page,
         userUUID: MOCK_USER_UUID,
+        searchTerm: 'First',
       })
     )
 
-    act(() => {
-      result.current.handleSearchChange('First')
-    })
-
-    expect(result.current.searchTerm).toBe('First')
     expect(result.current.filteredGroups).toHaveLength(1)
     expect(result.current.filteredGroups[0].name).toBe('My First Group')
-    expect(result.current.currentPage).toBe(1) // Resets to page 1
   })
 
   it('should be case-insensitive when searching', () => {
+    const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
       useGroupFilters({
-        groups: MOCK_GROUPS,
+        page,
         userUUID: MOCK_USER_UUID,
+        searchTerm: 'SHARED',
       })
     )
-
-    act(() => {
-      result.current.handleSearchChange('SHARED')
-    })
 
     expect(result.current.filteredGroups).toHaveLength(2)
     expect(
@@ -98,18 +130,15 @@ describe('useGroupFilters', () => {
   })
 
   it('should filter by "my" groups (owned by user)', () => {
+    const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
       useGroupFilters({
-        groups: MOCK_GROUPS,
+        page,
         userUUID: MOCK_USER_UUID,
+        activeFilter: 'my',
       })
     )
 
-    act(() => {
-      result.current.handleFilterChange('my')
-    })
-
-    expect(result.current.activeFilter).toBe('my')
     expect(result.current.filteredGroups).toHaveLength(2)
     expect(
       result.current.filteredGroups.every(
@@ -119,18 +148,15 @@ describe('useGroupFilters', () => {
   })
 
   it('should filter by "shared" groups (not owned by user)', () => {
+    const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
       useGroupFilters({
-        groups: MOCK_GROUPS,
+        page,
         userUUID: MOCK_USER_UUID,
+        activeFilter: 'shared',
       })
     )
 
-    act(() => {
-      result.current.handleFilterChange('shared')
-    })
-
-    expect(result.current.activeFilter).toBe('shared')
     expect(result.current.filteredGroups).toHaveLength(2)
     expect(
       result.current.filteredGroups.every(
@@ -140,195 +166,72 @@ describe('useGroupFilters', () => {
   })
 
   it('should exclude default groups from all filters', () => {
+    const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
       useGroupFilters({
-        groups: MOCK_GROUPS,
+        page,
         userUUID: MOCK_USER_UUID,
+        activeFilter: 'all',
       })
     )
-
-    // Default group should never appear
-    expect(result.current.filteredGroups.some((g) => g.default)).toBe(false)
-
-    // Even with 'all' filter, default is excluded
-    act(() => {
-      result.current.handleFilterChange('all')
-    })
 
     expect(result.current.filteredGroups.some((g) => g.default)).toBe(false)
-  })
-
-  it('should handle pagination correctly', () => {
-    const { result } = renderHook(() =>
-      useGroupFilters({
-        groups: MOCK_GROUPS,
-        userUUID: MOCK_USER_UUID,
-        itemsPerPage: 2,
-      })
-    )
-
-    expect(result.current.totalPages).toBe(2)
-    expect(result.current.paginatedGroups).toHaveLength(2)
-    expect(result.current.startIndex).toBe(0)
-
-    // Go to page 2
-    act(() => {
-      result.current.handlePageChange(2)
-    })
-
-    expect(result.current.currentPage).toBe(2)
-    expect(result.current.startIndex).toBe(2)
-    expect(result.current.paginatedGroups).toHaveLength(2)
-  })
-
-  it('should reset to page 1 when search changes', () => {
-    const { result } = renderHook(() =>
-      useGroupFilters({
-        groups: MOCK_GROUPS,
-        userUUID: MOCK_USER_UUID,
-        itemsPerPage: 2,
-      })
-    )
-
-    // Go to page 2
-    act(() => {
-      result.current.handlePageChange(2)
-    })
-
-    expect(result.current.currentPage).toBe(2)
-
-    // Search should reset to page 1
-    act(() => {
-      result.current.handleSearchChange('test')
-    })
-
-    expect(result.current.currentPage).toBe(1)
-  })
-
-  it('should reset to page 1 when filter changes', () => {
-    const { result } = renderHook(() =>
-      useGroupFilters({
-        groups: MOCK_GROUPS,
-        userUUID: MOCK_USER_UUID,
-        itemsPerPage: 2,
-      })
-    )
-
-    // Go to page 2
-    act(() => {
-      result.current.handlePageChange(2)
-    })
-
-    expect(result.current.currentPage).toBe(2)
-
-    // Filter change should reset to page 1
-    act(() => {
-      result.current.handleFilterChange('my')
-    })
-
-    expect(result.current.currentPage).toBe(1)
-  })
-
-  it('should handle showDeleted toggle', () => {
-    const { result } = renderHook(() =>
-      useGroupFilters({
-        groups: MOCK_GROUPS,
-        userUUID: MOCK_USER_UUID,
-      })
-    )
-
-    expect(result.current.showDeleted).toBe(false)
-
-    act(() => {
-      result.current.setShowDeleted(true)
-    })
-
-    expect(result.current.showDeleted).toBe(true)
-  })
-
-  it('should reset all filters', () => {
-    const { result } = renderHook(() =>
-      useGroupFilters({
-        groups: MOCK_GROUPS,
-        userUUID: MOCK_USER_UUID,
-        itemsPerPage: 2,
-      })
-    )
-
-    // Change some filters
-    act(() => {
-      result.current.handleSearchChange('test')
-      result.current.handleFilterChange('my')
-      result.current.handlePageChange(2)
-      result.current.setShowDeleted(true)
-    })
-
-    // Reset
-    act(() => {
-      result.current.resetFilters()
-    })
-
-    expect(result.current.searchTerm).toBe('')
-    expect(result.current.activeFilter).toBe('all')
-    expect(result.current.currentPage).toBe(1)
-    expect(result.current.showDeleted).toBe(false)
   })
 
   it('should combine search and filter', () => {
+    const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
       useGroupFilters({
-        groups: MOCK_GROUPS,
+        page,
         userUUID: MOCK_USER_UUID,
+        activeFilter: 'my',
+        searchTerm: 'Second',
       })
     )
-
-    // Filter to "my" groups first
-    act(() => {
-      result.current.handleFilterChange('my')
-    })
-
-    expect(result.current.filteredGroups).toHaveLength(2)
-
-    // Then search within those
-    act(() => {
-      result.current.handleSearchChange('Second')
-    })
 
     expect(result.current.filteredGroups).toHaveLength(1)
     expect(result.current.filteredGroups[0].name).toBe('My Second Group')
   })
 
   it('should handle empty search results', () => {
+    const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
       useGroupFilters({
-        groups: MOCK_GROUPS,
+        page,
         userUUID: MOCK_USER_UUID,
+        searchTerm: 'nonexistent',
       })
     )
 
-    act(() => {
-      result.current.handleSearchChange('nonexistent')
-    })
-
     expect(result.current.filteredGroups).toHaveLength(0)
-    expect(result.current.totalPages).toBe(0)
-    expect(result.current.paginatedGroups).toHaveLength(0)
   })
 
   it('should handle undefined userUUID', () => {
+    const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
       useGroupFilters({
-        groups: MOCK_GROUPS,
+        page,
         userUUID: undefined,
+        activeFilter: 'my',
       })
     )
 
-    // Should still work, just won't filter by ownership
-    act(() => {
-      result.current.handleFilterChange('my')
-    })
-
-    // When userUUID is undefined, "my" filter should exclude all (no matches)
+    // When userUUID is undefined, "my" filter should exclude all
     expect(result.current.filteredGroups).toHaveLength(0)
+  })
+
+  it('should handle empty page content', () => {
+    const page = createMockPage([], {
+      totalPages: 0,
+      totalElements: 0,
+      empty: true,
+    })
+    const { result } = renderHook(() =>
+      useGroupFilters({ page, userUUID: MOCK_USER_UUID })
+    )
+
+    expect(result.current.filteredGroups).toEqual([])
+    expect(result.current.totalPages).toBe(0)
+    expect(result.current.totalElements).toBe(0)
   })
 })

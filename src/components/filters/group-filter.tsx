@@ -43,8 +43,8 @@ export function GroupFilter({
 }: GroupFilterProps) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
-  const { useListGroups } = useGroups()
-  const { data: groups = [], isLoading } = useListGroups()
+  const { useAllGroups } = useGroups()
+  const { data: groups = [], isLoading } = useAllGroups()
 
   const hasSelection = !!selectedGroupUUID
   const selectedGroup = groups.find(

@@ -1,6 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 
-import type { GroupCreateDTO, GroupAddRecordsDTO, UUID } from 'iom-sdk'
+import type {
+  GroupCreateDTO,
+  GroupAddRecordsDTO,
+  GroupListParams,
+  UUID,
+} from 'iom-sdk'
 
 import { useIomSdkClient } from '@/contexts'
 import { queryKeys } from '@/lib/query-keys'
@@ -9,14 +19,33 @@ export function useGroups() {
   const client = useIomSdkClient()
   const queryClient = useQueryClient()
 
-  const useListGroups = (options = {}) => {
+  const useListGroups = (params?: GroupListParams, options = {}) => {
     return useQuery({
-      queryKey: queryKeys.groups.list(),
+      queryKey: queryKeys.groups.list(params),
       queryFn: async () => {
-        return client.node.listGroups()
+        return client.node.listGroups(params)
       },
+      placeholderData: keepPreviousData,
       staleTime: 60000, // Groups rarely change — cache for 1 minute
       gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+      ...options,
+    })
+  }
+
+  /**
+   * Fetch all groups as a flat array (for dropdowns, lookups, etc.)
+   * Uses a large page size to get everything in one request.
+   */
+  const useAllGroups = (options = {}) => {
+    const allParams = { page: 0, size: 10000 }
+    return useQuery({
+      queryKey: queryKeys.groups.list(allParams),
+      queryFn: async () => {
+        const page = await client.node.listGroups(allParams)
+        return page.content
+      },
+      staleTime: 60000,
+      gcTime: 10 * 60 * 1000,
       ...options,
     })
   }
@@ -84,6 +113,7 @@ export function useGroups() {
 
   return {
     useListGroups,
+    useAllGroups,
     useGetGroup,
     useListGroupRecords,
     useCreateGroup,

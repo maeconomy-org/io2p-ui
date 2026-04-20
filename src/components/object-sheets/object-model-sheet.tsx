@@ -110,6 +110,16 @@ export function ObjectModelSheet({
     append(createEmptyProperty())
   }
 
+  const handleInvalidSubmit = () => {
+    requestAnimationFrame(() => {
+      const el = document.querySelector(
+        '[aria-invalid="true"]'
+      ) as HTMLElement | null
+      el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      el?.focus?.()
+    })
+  }
+
   // Handle form submission
   const onSubmit = async (values: ObjectModelFormValues) => {
     try {
@@ -150,7 +160,7 @@ export function ObjectModelSheet({
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)}
             className="flex flex-col flex-1 overflow-hidden px-1 -mx-1"
           >
             <div className="flex-1 overflow-y-auto space-y-6 py-6 px-1 -mx-1">
