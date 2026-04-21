@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link as LinkIcon, Upload } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -29,9 +29,13 @@ export function AttachmentSection({
   const t = useTranslations()
   const [referenceUrl, setReferenceUrl] = useState('')
   const [referenceLabel, setReferenceLabel] = useState('')
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+
+  // Keep a ref to the latest attachments so async handlers (handleDrop) and
+  // synchronous handlers (handleAddReference) that run concurrently don't
+  // overwrite each other via stale closures over the `attachments` prop.
+  const attachmentsRef = useRef(attachments)
+  attachmentsRef.current = attachments
 
   const handleAddReference = () => {
     if (!referenceUrl.trim()) return
@@ -41,18 +45,17 @@ export function AttachmentSection({
       fileReference: url,
       label: referenceLabel || url || undefined,
     }
-    onChange([...(attachments || []), att])
+    const next = [...(attachmentsRef.current || []), att]
+    attachmentsRef.current = next
+    onChange(next)
     setReferenceUrl('')
     setReferenceLabel('')
   }
 
-  const handleDrop = async (files: File[]) => {
+  const handleDrop = (files: File[]) => {
     if (!allowUpload || disabled) return
     setError(null)
     const maxMB = getMaxUploadSizeMB()
-
-    setIsUploading(true)
-    setUploadProgress(10)
 
     const accepted: Attachment[] = []
     for (const file of files) {
@@ -69,15 +72,11 @@ export function AttachmentSection({
       })
     }
 
-    // Simulate progress
-    setUploadProgress(60)
-    await new Promise((r) => setTimeout(r, 350))
-    setUploadProgress(100)
-    await new Promise((r) => setTimeout(r, 200))
-
-    if (accepted.length > 0) onChange([...(attachments || []), ...accepted])
-    setIsUploading(false)
-    setUploadProgress(0)
+    if (accepted.length > 0) {
+      const next = [...(attachmentsRef.current || []), ...accepted]
+      attachmentsRef.current = next
+      onChange(next)
+    }
   }
 
   const removeAttachment = (index: number) => {
@@ -119,11 +118,6 @@ export function AttachmentSection({
       {allowUpload && (
         <FileDropzone
           onDrop={handleDrop}
-          isLoading={isUploading}
-          loadingText={t('objects.attachments.uploading', {
-            progress: uploadProgress,
-          })}
-          progress={uploadProgress}
           error={error}
           disabled={disabled}
           multiple

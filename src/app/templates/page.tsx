@@ -148,28 +148,27 @@ export default function TemplatesPage() {
     <>
       <div className="container mx-auto p-4 flex-1">
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">{t('models.title')}</h2>
-
           <Tabs defaultValue="object-templates">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="object-templates">
-                {t('models.tabObjectTemplates')}
-              </TabsTrigger>
-              <TabsTrigger value="formulas">
-                {t('models.tabFormulas')}
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold">{t('models.title')}</h2>
+              <TabsList className="w-fit">
+                <TabsTrigger value="object-templates">
+                  {t('models.tabObjectTemplates')}
+                </TabsTrigger>
+                <TabsTrigger value="formulas">
+                  {t('models.tabFormulas')}
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Object Templates Tab */}
             <TabsContent value="object-templates" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <DeletedFilter
-                    showDeleted={showDeleted}
-                    onShowDeletedChange={setShowDeleted}
-                    label={t('models.showDeleted')}
-                  />
-                </div>
+              <div className="flex justify-end items-center gap-2">
+                <DeletedFilter
+                  showDeleted={showDeleted}
+                  onShowDeletedChange={setShowDeleted}
+                  label={t('models.showDeleted')}
+                />
                 <Button size="sm" onClick={handleAddModel}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   {t('models.create')}

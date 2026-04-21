@@ -28,6 +28,8 @@ import {
   logger,
 } from '@/lib'
 import { PropertyItemRHF } from '@/components/properties'
+import { useObjects } from '@/hooks'
+import { toast } from 'sonner'
 import { useObjectOperations } from './hooks'
 import { createEmptyProperty } from './utils'
 
@@ -76,13 +78,17 @@ export function ObjectModelSheet({
   })
 
   // Use object operations hook for template creation/editing
-  const { createObject, saveMetadata, hasMetadataChanged, isCreating } =
-    useObjectOperations({
-      initialObject: model,
-      isEditing,
-      isTemplate: true, // This is always a template
-      onRefetch: onSave ? () => onSave({} as any) : undefined,
-    })
+  const { createObject, isCreating } = useObjectOperations({
+    initialObject: model,
+    isEditing,
+    isTemplate: true, // This is always a template
+    onRefetch: onSave ? () => onSave({} as any) : undefined,
+  })
+
+  // Direct update mutation for edit mode — bypasses saveMetadata, which depends
+  // on `editedObject` state that's never populated for templates.
+  const { useUpdateObjectMetadata } = useObjects()
+  const updateMetadata = useUpdateObjectMetadata()
 
   // Initialize form when editing an existing model
   useEffect(() => {
@@ -123,10 +129,22 @@ export function ObjectModelSheet({
   // Handle form submission
   const onSubmit = async (values: ObjectModelFormValues) => {
     try {
-      if (isEditing && model) {
-        // For editing, use saveMetadata if there are changes
-        if (hasMetadataChanged) {
-          await saveMetadata()
+      if (isEditing && model?.uuid) {
+        const changed =
+          values.name !== model.name ||
+          values.abbreviation !== model.abbreviation ||
+          values.version !== model.version ||
+          values.description !== model.description
+        if (changed) {
+          await updateMetadata.mutateAsync({
+            uuid: model.uuid,
+            name: values.name,
+            abbreviation: values.abbreviation,
+            version: values.version,
+            description: values.description,
+            isTemplate: true,
+          })
+          toast.success(t('objects.objectMetadataUpdated'))
         }
         // TODO: Handle property updates for existing templates
         onOpenChange(false)
@@ -175,6 +193,7 @@ export function ObjectModelSheet({
                       <FormControl>
                         <Input
                           placeholder={t('models.placeholders.name')}
+                          data-testid="model-name-input"
                           {...field}
                         />
                       </FormControl>

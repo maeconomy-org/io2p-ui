@@ -59,6 +59,7 @@ export function FormulaPicker({
             !value && 'text-muted-foreground'
           )}
           disabled={disabled}
+          data-testid="formula-picker"
         >
           {selectedFormula ? (
             <span className="flex items-center gap-2 truncate">

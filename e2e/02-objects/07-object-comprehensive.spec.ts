@@ -1,4 +1,9 @@
 import { test, expect, type Page } from '@playwright/test'
+import {
+  getDialog,
+  addPropertyInForm,
+  waitForUploadsIdle,
+} from '../utils/test-helpers'
 
 /**
  * Comprehensive Realistic Object Test
@@ -13,9 +18,6 @@ import { test, expect, type Page } from '@playwright/test'
  */
 
 const runId = Date.now()
-
-const getDialog = (page: Page, title: string) =>
-  page.getByRole('dialog').filter({ hasText: title })
 
 test.describe('07 - Comprehensive Realistic Object', () => {
   test.describe.configure({ mode: 'serial' })
@@ -108,153 +110,39 @@ test.describe('07 - Comprehensive Realistic Object', () => {
       await addressInput.clear()
     }
 
-    // === PROPERTY 1: Material Composition ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').fill('Material Composition')
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .first()
-      .fill('Carbon Steel S355')
-    await sheet.getByRole('button', { name: 'Add Another Value' }).click()
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(1)
-      .fill('Iron 98.5%')
-    await sheet.getByRole('button', { name: 'Add Another Value' }).click()
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(2)
-      .fill('Carbon 0.2%')
-    await sheet.getByRole('button', { name: 'Add Another Value' }).click()
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(3)
-      .fill('Manganese 1.3%')
-
-    // === PROPERTY 2: Dimensions ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(1).fill('Dimensions')
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(4)
-      .fill('Length: 6000mm')
-    await sheet
-      .getByRole('button', { name: 'Add Another Value' })
-      .nth(1)
-      .click()
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(5)
-      .fill('Width: 300mm')
-    await sheet
-      .getByRole('button', { name: 'Add Another Value' })
-      .nth(1)
-      .click()
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(6)
-      .fill('Height: 150mm')
-
-    // === PROPERTY 3: Weight ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(2).fill('Weight')
-    await sheet.getByPlaceholder('Enter property value').nth(7).fill('425 kg')
-
-    // === PROPERTY 4: Load Capacity ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(3).fill('Load Capacity')
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(8)
-      .fill('Yield Strength: 355 MPa')
-    await sheet
-      .getByRole('button', { name: 'Add Another Value' })
-      .nth(3)
-      .click()
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(9)
-      .fill('Tensile Strength: 510 MPa')
-
-    // === PROPERTY 5: Certifications ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(4).fill('Certifications')
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(10)
-      .fill('EN 10025-2')
-    await sheet
-      .getByRole('button', { name: 'Add Another Value' })
-      .nth(4)
-      .click()
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(11)
-      .fill('ISO 9001:2015')
-    await sheet
-      .getByRole('button', { name: 'Add Another Value' })
-      .nth(4)
-      .click()
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(12)
-      .fill('CE Marking')
-
-    // === PROPERTY 6: Manufacturer ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(5).fill('Manufacturer')
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(13)
-      .fill('ArcelorMittal Europe')
-
-    // === PROPERTY 7: Production Date ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(6).fill('Production Date')
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(14)
-      .fill('2024-08-15')
-
-    // === PROPERTY 8: Batch Number ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(7).fill('Batch Number')
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(15)
-      .fill('AM-2024-0815-S355')
-
-    // === PROPERTY 9: Recycled Content ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(8).fill('Recycled Content')
-    await sheet.getByPlaceholder('Enter property value').nth(16).fill('85%')
-
-    // === PROPERTY 10: Carbon Footprint ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(9).fill('Carbon Footprint')
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(17)
-      .fill('1.2 kg CO2e/kg')
-
-    // === PROPERTY 11: Expected Lifespan ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(10).fill('Expected Lifespan')
-    await sheet
-      .getByPlaceholder('Enter property value')
-      .nth(18)
-      .fill('50+ years')
-
-    // === PROPERTY 12: Fire Rating ===
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
-    await sheet.getByLabel('Property Name').nth(11).fill('Fire Rating')
-    await sheet.getByPlaceholder('Enter property value').nth(19).fill('R60')
+    // === PROPERTIES (using shared helper for scroll + button text handling) ===
+    await addPropertyInForm(sheet, 'Material Composition', [
+      'Carbon Steel S355',
+      'Iron 98.5%',
+      'Carbon 0.2%',
+      'Manganese 1.3%',
+    ])
+    await addPropertyInForm(sheet, 'Dimensions', [
+      'Length: 6000mm',
+      'Width: 300mm',
+      'Height: 150mm',
+    ])
+    await addPropertyInForm(sheet, 'Weight', ['425 kg'])
+    await addPropertyInForm(sheet, 'Load Capacity', [
+      'Yield Strength: 355 MPa',
+      'Tensile Strength: 510 MPa',
+    ])
+    await addPropertyInForm(sheet, 'Certifications', [
+      'EN 10025-2',
+      'ISO 9001:2015',
+      'CE Marking',
+    ])
+    await addPropertyInForm(sheet, 'Manufacturer', ['ArcelorMittal Europe'])
+    await addPropertyInForm(sheet, 'Production Date', ['2024-08-15'])
+    await addPropertyInForm(sheet, 'Batch Number', ['AM-2024-0815-S355'])
+    await addPropertyInForm(sheet, 'Recycled Content', ['85%'])
+    await addPropertyInForm(sheet, 'Carbon Footprint', ['1.2 kg CO2e/kg'])
+    await addPropertyInForm(sheet, 'Expected Lifespan', ['50+ years'])
+    await addPropertyInForm(sheet, 'Fire Rating', ['R60'])
 
     // === FILE ATTACHMENTS ===
     await sheet.getByRole('button', { name: /attach file/i }).click()
-    const attachModal = page
-      .getByRole('dialog')
-      .filter({ hasText: /attachments/i })
+    const attachModal = page.locator('[data-testid="attachment-modal"]')
     await expect(attachModal).toBeVisible({ timeout: 5000 })
 
     // Upload material certificate PDF
@@ -273,15 +161,18 @@ test.describe('07 - Comprehensive Realistic Object', () => {
       .fill('EN Standard Reference')
     await attachModal.getByRole('button', { name: 'Add' }).click()
 
-    await attachModal.getByRole('button', { name: 'Done' }).click()
+    await attachModal
+      .locator('[data-testid="attachment-modal-done-button"]')
+      .click()
 
     // === CREATE THE OBJECT ===
     await sheet.getByRole('button', { name: 'Create' }).click()
 
     await expect(sheet).toBeHidden({ timeout: 30000 })
 
-    // Wait for background uploads and reload to see the new object
-    await page.waitForTimeout(5000)
+    // Wait for background uploads to drain before reloading — reload aborts
+    // in-flight fetches which was the source of Cluster A flakiness.
+    await waitForUploadsIdle(page)
 
     await page.reload()
     await page.waitForLoadState('networkidle')

@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
 import { useKeyboardShortcuts } from '@/hooks'
-import { UploadProgressIndicator } from '@/components/ui'
 import { PUBLIC_PAGES } from '@/constants'
 import DemoTour from './onboarding/demo-tour'
 
@@ -29,7 +28,6 @@ export default function ClientLayout({
         <DemoTour />
         {!isPublicPage && <Navbar />}
         {children}
-        <UploadProgressIndicator />
       </div>
       {!isPublicPage && <Footer />}
     </>

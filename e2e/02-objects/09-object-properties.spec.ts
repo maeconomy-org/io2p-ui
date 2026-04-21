@@ -81,9 +81,9 @@ test.describe('09 - Object Properties', () => {
     await expect(gridToggle).toBeVisible({ timeout: 5000 })
 
     // Verify property header is visible in detailed view
-    await expect(page.locator('[data-testid="property-header-0"]')).toBeVisible(
-      { timeout: 5000 }
-    )
+    await expect(
+      page.locator('[data-testid^="property-header-"]').first()
+    ).toBeVisible({ timeout: 5000 })
 
     // Switch to grid view
     await gridToggle.click()
@@ -91,7 +91,7 @@ test.describe('09 - Object Properties', () => {
 
     // In grid view, property-header-0 should not be visible (grid uses different layout)
     await expect(
-      page.locator('[data-testid="property-header-0"]')
+      page.locator('[data-testid^="property-header-"]').first()
     ).not.toBeVisible({ timeout: 3000 })
 
     // Verify property name and value are visible in grid view
@@ -105,9 +105,9 @@ test.describe('09 - Object Properties', () => {
     await page.waitForTimeout(300)
 
     // Verify property header is visible again
-    await expect(page.locator('[data-testid="property-header-0"]')).toBeVisible(
-      { timeout: 5000 }
-    )
+    await expect(
+      page.locator('[data-testid^="property-header-"]').first()
+    ).toBeVisible({ timeout: 5000 })
 
     await page.getByRole('button', { name: 'Close' }).first().click()
   })
@@ -154,29 +154,31 @@ test.describe('09 - Object Properties', () => {
     await page.waitForTimeout(500)
 
     // Property header should be visible
-    const propertyHeader = page.locator('[data-testid="property-header-0"]')
+    const propertyHeader = page
+      .locator('[data-testid^="property-header-"]')
+      .first()
     await expect(propertyHeader).toBeVisible({ timeout: 5000 })
 
-    // Expanded content should not be visible initially
+    // Value detail section should not be visible initially (collapsed)
+    // Note: the header shows a truncated preview, so we check the detail container
     await expect(
-      page.locator('[data-testid="property-expanded-0"]')
+      page.locator('[data-testid^="property-value-"]').first()
     ).not.toBeVisible({ timeout: 3000 })
 
     // Click to expand
     await propertyHeader.click()
-    await expect(
-      page.locator('[data-testid="property-expanded-0"]')
-    ).toBeVisible({ timeout: 5000 })
+    await page.waitForTimeout(300)
 
-    // Verify value is visible in expanded content
+    // Verify value detail container is visible in expanded content
     await expect(
-      page.locator('[data-testid="property-0-value-0"]')
+      page.locator('[data-testid^="property-value-"]').first()
     ).toBeVisible({ timeout: 5000 })
 
     // Click again to collapse
     await propertyHeader.click()
+    await page.waitForTimeout(300)
     await expect(
-      page.locator('[data-testid="property-expanded-0"]')
+      page.locator('[data-testid^="property-value-"]').first()
     ).not.toBeVisible({ timeout: 3000 })
 
     await page.getByRole('button', { name: 'Close' }).first().click()

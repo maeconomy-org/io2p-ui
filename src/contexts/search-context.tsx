@@ -41,7 +41,7 @@ const MIN_SEARCH_CHARS = 2
 
 // Pages where search results are displayed directly
 const OBJECTS_PAGE = '/objects'
-const MODELS_PAGE = '/models'
+const MODELS_PAGE = '/templates'
 
 export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('')

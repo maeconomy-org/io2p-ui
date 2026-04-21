@@ -58,7 +58,7 @@ export function useMathFormulas() {
           queryKey: queryKeys.formulas.all,
         })
         queryClient.invalidateQueries({
-          queryKey: queryKeys.aggregates.lists(),
+          queryKey: queryKeys.aggregates.all,
         })
       },
     })
@@ -78,7 +78,7 @@ export function useMathFormulas() {
           queryKey: queryKeys.formulas.detail(deletedUuid),
         })
         queryClient.invalidateQueries({
-          queryKey: queryKeys.aggregates.lists(),
+          queryKey: queryKeys.aggregates.all,
         })
       },
     })
@@ -96,7 +96,7 @@ export function useMathFormulas() {
           queryKey: queryKeys.formulas.all,
         })
         queryClient.invalidateQueries({
-          queryKey: queryKeys.aggregates.lists(),
+          queryKey: queryKeys.aggregates.all,
         })
       },
     })
@@ -130,7 +130,7 @@ export function useMathFormulas() {
           queryKey: queryKeys.formulas.all,
         })
         queryClient.invalidateQueries({
-          queryKey: queryKeys.aggregates.lists(),
+          queryKey: queryKeys.aggregates.all,
         })
       },
     })

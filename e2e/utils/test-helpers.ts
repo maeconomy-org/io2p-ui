@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test'
+import { Page, Locator, expect } from '@playwright/test'
 
 /**
  * Common test utilities for e2e tests
@@ -42,9 +42,48 @@ export async function createObject(page: Page, name: string) {
 }
 
 /**
+ * Wait until the upload center reports idle (all queued uploads reached a
+ * terminal state). The provider renders a hidden `upload-center-idle` sentinel
+ * both when the queue is empty and when every task is complete. This is the
+ * reliable replacement for `waitForTimeout(3000)` around file-upload flows —
+ * full page reloads abort in-flight uploads, so tests must wait for the queue
+ * to drain before navigating.
+ */
+export async function waitForUploadsIdle(page: Page, timeout = 30_000) {
+  const sentinel = page.locator('[data-testid="upload-center-idle"]').first()
+
+  // Two-phase wait: sentinel present → settle window → still present.
+  // The settle window matters because create-object flows enqueue uploads
+  // via `void uploadQueue.enqueue(...)` *after* the creator toast appears.
+  // If we only check once, we may catch the initial empty-queue sentinel
+  // before the background upload task has been pushed, then reload and
+  // abort the in-flight POST.
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    await sentinel
+      .waitFor({
+        state: 'attached',
+        timeout: Math.max(100, deadline - Date.now()),
+      })
+      .catch(() => {})
+
+    // Settle window — if a new upload gets enqueued within this period,
+    // the sentinel will detach and we re-enter the wait loop.
+    await page.waitForTimeout(750)
+    const stillAttached = (await sentinel.count()) > 0
+    if (stillAttached) return
+  }
+}
+
+/**
  * Open an object by double-clicking its row in the table
  */
 export async function openObject(page: Page, name: string) {
+  // If any background uploads are pending, wait for them before reloading.
+  // Reload destroys JS context and aborts in-flight fetches, which silently
+  // loses files. See e2e/02-objects/01-object-crud.spec.ts TC006.
+  await waitForUploadsIdle(page)
+
   await page.reload()
   await page.waitForLoadState('networkidle')
 
@@ -67,6 +106,53 @@ export async function openObject(page: Page, name: string) {
   await row.locator('[data-testid="object-details-button"]').click()
   await page.waitForTimeout(1000)
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 })
+}
+
+/**
+ * Open the attach modal from a sheet, upload a file, click Done, and confirm
+ * the upload AlertDialog if it appears.
+ *
+ * Uses stable `data-testid` selectors on the modal + Done button instead of
+ * matching the dialog by its "Attachments" heading, which is brittle against
+ * i18n / layout changes. Handles both create-sheet flows (no AlertDialog —
+ * uploads happen after object creation) and edit flows (AlertDialog appears
+ * because an `uploadContext` is already known).
+ */
+export async function attachFileInSheet(
+  page: Page,
+  sheet: Locator,
+  file: { name: string; mime?: string; content?: string }
+) {
+  await sheet.getByRole('button', { name: /attach file/i }).click()
+
+  const modal = page.locator('[data-testid="attachment-modal"]')
+  await expect(modal).toBeVisible({ timeout: 5000 })
+
+  const mimeType =
+    file.mime ??
+    (file.name.endsWith('.pdf')
+      ? 'application/pdf'
+      : file.name.endsWith('.txt')
+        ? 'text/plain'
+        : 'application/octet-stream')
+
+  await modal.locator('input[type="file"]').setInputFiles({
+    name: file.name,
+    mimeType,
+    buffer: Buffer.from(file.content ?? 'Test file content'),
+  })
+
+  await page.locator('[data-testid="attachment-modal-done-button"]').click()
+
+  // Edit-mode flow: upload confirmation AlertDialog.
+  const confirmButton = page.locator(
+    '[data-testid="upload-files-confirm-button"]'
+  )
+  if (await confirmButton.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await confirmButton.click()
+  }
+
+  await expect(modal).toBeHidden({ timeout: 5000 })
 }
 
 /**
@@ -213,19 +299,35 @@ export async function expandProperty(page: Page, propertyName: string) {
 }
 
 /**
- * Add a property during object creation (in the sheet form)
+ * Add a property during object creation (in the sheet form).
+ * Handles both first property ("Add Property") and subsequent
+ * properties ("Add Another Property") with scroll support.
  */
 export async function addPropertyInForm(
   sheet: ReturnType<typeof getDialog>,
   name: string,
   values: string[]
 ) {
-  await sheet.getByRole('button', { name: 'Add Property' }).click()
+  // Count existing property inputs to determine which button to use
+  const beforeCount = await sheet.getByLabel('Property Name').count()
 
-  // Find the last property name input and fill it
-  const propertyNameInputs = sheet.getByLabel('Property Name')
-  const count = await propertyNameInputs.count()
-  await propertyNameInputs.nth(count - 1).fill(name)
+  if (beforeCount === 0) {
+    await sheet.getByRole('button', { name: 'Add Property' }).click()
+  } else {
+    const addBtn = sheet.getByRole('button', {
+      name: 'Add Another Property',
+    })
+    await addBtn.scrollIntoViewIfNeeded()
+    await addBtn.click()
+  }
+
+  // Wait for the new property name input to appear (use data-testid
+  // since getByLabel can fail when multiple labels share the same htmlFor)
+  const propertyNameInputs = sheet.locator('[data-testid^="property-name-"]')
+  await expect(propertyNameInputs.nth(beforeCount)).toBeVisible({
+    timeout: 10000,
+  })
+  await propertyNameInputs.nth(beforeCount).fill(name)
 
   // Fill values
   for (let i = 0; i < values.length; i++) {
@@ -235,9 +337,9 @@ export async function addPropertyInForm(
 
     // Add another value if not the last one
     if (i < values.length - 1) {
-      const addValueButtons = sheet.getByRole('button', {
-        name: 'Add Another Value',
-      })
+      const addValueButtons = sheet.locator(
+        '[data-testid^="property-add-value-"]'
+      )
       const btnCount = await addValueButtons.count()
       await addValueButtons.nth(btnCount - 1).click()
     }

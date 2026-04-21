@@ -190,6 +190,7 @@ export function ObjectModelsTable({
                           variant="ghost"
                           size="icon"
                           onClick={() => onEdit(model)}
+                          data-testid={`model-row-edit-${model.uuid}`}
                         >
                           <PencilIcon className="h-4 w-4" />
                         </Button>
@@ -200,6 +201,7 @@ export function ObjectModelsTable({
                             onClick={() => handleRevertModel(model)}
                             disabled={revertObjectMutation.isPending}
                             title={t('models.restoreTitle')}
+                            data-testid={`model-row-restore-${model.uuid}`}
                           >
                             <RotateCcw className="h-4 w-4 text-blue-600" />
                           </Button>
@@ -210,6 +212,7 @@ export function ObjectModelsTable({
                             onClick={() =>
                               onDelete({ uuid: model.uuid, name: model.name })
                             }
+                            data-testid={`model-row-delete-${model.uuid}`}
                           >
                             <TrashIcon className="h-4 w-4 text-destructive" />
                           </Button>

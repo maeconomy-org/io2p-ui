@@ -29,6 +29,7 @@ import {
 } from '@/components/ui'
 import { formulaSchema, type FormulaFormValues, logger } from '@/lib'
 import { useMathFormulas } from '@/hooks'
+import { useUuid } from '@/hooks/api/use-uuid'
 
 interface FormulaSheetProps {
   open: boolean
@@ -45,7 +46,9 @@ export function FormulaSheet({
 }: FormulaSheetProps) {
   const t = useTranslations()
   const { useCreateFormula } = useMathFormulas()
+  const { useGenerateUuid } = useUuid()
   const createFormulaMutation = useCreateFormula()
+  const generateUuidMutation = useGenerateUuid()
 
   const form = useForm<FormulaFormValues>({
     resolver: zodResolver(formulaSchema),
@@ -77,7 +80,10 @@ export function FormulaSheet({
 
   const onSubmit = async (values: FormulaFormValues) => {
     try {
-      const uuid = isEditing && formula ? formula.uuid : crypto.randomUUID()
+      const uuid =
+        isEditing && formula
+          ? formula.uuid
+          : await generateUuidMutation.mutateAsync()
 
       await createFormulaMutation.mutateAsync({
         uuid,

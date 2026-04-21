@@ -39,27 +39,35 @@ async function addTextProperty(
   // Count existing property sections before adding
   const beforeCount = await sheet.getByLabel('Property Name').count()
 
-  // Click the appropriate add button
+  // Click the appropriate add button (scroll into view for long forms)
   if (beforeCount === 0) {
     await sheet.getByRole('button', { name: 'Add Property' }).click()
   } else {
-    // When properties exist, use the bottom "Add Another Property" button
-    await sheet.getByRole('button', { name: 'Add Another Property' }).click()
+    const addBtn = sheet.getByRole('button', {
+      name: 'Add Another Property',
+    })
+    await addBtn.scrollIntoViewIfNeeded()
+    await addBtn.click()
   }
-  await page.waitForTimeout(300)
+
+  // Wait for the new property input to appear
+  const propInputs = sheet.getByLabel('Property Name')
+  await expect(propInputs.nth(beforeCount)).toBeVisible({ timeout: 10000 })
 
   // Fill the new (last) property name
-  const inputs = sheet.getByLabel('Property Name')
-  await inputs.nth(beforeCount).fill(name)
+  await propInputs.nth(beforeCount).fill(name)
 
   // Fill the new (last) value input
   const valueInputs = sheet.getByPlaceholder('Enter property value')
   const vCount = await valueInputs.count()
   await valueInputs.nth(vCount - 1).fill(value)
+
+  // Allow RHF state to propagate so availableProperties updates
+  await page.waitForTimeout(500)
 }
 
 /**
- * Navigate to /models, create a formula, then return to /objects.
+ * Navigate to /templates, create a formula, then return to /objects.
  * Only call from beforeAll or a dedicated setup test to avoid per-test overhead.
  */
 async function ensureFormulaExists(
@@ -67,7 +75,7 @@ async function ensureFormulaExists(
   name: string,
   expression: string
 ) {
-  await page.goto('/models')
+  await page.goto('/templates')
   await page.waitForLoadState('networkidle')
   await page.getByRole('tab', { name: /formulas/i }).click()
   await page.waitForTimeout(500)
@@ -247,11 +255,14 @@ test.describe('10 - Object Formula Properties', () => {
     await addTextProperty(sheet, page, 'Height', '33')
 
     // Add a third property with formula mode
-    await sheet.getByRole('button', { name: 'Add Another Property' }).click()
-    await page.waitForTimeout(300)
+    const addBtnTC035 = sheet.getByRole('button', {
+      name: 'Add Another Property',
+    })
+    await addBtnTC035.scrollIntoViewIfNeeded()
+    await addBtnTC035.click()
     const propInputs = sheet.getByLabel('Property Name')
-    const propCount = await propInputs.count()
-    await propInputs.nth(propCount - 1).fill('Total')
+    await expect(propInputs.nth(2)).toBeVisible({ timeout: 10000 })
+    await propInputs.nth(2).fill('Total')
 
     const formulaToggles = sheet.locator('[data-testid="value-mode-formula"]')
     const toggleCount = await formulaToggles.count()
@@ -301,11 +312,14 @@ test.describe('10 - Object Formula Properties', () => {
     await addTextProperty(sheet, page, 'Power', '10')
 
     // Add formula property
-    await sheet.getByRole('button', { name: 'Add Another Property' }).click()
-    await page.waitForTimeout(300)
+    const addBtn = sheet.getByRole('button', {
+      name: 'Add Another Property',
+    })
+    await addBtn.scrollIntoViewIfNeeded()
+    await addBtn.click()
     const inputs = sheet.getByLabel('Property Name')
-    const count = await inputs.count()
-    await inputs.nth(count - 1).fill('CalcResult')
+    await expect(inputs.nth(1)).toBeVisible({ timeout: 5000 })
+    await inputs.nth(1).fill('CalcResult')
 
     const formulaToggles = sheet.locator('[data-testid="value-mode-formula"]')
     const toggleCount = await formulaToggles.count()
@@ -333,8 +347,12 @@ test.describe('10 - Object Formula Properties', () => {
       .click()
     await page.waitForTimeout(500)
 
-    // Verify the result preview shows 1024 (2^10 = 1024)
-    await expect(sheet.getByText('1024')).toBeVisible({ timeout: 5000 })
+    // Verify the result preview shows 1024 (2^10 = 1024).
+    // The result renders twice (header summary + bold preview), so target the
+    // bold preview to avoid a strict-mode collision.
+    const resultPreview = sheet.locator('.font-bold.text-primary')
+    await expect(resultPreview.last()).toBeVisible({ timeout: 5000 })
+    await expect(resultPreview.last()).toContainText('1024')
 
     // Close without saving
     await sheet.getByRole('button', { name: 'Cancel' }).click()

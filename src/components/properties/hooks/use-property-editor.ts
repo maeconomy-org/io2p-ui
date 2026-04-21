@@ -8,7 +8,11 @@ import {
   hasPropertyChanged,
   getChangedProperties,
 } from '../utils/change-detection'
-import { makeCompositeId, isOwnCompositeId } from '../utils/composite-id'
+import {
+  makeCompositeId,
+  isOwnCompositeId,
+  parseCompositeId,
+} from '../utils/composite-id'
 import type { Property, FormulaData } from '../types'
 import type { AvailableProperty } from './use-formula-evaluation'
 
@@ -359,75 +363,166 @@ export function usePropertyEditor({
 
   // ── API operations ───────────────────────────────────────────────
 
+  /**
+   * Resolve a composite ID (e.g. "{propUUID}::0") to a real property value UUID
+   * by scanning the current properties list.
+   */
+  const resolveCompositeIdToValueUUID = useCallback(
+    (compositeId: string): string | null => {
+      const parsed = parseCompositeId(compositeId)
+      if (!parsed) return null
+
+      const { propertyId, valueIndex } = parsed
+      // Find the property by uuid or _tempId
+      const prop = allProperties.find(
+        (p) => p.uuid === propertyId || p._tempId === propertyId
+      )
+      return prop?.values?.[valueIndex]?.uuid || null
+    },
+    [allProperties]
+  )
+
+  /**
+   * Build formula calc args by resolving composite IDs to real value UUIDs.
+   */
+  const buildFormulaArgs = useCallback(
+    (
+      formulaData: FormulaData
+    ): Array<{ name: string; propertyValueUUID: string }> => {
+      const args: Array<{ name: string; propertyValueUUID: string }> = []
+      for (const [name, mapping] of Object.entries(
+        formulaData.variableMapping || {}
+      )) {
+        const realUUID = resolveCompositeIdToValueUUID(mapping.propertyUuid)
+        logger.info('Resolving formula arg:', {
+          varName: name,
+          compositeId: mapping.propertyUuid,
+          resolvedUUID: realUUID,
+        })
+        if (realUUID) {
+          args.push({ name, propertyValueUUID: realUUID })
+        }
+      }
+      return args
+    },
+    [resolveCompositeIdToValueUUID]
+  )
+
   const processPropertyOperations = useCallback(
     async (property: Property) => {
       if (!objectUuid) throw new Error('Missing objectUuid')
 
+      if (property._deleted) {
+        // Check if this property had a formula calc to clean up
+        for (const val of property.values || []) {
+          const calcUuid = val.formulaData?.calcUuid
+          if (calcUuid) {
+            await deleteFormulaCalcForValue(
+              objectUuid,
+              calcUuid,
+              val.formulaData?.formulaUuid
+            )
+          }
+        }
+        await removePropertyFromObject(objectUuid, property.uuid!)
+        return
+      }
+
+      if (property._isNew) {
+        const nonEmptyValues = (property.values || []).filter(
+          (val) =>
+            val.value !== undefined &&
+            val.value !== '' &&
+            val._needsInput !== true
+        )
+
+        // Create the property and its values first (sequential — need UUIDs back)
+        const newProperty = await createPropertyForObject(objectUuid, {
+          key: property.key,
+          values: nonEmptyValues,
+        })
+
+        // Now create formula calcs for any formula values
+        for (let i = 0; i < nonEmptyValues.length; i++) {
+          const val = nonEmptyValues[i]
+          if (!val.formulaData?.formulaUuid) continue
+
+          // Find the created value UUID from the response
+          const createdValue = newProperty?._createdValues?.find(
+            (cv: { index: number }) => cv.index === i
+          )
+          if (!createdValue?.uuid) continue
+
+          const args = buildFormulaArgs(val.formulaData)
+          if (args.length > 0) {
+            await createFormulaCalcForValue(
+              objectUuid,
+              val.formulaData,
+              args,
+              createdValue.uuid
+            )
+          }
+        }
+        return
+      }
+
+      // Existing property — update metadata and values
+      const nonEmptyValues = (property.values || []).filter(
+        (val) =>
+          val.value !== undefined &&
+          val.value !== '' &&
+          val._needsInput !== true
+      )
+
       const operations = []
 
-      if (property._deleted) {
-        operations.push(removePropertyFromObject(objectUuid, property.uuid!))
-      } else if (property._isNew) {
-        const nonEmptyValues = (property.values || []).filter(
-          (val) =>
-            val.value !== undefined &&
-            val.value !== '' &&
-            val._needsInput !== true
-        )
+      // For formula values, omit `value` so backend computes it as source of truth
+      const valuesToSend = nonEmptyValues.map((val) =>
+        val.formulaData?.formulaUuid
+          ? { uuid: val.uuid, valueTypeCast: val.valueTypeCast }
+          : {
+              uuid: val.uuid,
+              value: val.value,
+              valueTypeCast: val.valueTypeCast,
+            }
+      )
 
-        operations.push(
-          createPropertyForObject(objectUuid, {
+      operations.push(
+        updatePropertyWithValues(
+          {
+            uuid: property.uuid!,
             key: property.key,
-            values: nonEmptyValues,
-          })
+          },
+          valuesToSend
         )
-      } else {
-        const nonEmptyValues = (property.values || []).filter(
-          (val) =>
-            val.value !== undefined &&
-            val.value !== '' &&
-            val._needsInput !== true
-        )
+      )
 
-        operations.push(
-          updatePropertyWithValues(
-            {
-              uuid: property.uuid!,
-              key: property.key,
-            },
-            nonEmptyValues
-          )
-        )
+      // Handle formula changes (text↔formula conversion)
+      const originalProp = initialProperties.find(
+        (p) => p.uuid === property.uuid
+      )
+      for (const val of nonEmptyValues) {
+        if (!val.uuid) continue
+        const origVal = originalProp?.values?.find((v) => v.uuid === val.uuid)
+        const hadFormula = !!origVal?.formulaData?.formulaUuid
+        const hasFormula = !!val.formulaData?.formulaUuid
 
-        // Handle formula changes (text↔formula conversion)
-        const originalProp = initialProperties.find(
-          (p) => p.uuid === property.uuid
-        )
-        for (const val of nonEmptyValues) {
-          if (!val.uuid) continue
-          const origVal = originalProp?.values?.find((v) => v.uuid === val.uuid)
-          const hadFormula = !!origVal?.formulaData?.formulaUuid
-          const hasFormula = !!val.formulaData?.formulaUuid
-
-          if (!hadFormula && hasFormula) {
+        if (!hadFormula && hasFormula) {
+          const args = buildFormulaArgs(val.formulaData!)
+          if (args.length > 0) {
             operations.push(
               createFormulaCalcForValue(
                 objectUuid,
                 val.formulaData!,
-                Object.entries(val.formulaData!.variableMapping || {}).map(
-                  ([name, mapping]) => ({
-                    name,
-                    propertyValueUUID: mapping.propertyUuid,
-                  })
-                ),
+                args,
                 val.uuid
               )
             )
-          } else if (hadFormula && !hasFormula) {
-            const calcUuid = origVal?.formulaData?.calcUuid
-            if (calcUuid) {
-              operations.push(deleteFormulaCalcForValue(objectUuid, calcUuid))
-            }
+          }
+        } else if (hadFormula && !hasFormula) {
+          const calcUuid = origVal?.formulaData?.calcUuid
+          if (calcUuid) {
+            operations.push(deleteFormulaCalcForValue(objectUuid, calcUuid))
           }
         }
       }
@@ -437,11 +532,13 @@ export function usePropertyEditor({
     [
       objectUuid,
       initialProperties,
+      allProperties,
       updatePropertyWithValues,
       createPropertyForObject,
       removePropertyFromObject,
       createFormulaCalcForValue,
       deleteFormulaCalcForValue,
+      buildFormulaArgs,
     ]
   )
 

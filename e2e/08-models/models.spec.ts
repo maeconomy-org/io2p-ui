@@ -11,11 +11,11 @@ import { test, expect } from '@playwright/test'
 
 test.describe('08 - Models Smoke', () => {
   test('TC001: Models page loads and interactions work', async ({ page }) => {
-    await page.goto('/models')
+    await page.goto('/templates')
 
     // Check title
     await expect(
-      page.getByRole('heading', { level: 2, name: /models/i })
+      page.getByRole('heading', { level: 2, name: /templates/i })
     ).toBeVisible()
 
     // Check Add Model button

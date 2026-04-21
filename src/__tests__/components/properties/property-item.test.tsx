@@ -404,7 +404,7 @@ describe('PropertyItem', () => {
       expect(onRemove).toHaveBeenCalledOnce()
     })
 
-    it('shows ValueModeToggle for each value', () => {
+    it('shows ValueModeToggle for each value when formula support is enabled', () => {
       render(
         <PropertyItem
           property={makeProperty({
@@ -417,10 +417,28 @@ describe('PropertyItem', () => {
           onToggle={vi.fn()}
           isEditable
           onValueChange={vi.fn()}
+          onValueFormulaChange={vi.fn()}
         />
       )
 
       expect(screen.getAllByTestId('value-mode-toggle')).toHaveLength(2)
+    })
+
+    it('hides ValueModeToggle when onValueFormulaChange is not provided (template mode)', () => {
+      render(
+        <PropertyItem
+          property={makeProperty({
+            values: [{ uuid: 'v1', value: '10' }],
+          })}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onValueChange={vi.fn()}
+        />
+      )
+
+      expect(screen.queryByTestId('value-mode-toggle')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('value-mode-formula')).not.toBeInTheDocument()
     })
   })
 
@@ -532,6 +550,141 @@ describe('PropertyItem', () => {
       )
 
       expect(screen.getByTestId('property-item-temp_123')).toBeInTheDocument()
+    })
+  })
+
+  describe('delete confirmation pattern', () => {
+    it('deletes immediately without confirm when property has no data', () => {
+      const onRemove = vi.fn()
+      render(
+        <PropertyItem
+          property={makeProperty({
+            key: '',
+            label: '',
+            values: [{ uuid: 'v1', value: '' }],
+          })}
+          isExpanded={false}
+          onToggle={vi.fn()}
+          isEditable
+          onRemove={onRemove}
+          onNameChange={vi.fn()}
+        />
+      )
+
+      const deleteBtn = screen.getByTestId('property-delete-prop-1')
+      fireEvent.click(deleteBtn)
+
+      // Should call onRemove directly — no confirm step
+      expect(onRemove).toHaveBeenCalledOnce()
+      expect(screen.queryByText('common.confirm')).not.toBeInTheDocument()
+    })
+
+    it('shows confirm instead of calling onRemove when property has a key', () => {
+      const onRemove = vi.fn()
+      render(
+        <PropertyItem
+          property={makeProperty({
+            key: 'Temperature',
+            label: 'Temperature',
+            values: [{ uuid: 'v1', value: '' }],
+          })}
+          isExpanded={false}
+          onToggle={vi.fn()}
+          isEditable
+          onRemove={onRemove}
+          onNameChange={vi.fn()}
+        />
+      )
+
+      const deleteBtn = screen.getByTestId('property-delete-prop-1')
+      fireEvent.click(deleteBtn)
+
+      // Should NOT call onRemove yet
+      expect(onRemove).not.toHaveBeenCalled()
+      // Should show confirm text
+      expect(screen.getByText('common.confirm')).toBeInTheDocument()
+    })
+
+    it('calls onRemove on second click after confirm is shown', () => {
+      const onRemove = vi.fn()
+      render(
+        <PropertyItem
+          property={makeProperty({
+            key: 'Weight',
+            label: 'Weight',
+            values: [{ uuid: 'v1', value: '50' }],
+          })}
+          isExpanded={false}
+          onToggle={vi.fn()}
+          isEditable
+          onRemove={onRemove}
+          onNameChange={vi.fn()}
+        />
+      )
+
+      // First click — triggers confirm
+      fireEvent.click(screen.getByTestId('property-delete-prop-1'))
+      expect(onRemove).not.toHaveBeenCalled()
+
+      // Second click — confirms deletion
+      fireEvent.click(screen.getByTestId('property-delete-prop-1'))
+      expect(onRemove).toHaveBeenCalledOnce()
+    })
+
+    it('cancels confirmation and restores trash icon on blur', () => {
+      const onRemove = vi.fn()
+      render(
+        <PropertyItem
+          property={makeProperty({
+            key: 'Height',
+            label: 'Height',
+            values: [{ uuid: 'v1', value: '180' }],
+          })}
+          isExpanded={false}
+          onToggle={vi.fn()}
+          isEditable
+          onRemove={onRemove}
+          onNameChange={vi.fn()}
+        />
+      )
+
+      // First click — shows confirm
+      fireEvent.click(screen.getByTestId('property-delete-prop-1'))
+      expect(screen.getByText('common.confirm')).toBeInTheDocument()
+
+      // Blur the confirm button
+      fireEvent.blur(screen.getByTestId('property-delete-prop-1'))
+
+      // Confirm text should be gone, trash icon button should be back
+      expect(screen.queryByText('common.confirm')).not.toBeInTheDocument()
+      const deleteBtn = screen.getByTestId('property-delete-prop-1')
+      // The trash button has no text content (just an icon), unlike the confirm button
+      expect(deleteBtn.textContent).toBe('')
+      expect(onRemove).not.toHaveBeenCalled()
+    })
+
+    it('shows confirm when property has no key but has a value with content', () => {
+      const onRemove = vi.fn()
+      render(
+        <PropertyItem
+          property={makeProperty({
+            key: '',
+            label: '',
+            values: [{ uuid: 'v1', value: 'some data' }],
+          })}
+          isExpanded={false}
+          onToggle={vi.fn()}
+          isEditable
+          onRemove={onRemove}
+          onNameChange={vi.fn()}
+        />
+      )
+
+      fireEvent.click(screen.getByTestId('property-delete-prop-1'))
+
+      // Should show confirm because value has content
+      expect(onRemove).not.toHaveBeenCalled()
+      expect(screen.getByText('common.confirm')).toBeInTheDocument()
     })
   })
 

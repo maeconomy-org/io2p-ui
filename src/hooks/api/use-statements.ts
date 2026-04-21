@@ -69,7 +69,7 @@ export function useStatements() {
           queryKey: queryKeys.statements.lists(),
         })
         queryClient.invalidateQueries({
-          queryKey: queryKeys.aggregates.lists(),
+          queryKey: queryKeys.aggregates.all,
         })
       },
     })

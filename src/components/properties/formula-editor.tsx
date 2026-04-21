@@ -122,6 +122,7 @@ export function FormulaEditor({
               onChange={(e) => setFormula(e.target.value)}
               placeholder={t('objects.properties.formulaPlaceholder')}
               disabled={disabled || readOnlyExpression}
+              data-testid="formula-expression-input"
               className={cn(
                 'font-mono text-sm flex-1',
                 evaluation.error && formula.trim()
@@ -140,6 +141,7 @@ export function FormulaEditor({
                     size="sm"
                     className="h-9 gap-1 shrink-0"
                     disabled={disabled}
+                    data-testid="formula-quick-templates"
                   >
                     {t('objects.properties.formulaTemplates')}
                     <ChevronDown className="h-3.5 w-3.5" />
@@ -204,7 +206,7 @@ export function FormulaEditor({
       {detectedVariables.length > 0 && (
         <>
           <Separator />
-          <div className="space-y-2">
+          <div className="space-y-2" data-testid="formula-variable-mapping">
             <Label className="text-xs text-muted-foreground">
               {t('objects.properties.formulaVariables')}
             </Label>
@@ -218,6 +220,7 @@ export function FormulaEditor({
                 return (
                   <div
                     key={varName}
+                    data-testid={`formula-variable-mapping-row-${varName}`}
                     className="flex items-center gap-2 p-1.5 rounded-md border bg-muted/30"
                   >
                     <Badge
@@ -306,7 +309,10 @@ export function FormulaEditor({
                 {t('objects.properties.formulaResult')}:
               </span>
               {evaluation.result !== null ? (
-                <span className="text-base font-bold text-primary flex items-center gap-1">
+                <span
+                  data-testid="formula-result-preview"
+                  className="text-base font-bold text-primary flex items-center gap-1"
+                >
                   {Number.isInteger(evaluation.result)
                     ? evaluation.result
                     : evaluation.result.toFixed(4)}

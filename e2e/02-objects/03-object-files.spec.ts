@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
+import { attachFileInSheet, waitForUploadsIdle } from '../utils/test-helpers'
+
 /**
  * Object File Attachments
  *
@@ -22,6 +24,10 @@ const createObject = async (page: Page, name: string) => {
 }
 
 const openObject = async (page: Page, name: string) => {
+  // Wait for any background uploads before reloading — reload aborts in-flight
+  // fetches, silently dropping files that were still uploading.
+  await waitForUploadsIdle(page)
+
   // Refresh page to ensure latest data
   await page.reload()
   await page.waitForLoadState('networkidle')
@@ -65,26 +71,15 @@ test.describe('03 - Object File Attachments', () => {
 
     await sheet.getByLabel('Name').fill(name)
 
-    await sheet.getByRole('button', { name: /attach file/i }).click()
-    const attachModal = page
-      .getByRole('dialog')
-      .filter({ hasText: /attachments/i })
-    await expect(attachModal).toBeVisible({ timeout: 5000 })
-
-    await attachModal.locator('input[type="file"]').setInputFiles({
+    await attachFileInSheet(page, sheet, {
       name: 'single-file.pdf',
-      mimeType: 'application/pdf',
-      buffer: Buffer.from('Single file content'),
+      content: 'Single file content',
     })
 
-    await attachModal.getByRole('button', { name: 'Done' }).click()
     await sheet.getByRole('button', { name: 'Create' }).click()
     await expect(sheet).toBeHidden({ timeout: 15000 })
 
-    // Wait for background file upload to complete
-    await page.waitForTimeout(3000)
-
-    // Verify
+    // Verify (openObject waits for uploads to drain before reloading)
     await openObject(page, name)
     await page.getByRole('tab', { name: /files/i }).click()
     await expect(page.getByText('single-file.pdf').first()).toBeVisible({
@@ -326,17 +321,17 @@ test.describe('03 - Object File Attachments', () => {
     await page.waitForTimeout(500)
 
     // Click to expand property using data-testid
-    const propertyHeader = page.locator('[data-testid="property-header-0"]')
+    const propertyHeader = page
+      .locator('[data-testid^="property-header-"]')
+      .first()
     await expect(propertyHeader).toBeVisible({ timeout: 5000 })
     await propertyHeader.click()
-
-    // Wait for expanded content
-    await expect(
-      page.locator('[data-testid="property-expanded-0"]')
-    ).toBeVisible({ timeout: 5000 })
+    await page.waitForTimeout(300)
 
     // Click attach button using data-testid
-    const attachButton = page.locator('[data-testid="property-attach-file-0"]')
+    const attachButton = page
+      .locator('[data-testid^="property-attach-file-"]')
+      .first()
     await expect(attachButton).toBeVisible({ timeout: 5000 })
     await attachButton.click()
 
@@ -401,22 +396,22 @@ test.describe('03 - Object File Attachments', () => {
     await page.waitForTimeout(500)
 
     // Expand property using data-testid
-    const propertyHeader = page.locator('[data-testid="property-header-0"]')
+    const propertyHeader = page
+      .locator('[data-testid^="property-header-"]')
+      .first()
     await expect(propertyHeader).toBeVisible({ timeout: 5000 })
     await propertyHeader.click()
+    await page.waitForTimeout(300)
 
-    // Wait for expanded content and value item
+    // Wait for value item
     await expect(
-      page.locator('[data-testid="property-expanded-0"]')
-    ).toBeVisible({ timeout: 5000 })
-    await expect(
-      page.locator('[data-testid="property-0-value-0"]')
+      page.locator('[data-testid^="property-value-"]').first()
     ).toBeVisible({ timeout: 5000 })
 
     // Click attach button on the value using data-testid
-    const valueAttachButton = page.locator(
-      '[data-testid="value-attach-file-0-0"]'
-    )
+    const valueAttachButton = page
+      .locator('[data-testid^="value-attach-file-"]')
+      .first()
     await expect(valueAttachButton).toBeVisible({ timeout: 5000 })
     await valueAttachButton.click()
 

@@ -35,7 +35,14 @@ export interface FileUploadOptions {
  */
 export class FileUploadService {
   private client: ApiClient
+  // Queue: tasks still to be processed. Tasks are shifted out as processQueue
+  // picks them up, so this shrinks over time.
   private uploadQueue: FileUploadTask[] = []
+  // Persistent history: every task ever enqueued, in insertion order. Tasks
+  // mutate in place (status, progress, error), so subscribers see live updates
+  // without us re-pushing. Used by the UploadCenter widget.
+  private allTasks: FileUploadTask[] = []
+  private listeners = new Set<() => void>()
   private processing = false
   private options: Required<FileUploadOptions>
 
@@ -56,10 +63,33 @@ export class FileUploadService {
   }
 
   /**
+   * Subscribe to queue state changes. Returns an unsubscribe function.
+   */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
+  }
+
+  private notify() {
+    this.listeners.forEach((l) => l())
+  }
+
+  /**
+   * Get the full task history (pending, uploading, completed, failed).
+   */
+  getAllTasks(): FileUploadTask[] {
+    return this.allTasks.slice()
+  }
+
+  /**
    * Add a file to the upload queue
    */
   addFile(task: FileUploadTask) {
     this.uploadQueue.push(task)
+    this.allTasks.push(task)
+    this.notify()
     this.processQueue()
   }
 
@@ -80,6 +110,7 @@ export class FileUploadService {
         logger.error(`File upload failed for task ${task.id}:`, error)
         task.status = 'failed'
         task.error = error.message
+        this.notify()
         this.options.onError(task.id, error.message)
       }
     }
@@ -97,6 +128,7 @@ export class FileUploadService {
 
     task.status = 'uploading'
     task.progress = 0
+    this.notify()
     this.options.onProgress(task.id, 0)
 
     // Prefer more specific UUIDs: value > property > object
@@ -142,15 +174,17 @@ export class FileUploadService {
     this.options.onProgress(task.id, 100)
 
     task.status = 'completed'
+    task.progress = 100
+    this.notify()
     this.options.onComplete(task.id)
     return response
   }
 
   /**
-   * Get the current queue status
+   * Get the current queue status (full history, including terminal tasks).
    */
   getQueueStatus() {
-    return this.uploadQueue.map((task) => ({
+    return this.allTasks.map((task) => ({
       id: task.id,
       status: task.status,
       progress: task.progress,
@@ -162,9 +196,37 @@ export class FileUploadService {
    * Queue file uploads with context (for object creation)
    */
   queueFileUploadsWithContext(fileContexts: any[]) {
+    // Track each queued task's terminal state via a per-id promise so callers
+    // can reliably invalidate caches once uploads finish.
+    const pendingIds = new Set<string>()
+    let resolveAll: () => void
+    const allDone = new Promise<void>((r) => {
+      resolveAll = r
+    })
+
+    const prevOnComplete = this.options.onComplete
+    const prevOnError = this.options.onError
+    const markDone = (id: string) => {
+      if (pendingIds.delete(id) && pendingIds.size === 0) {
+        this.options.onComplete = prevOnComplete
+        this.options.onError = prevOnError
+        resolveAll()
+      }
+    }
+    this.options.onComplete = (id: string) => {
+      prevOnComplete(id)
+      markDone(id)
+    }
+    this.options.onError = (id: string, err: string) => {
+      prevOnError(id, err)
+      markDone(id)
+    }
+
     fileContexts.forEach((context) => {
+      const id = `upload-${Date.now()}-${Math.random()}`
+      pendingIds.add(id)
       this.addFile({
-        id: `upload-${Date.now()}-${Math.random()}`,
+        id,
         attachment: context.attachment,
         objectUuid: context.objectUuid,
         propertyUuid: context.propertyUuid,
@@ -174,19 +236,28 @@ export class FileUploadService {
         retries: 0,
       })
     })
-    return Promise.resolve()
+
+    if (pendingIds.size === 0) {
+      this.options.onComplete = prevOnComplete
+      this.options.onError = prevOnError
+      resolveAll!()
+    }
+
+    return allDone
   }
 
   /**
-   * Get upload summary
+   * Get upload summary across the full task history (not just the pending
+   * queue), so callers can see completed/failed counts after processQueue
+   * has shifted tasks out.
    */
   getUploadSummary() {
-    const completed = this.uploadQueue.filter(
+    const completed = this.allTasks.filter(
       (task) => task.status === 'completed'
     )
-    const failed = this.uploadQueue.filter((task) => task.status === 'failed')
-    const pending = this.uploadQueue.filter((task) => task.status === 'pending')
-    const uploading = this.uploadQueue.filter(
+    const failed = this.allTasks.filter((task) => task.status === 'failed')
+    const pending = this.allTasks.filter((task) => task.status === 'pending')
+    const uploading = this.allTasks.filter(
       (task) => task.status === 'uploading'
     )
 
@@ -195,26 +266,40 @@ export class FileUploadService {
       failed,
       pending,
       uploading,
-      total: this.uploadQueue.length,
+      total: this.allTasks.length,
     }
   }
 
   /**
-   * Clear completed uploads
+   * Clear completed uploads from the history. Failed uploads are kept so the
+   * user can retry them.
    */
   clearCompleted() {
     this.uploadQueue = this.uploadQueue.filter(
       (task) => task.status !== 'completed'
     )
+    this.allTasks = this.allTasks.filter((task) => task.status !== 'completed')
+    this.notify()
   }
 }
 
-// Hook to get upload service within React components
-export function useUploadService(): FileUploadService {
-  const client = useIomSdkClient() // Always defined (blocking load)
+// Module-level singleton so every component sees the same queue. The instance
+// is keyed by the SDK client so it's recreated if the client changes (e.g.
+// after re-auth). Previously this returned a fresh FileUploadService on every
+// render, which meant the Files tab and the Add sheet each had their own
+// (invisible) queue.
+let singletonClient: ApiClient | null = null
+let singletonService: FileUploadService | null = null
 
-  // Note: Creates new instance each time - consider useMemo if needed
-  return new FileUploadService(client)
+export function useUploadService(): FileUploadService {
+  const client = useIomSdkClient()
+
+  if (!singletonService || singletonClient !== client) {
+    singletonService = new FileUploadService(client)
+    singletonClient = client
+  }
+
+  return singletonService
 }
 
 // Legacy function for non-React contexts (will be phased out)

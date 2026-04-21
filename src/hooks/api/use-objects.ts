@@ -133,12 +133,14 @@ export function useObjects() {
         abbreviation,
         version,
         description,
+        isTemplate,
       }: {
         uuid: UUID
         name?: string
         abbreviation?: string
         version?: string
         description?: string
+        isTemplate?: boolean
       }) => {
         // Use createObject for updates (this creates a new version)
         const response = await client.node.createOrUpdateObject({
@@ -147,6 +149,7 @@ export function useObjects() {
           abbreviation,
           version,
           description,
+          isTemplate,
         })
         return response
       },
@@ -159,8 +162,13 @@ export function useObjects() {
             queryKey: queryKeys.aggregates.detail(data.uuid),
           })
         }
+        // Broad invalidation: template updates need to refresh the models query
+        // as well (`queryKeys.aggregates.models(...)`), not just list queries.
         queryClient.invalidateQueries({
-          queryKey: queryKeys.aggregates.lists(),
+          queryKey: queryKeys.objects.all,
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.all,
         })
       },
     })
@@ -181,10 +189,10 @@ export function useObjects() {
           queryKey: queryKeys.aggregates.detail(deletedUuid),
         })
         queryClient.invalidateQueries({
-          queryKey: queryKeys.objects.lists(),
+          queryKey: queryKeys.objects.all,
         })
         queryClient.invalidateQueries({
-          queryKey: queryKeys.aggregates.lists(),
+          queryKey: queryKeys.aggregates.all,
         })
       },
     })

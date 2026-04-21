@@ -36,14 +36,14 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
     launchOptions: {
       // Slow down actions for better visibility (set to 0 for fast execution)
-      slowMo: process.env.SLOW_MO ? parseInt(process.env.SLOW_MO) : 1000,
+      slowMo: process.env.SLOW_MO ? parseInt(process.env.SLOW_MO) : 0,
     },
     // Certificate for API servers (mTLS)
     clientCertificates: [
       {
         origin: getCertAuthOrigin(),
-        certPath: path.join(certsDir, 'client1.crt'),
-        keyPath: path.join(certsDir, 'client1.key'),
+        certPath: path.join(certsDir, 'client_1_2.crt'),
+        keyPath: path.join(certsDir, 'client_1_2.key'),
         passphrase: process.env.CLIENT_CERT_PASSPHRASE || '',
       },
     ],

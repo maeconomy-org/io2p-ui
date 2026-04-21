@@ -9,8 +9,10 @@ import {
   QueryProvider,
   AuthProvider,
   SearchProvider,
+  UploadProvider,
   useIomSdkClient,
 } from '@/contexts'
+import { UploadCenter } from '@/components/upload-center'
 
 interface ProvidersProps {
   children: ReactNode
@@ -56,7 +58,10 @@ function InnerProviders({ children }: { children: ReactNode }) {
 
   return (
     <AuthProvider client={client}>
-      <SearchProvider>{children}</SearchProvider>
+      <UploadProvider>
+        <SearchProvider>{children}</SearchProvider>
+        <UploadCenter />
+      </UploadProvider>
     </AuthProvider>
   )
 }

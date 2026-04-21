@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 
 import { logger, isForbiddenError, queryKeys } from '@/lib'
-import { useUploadService } from '@/lib/upload-service'
+import { useOptionalUploadQueue } from '@/contexts'
 import { useImportApi, useObjects, useStatements } from '@/hooks'
 import {
   transformToImportFormat,
@@ -61,8 +61,8 @@ export function useObjectOperations({
   const queryClient = useQueryClient()
   const t = useTranslations()
 
-  // Get upload service
-  const uploadService = useUploadService()
+  // Upload queue (singleton, managed by UploadProvider)
+  const uploadQueue = useOptionalUploadQueue()
 
   useEffect(() => {
     if (initialObject && !isEditing) {
@@ -111,6 +111,11 @@ export function useObjectOperations({
       }
 
       toast.success(t('objects.objectMetadataUpdated'))
+
+      // Invalidate caches so every list/detail that depends on this object refetches.
+      // Without this, the templates table keeps the stale row when onRefetch isn't wired up.
+      queryClient.invalidateQueries({ queryKey: queryKeys.objects.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.aggregates.all })
 
       // Manually trigger a refetch to ensure UI updates immediately
       if (onRefetch) {
@@ -229,37 +234,25 @@ export function useObjectOperations({
             : undefined,
       })
 
-      // Step 5: Upload files in background if any (don't await - let it run in background)
+      // Step 5: Upload files in background if any (don't await — the
+      // UploadProvider handles progress UI, toasts, and narrow cache
+      // invalidation per-task as each upload completes).
       if (uploadFiles.length > 0) {
-        // Map files to their correct context UUIDs from Aggregate API response
         const fileContexts = mapFileContexts(uploadFiles, importResult)
 
-        if (fileContexts.length > 0) {
-          // Start upload in background and handle results
-          uploadService.queueFileUploadsWithContext(fileContexts).then(() => {
-            // Wait a bit for uploads to complete, then show summary
-            setTimeout(async () => {
-              const summary = uploadService.getUploadSummary()
-              if (summary.completed.length > 0) {
-                toast.success(
-                  t('objects.filesUploadedSuccess', {
-                    count: summary.completed.length,
-                  })
-                )
-              }
-              if (summary.failed.length > 0) {
-                toast.error(
-                  t('objects.filesUploadFailed', {
-                    count: summary.failed.length,
-                  })
-                )
-              }
-              uploadService.clearCompleted()
-            }, 2000)
-          })
-        } else {
+        if (fileContexts.length > 0 && uploadQueue) {
+          // Fire and forget — enqueue() awaits internally but we don't block
+          // the object-create flow on it.
+          void uploadQueue.enqueue(fileContexts)
+        } else if (fileContexts.length === 0) {
           logger.warn(
-            'No file contexts could be mapped from Aggregate API response'
+            'No file contexts could be mapped from Aggregate API response',
+            { uploadFiles: uploadFiles.length }
+          )
+        } else if (!uploadQueue) {
+          logger.error(
+            'UploadProvider not mounted — file uploads will be skipped',
+            { fileCount: fileContexts.length }
           )
         }
       }

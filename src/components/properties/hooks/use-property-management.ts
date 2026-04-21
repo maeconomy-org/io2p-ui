@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import type { UUPropertyDTO, UUPropertyValueDTO } from 'iom-sdk'
-import { Predicate } from 'iom-sdk'
+import { Predicate, type UUPropertyDTO, type UUPropertyValueDTO } from 'iom-sdk'
 
 import { logger } from '@/lib'
 import { useProperties } from '@/hooks/api/use-properties'
 import { useMathFormulas } from '@/hooks/api/use-math-formulas'
 import { useStatements } from '@/hooks/api/use-statements'
+import { useUuid } from '@/hooks/api/use-uuid'
 
 /**
  * A hook that provides comprehensive property management functions
@@ -22,7 +22,8 @@ export function usePropertyManagement() {
   } = useProperties()
 
   const { useCreateFormulaCalc, useDeleteFormulaCalc } = useMathFormulas()
-  const { useCreateStatement, useDeleteStatement } = useStatements()
+  const { useCreateStatement } = useStatements()
+  const { useGenerateUuid } = useUuid()
 
   const updatePropertyMutation = useUpdatePropertyWithValues()
   const updatePropertyMetaMutation = useUpdateProperty()
@@ -32,13 +33,14 @@ export function usePropertyManagement() {
   const createFormulaCalcMutation = useCreateFormulaCalc()
   const deleteFormulaCalcMutation = useDeleteFormulaCalc()
   const createStatementMutation = useCreateStatement()
-  const deleteStatementMutation = useDeleteStatement()
+  const generateUuidMutation = useGenerateUuid()
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
   /**
-   * Create a new property for an object
+   * Create a new property for an object.
+   * Returns the created property with value UUIDs populated.
    */
   const createPropertyForObject = useCallback(
     async (objectId: string, propertyData: any) => {
@@ -61,18 +63,24 @@ export function usePropertyManagement() {
         const newProperty = response.property.data
 
         // If we have a property UUID and values, add them
+        const createdValues: Array<{ uuid: string; index: number }> = []
         if (newProperty && newProperty.uuid && values.length > 0) {
-          for (const value of values) {
-            await setValueMutation.mutateAsync({
+          for (let i = 0; i < values.length; i++) {
+            const isFormula = !!values[i]?.formulaData?.formulaUuid
+            const valueResponse = await setValueMutation.mutateAsync({
               propertyUuid: newProperty.uuid,
-              value: {
-                value: value.value,
-              },
+              // For formula values, omit `value` so backend computes it
+              value: isFormula ? {} : { value: values[i].value },
             })
+            // Track the created value UUID for formula calc creation
+            const valueUuid = valueResponse?.value?.data?.uuid
+            if (valueUuid) {
+              createdValues.push({ uuid: valueUuid, index: i })
+            }
           }
         }
 
-        return newProperty
+        return { ...newProperty, _createdValues: createdValues }
       } catch (err) {
         logger.error('Error creating property:', err)
         setError(err as Error)
@@ -93,7 +101,7 @@ export function usePropertyManagement() {
       property: UUPropertyDTO,
       values: Array<{
         uuid?: string
-        value: string
+        value?: string
         valueTypeCast?: string
       }> = []
     ) => {
@@ -164,7 +172,7 @@ export function usePropertyManagement() {
    * Remove a property from an object (soft delete the property)
    */
   const removePropertyFromObject = useCallback(
-    async (objectId: string, propertyUuid: string) => {
+    async (_objectId: string, propertyUuid: string) => {
       setIsLoading(true)
       setError(null)
 
@@ -201,19 +209,40 @@ export function usePropertyManagement() {
       if (!formulaData?.formulaUuid || args.length === 0) return null
 
       try {
-        // Create the formula calc
-        const calcUuid = crypto.randomUUID()
+        logger.info('Creating formula calc:', {
+          formulaUuid: formulaData.formulaUuid,
+          args,
+          resultPropertyValueUUID,
+        })
+
+        // Step 1: Register a UUID via the registry API
+        const registeredUuid = await generateUuidMutation.mutateAsync()
+        logger.info('Registered UUID for formula calc:', { registeredUuid })
+
+        // Step 2: Create the MathFormulaCalc record with the registered UUID
         const calc = await createFormulaCalcMutation.mutateAsync({
-          uuid: calcUuid,
+          uuid: registeredUuid,
           args,
           result: { propertyValueUUID: resultPropertyValueUUID },
         })
 
-        // Create HAS_MATH_FORMULA_CALC statement
+        const createdCalcUuid = calc?.uuid
+        if (!createdCalcUuid) {
+          throw new Error('Backend did not return a calc UUID')
+        }
+
+        logger.info('Formula calc created:', { createdCalcUuid })
+
+        await createStatementMutation.mutateAsync({
+          subject: formulaData.formulaUuid,
+          predicate: Predicate.HAS_MATH_FORMULA_CALC,
+          object: createdCalcUuid,
+        })
+
         await createStatementMutation.mutateAsync({
           subject: objectUuid,
           predicate: Predicate.HAS_MATH_FORMULA_CALC,
-          object: calc.uuid,
+          object: createdCalcUuid,
         })
 
         return calc
@@ -222,30 +251,24 @@ export function usePropertyManagement() {
         throw err
       }
     },
-    [createFormulaCalcMutation, createStatementMutation]
+    [createFormulaCalcMutation, createStatementMutation, generateUuidMutation]
   )
 
   /**
    * Delete a formula calculation (formula → text conversion)
    */
   const deleteFormulaCalcForValue = useCallback(
-    async (objectUuid: string, calcUuid: string) => {
+    async (_objectUuid: string, calcUuid: string, _formulaUuid?: string) => {
       try {
-        // Delete the HAS_MATH_FORMULA_CALC statement
-        await deleteStatementMutation.mutateAsync({
-          subject: objectUuid,
-          predicate: Predicate.HAS_MATH_FORMULA_CALC,
-          object: calcUuid,
-        })
-
-        // Soft-delete the formula calc
+        // Soft-delete the formula calc via DELETE /api/UUMathFormulaCalc/{uuid}
+        // Statements are intentionally not deleted — backend owns that wiring.
         await deleteFormulaCalcMutation.mutateAsync(calcUuid)
       } catch (err) {
         logger.error('Error deleting formula calc:', err)
         throw err
       }
     },
-    [deleteFormulaCalcMutation, deleteStatementMutation]
+    [deleteFormulaCalcMutation]
   )
 
   return {

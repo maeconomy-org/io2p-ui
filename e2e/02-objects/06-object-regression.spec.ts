@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 
+import { waitForUploadsIdle } from '../utils/test-helpers'
+
 const runId = Date.now()
 let parentObjectName = ''
 let childObjectName = ''
@@ -73,17 +75,18 @@ test.describe('06 - Object Regression Flow', () => {
       .first()
       .fill('Steel')
 
-    await addSheet.getByRole('button', { name: 'Add Another Value' }).click()
+    await addSheet
+      .locator('[data-testid^="property-add-value-"]')
+      .first()
+      .click()
     await addSheet
       .getByPlaceholder('Enter property value')
       .nth(1)
       .fill('Recycled')
 
     await addSheet.getByRole('button', { name: /attach file/i }).click()
-    const attachmentsDialog = page
-      .getByRole('dialog')
-      .filter({ hasText: /attachments/i })
-    await expect(attachmentsDialog).toBeVisible()
+    const attachmentsDialog = page.locator('[data-testid="attachment-modal"]')
+    await expect(attachmentsDialog).toBeVisible({ timeout: 5000 })
 
     await attachmentsDialog.locator('input[type="file"]').setInputFiles({
       name: 'object-file.pdf',
@@ -104,13 +107,19 @@ test.describe('06 - Object Regression Flow', () => {
       attachmentsDialog.getByText('object-file-renamed.pdf')
     ).toBeVisible()
 
-    await attachmentsDialog.getByRole('button', { name: 'Done' }).click()
+    await attachmentsDialog
+      .locator('[data-testid="attachment-modal-done-button"]')
+      .click()
 
     await addSheet.getByRole('button', { name: 'Create' }).click()
 
     await expect(page.getByText(childObjectName)).toBeVisible({
       timeout: 15000,
     })
+
+    // Wait for the background upload to drain so the next test can open the
+    // object with its file already persisted.
+    await waitForUploadsIdle(page)
   })
 
   test('TC003: Edit details, properties, files, relationships, and QR code', async ({
@@ -134,14 +143,15 @@ test.describe('06 - Object Regression Flow', () => {
 
     await page.getByRole('tab', { name: 'Properties' }).click()
     // Click to expand property
-    await page.getByText('Material Type').first().click()
+    await page.locator('[data-testid^="property-header-"]').first().click()
+    await page.waitForTimeout(300)
     await expect(page.getByText('Steel').first()).toBeVisible()
-    await page.getByRole('button', { name: 'Attach' }).first().click()
+
+    // Click property-level attach (paperclip icon)
+    await page.locator('[data-testid^="property-attach-file-"]').first().click()
 
     // Property attach modal
-    const propAttachModal = page
-      .getByRole('dialog')
-      .filter({ hasText: 'Attach Files to Property' })
+    const propAttachModal = page.locator('[data-testid="attachment-modal"]')
     await expect(propAttachModal).toBeVisible({ timeout: 10000 })
 
     await propAttachModal
@@ -157,12 +167,11 @@ test.describe('06 - Object Regression Flow', () => {
 
     await expect(page.getByText('Spec')).toBeVisible({ timeout: 10000 })
 
-    await page.getByRole('button', { name: 'Attach' }).nth(1).click()
+    // Click value-level attach (paperclip icon)
+    await page.locator('[data-testid^="value-attach-file-"]').first().click()
 
     // Value attach modal
-    const valueAttachModal = page
-      .getByRole('dialog')
-      .filter({ hasText: 'Attach Files to Value' })
+    const valueAttachModal = page.locator('[data-testid="attachment-modal"]')
     await expect(valueAttachModal).toBeVisible({ timeout: 10000 })
 
     await valueAttachModal
@@ -184,12 +193,14 @@ test.describe('06 - Object Regression Flow', () => {
     await page.locator('[data-testid="section-properties-edit-button"]').click()
     await page.waitForTimeout(1000) // Wait for edit mode to activate
 
-    // Click on the property to expand it in edit mode
-    await page.getByText('Material Type').first().click()
-    await page.waitForTimeout(500)
-
-    // Update property name (this tests the bug fix for property name updates)
-    await page.getByLabel('Property Name').first().fill('Material Kind')
+    // Edit-mode renders PropertyItemRHF with isExpanded=true by default, so
+    // the property-name input is already visible. Don't click the property
+    // header — that would collapse it.
+    const propertyNameInput = page
+      .locator('[data-testid^="property-name-"]')
+      .first()
+    await expect(propertyNameInput).toBeVisible({ timeout: 10000 })
+    await propertyNameInput.fill('Material Kind')
 
     await page.getByRole('button', { name: 'Save' }).click()
     // Wait for save to complete and page to stabilize
@@ -273,6 +284,9 @@ test.describe('06 - Object Regression Flow', () => {
         .getByRole('button', { name: 'Upload Files' })
         .click()
     }
+
+    // Wait for the background upload to drain before asserting the file row.
+    await waitForUploadsIdle(page)
 
     // Wait for uploaded file to appear
     await expect(page.getByText('details-file.pdf').first()).toBeVisible({

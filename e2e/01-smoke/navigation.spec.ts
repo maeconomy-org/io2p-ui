@@ -17,8 +17,8 @@ test.describe('00 - Navigation Smoke Tests', () => {
     await expect(errorElement).not.toBeVisible()
   })
 
-  test('TC003: Navigate to models page', async ({ page }) => {
-    await page.goto('/models')
+  test('TC003: Navigate to templates page', async ({ page }) => {
+    await page.goto('/templates')
     await page.waitForLoadState('networkidle')
 
     const errorElement = page.locator('text=Application error')

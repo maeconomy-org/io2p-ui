@@ -249,6 +249,9 @@ next-env.d.ts
 e2e/.auth/
 docs/
 certs/
+.agents
+.claude
+skills-lock.json
 .cursorrules
 .windsurf
 dump.rdb

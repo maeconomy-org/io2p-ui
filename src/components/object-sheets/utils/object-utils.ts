@@ -26,11 +26,14 @@ export function findModelForObject(
 }
 
 /**
- * Create an empty property structure for form use
+ * Create an empty property structure for form use.
+ * Generates a unique _tempId so each property gets distinct data-testid attributes.
  */
+let tempIdCounter = 0
 export function createEmptyProperty() {
   return {
     uuid: '',
+    _tempId: `new-${++tempIdCounter}`,
     key: '',
     values: [
       {

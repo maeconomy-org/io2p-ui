@@ -9,7 +9,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// Syntax validation — for /models formula sheet (green/red border checks)
+// Syntax validation — for /templates formula sheet (green/red border checks)
 // ---------------------------------------------------------------------------
 
 export interface SyntaxFixture {

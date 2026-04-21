@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { E2E_SYNTAX_VALID, E2E_SYNTAX_INVALID } from '../utils/formula-fixtures'
 
 /**
- * Formula CRUD on /models page
+ * Formula CRUD on /templates page
  *
  * Tests formula creation, syntax validation (exp4j-aligned),
  * editing, and deletion via the Formulas tab.
@@ -12,7 +12,7 @@ const runId = Date.now()
 
 test.describe('08 - Formula CRUD', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/models')
+    await page.goto('/templates')
     await page.waitForLoadState('networkidle')
 
     // Switch to the Formulas tab
@@ -143,7 +143,9 @@ test.describe('08 - Formula CRUD', () => {
     await expect(editSheet).toBeHidden({ timeout: 10000 })
 
     // Verify updated expression is visible in table
-    await expect(page.locator('table').getByText('x * y + 1')).toBeVisible({
+    await expect(
+      page.locator('table').getByText('x * y + 1').first()
+    ).toBeVisible({
       timeout: 10000,
     })
   })

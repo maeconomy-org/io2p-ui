@@ -1,5 +1,7 @@
 import { expect, Page, test } from '@playwright/test'
 
+import { attachFileInSheet, waitForUploadsIdle } from '../utils/test-helpers'
+
 /**
  * Object CRUD Operations - Core Flows
  *
@@ -147,7 +149,7 @@ test.describe('01 - Object CRUD Operations', () => {
     await sheet.getByLabel('Property Name').fill('Material Type')
     await sheet.getByPlaceholder('Enter property value').first().fill('Steel')
 
-    await sheet.getByRole('button', { name: 'Add Another Value' }).click()
+    await sheet.locator('[data-testid^="property-add-value-"]').click()
     await sheet.getByPlaceholder('Enter property value').nth(1).fill('Recycled')
 
     await sheet.getByRole('button', { name: 'Create' }).click()
@@ -223,26 +225,17 @@ test.describe('01 - Object CRUD Operations', () => {
 
     await sheet.getByLabel('Name').fill(name)
 
-    // Add file
-    await sheet.getByRole('button', { name: /attach file/i }).click()
-    const attachModal = page
-      .getByRole('dialog')
-      .filter({ hasText: /attachments/i })
-    await expect(attachModal).toBeVisible({ timeout: 5000 })
-
-    await attachModal.locator('input[type="file"]').setInputFiles({
+    await attachFileInSheet(page, sheet, {
       name: 'test-document.pdf',
-      mimeType: 'application/pdf',
-      buffer: Buffer.from('PDF test content'),
+      content: 'PDF test content',
     })
-
-    await attachModal.getByRole('button', { name: 'Done' }).click()
 
     await sheet.getByRole('button', { name: 'Create' }).click()
     await expect(sheet).toBeHidden({ timeout: 15000 })
 
-    // Wait for background file upload to complete before checking
-    await page.waitForTimeout(3000)
+    // Upload runs in the background after object creation — wait for the
+    // queue to drain before reloading (reload aborts in-flight fetches).
+    await waitForUploadsIdle(page)
 
     // Verify file attached
     await openObject(page, name)
@@ -334,11 +327,10 @@ test.describe('01 - Object CRUD Operations', () => {
 
     // Verify - click property header to expand
     await page
-      .locator('[data-testid="property-header-0"]')
+      .locator('[data-testid^="property-header-"]')
+      .first()
       .click({ timeout: 10000 })
-    await expect(
-      page.locator('[data-testid="property-expanded-0"]')
-    ).toBeVisible({ timeout: 10000 })
+    await page.waitForTimeout(300)
     await expect(page.getByText('25 floors').first()).toBeVisible({
       timeout: 10000,
     })

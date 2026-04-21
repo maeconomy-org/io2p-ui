@@ -35,19 +35,25 @@ test.describe('05 - Object Templates', () => {
       .first()
       .fill('template value')
 
-    await addSheet.getByRole('button', { name: 'Add Another Value' }).click()
+    await addSheet.locator('[data-testid^="property-add-value-"]').click()
     await addSheet
       .getByPlaceholder('Enter property value')
       .nth(1)
       .fill('second template value')
 
     // Add second property
-    await addSheet.getByRole('button', { name: 'Add Property' }).click()
+    const addAnotherBtn = addSheet.getByRole('button', {
+      name: 'Add Another Property',
+    })
+    await addAnotherBtn.scrollIntoViewIfNeeded()
+    await addAnotherBtn.click()
+    await expect(addSheet.getByLabel('Property Name').nth(1)).toBeVisible({
+      timeout: 5000,
+    })
     await addSheet.getByLabel('Property Name').nth(1).fill('Category')
-    await addSheet
-      .getByPlaceholder('Enter property value')
-      .nth(2)
-      .fill('Template Category')
+    const valueInputs = addSheet.getByPlaceholder('Enter property value')
+    const vCount = await valueInputs.count()
+    await valueInputs.nth(vCount - 1).fill('Template Category')
 
     await addSheet.getByRole('button', { name: 'Create' }).click()
 
@@ -235,5 +241,5 @@ test.describe('05 - Object Templates', () => {
   })
 
   // TC006 & TC007: Removed - Templates/models don't propagate changes to objects.
-  // Templates are managed in /models page and objects created from templates are independent.
+  // Templates are managed in /templates page and objects created from templates are independent.
 })

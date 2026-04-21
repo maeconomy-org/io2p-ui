@@ -31,6 +31,7 @@ const EMPTY_AVAILABLE_PROPERTIES: AvailableProperty[] = []
 interface PropertyValueItemProps {
   value: PropertyValue
   valueIndex: number
+  propertyId: string
   isEditable: boolean
   availableProperties: AvailableProperty[]
   onValueChange?: (index: number, newValue: string) => void
@@ -47,6 +48,7 @@ interface PropertyValueItemProps {
 function PropertyValueItem({
   value,
   valueIndex,
+  propertyId,
   isEditable,
   availableProperties,
   onValueChange,
@@ -71,32 +73,34 @@ function PropertyValueItem({
             {t('objects.propertyValue')}
           </Label>
           <div className="flex items-center gap-1">
-            <ValueModeToggle
-              isFormulaMode={isFormulaMode}
-              onTextMode={() => {
-                if (isFormulaMode) {
-                  setIsFormulaMode(false)
-                  onValueChange?.(
-                    valueIndex,
-                    value.formulaData?.result?.toString() || value.value || ''
-                  )
-                  onFormulaChange?.(valueIndex, undefined)
-                }
-              }}
-              onFormulaMode={() => {
-                if (!isFormulaMode) {
-                  setIsFormulaMode(true)
-                  if (!value.formulaData) {
-                    onFormulaChange?.(valueIndex, {
-                      formula: '',
-                      variableMapping: {},
-                      result: null,
-                      isValid: false,
-                    })
+            {onFormulaChange && (
+              <ValueModeToggle
+                isFormulaMode={isFormulaMode}
+                onTextMode={() => {
+                  if (isFormulaMode) {
+                    setIsFormulaMode(false)
+                    onValueChange?.(
+                      valueIndex,
+                      value.formulaData?.result?.toString() || value.value || ''
+                    )
+                    onFormulaChange(valueIndex, undefined)
                   }
-                }
-              }}
-            />
+                }}
+                onFormulaMode={() => {
+                  if (!isFormulaMode) {
+                    setIsFormulaMode(true)
+                    if (!value.formulaData) {
+                      onFormulaChange(valueIndex, {
+                        formula: '',
+                        variableMapping: {},
+                        result: null,
+                        isValid: false,
+                      })
+                    }
+                  }
+                }}
+              />
+            )}
 
             {onAttachFile && (
               <Button
@@ -105,6 +109,7 @@ function PropertyValueItem({
                 size="sm"
                 onClick={onAttachFile}
                 className="h-7 w-7 p-0 text-muted-foreground"
+                data-testid={`value-attach-file-${propertyId}-${valueIndex}`}
               >
                 <Paperclip className="h-3.5 w-3.5" />
               </Button>
@@ -309,7 +314,10 @@ export function PropertyItem({
             )}
           </div>
 
-          <div className="ml-3 text-sm text-muted-foreground truncate max-w-[40%]">
+          <div
+            data-testid="property-summary-value"
+            className="ml-3 text-sm text-muted-foreground truncate max-w-[40%]"
+          >
             {summaryText}
           </div>
         </div>
@@ -325,6 +333,7 @@ export function PropertyItem({
               size="sm"
               onClick={() => onAttachFile('property')}
               className="h-7 px-1.5 text-muted-foreground"
+              data-testid={`property-attach-file-${propertyId}`}
             >
               <Paperclip className="h-3.5 w-3.5" />
             </Button>
@@ -405,6 +414,7 @@ export function PropertyItem({
                     size="sm"
                     onClick={() => onAttachFile('property')}
                     className="h-8 w-8 p-0 shrink-0 text-muted-foreground"
+                    data-testid={`property-attach-file-${propertyId}`}
                   >
                     <Paperclip className="h-3.5 w-3.5" />
                   </Button>
@@ -444,6 +454,7 @@ export function PropertyItem({
                     key={value.uuid || `new-${index}`}
                     value={value}
                     valueIndex={index}
+                    propertyId={propertyId}
                     isEditable
                     availableProperties={availableProperties}
                     onValueChange={onValueChange}
@@ -499,6 +510,7 @@ export function PropertyItem({
                           size="sm"
                           onClick={() => onAttachFile('value', index)}
                           className="-mr-2 h-7 px-1.5 text-muted-foreground shrink-0"
+                          data-testid={`value-attach-file-${propertyId}-${index}`}
                         >
                           <Paperclip className="h-3.5 w-3.5" />
                         </Button>

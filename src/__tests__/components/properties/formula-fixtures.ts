@@ -512,6 +512,140 @@ export const VALID_FORMULAS: ValidFormula[] = [
     scope: { f: 212 },
     expected: 100,
   },
+
+  // --- Modulo edge cases ---
+  {
+    label: 'modulo with negative dividend',
+    expression: '-10 % 3',
+    scope: {},
+    expected: -1,
+  },
+  {
+    label: 'modulo with negative divisor',
+    expression: '10 % -3',
+    scope: {},
+    expected: 1,
+  },
+  {
+    label: 'modulo zero dividend',
+    expression: '0 % 5',
+    scope: {},
+    expected: 0,
+  },
+  {
+    label: 'modulo with floats',
+    expression: '5.5 % 2',
+    scope: {},
+    expected: 1.5,
+    approximate: true,
+  },
+
+  // --- Exponentiation edge cases ---
+  {
+    label: 'negative exponent',
+    expression: '2^-1',
+    scope: {},
+    expected: 0.5,
+  },
+  {
+    label: 'negative base odd exponent via variable',
+    expression: 'x^3',
+    scope: { x: -2 },
+    expected: -8,
+  },
+
+  // --- Division edge cases ---
+  {
+    label: 'negative division',
+    expression: '-10 / 3',
+    scope: {},
+    expected: -10 / 3,
+    approximate: true,
+  },
+
+  // --- Rounding edge cases ---
+  {
+    label: 'round down',
+    expression: 'round(4.4)',
+    scope: {},
+    expected: 4,
+  },
+  {
+    label: 'round up',
+    expression: 'round(4.6)',
+    scope: {},
+    expected: 5,
+  },
+  {
+    label: 'round negative half (JS Math.round)',
+    expression: 'round(-0.5)',
+    scope: {},
+    expected: 0,
+    approximate: true, // Math.round(-0.5) returns -0 in JS; toBeCloseTo treats -0 ≈ 0
+  },
+
+  // --- Function domain boundaries ---
+  {
+    label: 'sqrt of zero',
+    expression: 'sqrt(0)',
+    scope: {},
+    expected: 0,
+  },
+  {
+    label: 'cube root of negative',
+    expression: 'cbrt(-8)',
+    scope: {},
+    expected: -2,
+  },
+  {
+    label: 'cube root of zero',
+    expression: 'cbrt(0)',
+    scope: {},
+    expected: 0,
+  },
+  {
+    label: 'asin of zero',
+    expression: 'asin(0)',
+    scope: {},
+    expected: 0,
+  },
+  {
+    label: 'acos of zero',
+    expression: 'acos(0)',
+    scope: {},
+    expected: Math.PI / 2,
+    approximate: true,
+  },
+
+  // --- Unicode constants ---
+  {
+    label: 'unicode pi in expression',
+    expression: '\u03C0 * 2',
+    scope: {},
+    expected: Math.PI * 2,
+    approximate: true,
+  },
+  {
+    label: 'golden ratio phi',
+    expression: '\u03C6 + 1',
+    scope: {},
+    expected: 2.61803398874,
+    approximate: true,
+  },
+
+  // --- Operator precedence ---
+  {
+    label: 'modulo precedence over addition',
+    expression: '2 + 3 % 4',
+    scope: {},
+    expected: 5,
+  },
+  {
+    label: 'subtraction left-associative',
+    expression: '10 - 5 - 2',
+    scope: {},
+    expected: 3,
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -744,6 +878,29 @@ export const ERROR_FORMULAS: ErrorFormula[] = [
   {
     label: 'overflow via large exponent: 10^1000',
     expression: '10^1000',
+    scope: {},
+    errorContains: 'Formula did not produce a finite number',
+    category: 'domain_error',
+  },
+
+  // --- Modulo / division edge cases producing non-finite results ---
+  {
+    label: 'modulo by zero (NaN)',
+    expression: '10 % 0',
+    scope: {},
+    errorContains: 'Formula did not produce a finite number',
+    category: 'domain_error',
+  },
+  {
+    label: 'zero divided by zero (NaN)',
+    expression: '0 / 0',
+    scope: {},
+    errorContains: 'Division by zero',
+    category: 'runtime',
+  },
+  {
+    label: 'exponentiation overflow to Infinity',
+    expression: '2^10000',
     scope: {},
     errorContains: 'Formula did not produce a finite number',
     category: 'domain_error',
