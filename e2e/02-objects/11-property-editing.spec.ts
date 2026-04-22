@@ -1,5 +1,14 @@
 import { test, expect, type Page } from '@playwright/test'
 
+import {
+  createObjectWithProperty,
+  openObject,
+  goToPropertiesTab,
+  enterPropertyEditMode as enterEditMode,
+  savePropertyEdits as clickSave,
+  cancelPropertyEdits as clickCancel,
+} from '../utils/test-helpers'
+
 /**
  * Property Editing in Object Details Sheet
  *
@@ -12,70 +21,6 @@ const runId = Date.now()
 const objectName = `TC038 PropEdit ${runId}`
 const initialPropName = 'Material'
 const initialPropValue = 'Concrete'
-
-// Helpers
-const getDialog = (page: Page, title: string) =>
-  page.getByRole('dialog').filter({ hasText: title })
-
-const createObjectWithProperty = async (
-  page: Page,
-  name: string,
-  propName: string,
-  propValue: string
-) => {
-  await page.getByRole('button', { name: /create object/i }).click()
-  const sheet = getDialog(page, 'Add Object')
-  await expect(sheet).toBeVisible({ timeout: 5000 })
-
-  await sheet.getByLabel('Name').fill(name)
-  await sheet.getByRole('button', { name: 'Add Property' }).click()
-  await sheet.getByLabel('Property Name').fill(propName)
-  await sheet.getByPlaceholder('Enter property value').first().fill(propValue)
-
-  await sheet.getByRole('button', { name: 'Create' }).click()
-  await expect(sheet).toBeHidden({ timeout: 15000 })
-  await expect(page.getByText(name).first()).toBeVisible({ timeout: 10000 })
-}
-
-const openObject = async (page: Page, name: string) => {
-  await page.reload()
-  await page.waitForLoadState('networkidle')
-
-  let row = page.locator('tbody tr').filter({ hasText: name }).first()
-
-  if (!(await row.isVisible({ timeout: 5000 }).catch(() => false))) {
-    await page.reload()
-    await page.waitForLoadState('networkidle')
-    row = page.locator('tbody tr').filter({ hasText: name }).first()
-  }
-
-  await expect(row).toBeVisible({ timeout: 15000 })
-  await row.locator('[data-testid="object-details-button"]').click()
-  await page.waitForTimeout(1000)
-
-  const detailsSheet = page.getByRole('dialog').first()
-  await expect(detailsSheet).toBeVisible({ timeout: 10000 })
-}
-
-const goToPropertiesTab = async (page: Page) => {
-  await page.getByRole('tab', { name: /properties/i }).click()
-  await page.waitForTimeout(500)
-}
-
-const enterEditMode = async (page: Page) => {
-  await page.locator('[data-testid="section-properties-edit-button"]').click()
-  await page.waitForTimeout(500)
-}
-
-const clickSave = async (page: Page) => {
-  await page.locator('[data-testid="section-properties-save-button"]').click()
-  await page.waitForTimeout(2000)
-}
-
-const clickCancel = async (page: Page) => {
-  await page.locator('[data-testid="section-properties-cancel-button"]').click()
-  await page.waitForTimeout(500)
-}
 
 const closeSheet = async (page: Page) => {
   await page.getByRole('button', { name: 'Close' }).first().click()

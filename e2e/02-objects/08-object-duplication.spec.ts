@@ -1,4 +1,6 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
+
+import { getDialog } from '../utils/test-helpers'
 
 /**
  * Object Duplication Tests
@@ -10,8 +12,6 @@ import { test, expect, type Page } from '@playwright/test'
  */
 
 const runId = Date.now()
-const getDialog = (page: Page, title: RegExp | string) =>
-  page.getByRole('dialog').filter({ hasText: title })
 
 test.describe('08 - Object Duplication', () => {
   test.describe.configure({ mode: 'serial' })

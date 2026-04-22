@@ -1,6 +1,12 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
-import { attachFileInSheet, waitForUploadsIdle } from '../utils/test-helpers'
+import {
+  attachFileInSheet,
+  createObject,
+  getDialog,
+  openObject,
+  waitForUploadsIdle,
+} from '../utils/test-helpers'
 
 /**
  * Object File Attachments
@@ -9,50 +15,6 @@ import { attachFileInSheet, waitForUploadsIdle } from '../utils/test-helpers'
  */
 
 const runId = Date.now()
-
-const getDialog = (page: Page, title: string) =>
-  page.getByRole('dialog').filter({ hasText: title })
-
-const createObject = async (page: Page, name: string) => {
-  await page.getByRole('button', { name: /create object/i }).click()
-  const sheet = getDialog(page, 'Add Object')
-  await expect(sheet).toBeVisible({ timeout: 5000 })
-  await sheet.getByLabel('Name').fill(name)
-  await sheet.getByRole('button', { name: 'Create' }).click()
-  await expect(sheet).toBeHidden({ timeout: 15000 })
-  await expect(page.getByText(name).first()).toBeVisible({ timeout: 10000 })
-}
-
-const openObject = async (page: Page, name: string) => {
-  // Wait for any background uploads before reloading — reload aborts in-flight
-  // fetches, silently dropping files that were still uploading.
-  await waitForUploadsIdle(page)
-
-  // Refresh page to ensure latest data
-  await page.reload()
-  await page.waitForLoadState('networkidle')
-
-  let row = page.locator('tbody tr').filter({ hasText: name }).first()
-
-  // If not visible on first page, try searching
-  if (!(await row.isVisible({ timeout: 3000 }).catch(() => false))) {
-    const searchButton = page.getByRole('button', { name: /search/i }).first()
-    if (await searchButton.isVisible()) {
-      await searchButton.click()
-      await page.getByPlaceholder(/search/i).fill(name)
-      await page.keyboard.press('Enter')
-      await page.waitForTimeout(1000)
-    }
-    row = page.locator('tbody tr').filter({ hasText: name }).first()
-  }
-
-  await expect(row).toBeVisible({ timeout: 15000 })
-  await row.locator('[data-testid="object-details-button"]').click()
-  await page.waitForTimeout(1000)
-
-  // Wait for sheet to open
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 })
-}
 
 // No cleanup needed - tests use unique timestamps
 

@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+import { findGroupCard } from '../utils/test-helpers'
+
 /**
  * Group CRUD Tests
  *
@@ -40,16 +42,11 @@ test.describe('02 - Group CRUD Operations', () => {
     })
 
     await page.waitForLoadState('networkidle')
-    await expect(page.getByText(groupName).first()).toBeVisible({
-      timeout: 10000,
-    })
+    await findGroupCard(page, groupName)
   })
 
   test('TC002: Group details sheet opens with tabs', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -62,10 +59,7 @@ test.describe('02 - Group CRUD Operations', () => {
   test('TC003: Info tab shows visibility, permissions, and UUIDs', async ({
     page,
   }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -80,10 +74,7 @@ test.describe('02 - Group CRUD Operations', () => {
   })
 
   test('TC004: Toggle group visibility to public', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await expect(groupCard.getByText(/private/i)).toBeVisible()
 
@@ -109,19 +100,14 @@ test.describe('02 - Group CRUD Operations', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: /groups/i })
     ).toBeVisible()
-    const updatedCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
+    const updatedCard = await findGroupCard(page, groupName)
     await expect(updatedCard.getByText(/public/i)).toBeVisible({
       timeout: 10000,
     })
   })
 
   test('TC005: Toggle group visibility back to private', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -141,10 +127,7 @@ test.describe('02 - Group CRUD Operations', () => {
   })
 
   test('TC006: Inline edit group name from card', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     const heading = groupCard.getByRole('heading', { level: 3 })
     await heading.hover()
@@ -170,10 +153,7 @@ test.describe('02 - Group CRUD Operations', () => {
   })
 
   test('TC007: Inline edit group name from details sheet', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -214,9 +194,7 @@ test.describe('02 - Group CRUD Operations', () => {
     await page.keyboard.press('Escape')
     await page.waitForTimeout(500)
 
-    await expect(page.getByText(groupName).first()).toBeVisible({
-      timeout: 10000,
-    })
+    await findGroupCard(page, groupName)
 
     // Reset to 'All'
     await filterButton.click()

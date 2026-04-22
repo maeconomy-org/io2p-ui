@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+import { findGroupCard } from '../utils/test-helpers'
+
 /**
  * Group User Management Tests
  *
@@ -39,16 +41,11 @@ test.describe('03 - Group User Management', () => {
     })
 
     await page.waitForLoadState('networkidle')
-    await expect(page.getByText(groupName).first()).toBeVisible({
-      timeout: 10000,
-    })
+    await findGroupCard(page, groupName)
   })
 
   test('TC002: Add user to group', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -80,20 +77,14 @@ test.describe('03 - Group User Management', () => {
   })
 
   test('TC003: Verify user count on group card', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     // Card should now show "1 user"
     await expect(groupCard.getByText(/1 user/i)).toBeVisible()
   })
 
   test('TC004: Edit user permissions', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -132,10 +123,7 @@ test.describe('03 - Group User Management', () => {
   })
 
   test('TC005: Remove user from group', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -157,10 +145,7 @@ test.describe('03 - Group User Management', () => {
   })
 
   test('TC006: Verify user count reset on group card', async ({ page }) => {
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     // Card should show "No users" again
     await expect(groupCard.getByText(/no users/i)).toBeVisible()

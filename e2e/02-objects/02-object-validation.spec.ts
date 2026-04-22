@@ -1,4 +1,6 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
+
+import { getDialog } from '../utils/test-helpers'
 
 /**
  * Object Validation & Negative Cases
@@ -7,9 +9,6 @@ import { test, expect, type Page } from '@playwright/test'
  */
 
 const runId = Date.now()
-
-const getDialog = (page: Page, title: string) =>
-  page.getByRole('dialog').filter({ hasText: title })
 
 test.describe('02 - Object Validation', () => {
   test.beforeEach(async ({ page }) => {

@@ -247,6 +247,8 @@ yarn-error.log*
 next-env.d.ts
 
 e2e/.auth/
+playwright-report/
+test-results/
 docs/
 certs/
 .agents

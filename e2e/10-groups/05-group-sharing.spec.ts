@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+import { findGroupCard } from '../utils/test-helpers'
+
 /**
  * Cross-User Group Sharing E2E Tests
  *
@@ -40,19 +42,13 @@ test.describe('05 - Group Sharing (Cross-User)', () => {
       timeout: 10000,
     })
 
-    // Reload groups page and search for the newly created group
+    // Reload groups page and locate the newly created group across pages
     await page.goto('/groups')
     await expect(
       page.getByRole('heading', { level: 1, name: /groups/i })
     ).toBeVisible()
 
-    await page.getByPlaceholder(/search groups/i).fill(groupName)
-    await page.waitForLoadState('networkidle')
-
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    await findGroupCard(page, groupName)
   })
 
   // TC002: Add first user (will be removed later)
@@ -62,13 +58,7 @@ test.describe('05 - Group Sharing (Cross-User)', () => {
       page.getByRole('heading', { level: 1, name: /groups/i })
     ).toBeVisible()
 
-    await page.getByPlaceholder(/search groups/i).fill(groupName)
-    await page.waitForLoadState('networkidle')
-
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -97,13 +87,7 @@ test.describe('05 - Group Sharing (Cross-User)', () => {
       page.getByRole('heading', { level: 1, name: /groups/i })
     ).toBeVisible()
 
-    await page.getByPlaceholder(/search groups/i).fill(groupName)
-    await page.waitForLoadState('networkidle')
-
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -132,13 +116,7 @@ test.describe('05 - Group Sharing (Cross-User)', () => {
       page.getByRole('heading', { level: 1, name: /groups/i })
     ).toBeVisible()
 
-    await page.getByPlaceholder(/search groups/i).fill(groupName)
-    await page.waitForLoadState('networkidle')
-
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await expect(groupCard.getByText(/2 users/i)).toBeVisible()
   })
@@ -150,13 +128,7 @@ test.describe('05 - Group Sharing (Cross-User)', () => {
       page.getByRole('heading', { level: 1, name: /groups/i })
     ).toBeVisible()
 
-    await page.getByPlaceholder(/search groups/i).fill(groupName)
-    await page.waitForLoadState('networkidle')
-
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await groupCard.getByRole('button', { name: /group details/i }).click()
 
@@ -185,13 +157,7 @@ test.describe('05 - Group Sharing (Cross-User)', () => {
       page.getByRole('heading', { level: 1, name: /groups/i })
     ).toBeVisible()
 
-    await page.getByPlaceholder(/search groups/i).fill(groupName)
-    await page.waitForLoadState('networkidle')
-
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     await expect(groupCard.getByText(/1 user/i)).toBeVisible()
   })

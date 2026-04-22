@@ -1,5 +1,12 @@
 import { test, expect, type Page } from '@playwright/test'
-import { getDialog, addPropertyInForm, openObject } from '../utils/test-helpers'
+import {
+  getDialog,
+  addPropertyInForm,
+  openObject,
+  goToPropertiesTab,
+  enterPropertyEditMode as enterEditMode,
+  savePropertyEdits as clickSave,
+} from '../utils/test-helpers'
 
 /**
  * Formula Property Editing in Object Details Sheet
@@ -12,22 +19,6 @@ import { getDialog, addPropertyInForm, openObject } from '../utils/test-helpers'
 const runId = Date.now()
 const objectName = `TC045 FormulaEdit ${runId}`
 const formulaName = `e2e_fe_sum_${runId}`
-
-// Helpers
-const goToPropertiesTab = async (page: Page) => {
-  await page.getByRole('tab', { name: /properties/i }).click()
-  await page.waitForTimeout(500)
-}
-
-const enterEditMode = async (page: Page) => {
-  await page.locator('[data-testid="section-properties-edit-button"]').click()
-  await page.waitForTimeout(500)
-}
-
-const clickSave = async (page: Page) => {
-  await page.locator('[data-testid="section-properties-save-button"]').click()
-  await page.waitForTimeout(2000)
-}
 
 const closeSheet = async (page: Page) => {
   await page.getByRole('button', { name: 'Close' }).first().click()

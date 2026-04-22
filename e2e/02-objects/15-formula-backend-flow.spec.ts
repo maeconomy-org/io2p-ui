@@ -1,5 +1,12 @@
 import { test, expect, type Page } from '@playwright/test'
-import { getDialog, addPropertyInForm, openObject } from '../utils/test-helpers'
+import {
+  getDialog,
+  addPropertyInForm,
+  openObject,
+  goToPropertiesTab,
+  enterPropertyEditMode as enterEditMode,
+  savePropertyEdits as clickSave,
+} from '../utils/test-helpers'
 
 /**
  * Backend-Team Formula Flow (Exact Reproduction)
@@ -28,21 +35,6 @@ const formulaName = `e2e_bef_sum_${runId}`
 const formulaExpression = 'a + b'
 const formulaDescription = 'e2e backend-flow sum'
 const formulaVersion = '1.0.0'
-
-const goToPropertiesTab = async (page: Page) => {
-  await page.getByRole('tab', { name: /properties/i }).click()
-  await page.waitForTimeout(500)
-}
-
-const enterEditMode = async (page: Page) => {
-  await page.locator('[data-testid="section-properties-edit-button"]').click()
-  await page.waitForTimeout(500)
-}
-
-const clickSave = async (page: Page) => {
-  await page.locator('[data-testid="section-properties-save-button"]').click()
-  await page.waitForTimeout(2000)
-}
 
 const closeSheet = async (page: Page) => {
   await page.getByRole('button', { name: 'Close' }).first().click()

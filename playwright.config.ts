@@ -65,9 +65,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'pnpm dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: true, // Always reuse - start dev server manually before tests
-    timeout: 120 * 1000,
+    reuseExistingServer: true,
+    timeout: 180 * 1000,
   },
 })

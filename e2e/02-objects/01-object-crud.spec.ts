@@ -1,6 +1,12 @@
-import { expect, Page, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
-import { attachFileInSheet, waitForUploadsIdle } from '../utils/test-helpers'
+import {
+  attachFileInSheet,
+  createObject,
+  getDialog,
+  openObject,
+  waitForUploadsIdle,
+} from '../utils/test-helpers'
 
 /**
  * Object CRUD Operations - Core Flows
@@ -10,51 +16,6 @@ import { attachFileInSheet, waitForUploadsIdle } from '../utils/test-helpers'
  */
 
 const runId = Date.now()
-
-// Helpers
-const getDialog = (page: Page, title: string) =>
-  page.getByRole('dialog').filter({ hasText: title })
-
-const createObject = async (page: Page, name: string, description?: string) => {
-  await page.getByRole('button', { name: /create object/i }).click()
-  const sheet = getDialog(page, 'Add Object')
-  await expect(sheet).toBeVisible({ timeout: 5000 })
-
-  await sheet.getByLabel('Name').fill(name)
-  if (description) {
-    await sheet.getByLabel('Description').fill(description)
-  }
-
-  await sheet.getByRole('button', { name: 'Create' }).click()
-  await expect(sheet).toBeHidden({ timeout: 15000 })
-  await expect(page.getByText(name).first()).toBeVisible({ timeout: 10000 })
-}
-
-const openObject = async (page: Page, name: string) => {
-  // Refresh page to ensure latest data
-  await page.reload()
-  await page.waitForLoadState('networkidle')
-
-  let row = page.locator('tbody tr').filter({ hasText: name }).first()
-
-  // If not visible on first page, try searching
-  if (!(await row.isVisible({ timeout: 3000 }).catch(() => false))) {
-    // Use search to find the object
-    const searchButton = page.getByRole('button', { name: /search/i }).first()
-    if (await searchButton.isVisible()) {
-      await searchButton.click()
-      await page.getByPlaceholder(/search/i).fill(name)
-      await page.keyboard.press('Enter')
-      await page.waitForTimeout(1000)
-    }
-    row = page.locator('tbody tr').filter({ hasText: name }).first()
-  }
-
-  await expect(row).toBeVisible({ timeout: 15000 })
-  // Click "View Details" button instead of dblclick (which navigates to children)
-  await row.locator('[data-testid="object-details-button"]').click()
-  await page.waitForTimeout(500)
-}
 
 test.describe('01 - Object CRUD Operations', () => {
   test.beforeEach(async ({ page }) => {

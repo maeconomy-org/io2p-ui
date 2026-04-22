@@ -1,4 +1,10 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
+
+import {
+  createObjectWithProperty,
+  openObject,
+  goToPropertiesTab,
+} from '../utils/test-helpers'
 
 /**
  * Object Properties
@@ -8,49 +14,6 @@ import { test, expect, type Page } from '@playwright/test'
  */
 
 const runId = Date.now()
-
-const getDialog = (page: Page, title: string) =>
-  page.getByRole('dialog').filter({ hasText: title })
-
-const createObjectWithProperty = async (
-  page: Page,
-  name: string,
-  propName: string,
-  propValue: string
-) => {
-  await page.getByRole('button', { name: /create object/i }).click()
-  const sheet = getDialog(page, 'Add Object')
-  await expect(sheet).toBeVisible({ timeout: 5000 })
-
-  await sheet.getByLabel('Name').fill(name)
-  await sheet.getByRole('button', { name: 'Add Property' }).click()
-  await sheet.getByLabel('Property Name').fill(propName)
-  await sheet.getByPlaceholder('Enter property value').first().fill(propValue)
-
-  await sheet.getByRole('button', { name: 'Create' }).click()
-  await expect(sheet).toBeHidden({ timeout: 15000 })
-  await expect(page.getByText(name).first()).toBeVisible({ timeout: 10000 })
-}
-
-const openObject = async (page: Page, name: string) => {
-  await page.reload()
-  await page.waitForLoadState('networkidle')
-
-  let row = page.locator('tbody tr').filter({ hasText: name }).first()
-
-  if (!(await row.isVisible({ timeout: 5000 }).catch(() => false))) {
-    await page.reload()
-    await page.waitForLoadState('networkidle')
-    row = page.locator('tbody tr').filter({ hasText: name }).first()
-  }
-
-  await expect(row).toBeVisible({ timeout: 15000 })
-  await row.locator('[data-testid="object-details-button"]').click()
-  await page.waitForTimeout(1000)
-
-  const detailsSheet = page.getByRole('dialog').first()
-  await expect(detailsSheet).toBeVisible({ timeout: 10000 })
-}
 
 test.describe('09 - Object Properties', () => {
   test.beforeEach(async ({ page }) => {
@@ -67,8 +30,7 @@ test.describe('09 - Object Properties', () => {
 
     // Open object details
     await openObject(page, name)
-    await page.getByRole('tab', { name: /properties/i }).click()
-    await page.waitForTimeout(500)
+    await goToPropertiesTab(page)
 
     // Verify detailed view toggle is visible and active by default
     const detailedToggle = page.locator(
@@ -122,8 +84,7 @@ test.describe('09 - Object Properties', () => {
 
     // Open object details
     await openObject(page, name)
-    await page.getByRole('tab', { name: /properties/i }).click()
-    await page.waitForTimeout(500)
+    await goToPropertiesTab(page)
 
     // Switch to grid view
     const gridToggle = page.locator(
@@ -150,8 +111,7 @@ test.describe('09 - Object Properties', () => {
 
     // Open object details
     await openObject(page, name)
-    await page.getByRole('tab', { name: /properties/i }).click()
-    await page.waitForTimeout(500)
+    await goToPropertiesTab(page)
 
     // Property header should be visible
     const propertyHeader = page

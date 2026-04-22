@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+import { findGroupCard } from '../utils/test-helpers'
+
 /**
  * Group Objects Tests
  *
@@ -39,9 +41,7 @@ test.describe('04 - Group Objects', () => {
     })
 
     await page.waitForLoadState('networkidle')
-    await expect(page.getByText(groupName).first()).toBeVisible({
-      timeout: 10000,
-    })
+    await findGroupCard(page, groupName)
   })
 
   test('TC002: Create object and add to group via bulk action', async ({
@@ -86,10 +86,7 @@ test.describe('04 - Group Objects', () => {
       page.getByRole('heading', { level: 1, name: /groups/i })
     ).toBeVisible()
 
-    const groupCard = page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-    await expect(groupCard).toBeVisible({ timeout: 10000 })
+    const groupCard = await findGroupCard(page, groupName)
 
     // Click "View Objects" on the group card
     await groupCard.getByRole('button', { name: /view objects/i }).click()

@@ -204,7 +204,10 @@ export function BulkActionsToolbar({
                 </span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent
+              align="end"
+              className="w-56 max-h-[60vh] overflow-y-auto"
+            >
               {/* Existing groups */}
               {groups && groups.length > 0 ? (
                 groups.map((group: GroupCreateDTO) => (
