@@ -124,6 +124,50 @@ test.describe('08 - Model CRUD', () => {
     await expect(updatedRow.getByText('2.0')).toBeVisible()
   })
 
+  test('TC055: Create object from template populates properties', async ({
+    page,
+  }) => {
+    test.slow()
+
+    const updatedTemplateName = `${templateName} Updated`
+    const objectFromTemplate = `Object From Template ${runId}`
+
+    await page.goto('/objects')
+    await page.waitForLoadState('networkidle')
+
+    await page.getByRole('button', { name: /create object/i }).click()
+    const sheet = page.getByRole('dialog').filter({ hasText: /add object/i })
+    await expect(sheet).toBeVisible({ timeout: 5000 })
+
+    // Open the model selector combobox
+    await sheet.getByRole('combobox').first().click()
+
+    // Search and pick the template created/updated earlier in this spec
+    const searchInput = page.getByPlaceholder('Search models...')
+    await expect(searchInput).toBeVisible({ timeout: 5000 })
+    await searchInput.fill(updatedTemplateName)
+
+    const option = page.getByRole('option', { name: updatedTemplateName })
+    await expect(option).toBeVisible({ timeout: 10000 })
+    await option.click()
+
+    // Property from the template should be pre-populated in the sheet
+    await expect(
+      sheet.locator(`input[value="${propertyName}"]`).first()
+    ).toBeVisible({ timeout: 5000 })
+
+    const nameInput = sheet.getByRole('textbox', { name: 'Name', exact: true })
+    await nameInput.clear()
+    await nameInput.fill(objectFromTemplate)
+    await sheet.getByRole('button', { name: 'Create' }).click()
+    await expect(sheet).toBeHidden({ timeout: 15000 })
+
+    // Verify the object shows up in the objects table
+    await expect(
+      page.locator('tbody tr').filter({ hasText: objectFromTemplate }).first()
+    ).toBeVisible({ timeout: 10000 })
+  })
+
   test('TC053: Delete template with confirmation', async ({ page }) => {
     test.slow()
 
@@ -198,26 +242,6 @@ test.describe('08 - Model CRUD', () => {
 
     // Close without saving
     await sheet.getByRole('button', { name: /cancel/i }).click()
-  })
-
-  test('TC055: Cancel create template discards changes', async ({ page }) => {
-    const tempName = `ShouldNotExist ${runId}`
-
-    await page.getByRole('button', { name: /create model/i }).click()
-    const sheet = page.getByRole('dialog')
-    await expect(sheet).toBeVisible({ timeout: 5000 })
-
-    // Fill some data
-    await sheet.getByLabel(/name/i).first().fill(tempName)
-
-    // Cancel
-    await sheet.getByRole('button', { name: /cancel/i }).click()
-    await expect(sheet).toBeHidden({ timeout: 5000 })
-
-    // Verify the template does NOT appear in table
-    await expect(page.locator('table').getByText(tempName)).toBeHidden({
-      timeout: 3000,
-    })
   })
 
   test('TC056: Template properties do not show formula or file toggles', async ({

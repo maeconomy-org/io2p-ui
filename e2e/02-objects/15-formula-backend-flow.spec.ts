@@ -6,6 +6,7 @@ import {
   goToPropertiesTab,
   enterPropertyEditMode as enterEditMode,
   savePropertyEdits as clickSave,
+  closeSheet,
 } from '../utils/test-helpers'
 
 /**
@@ -35,11 +36,6 @@ const formulaName = `e2e_bef_sum_${runId}`
 const formulaExpression = 'a + b'
 const formulaDescription = 'e2e backend-flow sum'
 const formulaVersion = '1.0.0'
-
-const closeSheet = async (page: Page) => {
-  await page.getByRole('button', { name: 'Close' }).first().click()
-  await page.waitForTimeout(500)
-}
 
 /** Step (e): Ensure a UUMathFormula exists with name/expression/version/description. */
 async function ensureFormula(

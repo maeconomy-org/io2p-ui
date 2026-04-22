@@ -328,6 +328,9 @@ export async function saveChanges(page: Page) {
  */
 export async function closeSheet(page: Page) {
   await page.getByRole('button', { name: 'Close' }).first().click()
+  // Short settle so the next navigation/assertion doesn't race the sheet's
+  // close animation.
+  await page.waitForTimeout(500)
 }
 
 /**

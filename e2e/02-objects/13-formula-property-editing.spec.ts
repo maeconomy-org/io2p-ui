@@ -6,6 +6,7 @@ import {
   goToPropertiesTab,
   enterPropertyEditMode as enterEditMode,
   savePropertyEdits as clickSave,
+  closeSheet,
 } from '../utils/test-helpers'
 
 /**
@@ -19,11 +20,6 @@ import {
 const runId = Date.now()
 const objectName = `TC045 FormulaEdit ${runId}`
 const formulaName = `e2e_fe_sum_${runId}`
-
-const closeSheet = async (page: Page) => {
-  await page.getByRole('button', { name: 'Close' }).first().click()
-  await page.waitForTimeout(500)
-}
 
 async function ensureFormula(page: Page, name: string, expression: string) {
   await page.goto('/templates')

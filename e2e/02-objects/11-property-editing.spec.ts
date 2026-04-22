@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
 import {
   createObjectWithProperty,
@@ -7,6 +7,7 @@ import {
   enterPropertyEditMode as enterEditMode,
   savePropertyEdits as clickSave,
   cancelPropertyEdits as clickCancel,
+  closeSheet,
 } from '../utils/test-helpers'
 
 /**
@@ -21,11 +22,6 @@ const runId = Date.now()
 const objectName = `TC038 PropEdit ${runId}`
 const initialPropName = 'Material'
 const initialPropValue = 'Concrete'
-
-const closeSheet = async (page: Page) => {
-  await page.getByRole('button', { name: 'Close' }).first().click()
-  await page.waitForTimeout(500)
-}
 
 test.describe('11 - Property Editing', () => {
   test.describe.configure({ mode: 'serial' })

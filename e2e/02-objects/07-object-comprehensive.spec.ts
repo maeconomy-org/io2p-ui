@@ -401,9 +401,8 @@ test.describe('07 - Comprehensive Realistic Object', () => {
       .last()
       .fill('Building A, Floor 3, Grid B-5')
 
-    // Save
+    // Save — the assertion below already retries up to 10s
     await page.getByRole('button', { name: 'Save' }).click()
-    await page.waitForTimeout(3000)
 
     // Verify new property - click to expand it first
     const installLocationHeader = page

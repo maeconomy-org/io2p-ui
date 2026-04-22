@@ -322,8 +322,8 @@ test.describe('03 - Object File Attachments', () => {
     await expect(page.getByRole('alertdialog')).toBeVisible({ timeout: 5000 })
     await page.getByRole('button', { name: 'Upload Files' }).click()
 
-    // Verify attachment shows on property (allow extra time for background upload + query invalidation)
-    await page.waitForTimeout(3000)
+    // Wait for the upload queue to drain instead of sleeping
+    await waitForUploadsIdle(page)
     await expect(page.getByText('Property Spec')).toBeVisible({
       timeout: 20000,
     })
@@ -404,8 +404,8 @@ test.describe('03 - Object File Attachments', () => {
     await expect(page.getByRole('alertdialog')).toBeVisible({ timeout: 5000 })
     await page.getByRole('button', { name: 'Upload Files' }).click()
 
-    // Verify attachment shows on value (allow extra time for background upload + query invalidation)
-    await page.waitForTimeout(3000)
+    // Wait for the upload queue to drain instead of sleeping
+    await waitForUploadsIdle(page)
     await expect(page.getByText('Value Document')).toBeVisible({
       timeout: 20000,
     })

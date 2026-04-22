@@ -203,10 +203,8 @@ test.describe('06 - Object Regression Flow', () => {
     await propertyNameInput.fill('Material Kind')
 
     await page.getByRole('button', { name: 'Save' }).click()
-    // Wait for save to complete and page to stabilize
-    await page.waitForTimeout(3000)
 
-    // Verify property name was updated (this confirms the bug fix works)
+    // The assertion below retries up to 10s; no need to sleep first.
     await expect(page.getByText('Material Kind').first()).toBeVisible({
       timeout: 10000,
     })

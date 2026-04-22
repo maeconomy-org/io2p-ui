@@ -120,8 +120,7 @@ test.describe('04 - Object Soft Delete & Restore', () => {
         .getByRole('button', { name: /delete|yes|confirm/i })
         .click()
 
-      // Object should be soft deleted (may disappear from default view)
-      await page.waitForTimeout(3000)
+      // Object should be soft deleted — the assertion retries up to 10s
       await expect(row).toBeHidden({ timeout: 10000 })
     }
   })
@@ -176,8 +175,7 @@ test.describe('04 - Object Soft Delete & Restore', () => {
         .getByRole('button', { name: /delete|yes|confirm/i })
         .click()
 
-      // Should close details and return to list
-      await page.waitForTimeout(3000)
+      // Should close details and return to list — assertions retry
       await expect(
         page.getByRole('heading', { name: detailsTestName })
       ).toBeHidden({ timeout: 10000 })
@@ -273,8 +271,8 @@ test.describe('04 - Object Soft Delete & Restore', () => {
           })
         }
 
-        // Wait for restore to complete (look for success toast or row change)
-        await page.waitForTimeout(3000)
+        // Wait for restore network call to complete before proceeding
+        await page.waitForLoadState('networkidle')
 
         // Close details sheet if open
         const closeButton = page.getByRole('button', { name: 'Close' })
