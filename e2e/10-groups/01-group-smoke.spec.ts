@@ -5,7 +5,6 @@ import { test, expect } from '@playwright/test'
  *
  * Coverage for:
  * - Page load and basic elements
- * - Search functionality
  * - Filter dropdown options
  * - Create group sheet open/close
  * - Create group form fields
@@ -24,24 +23,8 @@ test.describe('01 - Groups Smoke Tests', () => {
     const createButton = page.getByTestId('create-group-button')
     await expect(createButton).toBeVisible()
 
-    const searchInput = page.getByTestId('group-search-input')
-    await expect(searchInput).toBeVisible()
-
     const filterButton = page.getByRole('button', { name: /filter/i })
     await expect(filterButton).toBeVisible()
-  })
-
-  test('TC002: Search functionality works', async ({ page }) => {
-    const searchInput = page.getByTestId('group-search-input')
-
-    await searchInput.fill('test search')
-    await expect(searchInput).toHaveValue('test search')
-
-    const clearButton = page.getByTestId('group-search-clear-button')
-    if (await clearButton.isVisible().catch(() => false)) {
-      await clearButton.click()
-      await expect(searchInput).toHaveValue('')
-    }
   })
 
   test('TC003: Filter dropdown shows options', async ({ page }) => {

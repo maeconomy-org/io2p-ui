@@ -112,14 +112,3 @@ export function useBreadcrumbTrail(currentUuid: string | undefined) {
 
   return { ancestors, pushAncestor, navigateToAncestor, clearTrail }
 }
-
-/**
- * @deprecated Use `useBreadcrumbTrail` instead.
- * Kept for backward-compatibility — returns the same `ancestors` array
- * wrapped in a React-Query-like shape so existing call-sites keep working
- * until they are migrated.
- */
-export function useAncestorChain(uuid: string | undefined) {
-  const { ancestors } = useBreadcrumbTrail(uuid)
-  return { data: ancestors, isLoading: false, isError: false }
-}

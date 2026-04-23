@@ -8,6 +8,8 @@ import type { Property } from '@/components/properties/types'
 const mockUpdatePropertyWithValues = vi.fn().mockResolvedValue({})
 const mockCreatePropertyForObject = vi.fn().mockResolvedValue({})
 const mockRemovePropertyFromObject = vi.fn().mockResolvedValue({})
+const mockSoftDeleteValue = vi.fn().mockResolvedValue({ success: true })
+const mockDeleteFormulaCalcForValue = vi.fn().mockResolvedValue({})
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -27,8 +29,9 @@ vi.mock('@/components/properties/hooks/use-property-management', () => ({
     updatePropertyWithValues: mockUpdatePropertyWithValues,
     createPropertyForObject: mockCreatePropertyForObject,
     removePropertyFromObject: mockRemovePropertyFromObject,
+    softDeleteValue: mockSoftDeleteValue,
     createFormulaCalcForValue: vi.fn().mockResolvedValue({}),
-    deleteFormulaCalcForValue: vi.fn().mockResolvedValue({}),
+    deleteFormulaCalcForValue: mockDeleteFormulaCalcForValue,
   }),
 }))
 
@@ -373,6 +376,90 @@ describe('usePropertyEditor', () => {
         'obj-1',
         'prop-1'
       )
+    })
+
+    it('soft-deletes server-side values that were removed from the editor', async () => {
+      const initial = [
+        makeProperty({
+          values: [
+            { uuid: 'val-1', value: '42' },
+            { uuid: 'val-2', value: '99' },
+          ],
+        }),
+      ]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => result.current.removeValue('prop-1', 1))
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      expect(mockSoftDeleteValue).toHaveBeenCalledWith('val-2')
+      expect(mockSoftDeleteValue).toHaveBeenCalledTimes(1)
+    })
+
+    it('tears down formula calcs for removed values', async () => {
+      const initial = [
+        makeProperty({
+          values: [
+            { uuid: 'val-1', value: '42' },
+            {
+              uuid: 'val-2',
+              value: '99',
+              formulaData: {
+                formula: 'a + b',
+                formulaUuid: 'formula-1',
+                calcUuid: 'calc-1',
+                result: 99,
+              },
+            },
+          ],
+        }),
+      ]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => result.current.removeValue('prop-1', 1))
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      expect(mockDeleteFormulaCalcForValue).toHaveBeenCalledWith(
+        'obj-1',
+        'calc-1',
+        'formula-1'
+      )
+      expect(mockSoftDeleteValue).toHaveBeenCalledWith('val-2')
+    })
+
+    it('does not soft-delete a new unsaved value that is removed before save', async () => {
+      const initial = [makeProperty()]
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: initial,
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => result.current.addValue('prop-1'))
+      act(() => result.current.removeValue('prop-1', 1))
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      expect(mockSoftDeleteValue).not.toHaveBeenCalled()
     })
 
     it('does nothing when no changes', async () => {

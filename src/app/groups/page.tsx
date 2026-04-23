@@ -3,13 +3,12 @@
 import { useState, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import type { GroupCreateDTO } from 'iom-sdk'
-import { Search, Loader2, X, PlusCircle, FolderOpen } from 'lucide-react'
+import { Loader2, PlusCircle, FolderOpen } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 import { logger } from '@/lib'
 import {
   Button,
-  Input,
   EmptyState,
   AlertDialog,
   AlertDialogContent,
@@ -62,7 +61,6 @@ export default function GroupsPage() {
 
   // Pagination + filter state
   const [currentPage, setCurrentPage] = useState(1)
-  const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState<GroupFilter>('all')
 
   // Fetch groups with server-side pagination (API is 0-indexed)
@@ -73,18 +71,12 @@ export default function GroupsPage() {
     isFetching,
   } = useListGroups({ page: currentPage - 1, size: ITEMS_PER_PAGE })
 
-  // Client-side search/filter on the current page content
+  // Client-side owner filter on the current page content
   const { filteredGroups, totalPages, totalElements } = useGroupFilters({
     page,
     userUUID,
-    searchTerm,
     activeFilter,
   })
-
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchTerm(value)
-    setCurrentPage(1)
-  }, [])
 
   const handleFilterChange = useCallback((filter: GroupFilter) => {
     setActiveFilter(filter)
@@ -125,26 +117,6 @@ export default function GroupsPage() {
       <div className="flex items-center justify-between mb-4 gap-2">
         <h1 className="text-2xl font-bold shrink-0">{t('groups.title')}</h1>
         <div className="flex items-center gap-2 flex-wrap justify-end flex-1">
-          {/* Search */}
-          <div className="relative w-56" data-testid="group-search-container">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              data-testid="group-search-input"
-              placeholder={t('groups.search')}
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-8 pr-7 h-9 text-sm"
-            />
-            {searchTerm && (
-              <button
-                data-testid="group-search-clear-button"
-                onClick={() => handleSearchChange('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
           {/* Quick filter dropdown */}
           <FacetedFilter
             title={t('groups.filter.label')}
@@ -263,7 +235,7 @@ export default function GroupsPage() {
           {filteredGroups.length === 0 && (
             <EmptyState
               icon={<FolderOpen className="h-10 w-10" />}
-              title={searchTerm ? t('groups.noMatches') : t('groups.noGroups')}
+              title={t('groups.noGroups')}
               className="py-12"
             />
           )}

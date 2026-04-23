@@ -61,6 +61,3 @@ export function useKeyboardShortcuts() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [theme, setTheme])
 }
-
-/** @deprecated Use useKeyboardShortcuts instead */
-export const useThemeShortcut = useKeyboardShortcuts

@@ -43,8 +43,7 @@ export function HereAddressAutocomplete({
 
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  // eslint-disable-next-line no-undef
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prevValueRef = useRef<string>(undefined)
 
   // Sync query with value prop only when value changes externally

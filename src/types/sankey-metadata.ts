@@ -156,13 +156,3 @@ export interface EnhancedMaterialRelationship {
   inputMaterial?: MaterialData
   outputMaterial?: MaterialData
 }
-
-/**
- * Domain category codes for material classification
- * @deprecated Import from '@/components/processes/constants' instead
- * Re-exported here for backward compatibility
- */
-import { DOMAIN_CATEGORY_CODES as _DOMAIN_CATEGORY_CODES } from '@/components/processes/constants'
-
-export { DOMAIN_CATEGORY_CODES } from '@/components/processes/constants'
-export type DomainCategoryCode = keyof typeof _DOMAIN_CATEGORY_CODES

@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl'
 import { PlusIcon } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useFieldArray } from 'react-hook-form'
+import { useQueryClient } from '@tanstack/react-query'
 
 import {
   Sheet,
@@ -26,12 +27,13 @@ import {
   ObjectModelFormValues,
   Property,
   logger,
+  queryKeys,
 } from '@/lib'
-import { PropertyItemRHF } from '@/components/properties'
+import { PropertyItemRHF, usePropertyManagement } from '@/components/properties'
 import { useObjects } from '@/hooks'
 import { toast } from 'sonner'
 import { useObjectOperations } from './hooks'
-import { createEmptyProperty } from './utils'
+import { createEmptyProperty, diffTemplateProperties } from './utils'
 
 interface ObjectModel {
   uuid?: string // Optional for new models
@@ -90,6 +92,14 @@ export function ObjectModelSheet({
   const { useUpdateObjectMetadata } = useObjects()
   const updateMetadata = useUpdateObjectMetadata()
 
+  const {
+    createPropertyForObject,
+    updatePropertyWithValues,
+    removePropertyFromObject,
+    softDeleteValue,
+  } = usePropertyManagement()
+  const queryClient = useQueryClient()
+
   // Initialize form when editing an existing model
   useEffect(() => {
     if (model && isEditing) {
@@ -116,6 +126,51 @@ export function ObjectModelSheet({
     append(createEmptyProperty())
   }
 
+  const persistPropertyChanges = async (
+    templateUuid: string,
+    initial: Property[],
+    next: Property[]
+  ): Promise<boolean> => {
+    const { creates, updates, deletes, removedValueUuids } =
+      diffTemplateProperties(initial, next)
+
+    if (
+      creates.length === 0 &&
+      deletes.length === 0 &&
+      updates.length === 0 &&
+      removedValueUuids.length === 0
+    ) {
+      return false
+    }
+
+    await Promise.all([
+      ...creates.map((p) =>
+        createPropertyForObject(templateUuid, {
+          key: p.key,
+          label: p.label,
+          type: p.type,
+          values: p.values,
+        })
+      ),
+      ...updates.map((p) =>
+        updatePropertyWithValues(
+          { uuid: p.uuid as string, key: p.key },
+          p.values.map((v) => ({
+            uuid: v.uuid,
+            value: v.value,
+            valueTypeCast: v.valueTypeCast,
+          }))
+        )
+      ),
+      ...deletes.map((p) =>
+        removePropertyFromObject(templateUuid, p.uuid as string)
+      ),
+      ...removedValueUuids.map((uuid) => softDeleteValue(uuid)),
+    ])
+
+    return true
+  }
+
   const handleInvalidSubmit = () => {
     requestAnimationFrame(() => {
       const el = document.querySelector(
@@ -130,12 +185,12 @@ export function ObjectModelSheet({
   const onSubmit = async (values: ObjectModelFormValues) => {
     try {
       if (isEditing && model?.uuid) {
-        const changed =
+        const metadataChanged =
           values.name !== model.name ||
           values.abbreviation !== model.abbreviation ||
           values.version !== model.version ||
           values.description !== model.description
-        if (changed) {
+        if (metadataChanged) {
           await updateMetadata.mutateAsync({
             uuid: model.uuid,
             name: values.name,
@@ -146,7 +201,18 @@ export function ObjectModelSheet({
           })
           toast.success(t('objects.objectMetadataUpdated'))
         }
-        // TODO: Handle property updates for existing templates
+
+        const propertiesChanged = await persistPropertyChanges(
+          model.uuid,
+          model.properties ?? [],
+          values.properties
+        )
+        if (propertiesChanged) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.objects.all })
+          queryClient.invalidateQueries({ queryKey: queryKeys.aggregates.all })
+          toast.success(t('objects.propertiesUpdated'))
+        }
+
         onOpenChange(false)
       } else {
         // For new templates, use createObject

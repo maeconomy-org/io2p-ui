@@ -122,6 +122,7 @@ function PropertyValueItem({
                 size="sm"
                 onClick={() => onRemove?.(valueIndex)}
                 className="h-7 w-7 p-0"
+                data-testid={`value-remove-${propertyId}-${valueIndex}`}
               >
                 <X className="h-3.5 w-3.5" />
               </Button>

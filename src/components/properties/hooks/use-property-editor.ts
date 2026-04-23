@@ -95,6 +95,7 @@ export function usePropertyEditor({
     updatePropertyWithValues,
     createPropertyForObject,
     removePropertyFromObject,
+    softDeleteValue,
     createFormulaCalcForValue,
     deleteFormulaCalcForValue,
   } = usePropertyManagement()
@@ -501,6 +502,32 @@ export function usePropertyEditor({
       const originalProp = initialProperties.find(
         (p) => p.uuid === property.uuid
       )
+
+      // Soft-delete values that existed on the server but were removed from
+      // the editor. Tear down their formula calcs too (mirrors the cleanup
+      // done for `property._deleted` above).
+      const currentValueUuids = new Set(
+        (property.values || [])
+          .map((v) => v.uuid)
+          .filter((uuid): uuid is string => !!uuid)
+      )
+      const removedValues = (originalProp?.values || []).filter(
+        (v) => v.uuid && !currentValueUuids.has(v.uuid)
+      )
+      for (const removed of removedValues) {
+        const calcUuid = removed.formulaData?.calcUuid
+        if (calcUuid) {
+          operations.push(
+            deleteFormulaCalcForValue(
+              objectUuid,
+              calcUuid,
+              removed.formulaData?.formulaUuid
+            )
+          )
+        }
+        operations.push(softDeleteValue(removed.uuid!))
+      }
+
       for (const val of nonEmptyValues) {
         if (!val.uuid) continue
         const origVal = originalProp?.values?.find((v) => v.uuid === val.uuid)
@@ -536,6 +563,7 @@ export function usePropertyEditor({
       updatePropertyWithValues,
       createPropertyForObject,
       removePropertyFromObject,
+      softDeleteValue,
       createFormulaCalcForValue,
       deleteFormulaCalcForValue,
       buildFormulaArgs,

@@ -102,6 +102,24 @@ export function useProperties() {
     })
   }
 
+  // Soft-delete a single property value
+  const useSoftDeletePropertyValue = () => {
+    return useMutation({
+      mutationFn: async (valueUuid: string) => {
+        await client.node.softDeletePropertyValue(valueUuid)
+        return valueUuid
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.properties.lists(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.lists(),
+        })
+      },
+    })
+  }
+
   // Add property to object using the restored convenience method
   const useAddPropertyToObject = () => {
     return useMutation({
@@ -196,6 +214,7 @@ export function useProperties() {
     useCreateProperty,
     useUpdateProperty,
     useDeleteProperty,
+    useSoftDeletePropertyValue,
     useAddPropertyToObject,
     useSetPropertyValue,
     useUpdatePropertyWithValues,

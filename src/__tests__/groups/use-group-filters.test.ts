@@ -97,38 +97,6 @@ describe('useGroupFilters', () => {
     expect(result.current.totalElements).toBe(0)
   })
 
-  it('should filter by search term', () => {
-    const page = createMockPage(MOCK_GROUPS)
-    const { result } = renderHook(() =>
-      useGroupFilters({
-        page,
-        userUUID: MOCK_USER_UUID,
-        searchTerm: 'First',
-      })
-    )
-
-    expect(result.current.filteredGroups).toHaveLength(1)
-    expect(result.current.filteredGroups[0].name).toBe('My First Group')
-  })
-
-  it('should be case-insensitive when searching', () => {
-    const page = createMockPage(MOCK_GROUPS)
-    const { result } = renderHook(() =>
-      useGroupFilters({
-        page,
-        userUUID: MOCK_USER_UUID,
-        searchTerm: 'SHARED',
-      })
-    )
-
-    expect(result.current.filteredGroups).toHaveLength(2)
-    expect(
-      result.current.filteredGroups.every((g) =>
-        g.name.toLowerCase().includes('shared')
-      )
-    ).toBe(true)
-  })
-
   it('should filter by "my" groups (owned by user)', () => {
     const page = createMockPage(MOCK_GROUPS)
     const { result } = renderHook(() =>
@@ -176,34 +144,6 @@ describe('useGroupFilters', () => {
     )
 
     expect(result.current.filteredGroups.some((g) => g.default)).toBe(false)
-  })
-
-  it('should combine search and filter', () => {
-    const page = createMockPage(MOCK_GROUPS)
-    const { result } = renderHook(() =>
-      useGroupFilters({
-        page,
-        userUUID: MOCK_USER_UUID,
-        activeFilter: 'my',
-        searchTerm: 'Second',
-      })
-    )
-
-    expect(result.current.filteredGroups).toHaveLength(1)
-    expect(result.current.filteredGroups[0].name).toBe('My Second Group')
-  })
-
-  it('should handle empty search results', () => {
-    const page = createMockPage(MOCK_GROUPS)
-    const { result } = renderHook(() =>
-      useGroupFilters({
-        page,
-        userUUID: MOCK_USER_UUID,
-        searchTerm: 'nonexistent',
-      })
-    )
-
-    expect(result.current.filteredGroups).toHaveLength(0)
   })
 
   it('should handle undefined userUUID', () => {

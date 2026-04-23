@@ -336,4 +336,49 @@ test.describe('11 - Property Editing', () => {
 
     await closeSheet(page)
   })
+
+  test('TC045: Remove value persists server-side (soft-delete)', async ({
+    page,
+  }) => {
+    test.slow()
+
+    await openObject(page, objectName)
+    await goToPropertiesTab(page)
+    await enterEditMode(page)
+
+    // Expand property
+    await page.locator('[data-testid^="property-header-"]').first().click()
+    await page.waitForTimeout(300)
+
+    // Count values before removal
+    const valueContainersBefore = page.locator(
+      '[data-testid^="property-value-"]'
+    )
+    const countBefore = await valueContainersBefore.count()
+    expect(countBefore).toBeGreaterThanOrEqual(2)
+
+    // Remove the last value
+    const removeButton = page.locator('[data-testid^="value-remove-"]').last()
+    await expect(removeButton).toBeVisible({ timeout: 5000 })
+    await removeButton.click()
+    await page.waitForTimeout(300)
+
+    await clickSave(page)
+
+    // Close, reopen, and verify removal persisted (soft-deleted server-side)
+    await closeSheet(page)
+    await openObject(page, objectName)
+    await goToPropertiesTab(page)
+
+    await page.locator('[data-testid^="property-header-"]').first().click()
+    await page.waitForTimeout(300)
+
+    const valueContainersAfter = page.locator(
+      '[data-testid^="property-value-"]'
+    )
+    const countAfter = await valueContainersAfter.count()
+    expect(countAfter).toBe(countBefore - 1)
+
+    await closeSheet(page)
+  })
 })

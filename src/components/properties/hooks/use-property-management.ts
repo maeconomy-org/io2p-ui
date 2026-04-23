@@ -19,6 +19,7 @@ export function usePropertyManagement() {
     useAddPropertyToObject,
     useSetPropertyValue,
     useDeleteProperty,
+    useSoftDeletePropertyValue,
   } = useProperties()
 
   const { useCreateFormulaCalc, useDeleteFormulaCalc } = useMathFormulas()
@@ -30,6 +31,7 @@ export function usePropertyManagement() {
   const addPropertyMutation = useAddPropertyToObject()
   const setValueMutation = useSetPropertyValue()
   const deletePropertyMutation = useDeleteProperty()
+  const deletePropertyValueMutation = useSoftDeletePropertyValue()
   const createFormulaCalcMutation = useCreateFormulaCalc()
   const deleteFormulaCalcMutation = useDeleteFormulaCalc()
   const createStatementMutation = useCreateStatement()
@@ -169,6 +171,32 @@ export function usePropertyManagement() {
   )
 
   /**
+   * Soft-delete a single property value by UUID.
+   */
+  const softDeleteValue = useCallback(
+    async (valueUuid: string) => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        await deletePropertyValueMutation.mutateAsync(valueUuid)
+        return { success: true }
+      } catch (err) {
+        logger.error('Failed to soft-delete property value:', err)
+        setError(
+          err instanceof Error
+            ? err
+            : new Error('Failed to soft-delete property value')
+        )
+        throw err
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [deletePropertyValueMutation]
+  )
+
+  /**
    * Remove a property from an object (soft delete the property)
    */
   const removePropertyFromObject = useCallback(
@@ -276,6 +304,7 @@ export function usePropertyManagement() {
     updatePropertyWithValues,
     addValueToProperty,
     removePropertyFromObject,
+    softDeleteValue,
     createFormulaCalcForValue,
     deleteFormulaCalcForValue,
     isLoading,

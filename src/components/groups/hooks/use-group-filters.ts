@@ -8,7 +8,6 @@ type GroupFilter = 'all' | 'my' | 'shared'
 interface UseGroupFiltersOptions {
   page: PageImplGroupFullDTO | undefined
   userUUID: string | undefined
-  searchTerm?: string
   activeFilter?: GroupFilter
 }
 
@@ -21,9 +20,9 @@ interface UseGroupFiltersReturn {
 export function useGroupFilters(
   options: UseGroupFiltersOptions
 ): UseGroupFiltersReturn {
-  const { page, userUUID, searchTerm = '', activeFilter = 'all' } = options
+  const { page, userUUID, activeFilter = 'all' } = options
 
-  // Client-side search + owner filter on the current page content
+  // Client-side owner filter on the current page content
   const filteredGroups = useMemo(() => {
     if (!page?.content) return []
     return page.content.filter((group) => {
@@ -34,12 +33,9 @@ export function useGroupFilters(
       if (activeFilter === 'shared' && group.ownerUserUUID === userUUID)
         return false
 
-      const matchesSearch = group.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-      return matchesSearch
+      return true
     })
-  }, [page?.content, searchTerm, activeFilter, userUUID])
+  }, [page?.content, activeFilter, userUUID])
 
   // Total pages and elements come from the server response
   const totalPages = page?.totalPages ?? 0

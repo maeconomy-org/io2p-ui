@@ -11,6 +11,7 @@ const updateProperty = vi.fn()
 const addPropertyToObject = vi.fn()
 const setPropertyValue = vi.fn()
 const deleteProperty = vi.fn()
+const softDeletePropertyValue = vi.fn()
 const createFormulaCalc = vi.fn()
 const deleteFormulaCalc = vi.fn()
 const createStatement = vi.fn()
@@ -25,6 +26,7 @@ vi.mock('@/hooks/api/use-properties', () => ({
     useAddPropertyToObject: () => mutation(addPropertyToObject),
     useSetPropertyValue: () => mutation(setPropertyValue),
     useDeleteProperty: () => mutation(deleteProperty),
+    useSoftDeletePropertyValue: () => mutation(softDeletePropertyValue),
   }),
 }))
 
@@ -269,6 +271,28 @@ describe('usePropertyManagement', () => {
       await expect(
         result.current.deleteFormulaCalcForValue('obj-1', 'calc-1')
       ).rejects.toThrow('nope')
+    })
+  })
+
+  describe('softDeleteValue', () => {
+    it('calls the soft-delete mutation with the value uuid', async () => {
+      softDeletePropertyValue.mockResolvedValue('val-1')
+
+      const { result } = renderHook(() => usePropertyManagement())
+      await act(async () => {
+        await result.current.softDeleteValue('val-1')
+      })
+
+      expect(softDeletePropertyValue).toHaveBeenCalledWith('val-1')
+    })
+
+    it('propagates errors from the mutation', async () => {
+      softDeletePropertyValue.mockRejectedValue(new Error('boom'))
+
+      const { result } = renderHook(() => usePropertyManagement())
+      await expect(result.current.softDeleteValue('val-1')).rejects.toThrow(
+        'boom'
+      )
     })
   })
 })

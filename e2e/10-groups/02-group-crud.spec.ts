@@ -203,23 +203,4 @@ test.describe('02 - Group CRUD Operations', () => {
     await allItem.click()
     await page.keyboard.press('Escape')
   })
-
-  // Skipped: group search is currently client-side and only filters the
-  // *current* page of results (see src/components/groups/hooks/use-group-filters.ts).
-  // A group created with a fresh-timestamp name may land on page 2+ and will
-  // not be found by the search input. Unskip once search is plumbed server-side.
-  test.skip('TC009: Search finds the created group', async ({ page }) => {
-    const searchInput = page.getByTestId('group-search-input')
-
-    await searchInput.fill(groupName)
-    await page.waitForTimeout(500)
-
-    await expect(page.getByText(groupName).first()).toBeVisible({
-      timeout: 10000,
-    })
-
-    const clearButton = page.getByTestId('group-search-clear-button')
-    await clearButton.click()
-    await expect(searchInput).toHaveValue('')
-  })
 })

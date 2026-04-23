@@ -31,7 +31,6 @@ export type ObjectUpdateInput = {
         file: Omit<UUFileDTO, 'uuid'>
       }>
     }>
-    removeValues?: UUID[]
     addFiles?: Array<{
       file: Omit<UUFileDTO, 'uuid'>
     }>
