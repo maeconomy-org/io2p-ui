@@ -16,6 +16,14 @@ import {
 import type { Property, FormulaData } from '../types'
 import type { AvailableProperty } from './use-formula-evaluation'
 
+type FormulaCreateTask = {
+  formulaData: FormulaData
+  args: Array<{ name: string; propertyValueUUID: string }>
+  resultUuid: string
+}
+
+type FormulaDeleteTask = { calcUuid: string; formulaUuid?: string }
+
 /** Get the stable ID for a property (uuid or temp ID). */
 function getPropertyId(property: Property): string {
   return property.uuid || property._tempId || ''
@@ -90,6 +98,11 @@ export function usePropertyEditor({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [isSavingProperty, setIsSavingProperty] = useState<string | null>(null)
   const [nameErrors, setNameErrors] = useState<Record<string, string>>({})
+  // Monotonic counter ensures addProperty() produces a unique _tempId even
+  // when called multiple times within the same millisecond (otherwise
+  // updateById would apply updates to every prop sharing the tempId, and
+  // formula variable mappings keyed by composite ID would collide).
+  const tempIdCounterRef = useRef(0)
 
   const {
     updatePropertyWithValues,
@@ -170,7 +183,8 @@ export function usePropertyEditor({
   // ── Mutation methods ─────────────────────────────────────────────
 
   const addProperty = useCallback(() => {
-    const tempId = `temp_${Date.now()}`
+    tempIdCounterRef.current += 1
+    const tempId = `temp_${Date.now()}_${tempIdCounterRef.current}`
     const newProperty: Property = {
       key: '',
       values: [{ value: '', _needsInput: true }],
@@ -366,7 +380,9 @@ export function usePropertyEditor({
 
   /**
    * Resolve a composite ID (e.g. "{propUUID}::0") to a real property value UUID
-   * by scanning the current properties list.
+   * by scanning the current properties list. Only returns UUIDs that are
+   * already known (already persisted) — for values created in the current
+   * save session, callers must consult a local map first.
    */
   const resolveCompositeIdToValueUUID = useCallback(
     (compositeId: string): string | null => {
@@ -374,7 +390,6 @@ export function usePropertyEditor({
       if (!parsed) return null
 
       const { propertyId, valueIndex } = parsed
-      // Find the property by uuid or _tempId
       const prop = allProperties.find(
         (p) => p.uuid === propertyId || p._tempId === propertyId
       )
@@ -384,37 +399,54 @@ export function usePropertyEditor({
   )
 
   /**
-   * Build formula calc args by resolving composite IDs to real value UUIDs.
+   * Build formula calc args by resolving composite IDs using a caller-supplied
+   * resolver. Unresolved variables are logged and skipped — the caller is
+   * notified via the returned `unresolved` list so it can surface a warning.
    */
   const buildFormulaArgs = useCallback(
     (
-      formulaData: FormulaData
-    ): Array<{ name: string; propertyValueUUID: string }> => {
+      formulaData: FormulaData,
+      resolve: (compositeId: string) => string | null
+    ): {
+      args: Array<{ name: string; propertyValueUUID: string }>
+      unresolved: string[]
+    } => {
       const args: Array<{ name: string; propertyValueUUID: string }> = []
+      const unresolved: string[] = []
       for (const [name, mapping] of Object.entries(
         formulaData.variableMapping || {}
       )) {
-        const realUUID = resolveCompositeIdToValueUUID(mapping.propertyUuid)
-        logger.info('Resolving formula arg:', {
-          varName: name,
-          compositeId: mapping.propertyUuid,
-          resolvedUUID: realUUID,
-        })
+        const realUUID = resolve(mapping.propertyUuid)
         if (realUUID) {
           args.push({ name, propertyValueUUID: realUUID })
+        } else {
+          unresolved.push(name)
+          logger.warn(
+            'Formula variable could not be resolved to a property value UUID',
+            {
+              varName: name,
+              compositeId: mapping.propertyUuid,
+              formulaUuid: formulaData.formulaUuid,
+            }
+          )
         }
       }
-      return args
+      return { args, unresolved }
     },
-    [resolveCompositeIdToValueUUID]
+    []
   )
 
-  const processPropertyOperations = useCallback(
-    async (property: Property) => {
+  /**
+   * Phase 1: Create/update/delete the property and its values. For new
+   * properties, records the (_tempId::index → real value UUID) mapping so
+   * Phase 2 can resolve formula variables that reference values created in
+   * this same save.
+   */
+  const persistPhase1 = useCallback(
+    async (property: Property, uuidMap: Map<string, string>) => {
       if (!objectUuid) throw new Error('Missing objectUuid')
 
       if (property._deleted) {
-        // Check if this property had a formula calc to clean up
         for (const val of property.values || []) {
           const calcUuid = val.formulaData?.calcUuid
           if (calcUuid) {
@@ -437,47 +469,32 @@ export function usePropertyEditor({
             val._needsInput !== true
         )
 
-        // Create the property and its values first (sequential — need UUIDs back)
         const newProperty = await createPropertyForObject(objectUuid, {
           key: property.key,
           values: nonEmptyValues,
         })
 
-        // Now create formula calcs for any formula values
-        for (let i = 0; i < nonEmptyValues.length; i++) {
-          const val = nonEmptyValues[i]
-          if (!val.formulaData?.formulaUuid) continue
-
-          // Find the created value UUID from the response
-          const createdValue = newProperty?._createdValues?.find(
-            (cv: { index: number }) => cv.index === i
-          )
-          if (!createdValue?.uuid) continue
-
-          const args = buildFormulaArgs(val.formulaData)
-          if (args.length > 0) {
-            await createFormulaCalcForValue(
-              objectUuid,
-              val.formulaData,
-              args,
-              createdValue.uuid
-            )
+        const tempId = property._tempId
+        const createdValues: Array<{ uuid: string; index: number }> =
+          newProperty?._createdValues || []
+        if (tempId) {
+          for (const cv of createdValues) {
+            if (cv?.uuid) {
+              uuidMap.set(makeCompositeId(tempId, cv.index), cv.uuid)
+            }
           }
         }
         return
       }
 
-      // Existing property — update metadata and values
+      // Existing property — update metadata + values (omit value for formulas
+      // so the backend stays source of truth).
       const nonEmptyValues = (property.values || []).filter(
         (val) =>
           val.value !== undefined &&
           val.value !== '' &&
           val._needsInput !== true
       )
-
-      const operations = []
-
-      // For formula values, omit `value` so backend computes it as source of truth
       const valuesToSend = nonEmptyValues.map((val) =>
         val.formulaData?.formulaUuid
           ? { uuid: val.uuid, valueTypeCast: val.valueTypeCast }
@@ -488,24 +505,116 @@ export function usePropertyEditor({
             }
       )
 
-      operations.push(
-        updatePropertyWithValues(
-          {
-            uuid: property.uuid!,
-            key: property.key,
-          },
-          valuesToSend
-        )
+      await updatePropertyWithValues(
+        { uuid: property.uuid!, key: property.key },
+        valuesToSend
       )
 
-      // Handle formula changes (text↔formula conversion)
+      // Soft-delete values that existed on the server but were removed from
+      // the editor. Formula-calc teardown for those removed values is handled
+      // in Phase 2's `deletes` collection so it can run alongside other calc
+      // deletes.
+      const originalProp = initialProperties.find(
+        (p) => p.uuid === property.uuid
+      )
+      const currentValueUuids = new Set(
+        (property.values || [])
+          .map((v) => v.uuid)
+          .filter((uuid): uuid is string => !!uuid)
+      )
+      const removedValues = (originalProp?.values || []).filter(
+        (v) => v.uuid && !currentValueUuids.has(v.uuid)
+      )
+      await Promise.all(
+        removedValues.map((removed) => softDeleteValue(removed.uuid!))
+      )
+    },
+    [
+      objectUuid,
+      initialProperties,
+      updatePropertyWithValues,
+      createPropertyForObject,
+      removePropertyFromObject,
+      softDeleteValue,
+      deleteFormulaCalcForValue,
+    ]
+  )
+
+  /**
+   * Phase 2 — COLLECT step: figure out which formula calcs need to be created
+   * or deleted, resolving each calc's args using the Phase-1 map first and
+   * falling back to state lookup for already-persisted values. Does NOT
+   * execute yet — the caller sequences creations by dependency order so a
+   * formula that consumes another formula's result is created after the
+   * upstream calc.
+   */
+  const collectPhase2Ops = useCallback(
+    (
+      property: Property,
+      uuidMap: Map<string, string>
+    ): {
+      creates: FormulaCreateTask[]
+      deletes: FormulaDeleteTask[]
+      unresolvedCount: number
+    } => {
+      const creates: FormulaCreateTask[] = []
+      const deletes: FormulaDeleteTask[] = []
+      let unresolvedCount = 0
+
+      if (!objectUuid || property._deleted) {
+        return { creates, deletes, unresolvedCount }
+      }
+
+      const resolver = (compositeId: string): string | null =>
+        uuidMap.get(compositeId) ?? resolveCompositeIdToValueUUID(compositeId)
+
+      if (property._isNew) {
+        const nonEmptyValues = (property.values || []).filter(
+          (val) =>
+            val.value !== undefined &&
+            val.value !== '' &&
+            val._needsInput !== true
+        )
+        const tempId = property._tempId
+        for (let i = 0; i < nonEmptyValues.length; i++) {
+          const val = nonEmptyValues[i]
+          if (!val.formulaData?.formulaUuid) continue
+          const resultUuid = tempId
+            ? uuidMap.get(makeCompositeId(tempId, i))
+            : undefined
+          if (!resultUuid) continue
+
+          const { args, unresolved } = buildFormulaArgs(
+            val.formulaData,
+            resolver
+          )
+          unresolvedCount += unresolved.length
+          if (args.length > 0) {
+            creates.push({
+              formulaData: val.formulaData,
+              args,
+              resultUuid,
+            })
+          }
+        }
+        return { creates, deletes, unresolvedCount }
+      }
+
+      // Existing property — handle text↔formula transitions on known values.
+      const nonEmptyValues = (property.values || []).filter(
+        (val) =>
+          val.value !== undefined &&
+          val.value !== '' &&
+          val._needsInput !== true
+      )
       const originalProp = initialProperties.find(
         (p) => p.uuid === property.uuid
       )
 
-      // Soft-delete values that existed on the server but were removed from
-      // the editor. Tear down their formula calcs too (mirrors the cleanup
-      // done for `property._deleted` above).
+      // Tear down formula calcs for values that existed on the server but
+      // were removed from the editor. The value itself is already soft-deleted
+      // in Phase 1; here we only queue its calc teardown so Phase 2 can run
+      // it alongside other formula deletes.
       const currentValueUuids = new Set(
         (property.values || [])
           .map((v) => v.uuid)
@@ -517,15 +626,11 @@ export function usePropertyEditor({
       for (const removed of removedValues) {
         const calcUuid = removed.formulaData?.calcUuid
         if (calcUuid) {
-          operations.push(
-            deleteFormulaCalcForValue(
-              objectUuid,
-              calcUuid,
-              removed.formulaData?.formulaUuid
-            )
-          )
+          deletes.push({
+            calcUuid,
+            formulaUuid: removed.formulaData?.formulaUuid,
+          })
         }
-        operations.push(softDeleteValue(removed.uuid!))
       }
 
       for (const val of nonEmptyValues) {
@@ -535,39 +640,101 @@ export function usePropertyEditor({
         const hasFormula = !!val.formulaData?.formulaUuid
 
         if (!hadFormula && hasFormula) {
-          const args = buildFormulaArgs(val.formulaData!)
+          const { args, unresolved } = buildFormulaArgs(
+            val.formulaData!,
+            resolver
+          )
+          unresolvedCount += unresolved.length
           if (args.length > 0) {
-            operations.push(
-              createFormulaCalcForValue(
-                objectUuid,
-                val.formulaData!,
-                args,
-                val.uuid
-              )
-            )
+            creates.push({
+              formulaData: val.formulaData!,
+              args,
+              resultUuid: val.uuid,
+            })
           }
         } else if (hadFormula && !hasFormula) {
           const calcUuid = origVal?.formulaData?.calcUuid
           if (calcUuid) {
-            operations.push(deleteFormulaCalcForValue(objectUuid, calcUuid))
+            deletes.push({
+              calcUuid,
+              formulaUuid: origVal?.formulaData?.formulaUuid,
+            })
           }
         }
       }
-
-      await Promise.all(operations)
+      return { creates, deletes, unresolvedCount }
     },
     [
       objectUuid,
       initialProperties,
-      allProperties,
-      updatePropertyWithValues,
-      createPropertyForObject,
-      removePropertyFromObject,
-      softDeleteValue,
-      createFormulaCalcForValue,
-      deleteFormulaCalcForValue,
+      resolveCompositeIdToValueUUID,
       buildFormulaArgs,
     ]
+  )
+
+  /**
+   * Execute collected Phase-2 operations with correct ordering. Deletes run
+   * in parallel. Creates are topologically sorted by their inter-calc
+   * dependencies (a calc whose args reference another calc's resultUuid
+   * must run AFTER that upstream calc) and then executed in dependency
+   * order. Independent calcs still run in parallel within each topological
+   * layer.
+   */
+  const executePhase2 = useCallback(
+    async (creates: FormulaCreateTask[], deletes: FormulaDeleteTask[]) => {
+      if (!objectUuid) return
+
+      // Deletes are independent of creates and of each other.
+      const deleteOps = deletes.map((d) =>
+        deleteFormulaCalcForValue(objectUuid, d.calcUuid, d.formulaUuid)
+      )
+
+      // Topologically sort creates by dependency. A create depends on
+      // another create when its arg UUIDs include the other's resultUuid.
+      const taskByResult = new Map<string, FormulaCreateTask>()
+      for (const t of creates) taskByResult.set(t.resultUuid, t)
+
+      const sorted: FormulaCreateTask[] = []
+      const visited = new Set<string>()
+      const visiting = new Set<string>()
+
+      const visit = (task: FormulaCreateTask) => {
+        if (visited.has(task.resultUuid)) return
+        if (visiting.has(task.resultUuid)) {
+          // Cycle — log and break so we don't loop forever. The calc will
+          // still be queued, but its upstream hasn't completed first.
+          logger.warn('Formula dependency cycle detected', {
+            resultUuid: task.resultUuid,
+          })
+          return
+        }
+        visiting.add(task.resultUuid)
+        for (const arg of task.args) {
+          const upstream = taskByResult.get(arg.propertyValueUUID)
+          if (upstream && upstream !== task) visit(upstream)
+        }
+        visiting.delete(task.resultUuid)
+        visited.add(task.resultUuid)
+        sorted.push(task)
+      }
+      for (const t of creates) visit(t)
+
+      // Run creates sequentially in topological order so each formula calc
+      // exists on the backend before any dependent formula references it.
+      const createSequence = (async () => {
+        for (const t of sorted) {
+          await createFormulaCalcForValue(
+            objectUuid,
+            t.formulaData,
+            t.args,
+            t.resultUuid
+          )
+        }
+      })()
+
+      await Promise.all([...deleteOps, createSequence])
+    },
+    [objectUuid, createFormulaCalcForValue, deleteFormulaCalcForValue]
   )
 
   const saveProperties = useCallback(async (): Promise<void> => {
@@ -584,11 +751,36 @@ export function usePropertyEditor({
       return
     }
 
+    const uuidMap = new Map<string, string>()
+
     try {
+      // Phase 1: persist property/value changes and collect new UUIDs.
       await Promise.all(
-        propertiesToUpdate.map((prop) => processPropertyOperations(prop))
+        propertiesToUpdate.map((prop) => persistPhase1(prop, uuidMap))
       )
+
+      // Phase 2 collect: gather all formula calc creates/deletes with
+      // fully-resolved args from a single shared uuidMap.
+      const allCreates: FormulaCreateTask[] = []
+      const allDeletes: FormulaDeleteTask[] = []
+      let totalUnresolved = 0
+      for (const prop of propertiesToUpdate) {
+        const { creates, deletes, unresolvedCount } = collectPhase2Ops(
+          prop,
+          uuidMap
+        )
+        allCreates.push(...creates)
+        allDeletes.push(...deletes)
+        totalUnresolved += unresolvedCount
+      }
+
+      // Phase 2 execute: topologically sorted creates + parallel deletes.
+      await executePhase2(allCreates, allDeletes)
+
       toast.success(t('objects.propertiesUpdated'))
+      if (totalUnresolved > 0) {
+        toast.warning(t('objects.formulaUnresolvedArgs'))
+      }
     } catch (error) {
       logger.error('Error saving properties:', error)
       toast.error(
@@ -602,7 +794,9 @@ export function usePropertyEditor({
     objectUuid,
     allProperties,
     initialProperties,
-    processPropertyOperations,
+    persistPhase1,
+    collectPhase2Ops,
+    executePhase2,
     t,
   ])
 
@@ -617,9 +811,19 @@ export function usePropertyEditor({
 
       setIsSavingProperty(propertyId)
 
+      const uuidMap = new Map<string, string>()
+
       try {
-        await processPropertyOperations(property)
+        await persistPhase1(property, uuidMap)
+        const { creates, deletes, unresolvedCount } = collectPhase2Ops(
+          property,
+          uuidMap
+        )
+        await executePhase2(creates, deletes)
         toast.success(t('objects.propertiesUpdated'))
+        if (unresolvedCount > 0) {
+          toast.warning(t('objects.formulaUnresolvedArgs'))
+        }
       } catch (error) {
         logger.error('Error saving property:', error)
         toast.error(
@@ -632,7 +836,14 @@ export function usePropertyEditor({
         setIsSavingProperty(null)
       }
     },
-    [objectUuid, allProperties, processPropertyOperations, t]
+    [
+      objectUuid,
+      allProperties,
+      persistPhase1,
+      collectPhase2Ops,
+      executePhase2,
+      t,
+    ]
   )
 
   return {

@@ -325,6 +325,7 @@
     },
     "propertiesUpdated": "Properties updated successfully",
     "propertiesUpdateFailed": "Failed to update object properties",
+    "formulaUnresolvedArgs": "Some formula variables could not be linked to their source values and were skipped.",
     "metadataUpdated": "Metadata updated successfully",
     "addressUpdated": "Address updated successfully",
     "parentsUpdated": "Parent relationships updated successfully",
