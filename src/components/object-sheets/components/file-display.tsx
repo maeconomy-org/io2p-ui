@@ -2,16 +2,14 @@
 
 import { memo, useState } from 'react'
 import type { MouseEvent, ReactElement } from 'react'
-import { Download, Link as LinkIcon, Trash2, Eye, X } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { Download, Link as LinkIcon, Trash2, Eye } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import {
   Button,
   Badge,
-  Dialog,
-  DialogContent,
-  DialogTitle,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -21,41 +19,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 
 import { useFilesApi } from '@/hooks'
-import { useIomSdkClient } from '@/contexts'
 import type { FileData } from '@/types'
-import { truncateText } from '@/lib'
+import { detectMimeType, detectPreviewKind, logger, truncateText } from '@/lib'
+import { useIomSdkClient } from '@/contexts'
+import { downloadFileToClient, extractFileUuid } from '@/components/attachments'
+
+const AttachmentPreview = dynamic(
+  () => import('@/components/attachments').then((m) => m.AttachmentPreview),
+  { ssr: false }
+)
 
 import { isExternalFileReference } from '../utils'
 
-/**
- * Check if file is previewable (images only)
- */
-function isPreviewable(file: FileData): boolean {
-  const { contentType, fileReference, fileName } = file
-
-  // Check by content type
-  if (contentType?.startsWith('image/')) return true
-
-  // Fallback: check by file extension
-  const ref = fileReference || fileName || ''
-  const ext = ref.split('.').pop()?.toLowerCase()
-  if (ext) {
-    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp']
-    if (imageExts.includes(ext)) return true
-  }
-
-  return false
+function isPreviewableFile(file: FileData): boolean {
+  return (
+    detectPreviewKind(detectMimeType(file)) !== 'unsupported' &&
+    !isExternalFileReference(file.fileReference)
+  )
 }
 
 interface FileDisplayProps {
   file: FileData
   onClick?: (file: FileData) => void
+  onPreview?: (file: FileData) => void
   className?: string
-  onRemove?: (file: FileData) => void // Callback for removing file from list
-  allowHardRemove?: boolean // Allow hard removal (for non-uploaded files)
+  onRemove?: (file: FileData) => void
+  allowHardRemove?: boolean
 }
 
 /**
@@ -107,186 +98,73 @@ function getDisplayName(file: FileData): string {
 }
 
 /**
- * Handle file opening - use authenticated download for internal files.
- * Downloads via fetch with Authorization header, then creates a blob URL
- * to trigger the browser download. No token in URL.
+ * Download an internal file via the SDK (JWT attached automatically), then
+ * trigger the browser download through a blob URL. External references open
+ * directly in a new tab.
  */
-async function handleFileOpen(file: FileData): Promise<void> {
+async function handleFileOpen(
+  file: FileData,
+  client: ReturnType<typeof useIomSdkClient>
+): Promise<void> {
   if (!file.fileReference) return
 
-  // For external files, use direct window.open
   if (isExternalFileReference(file.fileReference)) {
     window.open(file.fileReference, '_blank', 'noopener,noreferrer')
     return
   }
 
-  try {
-    const uuidMatch = file.fileReference.match(
-      /\/api\/UUFile\/([^/?]+)\/download/
-    )
-    if (!uuidMatch) {
-      console.error(
-        'Could not extract UUID from fileReference:',
-        file.fileReference
-      )
-      return
-    }
-
-    const uuid = uuidMatch[1]
-
-    // Get auth token from localStorage
-    const authToken = JSON.parse(
-      localStorage.getItem('iom-auth-state') || '{}'
-    ).token
-    if (!authToken) {
-      console.error('No auth token found in localStorage')
-      return
-    }
-
-    // Fetch the file via API route with Authorization header (no token in URL)
-    const response = await fetch(`/api/files/download/${uuid}`, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
+  const uuid = extractFileUuid(file.fileReference)
+  if (!uuid) {
+    logger.error('Could not extract UUID from fileReference', {
+      fileReference: file.fileReference,
     })
+    return
+  }
 
-    if (!response.ok) {
-      throw new Error(`Download failed: ${response.status}`)
-    }
-
-    // Create blob URL and trigger download
-    const blob = await response.blob()
-    const blobUrl = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = blobUrl
-    link.download = getDisplayName(file)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
-    // Clean up blob URL
-    URL.revokeObjectURL(blobUrl)
+  try {
+    await downloadFileToClient(
+      client,
+      uuid,
+      file.contentType || 'application/octet-stream',
+      getDisplayName(file)
+    )
   } catch (error) {
-    console.error('Failed to open file:', error)
+    logger.error('Failed to open file', { error })
   }
 }
 
 export const FileDisplay = memo(function FileDisplay({
   file,
   onClick,
+  onPreview,
   className,
   onRemove,
   allowHardRemove = false,
 }: FileDisplayProps) {
   const t = useTranslations()
+  const client = useIomSdkClient()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const icon = getFileIcon(file)
   const typeBadge = getFileTypeBadge(file)
   const displayName = getDisplayName(file)
   const isSoftDeleted = file.softDeleted
-  const canPreview =
-    isPreviewable(file) && !isExternalFileReference(file.fileReference)
+  const canPreview = isPreviewableFile(file)
   const { useSoftDeleteFile } = useFilesApi()
   const softDeleteFile = useSoftDeleteFile()
-  const client = useIomSdkClient()
 
   const handleClick = () => {
     if (onClick) {
       onClick(file)
-    } else if (canPreview) {
-      setShowPreview(true)
-      loadPreviewImage()
+    } else if (canPreview && onPreview) {
+      onPreview(file)
     } else {
-      handleFileOpen(file)
+      handleFileOpen(file, client)
     }
   }
 
   const handlePreview = (e: MouseEvent) => {
     e.stopPropagation()
-    setShowPreview(true)
-    loadPreviewImage()
-  }
-
-  const loadPreviewImage = async () => {
-    if (!file.fileReference || isExternalFileReference(file.fileReference)) {
-      // For external files, use direct URL
-      setPreviewImageUrl(file.fileReference)
-      return
-    }
-
-    // For internal files, fetch with auth
-    try {
-      const uuidMatch = file.fileReference.match(
-        /\/api\/UUFile\/([^/?]+)\/download/
-      )
-      if (!uuidMatch) {
-        console.error(
-          'Could not extract UUID from fileReference:',
-          file.fileReference
-        )
-        return
-      }
-
-      const uuid = uuidMatch[1]
-      const arrayBuffer = await client.node.downloadFile(uuid)
-
-      // Set correct MIME type for preview
-      const mimeType = file.contentType || 'application/octet-stream'
-      const blob = new Blob([arrayBuffer], { type: mimeType })
-      const url = URL.createObjectURL(blob)
-      setPreviewImageUrl(url)
-    } catch (error) {
-      console.error('Failed to load preview image:', error)
-    }
-  }
-
-  const handleDownload = async () => {
-    if (!file.fileReference) return
-
-    // For external references, use direct link (no auth needed)
-    if (isExternalFileReference(file.fileReference)) {
-      const link = document.createElement('a')
-      link.href = file.fileReference
-      link.download = displayName
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      return
-    }
-
-    // For internal files, use SDK with auth
-    try {
-      // Extract UUID from fileReference URL like /api/UUFile/{uuid}/download
-      const uuidMatch = file.fileReference.match(
-        /\/api\/UUFile\/([^/?]+)\/download/
-      )
-      if (!uuidMatch) {
-        console.error(
-          'Could not extract UUID from fileReference:',
-          file.fileReference
-        )
-        return
-      }
-
-      const uuid = uuidMatch[1]
-      const arrayBuffer = await client.node.downloadFile(uuid)
-
-      // Create blob and download with correct MIME type
-      const mimeType = file.contentType || 'application/octet-stream'
-      const blob = new Blob([arrayBuffer], { type: mimeType })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = displayName
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Failed to download file:', error)
-    }
+    onPreview?.(file)
   }
 
   const handleRemoveFile = (e: MouseEvent) => {
@@ -349,6 +227,7 @@ export const FileDisplay = memo(function FileDisplay({
             className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
             onClick={handlePreview}
             title={t('objects.files.preview')}
+            data-testid={`file-preview-${file.uuid || displayName}`}
           >
             <Eye className="h-3 w-3" />
           </Button>
@@ -365,64 +244,6 @@ export const FileDisplay = memo(function FileDisplay({
           </Button>
         )}
       </div>
-
-      {/* Preview Dialog */}
-      {canPreview && (
-        <Dialog
-          open={showPreview}
-          onOpenChange={(open) => {
-            setShowPreview(open)
-            if (
-              !open &&
-              previewImageUrl &&
-              !isExternalFileReference(file.fileReference || '')
-            ) {
-              // Clean up blob URL when closing preview for internal files
-              URL.revokeObjectURL(previewImageUrl)
-              setPreviewImageUrl(null)
-            }
-          }}
-        >
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden border-0 bg-black/95 [&>button]:hidden">
-            <VisuallyHidden>
-              <DialogTitle>{t('objects.files.filePreview')}</DialogTitle>
-            </VisuallyHidden>
-            {/* Close button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute top-2 right-2 z-10 h-8 w-8 p-0 text-white hover:bg-white/20"
-              onClick={() => setShowPreview(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-
-            {/* Content */}
-            <div className="flex items-center justify-center w-full h-[90vh]">
-              {previewImageUrl && (
-                <img
-                  src={previewImageUrl}
-                  alt={displayName}
-                  className="max-w-full max-h-full object-contain"
-                />
-              )}
-            </div>
-
-            {/* Download button at bottom */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleDownload}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                {t('common.download')}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
@@ -469,6 +290,10 @@ export function FileList({
   showEmptyState = true,
 }: FileListProps) {
   const t = useTranslations()
+  const [previewFile, setPreviewFile] = useState<FileData | null>(null)
+
+  const previewableSiblings = (files ?? []).filter(isPreviewableFile)
+
   return (
     <div className={cn('space-y-1', className)}>
       {files && files.length > 0 ? (
@@ -476,6 +301,7 @@ export function FileList({
           <FileDisplay
             key={file.uuid || index}
             file={file}
+            onPreview={setPreviewFile}
             onRemove={onRemoveFile}
             allowHardRemove={allowHardRemove}
           />
@@ -485,6 +311,15 @@ export function FileList({
           {t('objects.files.noFiles')}
         </p>
       ) : null}
+
+      <AttachmentPreview
+        file={previewFile}
+        siblings={previewableSiblings}
+        open={previewFile !== null}
+        onOpenChange={(open) => {
+          if (!open) setPreviewFile(null)
+        }}
+      />
     </div>
   )
 }

@@ -208,8 +208,10 @@ export function AttachmentModal({
         >
           <DialogHeader>
             <DialogTitle>{title || t('title')}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('dialogDescription')}
+            </DialogDescription>
           </DialogHeader>
-          <DialogDescription></DialogDescription>
 
           <AttachmentSection
             attachments={attachments}

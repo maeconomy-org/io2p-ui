@@ -36,31 +36,42 @@ async function addTextProperty(
   name: string,
   value: string
 ) {
-  // Count existing property sections before adding
-  const beforeCount = await sheet.getByLabel('Property Name').count()
+  // Count via data-testid instead of getByLabel — the PropertyNameCombobox
+  // (Radix Input inside a forwardRef) has occasionally produced a racy label
+  // count when rendered inside useFieldArray. The testid is 1:1 with property rows.
+  const propInputs = sheet.locator('[data-testid^="property-name-"]')
+  const beforeCount = await propInputs.count()
 
-  // Click the appropriate add button (scroll into view for long forms)
   if (beforeCount === 0) {
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
+    await sheet
+      .getByRole('button', { name: 'Add Property', exact: true })
+      .click()
   } else {
     const addBtn = sheet.getByRole('button', {
       name: 'Add Another Property',
+      exact: true,
     })
     await addBtn.scrollIntoViewIfNeeded()
     await addBtn.click()
   }
 
-  // Wait for the new property input to appear
-  const propInputs = sheet.getByLabel('Property Name')
-  await expect(propInputs.nth(beforeCount)).toBeVisible({ timeout: 10000 })
+  // Wait for the row count to grow, then always fill the last row.
+  await expect
+    .poll(async () => propInputs.count(), { timeout: 10000 })
+    .toBeGreaterThan(beforeCount)
 
-  // Fill the new (last) property name
-  await propInputs.nth(beforeCount).fill(name)
+  const afterCount = await propInputs.count()
+  const lastIndex = afterCount - 1
+  await propInputs.nth(lastIndex).fill(name)
 
-  // Fill the new (last) value input
-  const valueInputs = sheet.getByPlaceholder('Enter property value')
-  const vCount = await valueInputs.count()
-  await valueInputs.nth(vCount - 1).fill(value)
+  // Scope value input to the new property row to avoid filling siblings.
+  const propertyItem = sheet
+    .locator('[data-testid^="property-item-"]')
+    .nth(lastIndex)
+  await propertyItem
+    .getByPlaceholder('Enter property value')
+    .first()
+    .fill(value)
 
   // Allow RHF state to propagate so availableProperties updates
   await page.waitForTimeout(500)

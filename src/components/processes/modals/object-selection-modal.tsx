@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   Button,
   Input,
   Label,
@@ -216,6 +217,9 @@ export function ObjectSelectionModal({
             <Package className="h-5 w-5 text-blue-600" />
             {title || t('objectSelection.title')}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {t('objectSelection.dialogDescription')}
+          </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="flex-1 overflow-auto">

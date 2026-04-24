@@ -1,6 +1,9 @@
 // Core utilities
 export * from './utils'
 
+// MIME type detection
+export * from './mime-type'
+
 // Error utilities
 export * from './error-utils'
 

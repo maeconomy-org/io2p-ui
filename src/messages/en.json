@@ -96,8 +96,25 @@
     "copiedToClipboard": "Copied to clipboard",
     "failedToCopy": "Failed to copy to clipboard"
   },
+  "attachments": {
+    "preview": {
+      "previous": "Previous attachment",
+      "next": "Next attachment",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "rotate": "Rotate 90°",
+      "reset": "Fit to screen",
+      "counter": "{current} of {total}",
+      "notSupported": "Preview not available",
+      "downloadToOpen": "Download the file to open it in another app.",
+      "tooLargeForPreview": "File is too large to preview. Download it instead.",
+      "loadFailed": "Could not load preview.",
+      "dialogDescription": "Attachment preview dialog. Use arrow keys to navigate between files and Escape to close."
+    }
+  },
   "attachmentModal": {
     "title": "Manage Attachments",
+    "dialogDescription": "Upload new files or attach files by reference to this item.",
     "done": "Done",
     "uploadTitle": "Upload Files?",
     "uploadDescription": "{count} file(s) will be uploaded and attached. This action cannot be undone.",
@@ -1128,6 +1145,7 @@
   },
   "objectSelection": {
     "title": "Select Object",
+    "dialogDescription": "Search and select an object to add to this process.",
     "searchObjects": "Search Objects",
     "availableObjects": "Available Objects",
     "searching": "Searching objects...",

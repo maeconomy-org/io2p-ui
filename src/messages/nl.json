@@ -96,8 +96,25 @@
     "copiedToClipboard": "Gekopieerd naar klembord",
     "failedToCopy": "Kopiëren naar klembord mislukt"
   },
+  "attachments": {
+    "preview": {
+      "previous": "Vorige bijlage",
+      "next": "Volgende bijlage",
+      "zoomIn": "Inzoomen",
+      "zoomOut": "Uitzoomen",
+      "rotate": "90° draaien",
+      "reset": "Passend maken",
+      "counter": "{current} van {total}",
+      "notSupported": "Voorbeeld niet beschikbaar",
+      "downloadToOpen": "Download het bestand om het in een andere app te openen.",
+      "tooLargeForPreview": "Bestand is te groot voor een voorbeeld. Download het in plaats daarvan.",
+      "loadFailed": "Voorbeeld kon niet geladen worden.",
+      "dialogDescription": "Dialoogvenster voor bijlagevoorbeeld. Gebruik pijltjestoetsen om tussen bestanden te navigeren en Escape om te sluiten."
+    }
+  },
   "attachmentModal": {
     "title": "Bijlagen beheren",
+    "dialogDescription": "Upload nieuwe bestanden of koppel bestanden via referentie aan dit item.",
     "done": "Gereed",
     "uploadTitle": "Bestanden uploaden?",
     "uploadDescription": "{count} bestand(en) worden geüpload en bijgevoegd. Deze actie kan niet ongedaan worden gemaakt.",
@@ -1128,6 +1145,7 @@
   },
   "objectSelection": {
     "title": "Object selecteren",
+    "dialogDescription": "Zoek en selecteer een object om aan dit proces toe te voegen.",
     "searchObjects": "Objecten zoeken",
     "availableObjects": "Beschikbare objecten",
     "searching": "Objecten zoeken...",

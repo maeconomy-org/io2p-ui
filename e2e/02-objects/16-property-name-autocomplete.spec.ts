@@ -77,7 +77,13 @@ test.describe('16 - Property Name Autocomplete', () => {
     await expect(page.getByText('Address').first()).toBeVisible({
       timeout: 5000,
     })
-    await expect(page.getByText('address').first()).not.toBeVisible({
+    // Guard against regressing to the raw dictionary key: the kebab-case key
+    // "address" should never leak into display text. Exact match is required
+    // because Playwright's `getByText` is case-insensitive by default and
+    // would otherwise match the localized label "Address".
+    await expect(
+      page.getByText('address', { exact: true }).first()
+    ).not.toBeVisible({
       timeout: 1000,
     })
 

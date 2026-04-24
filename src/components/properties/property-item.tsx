@@ -69,7 +69,10 @@ function PropertyValueItem({
   const hasFormula = !!value.formulaData?.formula
 
   return (
-    <div className="border rounded-md p-2 bg-muted/5 space-y-2">
+    <div
+      className="border rounded-md p-2 bg-muted/5 space-y-2"
+      data-testid={`property-value-${propertyId}-${valueIndex}`}
+    >
       {/* Value header with toggle + actions */}
       {isEditable && (
         <div className="flex items-center justify-between">

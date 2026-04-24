@@ -482,40 +482,52 @@ export async function addPropertyInForm(
   name: string,
   values: string[]
 ) {
-  // Count existing property inputs to determine which button to use
-  const beforeCount = await sheet.getByLabel('Property Name').count()
+  // Use data-testid for counting so the count is decoupled from label-association
+  // quirks (the PropertyNameCombobox is a Radix Input wrapped in forwardRef; label
+  // lookup via getByLabel has occasionally double-counted on re-render).
+  const propertyNameInputs = sheet.locator('[data-testid^="property-name-"]')
+  const beforeCount = await propertyNameInputs.count()
 
   if (beforeCount === 0) {
-    await sheet.getByRole('button', { name: 'Add Property' }).click()
+    await sheet
+      .getByRole('button', { name: 'Add Property', exact: true })
+      .click()
   } else {
     const addBtn = sheet.getByRole('button', {
       name: 'Add Another Property',
+      exact: true,
     })
     await addBtn.scrollIntoViewIfNeeded()
     await addBtn.click()
   }
 
-  // Wait for the new property name input to appear (use data-testid
-  // since getByLabel can fail when multiple labels share the same htmlFor)
-  const propertyNameInputs = sheet.locator('[data-testid^="property-name-"]')
-  await expect(propertyNameInputs.nth(beforeCount)).toBeVisible({
-    timeout: 10000,
-  })
-  await propertyNameInputs.nth(beforeCount).fill(name)
+  // Wait until the property count has grown, then target the LAST input —
+  // this is robust to the rare case where clicking "Add" appends more than
+  // one empty row (e.g. React strict-mode double-invocation in dev).
+  await expect
+    .poll(async () => propertyNameInputs.count(), { timeout: 10000 })
+    .toBeGreaterThan(beforeCount)
 
-  // Fill values
+  const afterCount = await propertyNameInputs.count()
+  const lastIndex = afterCount - 1
+  await expect(propertyNameInputs.nth(lastIndex)).toBeVisible()
+  await propertyNameInputs.nth(lastIndex).fill(name)
+
+  // Fill values — scope value inputs to the newly-added property row so we
+  // never accidentally fill a value inside a sibling property.
+  const propertyItem = sheet
+    .locator('[data-testid^="property-item-"]')
+    .nth(lastIndex)
   for (let i = 0; i < values.length; i++) {
-    const valueInputs = sheet.getByPlaceholder('Enter property value')
+    const valueInputs = propertyItem.getByPlaceholder('Enter property value')
     const valueCount = await valueInputs.count()
     await valueInputs.nth(valueCount - 1).fill(values[i])
 
-    // Add another value if not the last one
     if (i < values.length - 1) {
-      const addValueButtons = sheet.locator(
+      const addValueButtons = propertyItem.locator(
         '[data-testid^="property-add-value-"]'
       )
-      const btnCount = await addValueButtons.count()
-      await addValueButtons.nth(btnCount - 1).click()
+      await addValueButtons.first().click()
     }
   }
 }
