@@ -5,22 +5,38 @@ import type { Property } from '@/components/properties/types'
 
 // ── Mocks ──────────────────────────────────────────────────────────
 
-const mockUpdatePropertyWithValues = vi.fn().mockResolvedValue({})
-const mockCreatePropertyForObject = vi.fn().mockResolvedValue({})
-const mockRemovePropertyFromObject = vi.fn().mockResolvedValue({})
-const mockSoftDeleteValue = vi.fn().mockResolvedValue({ success: true })
-const mockDeleteFormulaCalcForValue = vi.fn().mockResolvedValue({})
+const {
+  mockUpdatePropertyWithValues,
+  mockCreatePropertyForObject,
+  mockRemovePropertyFromObject,
+  mockSoftDeleteValue,
+  mockCreateFormulaCalcForValue,
+  mockDeleteFormulaCalcForValue,
+  mockLoggerWarn,
+} = vi.hoisted(() => ({
+  mockUpdatePropertyWithValues: vi.fn().mockResolvedValue({}),
+  mockCreatePropertyForObject: vi.fn().mockResolvedValue({}),
+  mockRemovePropertyFromObject: vi.fn().mockResolvedValue({}),
+  mockSoftDeleteValue: vi.fn().mockResolvedValue({ success: true }),
+  mockCreateFormulaCalcForValue: vi.fn().mockResolvedValue({}),
+  mockDeleteFormulaCalcForValue: vi.fn().mockResolvedValue({}),
+  mockLoggerWarn: vi.fn(),
+}))
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }))
 
 vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+  },
 }))
 
 vi.mock('@/lib', () => ({
-  logger: { error: vi.fn() },
+  logger: { error: vi.fn(), warn: mockLoggerWarn, info: vi.fn() },
   isForbiddenError: () => false,
 }))
 
@@ -30,7 +46,7 @@ vi.mock('@/components/properties/hooks/use-property-management', () => ({
     createPropertyForObject: mockCreatePropertyForObject,
     removePropertyFromObject: mockRemovePropertyFromObject,
     softDeleteValue: mockSoftDeleteValue,
-    createFormulaCalcForValue: vi.fn().mockResolvedValue({}),
+    createFormulaCalcForValue: mockCreateFormulaCalcForValue,
     deleteFormulaCalcForValue: mockDeleteFormulaCalcForValue,
   }),
 }))
@@ -502,6 +518,313 @@ describe('usePropertyEditor', () => {
       })
 
       expect(mockUpdatePropertyWithValues).not.toHaveBeenCalled()
+    })
+
+    it('resolves formula args pointing to another new property created in the same save', async () => {
+      // Simulate: A is new with value "10"; B is new with a formula that
+      // references A::0. Neither has a real UUID at save time.
+      mockCreatePropertyForObject
+        .mockResolvedValueOnce({
+          uuid: 'uuid-A',
+          _createdValues: [{ uuid: 'uuid-A-v0', index: 0 }],
+        })
+        .mockResolvedValueOnce({
+          uuid: 'uuid-B',
+          _createdValues: [{ uuid: 'uuid-B-v0', index: 0 }],
+        })
+
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: [],
+          objectUuid: 'obj-1',
+        })
+      )
+
+      // Create A
+      act(() => result.current.addProperty())
+      const tempA = result.current.properties[0]._tempId!
+      act(() => result.current.updatePropertyName(tempA, 'A', 'A'))
+      act(() => result.current.updatePropertyValue(tempA, 0, '10'))
+
+      // Create B with a formula referencing A::0 via composite ID
+      act(() => result.current.addProperty())
+      const tempB = result.current.properties[1]._tempId!
+      act(() => result.current.updatePropertyName(tempB, 'B', 'B'))
+      act(() => result.current.updatePropertyValue(tempB, 0, '0'))
+      act(() =>
+        result.current.updatePropertyValueFormula(tempB, 0, {
+          formula: 'x',
+          formulaUuid: 'formula-uuid',
+          variableMapping: {
+            x: { propertyKey: 'A', propertyUuid: `${tempA}::0` },
+          },
+          result: 10,
+        })
+      )
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      // Formula calc should be created for B's value with A's value UUID.
+      expect(mockCreateFormulaCalcForValue).toHaveBeenCalledTimes(1)
+      const [, formulaData, args, resultUuid] =
+        mockCreateFormulaCalcForValue.mock.calls[0]
+      expect(formulaData.formulaUuid).toBe('formula-uuid')
+      expect(args).toEqual([{ name: 'x', propertyValueUUID: 'uuid-A-v0' }])
+      expect(resultUuid).toBe('uuid-B-v0')
+    })
+
+    it('resolves formula-to-formula references across two new formula values', async () => {
+      // A is a new formula value (referencing an existing property Src);
+      // B is a new formula value whose mapping points to A's value. Both
+      // should get formula calcs created; B's arg must resolve to A's
+      // freshly-created value UUID.
+      mockCreatePropertyForObject
+        .mockResolvedValueOnce({
+          uuid: 'uuid-A',
+          _createdValues: [{ uuid: 'uuid-A-v0', index: 0 }],
+        })
+        .mockResolvedValueOnce({
+          uuid: 'uuid-B',
+          _createdValues: [{ uuid: 'uuid-B-v0', index: 0 }],
+        })
+
+      const srcProp: Property = {
+        uuid: 'prop-src',
+        key: 'Src',
+        values: [{ uuid: 'val-src', value: '4' }],
+      }
+
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: [srcProp],
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => result.current.addProperty())
+      const tempA = result.current.properties[1]._tempId!
+      act(() => result.current.updatePropertyName(tempA, 'A', 'A'))
+      act(() => result.current.updatePropertyValue(tempA, 0, '0'))
+      act(() =>
+        result.current.updatePropertyValueFormula(tempA, 0, {
+          formula: 's + 3',
+          formulaUuid: 'formula-A',
+          variableMapping: {
+            s: { propertyKey: 'Src', propertyUuid: 'prop-src::0' },
+          },
+          result: 7,
+        })
+      )
+
+      act(() => result.current.addProperty())
+      const tempB = result.current.properties[2]._tempId!
+      act(() => result.current.updatePropertyName(tempB, 'B', 'B'))
+      act(() => result.current.updatePropertyValue(tempB, 0, '0'))
+      act(() =>
+        result.current.updatePropertyValueFormula(tempB, 0, {
+          formula: 'x * 2',
+          formulaUuid: 'formula-B',
+          variableMapping: {
+            x: { propertyKey: 'A', propertyUuid: `${tempA}::0` },
+          },
+          result: 16,
+        })
+      )
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      expect(mockCreateFormulaCalcForValue).toHaveBeenCalledTimes(2)
+      const callByFormulaUuid: Record<
+        string,
+        {
+          args: Array<{ name: string; propertyValueUUID: string }>
+          resultUuid: string
+        }
+      > = {}
+      for (const [, fd, args, resultUuid] of mockCreateFormulaCalcForValue.mock
+        .calls) {
+        callByFormulaUuid[fd.formulaUuid] = { args, resultUuid }
+      }
+      expect(callByFormulaUuid['formula-A'].resultUuid).toBe('uuid-A-v0')
+      expect(callByFormulaUuid['formula-B'].resultUuid).toBe('uuid-B-v0')
+      expect(callByFormulaUuid['formula-B'].args).toEqual([
+        { name: 'x', propertyValueUUID: 'uuid-A-v0' },
+      ])
+    })
+
+    it('resolves formulas on a new property that reference an existing property', async () => {
+      // Existing property with a known UUID; a new formula-bearing property
+      // references it via its real-UUID composite ID.
+      mockCreatePropertyForObject.mockResolvedValueOnce({
+        uuid: 'uuid-B',
+        _createdValues: [{ uuid: 'uuid-B-v0', index: 0 }],
+      })
+
+      const existing: Property = {
+        uuid: 'prop-existing',
+        key: 'A',
+        values: [{ uuid: 'val-existing', value: '7' }],
+      }
+
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: [existing],
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => result.current.addProperty())
+      const tempB = result.current.properties[1]._tempId!
+      act(() => result.current.updatePropertyName(tempB, 'B', 'B'))
+      act(() => result.current.updatePropertyValue(tempB, 0, '0'))
+      act(() =>
+        result.current.updatePropertyValueFormula(tempB, 0, {
+          formula: 'x',
+          formulaUuid: 'formula-mix',
+          variableMapping: {
+            x: { propertyKey: 'A', propertyUuid: 'prop-existing::0' },
+          },
+          result: 7,
+        })
+      )
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      expect(mockCreateFormulaCalcForValue).toHaveBeenCalledTimes(1)
+      const [, , args, resultUuid] = mockCreateFormulaCalcForValue.mock.calls[0]
+      expect(args).toEqual([{ name: 'x', propertyValueUUID: 'val-existing' }])
+      expect(resultUuid).toBe('uuid-B-v0')
+    })
+
+    it('orders formula calc creation so upstream formulas are created before their dependents', async () => {
+      // A and B are both new formula values. B's formula references A's
+      // value. Both formulas have at least one arg so both calcs get
+      // scheduled. The backend must see A's calc created BEFORE B's calc
+      // so B can compute against A's result.
+      mockCreatePropertyForObject
+        .mockResolvedValueOnce({
+          uuid: 'uuid-A',
+          _createdValues: [{ uuid: 'uuid-A-v0', index: 0 }],
+        })
+        .mockResolvedValueOnce({
+          uuid: 'uuid-B',
+          _createdValues: [{ uuid: 'uuid-B-v0', index: 0 }],
+        })
+
+      // Track the order calls resolve in. Even if both calls start
+      // concurrently, we only record completion order.
+      const completionOrder: string[] = []
+      mockCreateFormulaCalcForValue.mockImplementation(
+        async (_objUuid: string, formulaData: { formulaUuid: string }) => {
+          await new Promise((r) => setTimeout(r, 0))
+          completionOrder.push(formulaData.formulaUuid)
+          return {}
+        }
+      )
+
+      const srcProp: Property = {
+        uuid: 'prop-src',
+        key: 'Src',
+        values: [{ uuid: 'val-src', value: '1' }],
+      }
+
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: [srcProp],
+          objectUuid: 'obj-1',
+        })
+      )
+
+      // A references an existing property (so its calc has args).
+      act(() => result.current.addProperty())
+      const tempA = result.current.properties[1]._tempId!
+      act(() => result.current.updatePropertyName(tempA, 'A', 'A'))
+      act(() => result.current.updatePropertyValue(tempA, 0, '0'))
+      act(() =>
+        result.current.updatePropertyValueFormula(tempA, 0, {
+          formula: 's + 1',
+          formulaUuid: 'formula-A',
+          variableMapping: {
+            s: { propertyKey: 'Src', propertyUuid: 'prop-src::0' },
+          },
+          result: 2,
+        })
+      )
+
+      // B references A.
+      act(() => result.current.addProperty())
+      const tempB = result.current.properties[2]._tempId!
+      act(() => result.current.updatePropertyName(tempB, 'B', 'B'))
+      act(() => result.current.updatePropertyValue(tempB, 0, '0'))
+      act(() =>
+        result.current.updatePropertyValueFormula(tempB, 0, {
+          formula: 'x * 2',
+          formulaUuid: 'formula-B',
+          variableMapping: {
+            x: { propertyKey: 'A', propertyUuid: `${tempA}::0` },
+          },
+          result: 4,
+        })
+      )
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      expect(completionOrder).toEqual(['formula-A', 'formula-B'])
+    })
+
+    it('warns and skips unresolved formula arguments instead of failing silently', async () => {
+      mockCreatePropertyForObject.mockResolvedValueOnce({
+        uuid: 'uuid-B',
+        _createdValues: [{ uuid: 'uuid-B-v0', index: 0 }],
+      })
+
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: [],
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => result.current.addProperty())
+      const tempB = result.current.properties[0]._tempId!
+      act(() => result.current.updatePropertyName(tempB, 'B', 'B'))
+      act(() => result.current.updatePropertyValue(tempB, 0, '0'))
+      act(() =>
+        result.current.updatePropertyValueFormula(tempB, 0, {
+          formula: 'x',
+          formulaUuid: 'formula-dangling',
+          variableMapping: {
+            x: {
+              propertyKey: 'Missing',
+              propertyUuid: 'nonexistent-prop::0',
+            },
+          },
+          result: null,
+        })
+      )
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      // No formula calc should be created (all args unresolved -> args empty).
+      expect(mockCreateFormulaCalcForValue).not.toHaveBeenCalled()
+      // A warning should have been logged for the unresolved variable.
+      expect(mockLoggerWarn).toHaveBeenCalled()
+      const warnArgs = mockLoggerWarn.mock.calls[0]
+      expect(warnArgs[0]).toMatch(/could not be resolved/i)
+      expect(warnArgs[1]).toMatchObject({
+        varName: 'x',
+        compositeId: 'nonexistent-prop::0',
+      })
     })
   })
 

@@ -364,6 +364,7 @@
     "noProperties": "Geen eigenschappen gedefinieerd",
     "propertiesUpdated": "Eigenschappen succesvol bijgewerkt",
     "propertiesUpdateFailed": "Objecteigenschappen bijwerken mislukt",
+    "formulaUnresolvedArgs": "Sommige formulevariabelen konden niet aan hun bronwaarden worden gekoppeld en zijn overgeslagen.",
     "metadataUpdated": "Metadata succesvol bijgewerkt",
     "addressUpdated": "Adres succesvol bijgewerkt",
     "parentsUpdated": "Bovenliggende relaties succesvol bijgewerkt",
