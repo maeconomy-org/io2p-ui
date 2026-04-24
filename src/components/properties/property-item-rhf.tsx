@@ -88,8 +88,9 @@ export function PropertyItemRHF({
     _isNew: propertyData?._isNew,
   }
 
-  const handleNameChange = (newName: string) => {
-    setValue(`${name}.key`, newName, { shouldValidate: !!nameError })
+  const handleNameChange = (newKey: string, newLabel: string) => {
+    setValue(`${name}.key`, newKey, { shouldValidate: !!nameError })
+    setValue(`${name}.label`, newLabel)
   }
 
   const handleValueChange = (valueIndex: number, newValue: string) => {

@@ -111,15 +111,17 @@ export function usePropertyManagement() {
       setError(null)
 
       try {
-        // First, update the property metadata (key/name) if provided
+        // First, update the property metadata (key/label) if provided
         if (property.key !== undefined) {
-          logger.info('Updating property key:', {
+          logger.info('Updating property metadata:', {
             uuid: property.uuid,
             key: property.key,
+            label: property.label,
           })
           await updatePropertyMetaMutation.mutateAsync({
             uuid: property.uuid,
             key: property.key,
+            label: property.label,
           })
         }
 
@@ -197,16 +199,27 @@ export function usePropertyManagement() {
   )
 
   /**
-   * Remove a property from an object (soft delete the property)
+   * Remove a property from an object (soft delete the property).
+   * Cascades soft-delete to the property's values first so they don't
+   * get orphaned (backend does not cascade today).
    */
   const removePropertyFromObject = useCallback(
-    async (_objectId: string, propertyUuid: string) => {
+    async (
+      _objectId: string,
+      propertyUuid: string,
+      valueUuids: string[] = []
+    ) => {
       setIsLoading(true)
       setError(null)
 
       try {
-        // Use the property's soft delete API instead of deleting statements
-        // This will properly soft-delete the property
+        if (valueUuids.length > 0) {
+          await Promise.all(
+            valueUuids.map((uuid) =>
+              deletePropertyValueMutation.mutateAsync(uuid)
+            )
+          )
+        }
         await deletePropertyMutation.mutateAsync(propertyUuid)
 
         return { success: true }
@@ -221,7 +234,7 @@ export function usePropertyManagement() {
         setIsLoading(false)
       }
     },
-    [deletePropertyMutation]
+    [deletePropertyMutation, deletePropertyValueMutation]
   )
 
   /**

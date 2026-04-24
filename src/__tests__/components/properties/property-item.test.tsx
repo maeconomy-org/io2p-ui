@@ -15,6 +15,7 @@ const { mockT } = vi.hoisted(() => ({
 
 vi.mock('next-intl', () => ({
   useTranslations: () => mockT,
+  useLocale: () => 'en',
 }))
 
 // Mock child components that have complex dependencies
@@ -302,7 +303,7 @@ describe('PropertyItem', () => {
 
       const input = screen.getByDisplayValue('Width')
       fireEvent.change(input, { target: { value: 'Height' } })
-      expect(onNameChange).toHaveBeenCalledWith('Height')
+      expect(onNameChange).toHaveBeenCalledWith('Height', 'Height')
     })
 
     it('calls onValueChange when value is edited', () => {

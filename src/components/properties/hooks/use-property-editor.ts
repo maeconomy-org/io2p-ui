@@ -39,7 +39,7 @@ export interface UsePropertyEditorReturn {
   /** Add a new empty property */
   addProperty: () => void
   /** Update a property's name/key */
-  updatePropertyName: (propertyId: string, name: string) => void
+  updatePropertyName: (propertyId: string, key: string, label: string) => void
   /** Update a property value's text */
   updatePropertyValue: (
     propertyId: string,
@@ -182,13 +182,14 @@ export function usePropertyEditor({
   }, [])
 
   const updatePropertyName = useCallback(
-    (propertyId: string, name: string) => {
+    (propertyId: string, key: string, label: string) => {
       updateById(propertyId, (prop) => ({
         ...prop,
-        key: name,
+        key,
+        label,
         _modified: true,
       }))
-      if (name.trim() !== '') {
+      if (key.trim() !== '') {
         setNameErrors((prev) => {
           if (!prev[propertyId]) return prev
           const next = { ...prev }
@@ -425,7 +426,10 @@ export function usePropertyEditor({
             )
           }
         }
-        await removePropertyFromObject(objectUuid, property.uuid!)
+        const valueUuids = (property.values || [])
+          .map((v) => v.uuid)
+          .filter((u): u is string => !!u)
+        await removePropertyFromObject(objectUuid, property.uuid!, valueUuids)
         return
       }
 
@@ -440,6 +444,7 @@ export function usePropertyEditor({
         // Create the property and its values first (sequential — need UUIDs back)
         const newProperty = await createPropertyForObject(objectUuid, {
           key: property.key,
+          label: property.label,
           values: nonEmptyValues,
         })
 
@@ -493,6 +498,7 @@ export function usePropertyEditor({
           {
             uuid: property.uuid!,
             key: property.key,
+            label: property.label,
           },
           valuesToSend
         )

@@ -25,7 +25,9 @@ export function PropertySectionEditor({ editor }: PropertySectionEditorProps) {
             isExpanded={editor.expandedIds.has(propertyId)}
             onToggle={() => editor.toggleExpand(propertyId)}
             isEditable
-            onNameChange={(name) => editor.updatePropertyName(propertyId, name)}
+            onNameChange={(key, label) =>
+              editor.updatePropertyName(propertyId, key, label)
+            }
             onValueChange={(valueIndex, value) =>
               editor.updatePropertyValue(propertyId, valueIndex, value)
             }

@@ -51,6 +51,7 @@ describe('object-utils', () => {
 
       expect(a.uuid).toBe('')
       expect(a.key).toBe('')
+      expect(a.label).toBe('')
       expect(a.values).toHaveLength(1)
       expect(a.values[0]).toMatchObject({ uuid: '', value: '', formula: '' })
       expect(a.files).toEqual([])

@@ -9,6 +9,7 @@ import { PropertyItemRHF } from '@/components/properties/property-item-rhf'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useLocale: () => 'en',
 }))
 
 vi.mock('@/components/object-sheets/components', () => ({

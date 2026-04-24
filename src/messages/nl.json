@@ -349,6 +349,7 @@
     "addDescription": "Maak een nieuw object aan door de onderstaande gegevens in te vullen",
     "modelTemplatePlaceholder": "Selecteer een modelsjabloon (optioneel)",
     "addProperty": "Eigenschap toevoegen",
+    "addAnotherProperty": "Voeg nog een eigenschap toe",
     "qrCode": "QR-code",
     "showQr": "QR tonen",
     "actions": {
@@ -463,6 +464,7 @@
     "propertyValues": "Eigenschapswaarden",
     "propertyNameRequired": "Eigenschapsnaam is vereist",
     "propertyNamePlaceholder": "bijv. Totaal verdiepingen",
+    "propertyNameSuggestionsLabel": "Voorgestelde standaard eigenschapsnamen",
     "propertyValuePlaceholder": "Voer eigenschapswaarde in",
     "addAnotherValue": "Nog een waarde toevoegen",
     "parentSelector": {

@@ -15,9 +15,13 @@ import type { UUMathFormulaDTO } from 'iom-sdk'
 import { cn, formatNumericValue } from '@/lib'
 import { Badge, Button, Input, Label } from '@/components/ui'
 import { FileList } from '@/components/object-sheets/components/file-display'
+import { resolvePropertyLabel } from '@/constants/property-dictionary'
+import type { PropertyDictionaryLocale } from '@/constants/property-dictionary'
+import { useLocale } from 'next-intl'
 import { FormulaDisplay } from './formula-display'
 import { FormulaEditor } from './formula-editor'
 import { FormulaPicker } from './formula-picker'
+import { PropertyNameCombobox } from './property-name-combobox'
 import { ValueModeToggle } from './value-mode-toggle'
 import type { Property, PropertyValue, FormulaData } from './types'
 import type { AvailableProperty } from './hooks/use-formula-evaluation'
@@ -212,7 +216,7 @@ export interface PropertyItemProps {
   onToggle: () => void
   // Edit callbacks — if absent, display-only mode
   isEditable?: boolean
-  onNameChange?: (newName: string) => void
+  onNameChange?: (newKey: string, newLabel: string) => void
   onValueChange?: (valueIndex: number, newValue: string) => void
   onValueFormulaChange?: (
     valueIndex: number,
@@ -249,8 +253,15 @@ export function PropertyItem({
   children,
 }: PropertyItemProps) {
   const t = useTranslations()
+  const locale = useLocale() as PropertyDictionaryLocale
   const values = property.values || []
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const resolvedLabel = resolvePropertyLabel(
+    property.key,
+    property.label,
+    locale
+  )
 
   // Check if any value has a formula
   const hasAnyFormula = values.some(
@@ -298,7 +309,7 @@ export function PropertyItem({
           />
           <div className="font-medium text-sm flex items-center gap-1.5 min-w-0">
             <span className="truncate">
-              {property.label || property.key || (
+              {resolvedLabel || (
                 <span className="text-muted-foreground italic">
                   {t('objects.propertyNamePlaceholder')}
                 </span>
@@ -390,13 +401,14 @@ export function PropertyItem({
                 {t('objects.propertyName')}
               </Label>
               <div className="flex items-center gap-1 mt-1">
-                <Input
+                <PropertyNameCombobox
                   id={`property-key-${propertyId || 'new'}`}
                   value={property.key}
-                  onChange={(e) => onNameChange(e.target.value)}
+                  onChange={(newKey, newLabel) =>
+                    onNameChange(newKey, newLabel)
+                  }
                   placeholder={t('objects.propertyNamePlaceholder')}
                   className={cn(
-                    'h-8',
                     nameError &&
                       'border-destructive focus-visible:ring-destructive'
                   )}

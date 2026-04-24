@@ -1,8 +1,12 @@
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Paperclip } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui'
+import {
+  resolvePropertyLabel,
+  type PropertyDictionaryLocale,
+} from '@/constants/property-dictionary'
 import { FormulaDisplay } from './formula-display'
 
 interface PropertyGridViewProps {
@@ -11,6 +15,7 @@ interface PropertyGridViewProps {
 
 export function PropertyGridView({ properties }: PropertyGridViewProps) {
   const t = useTranslations()
+  const locale = useLocale() as PropertyDictionaryLocale
 
   if (!properties || properties.length === 0) {
     return (
@@ -44,7 +49,7 @@ export function PropertyGridView({ properties }: PropertyGridViewProps) {
           >
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                {prop.label || prop.key}
+                {resolvePropertyLabel(prop.key, prop.label, locale)}
               </span>
               {hasFiles && (
                 <Badge

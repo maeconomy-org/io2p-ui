@@ -154,7 +154,7 @@ export function ObjectModelSheet({
       ),
       ...updates.map((p) =>
         updatePropertyWithValues(
-          { uuid: p.uuid as string, key: p.key },
+          { uuid: p.uuid as string, key: p.key, label: p.label },
           p.values.map((v) => ({
             uuid: v.uuid,
             value: v.value,
@@ -163,7 +163,11 @@ export function ObjectModelSheet({
         )
       ),
       ...deletes.map((p) =>
-        removePropertyFromObject(templateUuid, p.uuid as string)
+        removePropertyFromObject(
+          templateUuid,
+          p.uuid as string,
+          (p.values || []).map((v) => v.uuid).filter((u): u is string => !!u)
+        )
       ),
       ...removedValueUuids.map((uuid) => softDeleteValue(uuid)),
     ])

@@ -16,6 +16,7 @@ export function useAggregate() {
 
         const response = await client.node.searchAggregates({
           accessFind: { readDefaultGroup: true },
+          hasHistory: true,
           searchBy: { uuid },
           page: 0,
           size: 1,

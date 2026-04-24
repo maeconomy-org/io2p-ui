@@ -154,7 +154,7 @@ describe('usePropertyEditor', () => {
         })
       )
 
-      act(() => result.current.updatePropertyName('prop-1', 'Height'))
+      act(() => result.current.updatePropertyName('prop-1', 'Height', 'Height'))
       expect(result.current.properties[0].key).toBe('Height')
       expect(result.current.hasChanges).toBe(true)
     })
@@ -269,7 +269,9 @@ describe('usePropertyEditor', () => {
         })
       )
 
-      act(() => result.current.updatePropertyName('prop-1', 'Changed'))
+      act(() =>
+        result.current.updatePropertyName('prop-1', 'Changed', 'Changed')
+      )
       act(() => result.current.addProperty())
       expect(result.current.properties).toHaveLength(2)
 
@@ -322,14 +324,14 @@ describe('usePropertyEditor', () => {
         })
       )
 
-      act(() => result.current.updatePropertyName('prop-1', 'Height'))
+      act(() => result.current.updatePropertyName('prop-1', 'Height', 'Height'))
 
       await act(async () => {
         await result.current.saveProperties()
       })
 
       expect(mockUpdatePropertyWithValues).toHaveBeenCalledWith(
-        { uuid: 'prop-1', key: 'Height' },
+        { uuid: 'prop-1', key: 'Height', label: 'Height' },
         expect.any(Array)
       )
     })
@@ -344,7 +346,7 @@ describe('usePropertyEditor', () => {
 
       act(() => result.current.addProperty())
       const tempId = result.current.properties[0]._tempId!
-      act(() => result.current.updatePropertyName(tempId, 'NewProp'))
+      act(() => result.current.updatePropertyName(tempId, 'NewProp', 'NewProp'))
       act(() => result.current.updatePropertyValue(tempId, 0, '10'))
 
       await act(async () => {
@@ -353,7 +355,30 @@ describe('usePropertyEditor', () => {
 
       expect(mockCreatePropertyForObject).toHaveBeenCalledWith(
         'obj-1',
-        expect.objectContaining({ key: 'NewProp' })
+        expect.objectContaining({ key: 'NewProp', label: 'NewProp' })
+      )
+    })
+
+    it('sends localized label from dictionary when creating a property', async () => {
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: [],
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => result.current.addProperty())
+      const tempId = result.current.properties[0]._tempId!
+      // Simulate dictionary pick: key is the stable kebab id, label is localized.
+      act(() => result.current.updatePropertyName(tempId, 'address', 'Address'))
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      expect(mockCreatePropertyForObject).toHaveBeenCalledWith(
+        'obj-1',
+        expect.objectContaining({ key: 'address', label: 'Address' })
       )
     })
 
@@ -374,7 +399,8 @@ describe('usePropertyEditor', () => {
 
       expect(mockRemovePropertyFromObject).toHaveBeenCalledWith(
         'obj-1',
-        'prop-1'
+        'prop-1',
+        ['val-1']
       )
     })
 
@@ -489,14 +515,14 @@ describe('usePropertyEditor', () => {
         })
       )
 
-      act(() => result.current.updatePropertyName('prop-1', 'Height'))
+      act(() => result.current.updatePropertyName('prop-1', 'Height', 'Height'))
 
       await act(async () => {
         await result.current.saveProperty('prop-1')
       })
 
       expect(mockUpdatePropertyWithValues).toHaveBeenCalledWith(
-        { uuid: 'prop-1', key: 'Height' },
+        { uuid: 'prop-1', key: 'Height', label: 'Height' },
         expect.any(Array)
       )
     })
@@ -594,7 +620,7 @@ describe('usePropertyEditor', () => {
       expect(result.current.nameErrors['prop-1']).toBeDefined()
 
       act(() => {
-        result.current.updatePropertyName('prop-1', 'Width')
+        result.current.updatePropertyName('prop-1', 'Width', 'Width')
       })
 
       expect(result.current.nameErrors['prop-1']).toBeUndefined()

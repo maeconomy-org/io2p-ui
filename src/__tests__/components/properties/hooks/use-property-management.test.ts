@@ -188,7 +188,38 @@ describe('usePropertyManagement', () => {
       })
 
       expect(deleteProperty).toHaveBeenCalledWith('p1')
+      expect(softDeletePropertyValue).not.toHaveBeenCalled()
       expect(res).toEqual({ success: true })
+    })
+
+    it('cascades soft-delete to value uuids before deleting the property', async () => {
+      deleteProperty.mockResolvedValue(undefined)
+      softDeletePropertyValue.mockResolvedValue(undefined)
+
+      const { result } = renderHook(() => usePropertyManagement())
+      await act(async () => {
+        await result.current.removePropertyFromObject('obj-1', 'p1', [
+          'v1',
+          'v2',
+        ])
+      })
+
+      expect(softDeletePropertyValue).toHaveBeenCalledWith('v1')
+      expect(softDeletePropertyValue).toHaveBeenCalledWith('v2')
+      expect(deleteProperty).toHaveBeenCalledWith('p1')
+    })
+
+    it('does not delete the property if cascading value-delete fails', async () => {
+      softDeletePropertyValue.mockRejectedValue(new Error('boom'))
+
+      const { result } = renderHook(() => usePropertyManagement())
+      await expect(
+        act(async () => {
+          await result.current.removePropertyFromObject('obj-1', 'p1', ['v1'])
+        })
+      ).rejects.toThrow('boom')
+
+      expect(deleteProperty).not.toHaveBeenCalled()
     })
   })
 

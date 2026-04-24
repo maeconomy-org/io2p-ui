@@ -35,6 +35,7 @@ export function createEmptyProperty() {
     uuid: '',
     _tempId: `new-${++tempIdCounter}`,
     key: '',
+    label: '',
     values: [
       {
         uuid: '',

@@ -7,13 +7,14 @@ export interface TemplatePropertyDiff {
   removedValueUuids: string[]
 }
 
-/** Detect whether a property changed (key, value count, or indexed value/uuid). */
+/** Detect whether a property changed (key, label, value count, or indexed value/uuid). */
 export function hasPropertyChanged(
   initial: Property | undefined,
   next: Property
 ): boolean {
   if (!initial) return true
   if (initial.key !== next.key) return true
+  if ((initial.label ?? '') !== (next.label ?? '')) return true
   if ((initial.values?.length ?? 0) !== (next.values?.length ?? 0)) return true
   return next.values.some((v, i) => {
     const prev = initial.values?.[i]

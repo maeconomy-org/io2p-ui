@@ -41,6 +41,12 @@ describe('hasPropertyChanged', () => {
     const b = prop({ uuid: 'p', values: [val('v', '2')] })
     expect(hasPropertyChanged(a, b)).toBe(true)
   })
+
+  it('returns true on label-only change', () => {
+    const a = prop({ uuid: 'p', key: 'k', label: 'Address', values: [] })
+    const b = prop({ uuid: 'p', key: 'k', label: 'Adres', values: [] })
+    expect(hasPropertyChanged(a, b)).toBe(true)
+  })
 })
 
 describe('diffTemplateProperties', () => {
