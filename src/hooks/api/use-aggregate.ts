@@ -7,10 +7,35 @@ import { queryKeys } from '@/lib/query-keys'
 export function useAggregate() {
   const client = useIomSdkClient()
 
-  // Get aggregate entity by UUID (rich data with all relationships)
+  // Get aggregate entity by UUID (rich data with all relationships).
   const useAggregateByUUID = (uuid: string, options = {}) => {
     return useQuery({
       queryKey: queryKeys.aggregates.detail(uuid),
+      queryFn: async () => {
+        if (!uuid) return null
+
+        const response = await client.node.searchAggregates({
+          accessFind: { readDefaultGroup: true },
+          searchBy: { uuid },
+          page: 0,
+          size: 1,
+        })
+        return response.content?.[0] || null
+      },
+      enabled: !!uuid,
+      staleTime: 30000,
+      gcTime: 5 * 60 * 1000,
+      ...options,
+    })
+  }
+
+  // Same as useAggregateByUUID but includes the full history chain. Kept as
+  // a separate hook because the payload is significantly larger — callers
+  // should only use this when the history is actually needed (e.g. history
+  // tab) to avoid paying the cost on every object open.
+  const useAggregateByUUIDWithHistory = (uuid: string, options = {}) => {
+    return useQuery({
+      queryKey: queryKeys.aggregates.detailWithHistory(uuid),
       queryFn: async () => {
         if (!uuid) return null
 
@@ -170,6 +195,7 @@ export function useAggregate() {
 
   return {
     useAggregateByUUID,
+    useAggregateByUUIDWithHistory,
     useAggregateEntities,
     useModelEntities,
     useAggregateEntitiesWithHistory,

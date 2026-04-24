@@ -40,6 +40,7 @@ import { getObjectDisplayName, isExternalFileReference } from './utils'
 
 // Import tab components
 import { FilesTab } from './tabs/files-tab'
+import { HistoryTab } from './tabs/history-tab'
 import { MetadataTab } from './tabs/metadata-tab'
 import { PropertiesTab } from './tabs/properties-tab'
 import { RelationshipsTab } from './tabs/relationships-tab'
@@ -111,6 +112,7 @@ export function ObjectDetailsSheet({
   // Use our extracted hooks
   const {
     object,
+    aggregate,
     properties,
     addressInfo,
     files,
@@ -120,6 +122,8 @@ export function ObjectDetailsSheet({
     uuid,
     initialObject,
     isOpen,
+    // History is expensive — only fetch it when the user opens the tab.
+    hasHistory: activeTab === 'history',
   })
 
   // Initialize object files from the fetched data
@@ -378,7 +382,7 @@ export function ObjectDetailsSheet({
                 onValueChange={handleTabChange}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="properties">
                     {t('objects.tabs.properties')}
                   </TabsTrigger>
@@ -390,6 +394,9 @@ export function ObjectDetailsSheet({
                   </TabsTrigger>
                   <TabsTrigger value="metadata">
                     {t('objects.tabs.metadata')}
+                  </TabsTrigger>
+                  <TabsTrigger value="history" data-testid="tab-history">
+                    {t('objects.tabs.history')}
                   </TabsTrigger>
                 </TabsList>
 
@@ -434,6 +441,10 @@ export function ObjectDetailsSheet({
                     onSaveMetadata={handleSaveMetadata}
                     onSaveAddress={handleSaveAddress}
                   />
+                </TabsContent>
+
+                <TabsContent value="history" className="mt-0">
+                  <HistoryTab aggregate={aggregate} />
                 </TabsContent>
               </Tabs>
             </div>

@@ -6,10 +6,12 @@ export interface ObjectDataHookProps {
   uuid?: string
   initialObject?: any
   isOpen: boolean
+  hasHistory?: boolean
 }
 
 export interface ObjectDataHookReturn {
   object: any | null
+  aggregate: any | null
   properties: any[]
   files: any[]
   objectHistory: any[]
@@ -26,29 +28,39 @@ export function useObjectData({
   uuid,
   initialObject,
   isOpen,
+  hasHistory = false,
 }: ObjectDataHookProps): ObjectDataHookReturn {
-  const { useAggregateByUUID } = useAggregate()
+  const { useAggregateByUUID, useAggregateByUUIDWithHistory } = useAggregate()
 
-  // Fetch the aggregate object details if a UUID is provided
-  // This provides much richer data including all relationships, properties, and files
-  const {
-    data: aggregateData,
-    isLoading,
-    refetch: refetchAggregate,
-  } = useAggregateByUUID(uuid || '', {
-    enabled: !!uuid && isOpen, // Enable for both cases but will only fetch when needed
+  // Fetch the aggregate object details if a UUID is provided.
+  // We call both hooks unconditionally (rules of hooks) but only enable the
+  // one that matches the requested shape — history payloads are large, so
+  // we defer the history-flavoured fetch until the history tab is opened.
+  const baseQuery = useAggregateByUUID(uuid || '', {
+    enabled: !!uuid && isOpen && !hasHistory,
     refetchOnWindowFocus: false,
-    staleTime: 0, // Always consider data stale so it refetches when invalidated
+    staleTime: 0,
   })
 
+  const historyQuery = useAggregateByUUIDWithHistory(uuid || '', {
+    enabled: !!uuid && isOpen && hasHistory,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+  })
+
+  const aggregateData = hasHistory ? historyQuery.data : baseQuery.data
+  const isLoading = hasHistory ? historyQuery.isLoading : baseQuery.isLoading
+  const refetchAggregate = hasHistory ? historyQuery.refetch : baseQuery.refetch
+
   // Process aggregate data to get the object details in the expected format
-  const { object, properties, files, objectHistory, addressInfo } =
+  const { object, aggregate, properties, files, objectHistory, addressInfo } =
     useMemo(() => {
       const source = aggregateData || initialObject
 
       if (!source) {
         return {
           object: null,
+          aggregate: null,
           properties: [],
           files: [],
           objectHistory: [],
@@ -110,6 +122,7 @@ export function useObjectData({
       }
 
       return {
+        aggregate: source,
         object: {
           uuid: source.uuid || '',
           name: source.name || '',
@@ -133,6 +146,7 @@ export function useObjectData({
 
   return {
     object,
+    aggregate,
     properties,
     files,
     objectHistory,

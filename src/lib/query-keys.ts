@@ -45,6 +45,8 @@ export const queryKeys = {
     details: () => [...queryKeys.aggregates.all, 'detail'] as const,
     detail: (uuid: string) =>
       [...queryKeys.aggregates.details(), uuid] as const,
+    detailWithHistory: (uuid: string) =>
+      [...queryKeys.aggregates.details(), uuid, 'withHistory'] as const,
     models: (params?: AggregateFindDTO) =>
       [...queryKeys.aggregates.all, 'models', params] as const,
     withHistory: (params?: AggregateFindDTO) =>

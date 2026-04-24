@@ -256,7 +256,51 @@
       "properties": "Properties",
       "files": "Files",
       "relationships": "Relationships",
-      "metadata": "Metadata"
+      "metadata": "Metadata",
+      "history": "History"
+    },
+    "history": {
+      "empty": "No history yet.",
+      "emptyFilter": "No events in this category.",
+      "filterLabel": "Filter history events",
+      "listLabel": "History events, newest first",
+      "filters": {
+        "all": "All",
+        "metadata": "Metadata",
+        "property": "Properties",
+        "value": "Values",
+        "file": "Files",
+        "address": "Address"
+      },
+      "events": {
+        "metadataCreated": "Created object {name}",
+        "metadataAdded": {
+          "name": "Name set to {after}",
+          "abbreviation": "Abbreviation set to {after}",
+          "description": "Description added",
+          "version": "Version set to {after}"
+        },
+        "metadataChanged": {
+          "name": "Renamed from {before} to {after}",
+          "abbreviation": "Abbreviation changed from {before} to {after}",
+          "description": "Description updated",
+          "version": "Version changed from {before} to {after}"
+        },
+        "metadataCleared": {
+          "name": "Name cleared",
+          "abbreviation": "Abbreviation cleared",
+          "description": "Description cleared",
+          "version": "Version cleared"
+        },
+        "propertyAdded": "Added property {label}",
+        "propertyRemoved": "Removed property {label}",
+        "valueAdded": "Added value {value} to {propertyLabel}",
+        "valueRemoved": "Removed value {value} from {propertyLabel}",
+        "fileUploaded": "Uploaded file {name} ({size})",
+        "fileRemoved": "Removed file {name}",
+        "addressAdded": "Added address {fullAddress}",
+        "addressUpdated": "Updated address"
+      }
     },
     "fields": {
       "uuid": "UUID",

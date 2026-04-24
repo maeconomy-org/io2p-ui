@@ -259,7 +259,51 @@
       "properties": "Eigenschappen",
       "files": "Bestanden",
       "relationships": "Relaties",
-      "metadata": "Metadata"
+      "metadata": "Metadata",
+      "history": "Geschiedenis"
+    },
+    "history": {
+      "empty": "Nog geen geschiedenis.",
+      "emptyFilter": "Geen gebeurtenissen in deze categorie.",
+      "filterLabel": "Geschiedenis filteren",
+      "listLabel": "Geschiedenisgebeurtenissen, nieuwste eerst",
+      "filters": {
+        "all": "Alles",
+        "metadata": "Metadata",
+        "property": "Eigenschappen",
+        "value": "Waarden",
+        "file": "Bestanden",
+        "address": "Adres"
+      },
+      "events": {
+        "metadataCreated": "Object {name} aangemaakt",
+        "metadataAdded": {
+          "name": "Naam ingesteld op {after}",
+          "abbreviation": "Afkorting ingesteld op {after}",
+          "description": "Beschrijving toegevoegd",
+          "version": "Versie ingesteld op {after}"
+        },
+        "metadataChanged": {
+          "name": "Naam gewijzigd van {before} naar {after}",
+          "abbreviation": "Afkorting gewijzigd van {before} naar {after}",
+          "description": "Beschrijving bijgewerkt",
+          "version": "Versie gewijzigd van {before} naar {after}"
+        },
+        "metadataCleared": {
+          "name": "Naam gewist",
+          "abbreviation": "Afkorting gewist",
+          "description": "Beschrijving gewist",
+          "version": "Versie gewist"
+        },
+        "propertyAdded": "Eigenschap {label} toegevoegd",
+        "propertyRemoved": "Eigenschap {label} verwijderd",
+        "valueAdded": "Waarde {value} toegevoegd aan {propertyLabel}",
+        "valueRemoved": "Waarde {value} verwijderd van {propertyLabel}",
+        "fileUploaded": "Bestand {name} geüpload ({size})",
+        "fileRemoved": "Bestand {name} verwijderd",
+        "addressAdded": "Adres {fullAddress} toegevoegd",
+        "addressUpdated": "Adres bijgewerkt"
+      }
     },
     "fields": {
       "uuid": "UUID",
