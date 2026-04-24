@@ -9,9 +9,11 @@ function buildServiceOverrides(config: ClientConfig): SDKConfig['services'] {
     config.authBaseUrl ||
     config.registryBaseUrl ||
     config.nodeBaseUrl ||
+    config.userBaseUrl ||
     config.authTimeout ||
     config.registryTimeout ||
-    config.nodeTimeout
+    config.nodeTimeout ||
+    config.userTimeout
 
   if (!hasOverrides) return undefined
 
@@ -41,6 +43,14 @@ function buildServiceOverrides(config: ClientConfig): SDKConfig['services'] {
           node: {
             ...(config.nodeBaseUrl && { baseUrl: config.nodeBaseUrl }),
             ...(config.nodeTimeout && { timeout: config.nodeTimeout }),
+          },
+        }
+      : {}),
+    ...(config.userBaseUrl || config.userTimeout
+      ? {
+          user: {
+            ...(config.userBaseUrl && { baseUrl: config.userBaseUrl }),
+            ...(config.userTimeout && { timeout: config.userTimeout }),
           },
         }
       : {}),

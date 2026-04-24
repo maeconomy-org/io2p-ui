@@ -43,17 +43,12 @@ export function toApiFilePayload(att: Attachment): {
 }
 
 /**
- * Check if a file reference URL is external (not our domain)
+ * True when `fileReference` is a non-empty URL pointing at an external
+ * resource (anything that is not an internal `/api/UUFile/...` path).
+ * Internal files no longer carry a server-generated reference URL — file
+ * content is fetched by `file.uuid` via `POST /api/UUFile/find`.
  */
-export function isExternalFileReference(fileReference: string): boolean {
+export function isExternalFileReference(fileReference?: string): boolean {
   if (!fileReference) return false
-
-  if (
-    !fileReference.includes('api/UUFile/') ||
-    !fileReference.includes('/download')
-  ) {
-    return true
-  }
-
-  return false
+  return !fileReference.includes('/api/UUFile/')
 }

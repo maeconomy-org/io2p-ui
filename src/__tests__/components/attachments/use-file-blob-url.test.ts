@@ -6,8 +6,8 @@ import {
   useFileBlobUrl,
 } from '@/components/attachments/use-file-blob-url'
 
-const downloadFile = vi.fn()
-const sdkClient = { node: { downloadFile } }
+const getFileContent = vi.fn()
+const sdkClient = { node: { getFileContent } }
 
 vi.mock('@/contexts', () => ({
   useIomSdkClient: () => sdkClient,
@@ -45,23 +45,23 @@ describe('extractFileUuid', () => {
 
 describe('useFileBlobUrl', () => {
   it('fetches once and returns a blob URL', async () => {
-    downloadFile.mockResolvedValue(new ArrayBuffer(8))
+    getFileContent.mockResolvedValue('AAAA')
 
     const { result } = renderHook(() => useFileBlobUrl('u-1', 'image/png'))
 
     await waitFor(() => expect(result.current.url).toBe('blob:stub'))
-    expect(downloadFile).toHaveBeenCalledTimes(1)
-    expect(downloadFile).toHaveBeenCalledWith('u-1')
+    expect(getFileContent).toHaveBeenCalledTimes(1)
+    expect(getFileContent).toHaveBeenCalledWith('u-1')
     expect(createObjectURL).toHaveBeenCalledTimes(1)
   })
 
   it('does not fetch when disabled', () => {
     renderHook(() => useFileBlobUrl('u-1', 'image/png', false))
-    expect(downloadFile).not.toHaveBeenCalled()
+    expect(getFileContent).not.toHaveBeenCalled()
   })
 
   it('revokes the URL on unmount', async () => {
-    downloadFile.mockResolvedValue(new ArrayBuffer(4))
+    getFileContent.mockResolvedValue('AAAA')
     const { result, unmount } = renderHook(() =>
       useFileBlobUrl('u-1', 'image/png')
     )
@@ -71,7 +71,7 @@ describe('useFileBlobUrl', () => {
   })
 
   it('surfaces errors from the SDK', async () => {
-    downloadFile.mockRejectedValueOnce(new Error('boom'))
+    getFileContent.mockRejectedValueOnce(new Error('boom'))
     const { result } = renderHook(() => useFileBlobUrl('u-1', 'image/png'))
     await waitFor(() => expect(result.current.error?.message).toBe('boom'))
     expect(result.current.url).toBeNull()
@@ -79,6 +79,6 @@ describe('useFileBlobUrl', () => {
 
   it('does not fetch when uuid is missing', () => {
     renderHook(() => useFileBlobUrl(null, 'image/png'))
-    expect(downloadFile).not.toHaveBeenCalled()
+    expect(getFileContent).not.toHaveBeenCalled()
   })
 })

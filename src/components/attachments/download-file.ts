@@ -3,12 +3,8 @@
 import type { Client } from 'iom-sdk'
 
 import { logger } from '@/lib'
+import { base64ToBlob } from './base64'
 
-/**
- * Download a UUFile through the SDK (JWT attached automatically) and trigger
- * a browser download. Uses try/finally to guarantee the object URL is revoked
- * even if the DOM click flow throws mid-way.
- */
 export async function downloadFileToClient(
   client: Client,
   uuid: string,
@@ -17,10 +13,11 @@ export async function downloadFileToClient(
 ): Promise<void> {
   let blobUrl: string | null = null
   try {
-    const buf = await client.node.downloadFile(uuid)
-    const blob = new Blob([buf], {
-      type: mimeType || 'application/octet-stream',
-    })
+    const base64 = await client.node.getFileContent(uuid)
+    if (!base64) {
+      throw new Error(`File ${uuid} has no content`)
+    }
+    const blob = await base64ToBlob(base64, mimeType)
     blobUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = blobUrl

@@ -5,7 +5,6 @@ import {
   X,
   Loader2,
   UserPlus,
-  Plus,
   Trash2,
   AlertCircle,
   Globe,
@@ -43,6 +42,7 @@ import { logger } from '@/lib'
 import { useGroups } from '@/hooks/api'
 import { useAuth } from '@/contexts'
 import { useGroupForm } from '../hooks'
+import { UserIdentifierInput } from './user-identifier-input'
 
 interface GroupCreateSheetProps {
   group: GroupCreateDTO | null
@@ -63,22 +63,16 @@ export function GroupCreateSheet({
   const {
     form,
     pendingUsers,
-    newUserUUID,
     newUserPermissions,
     addUserError,
     isPublic,
-    publicPermissions,
     permissionOptions,
-    setNewUserUUID,
-    setAddUserError,
     setIsPublic,
     togglePermission,
-    togglePublicPermission,
     handleAddPendingUser,
     handleRemovePendingUser,
     buildGroupDTO,
     resetForm,
-    clearUserError,
   } = useGroupForm({
     open,
     defaultName: group?.name ?? '',
@@ -223,32 +217,7 @@ export function GroupCreateSheet({
 
                   {/* Add User Input Row */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={newUserUUID}
-                        onChange={(e) => {
-                          setNewUserUUID(e.target.value)
-                          clearUserError()
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleAddPendingUser()
-                          }
-                        }}
-                        placeholder={t('groups.userUuidPlaceholder')}
-                        className="font-mono text-xs flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleAddPendingUser}
-                        disabled={!newUserUUID.trim()}
-                        className="px-3"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                    <UserIdentifierInput onResolve={handleAddPendingUser} />
                     <div className="flex items-center gap-4">
                       {permissionOptions.map((perm) => (
                         <label

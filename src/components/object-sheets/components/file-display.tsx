@@ -24,7 +24,7 @@ import { useFilesApi } from '@/hooks'
 import type { FileData } from '@/types'
 import { detectMimeType, detectPreviewKind, logger, truncateText } from '@/lib'
 import { useIomSdkClient } from '@/contexts'
-import { downloadFileToClient, extractFileUuid } from '@/components/attachments'
+import { downloadFileToClient } from '@/components/attachments'
 
 const AttachmentPreview = dynamic(
   () => import('@/components/attachments').then((m) => m.AttachmentPreview),
@@ -106,25 +106,20 @@ async function handleFileOpen(
   file: FileData,
   client: ReturnType<typeof useIomSdkClient>
 ): Promise<void> {
-  if (!file.fileReference) return
-
   if (isExternalFileReference(file.fileReference)) {
     window.open(file.fileReference, '_blank', 'noopener,noreferrer')
     return
   }
 
-  const uuid = extractFileUuid(file.fileReference)
-  if (!uuid) {
-    logger.error('Could not extract UUID from fileReference', {
-      fileReference: file.fileReference,
-    })
+  if (!file.uuid) {
+    logger.error('Internal file has no uuid to fetch content', { file })
     return
   }
 
   try {
     await downloadFileToClient(
       client,
-      uuid,
+      file.uuid,
       file.contentType || 'application/octet-stream',
       getDisplayName(file)
     )

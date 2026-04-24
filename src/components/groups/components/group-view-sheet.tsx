@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect } from 'react'
 import {
   Globe,
   Lock,
-  Plus,
   X,
   Loader2,
   Users,
@@ -23,6 +22,7 @@ import type {
   GroupCreateDTO,
   GroupPermission,
   GroupShareToUserDTO,
+  UserDTO,
 } from 'iom-sdk'
 
 import {
@@ -52,6 +52,7 @@ import {
   deduplicateUsersShare,
   getEffectivePermissions,
 } from '../utils/group-utils'
+import { UserIdentifierInput } from './user-identifier-input'
 
 interface GroupViewSheetProps {
   group: GroupCreateDTO | null
@@ -90,7 +91,6 @@ export function GroupViewSheet({
 
   // Add user state
   const [showAddUser, setShowAddUser] = useState(false)
-  const [newUserUUID, setNewUserUUID] = useState('')
   const [newUserPermissions, setNewUserPermissions] = useState<
     GroupPermission[]
   >(['READ' as GroupPermission])
@@ -108,7 +108,6 @@ export function GroupViewSheet({
     setIsEditingName(false)
     setEditedName('')
     setShowAddUser(false)
-    setNewUserUUID('')
     setNewUserPermissions(['READ' as GroupPermission])
     setAddUserError(null)
     setEditingUserUUID(null)
@@ -175,26 +174,23 @@ export function GroupViewSheet({
     setIsEditingName(true)
   }
 
-  const handleAddUser = async () => {
-    const trimmedUUID = newUserUUID.trim()
-    if (!trimmedUUID) return
-
+  const handleAddUser = async (user: UserDTO) => {
     setAddUserError(null)
 
     // Prevent adding the owner as a participant
-    if (trimmedUUID === group.ownerUserUUID) {
+    if (user.userUUID === group.ownerUserUUID) {
       setAddUserError(t('groups.cannotAddOwner'))
       return
     }
 
     // Prevent adding duplicate user
-    if (usersShare.some((u) => u.userUUID === trimmedUUID)) {
+    if (usersShare.some((u) => u.userUUID === user.userUUID)) {
       setAddUserError(t('groups.userAlreadyExists'))
       return
     }
 
     const newShare: GroupShareToUserDTO = {
-      userUUID: trimmedUUID,
+      userUUID: user.userUUID,
       // Always include READ; merge with any extra permissions selected
       permissions: Array.from(
         new Set(['READ' as GroupPermission, ...newUserPermissions])
@@ -206,7 +202,6 @@ export function GroupViewSheet({
         ...group,
         usersShare: [...usersShare, newShare],
       })
-      setNewUserUUID('')
       setNewUserPermissions(['READ' as GroupPermission])
       setShowAddUser(false)
     } catch (error) {
@@ -412,29 +407,10 @@ export function GroupViewSheet({
               {/* Add User Form */}
               {showAddUser && (
                 <div className="space-y-2 p-3 border rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={newUserUUID}
-                      onChange={(e) => {
-                        setNewUserUUID(e.target.value)
-                        setAddUserError(null)
-                      }}
-                      placeholder={t('groups.userUuidPlaceholder')}
-                      className="font-mono text-xs h-8 flex-1"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleAddUser}
-                      disabled={!newUserUUID.trim() || updateGroup.isPending}
-                      className="h-8"
-                    >
-                      {updateGroup.isPending ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Plus className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
+                  <UserIdentifierInput
+                    onResolve={handleAddUser}
+                    disabled={updateGroup.isPending}
+                  />
                   <div className="flex items-center gap-4">
                     {PERMISSION_OPTIONS.map((perm) => (
                       <label

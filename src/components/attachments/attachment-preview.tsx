@@ -35,7 +35,8 @@ import type { FileData } from '@/types'
 import { downloadFileToClient } from './download-file'
 import { ImageViewer } from './image-viewer'
 import { UnsupportedFallback } from './unsupported-fallback'
-import { extractFileUuid, useFileBlobUrl } from './use-file-blob-url'
+import { useFileBlobUrl } from './use-file-blob-url'
+import { isExternalFileReference } from '@/components/object-sheets/utils'
 
 const MediaViewer = dynamic(
   () => import('./media-viewer').then((m) => m.MediaViewer),
@@ -103,7 +104,12 @@ export function AttachmentPreview({
 
   const mime = current ? detectMimeType(current) : 'application/octet-stream'
   const kind: PreviewKind = detectPreviewKind(mime)
-  const uuid = current ? extractFileUuid(current.fileReference) : null
+  // Internal files are fetched by uuid via POST /api/UUFile/find. External
+  // references are rendered directly from their URL and don't need a blob.
+  const isExternal = current
+    ? isExternalFileReference(current.fileReference)
+    : false
+  const uuid = current && !isExternal ? (current.uuid ?? null) : null
   const needsBlob = isSupportedKind(kind) && !!uuid
 
   const { url, isLoading, error } = useFileBlobUrl(
@@ -175,9 +181,19 @@ export function AttachmentPreview({
   }, [open, hasMultiple, goTo, kind, zoom, resetView])
 
   const handleDownload = async () => {
-    if (!current || !uuid) return
+    if (!current) return
+    if (isExternal && current.fileReference) {
+      window.open(current.fileReference, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (!current.uuid) return
     try {
-      await downloadFileToClient(client, uuid, mime, getDisplayName(current))
+      await downloadFileToClient(
+        client,
+        current.uuid,
+        mime,
+        getDisplayName(current)
+      )
     } catch (err) {
       logger.error('Attachment preview download failed', { error: err })
     }

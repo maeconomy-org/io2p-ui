@@ -893,6 +893,16 @@
     "ownerUuid": "Eigenaar-UUID",
     "userUuid": "Gebruikers-UUID",
     "userUuidPlaceholder": "Voer gebruikers-UUID in...",
+    "userIdentifierPlaceholder": "Voer e-mail of certificaat-CN in",
+    "userNotFound": "Geen gebruiker gevonden voor deze identifier",
+    "searchingUser": "Gebruikers zoeken...",
+    "userSearchError": "Zoeken naar gebruikers is mislukt. Probeer opnieuw.",
+    "uuidDetected": "UUID gedetecteerd — direct toevoegen zonder zoeken",
+    "addByUuid": "Toevoegen via UUID",
+    "identifierType": {
+      "email": "E-mail",
+      "certificate": "Certificaat"
+    },
     "viewDetails": "Details bekijken",
     "viewObjects": "Objecten bekijken",
     "groupDetails": "Groepdetails",

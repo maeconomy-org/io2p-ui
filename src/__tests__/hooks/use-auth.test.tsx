@@ -1,7 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
 import React from 'react'
+
+function makeWrapper(client: any) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider client={client}>{children}</AuthProvider>
+    </QueryClientProvider>
+  )
+}
 
 // Mock next/navigation
 const mockReplace = vi.fn()
@@ -40,9 +52,7 @@ describe('AuthProvider & useAuth', () => {
       resolveReady = resolve
     })
 
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <AuthProvider client={mockClient}>{children}</AuthProvider>
-    )
+    const wrapper = makeWrapper(mockClient)
 
     const { result } = renderHook(() => useAuth(), { wrapper })
 
@@ -71,9 +81,7 @@ describe('AuthProvider & useAuth', () => {
   it('should redirect to home if not authenticated on private page', async () => {
     mockPathname = '/objects'
 
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <AuthProvider client={mockClient}>{children}</AuthProvider>
-    )
+    const wrapper = makeWrapper(mockClient)
 
     renderHook(() => useAuth(), { wrapper })
 
@@ -83,9 +91,7 @@ describe('AuthProvider & useAuth', () => {
   })
 
   it('should handle logout', async () => {
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <AuthProvider client={mockClient}>{children}</AuthProvider>
-    )
+    const wrapper = makeWrapper(mockClient)
 
     const { result } = renderHook(() => useAuth(), { wrapper })
 

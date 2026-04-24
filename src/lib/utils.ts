@@ -25,6 +25,13 @@ export function formatUUID(uuid: string) {
   return uuid.length > 12 ? `${uuid.slice(0, 12)}...${uuid.slice(-12)}` : uuid
 }
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function isUUID(value: string): boolean {
+  return UUID_REGEX.test(value.trim())
+}
+
 export function toCapitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }

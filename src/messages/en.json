@@ -893,6 +893,16 @@
     "ownerUuid": "Owner UUID",
     "userUuid": "User UUID",
     "userUuidPlaceholder": "Enter user UUID...",
+    "userIdentifierPlaceholder": "Enter user email or certificate CN",
+    "userNotFound": "No user matches this identifier",
+    "searchingUser": "Searching users...",
+    "userSearchError": "Failed to search users. Please try again.",
+    "uuidDetected": "UUID detected — add directly without searching",
+    "addByUuid": "Add by UUID",
+    "identifierType": {
+      "email": "Email",
+      "certificate": "Certificate"
+    },
     "viewDetails": "View Details",
     "viewObjects": "View Objects",
     "groupDetails": "Group Details",

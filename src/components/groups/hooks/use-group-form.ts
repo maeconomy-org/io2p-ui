@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslations } from 'next-intl'
-import type { GroupPermission, GroupShareToUserDTO } from 'iom-sdk'
+import type { GroupPermission, GroupShareToUserDTO, UserDTO } from 'iom-sdk'
 
 import { groupSchema, GroupFormValues } from '@/lib/validations'
 
@@ -24,18 +24,16 @@ interface UseGroupFormOptions {
 interface UseGroupFormReturn {
   form: ReturnType<typeof useForm<GroupFormValues>>
   pendingUsers: GroupShareToUserDTO[]
-  newUserUUID: string
   newUserPermissions: GroupPermission[]
   addUserError: string | null
   isPublic: boolean
   publicPermissions: GroupPermission[]
   permissionOptions: GroupPermission[]
-  setNewUserUUID: (value: string) => void
   setAddUserError: (error: string | null) => void
   setIsPublic: (value: boolean) => void
   togglePermission: (perm: GroupPermission) => void
   togglePublicPermission: (perm: GroupPermission) => void
-  handleAddPendingUser: () => void
+  handleAddPendingUser: (user: UserDTO) => void
   handleRemovePendingUser: (userUUID: string) => void
   buildGroupDTO: (
     data: GroupFormValues,
@@ -51,7 +49,7 @@ interface UseGroupFormReturn {
 }
 
 export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
-  const { open, defaultName = '', ownerUserUUID, onClose } = options
+  const { open, defaultName = '', ownerUserUUID } = options
   const t = useTranslations()
 
   const form = useForm<GroupFormValues>({
@@ -62,7 +60,6 @@ export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
   })
 
   const [pendingUsers, setPendingUsers] = useState<GroupShareToUserDTO[]>([])
-  const [newUserUUID, setNewUserUUID] = useState('')
   const [newUserPermissions, setNewUserPermissions] = useState<
     GroupPermission[]
   >(['READ' as GroupPermission])
@@ -100,34 +97,33 @@ export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
     [setPublicPermissions]
   )
 
-  const handleAddPendingUser = useCallback(() => {
-    const trimmedUUID = newUserUUID.trim()
-    if (!trimmedUUID) return
+  const handleAddPendingUser = useCallback(
+    (user: UserDTO) => {
+      setAddUserError(null)
 
-    setAddUserError(null)
+      if (ownerUserUUID && user.userUUID === ownerUserUUID) {
+        setAddUserError(t('groups.cannotAddOwner'))
+        return
+      }
 
-    if (ownerUserUUID && trimmedUUID === ownerUserUUID) {
-      setAddUserError(t('groups.cannotAddOwner'))
-      return
-    }
+      if (pendingUsers.some((u) => u.userUUID === user.userUUID)) {
+        setAddUserError(t('groups.userAlreadyExists'))
+        return
+      }
 
-    if (pendingUsers.some((u) => u.userUUID === trimmedUUID)) {
-      setAddUserError(t('groups.userAlreadyExists'))
-      return
-    }
-
-    setPendingUsers((prev) => [
-      ...prev,
-      {
-        userUUID: trimmedUUID,
-        permissions: Array.from(
-          new Set(['READ' as GroupPermission, ...newUserPermissions])
-        ),
-      },
-    ])
-    setNewUserUUID('')
-    setNewUserPermissions(['READ' as GroupPermission])
-  }, [newUserUUID, newUserPermissions, pendingUsers, t])
+      setPendingUsers((prev) => [
+        ...prev,
+        {
+          userUUID: user.userUUID,
+          permissions: Array.from(
+            new Set(['READ' as GroupPermission, ...newUserPermissions])
+          ),
+        },
+      ])
+      setNewUserPermissions(['READ' as GroupPermission])
+    },
+    [newUserPermissions, pendingUsers, ownerUserUUID, t]
+  )
 
   const handleRemovePendingUser = useCallback((userUUID: string) => {
     setPendingUsers((prev) => prev.filter((u) => u.userUUID !== userUUID))
@@ -148,7 +144,6 @@ export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
   const resetForm = useCallback(() => {
     form.reset({ name: '' })
     setPendingUsers([])
-    setNewUserUUID('')
     setNewUserPermissions(['READ' as GroupPermission])
     setAddUserError(null)
     setIsPublicRaw(false)
@@ -163,7 +158,6 @@ export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
     if (open) {
       form.reset({ name: defaultName })
       setPendingUsers([])
-      setNewUserUUID('')
       setNewUserPermissions(['READ' as GroupPermission])
       setAddUserError(null)
       setIsPublicRaw(false)
@@ -174,13 +168,11 @@ export function useGroupForm(options: UseGroupFormOptions): UseGroupFormReturn {
   return {
     form,
     pendingUsers,
-    newUserUUID,
     newUserPermissions,
     addUserError,
     isPublic,
     publicPermissions,
     permissionOptions: PERMISSION_OPTIONS,
-    setNewUserUUID,
     setAddUserError,
     setIsPublic,
     togglePermission,

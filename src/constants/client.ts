@@ -11,11 +11,13 @@ export interface ClientConfig {
   authBaseUrl?: string
   registryBaseUrl?: string
   nodeBaseUrl?: string
+  userBaseUrl?: string
 
   // Optional per-service timeout overrides in ms (default: 30000)
   authTimeout?: number
   registryTimeout?: number
   nodeTimeout?: number
+  userTimeout?: number
 
   // Sentry config
   sentryDsn: string
@@ -72,6 +74,7 @@ export function buildRuntimeConfig(): ClientConfig {
     authBaseUrl: process.env.AUTH_BASE_URL || undefined,
     registryBaseUrl: process.env.REGISTRY_BASE_URL || undefined,
     nodeBaseUrl: process.env.NODE_BASE_URL || undefined,
+    userBaseUrl: process.env.USER_BASE_URL || undefined,
     authTimeout: process.env.AUTH_TIMEOUT
       ? parseInt(process.env.AUTH_TIMEOUT)
       : undefined,
@@ -80,6 +83,9 @@ export function buildRuntimeConfig(): ClientConfig {
       : undefined,
     nodeTimeout: process.env.NODE_TIMEOUT
       ? parseInt(process.env.NODE_TIMEOUT)
+      : undefined,
+    userTimeout: process.env.USER_TIMEOUT
+      ? parseInt(process.env.USER_TIMEOUT)
       : undefined,
     sentryDsn: process.env.SENTRY_DSN || '',
     sentryEnabled: process.env.SENTRY_ENABLED || 'false',

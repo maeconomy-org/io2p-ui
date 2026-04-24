@@ -17,7 +17,7 @@ const revokeObjectURL = vi.fn((_url: string) => undefined)
 function makeClient(overrides?: Partial<Client['node']>): Client {
   return {
     node: {
-      downloadFile: vi.fn(async () => new ArrayBuffer(4)),
+      getFileContent: vi.fn(async () => 'AAAA'),
       ...(overrides ?? {}),
     },
   } as unknown as Client
@@ -40,7 +40,7 @@ describe('downloadFileToClient', () => {
     const client = makeClient()
     await downloadFileToClient(client, 'u-1', 'image/png', 'photo.png')
 
-    expect(client.node.downloadFile).toHaveBeenCalledWith('u-1')
+    expect(client.node.getFileContent).toHaveBeenCalledWith('u-1')
     expect(createObjectURL).toHaveBeenCalledTimes(1)
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:stub')
   })
@@ -72,7 +72,7 @@ describe('downloadFileToClient', () => {
 
   it('does not create a URL when the SDK download fails, and rethrows', async () => {
     const client = makeClient({
-      downloadFile: vi.fn(async () => {
+      getFileContent: vi.fn(async () => {
         throw new Error('net down')
       }),
     })

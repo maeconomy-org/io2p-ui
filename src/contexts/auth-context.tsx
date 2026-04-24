@@ -6,9 +6,11 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import type { AuthResponse as BaseAuthResponse, Client } from 'iom-sdk'
 import { PUBLIC_PAGES_SET } from '@/constants'
 
@@ -59,11 +61,17 @@ interface AuthProviderProps {
 export function AuthProvider({ children, client }: AuthProviderProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const queryClient = useQueryClient()
 
   const [authLoading, setAuthLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [userInfo, setUserInfo] = useState<AuthResponse | null>(null)
+
+  // Tracks the last observed authenticated user so we can detect identity
+  // switches (e.g. user A logs out, user B auto-logs in with a browser-cached
+  // certificate) and wipe the shared React Query cache before user B renders.
+  const prevUserUUIDRef = useRef<string | undefined>(undefined)
 
   const handleAuthStateChange = useCallback(
     (state: {
@@ -71,6 +79,18 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
       isRefreshing: boolean
       user: AuthResponse | null
     }) => {
+      const nextUUID = state.user?.userUUID
+      const prevUUID = prevUserUUIDRef.current
+
+      // Wipe the query cache on any identity transition: logout (had user,
+      // now null) and user switch (had user A, now user B). Login from a
+      // cold start (prev undefined → defined) is a no-op since there is
+      // nothing cached yet.
+      if (prevUUID && prevUUID !== nextUUID) {
+        queryClient.clear()
+      }
+      prevUserUUIDRef.current = nextUUID
+
       setIsAuthenticated(state.isAuthenticated)
       setIsRefreshing(state.isRefreshing)
       setUserInfo(state.user)
@@ -82,7 +102,7 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
         router.replace('/')
       }
     },
-    [pathname, router]
+    [pathname, router, queryClient]
   )
 
   useEffect(() => {
@@ -106,6 +126,12 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
 
   const logout = () => {
     if (!client) return
+    // Clear cached server state immediately so the login screen (and any
+    // briefly rendered protected page) can't show data from the previous
+    // user. `handleAuthStateChange` also clears on identity transitions,
+    // but doing it here guarantees the wipe happens synchronously even if
+    // the SDK's state-change notification is delayed.
+    queryClient.clear()
     router.push('/')
     client.logout()
   }

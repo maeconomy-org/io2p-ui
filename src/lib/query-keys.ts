@@ -116,6 +116,14 @@ export const queryKeys = {
     detail: (uuid: string) => [...queryKeys.addresses.all, uuid] as const,
   },
 
+  // ─── Users ───────────────────────────────────────────────
+  users: {
+    all: ['users'] as const,
+    current: ['users', 'current'] as const,
+    findByIdentifier: (identifier: string) =>
+      ['users', 'findByIdentifier', identifier] as const,
+  },
+
   // ─── Formulas ────────────────────────────────────────────
   formulas: {
     all: ['formulas'] as const,

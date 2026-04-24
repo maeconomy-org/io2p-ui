@@ -9,8 +9,8 @@ vi.mock('next-intl', () => ({
     params ? `${key}:${JSON.stringify(params)}` : key,
 }))
 
-const downloadFile = vi.fn(async () => new ArrayBuffer(8))
-const sdkClient = { node: { downloadFile } }
+const getFileContent = vi.fn(async () => 'AAAA')
+const sdkClient = { node: { getFileContent } }
 
 vi.mock('@/contexts', () => ({
   useIomSdkClient: () => sdkClient,

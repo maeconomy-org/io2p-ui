@@ -4,15 +4,17 @@ import { useEffect, useState } from 'react'
 
 import { useIomSdkClient } from '@/contexts'
 import { logger } from '@/lib'
+import { base64ToBlob } from './base64'
 
 /**
- * Extracts the UUFile UUID from a stored file reference like
- * `/api/UUFile/{uuid}/download`. Returns null if the reference is external
- * or malformed.
+ * Extracts the UUFile UUID from a stored internal file reference. Historically
+ * the server returned `/api/UUFile/{uuid}/download`; the download endpoint is
+ * gone, but any legacy references still carry the UUID we can extract.
+ * Returns null for external URLs or malformed values.
  */
 export function extractFileUuid(fileReference?: string | null): string | null {
   if (!fileReference) return null
-  const match = fileReference.match(/\/api\/UUFile\/([^/?]+)\/download/)
+  const match = fileReference.match(/\/api\/UUFile\/([^/?]+)/)
   return match ? match[1] : null
 }
 
@@ -53,12 +55,15 @@ export function useFileBlobUrl(
     setError(null)
 
     client.node
-      .downloadFile(uuid)
-      .then((arrayBuffer: ArrayBuffer) => {
+      .getFileContent(uuid)
+      .then(async (base64: string | null) => {
         if (cancelled) return
-        const blob = new Blob([arrayBuffer], {
-          type: mimeType || 'application/octet-stream',
-        })
+        if (!base64) {
+          setError(new Error(`File ${uuid} has no content`))
+          return
+        }
+        const blob = await base64ToBlob(base64, mimeType)
+        if (cancelled) return
         createdUrl = URL.createObjectURL(blob)
         setUrl(createdUrl)
       })
