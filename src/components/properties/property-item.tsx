@@ -289,8 +289,8 @@ export function PropertyItem({
   return (
     <div
       className={cn(
-        'border rounded-md overflow-hidden',
-        isExpanded && 'shadow-sm'
+        'border rounded-md',
+        isExpanded ? 'shadow-sm' : 'overflow-hidden'
       )}
       data-testid={`property-item-${propertyId}`}
     >

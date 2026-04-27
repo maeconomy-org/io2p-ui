@@ -84,9 +84,12 @@ export function useObjectData({
         : null
 
       // Enrich properties with formula data from aggregate mathFormulas
-      const rawProperties = (source.properties || []).filter(
-        (prop: any) => !prop.softDeleted
-      )
+      const rawProperties = (source.properties || [])
+        .filter((prop: any) => !prop.softDeleted)
+        .map((prop: any) => ({
+          ...prop,
+          values: (prop.values || []).filter((val: any) => !val.softDeleted),
+        }))
 
       const mathFormulas = source.mathFormulas || []
       let enrichedProperties = rawProperties
@@ -111,7 +114,7 @@ export function useObjectData({
         if (formulaDataByValueUUID.size > 0) {
           enrichedProperties = rawProperties.map((prop: any) => ({
             ...prop,
-            values: (prop.values || []).map((val: any) => {
+            values: prop.values.map((val: any) => {
               const formulaData = val.uuid
                 ? formulaDataByValueUUID.get(val.uuid)
                 : undefined

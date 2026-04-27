@@ -116,6 +116,9 @@ export function useProperties() {
         queryClient.invalidateQueries({
           queryKey: queryKeys.aggregates.lists(),
         })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.aggregates.details(),
+        })
       },
     })
   }
