@@ -193,8 +193,11 @@ describe('AttachmentPreview', () => {
       'attachments.preview.counter:{"current":2,"total":2}'
     )
 
+    // Keydown is scoped to the dialog (was a window listener; that hijacked
+    // +/-/r/0 from inputs elsewhere on the page).
+    const dialog = screen.getByTestId('attachment-preview-dialog')
     await act(async () => {
-      fireEvent.keyDown(window, { key: 'ArrowRight' })
+      fireEvent.keyDown(dialog, { key: 'ArrowRight' })
     })
 
     await waitFor(() =>

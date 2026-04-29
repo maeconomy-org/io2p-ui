@@ -1,6 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import dynamic from 'next/dynamic'
 import {
   ChevronLeft,
@@ -14,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
 import {
@@ -151,9 +159,10 @@ export function AttachmentPreview({
     setScale((s) => (s === 1 ? 2 : 1))
   }, [])
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
+  // Scoped to the dialog via onKeyDown below — a window-level listener would
+  // hijack +/-/r/0 from inputs elsewhere on the page even while the dialog is open.
+  const handleDialogKeyDown = useCallback(
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'ArrowRight' && hasMultiple) {
         e.preventDefault()
         goTo(1)
@@ -175,10 +184,9 @@ export function AttachmentPreview({
           setRotation((r) => (r + 90) % 360)
         }
       }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, hasMultiple, goTo, kind, zoom, resetView])
+    },
+    [hasMultiple, goTo, kind, zoom, resetView]
+  )
 
   const handleDownload = async () => {
     if (!current) return
@@ -196,6 +204,7 @@ export function AttachmentPreview({
       )
     } catch (err) {
       logger.error('Attachment preview download failed', { error: err })
+      toast.error(t('common.downloadFailed'))
     }
   }
 
@@ -272,6 +281,7 @@ export function AttachmentPreview({
         noContainer
         className="flex h-[92vh] max-h-[92vh] w-[92vw] max-w-[92vw] flex-col gap-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-900 p-0 text-white shadow-2xl sm:rounded-xl"
         data-testid="attachment-preview-dialog"
+        onKeyDown={handleDialogKeyDown}
       >
         <VisuallyHidden>
           <DialogTitle>{displayName}</DialogTitle>

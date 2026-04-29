@@ -826,6 +826,74 @@ describe('usePropertyEditor', () => {
         compositeId: 'nonexistent-prop::0',
       })
     })
+
+    it('warns and toasts when formula dependencies form a cycle', async () => {
+      // A and B are both new formula values that reference each other:
+      // A := b + 1 (depends on B), B := a * 2 (depends on A). The topo sort
+      // in executePhase2 must detect the cycle, log a warning, surface a
+      // toast.warning to the user, and still attempt both creates so the
+      // backend isn't left with a half-applied save.
+      mockCreatePropertyForObject
+        .mockResolvedValueOnce({
+          uuid: 'uuid-A',
+          _createdValues: [{ uuid: 'uuid-A-v0', index: 0 }],
+        })
+        .mockResolvedValueOnce({
+          uuid: 'uuid-B',
+          _createdValues: [{ uuid: 'uuid-B-v0', index: 0 }],
+        })
+
+      const { result } = renderHook(() =>
+        usePropertyEditor({
+          initialProperties: [],
+          objectUuid: 'obj-1',
+        })
+      )
+
+      act(() => result.current.addProperty())
+      const tempA = result.current.properties[0]._tempId!
+      act(() => result.current.updatePropertyName(tempA, 'A', 'A'))
+      act(() => result.current.updatePropertyValue(tempA, 0, '0'))
+
+      act(() => result.current.addProperty())
+      const tempB = result.current.properties[1]._tempId!
+      act(() => result.current.updatePropertyName(tempB, 'B', 'B'))
+      act(() => result.current.updatePropertyValue(tempB, 0, '0'))
+
+      act(() =>
+        result.current.updatePropertyValueFormula(tempA, 0, {
+          formula: 'b + 1',
+          formulaUuid: 'formula-A',
+          variableMapping: {
+            b: { propertyKey: 'B', propertyUuid: `${tempB}::0` },
+          },
+          result: 0,
+        })
+      )
+      act(() =>
+        result.current.updatePropertyValueFormula(tempB, 0, {
+          formula: 'a * 2',
+          formulaUuid: 'formula-B',
+          variableMapping: {
+            a: { propertyKey: 'A', propertyUuid: `${tempA}::0` },
+          },
+          result: 0,
+        })
+      )
+
+      await act(async () => {
+        await result.current.saveProperties()
+      })
+
+      const cycleWarnings = mockLoggerWarn.mock.calls.filter((c) =>
+        /cycle/i.test(String(c[0] ?? ''))
+      )
+      expect(cycleWarnings.length).toBeGreaterThan(0)
+      expect(mockCreateFormulaCalcForValue).toHaveBeenCalledTimes(2)
+
+      const { toast } = await import('sonner')
+      expect(toast.warning).toHaveBeenCalledWith('objects.formulaCycleDetected')
+    })
   })
 
   describe('saveProperty', () => {

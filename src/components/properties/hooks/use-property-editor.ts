@@ -8,21 +8,14 @@ import {
   hasPropertyChanged,
   getChangedProperties,
 } from '../utils/change-detection'
+import { makeCompositeId } from '../utils/composite-id'
 import {
-  makeCompositeId,
-  isOwnCompositeId,
-  parseCompositeId,
-} from '../utils/composite-id'
+  usePropertyFormulas,
+  type FormulaCreateTask,
+  type FormulaDeleteTask,
+} from './use-property-formulas'
 import type { Property, FormulaData } from '../types'
 import type { AvailableProperty } from './use-formula-evaluation'
-
-type FormulaCreateTask = {
-  formulaData: FormulaData
-  args: Array<{ name: string; propertyValueUUID: string }>
-  resultUuid: string
-}
-
-type FormulaDeleteTask = { calcUuid: string; formulaUuid?: string }
 
 /** Get the stable ID for a property (uuid or temp ID). */
 function getPropertyId(property: Property): string {
@@ -151,8 +144,12 @@ export function usePropertyEditor({
     [allProperties]
   )
 
-  const hasChanges = allProperties.some((prop) =>
-    hasPropertyChanged(prop, initialProperties as Property[])
+  const hasChanges = useMemo(
+    () =>
+      allProperties.some((prop) =>
+        hasPropertyChanged(prop, initialProperties as Property[])
+      ),
+    [allProperties, initialProperties]
   )
 
   // ── Internal helpers ─────────────────────────────────────────────
@@ -325,117 +322,15 @@ export function usePropertyEditor({
     return true
   }, [allProperties, t])
 
-  // ── Available properties for formula mapping ─────────────────────
+  // ── Formula derivations & helpers ────────────────────────────────
 
-  const propertiesKey = JSON.stringify(
-    properties.map((p) => ({
-      id: getPropertyId(p),
-      key: p.key,
-      values: p.values?.map((v) => ({
-        uuid: v.uuid,
-        value: v.value,
-      })),
-    }))
-  )
-
-  const allAvailableProperties = useMemo((): AvailableProperty[] => {
-    const result: AvailableProperty[] = []
-
-    properties
-      .filter((p) => !p._deleted && p.key)
-      .forEach((p) => {
-        const propId = getPropertyId(p)
-        const propKey = p.key
-        const propLabel = p.label || p.key
-
-        if (p.values && p.values.length > 0) {
-          p.values.forEach((v, idx) => {
-            if (!v.value || v._needsInput) return
-            const trimmed = v.value.trim()
-            if (trimmed === '' || isNaN(Number(trimmed))) return
-
-            result.push({
-              uuid: makeCompositeId(propId, idx),
-              key: propKey,
-              label: propLabel,
-              value: trimmed,
-              valueIndex: idx,
-            })
-          })
-        }
-      })
-
-    return result
-  }, [propertiesKey])
-
-  const availablePropertiesFor = useCallback(
-    (propertyId: string): AvailableProperty[] => {
-      return allAvailableProperties.filter(
-        (p) => !isOwnCompositeId(p.uuid, propertyId)
-      )
-    },
-    [allAvailableProperties]
-  )
+  const {
+    availablePropertiesFor,
+    resolveCompositeIdToValueUUID,
+    buildFormulaArgs,
+  } = usePropertyFormulas(properties, allProperties)
 
   // ── API operations ───────────────────────────────────────────────
-
-  /**
-   * Resolve a composite ID (e.g. "{propUUID}::0") to a real property value UUID
-   * by scanning the current properties list. Only returns UUIDs that are
-   * already known (already persisted) — for values created in the current
-   * save session, callers must consult a local map first.
-   */
-  const resolveCompositeIdToValueUUID = useCallback(
-    (compositeId: string): string | null => {
-      const parsed = parseCompositeId(compositeId)
-      if (!parsed) return null
-
-      const { propertyId, valueIndex } = parsed
-      const prop = allProperties.find(
-        (p) => p.uuid === propertyId || p._tempId === propertyId
-      )
-      return prop?.values?.[valueIndex]?.uuid || null
-    },
-    [allProperties]
-  )
-
-  /**
-   * Build formula calc args by resolving composite IDs using a caller-supplied
-   * resolver. Unresolved variables are logged and skipped — the caller is
-   * notified via the returned `unresolved` list so it can surface a warning.
-   */
-  const buildFormulaArgs = useCallback(
-    (
-      formulaData: FormulaData,
-      resolve: (compositeId: string) => string | null
-    ): {
-      args: Array<{ name: string; propertyValueUUID: string }>
-      unresolved: string[]
-    } => {
-      const args: Array<{ name: string; propertyValueUUID: string }> = []
-      const unresolved: string[] = []
-      for (const [name, mapping] of Object.entries(
-        formulaData.variableMapping || {}
-      )) {
-        const realUUID = resolve(mapping.propertyUuid)
-        if (realUUID) {
-          args.push({ name, propertyValueUUID: realUUID })
-        } else {
-          unresolved.push(name)
-          logger.warn(
-            'Formula variable could not be resolved to a property value UUID',
-            {
-              varName: name,
-              compositeId: mapping.propertyUuid,
-              formulaUuid: formulaData.formulaUuid,
-            }
-          )
-        }
-      }
-      return { args, unresolved }
-    },
-    []
-  )
 
   /**
    * Phase 1: Create/update/delete the property and its values. For new
@@ -702,12 +597,15 @@ export function usePropertyEditor({
       const sorted: FormulaCreateTask[] = []
       const visited = new Set<string>()
       const visiting = new Set<string>()
+      const cycleNodes = new Set<string>()
 
       const visit = (task: FormulaCreateTask) => {
         if (visited.has(task.resultUuid)) return
         if (visiting.has(task.resultUuid)) {
-          // Cycle — log and break so we don't loop forever. The calc will
-          // still be queued, but its upstream hasn't completed first.
+          // Cycle — record both endpoints, log, and break so we don't loop.
+          // The calc will still be queued, but its upstream may not have
+          // completed first; surface a warning to the user.
+          cycleNodes.add(task.resultUuid)
           logger.warn('Formula dependency cycle detected', {
             resultUuid: task.resultUuid,
           })
@@ -724,6 +622,10 @@ export function usePropertyEditor({
       }
       for (const t of creates) visit(t)
 
+      if (cycleNodes.size > 0) {
+        toast.warning(t('objects.formulaCycleDetected'))
+      }
+
       // Run creates sequentially in topological order so each formula calc
       // exists on the backend before any dependent formula references it.
       const createSequence = (async () => {
@@ -739,7 +641,7 @@ export function usePropertyEditor({
 
       await Promise.all([...deleteOps, createSequence])
     },
-    [objectUuid, createFormulaCalcForValue, deleteFormulaCalcForValue]
+    [objectUuid, createFormulaCalcForValue, deleteFormulaCalcForValue, t]
   )
 
   const saveProperties = useCallback(async (): Promise<void> => {

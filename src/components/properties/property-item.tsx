@@ -62,10 +62,12 @@ function PropertyValueItem({
   hideRemove = false,
 }: PropertyValueItemProps) {
   const t = useTranslations()
-  const [isFormulaMode, setIsFormulaMode] = useState(
-    !!value.formulaData?.formula
-  )
-
+  // Derive formula-mode from the value itself rather than local state, so it
+  // stays in sync with parent updates: when the parent toggles formulaData on
+  // (a draft stub) or off, or when a save+refetch resets the value, the UI
+  // reflects reality immediately and doesn't keep showing the formula picker
+  // for a value whose draft was never persisted.
+  const isFormulaMode = !!value.formulaData
   const hasFormula = !!value.formulaData?.formula
 
   return (
@@ -85,7 +87,6 @@ function PropertyValueItem({
                 isFormulaMode={isFormulaMode}
                 onTextMode={() => {
                   if (isFormulaMode) {
-                    setIsFormulaMode(false)
                     onValueChange?.(
                       valueIndex,
                       value.formulaData?.result?.toString() || value.value || ''
@@ -95,15 +96,12 @@ function PropertyValueItem({
                 }}
                 onFormulaMode={() => {
                   if (!isFormulaMode) {
-                    setIsFormulaMode(true)
-                    if (!value.formulaData) {
-                      onFormulaChange(valueIndex, {
-                        formula: '',
-                        variableMapping: {},
-                        result: null,
-                        isValid: false,
-                      })
-                    }
+                    onFormulaChange(valueIndex, {
+                      formula: '',
+                      variableMapping: {},
+                      result: null,
+                      isValid: false,
+                    })
                   }
                 }}
               />

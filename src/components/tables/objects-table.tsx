@@ -34,7 +34,10 @@ import {
 import { cn, logger } from '@/lib'
 import { useUnifiedDelete, useObjects, useGroups } from '@/hooks'
 import { GroupBadge } from '@/components/ui/group-badge'
-import { CopyObjectsSheet } from '@/components/object-sheets'
+import {
+  CopyObjectsSheet,
+  ProductPassportSheet,
+} from '@/components/object-sheets'
 import { useObjectOperations } from '@/components/object-sheets/hooks/use-object-operations'
 import {
   DeleteConfirmationDialog,
@@ -110,6 +113,10 @@ export function ObjectsTable({
   const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
   const [selectedQRObject, setSelectedQRObject] = useState<any>(null)
 
+  // Product Passport sheet state
+  const [isPassportSheetOpen, setIsPassportSheetOpen] = useState(false)
+  const [passportTarget, setPassportTarget] = useState<any>(null)
+
   // Copy objects state
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
   const [copyTarget, setCopyTarget] = useState<any>(null)
@@ -167,6 +174,11 @@ export function ObjectsTable({
     e.stopPropagation()
     setSelectedQRObject(object)
     setIsQRCodeModalOpen(true)
+  }
+
+  const handleViewPassport = (object: any) => {
+    setPassportTarget(object)
+    setIsPassportSheetOpen(true)
   }
 
   const navigateToChildren = (object: any) => {
@@ -387,6 +399,7 @@ export function ObjectsTable({
             isDeleted={isDeleted}
             onViewDetails={handleViewDetails}
             onShowQRCode={handleShowQRCode}
+            onViewPassport={handleViewPassport}
             onDuplicate={(obj) => {
               setCopyTarget(obj)
               setIsCopySheetOpen(true)
@@ -497,6 +510,16 @@ export function ObjectsTable({
                 copyTarget.childCount || copyTarget.children?.length || 0,
             },
           ]}
+        />
+      )}
+
+      {/* Product Passport Sheet */}
+      {isPassportSheetOpen && passportTarget && (
+        <ProductPassportSheet
+          isOpen={isPassportSheetOpen}
+          onClose={() => setIsPassportSheetOpen(false)}
+          uuid={passportTarget.uuid}
+          object={passportTarget}
         />
       )}
 

@@ -293,6 +293,99 @@ export const PROPERTY_DICTIONARY: PropertyDictionaryEntry[] = [
     aliases: { en: ['maintenance-date'], nl: ['onderhoudsdatum'] },
     category: 'lifecycle',
   },
+  {
+    key: 'supplier',
+    labels: { en: 'Supplier', nl: 'Leverancier' },
+    aliases: { en: ['vendor', 'distributor'], nl: ['leverancier'] },
+    category: 'product',
+  },
+  {
+    key: 'country-of-origin',
+    labels: { en: 'Country of Origin', nl: 'Land van Herkomst' },
+    aliases: { en: ['origin', 'made-in'], nl: ['herkomst', 'gemaakt-in'] },
+    category: 'product',
+  },
+  {
+    key: 'batch-number',
+    labels: { en: 'Batch Number', nl: 'Batchnummer' },
+    aliases: { en: ['lot-number'], nl: ['lotnummer'] },
+    category: 'product',
+  },
+  {
+    key: 'certification',
+    labels: { en: 'Certification', nl: 'Certificering' },
+    aliases: { en: ['certified', 'standard'], nl: ['certificaat'] },
+    category: 'sustainability',
+  },
+  {
+    key: 'lifespan-years',
+    labels: {
+      en: 'Expected Lifespan (years)',
+      nl: 'Verwachte Levensduur (jaren)',
+    },
+    aliases: { en: ['lifespan', 'service-life'], nl: ['levensduur'] },
+    category: 'lifecycle',
+  },
+  {
+    key: 'recyclability',
+    labels: { en: 'Recyclability', nl: 'Recyclebaarheid' },
+    aliases: { en: ['recyclable'], nl: ['recyclebaar'] },
+    category: 'sustainability',
+  },
+  {
+    key: 'finish',
+    labels: { en: 'Finish', nl: 'Afwerking' },
+    aliases: { en: ['surface-finish'], nl: ['afwerking'] },
+    category: 'appearance',
+  },
+  {
+    key: 'fire-rating',
+    labels: { en: 'Fire Rating', nl: 'Brandklasse' },
+    aliases: { en: ['fire-class'], nl: ['brandklasse'] },
+    category: 'classification',
+  },
+  {
+    key: 'map-url',
+    labels: { en: 'Map URL', nl: 'Kaart-URL' },
+    aliases: { en: ['map', 'map-link'], nl: ['kaart'] },
+    category: 'location',
+  },
+  {
+    key: 'floor',
+    labels: { en: 'Floor', nl: 'Verdieping' },
+    aliases: { en: ['level', 'storey'], nl: ['etage'] },
+    category: 'location',
+  },
+  {
+    key: 'room',
+    labels: { en: 'Room', nl: 'Ruimte' },
+    aliases: { en: ['zone', 'space'], nl: ['kamer', 'zone'] },
+    category: 'location',
+  },
+  {
+    key: 'building',
+    labels: { en: 'Building', nl: 'Gebouw' },
+    aliases: { en: ['site'], nl: ['pand'] },
+    category: 'location',
+  },
+  {
+    key: 'datasheet-url',
+    labels: { en: 'Datasheet URL', nl: 'Datasheet-URL' },
+    aliases: { en: ['datasheet', 'spec-sheet'], nl: ['datasheet'] },
+    category: 'meta',
+  },
+  {
+    key: 'manual-url',
+    labels: { en: 'Manual URL', nl: 'Handleiding-URL' },
+    aliases: { en: ['manual', 'instructions'], nl: ['handleiding'] },
+    category: 'meta',
+  },
+  {
+    key: 'epd-url',
+    labels: { en: 'EPD URL', nl: 'EPD-URL' },
+    aliases: { en: ['epd', 'environmental-declaration'], nl: ['epd'] },
+    category: 'sustainability',
+  },
 ]
 
 const PROPERTY_DICTIONARY_BY_KEY: Map<string, PropertyDictionaryEntry> =

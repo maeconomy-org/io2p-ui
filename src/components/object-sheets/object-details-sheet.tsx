@@ -211,7 +211,10 @@ export function ObjectDetailsSheet({
   }
 
   const handleUploadComplete = () => {
-    // Refresh the object data to show updated files
+    // Drop local-only entries (no server uuid). Successful uploads will be
+    // repopulated by the refetch with their real uuids; failed uploads are
+    // cleared so the modal doesn't show ghost files on next open.
+    setObjectFiles((prev) => prev.filter((a) => !!a.uuid))
     refetchAggregate?.()
   }
 

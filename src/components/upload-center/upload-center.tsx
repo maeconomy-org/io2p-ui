@@ -43,7 +43,7 @@ export function UploadCenter() {
       )}
       <Card
         data-testid="upload-center"
-        className="fixed bottom-4 left-4 w-80 shadow-lg border z-50"
+        className="fixed bottom-4 left-4 w-80 shadow-lg border z-[60]"
       >
         <div
           className="p-3 cursor-pointer"

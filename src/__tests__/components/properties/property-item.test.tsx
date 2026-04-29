@@ -740,5 +740,118 @@ describe('PropertyItem', () => {
 
       expect(screen.getByTestId('formula-picker')).toBeInTheDocument()
     })
+
+    it('derives formula mode from value.formulaData on every render (regression)', () => {
+      // Regression for the "edit → toggle to formula → save (no change) →
+      // reopen still stuck in formula mode" bug. The component used to seed
+      // a local useState from value.formulaData on first mount only, so once
+      // the parent reset the value (or the stub formulaData was discarded
+      // after save+refetch) the picker would still be shown. The fix derives
+      // mode from props on every render — verify by toggling the prop.
+      const { rerender } = render(
+        <PropertyItem
+          property={makeProperty({
+            values: [{ uuid: 'v1', value: '42' }],
+          })}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onValueChange={vi.fn()}
+          onValueFormulaChange={vi.fn()}
+        />
+      )
+      expect(screen.queryByTestId('formula-picker')).not.toBeInTheDocument()
+
+      // Parent toggles formula mode on (stub formulaData, no formulaUuid yet).
+      rerender(
+        <PropertyItem
+          property={makeProperty({
+            values: [
+              {
+                uuid: 'v1',
+                value: '42',
+                formulaData: { formula: '', result: null },
+              },
+            ],
+          })}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onValueChange={vi.fn()}
+          onValueFormulaChange={vi.fn()}
+        />
+      )
+      expect(screen.getByTestId('formula-picker')).toBeInTheDocument()
+
+      // Parent clears the stub (e.g. save+refetch) — picker must disappear.
+      rerender(
+        <PropertyItem
+          property={makeProperty({
+            values: [{ uuid: 'v1', value: '42' }],
+          })}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onValueChange={vi.fn()}
+          onValueFormulaChange={vi.fn()}
+        />
+      )
+      expect(screen.queryByTestId('formula-picker')).not.toBeInTheDocument()
+    })
+
+    it('toggling to formula mode notifies the parent with a stub formulaData', () => {
+      const onValueFormulaChange = vi.fn()
+      render(
+        <PropertyItem
+          property={makeProperty({
+            values: [{ uuid: 'v1', value: '42' }],
+          })}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onValueChange={vi.fn()}
+          onValueFormulaChange={onValueFormulaChange}
+        />
+      )
+
+      fireEvent.click(screen.getByTestId('formula-mode-btn'))
+
+      expect(onValueFormulaChange).toHaveBeenCalledTimes(1)
+      const [, formulaData] = onValueFormulaChange.mock.calls[0]
+      expect(formulaData).toBeTruthy()
+      expect((formulaData as FormulaData).formula).toBe('')
+    })
+
+    it('toggling back to text mode clears formulaData on the parent', () => {
+      const onValueFormulaChange = vi.fn()
+      render(
+        <PropertyItem
+          property={makeProperty({
+            values: [
+              {
+                uuid: 'v1',
+                value: '42',
+                formulaData: {
+                  formula: 'x + 1',
+                  formulaUuid: 'f1',
+                  result: 43,
+                },
+              },
+            ],
+          })}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onValueChange={vi.fn()}
+          onValueFormulaChange={onValueFormulaChange}
+        />
+      )
+
+      fireEvent.click(screen.getByTestId('text-mode-btn'))
+
+      expect(onValueFormulaChange).toHaveBeenCalledTimes(1)
+      const [, formulaData] = onValueFormulaChange.mock.calls[0]
+      expect(formulaData).toBeUndefined()
+    })
   })
 })

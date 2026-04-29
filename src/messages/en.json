@@ -81,6 +81,8 @@
     "new": "New",
     "deleted": "Deleted",
     "download": "Download",
+    "downloadFailed": "Failed to download the file. Please try again.",
+    "deleteFailed": "Failed to delete. Please try again.",
     "save": "Save",
     "saving": "Saving...",
     "saveFailed": "Failed to save changes. Please try again.",
@@ -276,6 +278,43 @@
       "metadata": "Metadata",
       "history": "History"
     },
+    "passport": {
+      "untitled": "Untitled object",
+      "sheetDescription": "A read-only product overview built from this object's properties, address, and files.",
+      "lifecycle": "Lifecycle",
+      "warranty": "Warranty",
+      "active": "Active",
+      "expired": "Expired",
+      "expiresIn": "Expires in {days} days",
+      "percentElapsed": "{percent}% elapsed",
+      "inService": "In service",
+      "produced": "Produced",
+      "lastInspection": "Last inspection",
+      "nextMaintenance": "Next maintenance",
+      "expectedLifespan": "Expected lifespan",
+      "documents": "Documents ({count})",
+      "serialTooltip": "Serial number",
+      "days": "{count} {count, plural, one {day} other {days}}",
+      "months": "{count} {count, plural, one {month} other {months}}",
+      "years": "{count} {count, plural, one {year} other {years}}",
+      "emptyTitle": "No passport data yet",
+      "emptyDescription": "Add properties like manufacturer, dimensions or warranty to populate the product passport.",
+      "categories": {
+        "product": "Product",
+        "classification": "Classification",
+        "dimensions": "Dimensions",
+        "composition": "Composition",
+        "appearance": "Appearance",
+        "sustainability": "Sustainability",
+        "commerce": "Commerce",
+        "ownership": "Ownership",
+        "state": "Status",
+        "contact": "Contact",
+        "location": "Location",
+        "meta": "Other",
+        "other": "Other"
+      }
+    },
     "history": {
       "empty": "No history yet.",
       "emptyFilter": "No events in this category.",
@@ -388,6 +427,7 @@
     "propertiesUpdated": "Properties updated successfully",
     "propertiesUpdateFailed": "Failed to update object properties",
     "formulaUnresolvedArgs": "Some formula variables could not be linked to their source values and were skipped.",
+    "formulaCycleDetected": "A formula dependency cycle was detected. Some calculations may not have run in the correct order — please review your formulas.",
     "metadataUpdated": "Metadata updated successfully",
     "addressUpdated": "Address updated successfully",
     "parentsUpdated": "Parent relationships updated successfully",
@@ -439,7 +479,8 @@
     "showQr": "Show QR",
     "actions": {
       "copyUuid": "Copy UUID",
-      "showQrCode": "QR Code"
+      "showQrCode": "QR Code",
+      "viewPassport": "View Passport"
     },
     "bulk": {
       "selected": "{selected} of {total} row(s) selected",
@@ -944,6 +985,13 @@
       "READ": "You can only view this group and its records",
       "GROUP_WRITE": "You can edit group settings and share with others",
       "GROUP_WRITE_RECORDS": "Full access: edit group, add and remove records"
+    },
+    "errors": {
+      "updateName": "Failed to update group name. Please try again.",
+      "addUser": "Failed to add user to group. Please try again.",
+      "removeUser": "Failed to remove user from group. Please try again.",
+      "updatePermission": "Failed to update user permissions. Please try again.",
+      "toggleVisibility": "Failed to update group visibility. Please try again."
     },
     "form": {
       "createTitle": "Create New Group",

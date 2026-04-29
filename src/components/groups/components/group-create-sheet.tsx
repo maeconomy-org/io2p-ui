@@ -21,6 +21,7 @@ import {
   Separator,
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetDescription,
@@ -314,8 +315,8 @@ export function GroupCreateSheet({
         </div>
 
         {/* Fixed Actions at Bottom */}
-        <div className="flex-shrink-0 pt-4 border-t mt-4">
-          <div className="flex items-center gap-3">
+        <SheetFooter className="flex-shrink-0 pt-4 border-t mt-4">
+          <div className="flex items-center gap-3 w-full">
             <Button
               type="button"
               onClick={form.handleSubmit(onSubmit)}
@@ -349,7 +350,7 @@ export function GroupCreateSheet({
               {t('common.cancel')}
             </Button>
           </div>
-        </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

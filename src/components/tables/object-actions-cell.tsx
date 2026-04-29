@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Copy,
   ChevronDown,
+  IdCard,
 } from 'lucide-react'
 
 import {
@@ -29,6 +30,8 @@ interface ObjectActionsCellProps {
   onViewDetails: (object: any) => void
   /** Callback when "Show QR Code" is clicked */
   onShowQRCode: (object: any, e: MouseEvent) => void
+  /** Callback when "View Passport" is clicked */
+  onViewPassport?: (object: any) => void
   /** Callback when "Duplicate" is clicked */
   onDuplicate: (object: any) => void
   /** Callback when "Create Template" is clicked */
@@ -54,6 +57,7 @@ export const ObjectActionsCell = memo(function ObjectActionsCell({
   isDeleted,
   onViewDetails,
   onShowQRCode,
+  onViewPassport,
   onDuplicate,
   onCreateTemplate,
   onDelete,
@@ -111,6 +115,18 @@ export const ObjectActionsCell = memo(function ObjectActionsCell({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {onViewPassport && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onViewPassport(object)
+                }}
+                data-testid="object-action-view-passport"
+              >
+                <IdCard className="h-4 w-4 mr-2" />
+                {t('objects.actions.viewPassport')}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={(e) => onShowQRCode(object, e)}>
               <QrCode className="h-4 w-4 mr-2" />
               {t('objects.actions.showQrCode')}

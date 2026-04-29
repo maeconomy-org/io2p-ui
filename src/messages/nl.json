@@ -81,6 +81,8 @@
     "new": "Nieuw",
     "deleted": "Verwijderd",
     "download": "Downloaden",
+    "downloadFailed": "Het downloaden van het bestand is mislukt. Probeer het opnieuw.",
+    "deleteFailed": "Verwijderen mislukt. Probeer het opnieuw.",
     "save": "Opslaan",
     "saving": "Opslaan...",
     "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",
@@ -279,6 +281,43 @@
       "metadata": "Metadata",
       "history": "Geschiedenis"
     },
+    "passport": {
+      "untitled": "Naamloos object",
+      "sheetDescription": "Een alleen-lezen productoverzicht opgebouwd uit de eigenschappen, het adres en de bestanden van dit object.",
+      "lifecycle": "Levenscyclus",
+      "warranty": "Garantie",
+      "active": "Actief",
+      "expired": "Verlopen",
+      "expiresIn": "Verloopt over {days} dagen",
+      "percentElapsed": "{percent}% verstreken",
+      "inService": "In gebruik",
+      "produced": "Geproduceerd",
+      "lastInspection": "Laatste inspectie",
+      "nextMaintenance": "Volgend onderhoud",
+      "expectedLifespan": "Verwachte levensduur",
+      "documents": "Documenten ({count})",
+      "serialTooltip": "Serienummer",
+      "days": "{count} {count, plural, one {dag} other {dagen}}",
+      "months": "{count} {count, plural, one {maand} other {maanden}}",
+      "years": "{count} {count, plural, one {jaar} other {jaar}}",
+      "emptyTitle": "Nog geen paspoortgegevens",
+      "emptyDescription": "Voeg eigenschappen toe zoals fabrikant, afmetingen of garantie om het productpaspoort te vullen.",
+      "categories": {
+        "product": "Product",
+        "classification": "Classificatie",
+        "dimensions": "Afmetingen",
+        "composition": "Samenstelling",
+        "appearance": "Uiterlijk",
+        "sustainability": "Duurzaamheid",
+        "commerce": "Handel",
+        "ownership": "Eigendom",
+        "state": "Status",
+        "contact": "Contact",
+        "location": "Locatie",
+        "meta": "Overig",
+        "other": "Overig"
+      }
+    },
     "history": {
       "empty": "Nog geen geschiedenis.",
       "emptyFilter": "Geen gebeurtenissen in deze categorie.",
@@ -365,6 +404,7 @@
     "propertiesUpdated": "Eigenschappen succesvol bijgewerkt",
     "propertiesUpdateFailed": "Objecteigenschappen bijwerken mislukt",
     "formulaUnresolvedArgs": "Sommige formulevariabelen konden niet aan hun bronwaarden worden gekoppeld en zijn overgeslagen.",
+    "formulaCycleDetected": "Er is een cyclus tussen formules gedetecteerd. Sommige berekeningen liepen mogelijk niet in de juiste volgorde — controleer uw formules.",
     "metadataUpdated": "Metadata succesvol bijgewerkt",
     "addressUpdated": "Adres succesvol bijgewerkt",
     "parentsUpdated": "Bovenliggende relaties succesvol bijgewerkt",
@@ -416,7 +456,8 @@
     "showQr": "QR tonen",
     "actions": {
       "copyUuid": "UUID kopiëren",
-      "showQrCode": "QR-code tonen"
+      "showQrCode": "QR-code tonen",
+      "viewPassport": "Paspoort bekijken"
     },
     "bulk": {
       "selected": "{selected} van {total} rij(en) geselecteerd",
@@ -944,6 +985,13 @@
       "READ": "U kunt deze groep en de records alleen bekijken",
       "GROUP_WRITE": "U kunt groepsinstellingen bewerken en delen met anderen",
       "GROUP_WRITE_RECORDS": "Volledige toegang: groep bewerken, records toevoegen en verwijderen"
+    },
+    "errors": {
+      "updateName": "Bijwerken van groepsnaam mislukt. Probeer het opnieuw.",
+      "addUser": "Toevoegen van gebruiker aan groep mislukt. Probeer het opnieuw.",
+      "removeUser": "Verwijderen van gebruiker uit groep mislukt. Probeer het opnieuw.",
+      "updatePermission": "Bijwerken van gebruikersrechten mislukt. Probeer het opnieuw.",
+      "toggleVisibility": "Bijwerken van groepszichtbaarheid mislukt. Probeer het opnieuw."
     },
     "form": {
       "createTitle": "Nieuwe groep aanmaken",

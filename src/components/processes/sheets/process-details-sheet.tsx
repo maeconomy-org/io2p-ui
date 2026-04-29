@@ -21,6 +21,7 @@ import {
   Separator,
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   ScrollArea,
@@ -564,11 +565,11 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex-shrink-0 pt-4 border-t mt-4">
+        <SheetFooter className="flex-shrink-0 pt-4 border-t mt-4">
           <Button onClick={onClose} className="w-full" variant="outline">
             {t('close')}
           </Button>
-        </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

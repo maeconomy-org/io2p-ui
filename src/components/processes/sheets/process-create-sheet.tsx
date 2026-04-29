@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useEffect, type FormEvent } from 'react'
-import { Plus, Trash2, ArrowRight } from 'lucide-react'
+import { AlertCircle, ArrowRight } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import type { UUObjectDTO } from 'iom-sdk'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   Input,
   Label,
@@ -12,7 +15,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Badge,
   Select,
   SelectContent,
   SelectItem,
@@ -21,15 +23,18 @@ import {
   Textarea,
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui'
 import { ObjectSelectionModal } from '../modals/object-selection-modal'
+import { ProcessMaterialList } from './process-material-list'
 import type { MaterialRelationship } from '@/types'
 import {
   MaterialFlowMetadata,
   ProcessCategory,
   FlowCategory,
+  QualityChangeCode,
 } from '@/types/sankey-metadata'
 import { PROCESS_TYPES } from '@/constants'
 import {
@@ -52,16 +57,11 @@ interface ProcessCreateSheetProps {
   onSave: (process: ProcessFlowData) => void
 }
 
-export function ProcessCreateSheet({
-  isOpen,
-  onClose,
-  process,
-  onSave,
-}: ProcessCreateSheetProps) {
-  const t = useTranslations()
-  const tProcessCategories = useTranslations('processCategories')
-  const tLifecycle = useTranslations('lifecycleStages')
-  const [formData, setFormData] = useState<ProcessFlowData>({
+// Initial form state. Extracted so the constructor and the open-effect's
+// "create new" branch share one definition — they used to drift.
+function getEmptyProcessFormData(): ProcessFlowData {
+  const now = new Date().toISOString()
+  return {
     uuid: '',
     name: '',
     type: 'processing',
@@ -75,9 +75,22 @@ export function ProcessCreateSheet({
       quantity: 0,
       unit: 'kg',
     },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  })
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export function ProcessCreateSheet({
+  isOpen,
+  onClose,
+  process,
+  onSave,
+}: ProcessCreateSheetProps) {
+  const t = useTranslations()
+  const tProcessCategories = useTranslations('processCategories')
+  const [formData, setFormData] = useState<ProcessFlowData>(
+    getEmptyProcessFormData
+  )
 
   // Modal states
   const [isObjectModalOpen, setIsObjectModalOpen] = useState(false)
@@ -96,26 +109,25 @@ export function ProcessCreateSheet({
           updatedAt: new Date().toISOString(),
         })
       } else {
-        setFormData({
-          uuid: '',
-          name: '',
-          type: 'processing',
-          description: '',
-          inputMaterials: [],
-          outputMaterials: [],
-          relationships: [],
-          processMetadata: {
-            processName: '',
-            processType: 'processing',
-            quantity: 0,
-            unit: 'kg',
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
+        setFormData(getEmptyProcessFormData())
       }
     }
   }, [isOpen, process])
+
+  // Patch processMetadata without scattering `formData.processMetadata!`
+  // non-null assertions across every onChange — `processMetadata` is typed
+  // as optional but is always present from getEmptyProcessFormData(), so
+  // the assertion was effectively a "trust me" annotation. This helper
+  // makes the safety explicit (default to empty object) and keeps the
+  // type system honest.
+  const updateMetadata = (patch: Record<string, unknown>) =>
+    setFormData((prev) => ({
+      ...prev,
+      processMetadata: {
+        ...(prev.processMetadata ?? {}),
+        ...patch,
+      },
+    }))
 
   // Validation
   const validateForm = () => {
@@ -231,7 +243,7 @@ export function ProcessCreateSheet({
     const processData: ProcessFlowData = {
       ...formData,
       processMetadata: {
-        ...formData.processMetadata!,
+        ...(formData.processMetadata ?? {}),
         processName: formData.name,
         processType: formData.type,
       },
@@ -291,12 +303,8 @@ export function ProcessCreateSheet({
                       <Select
                         value={formData.processMetadata?.processCategory || ''}
                         onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            processMetadata: {
-                              ...formData.processMetadata!,
-                              processCategory: value as ProcessCategory,
-                            },
+                          updateMetadata({
+                            processCategory: value as ProcessCategory,
                           })
                         }
                       >
@@ -324,12 +332,8 @@ export function ProcessCreateSheet({
                       <Select
                         value={formData.processMetadata?.flowCategory || ''}
                         onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            processMetadata: {
-                              ...formData.processMetadata!,
-                              flowCategory: value as FlowCategory,
-                            },
+                          updateMetadata({
+                            flowCategory: value as FlowCategory,
                           })
                         }
                       >
@@ -362,14 +366,10 @@ export function ProcessCreateSheet({
                         step="0.01"
                         value={formData.processMetadata?.emissionsTotal || ''}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            processMetadata: {
-                              ...formData.processMetadata!,
-                              emissionsTotal: e.target.value
-                                ? Number(e.target.value)
-                                : undefined,
-                            },
+                          updateMetadata({
+                            emissionsTotal: e.target.value
+                              ? Number(e.target.value)
+                              : undefined,
                           })
                         }
                         placeholder="0.00"
@@ -390,14 +390,10 @@ export function ProcessCreateSheet({
                           formData.processMetadata?.materialLossPercent || ''
                         }
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            processMetadata: {
-                              ...formData.processMetadata!,
-                              materialLossPercent: e.target.value
-                                ? Number(e.target.value)
-                                : undefined,
-                            },
+                          updateMetadata({
+                            materialLossPercent: e.target.value
+                              ? Number(e.target.value)
+                              : undefined,
                           })
                         }
                         placeholder="0.0"
@@ -413,12 +409,8 @@ export function ProcessCreateSheet({
                     <Select
                       value={formData.processMetadata?.qualityChangeCode || ''}
                       onValueChange={(value) =>
-                        setFormData({
-                          ...formData,
-                          processMetadata: {
-                            ...formData.processMetadata!,
-                            qualityChangeCode: value as any,
-                          },
+                        updateMetadata({
+                          qualityChangeCode: value as QualityChangeCode,
                         })
                       }
                     >
@@ -446,13 +438,7 @@ export function ProcessCreateSheet({
                       id="processNotes"
                       value={formData.processMetadata?.notes || ''}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          processMetadata: {
-                            ...formData.processMetadata!,
-                            notes: e.target.value,
-                          },
-                        })
+                        updateMetadata({ notes: e.target.value })
                       }
                       placeholder={t('processes.form.notesPlaceholder')}
                       rows={3}
@@ -462,235 +448,36 @@ export function ProcessCreateSheet({
               </div>
 
               <div className="space-y-6">
-                {/* Input Materials */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-lg font-medium flex items-center gap-2">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        {t('processes.form.inputMaterials')}
-                        <Badge variant="outline">
-                          {formData.inputMaterials.length}
-                        </Badge>
-                      </CardTitle>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addNewMaterial('input')}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        {t('processes.form.add')}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {formData.inputMaterials.length > 0 ? (
-                      <div className="space-y-2">
-                        {formData.inputMaterials.map((material) => (
-                          <div
-                            key={material.object.uuid}
-                            className="flex items-center justify-between px-3 py-2 border rounded-lg"
-                          >
-                            <div className="flex-1">
-                              <div className="font-medium">
-                                {material.object.name}
-                              </div>
-                              {(material.quantity !== undefined ||
-                                material.unit) && (
-                                <div className="text-sm text-muted-foreground">
-                                  {material.quantity !== undefined
-                                    ? material.quantity
-                                    : ''}{' '}
-                                  {material.unit || ''}
-                                </div>
-                              )}
-                              {material.metadata && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {(material.metadata.lifecycleStage ||
-                                    material.metadata.inputLifecycleStage) && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {tLifecycle(
-                                        material.metadata.lifecycleStage ||
-                                          material.metadata.inputLifecycleStage
-                                      )}
-                                    </Badge>
-                                  )}
-                                  {material.metadata.categoryCode && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs"
-                                    >
-                                      {material.metadata.categoryCode}
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => editMaterial(material, 'input')}
-                              >
-                                {t('processes.form.edit')}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  removeMaterial(material, 'input')
-                                }
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <p className="text-sm">{t('processes.form.empty')}</p>
-                      </div>
-                    )}
-                    {errors.inputs && (
-                      <p className="text-sm text-red-500 mt-2">
-                        {errors.inputs}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Output Materials */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-lg font-medium flex items-center gap-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        {t('processes.form.outputMaterials')}
-                        <Badge variant="outline">
-                          {formData.outputMaterials.length}
-                        </Badge>
-                      </CardTitle>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addNewMaterial('output')}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        {t('processes.form.add')}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {formData.outputMaterials.length > 0 ? (
-                      <div className="space-y-2">
-                        {formData.outputMaterials.map((material) => (
-                          <div
-                            key={material.object.uuid}
-                            className="flex items-center justify-between p-3 border rounded-lg"
-                          >
-                            <div className="flex-1">
-                              <div className="font-medium">
-                                {material.object.name}
-                              </div>
-                              {(material.quantity !== undefined ||
-                                material.unit) && (
-                                <div className="text-sm text-muted-foreground">
-                                  {material.quantity !== undefined
-                                    ? material.quantity
-                                    : ''}{' '}
-                                  {material.unit || ''}
-                                </div>
-                              )}
-                              {material.metadata && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {(material.metadata.lifecycleStage ||
-                                    material.metadata.outputLifecycleStage) && (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {tLifecycle(
-                                        material.metadata.lifecycleStage ||
-                                          material.metadata.outputLifecycleStage
-                                      )}
-                                    </Badge>
-                                  )}
-                                  {material.metadata.categoryCode && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs"
-                                    >
-                                      {material.metadata.categoryCode}
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => editMaterial(material, 'output')}
-                              >
-                                {t('processes.form.edit')}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  removeMaterial(material, 'output')
-                                }
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <p className="text-sm">{t('processes.form.empty')}</p>
-                      </div>
-                    )}
-                    {errors.outputs && (
-                      <p className="text-sm text-red-500 mt-2">
-                        {errors.outputs}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
+                <ProcessMaterialList
+                  type="input"
+                  materials={formData.inputMaterials}
+                  error={errors.inputs}
+                  onAdd={() => addNewMaterial('input')}
+                  onEdit={(material) => editMaterial(material, 'input')}
+                  onRemove={(material) => removeMaterial(material, 'input')}
+                />
+                <ProcessMaterialList
+                  type="output"
+                  materials={formData.outputMaterials}
+                  error={errors.outputs}
+                  onAdd={() => addNewMaterial('output')}
+                  onEdit={(material) => editMaterial(material, 'output')}
+                  onRemove={(material) => removeMaterial(material, 'output')}
+                />
               </div>
 
               {/* Duplicate Materials Error */}
               {errors.duplicates && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-white text-xs font-bold">!</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-red-900 mb-1">
-                        {t('processes.form.duplicateTitle')}
-                      </h4>
-                      <p className="text-sm text-red-700">
-                        {errors.duplicates}
-                      </p>
-                      <p className="text-xs text-red-600 mt-1">
-                        {t('processes.form.duplicateHint')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>{t('processes.form.duplicateTitle')}</AlertTitle>
+                  <AlertDescription>
+                    <p>{errors.duplicates}</p>
+                    <p className="mt-1 text-xs">
+                      {t('processes.form.duplicateHint')}
+                    </p>
+                  </AlertDescription>
+                </Alert>
               )}
 
               {/* Process Summary */}
@@ -742,7 +529,7 @@ export function ProcessCreateSheet({
                   </Card>
                 )}
               {/* Form Actions */}
-              <div className="flex flex-col-reverse sm:flex-row w-full gap-2 pt-4">
+              <SheetFooter className="w-full gap-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -757,7 +544,7 @@ export function ProcessCreateSheet({
                     ? t('processes.form.update')
                     : t('processes.form.create')}
                 </Button>
-              </div>
+              </SheetFooter>
             </form>
           </div>
         </SheetContent>

@@ -321,9 +321,15 @@ describe('usePropertyManagement', () => {
       softDeletePropertyValue.mockRejectedValue(new Error('boom'))
 
       const { result } = renderHook(() => usePropertyManagement())
-      await expect(result.current.softDeleteValue('val-1')).rejects.toThrow(
-        'boom'
-      )
+      // Wrap the rejection assertion in act() so the post-rejection state
+      // updates inside the mutation hook (isError, isPending) are flushed
+      // under React's act batching — otherwise we get the "not wrapped in
+      // act(...)" warning even though the assertion itself passes.
+      await act(async () => {
+        await expect(result.current.softDeleteValue('val-1')).rejects.toThrow(
+          'boom'
+        )
+      })
     })
   })
 })

@@ -5,6 +5,7 @@ import type { MouseEvent, ReactElement } from 'react'
 import dynamic from 'next/dynamic'
 import { Download, Link as LinkIcon, Trash2, Eye } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
 import {
@@ -104,7 +105,8 @@ function getDisplayName(file: FileData): string {
  */
 async function handleFileOpen(
   file: FileData,
-  client: ReturnType<typeof useIomSdkClient>
+  client: ReturnType<typeof useIomSdkClient>,
+  onError: (error: unknown) => void
 ): Promise<void> {
   if (isExternalFileReference(file.fileReference)) {
     window.open(file.fileReference, '_blank', 'noopener,noreferrer')
@@ -125,6 +127,7 @@ async function handleFileOpen(
     )
   } catch (error) {
     logger.error('Failed to open file', { error })
+    onError(error)
   }
 }
 
@@ -153,7 +156,9 @@ export const FileDisplay = memo(function FileDisplay({
     } else if (canPreview && onPreview) {
       onPreview(file)
     } else {
-      handleFileOpen(file, client)
+      handleFileOpen(file, client, () =>
+        toast.error(t('common.downloadFailed'))
+      )
     }
   }
 
@@ -178,6 +183,13 @@ export const FileDisplay = memo(function FileDisplay({
   const handleConfirmDelete = (e: MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
+
+    if (!file.uuid) {
+      logger.error('Cannot soft-delete file without uuid', { file })
+      toast.error(t('common.deleteFailed'))
+      setShowDeleteConfirm(false)
+      return
+    }
 
     softDeleteFile.mutate(file.uuid)
     setShowDeleteConfirm(false)
@@ -222,6 +234,7 @@ export const FileDisplay = memo(function FileDisplay({
             className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
             onClick={handlePreview}
             title={t('objects.files.preview')}
+            aria-label={t('objects.files.preview')}
             data-testid={`file-preview-${file.uuid || displayName}`}
           >
             <Eye className="h-3 w-3" />
@@ -234,6 +247,7 @@ export const FileDisplay = memo(function FileDisplay({
             className="h-6 w-6 p-0 text-destructive hover:text-destructive/80"
             onClick={handleRemoveFile}
             title={t('objects.files.delete')}
+            aria-label={t('objects.files.delete')}
           >
             <Trash2 className="h-3 w-3" />
           </Button>
