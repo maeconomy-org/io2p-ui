@@ -183,6 +183,47 @@
     "featureProcesses": "I/O Procesvolging",
     "featureModels": "Materiaalmodellen",
     "featureImport": "Bulk data-import",
+    "carousel": {
+      "indicators": "Platform highlights",
+      "goToSlide": "Ga naar slide {n}"
+    },
+    "scenes": {
+      "objects": {
+        "title": "Objectregister",
+        "description": "Volg elk materiaal, component en bezit in uw portefeuille met volledige herkomst, eigenschappen en locatie.",
+        "tag1": "Eigenschappen",
+        "tag2": "Afmetingen",
+        "tag3": "Locatie"
+      },
+      "processes": {
+        "title": "I/O-procesvolging",
+        "description": "Modelleer bouw, ontmanteling, sortering en recyclingstromen met traceerbare in- en uitvoer.",
+        "tag1": "Bouw",
+        "tag2": "Transport",
+        "tag3": "Recycling"
+      },
+      "models": {
+        "title": "Materiaalmodellen",
+        "description": "Definieer herbruikbare materiaalsjablonen met formules en eigenschappen — pas ze in seconden toe op duizenden objecten.",
+        "tag1": "Sjablonen",
+        "tag2": "Gebouwen",
+        "tag3": "Formules"
+      },
+      "import": {
+        "title": "Bulk data-import",
+        "description": "Onboard bestaande inventarissen op schaal vanuit CSV, Excel of externe systemen met validatie en rollback.",
+        "tag1": "Spreadsheets",
+        "tag2": "Validatie",
+        "tag3": "API-klaar"
+      },
+      "lifecycle": {
+        "title": "Circulaire levenscyclus",
+        "description": "Traceer materialen van primaire input via gebruik, renovatie, hergebruik en afvoer — circulariteit meetbaar gemaakt.",
+        "tag1": "Hergebruik",
+        "tag2": "Duurzaamheid",
+        "tag3": "Stroomanalyse"
+      }
+    },
     "orContinueWith": "Of ga verder met",
     "email": {
       "label": "E-mail",
@@ -284,6 +325,7 @@
     "passport": {
       "untitled": "Naamloos object",
       "sheetDescription": "Een alleen-lezen productoverzicht opgebouwd uit de eigenschappen, het adres en de bestanden van dit object.",
+      "print": "Afdrukken",
       "lifecycle": "Levenscyclus",
       "warranty": "Garantie",
       "active": "Actief",
@@ -591,7 +633,9 @@
       "labelOptional": "Label (optioneel)",
       "noAttachments": "Geen bijlagen",
       "rename": "Bestand hernoemen",
-      "remove": "Bestand verwijderen"
+      "remove": "Bestand verwijderen",
+      "dropzoneHint": "Bestanden hier loslaten om te uploaden",
+      "dropzoneOversize": "{names} overgeslagen: groter dan {size}MB"
     },
     "files": {
       "preview": "Voorbeeld in nieuw tabblad",

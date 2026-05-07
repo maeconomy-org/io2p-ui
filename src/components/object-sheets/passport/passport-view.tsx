@@ -14,6 +14,7 @@ import { DocumentsStrip, type PassportFile } from './components/documents-strip'
 import { LifecycleRibbon } from './components/lifecycle-ribbon'
 import { PassportCategoryCard } from './components/passport-category-card'
 import { PassportHero } from './components/passport-hero'
+import { PassportQr } from './components/passport-qr'
 import { isPassportEmpty } from './utils/is-passport-empty'
 import {
   groupPropertiesByCategory,
@@ -65,11 +66,26 @@ export function PassportView({
 
   return (
     <div className="space-y-3 pb-2" data-testid="passport-tab">
-      <PassportHero object={object} properties={properties} />
+      <div className="flex items-stretch gap-3">
+        <div className="flex-1 min-w-0">
+          <PassportHero object={object} properties={properties} />
+        </div>
+        {object?.uuid && (
+          <div
+            className="hidden sm:flex flex-shrink-0 items-center justify-center rounded-lg border bg-white p-1.5"
+            data-testid="passport-qr-card"
+          >
+            <PassportQr uuid={object.uuid} size={120} />
+          </div>
+        )}
+      </div>
 
       <LifecycleRibbon properties={properties} />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        data-testid="passport-categories-grid"
+      >
         {groups.map((group) => (
           <PassportCategoryCard key={group.category} group={group} />
         ))}

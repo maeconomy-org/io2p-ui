@@ -40,7 +40,7 @@ export function PassportHero({ object, properties }: PassportHeroProps) {
 
   return (
     <div
-      className="rounded-lg border bg-gradient-to-br from-primary/5 via-background to-background px-3 py-2.5"
+      className="h-full rounded-lg border bg-gradient-to-br from-primary/5 via-background to-background px-3 py-2.5"
       data-testid="passport-hero"
     >
       <div className="flex items-start gap-2.5">

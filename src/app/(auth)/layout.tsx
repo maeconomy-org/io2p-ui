@@ -4,8 +4,8 @@ import { useTranslations } from 'next-intl'
 import { Building2, HelpCircle, Shield } from 'lucide-react'
 import Link from 'next/link'
 
-import { AUTH_FEATURES, AUTH_STEPS } from '@/constants'
 import { useAppConfig } from '@/contexts'
+import { AuthCarousel, AuthPattern } from '@/components/auth'
 
 export default function AuthLayout({
   children,
@@ -23,6 +23,8 @@ export default function AuthLayout({
           {/* Gradient background */}
           <div className="absolute inset-0 bg-gradient-to-b from-zinc-900 via-slate-800 to-slate-700" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_center,_var(--tw-gradient-stops))] from-rose-500/30 via-blue-500/20 to-transparent" />
+
+          <AuthPattern />
 
           {/* Content - centered x/y */}
           <div className="relative z-10 flex flex-col items-center justify-center h-full px-12 xl:px-16 py-12 text-white">
@@ -43,47 +45,7 @@ export default function AuthLayout({
                 </p>
               </div>
 
-              {/* How it works */}
-              <div className="space-y-3 text-left">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 text-center">
-                  {t('auth.infoTitle')}
-                </h3>
-                <div className="space-y-3">
-                  {AUTH_STEPS.map((step) => (
-                    <div
-                      key={step.num}
-                      className="flex items-start gap-3 bg-white/5 backdrop-blur-sm rounded-xl p-3.5 border border-white/10"
-                    >
-                      <div className="size-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                        <step.icon className="h-4 w-4 text-white/80" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm text-white/90">
-                          {t(`auth.${step.titleKey}`)}
-                        </p>
-                        <p className="text-sm text-white/50 mt-0.5">
-                          {t(`auth.${step.descKey}`)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Features grid */}
-              <div className="grid grid-cols-2 gap-2.5">
-                {AUTH_FEATURES.map((feat) => (
-                  <div
-                    key={feat.key}
-                    className="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-xl px-3 py-2.5 border border-white/10"
-                  >
-                    <feat.icon className="h-4 w-4 shrink-0 text-white/70" />
-                    <span className="text-sm font-medium text-white/80">
-                      {t(`auth.${feat.key}`)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <AuthCarousel />
             </div>
           </div>
         </div>

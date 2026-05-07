@@ -1,40 +1,63 @@
 import {
-  KeyRound,
-  Shield,
-  ArrowRight,
   Boxes,
   ArrowLeftRight,
   Layers,
   FileUp,
+  Recycle,
+  Package,
+  MapPin,
+  Truck,
+  Hammer,
+  FileSpreadsheet,
+  Database,
+  FileCode,
+  RotateCcw,
+  Leaf,
+  Building2,
+  Ruler,
+  Scale,
+  type LucideIcon,
 } from 'lucide-react'
 
 export const PUBLIC_PAGES: string[] = ['/', '/help', '/terms', '/privacy']
 export const PUBLIC_PAGES_SET = new Set(PUBLIC_PAGES)
 
-export const AUTH_FEATURES = [
-  { icon: Boxes, key: 'featureObjects' },
-  { icon: ArrowLeftRight, key: 'featureProcesses' },
-  { icon: Layers, key: 'featureModels' },
-  { icon: FileUp, key: 'featureImport' },
-] as const
+export type AuthScene = {
+  id: string
+  icon: LucideIcon
+  accent: string
+  secondaryIcons: readonly LucideIcon[]
+}
 
-export const AUTH_STEPS = [
+export const AUTH_SCENES: readonly AuthScene[] = [
   {
-    num: '1',
-    icon: KeyRound,
-    titleKey: 'infoStep1Title',
-    descKey: 'infoStep1',
+    id: 'objects',
+    icon: Boxes,
+    accent: 'from-blue-500/40 via-cyan-400/30 to-transparent',
+    secondaryIcons: [Package, Ruler, MapPin],
   },
   {
-    num: '2',
-    icon: Shield,
-    titleKey: 'infoStep2Title',
-    descKey: 'infoStep2',
+    id: 'processes',
+    icon: ArrowLeftRight,
+    accent: 'from-emerald-500/40 via-teal-400/30 to-transparent',
+    secondaryIcons: [Hammer, Truck, Recycle],
   },
   {
-    num: '3',
-    icon: ArrowRight,
-    titleKey: 'infoStep3Title',
-    descKey: 'infoStep3',
+    id: 'models',
+    icon: Layers,
+    accent: 'from-violet-500/40 via-fuchsia-400/30 to-transparent',
+    secondaryIcons: [FileCode, Building2, Scale],
+  },
+  {
+    id: 'import',
+    icon: FileUp,
+    accent: 'from-amber-500/40 via-orange-400/30 to-transparent',
+    secondaryIcons: [FileSpreadsheet, Database, FileCode],
+  },
+  {
+    id: 'lifecycle',
+    icon: Recycle,
+    accent: 'from-lime-500/40 via-green-400/30 to-transparent',
+    secondaryIcons: [RotateCcw, Leaf, ArrowLeftRight],
   },
 ] as const

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Trash2, Loader2, FileText, RotateCcw, Copy } from 'lucide-react'
 
 import { logger } from '@/lib'
+import { useUploadQueue } from '@/contexts'
 import {
   Badge,
   Button,
@@ -45,6 +46,9 @@ import { MetadataTab } from './tabs/metadata-tab'
 import { PropertiesTab } from './tabs/properties-tab'
 import { RelationshipsTab } from './tabs/relationships-tab'
 import { AttachmentModal } from './components/attachment-modal'
+import { SheetDropzone } from './components/sheet-dropzone'
+import { getMaxUploadSizeMB, isOversize } from './utils'
+import { toast } from 'sonner'
 
 interface ObjectSheetProps {
   isOpen: boolean
@@ -54,7 +58,24 @@ interface ObjectSheetProps {
   isDeleted?: boolean
 }
 
-export function ObjectDetailsSheet({
+export function ObjectDetailsSheet(props: ObjectSheetProps) {
+  // Force the inner sheet (and every hook it owns) to remount on each
+  // false→true transition of `isOpen`, so unsaved drafts in
+  // usePropertyEditor / useAddressManagement / useParentManagement /
+  // useObjectOperations / PropertiesTab.isEditing don't survive a close.
+  // The outer <Sheet> stays mounted via the inner so Radix's open/close
+  // animation continues to work.
+  const [prevIsOpen, setPrevIsOpen] = useState(props.isOpen)
+  const [openSession, setOpenSession] = useState(0)
+  if (props.isOpen !== prevIsOpen) {
+    setPrevIsOpen(props.isOpen)
+    if (props.isOpen) setOpenSession((s) => s + 1)
+  }
+  const sessionKey = `${props.uuid ?? 'none'}:${openSession}`
+  return <ObjectDetailsSheetInner key={sessionKey} {...props} />
+}
+
+function ObjectDetailsSheetInner({
   isOpen,
   onClose,
   object: initialObject,
@@ -62,6 +83,7 @@ export function ObjectDetailsSheet({
   isDeleted,
 }: ObjectSheetProps) {
   const t = useTranslations()
+  const { enqueue: enqueueUploads } = useUploadQueue()
   // State for UI interactions
   const [activeEditingSection, setActiveEditingSection] = useState<
     string | null
@@ -216,6 +238,46 @@ export function ObjectDetailsSheet({
     // cleared so the modal doesn't show ghost files on next open.
     setObjectFiles((prev) => prev.filter((a) => !!a.uuid))
     refetchAggregate?.()
+  }
+
+  const handleDroppedFiles = (files: File[]) => {
+    const objectUuid = object?.uuid
+    if (!objectUuid || isDeleted) return
+
+    const maxMB = getMaxUploadSizeMB()
+    const accepted: File[] = []
+    const rejected: string[] = []
+    for (const file of files) {
+      if (isOversize(file, maxMB)) {
+        rejected.push(file.name)
+      } else {
+        accepted.push(file)
+      }
+    }
+
+    if (rejected.length > 0) {
+      toast.error(
+        t('objects.attachments.dropzoneOversize', {
+          names: rejected.join(', '),
+          size: maxMB,
+        })
+      )
+    }
+
+    if (accepted.length === 0) return
+
+    void enqueueUploads(
+      accepted.map((file) => ({
+        attachment: {
+          mode: 'upload',
+          fileName: file.name,
+          size: file.size,
+          mimeType: file.type,
+          blob: file,
+        },
+        objectUuid,
+      }))
+    )
   }
 
   const handleCloseAttachmentModal = () => {
@@ -379,7 +441,16 @@ export function ObjectDetailsSheet({
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto py-6 px-1 -mx-1">
+            <SheetDropzone
+              className="flex-1 overflow-y-auto py-6 px-1 -mx-1"
+              onFiles={handleDroppedFiles}
+              disabled={
+                isObjectFilesModalOpen ||
+                attachmentModal.isOpen ||
+                !object?.uuid ||
+                isDeleted
+              }
+            >
               <Tabs
                 value={activeTab}
                 onValueChange={handleTabChange}
@@ -450,7 +521,7 @@ export function ObjectDetailsSheet({
                   <HistoryTab aggregate={aggregate} />
                 </TabsContent>
               </Tabs>
-            </div>
+            </SheetDropzone>
           )}
 
           <SheetFooter className="border-t pt-4 mt-auto">

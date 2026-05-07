@@ -5,16 +5,25 @@
 # Then: ln -s /etc/nginx/sites-available/iom-ui /etc/nginx/sites-enabled/
 # Test: nginx -t
 # Reload: systemctl reload nginx
+#
+# NOTE: When running multiple UI stacks on a single VM, give each its own
+# upstream block (e.g. madev_ui_app / maprod_ui_app) and point each at the
+# corresponding host port published by docker compose (EXTERNAL_PORT).
 
-upstream ui-app {
+upstream madev_ui_app {
     server 127.0.0.1:3000;
     keepalive 64;
 }
 
+# Place this map directive once in nginx.conf inside http { } if not already present:
+# map $http_upgrade $connection_upgrade {
+#     default upgrade;
+#     '' close;
+# }
+
 server {
-    listen 443 ssl http2;
     server_name maeconomy-dev.recheck.io www.maeconomy-dev.recheck.io;
-    
+
     # recommended security headers
     add_header X-Frame-Options "DENY" always;
     add_header X-Content-Type-Options "nosniff" always;
@@ -22,21 +31,43 @@ server {
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
 
+    client_max_body_size 500m;
+
+    # Compression at the edge — pure bandwidth win, no behavior change.
+    # Static Next.js assets benefit most (JS/CSS/JSON chunks, SVG icons).
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_min_length 1024;
+    gzip_types
+        text/plain
+        text/css
+        application/json
+        application/javascript
+        text/xml
+        application/xml
+        application/xml+rss
+        application/wasm
+        font/ttf
+        font/otf
+        image/svg+xml;
+
+    # Proxy headers shared by all locations under this server
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port 443;
 
     location / {
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_pass http://madev_ui_app;
+        proxy_http_version 1.1;
+
+        # WebSocket / HMR upgrade support
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
-
-        # keep-alive / http1.1
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-
-        proxy_pass http://ui-app;
 
         proxy_buffering off;
         proxy_read_timeout 120s;
@@ -50,16 +81,23 @@ server {
 
     access_log /var/log/nginx/maeconomy-dev.access.log;
     error_log /var/log/nginx/maeconomy-dev.error.log;
+
+    listen 443 ssl http2; # managed by Certbot (http2 added — perf win for chunked Next.js loads)
+    ssl_certificate /etc/letsencrypt/live/maeconomy-dev.recheck.io/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/maeconomy-dev.recheck.io/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 }
 
 server {
+    if ($host = maeconomy-dev.recheck.io) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
     listen 80;
     server_name maeconomy-dev.recheck.io www.maeconomy-dev.recheck.io;
 
-    location / {
-       return 301 https://$host$request_uri;
-    }
-
-    access_log off;
     error_log /var/log/nginx/maeconomy-dev.error.log;
+
+    return 404; # managed by Certbot
 }

@@ -443,6 +443,54 @@ describe('PropertyItem', () => {
     })
   })
 
+  describe('value placeholder hints', () => {
+    // The dictionary populates a `valuePlaceholder` for known formats.
+    // PropertyValueItem reads it via `getValuePlaceholder(property.key, locale)`
+    // and falls back to the generic translation key when no hint is configured.
+    // We render through PropertyItem (the public surface) so the prop wiring
+    // from parent → row is also exercised.
+    it('uses the dictionary hint as the value input placeholder for hinted keys', () => {
+      render(
+        <PropertyItem
+          property={makeProperty({
+            key: 'email',
+            values: [{ uuid: 'v1', value: '' }],
+          })}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onValueChange={vi.fn()}
+        />
+      )
+
+      // The mocked locale is 'en' (line 18). Email's en hint is 'name@example.com'.
+      expect(
+        screen.getByPlaceholderText('name@example.com')
+      ).toBeInTheDocument()
+    })
+
+    it('falls back to the generic translation key when the property has no hint', () => {
+      render(
+        <PropertyItem
+          property={makeProperty({
+            key: 'material',
+            values: [{ uuid: 'v1', value: '' }],
+          })}
+          isExpanded={true}
+          onToggle={vi.fn()}
+          isEditable
+          onValueChange={vi.fn()}
+        />
+      )
+
+      // `material` is intentionally free-text — no hint configured. The mock
+      // for `useTranslations` echoes the key verbatim, so we assert against it.
+      expect(
+        screen.getByPlaceholderText('objects.propertyValuePlaceholder')
+      ).toBeInTheDocument()
+    })
+  })
+
   describe('name validation error', () => {
     it('does not render an error message when nameError is undefined', () => {
       render(

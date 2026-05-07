@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, Printer, X } from 'lucide-react'
 
 import {
   Button,
@@ -81,6 +81,20 @@ export function ProductPassportSheet({
           className="flex-shrink-0 flex items-center justify-end gap-2 border-t pt-3 mt-2"
           data-testid="passport-footer"
         >
+          {uuid && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                window.open(`/objects/${uuid}/passport/print`, '_blank')
+              }
+              data-testid="passport-print-button"
+            >
+              <Printer className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+              {t('objects.passport.print')}
+            </Button>
+          )}
           <Button
             type="button"
             variant="default"

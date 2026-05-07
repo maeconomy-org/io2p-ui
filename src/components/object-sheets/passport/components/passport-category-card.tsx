@@ -44,7 +44,10 @@ export function PassportCategoryCard({ group }: PassportCategoryCardProps) {
   const Icon = CATEGORY_ICON[group.category] ?? FileText
 
   return (
-    <Card data-testid={`passport-card-${group.category}`}>
+    <Card
+      data-testid={`passport-card-${group.category}`}
+      className="passport-card"
+    >
       <CardHeader className="pt-2.5 pb-2.5 px-3">
         <CardTitle className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
           <Icon className="h-3.5 w-3.5 text-primary" />

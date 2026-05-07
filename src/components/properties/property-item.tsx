@@ -15,7 +15,10 @@ import type { UUMathFormulaDTO } from 'iom-sdk'
 import { cn, formatNumericValue } from '@/lib'
 import { Badge, Button, Input, Label } from '@/components/ui'
 import { FileList } from '@/components/object-sheets/components/file-display'
-import { resolvePropertyLabel } from '@/constants/property-dictionary'
+import {
+  resolvePropertyLabel,
+  getValuePlaceholder,
+} from '@/constants/property-dictionary'
 import type { PropertyDictionaryLocale } from '@/constants/property-dictionary'
 import { useLocale } from 'next-intl'
 import { FormulaDisplay } from './formula-display'
@@ -36,6 +39,8 @@ interface PropertyValueItemProps {
   value: PropertyValue
   valueIndex: number
   propertyId: string
+  /** Dictionary key used to look up a smart placeholder hint for the input. */
+  propertyKey?: string
   isEditable: boolean
   availableProperties: AvailableProperty[]
   onValueChange?: (index: number, newValue: string) => void
@@ -53,6 +58,7 @@ function PropertyValueItem({
   value,
   valueIndex,
   propertyId,
+  propertyKey,
   isEditable,
   availableProperties,
   onValueChange,
@@ -62,6 +68,8 @@ function PropertyValueItem({
   hideRemove = false,
 }: PropertyValueItemProps) {
   const t = useTranslations()
+  const locale = useLocale() as PropertyDictionaryLocale
+  const valueHint = getValuePlaceholder(propertyKey, locale)
   // Derive formula-mode from the value itself rather than local state, so it
   // stays in sync with parent updates: when the parent toggles formulaData on
   // (a draft stub) or off, or when a save+refetch resets the value, the UI
@@ -189,7 +197,8 @@ function PropertyValueItem({
         <Input
           value={value.value || ''}
           onChange={(e) => onValueChange?.(valueIndex, e.target.value)}
-          placeholder={t('objects.propertyValuePlaceholder')}
+          placeholder={valueHint ?? t('objects.propertyValuePlaceholder')}
+          className="h-8"
         />
       ) : (
         <div className="p-2 border rounded-md bg-background w-full">
@@ -469,6 +478,7 @@ export function PropertyItem({
                     value={value}
                     valueIndex={index}
                     propertyId={propertyId}
+                    propertyKey={property.key}
                     isEditable
                     availableProperties={availableProperties}
                     onValueChange={onValueChange}

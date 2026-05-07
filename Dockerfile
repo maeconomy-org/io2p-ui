@@ -69,9 +69,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Remove source maps from production image (uploaded separately to Sentry)
 RUN find .next -name '*.map' -delete 2>/dev/null || true
 
-# Create writable directories for runtime
-RUN mkdir -p ./logs ./.next/cache && \
-    chown -R nextjs:nodejs ./logs ./.next
+# Create writable directories for runtime.
+# .next/cache is needed by Next.js at runtime; no app code writes to ./logs
+# (logger sinks are stdout + Sentry only), so we don't pre-create it.
+RUN mkdir -p ./.next/cache && \
+    chown -R nextjs:nodejs ./.next
 
 # Switch to non-root user
 USER nextjs
@@ -79,6 +81,6 @@ USER nextjs
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
 CMD ["node", "server.js"]

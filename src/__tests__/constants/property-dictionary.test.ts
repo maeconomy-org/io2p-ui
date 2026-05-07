@@ -4,6 +4,7 @@ import {
   matchDictionary,
   resolvePropertyLabel,
   getDictionaryEntry,
+  getValuePlaceholder,
 } from '@/constants/property-dictionary'
 
 describe('matchDictionary', () => {
@@ -113,5 +114,30 @@ describe('getDictionaryEntry', () => {
     expect(getDictionaryEntry('not-a-key')).toBeUndefined()
     expect(getDictionaryEntry(undefined)).toBeUndefined()
     expect(getDictionaryEntry('')).toBeUndefined()
+  })
+})
+
+describe('getValuePlaceholder', () => {
+  it('returns the en hint for a hinted key', () => {
+    expect(getValuePlaceholder('email', 'en')).toBe('name@example.com')
+  })
+
+  it('returns the nl hint for the same key', () => {
+    expect(getValuePlaceholder('email', 'nl')).toBe('naam@voorbeeld.nl')
+  })
+
+  it('returns undefined for known keys without a hint configured', () => {
+    // `material` is intentionally free-text — no placeholder configured.
+    expect(getValuePlaceholder('material', 'en')).toBeUndefined()
+  })
+
+  it('returns undefined for null/undefined/empty keys', () => {
+    expect(getValuePlaceholder(undefined, 'en')).toBeUndefined()
+    expect(getValuePlaceholder(null, 'en')).toBeUndefined()
+    expect(getValuePlaceholder('', 'en')).toBeUndefined()
+  })
+
+  it('returns undefined for unknown keys', () => {
+    expect(getValuePlaceholder('not-a-real-key', 'en')).toBeUndefined()
   })
 })

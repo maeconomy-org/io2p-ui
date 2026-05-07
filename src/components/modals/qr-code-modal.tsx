@@ -3,11 +3,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { FileImage, FileCode } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import QRCodeStyling, {
-  CornerSquareType,
-  DotType,
-  DrawType,
-} from 'qr-code-styling'
+import QRCodeStyling from 'qr-code-styling'
 
 import {
   Button,
@@ -20,37 +16,14 @@ import {
 } from '@/components/ui'
 import { logger } from '@/lib'
 
+import { buildQrCodeConfig } from './qr-code-config'
+
 interface QRCodeModalProps {
   isOpen: boolean
   onClose: () => void
   uuid: string
   objectName: string
 }
-
-const qrCodeConfig = (uuid: string, isPrint: boolean = false) => ({
-  width: isPrint ? 1200 : 260,
-  height: isPrint ? 1200 : 260,
-  type: 'svg' as DrawType,
-  data: uuid,
-  dotsOptions: {
-    color: '#000000', // Black for print, blue for display
-    type: 'square' as DotType,
-  },
-  cornersSquareOptions: {
-    type: 'extra-rounded' as CornerSquareType,
-    color: isPrint ? '#000000' : undefined, // Black for print
-  },
-  backgroundOptions: {
-    color: '#FFFFFF', // White background
-  },
-  imageOptions: {
-    crossOrigin: 'anonymous',
-    margin: 20,
-  },
-})
-
-// QRCodeStyling instance will be created only on client side
-let qrCodeInstance: any = null
 
 export function QRCodeModal({
   isOpen,
@@ -59,61 +32,53 @@ export function QRCodeModal({
   objectName,
 }: QRCodeModalProps) {
   const qrCodeRef = useRef<HTMLDivElement>(null)
+  const qrCodeInstanceRef = useRef<QRCodeStyling | null>(null)
   const [qrRendered, setQrRendered] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const t = useTranslations()
 
-  // Initialize QR code on mount and when UUID changes
   useEffect(() => {
-    // Skip server-side rendering
     if (typeof window === 'undefined') return
+    if (!isOpen) return
 
-    // Small delay to ensure the ref is available after modal opens
     const timer = setTimeout(() => {
-      if (!qrCodeInstance) {
-        try {
-          qrCodeInstance = new QRCodeStyling(qrCodeConfig(uuid))
-        } catch (error) {
-          logger.error('Error initializing QR code:', error)
-          return
-        }
-      } else {
-        // Update existing instance with new data
-        qrCodeInstance.update({
-          data: uuid,
-        })
+      try {
+        qrCodeInstanceRef.current = new QRCodeStyling(
+          buildQrCodeConfig({ data: uuid })
+        )
+      } catch (error) {
+        logger.error('Error initializing QR code:', error)
+        return
       }
 
-      // Clear any previous content
       if (qrCodeRef.current) {
         qrCodeRef.current.innerHTML = ''
-        // Append the QR code to the ref
-        qrCodeInstance.append(qrCodeRef.current)
+        qrCodeInstanceRef.current.append(qrCodeRef.current)
         setQrRendered(true)
       }
-    }, 100) // Short delay to ensure DOM is ready
+    }, 100)
 
-    return () => clearTimeout(timer)
-  }, [uuid, isOpen]) // Re-run when UUID changes or modal opens
+    return () => {
+      clearTimeout(timer)
+      qrCodeInstanceRef.current = null
+    }
+  }, [uuid, isOpen])
 
   const handleDownload = async (format: 'png' | 'svg' = 'png') => {
-    if (qrCodeInstance && !isDownloading) {
-      try {
-        setIsDownloading(true)
-
-        // Create a separate instance for downloading to avoid changing the UI
-        const downloadInstance = new QRCodeStyling(qrCodeConfig(uuid, true))
-
-        // Download using the high-res instance
-        await downloadInstance.download({
-          name: `${objectName.replace(/\s+/g, '-')}-qrcode-print`,
-          extension: format,
-        })
-      } catch (error) {
-        logger.error('Error downloading QR code:', error)
-      } finally {
-        setIsDownloading(false)
-      }
+    if (!qrCodeInstanceRef.current || isDownloading) return
+    try {
+      setIsDownloading(true)
+      const downloadInstance = new QRCodeStyling(
+        buildQrCodeConfig({ data: uuid, isPrint: true })
+      )
+      await downloadInstance.download({
+        name: `${objectName.replace(/\s+/g, '-')}-qrcode-print`,
+        extension: format,
+      })
+    } catch (error) {
+      logger.error('Error downloading QR code:', error)
+    } finally {
+      setIsDownloading(false)
     }
   }
 

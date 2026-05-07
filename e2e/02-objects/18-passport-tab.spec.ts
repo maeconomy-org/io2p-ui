@@ -357,15 +357,41 @@ test.describe('18 - Product Passport Sheet', () => {
       passport.locator('[data-testid="passport-card-appearance"]')
     ).toContainText('White (RAL 9010)')
 
-    // Footer — only Close button (Print was removed). The dropdown trigger
-    // ('product-passport-sheet') wraps the whole sheet; scope to it so we
-    // don't accidentally match buttons elsewhere on the page.
+    // Hero shows the branded QR pointing back at this object.
+    const qr = passport.locator('[data-testid="passport-qr"]')
+    await expect(qr).toBeVisible()
+    // qr-code-styling renders into the container; assert it has child nodes
+    // (svg or canvas — we don't care which, just that something rendered).
+    await expect(qr.locator('svg, canvas')).toHaveCount(1)
+
+    // Footer has both Close and Print. Print opens a new tab to the
+    // dedicated print route.
     await expect(
       passport.locator('[data-testid="passport-close-button"]')
     ).toBeVisible()
+    const printButton = passport.locator(
+      '[data-testid="passport-print-button"]'
+    )
+    await expect(printButton).toBeVisible()
+
+    // Capture the new tab opened by window.open. Stub window.print on the
+    // child page before the auto-print fires to avoid the print dialog.
+    const context = page.context()
+    await context.addInitScript(() => {
+      window.print = () => undefined
+    })
+    const [printPage] = await Promise.all([
+      context.waitForEvent('page'),
+      printButton.click(),
+    ])
+    await printPage.waitForLoadState('domcontentloaded')
+    expect(printPage.url()).toContain('/passport/print')
+    // Header chrome is hidden in print but still in the DOM; the print
+    // page should still render the passport content.
     await expect(
-      passport.locator('[data-testid="passport-print-button"]')
-    ).toHaveCount(0)
+      printPage.locator('[data-testid="passport-hero"]')
+    ).toBeVisible({ timeout: 10000 })
+    await printPage.close()
 
     // Close via the footer button — verifies the explicit close path,
     // not just Escape.

@@ -36,11 +36,32 @@ fi
 # Load current IMAGE_TAG from .env
 source .env
 
+# -----------------------------------------------------------------------------
+# wait_for_health: poll the new container's /api/health for up to 60s.
+# On failure, recurse into `rollback` so we never leave a broken image deployed.
+# Called from both the `update` and version-tag branches.
+# -----------------------------------------------------------------------------
+wait_for_health() {
+    local port="${EXTERNAL_PORT:-3000}"
+    local url="http://127.0.0.1:${port}/api/health"
+    echo -e "${YELLOW}Waiting for ${url} to report healthy...${NC}"
+    for i in $(seq 1 30); do
+        if curl -sf --max-time 2 "$url" >/dev/null 2>&1; then
+            echo -e "${GREEN}✅ Health check passed${NC}"
+            return 0
+        fi
+        sleep 2
+    done
+    echo -e "${RED}❌ Health check failed after 60s — rolling back${NC}"
+    "$0" rollback
+    exit 1
+}
+
 case "${1:-update}" in
     update|"")
         TAG="${2:-$IMAGE_TAG}"
         echo -e "${GREEN}🚀 Deploying IoM UI (tag: $TAG)${NC}"
-        
+
         # Save current tag for rollback
         if docker compose ps -q iom-ui 2>/dev/null | grep -q .; then
             CURRENT=$(docker inspect --format='{{.Config.Image}}' iom-ui 2>/dev/null | cut -d: -f2)
@@ -49,21 +70,23 @@ case "${1:-update}" in
                 echo -e "${YELLOW}Previous version saved: $CURRENT${NC}"
             fi
         fi
-        
+
         # Update IMAGE_TAG in .env if different
         if [ "$TAG" != "$IMAGE_TAG" ]; then
             sed -i.bak "s/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/" .env
             rm -f .env.bak
         fi
-        
+
         # Pull and deploy
         docker compose pull
         docker compose up -d
-        
+
+        wait_for_health
+
         echo -e "${GREEN}✅ Deployment complete${NC}"
         docker compose ps
         ;;
-        
+
     rollback)
         if [ -f ".previous" ]; then
             source .previous
@@ -77,7 +100,7 @@ case "${1:-update}" in
             exit 1
         fi
         ;;
-        
+
     status)
         echo -e "${GREEN}📊 Current Status${NC}"
         docker compose ps
@@ -85,16 +108,16 @@ case "${1:-update}" in
         echo -e "${GREEN}📦 Current Image${NC}"
         docker inspect --format='Image: {{.Config.Image}}' iom-ui 2>/dev/null || echo "Container not running"
         ;;
-        
+
     logs)
         docker compose logs -f --tail=100
         ;;
-        
+
     stop)
         echo -e "${YELLOW}⏹️ Stopping IoM UI${NC}"
         docker compose down
         ;;
-        
+
     *)
         # Assume it's a version tag
         TAG="$1"
@@ -103,6 +126,9 @@ case "${1:-update}" in
         rm -f .env.bak
         docker compose pull
         docker compose up -d
+
+        wait_for_health
+
         echo -e "${GREEN}✅ Deployment complete${NC}"
         ;;
 esac

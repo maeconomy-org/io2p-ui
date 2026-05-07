@@ -183,6 +183,47 @@
     "featureProcesses": "I/O Process Tracking",
     "featureModels": "Material Models",
     "featureImport": "Bulk Data Import",
+    "carousel": {
+      "indicators": "Platform highlights",
+      "goToSlide": "Go to slide {n}"
+    },
+    "scenes": {
+      "objects": {
+        "title": "Object Registry",
+        "description": "Track every material, component, and asset across your portfolio with full provenance, properties, and location.",
+        "tag1": "Properties",
+        "tag2": "Dimensions",
+        "tag3": "Location"
+      },
+      "processes": {
+        "title": "I/O Process Tracking",
+        "description": "Model construction, deconstruction, sorting, and recycling flows with traceable inputs and outputs.",
+        "tag1": "Construction",
+        "tag2": "Transport",
+        "tag3": "Recycling"
+      },
+      "models": {
+        "title": "Material Models",
+        "description": "Define reusable material templates with formulas and properties — apply them across thousands of objects in seconds.",
+        "tag1": "Templates",
+        "tag2": "Buildings",
+        "tag3": "Formulas"
+      },
+      "import": {
+        "title": "Bulk Data Import",
+        "description": "Onboard existing inventories at scale from CSV, Excel, or external systems with validation and rollback.",
+        "tag1": "Spreadsheets",
+        "tag2": "Validation",
+        "tag3": "API ready"
+      },
+      "lifecycle": {
+        "title": "Circular Lifecycle",
+        "description": "Trace materials from primary input through use, refurbishment, reuse, and disposal — circularity made measurable.",
+        "tag1": "Reuse",
+        "tag2": "Sustainability",
+        "tag3": "Flow analysis"
+      }
+    },
     "orContinueWith": "Or continue with",
     "email": {
       "label": "Email",
@@ -281,6 +322,7 @@
     "passport": {
       "untitled": "Untitled object",
       "sheetDescription": "A read-only product overview built from this object's properties, address, and files.",
+      "print": "Print",
       "lifecycle": "Lifecycle",
       "warranty": "Warranty",
       "active": "Active",
@@ -414,7 +456,9 @@
       "labelOptional": "Label (optional)",
       "noAttachments": "No attachments",
       "rename": "Rename file",
-      "remove": "Remove file"
+      "remove": "Remove file",
+      "dropzoneHint": "Drop files to upload",
+      "dropzoneOversize": "Skipped {names}: exceeds {size}MB"
     },
     "files": {
       "preview": "Preview in new tab",
