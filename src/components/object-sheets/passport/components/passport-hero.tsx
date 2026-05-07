@@ -48,31 +48,33 @@ export function PassportHero({ object, properties }: PassportHeroProps) {
           <IdCard className="h-4 w-4 text-primary" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <h2 className="text-base font-semibold truncate leading-tight">
-              {object?.name || t('objects.passport.untitled')}
-            </h2>
-            {object?.abbreviation && (
-              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-                {object.abbreviation}
-              </Badge>
-            )}
-            {status && (
-              <Badge
-                className={cn(
-                  'text-[10px] h-4 px-1.5',
-                  getStatusBadgeClasses(status)
-                )}
-              >
-                {status}
-              </Badge>
-            )}
-            {category && (
-              <Badge variant="outline" className="text-[10px] h-4 px-1.5">
-                {category}
-              </Badge>
-            )}
-          </div>
+          <h2 className="text-base font-semibold leading-tight">
+            {object?.name || t('objects.passport.untitled')}
+          </h2>
+          {(object?.abbreviation || status || category) && (
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              {object?.abbreviation && (
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                  {object.abbreviation}
+                </Badge>
+              )}
+              {status && (
+                <Badge
+                  className={cn(
+                    'text-[10px] h-4 px-1.5',
+                    getStatusBadgeClasses(status)
+                  )}
+                >
+                  {status}
+                </Badge>
+              )}
+              {category && (
+                <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                  {category}
+                </Badge>
+              )}
+            </div>
+          )}
           {(subtitle || serial) && (
             <p className="text-xs text-muted-foreground truncate mt-0.5">
               {subtitle}

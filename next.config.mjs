@@ -15,6 +15,7 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
 const nextConfig = {
   output: 'standalone',
+  serverExternalPackages: ['@react-pdf/renderer'],
   productionBrowserSourceMaps: true,
   typescript: {
     ignoreBuildErrors: false,

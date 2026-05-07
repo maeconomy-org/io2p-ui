@@ -48,13 +48,13 @@ export function PassportCategoryCard({ group }: PassportCategoryCardProps) {
       data-testid={`passport-card-${group.category}`}
       className="passport-card"
     >
-      <CardHeader className="pt-2.5 pb-2.5 px-3">
+      <CardHeader className="py-3 px-3">
         <CardTitle className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
           <Icon className="h-3.5 w-3.5 text-primary" />
           {t(`objects.passport.categories.${group.category}`)}
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-3 pb-2.5">
+      <CardContent className="px-3 pb-3">
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-xs">
           {group.entries.map(({ property, displayLabel, displayValue }) => {
             // Long, URL-typed, or swatch-decorated values span both columns

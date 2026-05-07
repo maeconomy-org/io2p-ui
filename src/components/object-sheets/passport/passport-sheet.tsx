@@ -1,7 +1,9 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
-import { Loader2, Printer, X } from 'lucide-react'
+import { useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
+import { Download, Loader2, Printer, X } from 'lucide-react'
+import { toast } from 'sonner'
 
 import {
   Button,
@@ -11,6 +13,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui'
+import { authFetch } from '@/lib/auth-fetch'
+import { buildQrCodeConfig } from '@/components/modals/qr-code-config'
 
 import { useObjectData } from '../hooks'
 import { PassportView } from './passport-view'
@@ -35,12 +39,61 @@ export function ProductPassportSheet({
   object: initialObject,
 }: ProductPassportSheetProps) {
   const t = useTranslations()
+  const locale = useLocale() as 'en' | 'nl'
+
+  const [isDownloading, setIsDownloading] = useState(false)
 
   const { object, properties, files, addressInfo, isLoading } = useObjectData({
     uuid,
     initialObject: initialObject ?? undefined,
     isOpen,
   })
+
+  async function handleDownloadPdf() {
+    if (!uuid || isDownloading) return
+    setIsDownloading(true)
+    try {
+      // Generate QR matching the on-screen passport (logo, dot style, etc.)
+      const QRCodeStyling = (await import('qr-code-styling')).default
+      const qrInstance = new QRCodeStyling(
+        buildQrCodeConfig({ data: uuid, size: 160 })
+      )
+      const qrRaw = await qrInstance.getRawData('png')
+      if (!qrRaw || !(qrRaw instanceof Blob))
+        throw new Error('QR generation failed')
+      const qrDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(qrRaw)
+      })
+
+      const res = await authFetch(`/api/passport/${uuid}/pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          object,
+          properties,
+          files,
+          addressInfo,
+          qrDataUrl,
+          locale,
+        }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `passport-${object?.name ?? uuid}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error(t('objects.passport.pdfError'))
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   const displayName =
     object?.name ?? initialObject?.name ?? t('objects.passport.untitled')
@@ -82,18 +135,38 @@ export function ProductPassportSheet({
           data-testid="passport-footer"
         >
           {uuid && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                window.open(`/objects/${uuid}/passport/print`, '_blank')
-              }
-              data-testid="passport-print-button"
-            >
-              <Printer className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-              {t('objects.passport.print')}
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadPdf}
+                disabled={isDownloading}
+                data-testid="passport-download-pdf-button"
+              >
+                {isDownloading ? (
+                  <Loader2
+                    className="h-3.5 w-3.5 mr-1.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Download className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                )}
+                {t('objects.passport.downloadPdf')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  window.open(`/objects/${uuid}/passport/print`, '_blank')
+                }
+                data-testid="passport-print-button"
+              >
+                <Printer className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                {t('objects.passport.print')}
+              </Button>
+            </>
           )}
           <Button
             type="button"

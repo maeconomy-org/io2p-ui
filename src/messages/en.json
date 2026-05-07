@@ -355,7 +355,10 @@
         "location": "Location",
         "meta": "Other",
         "other": "Other"
-      }
+      },
+      "downloadPdf": "Download PDF",
+      "openPreview": "Open print preview",
+      "pdfError": "Failed to generate PDF. Please try again."
     },
     "history": {
       "empty": "No history yet.",
@@ -955,7 +958,7 @@
         "logical": "No logical operators: &&, ||, !",
         "bitwise": "No bitwise operators: &, |, ~, <<, >>",
         "ternary": "No ternary expressions: condition ? a : b",
-        "implicitMul": "No implicit multiplication \u2014 write 2*x, not 2x"
+        "implicitMul": "No implicit multiplication — write 2*x, not 2x"
       }
     }
   },

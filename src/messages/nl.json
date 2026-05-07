@@ -358,7 +358,10 @@
         "location": "Locatie",
         "meta": "Overig",
         "other": "Overig"
-      }
+      },
+      "downloadPdf": "PDF downloaden",
+      "openPreview": "Afdrukvoorbeeld openen",
+      "pdfError": "PDF genereren mislukt. Probeer het opnieuw."
     },
     "history": {
       "empty": "Nog geen geschiedenis.",
@@ -955,7 +958,7 @@
         "logical": "Geen logische operatoren: &&, ||, !",
         "bitwise": "Geen bitwise operatoren: &, |, ~, <<, >>",
         "ternary": "Geen ternaire expressies: conditie ? a : b",
-        "implicitMul": "Geen impliciete vermenigvuldiging \u2014 schrijf 2*x, niet 2x"
+        "implicitMul": "Geen impliciete vermenigvuldiging — schrijf 2*x, niet 2x"
       }
     }
   },
