@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import {
   Building2,
@@ -16,7 +15,6 @@ import {
   User,
   Sun,
   Moon,
-  Monitor,
 } from 'lucide-react'
 
 import {
@@ -30,6 +28,7 @@ import {
   CopyButton,
   Separator,
 } from '@/components/ui'
+import { useTheme } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
 import { NAV_ITEMS } from '@/constants'
 import { useAuth, useAppConfig } from '@/contexts'
@@ -42,7 +41,6 @@ const LOCALES = [
 const THEMES = [
   { value: 'light', icon: Sun },
   { value: 'dark', icon: Moon },
-  { value: 'system', icon: Monitor },
 ] as const
 
 interface MobileMenuProps {

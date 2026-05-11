@@ -1,10 +1,10 @@
 'use client'
 
 import { useCallback } from 'react'
-import { Moon, Sun, Monitor, Check } from 'lucide-react'
-import { useTheme } from 'next-themes'
+import { Moon, Sun, Check } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
+import { useTheme } from '@/hooks/use-theme'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -21,7 +21,6 @@ import {
 const THEMES = [
   { value: 'light', icon: Sun },
   { value: 'dark', icon: Moon },
-  { value: 'system', icon: Monitor },
 ] as const
 
 type ThemeValue = (typeof THEMES)[number]['value']
@@ -59,40 +58,26 @@ export function ThemeToggle() {
   )
 }
 
-/** Icon button for footer (like LanguageSelect) */
+/** Icon button for footer — click to flip light/dark, no dropdown */
 export function ThemeSelect({ className }: { className?: string }) {
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const t = useTranslations('theme')
 
+  const handleToggle = useCallback(() => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
+  }, [resolvedTheme, setTheme])
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={className}
-          aria-label={t('toggle')}
-        >
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {THEMES.map((item) => (
-          <DropdownMenuItem
-            key={item.value}
-            onClick={() => setTheme(item.value)}
-            className="flex items-center justify-between cursor-pointer"
-          >
-            <span className="flex items-center gap-2">
-              <item.icon className="h-4 w-4" />
-              {t(item.value)}
-            </span>
-            {theme === item.value && <Check className="h-3 w-3" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="ghost"
+      size="icon"
+      className={className}
+      onClick={handleToggle}
+      aria-label={t('toggle')}
+    >
+      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+    </Button>
   )
 }
 

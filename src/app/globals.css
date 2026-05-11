@@ -180,3 +180,146 @@
     print-color-adjust: exact !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Theme transition: columns slide
+   Triggered by .columns-slide-transition on <html> during a View Transition.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --expo-out: linear(
+    0 0%,
+    0.1684 2.66%,
+    0.3165 5.49%,
+    0.446 8.52%,
+    0.5581 11.78%,
+    0.6535 15.29%,
+    0.7341 19.11%,
+    0.8011 23.3%,
+    0.8557 27.93%,
+    0.8962 32.68%,
+    0.9283 38.01%,
+    0.9529 44.08%,
+    0.9711 51.14%,
+    0.9833 59.06%,
+    0.9915 68.74%,
+    1 100%
+  );
+}
+
+html.columns-slide-transition::view-transition-group(root) {
+  animation-timing-function: var(--expo-out);
+}
+
+html.columns-slide-transition::view-transition-old(root) {
+  animation: none;
+}
+
+@property --column-one {
+  inherits: true;
+  initial-value: 0;
+  syntax: '<number>';
+}
+@property --column-two {
+  inherits: true;
+  initial-value: 0;
+  syntax: '<number>';
+}
+@property --column-three {
+  inherits: true;
+  initial-value: 0;
+  syntax: '<number>';
+}
+@property --column-four {
+  inherits: true;
+  initial-value: 0;
+  syntax: '<number>';
+}
+@property --column-five {
+  inherits: true;
+  initial-value: 0;
+  syntax: '<number>';
+}
+
+@keyframes column-one {
+  from {
+    --column-one: 100;
+  }
+}
+@keyframes column-two {
+  from {
+    --column-two: 100;
+  }
+}
+@keyframes column-three {
+  from {
+    --column-three: 100;
+  }
+}
+@keyframes column-four {
+  from {
+    --column-four: 100;
+  }
+}
+@keyframes column-five {
+  from {
+    --column-five: 100;
+  }
+}
+
+html.columns-slide-transition::view-transition-new(root) {
+  clip-path: polygon(
+    /* 1st column */ 0 100%,
+    0 calc(var(--column-one) * 1%),
+    20% calc(var(--column-one) * 1%),
+    20% 100%,
+    /* 2nd column */ 20% 100%,
+    20% calc(var(--column-two) * 1%),
+    40% calc(var(--column-two) * 1%),
+    40% 100%,
+    /* 3rd column */ 40% 100%,
+    40% calc(var(--column-three) * 1%),
+    60% calc(var(--column-three) * 1%),
+    60% 100%,
+    /* 4th column */ 60% 100%,
+    60% calc(var(--column-four) * 1%),
+    80% calc(var(--column-four) * 1%),
+    80% 100%,
+    /* 5th column */ 80% 100%,
+    80% calc(var(--column-five) * 1%),
+    100% calc(var(--column-five) * 1%),
+    100% 100%
+  );
+  --speed: 0.625;
+  animation:
+    column-one calc(var(--speed) * 1s)
+      calc(sin((0 / 5) * 45deg) * var(--speed) * 1s),
+    column-two calc(var(--speed) * 1s)
+      calc(sin((1 / 5) * 45deg) * var(--speed) * 1s),
+    column-three calc(var(--speed) * 1s)
+      calc(sin((2 / 5) * 45deg) * var(--speed) * 1s),
+    column-four calc(var(--speed) * 1s)
+      calc(sin((3 / 5) * 45deg) * var(--speed) * 1s),
+    column-five calc(var(--speed) * 1s)
+      calc(sin((4 / 5) * 45deg) * var(--speed) * 1s);
+  animation-fill-mode: both;
+  animation-timing-function: linear(
+    0 0%,
+    0.0027 3.64%,
+    0.0106 7.29%,
+    0.0425 14.58%,
+    0.0957 21.87%,
+    0.1701 29.16%,
+    0.2477 35.19%,
+    0.3401 41.23%,
+    0.5982 55.18%,
+    0.7044 61.56%,
+    0.7987 68.28%,
+    0.875 75%,
+    0.9297 81.25%,
+    0.9687 87.5%,
+    0.9922 93.75%,
+    1 100%
+  );
+  z-index: 2;
+}

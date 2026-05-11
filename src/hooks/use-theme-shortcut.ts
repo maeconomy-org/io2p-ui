@@ -1,17 +1,18 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useTheme } from 'next-themes'
+
+import { useTheme } from '@/hooks/use-theme'
 
 const SUPPORTED_LOCALES = ['en', 'nl'] as const
 
 /**
  * Global keyboard shortcuts (ignored when focused on inputs/dialogs):
- * - `t` — Cycle theme: light → dark → system
+ * - `t` — Toggle theme: light ↔ dark
  * - `l` — Toggle language: en ↔ nl
  */
 export function useKeyboardShortcuts() {
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -33,9 +34,7 @@ export function useKeyboardShortcuts() {
 
       if (e.key === 't') {
         e.preventDefault()
-        const next =
-          theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
-        setTheme(next)
+        setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
       }
 
       if (e.key === 'l') {
@@ -59,5 +58,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [theme, setTheme])
+  }, [resolvedTheme, setTheme])
 }

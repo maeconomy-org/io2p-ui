@@ -48,7 +48,12 @@ export function SheetDropzone({
       {children}
       {showOverlay && (
         <div
-          className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm"
+          className={cn(
+            'pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-md',
+            'border-2 border-dashed border-primary',
+            'bg-gradient-to-b from-black/10 to-black/20 backdrop-blur-sm',
+            'dark:from-white/5 dark:to-white/10'
+          )}
           data-testid="sheet-dropzone-overlay"
         >
           <div className="flex flex-col items-center gap-2 text-primary">
