@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl'
 import { PlusIcon } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useFieldArray } from 'react-hook-form'
+import * as z from 'zod'
 import { useQueryClient } from '@tanstack/react-query'
 
 import {
@@ -63,7 +64,11 @@ export function ObjectModelSheet({
   isEditing = false,
 }: ObjectModelSheetProps) {
   const t = useTranslations()
-  const form = useForm<ObjectModelFormValues>({
+  const form = useForm<
+    z.input<typeof objectModelSchema>,
+    any,
+    ObjectModelFormValues
+  >({
     resolver: zodResolver(objectModelSchema),
     defaultValues: {
       name: '',
@@ -348,7 +353,6 @@ export function ObjectModelSheet({
                 {fields.map((field, index) => (
                   <PropertyItemRHF
                     key={field.uuid !== '' ? field.uuid : index}
-                    control={form.control}
                     name={`properties.${index}`}
                     index={index}
                     onRemove={() => remove(index)}

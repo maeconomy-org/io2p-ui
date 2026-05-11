@@ -92,12 +92,7 @@ function Harness({ initialKey = '', onSubmitInvalid }: HarnessProps) {
           () => onSubmitInvalid?.()
         )}
       >
-        <PropertyItemRHF
-          control={form.control}
-          name="properties.0"
-          index={0}
-          onRemove={vi.fn()}
-        />
+        <PropertyItemRHF name="properties.0" index={0} onRemove={vi.fn()} />
         <button type="submit" data-testid="submit">
           Submit
         </button>

@@ -35,11 +35,11 @@ pnpm vitest run src/__tests__/lib/search-parser.test.ts
 
 ## Architecture
 
-**Next.js 15 App Router** with **TypeScript**, **pnpm**, and standalone Docker output.
+**Next.js 16 App Router** with **TypeScript**, **pnpm**, and standalone Docker output.
 
 ### Core Stack
 
-- **Framework**: Next.js 15 (App Router) with TypeScript
+- **Framework**: Next.js 16 (App Router) with TypeScript
 - **UI**: Tailwind CSS + Radix UI (shadcn/ui pattern) + Lucide icons — primitives in `src/components/ui/`
 - **Styling**: Tailwind CSS with CSS variables for theming (`globals.css`)
 - **Forms**: React Hook Form + Zod validation (`src/lib/validations/`)
@@ -175,171 +175,45 @@ Providers (providers.tsx)
 - Never expose JWT tokens in URLs (query params). Use `Authorization: Bearer` header only.
 - File downloads use `fetch` + `Blob` + `URL.createObjectURL()` — never `window.open(url?token=...)`.
 
-### Common Patterns
-
-```tsx
-// ✅ cn() for conditional classes
-<div className={cn('base-class', isActive && 'active-class')} />
-
-// ❌ string concatenation
-<div className={`base-class ${isActive ? 'active-class' : ''}`} />
-
-// ✅ translation keys
-<p>{t('objects.title')}</p>
-
-// ❌ hardcoded text
-<p>Objects</p>
-
-// ✅ React Query for data
-const { data } = useQuery({ queryKey: ['objects'], queryFn: fetchObjects })
-
-// ❌ useEffect + useState for data
-useEffect(() => { fetch('/api/objects').then(...) }, [])
-```
-
 ## File Organization
 
 ```
 src/
-├── app/              # Next.js pages and layouts
-│   └── <route>/
-│       ├── page.tsx      # Route page component
-│       ├── loading.tsx   # Route-level skeleton loader
-│       ├── layout.tsx    # Route layout (if needed)
-│       └── components/   # Route-specific components
-├── components/       # Shared components
-│   ├── ui/               # shadcn/ui primitives (barrel: index.ts)
-│   ├── skeletons/        # Skeleton loaders (barrel: index.ts)
-│   ├── navbar/           # Navbar feature (barrel: index.ts)
-│   ├── modals/           # Shared modal dialogs
-│   ├── tables/           # Table components
-│   ├── object-sheets/    # Object detail/add sheets
-│   ├── properties/       # Property components + hooks
-│   ├── processes/        # Process feature components
-│   ├── groups/           # Group feature components
-│   └── onboarding/       # Tour/onboarding components
-├── constants/        # Static config, nav items, enums (barrel: index.ts)
-├── contexts/         # React context providers (barrel: index.ts)
-├── hooks/            # Custom hooks (barrel: index.ts)
-│   ├── api/              # SDK-wrapping React Query hooks
-│   ├── data/             # Complex data transformation hooks
-│   ├── import/           # File processing & import hooks
-│   ├── process/          # Process business logic hooks
-│   └── ui/               # UI state hooks (debounce, pagination, etc.)
-├── lib/              # Utilities, SDK client, helpers
-├── messages/         # i18n translation files (en.json, nl.json)
-├── styles/           # Custom CSS (driver.js overrides, etc.)
-└── types/            # Shared TypeScript types
+├── app/         # Next.js routes — each has page.tsx, optional loading.tsx/error.tsx/layout.tsx, and components/ for route-specific UI
+├── components/  # Shared components: ui/ (shadcn primitives), skeletons/, navbar/, modals/, tables/, object-sheets/, properties/, processes/, groups/, onboarding/
+├── constants/   # Static config, nav items, enums (barrel: index.ts)
+├── contexts/    # React context providers (barrel: index.ts)
+├── hooks/       # api/ (SDK + React Query), data/, import/, process/, ui/ — barrel per subfolder
+├── lib/         # Cross-cutting utilities only (see below)
+├── messages/    # i18n translation files (en.json, nl.json)
+└── types/       # Shared TypeScript types
 ```
 
-### Feature Co-location
+**Feature co-location**: feature-specific components, hooks, and utils live inside the feature folder (e.g., `src/components/groups/{components,hooks,utils}/`), not in `src/lib/`. Each feature has a barrel `index.ts`.
 
-Feature-specific utilities, hooks, and types live inside the feature folder — not in `src/lib/`:
-
-```
-src/components/groups/
-├── components/        # UI components
-├── hooks/             # Feature-specific hooks (useGroupFilters, useGroupForm)
-├── utils/             # Feature-specific utilities (group-utils.ts)
-└── index.ts           # Barrel export (components + hooks + utils)
-```
-
-### What stays in `src/lib/`
-
-Only **cross-cutting** utilities used by 3+ unrelated features:
-
-- `utils.ts` — `cn()`, `truncateText()`, `formatNumericValue()`
-- `logger.ts` — Logging with Sentry integration
-- `sdk-client.ts` — SDK singleton factory
-- `error-utils.ts` — Generic error detection
-- `auth-fetch.ts` — Authenticated fetch wrapper
-- `validations/` — Shared Zod schemas
-- Server-only: `api-auth.ts`, `crypto-utils.ts`, `redis.ts`, `redis-utils.ts`, `security-utils.ts`, `import-processor.ts`
-
-If a utility is only used by one feature (e.g., `group-utils.ts` only used by groups), move it to that feature's `utils/` directory and re-export from the feature's `index.ts`.
+**`src/lib/` is for cross-cutting utilities used by 3+ unrelated features only**: `utils.ts` (`cn()`, formatters), `logger.ts`, `sdk-client.ts`, `error-utils.ts`, `auth-fetch.ts`, `validations/`, plus server-only helpers (`api-auth.ts`, `crypto-utils.ts`, `redis*.ts`, `security-utils.ts`, `import-processor.ts`). If a util is used by one feature only, move it to that feature's `utils/`.
 
 ## Naming Conventions
 
-### Files & Directories — **ALL files use `kebab-case`** (no exceptions)
+- **Files & directories**: `kebab-case` everywhere except Next.js-mandated names (`page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `global-error.tsx`).
+- **Hooks**: file is `use-kebab-case.ts`, export is `useCamelCase`. Context files end in `-context.tsx`.
+- **Tests**: unit `<source>.test.ts(x)` mirrors source path; e2e `<feature>.spec.ts` under `e2e/`.
+- **Code**: standard JS — `PascalCase` for components/types/enums/providers (e.g., `AuthProvider`), `useCamelCase` for hooks, `UPPER_SNAKE_CASE` for module constants.
+- **Translation keys**: `dot.separated.camelCase` (e.g., `objects.childrenPage.loadingParent`).
+- **Query keys**: `camelCase` arrays via the `queryKeys` factory.
+- **CSS variables**: `--kebab-case`.
 
-| Type                 | Convention                              | Example                                         |
-| -------------------- | --------------------------------------- | ----------------------------------------------- |
-| **Pages**            | `page.tsx` (Next.js)                    | `src/app/objects/page.tsx`                      |
-| **Layouts**          | `layout.tsx`                            | `src/app/layout.tsx`                            |
-| **Loading states**   | `loading.tsx`                           | `src/app/objects/loading.tsx`                   |
-| **Error boundaries** | `error.tsx` / `global-error.tsx`        | `src/app/global-error.tsx`                      |
-| **Components**       | `kebab-case.tsx`                        | `object-details-sheet.tsx`, `client-layout.tsx` |
-| **Hooks (all)**      | `use-kebab-case.ts`                     | `use-aggregate.ts`, `use-view-data.ts`          |
-| **Contexts**         | `kebab-case.tsx` with `-context` suffix | `auth-context.tsx`, `query-context.tsx`         |
-| **Constants**        | `kebab-case.ts`                         | `client.ts`, `auth.ts`                          |
-| **Types**            | `kebab-case.ts`                         | `sankey-metadata.ts`                            |
-| **Utilities**        | `kebab-case.ts`                         | `sdk-client.ts`, `utils.ts`                     |
-| **Tests (unit)**     | `<source-file>.test.ts(x)`              | `use-aggregate.test.ts`                         |
-| **Tests (E2E)**      | `<feature>.spec.ts`                     | `navigation.spec.ts`                            |
-| **Barrel exports**   | `index.ts`                              | Every feature folder must have one              |
-| **Directories**      | `kebab-case`                            | `object-sheets/`, `import-status/`              |
+## Loading States
 
-> **Rule**: File names are always `kebab-case`. Component/hook _exports_ inside files use PascalCase/camelCase per JS convention. Never name a file `MyComponent.tsx` — use `my-component.tsx`.
+- **First paint** (SDK init, auth check, route transitions): skeleton shimmer from `src/components/skeletons/`. Every route has a `loading.tsx`. Never use raw spinners for full-page loading.
+- **Data refetch**: keep page chrome visible, show spinner only in the content area. Use `placeholderData: keepPreviousData` for paginated React Query so transitions don't flash.
+- **DataTable**: pass `fetching={true}` — it has built-in loading rows. Don't wrap the table in a skeleton.
+- **Empty results**: `<EmptyState />` from `@/components/ui` with `icon`, `title`, optional `description`.
+- **Button mutations**: `Loader2` icon inside the button is fine.
 
-### Code Naming
+## DataTable
 
-| Type                  | Convention                | Example                                 |
-| --------------------- | ------------------------- | --------------------------------------- |
-| **React components**  | `PascalCase`              | `ObjectsPageSkeleton`, `NavbarSkeleton` |
-| **Hooks**             | `useCamelCase`            | `useViewData`, `useAggregate`           |
-| **Context providers** | `PascalCase` + `Provider` | `AuthProvider`, `QueryProvider`         |
-| **Context hooks**     | `useCamelCase`            | `useAuth`, `useAppConfig`               |
-| **Constants**         | `UPPER_SNAKE_CASE`        | `NAV_ITEMS`, `PUBLIC_PAGES`             |
-| **Types/Interfaces**  | `PascalCase`              | `ClientConfig`, `AuthResponse`          |
-| **Enums**             | `PascalCase`              | `ProcessViewType`                       |
-| **Translation keys**  | `dot.separated.camelCase` | `objects.childrenPage.loadingParent`    |
-| **CSS variables**     | `--kebab-case`            | `--primary`, `--muted-foreground`       |
-| **Query keys**        | `camelCase` arrays        | `['aggregateEntities', uuid]`           |
-
-## Loading & Skeleton Patterns
-
-- **SDK initialization** (`QueryProvider`): `NavbarSkeleton` + `ContentSkeleton` (or `AppShellSkeleton`).
-- **Auth check** (`ProtectedRoute`): `AppShellSkeleton`.
-- **Route transitions**: Every route directory has a `loading.tsx` that renders `<ContentSkeleton />` / `<AppShellSkeleton />`.
-- Skeleton components live in `src/components/skeletons/` with barrel export.
-- **Data fetching (React Query)**: Use inline loading within the page layout — show the page header/filters immediately, only show a spinner in the content area. Never replace the full page with a skeleton during data refetch.
-- **DataTable**: Pass `fetching={true}` to the DataTable component — it has built-in loading row display. Do NOT wrap the entire table in a full-page skeleton.
-- **Empty states**: Use `<EmptyState />` from `@/components/ui` for empty lists, search results, and filtered views. Always include an `icon`, `title`, and optional `description`.
-- **Button mutations**: `Loader2` spinner icon inside the button is acceptable.
-- **Pagination**: Use `placeholderData: keepPreviousData` from React Query to keep old data visible during page transitions — no loading flash.
-- **Dynamic imports**: Skeleton placeholder matching the component dimensions.
-- Never use raw spinners for full-page loading — always use skeleton shimmer.
-
-## DataTable Usage
-
-The `DataTable` component in `src/components/tables/data-table.tsx` is the standard for all tabular data:
-
-```tsx
-<DataTable
-  columns={columns}
-  data={data}
-  getRowId={(row) => row.uuid}
-  // Server-side pagination
-  pagination={paginationProps}
-  onPageChange={handlePageChange}
-  // Selection (opt-in)
-  enableRowSelection
-  rowSelection={rowSelection}
-  onRowSelectionChange={setRowSelection}
-  // Column resizing (opt-in)
-  enableColumnResizing
-  // Loading state — shows inline spinner row, NOT full-page skeleton
-  fetching={isFetching}
-  // Empty state — uses EmptyState component internally
-  emptyIcon={<Inbox className="h-10 w-10" />}
-  emptyTitle={t('objects.noResults')}
-  emptyDescription={t('objects.noResultsDescription')}
-/>
-```
-
-- Always use server-side pagination with `manualPagination: true` (this is the default).
-- Never build custom table markup — extend `DataTable` instead.
-- Column toggle via `DataTableColumnToggle` component.
+Use `DataTable` from `src/components/tables/data-table.tsx` for all tabular data. Server-side pagination is the default (`manualPagination: true`). Never build custom table markup — extend `DataTable`. Column toggle via `DataTableColumnToggle`. See the component's prop types for the full API.
 
 ## Testing
 
@@ -409,35 +283,11 @@ Any UI change that affects user-visible behavior **must** have corresponding E2E
 
 ## Environment Variables
 
-When adding a new environment variable:
+To add a new variable: update `buildRuntimeConfig()`, `ClientConfig`, and `DEFAULT_CLIENT_CONFIG` in `src/constants/client.ts`, then document it below. It's automatically served via the inline `<script>` and `/api/config`, cached in localStorage for 24h.
 
-1. Add the key + default to `buildRuntimeConfig()` in `src/constants/client.ts`
-2. Add the field to the `ClientConfig` interface in the same file
-3. Add a sensible default to `DEFAULT_CLIENT_CONFIG`
-4. The variable is automatically available via:
-   - Inline `<script>` tag on first visit (zero network request)
-   - `/api/config` API route (background refresh)
-   - `getCachedConfig()` on the client
-5. Document the variable in this file under the **Required** or **Optional** section below
+**Required**: `AUTH_API_URL`, `AUTH_REFRESH_API_URL`, `REGISTRY_API_URL`, `NODE_API_URL`, `REDIS_URL`, `REDIS_PASSWORD`.
 
-**Required**:
-
-- `AUTH_API_URL`, `AUTH_REFRESH_API_URL` — Auth service endpoints
-- `REGISTRY_API_URL` — Registry service
-- `NODE_API_URL` — Node service
-- `REDIS_URL`, `REDIS_PASSWORD` — Server-side caching (import jobs, rate limiting)
-
-**Optional**:
-
-- `UP_API_URL` — UP service
-- `HERE_API_KEY` — Address/map lookups
-- `EMAIL_LOGIN_ENABLED` — Enable email/password auth (default: certificate only)
-- `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_ENABLED` — Error tracking
-- `APP_NAME`, `APP_DESCRIPTION`, `APP_ACRONYM` — Branding
-- `MAX_FILE_SIZE_MB`, `MAX_IMPORT_PAYLOAD_MB`, `MAX_OBJECTS_PER_IMPORT` — Import limits
-- `LOG_LEVEL` — Server logging verbosity
-- `ENCRYPTION_KEY` — AES-256-GCM key for encrypting JWTs stored in Redis (auto-generated if missing)
-- `CONTACT_URL`, `SUPPORT_EMAIL` — Footer/contact info
+**Optional**: `UP_API_URL`, `HERE_API_KEY` (address lookups), `EMAIL_LOGIN_ENABLED`, Sentry (`SENTRY_DSN`/`SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_ENABLED`), branding (`APP_NAME`/`APP_DESCRIPTION`/`APP_ACRONYM`), import limits (`MAX_FILE_SIZE_MB`/`MAX_IMPORT_PAYLOAD_MB`/`MAX_OBJECTS_PER_IMPORT`), `LOG_LEVEL`, `ENCRYPTION_KEY` (AES-256-GCM for Redis-stored JWTs, auto-generated if missing), `CONTACT_URL`, `SUPPORT_EMAIL`.
 
 ## SDK (`iom-sdk`)
 
@@ -453,6 +303,8 @@ When adding a new environment variable:
 1. Run `npm run build` in `iom-sdk/`
 2. Copy built dist to UI's node_modules: `cp -R iom-sdk/dist/* iom-ui/node_modules/.pnpm/iom-sdk@*/node_modules/iom-sdk/dist/`
 3. Run `pnpm typecheck` in UI to verify
+
+> If you use Claude Code, the `/sdk-sync` slash command runs all three steps and reports the result. See **Claude Code Workflow** below.
 
 ## Code Style
 
@@ -474,8 +326,12 @@ Use conventional commit prefixes:
 - `docs:` documentation
 - `chore:` maintenance
 
-## Keyboard Shortcuts
+## Claude Code Workflow (optional)
 
-- `⌘K` / `Ctrl+K` — Command center / search
-- `t` — Cycle theme (light → dark → system)
-- `l` — Toggle language (en ↔ nl)
+`.claude/` is gitignored, so the tooling below is per-machine until shared.
+
+- **`/sdk-sync`** — runs the three-step SDK sync above, stops on first failure.
+- **`/api-update [service...] [free text]`** — diffs `iom-sdk/docs/*.swagger.json` against a baseline in `.claude/cache/swagger/`, plans SDK + UI edits, syncs, verifies, refreshes the baseline only on success. Helper: `node .claude/hooks/swagger-diff.mjs {status|diff|snapshot}`.
+- **PostToolUse lint hook** (`.claude/hooks/lint-edited.sh`) — runs `eslint --max-warnings 0` on each `src/**` file Claude edits. Mirrors lint-staged but earlier in the loop.
+- **Permissions** (`.claude/settings.local.json`) — allow `pnpm run:*` and read-only git, deny destructive/remote ops (`git push:*`, `git reset --hard:*`, `rm -rf:*`, etc.). `git commit/merge/rebase` prompt per use.
+- **Pre-commit secret scan** (`.husky/pre-commit`) — runs `gitleaks protect --staged --redact` if installed (`brew install gitleaks`); warns and skips otherwise.

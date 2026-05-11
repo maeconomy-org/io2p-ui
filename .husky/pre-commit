@@ -1,1 +1,13 @@
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner || {
+    echo ""
+    echo "Pre-commit BLOCKED: gitleaks found a potential secret in staged changes."
+    echo "Review the output above. If it's a false positive, add an allowlist entry"
+    echo "to .gitleaks.toml or use 'git commit --no-verify' (last resort)."
+    exit 1
+  }
+else
+  echo "warning: gitleaks not installed; skipping secret scan. Install with: brew install gitleaks"
+fi
+
 npx lint-staged

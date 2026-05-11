@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import {
-  Control,
   useFieldArray,
   useWatch,
   useFormContext,
@@ -22,7 +21,6 @@ import type { AvailableProperty } from './hooks/use-formula-evaluation'
 const EMPTY_AVAILABLE_PROPERTIES: AvailableProperty[] = []
 
 interface PropertyItemRHFProps {
-  control: Control<any>
   name: string
   index: number
   onRemove: () => void
@@ -35,9 +33,11 @@ interface PropertyItemRHFProps {
  * React Hook Form adapter for PropertyItem.
  * Bridges RHF's useWatch/setValue to PropertyItem's callback interface.
  * Replaces both PropertyField and PropertyFieldTemplate.
+ *
+ * Reads `control` from FormContext to avoid a typed-control prop boundary
+ * that would force callers into `Control<any>` casts (RHF 7.54+ contravariance).
  */
 export function PropertyItemRHF({
-  control,
   name,
   index,
   onRemove,
@@ -45,7 +45,7 @@ export function PropertyItemRHF({
   templateMode = false,
 }: PropertyItemRHFProps) {
   const t = useTranslations()
-  const { setValue } = useFormContext()
+  const { control, setValue } = useFormContext()
   const valuesName = `${name}.values`
   const filesName = `${name}.files`
   const keyName = `${name}.key`
@@ -153,7 +153,6 @@ export function PropertyItemRHF({
       {!templateMode && (
         <div className="space-y-2">
           <PropertyFilesSection
-            control={control}
             filesName={filesName}
             isOpen={isPropertyFilesOpen}
             setIsOpen={setIsPropertyFilesOpen}
@@ -162,7 +161,6 @@ export function PropertyItemRHF({
           {(property.values || []).map((_val: any, valueIndex: number) => (
             <ValueFilesModal
               key={`file-modal-${valueIndex}`}
-              control={control}
               valuesName={valuesName}
               valueIndex={valueIndex}
               isOpen={openValueFileIndex === valueIndex}
@@ -182,19 +180,17 @@ export function PropertyItemRHF({
 // ---------------------------------------------------------------------------
 
 function PropertyFilesSection({
-  control,
   filesName,
   isOpen,
   setIsOpen,
 }: {
-  control: Control<any>
   filesName: string
   isOpen: boolean
   setIsOpen: (open: boolean) => void
 }) {
   const t = useTranslations()
+  const { control, setValue } = useFormContext()
   const files = useWatch({ control, name: filesName }) || []
-  const { setValue } = useFormContext()
 
   if (files.length === 0 && !isOpen) return null
 
@@ -218,25 +214,23 @@ function PropertyFilesSection({
 }
 
 function ValueFilesModal({
-  control,
   valuesName,
   valueIndex,
   isOpen,
   onOpenChange,
 }: {
-  control: Control<any>
   valuesName: string
   valueIndex: number
   isOpen: boolean
   onOpenChange: (open: boolean) => void
 }) {
   const t = useTranslations()
+  const { control, setValue } = useFormContext()
   const files =
     useWatch({
       control,
       name: `${valuesName}.${valueIndex}.files`,
     }) || []
-  const { setValue } = useFormContext()
 
   if (files.length === 0 && !isOpen) return null
 

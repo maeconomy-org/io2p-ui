@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Plus } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useFieldArray } from 'react-hook-form'
+import * as z from 'zod'
 
 import {
   Input,
@@ -57,7 +58,7 @@ export function ObjectAddSheet({
     onRefetch: onSave ? () => onSave({}) : undefined, // Wrap onSave to match signature
   })
 
-  const form = useForm<ObjectFormValues>({
+  const form = useForm<z.input<typeof objectSchema>, any, ObjectFormValues>({
     resolver: zodResolver(objectSchema),
     defaultValues: {
       name: '',
@@ -483,7 +484,6 @@ export function ObjectAddSheet({
                     {fields.map((field, index) => (
                       <PropertyItemRHF
                         key={field.id || `property-${index}`}
-                        control={form.control}
                         name={`properties.${index}`}
                         index={index}
                         onRemove={() => remove(index)}
