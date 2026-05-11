@@ -36,7 +36,11 @@ import {
   ModelOption,
   UnsavedChangesDialog,
 } from './components'
-import { useObjectOperations } from './hooks'
+import {
+  useObjectOperations,
+  useObjectDrafts,
+  useFormDraftPersistence,
+} from './hooks'
 import { createEmptyProperty } from './utils'
 
 interface ObjectAddSheetProps {
@@ -44,6 +48,8 @@ interface ObjectAddSheetProps {
   onClose: () => void
   onSave?: (object: any) => void
   defaultParentUuids?: string[]
+  /** When provided, the sheet opens with this draft loaded. */
+  draftId?: string | null
 }
 
 export function ObjectAddSheet({
@@ -51,6 +57,7 @@ export function ObjectAddSheet({
   onClose,
   onSave,
   defaultParentUuids,
+  draftId = null,
 }: ObjectAddSheetProps) {
   const t = useTranslations()
   const { createObject, isCreating } = useObjectOperations({
@@ -162,13 +169,39 @@ export function ObjectAddSheet({
     return result
   }, [propertiesKey, watchedProperties])
 
-  // Reset form when sheet opens
+  // Drafts are only persisted for the standalone "Create Object" flow.
+  // The "Add Child" flow (defaultParentUuids set) keeps the legacy
+  // unsaved-changes dialog instead, since draft rows on /objects would lose
+  // the child→parent relationship context.
+  const isDraftEnabled = !defaultParentUuids || defaultParentUuids.length === 0
+
+  const { createDraftId, getDraft, deleteDraft } = useObjectDrafts()
+
+  const { activeDraftId, clearDraft, pauseSaving, forceSaveDraft } =
+    useFormDraftPersistence({
+      form: form as any,
+      draftId: isDraftEnabled ? draftId : null,
+      isActive: isOpen && isDraftEnabled,
+      defaultValues: defaultFormValues as any,
+      excludeFields: ['files'],
+      onAllocateId: createDraftId,
+      getDraftName: (v: any) => v?.name || '',
+    })
+
+  // Reset form when sheet opens — load draft if a draftId is provided.
   useEffect(() => {
-    if (isOpen) {
-      form.reset(defaultFormValues as any)
-      setSelectedModel(null)
+    if (!isOpen) return
+    if (isDraftEnabled && draftId) {
+      const stored = getDraft<typeof defaultFormValues>(draftId)
+      if (stored) {
+        form.reset({ ...defaultFormValues, ...stored } as any)
+        setSelectedModel(null)
+        return
+      }
     }
-  }, [isOpen, form, defaultFormValues])
+    form.reset(defaultFormValues as any)
+    setSelectedModel(null)
+  }, [isOpen, draftId, isDraftEnabled, form, defaultFormValues, getDraft])
 
   // Handle model selection and populate form with template data
   const handleModelSelect = (model: ModelOption | null) => {
@@ -216,6 +249,7 @@ export function ObjectAddSheet({
     const success = await createObject(values)
 
     if (success) {
+      if (isDraftEnabled) clearDraft()
       onClose()
       form.reset()
     }
@@ -231,20 +265,33 @@ export function ObjectAddSheet({
     })
   }
 
-  // Intercept close attempts and show dialog if there are unsaved changes
+  // Intercept close attempts. Always confirm when there are unsaved changes —
+  // for the create flow the dialog also offers "Save as draft", for Add-Child
+  // it's the legacy 2-button keep/discard prompt.
   const handleCloseAttempt = useCallback(() => {
-    if (hasUnsavedChanges()) {
-      setShowUnsavedDialog(true)
-    } else {
+    if (!hasUnsavedChanges()) {
       onClose()
+      return
     }
+    setShowUnsavedDialog(true)
   }, [hasUnsavedChanges, onClose])
 
   const handleDiscardChanges = useCallback(() => {
     setShowUnsavedDialog(false)
+    pauseSaving()
+    if (isDraftEnabled && activeDraftId) {
+      deleteDraft(activeDraftId)
+    }
     form.reset()
     onClose()
-  }, [form, onClose])
+  }, [pauseSaving, isDraftEnabled, activeDraftId, deleteDraft, form, onClose])
+
+  const handleSaveAsDraft = useCallback(() => {
+    setShowUnsavedDialog(false)
+    forceSaveDraft()
+    pauseSaving()
+    onClose()
+  }, [forceSaveDraft, pauseSaving, onClose])
 
   const handleKeepEditing = useCallback(() => {
     setShowUnsavedDialog(false)
@@ -549,6 +596,7 @@ export function ObjectAddSheet({
         open={showUnsavedDialog}
         onDiscard={handleDiscardChanges}
         onKeepEditing={handleKeepEditing}
+        onSaveDraft={isDraftEnabled ? handleSaveAsDraft : undefined}
       />
     </>
   )

@@ -483,14 +483,25 @@
     "unsavedChanges": {
       "title": "Niet-opgeslagen wijzigingen",
       "description": "U heeft gegevens ingevoerd die nog niet zijn opgeslagen. Wilt u doorgaan met bewerken of uw wijzigingen verwijderen?",
+      "descriptionWithDraft": "U heeft niet-opgeslagen wijzigingen. Sla ze op als concept om later verder te gaan, verwijder ze, of blijf bewerken.",
       "keepEditing": "Doorgaan met bewerken",
-      "discard": "Wijzigingen verwijderen"
+      "discard": "Wijzigingen verwijderen",
+      "saveDraft": "Opslaan als concept"
     },
-    "restoreDraft": {
-      "title": "Onvoltooide objectcreatie",
-      "description": "U heeft eerder gegevens ingevoerd voor het aanmaken van een object. Wilt u verdergaan waar u gebleven was of opnieuw beginnen?",
-      "continueEditing": "Doorgaan met bewerken",
-      "startFresh": "Opnieuw beginnen"
+    "drafts": {
+      "badge": "Concept",
+      "untitled": "Naamloos concept",
+      "hideDraftsLabel": "Verberg concepten",
+      "actions": {
+        "open": "Openen",
+        "discard": "Verwerpen",
+        "more": "Meer conceptacties"
+      },
+      "discardConfirm": {
+        "title": "Concept verwerpen?",
+        "description": "Hierdoor wordt het concept permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.",
+        "confirm": "Verwerpen"
+      }
     },
     "addTitle": "Nieuw object toevoegen",
     "addDescription": "Maak een nieuw object aan door de onderstaande gegevens in te vullen",

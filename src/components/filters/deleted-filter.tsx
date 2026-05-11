@@ -1,6 +1,5 @@
 'use client'
 
-import { Trash2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { FacetedFilter, FacetedFilterOption } from './faceted-filter'
@@ -8,35 +7,47 @@ import { FacetedFilter, FacetedFilterOption } from './faceted-filter'
 interface DeletedFilterProps {
   showDeleted: boolean
   onShowDeletedChange: (show: boolean) => void
+  /** Optional second toggle — only rendered when both props are provided. */
+  hideDrafts?: boolean
+  onHideDraftsChange?: (hide: boolean) => void
   label?: string
   className?: string
   'data-tour'?: string
 }
 
 /**
- * DeletedFilter component using FacetedFilter pattern.
- * Shows a dashed border button with checkbox dropdown.
+ * Compact view-options dropdown driven by `FacetedFilter`. Always shows the
+ * "Show deleted" toggle; optionally adds a "Hide drafts" toggle when the
+ * caller provides those props (currently only the /objects page).
  */
 export function DeletedFilter({
   showDeleted,
   onShowDeletedChange,
+  hideDrafts,
+  onHideDraftsChange,
   className = '',
   'data-tour': dataTour,
 }: DeletedFilterProps) {
   const t = useTranslations()
 
+  const draftsEnabled = typeof onHideDraftsChange === 'function'
+
   const options: FacetedFilterOption<string>[] = [
-    {
-      value: 'show-deleted',
-      label: t('objects.showDeleted'),
-      // icon: <Trash2 className="h-4 w-4 text-muted-foreground" />,
-    },
+    { value: 'show-deleted', label: t('objects.showDeleted') },
+    ...(draftsEnabled
+      ? [{ value: 'hide-drafts', label: t('objects.drafts.hideDraftsLabel') }]
+      : []),
   ]
 
-  const selected = showDeleted ? ['show-deleted'] : []
+  const selected: string[] = []
+  if (showDeleted) selected.push('show-deleted')
+  if (draftsEnabled && hideDrafts) selected.push('hide-drafts')
 
   const handleSelectionChange = (values: string[]) => {
     onShowDeletedChange(values.includes('show-deleted'))
+    if (draftsEnabled) {
+      onHideDraftsChange?.(values.includes('hide-drafts'))
+    }
   }
 
   return (

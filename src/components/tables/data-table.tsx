@@ -6,6 +6,7 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type Row,
   type RowSelectionState,
   type VisibilityState,
   type OnChangeFn,
@@ -58,8 +59,12 @@ export interface DataTableProps<TData> {
   rowSelection?: RowSelectionState
   /** Callback when selection changes */
   onRowSelectionChange?: OnChangeFn<RowSelectionState>
-  /** Whether row selection is enabled (adds checkbox column) */
-  enableRowSelection?: boolean
+  /**
+   * Whether row selection is enabled (adds checkbox column). Pass a function
+   * to disable selection on a per-row basis (e.g. excluding draft rows from
+   * "select all").
+   */
+  enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
 
   // -- Column visibility --
   /** Controlled column visibility state */

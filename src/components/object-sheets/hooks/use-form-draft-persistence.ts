@@ -1,17 +1,32 @@
 'use client'
 
-import { useEffect, useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { UseFormReturn } from 'react-hook-form'
 
-const STORAGE_KEY_PREFIX = 'iom-form-draft:'
+import { objectDraftsStore } from './use-object-drafts'
 
 interface UseFormDraftPersistenceOptions<T extends Record<string, any>> {
   form: UseFormReturn<T>
-  storageKey: string
+  /**
+   * When provided, the hook persists changes under this id. Pass `null` to
+   * defer id allocation until the user actually edits something — useful for
+   * the "Create" flow so opening + closing a blank sheet doesn't pollute the
+   * draft list.
+   */
+  draftId: string | null
+  /** Sheet open / hook active. */
   isActive: boolean
   defaultValues: T
-  /** Fields to exclude from persistence (e.g. files that can't be serialized) */
+  /** Top-level fields to drop before serializing (e.g. file blobs). */
   excludeFields?: (keyof T)[]
+  /** Required. Allocator called once when the first dirty change is detected
+   *  and there is no active id. */
+  onAllocateId: () => string
+  /** Called immediately after a fresh id is allocated, so the parent can
+   *  remember which draft it owns (e.g. to clear on submit). */
+  onIdAllocated?: (id: string) => void
+  /** How to derive the human-readable name shown in the table. */
+  getDraftName: (values: T) => string
 }
 
 function isFormDirty<T extends Record<string, any>>(
@@ -36,67 +51,97 @@ function isFormDirty<T extends Record<string, any>>(
   return false
 }
 
+/**
+ * Stricter than `isFormDirty`: a draft is only worth persisting when the user
+ * has entered substantive content. Name alone is not enough — otherwise a
+ * single keystroke pollutes the draft list.
+ */
+function isDraftWorthy(values: any): boolean {
+  if (Array.isArray(values?.properties) && values.properties.length > 0) {
+    const hasContent = values.properties.some((p: any) => {
+      if (p?.key && String(p.key).trim()) return true
+      if (Array.isArray(p?.values)) {
+        return p.values.some(
+          (v: any) => v?.value !== undefined && String(v.value).trim()
+        )
+      }
+      return false
+    })
+    if (hasContent) return true
+  }
+  if (Array.isArray(values?.files) && values.files.length > 0) return true
+  if (values?.address?.fullAddress) return true
+  if (Array.isArray(values?.parents) && values.parents.length > 0) return true
+  if (values?.description && String(values.description).trim()) return true
+  const name = String(values?.name ?? '').trim()
+  const abbr = String(values?.abbreviation ?? '').trim()
+  const version = String(values?.version ?? '').trim()
+  if (name && (abbr || version)) return true
+  return false
+}
+
+function stripBlobFiles(files: any[]): any[] {
+  if (!Array.isArray(files)) return []
+  return files.filter(
+    (f: any) => f?.mode === 'reference' && (f?.url || f?.fileReference)
+  )
+}
+
+function serialize<T extends Record<string, any>>(
+  values: T,
+  excludeFields: (keyof T)[]
+): Record<string, any> {
+  const toSave: any = { ...values }
+  for (const field of excludeFields) {
+    delete toSave[field]
+  }
+  if (Array.isArray(toSave.properties)) {
+    toSave.properties = toSave.properties.map((prop: any) => ({
+      ...prop,
+      files: stripBlobFiles(prop?.files),
+      values: Array.isArray(prop?.values)
+        ? prop.values.map((val: any) => ({
+            ...val,
+            files: stripBlobFiles(val?.files),
+          }))
+        : prop?.values,
+    }))
+  }
+  return toSave
+}
+
 export function useFormDraftPersistence<T extends Record<string, any>>({
   form,
-  storageKey,
+  draftId,
   isActive,
   defaultValues,
   excludeFields = [],
+  onAllocateId,
+  onIdAllocated,
+  getDraftName,
 }: UseFormDraftPersistenceOptions<T>) {
-  const fullKey = `${STORAGE_KEY_PREFIX}${storageKey}`
-  // Guard: when we're in the middle of clearing, suppress any watch-triggered saves
+  // Active id is held in a ref so the watch callback always reads the latest
+  // value synchronously. We mirror it into state ONLY for the public return
+  // value (so consumers re-render when it changes).
+  const activeIdRef = useRef<string | null>(draftId)
+  const prevDraftIdRef = useRef<string | null>(draftId)
+  const [activeIdForReturn, setActiveIdForReturn] = useState<string | null>(
+    draftId
+  )
   const isClearingRef = useRef(false)
 
-  // Strip blob/upload files from a value - only keep URL reference files
-  const stripBlobFiles = (files: any[]): any[] => {
-    if (!Array.isArray(files)) return []
-    return files.filter(
-      (f: any) => f?.mode === 'reference' && (f?.url || f?.fileReference)
-    )
+  // Eagerly sync the ref during render when the prop changes — the previous
+  // useState+useEffect approach left a one-render window where the watch
+  // closure still saw `null` after the parent passed a real draftId, which
+  // caused `form.reset(stored)` to allocate a *second* draft id.
+  if (prevDraftIdRef.current !== draftId) {
+    prevDraftIdRef.current = draftId
+    activeIdRef.current = draftId
+    // Defer the state update so we don't update during another component's
+    // render. Safe because the ref is already correct for the watch callback.
+    queueMicrotask(() => setActiveIdForReturn(draftId))
   }
 
-  // Save current form values to localStorage
-  const saveDraft = useCallback(() => {
-    if (isClearingRef.current) return
-    try {
-      const values = form.getValues()
-      const toSave = { ...values }
-      // Strip top-level files (blobs can't be serialized)
-      for (const field of excludeFields) {
-        delete toSave[field]
-      }
-      // Strip blob/upload files from properties - only keep URL references
-      const toSaveAny = toSave as any
-      if (Array.isArray(toSaveAny.properties)) {
-        toSaveAny.properties = toSaveAny.properties.map((prop: any) => ({
-          ...prop,
-          files: stripBlobFiles(prop?.files),
-          values: Array.isArray(prop?.values)
-            ? prop.values.map((val: any) => ({
-                ...val,
-                files: stripBlobFiles(val?.files),
-              }))
-            : prop?.values,
-        }))
-      }
-      localStorage.setItem(fullKey, JSON.stringify(toSave))
-    } catch {
-      // Silently fail if localStorage is unavailable
-    }
-  }, [form, fullKey, excludeFields])
-
-  // Load draft from localStorage
-  const loadDraft = useCallback((): Partial<T> | null => {
-    try {
-      const stored = localStorage.getItem(fullKey)
-      if (!stored) return null
-      return JSON.parse(stored) as Partial<T>
-    } catch {
-      return null
-    }
-  }, [fullKey])
-
-  // Temporarily pause auto-saving (survives one tick of watch callbacks)
   const pauseSaving = useCallback(() => {
     isClearingRef.current = true
     setTimeout(() => {
@@ -104,65 +149,98 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
     }, 0)
   }, [])
 
-  // Clear draft from localStorage
   const clearDraft = useCallback(() => {
     isClearingRef.current = true
-    try {
-      localStorage.removeItem(fullKey)
-    } catch {
-      // Silently fail
+    if (activeIdRef.current) {
+      objectDraftsStore.delete(activeIdRef.current)
     }
-    // Allow saves again on next tick (after any pending watch callbacks fire)
+    activeIdRef.current = null
+    setActiveIdForReturn(null)
     setTimeout(() => {
       isClearingRef.current = false
     }, 0)
-  }, [fullKey])
+  }, [])
 
-  // Check if there is a saved draft with meaningful data
-  const hasDraft = useCallback((): boolean => {
-    try {
-      const stored = localStorage.getItem(fullKey)
-      if (!stored) return false
-      const draft = JSON.parse(stored) as Partial<T>
-      // Check if the draft has any meaningful data (not just empty defaults)
-      return isFormDirty(draft as T, defaultValues, excludeFields)
-    } catch {
-      return false
-    }
-  }, [fullKey, defaultValues, excludeFields])
-
-  // Restore draft into the form
-  const restoreDraft = useCallback(() => {
-    const draft = loadDraft()
-    if (draft) {
-      form.reset({ ...defaultValues, ...draft } as T)
-    }
-  }, [loadDraft, form, defaultValues])
-
-  // Check if current form has meaningful data entered
   const hasUnsavedChanges = useCallback((): boolean => {
-    const values = form.getValues()
-    return isFormDirty(values, defaultValues, excludeFields)
+    return isFormDirty(form.getValues(), defaultValues, excludeFields)
   }, [form, defaultValues, excludeFields])
 
-  // Auto-save on every form change via subscription
+  /**
+   * Bypass the worthiness gate and persist current values as a draft.
+   * Used by the "Save as draft" close action when a user wants to keep
+   * something the auto-save threshold would otherwise drop.
+   */
+  const forceSaveDraft = useCallback((): string | null => {
+    const values = form.getValues()
+    if (!isFormDirty(values, defaultValues, excludeFields)) return null
+    let id = activeIdRef.current
+    if (!id) {
+      id = onAllocateId()
+      activeIdRef.current = id
+      setActiveIdForReturn(id)
+      onIdAllocated?.(id)
+    }
+    const payload = serialize(values, excludeFields)
+    const name = getDraftName(values).trim()
+    objectDraftsStore.save(id, payload, name)
+    return id
+  }, [
+    form,
+    defaultValues,
+    excludeFields,
+    onAllocateId,
+    onIdAllocated,
+    getDraftName,
+  ])
+
+  // Auto-save on every form change, gated by the worthiness predicate.
   useEffect(() => {
     if (!isActive) return
 
     const subscription = form.watch(() => {
-      saveDraft()
+      if (isClearingRef.current) return
+      const values = form.getValues()
+      if (!isFormDirty(values, defaultValues, excludeFields)) return
+
+      // Below the worthiness threshold: clean up any auto-saved draft so the
+      // table doesn't keep a stale row, then bail.
+      if (!isDraftWorthy(values)) {
+        if (activeIdRef.current) {
+          objectDraftsStore.delete(activeIdRef.current)
+          activeIdRef.current = null
+          setActiveIdForReturn(null)
+        }
+        return
+      }
+
+      let id = activeIdRef.current
+      if (!id) {
+        id = onAllocateId()
+        activeIdRef.current = id
+        setActiveIdForReturn(id)
+        onIdAllocated?.(id)
+      }
+      const payload = serialize(values, excludeFields)
+      const name = getDraftName(values).trim()
+      objectDraftsStore.save(id, payload, name)
     })
 
     return () => subscription.unsubscribe()
-  }, [isActive, form, saveDraft])
+  }, [
+    isActive,
+    form,
+    defaultValues,
+    excludeFields,
+    onAllocateId,
+    onIdAllocated,
+    getDraftName,
+  ])
 
   return {
-    saveDraft,
-    loadDraft,
+    activeDraftId: activeIdForReturn,
     clearDraft,
     pauseSaving,
-    hasDraft,
-    restoreDraft,
     hasUnsavedChanges,
+    forceSaveDraft,
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { MouseEvent, useState, useEffect, useMemo, lazy, Suspense } from 'react'
+import { MouseEvent, useState, useMemo, lazy, Suspense } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   FileText,
@@ -51,6 +51,14 @@ const QRCodeModal = lazy(() =>
 )
 import { DataTable, getSelectColumn } from './data-table'
 import { ObjectActionsCell } from './object-actions-cell'
+import { DraftActionsCell } from './draft-actions-cell'
+import { Badge, Checkbox } from '@/components/ui'
+
+export interface DraftTableRow {
+  id: string
+  name: string
+  updatedAt: number
+}
 
 interface ObjectsTableProps {
   initialData?: any[]
@@ -80,6 +88,10 @@ interface ObjectsTableProps {
   onColumnVisibilityChange?: (visibility: VisibilityState) => void
   // Read-only mode (hides edit/delete actions when user lacks GROUP_WRITE_RECORDS)
   readOnly?: boolean
+  // Draft rows pinned at top (UI-only, no backend uuid)
+  draftRows?: DraftTableRow[]
+  onOpenDraft?: (id: string) => void
+  onDiscardDraft?: (id: string) => void
 }
 
 const isObjectDeleted = (object: any) => {
@@ -105,10 +117,12 @@ export function ObjectsTable({
   columnVisibility = {},
   onColumnVisibilityChange,
   readOnly = false,
+  draftRows,
+  onOpenDraft,
+  onDiscardDraft,
 }: ObjectsTableProps) {
   const t = useTranslations()
   const router = useRouter()
-  const [data, setData] = useState<any[]>([])
 
   const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
   const [selectedQRObject, setSelectedQRObject] = useState<any>(null)
@@ -159,10 +173,18 @@ export function ObjectsTable({
     return map
   }, [groups])
 
-  // Load data from props
-  useEffect(() => {
-    setData(initialData ?? [])
-  }, [initialData])
+  // Combine pinned draft rows (UI-only, no backend uuid) with server data.
+  // Drafts get a stable __isDraft flag so column renderers can branch.
+  const data = useMemo(() => {
+    const draftPlaceholders = (draftRows ?? []).map((d) => ({
+      __isDraft: true as const,
+      __draftId: d.id,
+      uuid: d.id, // satisfies getRowId; never collides with real uuids (draft_ prefix)
+      name: d.name,
+      updatedAt: d.updatedAt,
+    }))
+    return [...draftPlaceholders, ...(initialData ?? [])]
+  }, [draftRows, initialData])
 
   const handleViewDetails = (object: any) => {
     if (onViewObject && object?.uuid) {
@@ -186,6 +208,10 @@ export function ObjectsTable({
   }
 
   const handleRowDoubleClick = (object: any) => {
+    if (object?.__isDraft) {
+      onOpenDraft?.(object.__draftId)
+      return
+    }
     if (onObjectDoubleClick) {
       onObjectDoubleClick(object)
     } else {
@@ -277,9 +303,23 @@ export function ObjectsTable({
   const columns = useMemo<ColumnDef<any, unknown>[]>(() => {
     const cols: ColumnDef<any, unknown>[] = []
 
-    // Checkbox column (only when selection enabled)
+    // Checkbox column (only when selection enabled). Draft rows render an
+    // empty cell — they have no backend uuid and can't participate in bulk
+    // operations like delete/copy/template.
     if (enableRowSelection) {
-      cols.push(getSelectColumn())
+      const baseSelect = getSelectColumn<any>()
+      cols.push({
+        ...baseSelect,
+        cell: ({ row }) =>
+          row.original.__isDraft ? null : (
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ),
+      })
     }
 
     // Name column
@@ -288,6 +328,18 @@ export function ObjectsTable({
       header: () => t('objects.fields.name'),
       cell: ({ row }) => {
         const object = row.original
+        if (object.__isDraft) {
+          const displayName =
+            (object.name as string)?.trim() || t('objects.drafts.untitled')
+          return (
+            <div className="flex items-center font-medium">
+              <span className="truncate max-w-[200px]">{displayName}</span>
+              <Badge variant="secondary" className="ml-2 text-[10px] uppercase">
+                {t('objects.drafts.badge')}
+              </Badge>
+            </div>
+          )
+        }
         const childCount =
           object.childCount || (object.children ? object.children.length : 0)
         const isDeleted = isObjectDeleted(object)
@@ -331,17 +383,24 @@ export function ObjectsTable({
     cols.push({
       accessorKey: 'uuid',
       header: () => t('objects.fields.uuid'),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
-          {/* Full UUID on desktop, truncated on mobile */}
-          <span className="hidden sm:inline">{row.original.uuid}</span>
-          <span className="sm:hidden">{row.original.uuid.slice(0, 5)}...</span>
-          <CopyButton
-            text={row.original.uuid}
-            label={t('objects.fields.uuid')}
-          />
-        </div>
-      ),
+      cell: ({ row }) => {
+        if (row.original.__isDraft) {
+          return <span className="text-muted-foreground">—</span>
+        }
+        return (
+          <div className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
+            {/* Full UUID on desktop, truncated on mobile */}
+            <span className="hidden sm:inline">{row.original.uuid}</span>
+            <span className="sm:hidden">
+              {row.original.uuid.slice(0, 5)}...
+            </span>
+            <CopyButton
+              text={row.original.uuid}
+              label={t('objects.fields.uuid')}
+            />
+          </div>
+        )
+      },
     })
 
     // Group column
@@ -349,6 +408,9 @@ export function ObjectsTable({
       id: 'group',
       header: () => t('objects.fields.group'),
       cell: ({ row }) => {
+        if (row.original.__isDraft) {
+          return <span className="text-muted-foreground">—</span>
+        }
         const groupUUID = row.original.groupUUID
         if (!groupUUID) return <span className="text-muted-foreground">—</span>
 
@@ -375,11 +437,20 @@ export function ObjectsTable({
     cols.push({
       accessorKey: 'createdAt',
       header: () => t('objects.fields.created'),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground text-sm">
-          {formatDate(row.original.createdAt)}
-        </span>
-      ),
+      cell: ({ row }) => {
+        if (row.original.__isDraft) {
+          return (
+            <span className="text-muted-foreground text-sm">
+              {formatDate(new Date(row.original.updatedAt).toISOString())}
+            </span>
+          )
+        }
+        return (
+          <span className="text-muted-foreground text-sm">
+            {formatDate(row.original.createdAt)}
+          </span>
+        )
+      },
     })
 
     // Actions column — using ObjectActionsCell component
@@ -391,6 +462,15 @@ export function ObjectsTable({
       enableHiding: false,
       cell: ({ row }) => {
         const object = row.original
+        if (object.__isDraft) {
+          return (
+            <DraftActionsCell
+              draftId={object.__draftId}
+              onOpen={(id) => onOpenDraft?.(id)}
+              onDiscard={(id) => onDiscardDraft?.(id)}
+            />
+          )
+        }
         const isDeleted = isObjectDeleted(object)
 
         return (
@@ -424,7 +504,7 @@ export function ObjectsTable({
     })
 
     return cols
-  }, [enableRowSelection, t, groupsMap, readOnly])
+  }, [enableRowSelection, t, groupsMap, readOnly, onOpenDraft, onDiscardDraft])
 
   return (
     <>
@@ -432,7 +512,12 @@ export function ObjectsTable({
         columns={columns}
         data={data}
         getRowId={(row) => row.uuid}
-        enableRowSelection={enableRowSelection}
+        // Draft rows are UI-only and have no backend uuid — exclude them from
+        // selection so "select all" never inflates the selection counter or
+        // hands draft ids to bulk operations.
+        enableRowSelection={
+          enableRowSelection ? (row) => !row.original?.__isDraft : false
+        }
         rowSelection={rowSelection}
         onRowSelectionChange={
           onRowSelectionChange
@@ -465,7 +550,12 @@ export function ObjectsTable({
         onLastPage={onLastPage}
         onPageSizeChange={onPageSizeChange}
         onRowDoubleClick={handleRowDoubleClick}
-        rowClassName={(row) => cn(isObjectDeleted(row) && 'bg-destructive/10')}
+        rowClassName={(row) =>
+          cn(
+            isObjectDeleted(row) && 'bg-destructive/10',
+            (row as any)?.__isDraft && 'bg-muted/30 border-l-2 border-l-primary'
+          )
+        }
         fetching={fetching}
         emptyIcon={<FileText className="h-10 w-10 text-muted-foreground/50" />}
         emptyTitle={t('objects.noObjectsTitle')}

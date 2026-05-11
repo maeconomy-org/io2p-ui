@@ -27,6 +27,7 @@ import { ViewSelector, ViewType } from '@/components/view-selector'
 import { ObjectViewContainer } from '@/components/object-view-container'
 import { BulkActionsToolbar, DataTableColumnToggle } from '@/components/tables'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
+import { useObjectDrafts } from '@/components/object-sheets/hooks'
 
 // Lazy-load sheet components — only rendered when opened by user interaction
 const ObjectDetailsSheet = dynamic(
@@ -76,6 +77,22 @@ function ObjectsPageContent() {
   // Copy objects state (for columns view — table handles its own)
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
   const [copyTarget, setCopyTarget] = useState<AggregateEntity | null>(null)
+
+  // Draft state — UI-only, surfaced as pinned rows on page 1 when no filters
+  const { drafts, deleteDraft } = useObjectDrafts()
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null)
+  const [hideDrafts, setHideDrafts] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('iom-objects:hide-drafts') === '1'
+  })
+  const handleHideDraftsChange = useCallback((next: boolean) => {
+    setHideDrafts(next)
+    try {
+      localStorage.setItem('iom-objects:hide-drafts', next ? '1' : '0')
+    } catch {
+      // silent fail
+    }
+  }, [])
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -159,8 +176,39 @@ function ObjectsPageContent() {
 
   const handleAddObject = () => {
     setSelectedObject(null)
+    setEditingDraftId(null)
     setIsObjectEditSheetOpen(true)
   }
+
+  const handleOpenDraft = useCallback((id: string) => {
+    setSelectedObject(null)
+    setEditingDraftId(id)
+    setIsObjectEditSheetOpen(true)
+  }, [])
+
+  // Drafts pin only when nothing is filtering the live data — otherwise the
+  // visual hierarchy ("here are real matches") would be muddied.
+  const draftRowsForTable = useMemo(() => {
+    if (hideDrafts) return undefined
+    if (isSearchMode) return undefined
+    if (selectedGroupUUID) return undefined
+    if (showDeleted) return undefined
+    if (viewData.type === 'table' && viewData.pagination.currentPage !== 0) {
+      return undefined
+    }
+    return drafts.map((d) => ({
+      id: d.id,
+      name: d.name,
+      updatedAt: d.updatedAt,
+    }))
+  }, [
+    drafts,
+    hideDrafts,
+    isSearchMode,
+    selectedGroupUUID,
+    showDeleted,
+    viewData,
+  ])
 
   const handleViewObject = (object: AggregateEntity) => {
     setSelectedObject(object)
@@ -187,6 +235,8 @@ function ObjectsPageContent() {
             <DeletedFilter
               showDeleted={showDeleted}
               onShowDeletedChange={setShowDeleted}
+              hideDrafts={hideDrafts}
+              onHideDraftsChange={handleHideDraftsChange}
               label={t('objects.showDeleted')}
               data-tour="filters"
             />
@@ -266,6 +316,9 @@ function ObjectsPageContent() {
             onRowSelectionChange={setRowSelection}
             onPageSizeChange={setPageSize}
             readOnly={groupReadOnly}
+            draftRows={draftRowsForTable}
+            onOpenDraft={handleOpenDraft}
+            onDiscardDraft={deleteDraft}
           />
         )}
       </div>
@@ -282,9 +335,11 @@ function ObjectsPageContent() {
       {/* Object add sheet */}
       <ObjectAddSheet
         isOpen={isObjectEditSheetOpen}
+        draftId={editingDraftId}
         onClose={() => {
           setIsObjectEditSheetOpen(false)
           setSelectedObject(null)
+          setEditingDraftId(null)
         }}
       />
 

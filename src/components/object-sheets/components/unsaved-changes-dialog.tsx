@@ -9,7 +9,6 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
-  AlertDialogAction,
 } from '@/components/ui'
 import { Button } from '@/components/ui'
 
@@ -17,14 +16,18 @@ interface UnsavedChangesDialogProps {
   open: boolean
   onDiscard: () => void
   onKeepEditing: () => void
+  /** When provided, renders a third "Save as draft" action. */
+  onSaveDraft?: () => void
 }
 
 export function UnsavedChangesDialog({
   open,
   onDiscard,
   onKeepEditing,
+  onSaveDraft,
 }: UnsavedChangesDialogProps) {
   const t = useTranslations()
+  const showSaveDraft = typeof onSaveDraft === 'function'
 
   return (
     <AlertDialog
@@ -37,13 +40,20 @@ export function UnsavedChangesDialog({
             {t('objects.unsavedChanges.title')}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {t('objects.unsavedChanges.description')}
+            {showSaveDraft
+              ? t('objects.unsavedChanges.descriptionWithDraft')
+              : t('objects.unsavedChanges.description')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onKeepEditing}>
             {t('objects.unsavedChanges.keepEditing')}
           </AlertDialogCancel>
+          {showSaveDraft && (
+            <Button variant="secondary" onClick={onSaveDraft}>
+              {t('objects.unsavedChanges.saveDraft')}
+            </Button>
+          )}
           <Button variant="destructive" onClick={onDiscard}>
             {t('objects.unsavedChanges.discard')}
           </Button>

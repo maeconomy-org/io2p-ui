@@ -4,7 +4,7 @@ import type { RowSelectionState, VisibilityState } from '@tanstack/react-table'
 
 import { logger } from '@/lib'
 import { ViewData } from '@/hooks'
-import { ObjectsTable } from '@/components/tables'
+import { ObjectsTable, type DraftTableRow } from '@/components/tables'
 import { ViewType } from '@/components/view-selector'
 import { ObjectColumnsView } from '@/components/object-columns-view'
 
@@ -26,6 +26,10 @@ interface ObjectViewContainerProps {
   onPageSizeChange?: (size: number) => void
   // Read-only mode (hides edit/delete actions when user lacks GROUP_WRITE_RECORDS)
   readOnly?: boolean
+  // Drafts (UI-only, only passed when caller wants pinned rows on this view)
+  draftRows?: DraftTableRow[]
+  onOpenDraft?: (id: string) => void
+  onDiscardDraft?: (id: string) => void
 }
 
 export function ObjectViewContainer({
@@ -42,6 +46,9 @@ export function ObjectViewContainer({
   onColumnVisibilityChange,
   onPageSizeChange,
   readOnly = false,
+  draftRows,
+  onOpenDraft,
+  onDiscardDraft,
 }: ObjectViewContainerProps) {
   const tableProps = {
     rowSelection,
@@ -102,6 +109,9 @@ export function ObjectViewContainer({
           onPreviousPage={viewData.pagination.handlePrevious}
           onNextPage={viewData.pagination.handleNext}
           onLastPage={viewData.pagination.handleLast}
+          draftRows={draftRows}
+          onOpenDraft={onOpenDraft}
+          onDiscardDraft={onDiscardDraft}
           {...tableProps}
         />
       )

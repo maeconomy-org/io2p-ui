@@ -508,14 +508,25 @@
     "unsavedChanges": {
       "title": "Unsaved Changes",
       "description": "You have entered data that hasn't been saved yet. Would you like to continue editing or discard your changes?",
+      "descriptionWithDraft": "You have unsaved changes. Save them as a draft to resume later, discard them, or keep editing.",
       "keepEditing": "Continue Editing",
-      "discard": "Discard Changes"
+      "discard": "Discard Changes",
+      "saveDraft": "Save as Draft"
     },
-    "restoreDraft": {
-      "title": "Unfinished Object Creation",
-      "description": "You have previously entered data for creating an object. Would you like to continue where you left off or start fresh?",
-      "continueEditing": "Continue Editing",
-      "startFresh": "Start Fresh"
+    "drafts": {
+      "badge": "Draft",
+      "untitled": "Untitled draft",
+      "hideDraftsLabel": "Hide drafts",
+      "actions": {
+        "open": "Open",
+        "discard": "Discard",
+        "more": "More draft actions"
+      },
+      "discardConfirm": {
+        "title": "Discard draft?",
+        "description": "This will permanently remove the draft. This action cannot be undone.",
+        "confirm": "Discard"
+      }
     },
     "addTitle": "Add Object",
     "addDescription": "Create a new object by filling in the details below",
