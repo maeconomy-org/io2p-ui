@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { X, Loader2, ChevronsUpDown, Users, Check } from 'lucide-react'
+import { X, Loader2, ChevronsUpDown, Users, Check, Plus } from 'lucide-react'
 
 import { logger } from '@/lib'
 import {
@@ -18,10 +18,14 @@ import {
   CommandGroup,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '@/components/ui'
-import { cn, truncateText } from '@/lib/utils'
+import { cn, truncateText, isDraftRef } from '@/lib/utils'
 import { useCommonApi } from '@/hooks/api'
 import type { ParentObject } from '@/types'
+
+import { objectDraftsStore } from '../hooks/use-object-drafts'
+import { DraftBadge } from './draft-badge'
 
 const EMPTY_PARENT_UUIDS: string[] = []
 
@@ -37,6 +41,14 @@ interface ParentSelectorProps {
   compact?: boolean
   /** Custom trigger content for compact mode */
   triggerContent?: React.ReactNode
+  /**
+   * When true (default), the popover shows a "+ Create new parent" action that
+   * fires `onCreateInline`. The host sheet handles opening a nested
+   * ObjectAddSheet. Nested sheets pass `false` to enforce the depth=1 invariant.
+   */
+  allowInlineCreate?: boolean
+  /** Fires when the user clicks "+ Create new parent". */
+  onCreateInline?: () => void
 }
 
 export function ParentSelector({
@@ -49,6 +61,8 @@ export function ParentSelector({
   dataTour,
   compact = false,
   triggerContent,
+  allowInlineCreate = true,
+  onCreateInline,
 }: ParentSelectorProps) {
   const t = useTranslations()
   const [isOpen, setIsOpen] = useState(false)
@@ -300,6 +314,26 @@ export function ParentSelector({
                   )
                 })}
               </CommandGroup>
+              {allowInlineCreate && !disabled && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup>
+                    <CommandItem
+                      value="__create_new_parent__"
+                      onSelect={() => {
+                        setIsOpen(false)
+                        onCreateInline?.()
+                      }}
+                      className="cursor-pointer flex items-center gap-2 text-primary"
+                    >
+                      <Plus className="h-4 w-4 shrink-0" />
+                      <span className="font-medium">
+                        {t('objects.parentSelector.createNew')}
+                      </span>
+                    </CommandItem>
+                  </CommandGroup>
+                </>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
@@ -309,23 +343,28 @@ export function ParentSelector({
       {!compact && selectedParents.length > 0 && (
         <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-md">
           {selectedParents.map((parent) => {
-            // Try to find the name from search results, fallback to stored name or UUID
+            const isDraft = isDraftRef(parent.uuid)
+            const draftPayload = isDraft
+              ? objectDraftsStore.get<{ name?: string }>(parent.uuid)
+              : null
             const searchResult = searchResults.find(
               (obj) => obj.uuid === parent.uuid
             )
-            const displayName =
-              searchResult?.name ||
-              parent.name ||
-              `${parent.uuid.slice(0, 8)}...`
+            const displayName = isDraft
+              ? draftPayload?.name || t('objects.drafts.untitled')
+              : searchResult?.name ||
+                parent.name ||
+                `${parent.uuid.slice(0, 8)}...`
 
             return (
               <Badge
                 key={parent.uuid}
                 variant="secondary"
                 className="flex items-center gap-1 pr-1"
-                title={parent.uuid} // Show full UUID on hover
+                title={parent.uuid}
               >
                 <span className="truncate max-w-32">{displayName}</span>
+                {isDraft && <DraftBadge />}
                 {!disabled && (
                   <Button
                     variant="ghost"

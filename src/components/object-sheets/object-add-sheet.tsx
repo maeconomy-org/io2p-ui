@@ -5,8 +5,11 @@ import { useTranslations } from 'next-intl'
 import { Plus } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useFieldArray } from 'react-hook-form'
+import { toast } from 'sonner'
 import * as z from 'zod'
 
+import { isDraftRef } from '@/lib/utils'
+import { logger } from '@/lib'
 import {
   Input,
   Form,
@@ -41,7 +44,12 @@ import {
   useObjectDrafts,
   useFormDraftPersistence,
 } from './hooks'
-import { createEmptyProperty } from './utils'
+import { objectDraftsStore } from './hooks/use-object-drafts'
+import {
+  createEmptyProperty,
+  resolveDraftParents,
+  type ResolveDraftParentsError,
+} from './utils'
 
 interface ObjectAddSheetProps {
   isOpen: boolean
@@ -50,6 +58,16 @@ interface ObjectAddSheetProps {
   defaultParentUuids?: string[]
   /** When provided, the sheet opens with this draft loaded. */
   draftId?: string | null
+  /**
+   * When false, hides the "+ Create new parent" affordance in the parent
+   * picker and disables nested sheet rendering. Used to enforce the
+   * depth=1 invariant — a nested sheet must not itself nest.
+   */
+  allowInlineParent?: boolean
+  /** Fires when this sheet successfully creates an object (real UUID). */
+  onCreated?: (uuid: string) => void
+  /** Fires when this sheet's content was persisted as a draft instead. */
+  onSavedAsDraft?: (draftId: string) => void
 }
 
 export function ObjectAddSheet({
@@ -58,6 +76,9 @@ export function ObjectAddSheet({
   onSave,
   defaultParentUuids,
   draftId = null,
+  allowInlineParent = true,
+  onCreated,
+  onSavedAsDraft,
 }: ObjectAddSheetProps) {
   const t = useTranslations()
   const { createObject, isCreating } = useObjectOperations({
@@ -169,29 +190,32 @@ export function ObjectAddSheet({
     return result
   }, [propertiesKey, watchedProperties])
 
-  // Drafts are only persisted for the standalone "Create Object" flow.
-  // The "Add Child" flow (defaultParentUuids set) keeps the legacy
-  // unsaved-changes dialog instead, since draft rows on /objects would lose
-  // the child→parent relationship context.
-  const isDraftEnabled = !defaultParentUuids || defaultParentUuids.length === 0
-
   const { createDraftId, getDraft, deleteDraft } = useObjectDrafts()
 
   const { activeDraftId, clearDraft, pauseSaving, forceSaveDraft } =
     useFormDraftPersistence({
       form: form as any,
-      draftId: isDraftEnabled ? draftId : null,
-      isActive: isOpen && isDraftEnabled,
+      draftId,
+      isActive: isOpen,
       defaultValues: defaultFormValues as any,
       excludeFields: ['files'],
       onAllocateId: createDraftId,
       getDraftName: (v: any) => v?.name || '',
     })
 
+  // Nested inline-parent sheet state (depth=1 invariant).
+  const [inlineParentSheetOpen, setInlineParentSheetOpen] = useState(false)
+
+  // Per-step submit progress when committing draft parents (>1).
+  const [submitProgress, setSubmitProgress] = useState<{
+    current: number
+    total: number
+  } | null>(null)
+
   // Reset form when sheet opens — load draft if a draftId is provided.
   useEffect(() => {
     if (!isOpen) return
-    if (isDraftEnabled && draftId) {
+    if (draftId) {
       const stored = getDraft<typeof defaultFormValues>(draftId)
       if (stored) {
         form.reset({ ...defaultFormValues, ...stored } as any)
@@ -201,7 +225,7 @@ export function ObjectAddSheet({
     }
     form.reset(defaultFormValues as any)
     setSelectedModel(null)
-  }, [isOpen, draftId, isDraftEnabled, form, defaultFormValues, getDraft])
+  }, [isOpen, draftId, form, defaultFormValues, getDraft])
 
   // Handle model selection and populate form with template data
   const handleModelSelect = (model: ModelOption | null) => {
@@ -246,10 +270,48 @@ export function ObjectAddSheet({
   }
 
   const handleSubmit = async (values: ObjectFormValues) => {
-    const success = await createObject(values)
+    let resolvedParents: string[] = (values.parents || []).filter(
+      (p): p is string => !!p
+    )
+    const hasDraftParents = resolvedParents.some(isDraftRef)
 
-    if (success) {
-      if (isDraftEnabled) clearDraft()
+    if (hasDraftParents) {
+      try {
+        resolvedParents = await resolveDraftParents(
+          resolvedParents,
+          async (payload) => {
+            const result = await createObject(payload as any)
+            return { success: result.success, uuid: result.uuid }
+          },
+          (current, total) => {
+            if (total > 1) setSubmitProgress({ current, total })
+          }
+        )
+        // Sync resolver output back into the form so the next createObject
+        // call (the actual child) sees real UUIDs, not draft refs.
+        form.setValue('parents', resolvedParents, { shouldDirty: false })
+      } catch (err) {
+        const e = err as ResolveDraftParentsError
+        const draftPayload = objectDraftsStore.get<{ name?: string }>(
+          e?.failedDraftId || ''
+        )
+        const failedName = draftPayload?.name || t('objects.drafts.untitled')
+        toast.error(t('objects.parentCreationFailed', { name: failedName }))
+        logger.error('Inline parent commit failed', e)
+        setSubmitProgress(null)
+        return
+      }
+    }
+
+    const result = await createObject({
+      ...values,
+      parents: resolvedParents,
+    } as any)
+    setSubmitProgress(null)
+
+    if (result.success) {
+      clearDraft()
+      if (result.uuid) onCreated?.(result.uuid)
       onClose()
       form.reset()
     }
@@ -279,19 +341,20 @@ export function ObjectAddSheet({
   const handleDiscardChanges = useCallback(() => {
     setShowUnsavedDialog(false)
     pauseSaving()
-    if (isDraftEnabled && activeDraftId) {
+    if (activeDraftId) {
       deleteDraft(activeDraftId)
     }
     form.reset()
     onClose()
-  }, [pauseSaving, isDraftEnabled, activeDraftId, deleteDraft, form, onClose])
+  }, [pauseSaving, activeDraftId, deleteDraft, form, onClose])
 
   const handleSaveAsDraft = useCallback(() => {
     setShowUnsavedDialog(false)
-    forceSaveDraft()
+    const savedId = forceSaveDraft()
     pauseSaving()
+    if (savedId) onSavedAsDraft?.(savedId)
     onClose()
-  }, [forceSaveDraft, pauseSaving, onClose])
+  }, [forceSaveDraft, pauseSaving, onSavedAsDraft, onClose])
 
   const handleKeepEditing = useCallback(() => {
     setShowUnsavedDialog(false)
@@ -338,6 +401,8 @@ export function ObjectAddSheet({
                     placeholder={t('objects.parentSearch')}
                     maxSelections={10}
                     dataTour="object-parents"
+                    allowInlineCreate={allowInlineParent}
+                    onCreateInline={() => setInlineParentSheetOpen(true)}
                   />
 
                   <div className="space-y-2" data-tour="object-metadata">
@@ -579,7 +644,12 @@ export function ObjectAddSheet({
                     {isCreating ? (
                       <>
                         <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
-                        {t('objects.creating')}
+                        {submitProgress
+                          ? t('objects.creatingParents', {
+                              current: submitProgress.current,
+                              total: submitProgress.total,
+                            })
+                          : t('objects.creating')}
                       </>
                     ) : (
                       t('objects.create')
@@ -596,8 +666,26 @@ export function ObjectAddSheet({
         open={showUnsavedDialog}
         onDiscard={handleDiscardChanges}
         onKeepEditing={handleKeepEditing}
-        onSaveDraft={isDraftEnabled ? handleSaveAsDraft : undefined}
+        onSaveDraft={handleSaveAsDraft}
       />
+
+      {allowInlineParent && (
+        <ObjectAddSheet
+          isOpen={inlineParentSheetOpen}
+          onClose={() => setInlineParentSheetOpen(false)}
+          allowInlineParent={false}
+          onCreated={(newUuid) => {
+            const current = form.getValues('parents') || []
+            form.setValue('parents', [...current, newUuid])
+            setInlineParentSheetOpen(false)
+          }}
+          onSavedAsDraft={(newDraftId) => {
+            const current = form.getValues('parents') || []
+            form.setValue('parents', [...current, newDraftId])
+            setInlineParentSheetOpen(false)
+          }}
+        />
+      )}
     </>
   )
 }

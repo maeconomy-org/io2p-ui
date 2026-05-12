@@ -186,6 +186,51 @@ describe('useFormDraftPersistence — id allocation safety', () => {
     expect(objectDraftsStore.read()[0].id).toBe(existingId)
   })
 
+  it('does NOT delete a name-only draft loaded via form.reset (regression: vanishing-on-open bug)', () => {
+    // A name-only draft can only exist via the Save-as-draft escape hatch,
+    // which bypasses the worthiness gate. Re-opening it triggers form.reset,
+    // which in turn fires the watcher with values that ARE dirty vs blank
+    // defaults but NOT worthy. The previous implementation deleted the draft
+    // on that programmatic-reset watcher fire — this test pins the fix.
+    const existingId = 'draft_nameonly'
+    objectDraftsStore.save(existingId, { name: 'just-a-name' }, 'just-a-name')
+
+    const { result } = setupHook(existingId)
+
+    act(() => {
+      result.current.form.reset({ ...blankDefaults, name: 'just-a-name' })
+    })
+
+    // Draft must still exist after the load.
+    expect(objectDraftsStore.read()).toHaveLength(1)
+    expect(
+      localStorage.getItem(`${DRAFT_KEY_PREFIX}${existingId}`)
+    ).not.toBeNull()
+  })
+
+  it('still deletes an under-threshold draft when the user actively edits it down', () => {
+    // Counter-test: the cleanup behavior must still fire for *user* edits, so
+    // a worthy draft that the user empties out doesn't linger as a stale row.
+    const { result } = setupHook()
+
+    act(() => {
+      result.current.form.setValue('properties', [
+        { key: 'k', values: [{ value: 'v' }] },
+      ])
+    })
+    expect(objectDraftsStore.read()).toHaveLength(1)
+    const id = result.current.persistence.activeDraftId
+    expect(id).not.toBeNull()
+
+    act(() => {
+      result.current.form.setValue('properties', [])
+      result.current.form.setValue('name', 'still-only-name')
+    })
+
+    expect(objectDraftsStore.read()).toHaveLength(0)
+    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}${id}`)).toBeNull()
+  })
+
   it('does not save when isActive is false', () => {
     const { result, rerender, allocatedIds } = setupHook()
     rerender({ draftId: null, isActive: false })

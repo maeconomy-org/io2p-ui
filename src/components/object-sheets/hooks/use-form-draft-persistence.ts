@@ -197,15 +197,22 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
   useEffect(() => {
     if (!isActive) return
 
-    const subscription = form.watch(() => {
+    const subscription = form.watch((_values, info) => {
       if (isClearingRef.current) return
       const values = form.getValues()
       if (!isFormDirty(values, defaultValues, excludeFields)) return
 
-      // Below the worthiness threshold: clean up any auto-saved draft so the
-      // table doesn't keep a stale row, then bail.
+      // RHF emits a watcher event without `info.name` for programmatic
+      // form.reset() calls, and with `info.name` set to the changed path for
+      // user-driven setValue / onChange. We only auto-delete an existing
+      // draft in response to *field-level* edits — otherwise a name-only draft
+      // loaded via form.reset(stored) would be wiped on open (it's "dirty vs
+      // blank defaults" but not "worthy" because Save-as-draft bypassed the
+      // gate at save time).
+      const isFieldEdit = !!info?.name
+
       if (!isDraftWorthy(values)) {
-        if (activeIdRef.current) {
+        if (isFieldEdit && activeIdRef.current) {
           objectDraftsStore.delete(activeIdRef.current)
           activeIdRef.current = null
           setActiveIdForReturn(null)

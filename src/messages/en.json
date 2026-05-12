@@ -303,6 +303,8 @@
     "title": "Objects",
     "showDeleted": "Soft Deleted",
     "create": "Create Object",
+    "creatingParents": "Creating parent {current} of {total}…",
+    "parentCreationFailed": "Could not create parent draft \"{name}\". Please retry.",
     "searchResults": "Search Results for: \"{query}\"",
     "results": "{count} result{count, plural, one {} other {s}}",
     "resultsPage": "{count} result{count, plural, one {} other {s}} (page {page} of {pages})",
@@ -678,7 +680,10 @@
       "clearAll": "Clear All",
       "selectedCount": "{count, plural, one {1 parent selected} other {# parents selected}}",
       "maxBadge": "Max",
-      "maxSelections": "Maximum {max} parents can be selected"
+      "maxSelections": "Maximum {max} parents can be selected",
+      "createNew": "Create new parent",
+      "draftParentRemovedTitle": "Parent draft no longer exists",
+      "draftParentRemovedDescription": "The parent draft you referenced was removed in another tab. Please re-pick a parent."
     },
     "columnsView": {
       "noObjects": "No Objects Found",

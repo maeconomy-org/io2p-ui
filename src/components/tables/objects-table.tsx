@@ -2,15 +2,7 @@
 
 import { MouseEvent, useState, useMemo, lazy, Suspense } from 'react'
 import { useTranslations } from 'next-intl'
-import {
-  FileText,
-  Trash2,
-  QrCode,
-  RotateCcw,
-  Copy,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react'
+import { FileText, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type {
   ColumnDef,
@@ -19,16 +11,10 @@ import type {
 } from '@tanstack/react-table'
 
 import {
-  Button,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
   CopyButton,
 } from '@/components/ui'
 import { cn, logger } from '@/lib'
@@ -38,6 +24,7 @@ import {
   CopyObjectsSheet,
   ProductPassportSheet,
 } from '@/components/object-sheets'
+import { DraftBadge } from '@/components/object-sheets/components'
 import { useObjectOperations } from '@/components/object-sheets/hooks/use-object-operations'
 import {
   DeleteConfirmationDialog,
@@ -334,9 +321,7 @@ export function ObjectsTable({
           return (
             <div className="flex items-center font-medium">
               <span className="truncate max-w-[200px]">{displayName}</span>
-              <Badge variant="secondary" className="ml-2 text-[10px] uppercase">
-                {t('objects.drafts.badge')}
-              </Badge>
+              <DraftBadge className="ml-2" />
             </div>
           )
         }

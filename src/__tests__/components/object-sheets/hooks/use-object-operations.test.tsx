@@ -237,16 +237,20 @@ describe('useObjectOperations', () => {
       )
 
       let ok = false
+      let createdUuid: string | undefined
       await act(async () => {
-        ok = await result.current.createObject({
+        const res = await result.current.createObject({
           name: 'X',
           parents: ['p1'],
           properties: [],
           files: [],
         })
+        ok = res.success
+        createdUuid = res.uuid
       })
 
       expect(ok).toBe(true)
+      expect(createdUuid).toBe('new-1')
       expect(importSingleObjectMutate).toHaveBeenCalled()
       // One IS_PARENT_OF + one IS_CHILD_OF per parent
       expect(createStatement).toHaveBeenCalledTimes(2)
@@ -254,7 +258,7 @@ describe('useObjectOperations', () => {
       expect(onRefetch).toHaveBeenCalled()
     })
 
-    it('returns false and does not throw on import failure', async () => {
+    it('returns success=false and does not throw on import failure', async () => {
       importSingleObjectMutate.mockRejectedValue(new Error('api down'))
       const { wrapper } = makeWrapper()
       const { result } = renderHook(
@@ -264,11 +268,12 @@ describe('useObjectOperations', () => {
 
       let ok = true
       await act(async () => {
-        ok = await result.current.createObject({
+        const res = await result.current.createObject({
           name: 'X',
           properties: [],
           files: [],
         })
+        ok = res.success
       })
       expect(ok).toBe(false)
     })

@@ -303,6 +303,8 @@
     "title": "Objecten",
     "showDeleted": "Soft Deleted",
     "create": "Object aanmaken",
+    "creatingParents": "Parent {current} van {total} maken…",
+    "parentCreationFailed": "Kan parent-concept \"{name}\" niet aanmaken. Probeer opnieuw.",
     "searchResults": "Zoekresultaten voor: \"{query}\"",
     "results": "{count} resultaat{count, plural, one {} other {en}}",
     "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",
@@ -637,7 +639,10 @@
       "clearAll": "Alles wissen",
       "selectedCount": "{count, plural, one {1 ouder geselecteerd} other {# ouders geselecteerd}}",
       "maxBadge": "Max",
-      "maxSelections": "Maximaal {max} ouders kunnen worden geselecteerd"
+      "maxSelections": "Maximaal {max} ouders kunnen worden geselecteerd",
+      "createNew": "Nieuwe parent maken",
+      "draftParentRemovedTitle": "Parent-concept bestaat niet meer",
+      "draftParentRemovedDescription": "Het parent-concept waarnaar je verwees is in een ander tabblad verwijderd. Kies opnieuw een parent."
     },
     "attachments": {
       "dragDrop": "Sleep bestanden hierheen of klik om te bladeren",

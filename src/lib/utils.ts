@@ -32,6 +32,10 @@ export function isUUID(value: string): boolean {
   return UUID_REGEX.test(value.trim())
 }
 
+export function isDraftRef(value: string): boolean {
+  return typeof value === 'string' && value.startsWith('draft_')
+}
+
 export function toCapitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }

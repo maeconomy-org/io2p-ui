@@ -225,7 +225,7 @@ export function ObjectModelSheet({
         onOpenChange(false)
       } else {
         // For new templates, use createObject
-        const success = await createObject(values)
+        const { success } = await createObject(values)
         if (success) {
           onOpenChange(false)
           form.reset()

@@ -26,7 +26,7 @@ export interface UseObjectOperationsReturn {
   saveMetadata: () => Promise<void>
   deleteObject: (objectId: string) => Promise<void>
   revertObject: (object: any) => Promise<void>
-  createObject: (object: any) => Promise<boolean>
+  createObject: (object: any) => Promise<{ success: boolean; uuid?: string }>
   hasMetadataChanged: boolean
   isCreating: boolean
   isReverting: boolean
@@ -197,7 +197,9 @@ export function useObjectOperations({
     }
   }
 
-  const createObject = async (object: any): Promise<boolean> => {
+  const createObject = async (
+    object: any
+  ): Promise<{ success: boolean; uuid?: string }> => {
     try {
       // Step 1: Immediate UI feedback and optimistic update
       toast.loading(t('objects.creatingObject'), { id: 'save-object' })
@@ -277,14 +279,14 @@ export function useObjectOperations({
         onRefetch()
       }
 
-      return true
+      return { success: true, uuid: createdObjectUuid ?? undefined }
     } catch (error: any) {
       logger.error('Error creating object:', error)
       toast.error(t('objects.objectCreateFailed'), {
         id: 'save-object',
         description: error.message,
       })
-      return false
+      return { success: false }
     }
   }
 
