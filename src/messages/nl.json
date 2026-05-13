@@ -602,6 +602,9 @@
     "uploadCenterFailedLabel": "Mislukt:",
     "uploadCenterImportant": "Belangrijk:",
     "uploadCenterDoNotReload": "Vernieuw de pagina niet en navigeer er niet weg terwijl bestanden worden geüpload.",
+    "uploadCenterCancel": "Upload annuleren",
+    "uploadCenterRetry": "Upload opnieuw proberen",
+    "uploadCenterCancelling": "Annuleren…",
     "qrCodeTitle": "QR-code voor {name}",
     "qrCodeDescription": "Scan deze code om de objectdetails te openen",
     "qrCodeDownloadPng": "Download PNG",
@@ -648,7 +651,7 @@
     },
     "attachments": {
       "dragDrop": "Sleep bestanden hierheen of klik om te bladeren",
-      "maxSize": "Max {size}MB",
+      "maxSize": "Max {size}",
       "uploading": "Uploaden... ({progress}%)",
       "externalUrl": "Voer externe bestands-URL in",
       "labelOptional": "Label (optioneel)",
@@ -1171,12 +1174,12 @@
       "exceedsLimits": "Overschrijdt limieten",
       "largeImport": "Grote import",
       "fileSize": "Bestandsgrootte",
-      "maxPerFile": "Max {size}MB per bestand",
+      "maxPerFile": "Max {size} per bestand",
       "fileSizeHint": "Splits grote bestanden indien nodig",
       "importSize": "Importgrootte",
-      "maxPerImport": "Max {size}MB per import",
+      "maxPerImport": "Max {size} per import",
       "importSizeHint": "Totale payload-groottelimiet",
-      "currentSize": "Huidig: {size}MB",
+      "currentSize": "Huidig: {size}",
       "objectCount": "Aantal objecten",
       "maxObjects": "Max {count} objecten",
       "objectCountHint": "Per enkele importbewerking",
@@ -1199,7 +1202,7 @@
         "chunkedUpload": "Gebruik chunked upload voor zeer grote bestanden"
       },
       "mailSubject": "{acronym} Grote import aanvraag",
-      "mailBody": "Hallo,\n\nIk wil graag hulp vragen bij een grote import.\n\nHuidige importdetails:\n- Objecten: {currentObjectCount}\n- Grootte: {currentSizeMB}MB\n\nHuidige limieten:\n- Max objecten: {maxObjectsPerImport}\n- Max bestandsgrootte: {maxFileSizeMB}MB\n- Max importgrootte: {maxImportPayloadMB}MB\n\nGraag advies over de beste aanpak.\n\nBedankt."
+      "mailBody": "Hallo,\n\nIk wil graag hulp vragen bij een grote import.\n\nHuidige importdetails:\n- Objecten: {currentObjectCount}\n- Grootte: {currentSizeMB}MB\n\nHuidige limieten:\n- Max objecten: {maxObjectsPerImport}\n- Max bestandsgrootte: {maxImportFileSizeMB}MB\n- Max importgrootte: {maxImportPayloadMB}MB\n\nGraag advies over de beste aanpak.\n\nBedankt."
     },
     "toasts": {
       "largeDataset": "Grote dataset gedetecteerd (geschat {size}MB). Geoptimaliseerde upload gebruiken.",

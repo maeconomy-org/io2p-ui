@@ -128,6 +128,17 @@ export const queryKeys = {
       ['users', 'findByIdentifier', identifier] as const,
   },
 
+  // ─── Files (presigned URLs) ──────────────────────────────
+  // Short-lived presigned URLs from the file-storage service. Stale time is
+  // set on the hooks to refetch before backend TTL expiry.
+  files: {
+    all: ['files'] as const,
+    previewUrl: (uuid: string) =>
+      [...queryKeys.files.all, 'previewUrl', uuid] as const,
+    downloadUrl: (uuid: string) =>
+      [...queryKeys.files.all, 'downloadUrl', uuid] as const,
+  },
+
   // ─── Formulas ────────────────────────────────────────────
   formulas: {
     all: ['formulas'] as const,

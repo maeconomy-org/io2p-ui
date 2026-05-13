@@ -10,7 +10,11 @@ export const IMPORT_COLUMN_MAPPING_KEY = 'import_column_mapping'
 export const IMPORT_MAPPING_TEMPLATES_KEY = 'import_mapping_templates'
 
 // File processing limits
-export const MAX_FILE_SIZE_MB = 100 // Max file size in MB
+// Import path: the file is parsed into memory (xlsx/csv), so this cap protects
+// the Node process from OOM. Attachment path: the bytes stream through S3 in
+// 8 MB parts and never sit in memory whole, so the cap is much higher.
+export const MAX_IMPORT_FILE_SIZE_MB = 100
+export const MAX_ATTACHMENT_SIZE_MB = 1024
 export const STREAM_CHUNK_SIZE = 2 * 1024 * 1024 // 2MB chunks for file streaming
 export const IMPORT_CHUNK_SIZE = 500 // Process objects at a time (UI chunking)
 export const API_CHUNK_SIZE = 100 // API storage chunk size (server-side)

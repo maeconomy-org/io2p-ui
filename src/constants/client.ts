@@ -36,9 +36,12 @@ export interface ClientConfig {
   supportEmail: string
 
   // Import limits
-  maxFileSizeMB: number
+  maxImportFileSizeMB: number
   maxImportPayloadMB: number
   maxObjectsPerImport: number
+
+  // Attachment upload cap (S3-streamed)
+  maxAttachmentSizeMB: number
 }
 
 // Default values (fallback if config API fails)
@@ -55,9 +58,10 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   appAcronym: 'IoM',
   contactUrl: 'https://example.com/contact',
   supportEmail: 'support@internetofmaterials.com',
-  maxFileSizeMB: 100,
+  maxImportFileSizeMB: 100,
   maxImportPayloadMB: 100,
   maxObjectsPerImport: 50000,
+  maxAttachmentSizeMB: 1024,
 }
 
 /**
@@ -97,11 +101,12 @@ export function buildRuntimeConfig(): ClientConfig {
     appAcronym: process.env.APP_ACRONYM || 'IoM',
     contactUrl: process.env.CONTACT_URL || 'https://example.com/contact',
     supportEmail: process.env.SUPPORT_EMAIL || 'support@maeconomy.org',
-    maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '100'),
+    maxImportFileSizeMB: parseInt(process.env.MAX_IMPORT_FILE_SIZE_MB || '100'),
     maxImportPayloadMB: parseInt(process.env.MAX_IMPORT_PAYLOAD_MB || '100'),
     maxObjectsPerImport: parseInt(
       process.env.MAX_OBJECTS_PER_IMPORT || '50000'
     ),
+    maxAttachmentSizeMB: parseInt(process.env.MAX_ATTACHMENT_SIZE_MB || '1024'),
   }
 }
 

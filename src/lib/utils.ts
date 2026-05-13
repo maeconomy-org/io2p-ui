@@ -14,6 +14,15 @@ export function generateUUIDv7(): string {
   return uuidv7()
 }
 
+export function formatSizeMB(mb: number): string {
+  if (!Number.isFinite(mb) || mb <= 0) return '0 MB'
+  if (mb >= 1024) {
+    const gb = mb / 1024
+    return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`
+  }
+  return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`
+}
+
 export const formatFingerprint = (fingerprint: string) => {
   if (!fingerprint) return ''
   return fingerprint.length > 24

@@ -1,6 +1,6 @@
 import { PencilIcon, TrashIcon, FunctionSquare } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import type { UUMathFormulaDTO } from 'iom-sdk'
+import type { UUMathFormula, UUMathFormulaDTO } from 'iom-sdk'
 
 import {
   Table,
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui'
 
 interface FormulasTableProps {
-  formulas: UUMathFormulaDTO[]
+  formulas: UUMathFormula[]
   onEdit: (formula: UUMathFormulaDTO) => void
   onDelete: (formula: { uuid: string; name: string }) => void
   loading?: boolean
@@ -116,7 +116,7 @@ export function FormulasTable({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onEdit(formula)}
+                        onClick={() => onEdit(formula as UUMathFormulaDTO)}
                       >
                         <PencilIcon className="h-4 w-4" />
                       </Button>
@@ -126,7 +126,7 @@ export function FormulasTable({
                         onClick={() =>
                           onDelete({
                             uuid: formula.uuid,
-                            name: formula.name,
+                            name: formula.name ?? '',
                           })
                         }
                       >

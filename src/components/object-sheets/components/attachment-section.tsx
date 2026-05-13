@@ -6,8 +6,10 @@ import { useTranslations } from 'next-intl'
 
 import type { Attachment } from '@/types'
 import { FileDropzone, Button, Input, Separator } from '@/components/ui'
+import { useAppConfig } from '@/contexts'
+import { formatSizeMB } from '@/lib/utils'
 
-import { getMaxUploadSizeMB, isOversize } from '../utils'
+import { isOversize } from '../utils'
 import { AttachmentList } from './attachment-list'
 
 type AttachmentSectionProps = {
@@ -29,6 +31,7 @@ export function AttachmentSection({
   hideExisting = false,
 }: AttachmentSectionProps) {
   const t = useTranslations()
+  const { maxAttachmentSizeMB } = useAppConfig()
   const [referenceUrl, setReferenceUrl] = useState('')
   const [referenceLabel, setReferenceLabel] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -57,7 +60,7 @@ export function AttachmentSection({
   const handleDrop = (files: File[]) => {
     if (!allowUpload || disabled) return
     setError(null)
-    const maxMB = getMaxUploadSizeMB()
+    const maxMB = maxAttachmentSizeMB
 
     const accepted: Attachment[] = []
     for (const file of files) {
@@ -129,7 +132,9 @@ export function AttachmentSection({
             <Upload className="h-5 w-5 mb-2" />
             <p className="text-sm">{t('objects.attachments.dragDrop')}</p>
             <p className="text-sm font-semibold">
-              {t('objects.attachments.maxSize', { size: getMaxUploadSizeMB() })}
+              {t('objects.attachments.maxSize', {
+                size: formatSizeMB(maxAttachmentSizeMB),
+              })}
             </p>
           </div>
         </FileDropzone>

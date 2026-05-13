@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 
 import { logger } from '@/lib'
-import { MAX_FILE_SIZE_MB, STREAM_CHUNK_SIZE } from '@/constants'
+import { MAX_IMPORT_FILE_SIZE_MB, STREAM_CHUNK_SIZE } from '@/constants'
 
 export interface SheetData {
   name: string
@@ -28,7 +28,7 @@ export interface UseFileProcessorResult {
  */
 export function useFileProcessor({
   onProgress,
-  maxSizeInMB = MAX_FILE_SIZE_MB,
+  maxSizeInMB = MAX_IMPORT_FILE_SIZE_MB,
   streamChunkSize = STREAM_CHUNK_SIZE, // Use imported constants for default values
 }: UseFileProcessorProps = {}): UseFileProcessorResult {
   const [isProcessing, setIsProcessing] = useState<boolean>(false)

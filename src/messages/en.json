@@ -455,7 +455,7 @@
     "addAnotherValue": "Add Another Value",
     "attachments": {
       "dragDrop": "Drag and drop files here, or click to browse",
-      "maxSize": "Max {size}MB",
+      "maxSize": "Max {size}",
       "uploading": "Uploading... ({progress}%)",
       "externalUrl": "Enter external file URL",
       "labelOptional": "Label (optional)",
@@ -627,6 +627,9 @@
     "uploadCenterFailedLabel": "Failed:",
     "uploadCenterImportant": "Important:",
     "uploadCenterDoNotReload": "Do not reload or navigate away from this page while files are uploading.",
+    "uploadCenterCancel": "Cancel upload",
+    "uploadCenterRetry": "Retry upload",
+    "uploadCenterCancelling": "Cancelling…",
     "qrCodeTitle": "QR Code for {name}",
     "qrCodeDescription": "Scan this code to access the object details",
     "qrCodeDownloadPng": "Download PNG",
@@ -1144,12 +1147,12 @@
       "exceedsLimits": "Exceeds Limits",
       "largeImport": "Large Import",
       "fileSize": "File Size",
-      "maxPerFile": "Max {size}MB per file",
+      "maxPerFile": "Max {size} per file",
       "fileSizeHint": "Split large files if needed",
       "importSize": "Import Size",
-      "maxPerImport": "Max {size}MB per import",
+      "maxPerImport": "Max {size} per import",
       "importSizeHint": "Total payload size limit",
-      "currentSize": "Current: {size}MB",
+      "currentSize": "Current: {size}",
       "objectCount": "Object Count",
       "maxObjects": "Max {count} objects",
       "objectCountHint": "Per single import operation",
@@ -1172,7 +1175,7 @@
         "chunkedUpload": "Use chunked upload for very large files"
       },
       "mailSubject": "{acronym} Large Import Request",
-      "mailBody": "Hello,\n\nI would like to request assistance with a large import.\n\nCurrent import details:\n- Objects: {currentObjectCount}\n- Size: {currentSizeMB}MB\n\nCurrent limits:\n- Max objects: {maxObjectsPerImport}\n- Max file size: {maxFileSizeMB}MB\n- Max import size: {maxImportPayloadMB}MB\n\nPlease advise on the best approach.\n\nThank you."
+      "mailBody": "Hello,\n\nI would like to request assistance with a large import.\n\nCurrent import details:\n- Objects: {currentObjectCount}\n- Size: {currentSizeMB}MB\n\nCurrent limits:\n- Max objects: {maxObjectsPerImport}\n- Max file size: {maxImportFileSizeMB}MB\n- Max import size: {maxImportPayloadMB}MB\n\nPlease advise on the best approach.\n\nThank you."
     },
     "sheet": {
       "select": "Select Sheet",

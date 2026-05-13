@@ -10,6 +10,7 @@ import {
   Button,
 } from '@/components/ui'
 import { useAppConfig } from '@/contexts'
+import { formatSizeMB } from '@/lib/utils'
 
 interface ImportLimitsInfoProps {
   currentObjectCount?: number
@@ -42,7 +43,7 @@ export function ImportLimitsInfo({
         currentObjectCount: currentObjectCount.toLocaleString(),
         currentSizeMB: currentSizeMB.toFixed(2),
         maxObjectsPerImport: config.maxObjectsPerImport.toLocaleString(),
-        maxFileSizeMB: config.maxFileSizeMB,
+        maxImportFileSizeMB: config.maxImportFileSizeMB,
         maxImportPayloadMB: config.maxImportPayloadMB,
       })
     )
@@ -78,7 +79,9 @@ export function ImportLimitsInfo({
             <div className="space-y-1">
               <div className="font-medium">{t('import.limits.fileSize')}</div>
               <div className="text-muted-foreground">
-                {t('import.limits.maxPerFile', { size: config.maxFileSizeMB })}
+                {t('import.limits.maxPerFile', {
+                  size: formatSizeMB(config.maxImportFileSizeMB),
+                })}
               </div>
               <div className="text-xs text-muted-foreground">
                 {t('import.limits.fileSizeHint')}
@@ -89,7 +92,7 @@ export function ImportLimitsInfo({
               <div className="font-medium">{t('import.limits.importSize')}</div>
               <div className="text-muted-foreground">
                 {t('import.limits.maxPerImport', {
-                  size: config.maxImportPayloadMB,
+                  size: formatSizeMB(config.maxImportPayloadMB),
                 })}
               </div>
               <div className="text-xs text-muted-foreground">
@@ -100,7 +103,7 @@ export function ImportLimitsInfo({
                   className={`text-xs ${isOversized ? 'text-orange-600' : 'text-green-600'}`}
                 >
                   {t('import.limits.currentSize', {
-                    size: currentSizeMB.toFixed(2),
+                    size: formatSizeMB(currentSizeMB),
                   })}
                 </div>
               )}

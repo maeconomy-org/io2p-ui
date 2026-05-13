@@ -43,7 +43,7 @@ import type { FileData } from '@/types'
 import { downloadFileToClient } from './download-file'
 import { ImageViewer } from './image-viewer'
 import { UnsupportedFallback } from './unsupported-fallback'
-import { useFileBlobUrl } from './use-file-blob-url'
+import { useFilePreviewUrl } from './use-file-preview-url'
 import { isExternalFileReference } from '@/components/object-sheets/utils'
 
 const MediaViewer = dynamic(
@@ -112,18 +112,16 @@ export function AttachmentPreview({
 
   const mime = current ? detectMimeType(current) : 'application/octet-stream'
   const kind: PreviewKind = detectPreviewKind(mime)
-  // Internal files are fetched by uuid via POST /api/UUFile/find. External
-  // references are rendered directly from their URL and don't need a blob.
   const isExternal = current
     ? isExternalFileReference(current.fileReference)
     : false
-  const uuid = current && !isExternal ? (current.uuid ?? null) : null
-  const needsBlob = isSupportedKind(kind) && !!uuid
 
-  const { url, isLoading, error } = useFileBlobUrl(
-    needsBlob ? uuid : null,
-    mime,
-    open && needsBlob
+  // The hook returns the presigned URL (or external-ref URL) directly — viewers
+  // consume it as a plain `src`, so video can stream + range-fetch instead of
+  // buffering the whole file into memory via createObjectURL.
+  const { url, isLoading, error } = useFilePreviewUrl(
+    current,
+    open && isSupportedKind(kind)
   )
 
   // Reset zoom/rotation when the current file changes.
@@ -194,12 +192,11 @@ export function AttachmentPreview({
       window.open(current.fileReference, '_blank', 'noopener,noreferrer')
       return
     }
-    if (!current.uuid) return
+    if (!current.fileReference) return
     try {
       await downloadFileToClient(
         client,
-        current.uuid,
-        mime,
+        current.fileReference,
         getDisplayName(current)
       )
     } catch (err) {

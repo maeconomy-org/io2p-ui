@@ -9,8 +9,7 @@ vi.mock('next-intl', () => ({
     params ? `${key}:${JSON.stringify(params)}` : key,
 }))
 
-const getFileContent = vi.fn(async () => 'AAAA')
-const sdkClient = { node: { getFileContent } }
+const sdkClient = { fileStorage: { getDownloadUrl: vi.fn() } }
 
 vi.mock('@/contexts', () => ({
   useIomSdkClient: () => sdkClient,
@@ -23,6 +22,18 @@ vi.mock('@/lib', async () => {
     logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
   }
 })
+
+// The hook now returns a string URL straight from the file-storage SDK; the
+// viewer components consume it as a plain `src`. Mock it so the dialog
+// renders without spinning up React Query.
+vi.mock('@/components/attachments/use-file-preview-url', () => ({
+  useFilePreviewUrl: (file: FileData | null) => ({
+    url: file ? `https://s3.example/${file.uuid}?X-Amz-Signature=sig` : null,
+    expiresAt: '2030-01-01T00:00:00Z',
+    isLoading: false,
+    error: null,
+  }),
+}))
 
 // Replace the lazy-loaded viewers with cheap stubs so we don't need to wait
 // for Next's dynamic() machinery in a jsdom unit test.
@@ -46,14 +57,12 @@ vi.mock('@/components/attachments/download-file', () => ({
 
 import { downloadFileToClient } from '@/components/attachments/download-file'
 
-// Silence the blob-URL side effects used by the internal useFileBlobUrl hook.
-const createObjectURL = vi.fn(() => 'blob:stub')
-const revokeObjectURL = vi.fn()
-
 function file(partial: Partial<FileData> & { uuid: string }): FileData {
   return {
     fileName: `${partial.uuid}.png`,
-    fileReference: `/api/UUFile/${partial.uuid}/download`,
+    // S3-backed files always carry a non-empty fileReference (storage UUID).
+    // Default it to `storage-${uuid}` so the read path treats this as internal.
+    fileReference: `storage-${partial.uuid}`,
     contentType: 'image/png',
     ...partial,
   }
@@ -61,14 +70,6 @@ function file(partial: Partial<FileData> & { uuid: string }): FileData {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  Object.defineProperty(global.URL, 'createObjectURL', {
-    value: createObjectURL,
-    configurable: true,
-  })
-  Object.defineProperty(global.URL, 'revokeObjectURL', {
-    value: revokeObjectURL,
-    configurable: true,
-  })
 })
 
 describe('AttachmentPreview', () => {
@@ -87,13 +88,25 @@ describe('AttachmentPreview', () => {
         onOpenChange={() => {}}
       />
     )
-    // Name is rendered both in the visually hidden DialogTitle and in the
-    // visible toolbar, so we query all and assert at least one.
     const hits = await screen.findAllByText('hello.png')
     expect(hits.length).toBeGreaterThan(0)
   })
 
-  it('routes a pdf file to the PdfViewer once the blob URL resolves', async () => {
+  it('passes the presigned URL into the image viewer as src', async () => {
+    render(
+      <AttachmentPreview
+        file={file({ uuid: 'img1', fileName: 'photo.png' })}
+        open
+        onOpenChange={() => {}}
+      />
+    )
+    const img = await screen.findByAltText('photo.png')
+    expect(img.getAttribute('src')).toBe(
+      'https://s3.example/img1?X-Amz-Signature=sig'
+    )
+  })
+
+  it('routes a pdf file to the PdfViewer', async () => {
     render(
       <AttachmentPreview
         file={file({
@@ -123,7 +136,7 @@ describe('AttachmentPreview', () => {
     expect(await screen.findByTestId('media-viewer-video')).toBeInTheDocument()
   })
 
-  it('calls downloadFileToClient with the current uuid + mime + filename', async () => {
+  it('calls downloadFileToClient with uuid + filename', async () => {
     render(
       <AttachmentPreview
         file={file({ uuid: 'a', fileName: 'hello.png' })}
@@ -140,9 +153,8 @@ describe('AttachmentPreview', () => {
     expect(downloadFileToClient).toHaveBeenCalledTimes(1)
     const call = (downloadFileToClient as unknown as ReturnType<typeof vi.fn>)
       .mock.calls[0]
-    expect(call[1]).toBe('a')
-    expect(call[2]).toBe('image/png')
-    expect(call[3]).toBe('hello.png')
+    expect(call[1]).toBe('storage-a')
+    expect(call[2]).toBe('hello.png')
   })
 
   it('shows the sibling counter and navigates with the Next button', async () => {
@@ -193,8 +205,6 @@ describe('AttachmentPreview', () => {
       'attachments.preview.counter:{"current":2,"total":2}'
     )
 
-    // Keydown is scoped to the dialog (was a window listener; that hijacked
-    // +/-/r/0 from inputs elsewhere on the page).
     const dialog = screen.getByTestId('attachment-preview-dialog')
     await act(async () => {
       fireEvent.keyDown(dialog, { key: 'ArrowRight' })

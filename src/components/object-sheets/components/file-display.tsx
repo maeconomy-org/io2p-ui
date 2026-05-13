@@ -1,10 +1,11 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useCallback, useRef, useState } from 'react'
 import type { MouseEvent, ReactElement } from 'react'
 import dynamic from 'next/dynamic'
 import { Download, Link as LinkIcon, Trash2, Eye } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
@@ -26,6 +27,7 @@ import type { FileData } from '@/types'
 import { detectMimeType, detectPreviewKind, logger, truncateText } from '@/lib'
 import { useIomSdkClient } from '@/contexts'
 import { downloadFileToClient } from '@/components/attachments'
+import { queryKeys } from '@/lib/query-keys'
 
 const AttachmentPreview = dynamic(
   () => import('@/components/attachments').then((m) => m.AttachmentPreview),
@@ -113,18 +115,15 @@ async function handleFileOpen(
     return
   }
 
-  if (!file.uuid) {
-    logger.error('Internal file has no uuid to fetch content', { file })
+  if (!file.fileReference) {
+    logger.error('Internal file has no fileReference to fetch content', {
+      file,
+    })
     return
   }
 
   try {
-    await downloadFileToClient(
-      client,
-      file.uuid,
-      file.contentType || 'application/octet-stream',
-      getDisplayName(file)
-    )
+    await downloadFileToClient(client, file.fileReference, getDisplayName(file))
   } catch (error) {
     logger.error('Failed to open file', { error })
     onError(error)
@@ -141,6 +140,7 @@ export const FileDisplay = memo(function FileDisplay({
 }: FileDisplayProps) {
   const t = useTranslations()
   const client = useIomSdkClient()
+  const queryClient = useQueryClient()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const icon = getFileIcon(file)
   const typeBadge = getFileTypeBadge(file)
@@ -149,6 +149,25 @@ export const FileDisplay = memo(function FileDisplay({
   const canPreview = isPreviewableFile(file)
   const { useSoftDeleteFile } = useFilesApi()
   const softDeleteFile = useSoftDeleteFile()
+
+  // Prefetch the presigned preview URL on hover/focus so click feels instant.
+  // Bubble-up hover events fire on every child re-enter; the ref guard
+  // ensures we only fire the prefetch once per hover-entry of the card.
+  const prefetchedRef = useRef<string | null>(null)
+  const handlePrefetch = useCallback(() => {
+    if (!canPreview || !file.fileReference) return
+    if (isExternalFileReference(file.fileReference)) return
+    if (prefetchedRef.current === file.fileReference) return
+    prefetchedRef.current = file.fileReference
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.files.previewUrl(file.fileReference),
+      queryFn: ({ signal }) =>
+        client.fileStorage.getPreviewUrl(file.fileReference, { signal }),
+    })
+  }, [canPreview, file.fileReference, queryClient, client])
+  const handlePrefetchLeave = useCallback(() => {
+    prefetchedRef.current = null
+  }, [])
 
   const handleClick = () => {
     if (onClick) {
@@ -206,6 +225,10 @@ export const FileDisplay = memo(function FileDisplay({
           className
         )}
         onClick={!isSoftDeleted ? handleClick : undefined}
+        onPointerEnter={!isSoftDeleted ? handlePrefetch : undefined}
+        onPointerLeave={!isSoftDeleted ? handlePrefetchLeave : undefined}
+        onFocus={!isSoftDeleted ? handlePrefetch : undefined}
+        onBlur={!isSoftDeleted ? handlePrefetchLeave : undefined}
       >
         {icon}
         <span

@@ -117,15 +117,17 @@ All configuration is **runtime** via `.env` — no build-time variables needed. 
 
 See `.env.example` for the full list. Key variables:
 
-| Variable         | Description                                                                                                                                          | Required |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `IMAGE_TAG`      | Docker image tag to deploy                                                                                                                           | Yes      |
-| `BASE_URL`       | Base API endpoint                                                                                                                                    | Yes      |
-| `GH_ORG`         | GitHub org for image registry                                                                                                                        | Yes      |
-| `REDIS_PASSWORD` | Redis password                                                                                                                                       | Yes      |
-| `EXTERNAL_PORT`  | Host port published on 127.0.0.1 (default: 3000). Pick a unique value per stack when running multiple UIs on one VM — the container port stays 3000. | Yes      |
-| `SENTRY_DSN`     | Sentry DSN                                                                                                                                           | No       |
-| `SENTRY_ENABLED` | Enable Sentry (default: false)                                                                                                                       | No       |
+| Variable                  | Description                                                                                                                                          | Required |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `IMAGE_TAG`               | Docker image tag to deploy                                                                                                                           | Yes      |
+| `BASE_URL`                | Base API endpoint                                                                                                                                    | Yes      |
+| `GH_ORG`                  | GitHub org for image registry                                                                                                                        | Yes      |
+| `REDIS_PASSWORD`          | Redis password                                                                                                                                       | Yes      |
+| `EXTERNAL_PORT`           | Host port published on 127.0.0.1 (default: 3000). Pick a unique value per stack when running multiple UIs on one VM — the container port stays 3000. | Yes      |
+| `SENTRY_DSN`              | Sentry DSN                                                                                                                                           | No       |
+| `SENTRY_ENABLED`          | Enable Sentry (default: false)                                                                                                                       | No       |
+| `MAX_IMPORT_FILE_SIZE_MB` | Per-file cap for xlsx/csv imports — parsed into memory (default: 100)                                                                                | No       |
+| `MAX_ATTACHMENT_SIZE_MB`  | Per-file cap for object attachments — streamed to S3 in 8 MB parts × max 128 parts (default: 1024 = 1 GB hard ceiling)                               | No       |
 
 `SENTRY_RELEASE` is auto-detected from the app version baked into the image at build time. No need to set it unless you want to override.
 

@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Trash2, Loader2, FileText, RotateCcw, Copy } from 'lucide-react'
 
 import { logger } from '@/lib'
-import { useUploadQueue } from '@/contexts'
+import { useAppConfig, useUploadQueue } from '@/contexts'
 import {
   Badge,
   Button,
@@ -47,7 +47,7 @@ import { PropertiesTab } from './tabs/properties-tab'
 import { RelationshipsTab } from './tabs/relationships-tab'
 import { AttachmentModal } from './components/attachment-modal'
 import { SheetDropzone } from './components/sheet-dropzone'
-import { getMaxUploadSizeMB, isOversize } from './utils'
+import { isOversize } from './utils'
 import { toast } from 'sonner'
 
 interface ObjectSheetProps {
@@ -84,6 +84,7 @@ function ObjectDetailsSheetInner({
 }: ObjectSheetProps) {
   const t = useTranslations()
   const { enqueue: enqueueUploads } = useUploadQueue()
+  const { maxAttachmentSizeMB } = useAppConfig()
   // State for UI interactions
   const [activeEditingSection, setActiveEditingSection] = useState<
     string | null
@@ -244,7 +245,7 @@ function ObjectDetailsSheetInner({
     const objectUuid = object?.uuid
     if (!objectUuid || isDeleted) return
 
-    const maxMB = getMaxUploadSizeMB()
+    const maxMB = maxAttachmentSizeMB
     const accepted: File[] = []
     const rejected: string[] = []
     for (const file of files) {

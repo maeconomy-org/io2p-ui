@@ -1,13 +1,6 @@
-import { MAX_FILE_SIZE_MB } from '@/constants'
 import type { Attachment } from '@/types'
 
-export function getMaxUploadSizeMB(): number {
-  const envValue = process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB
-  const parsed = envValue ? Number(envValue) : NaN
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : MAX_FILE_SIZE_MB
-}
-
-export function isOversize(file: File, maxMB = getMaxUploadSizeMB()): boolean {
+export function isOversize(file: File, maxMB: number): boolean {
   const bytes = maxMB * 1024 * 1024
   return file.size > bytes
 }
@@ -43,12 +36,20 @@ export function toApiFilePayload(att: Attachment): {
 }
 
 /**
- * True when `fileReference` is a non-empty URL pointing at an external
- * resource (anything that is not an internal `/api/UUFile/...` path).
- * Internal files no longer carry a server-generated reference URL — file
- * content is fetched by `file.uuid` via `POST /api/UUFile/find`.
+ * True when `fileReference` is a URL pointing at an external resource
+ * (`https://...`). For S3-backed files the `fileReference` is a storage UUID
+ * — opaque, not a URL — and must be resolved via the file-storage service
+ * (`client.fileStorage.getPreviewUrl` / `getDownloadUrl`).
+ *
+ * Discriminator: try to parse as a URL with a non-empty protocol. UUIDs and
+ * other opaque tokens fail this and are treated as internal references.
  */
 export function isExternalFileReference(fileReference?: string): boolean {
   if (!fileReference) return false
-  return !fileReference.includes('/api/UUFile/')
+  try {
+    const parsed = new URL(fileReference)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
 }

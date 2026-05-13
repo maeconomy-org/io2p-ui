@@ -10,6 +10,20 @@ vi.mock('next-intl', () => ({
     params ? `${key}:${JSON.stringify(params)}` : key,
 }))
 
+vi.mock('@/contexts', async () => {
+  const actual =
+    await vi.importActual<typeof import('@/contexts')>('@/contexts')
+  return {
+    ...actual,
+    useAppConfig: () => ({
+      maxAttachmentSizeMB: 1024,
+      maxImportFileSizeMB: 10,
+      maxImportPayloadMB: 50,
+      maxObjectsPerImport: 1000,
+    }),
+  }
+})
+
 vi.mock('../../../components/object-sheets/components/attachment-list', () => ({
   AttachmentList: ({ attachments }: { attachments: Attachment[] }) => (
     <ul data-testid="attachment-list">
