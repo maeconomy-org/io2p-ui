@@ -117,6 +117,103 @@ export function filterNoisyErrors(event: SentryEvent): SentryEvent | null {
 }
 
 /**
+ * Redact S3 presigned-URL credentials wherever they may appear in a Sentry
+ * event. Presigned URLs are self-authenticating for their full TTL (5 min on
+ * upload PUTs, 15 min on previews), so leaking the `X-Amz-Signature` /
+ * `X-Amz-Credential` query string into Sentry is equivalent to leaking
+ * short-lived write access to the bucket. We also redact AWS SigV4
+ * `Authorization` header values in case a future direct-call code path
+ * ever surfaces one in an exception message.
+ */
+const AMZ_QUERY_PARAMS = [
+  'X-Amz-Signature',
+  'X-Amz-Credential',
+  'X-Amz-Security-Token',
+  'X-Amz-Date',
+  'X-Amz-Expires',
+  'X-Amz-SignedHeaders',
+  'X-Amz-Algorithm',
+]
+
+export function redactPresignedUrlString(input: string): string {
+  if (typeof input !== 'string' || input.length === 0) return input
+  let out = input
+  // Strip X-Amz-* query params (case-insensitive).
+  for (const key of AMZ_QUERY_PARAMS) {
+    const pattern = new RegExp(`([?&])${key}=[^&\\s"'<>]*`, 'gi')
+    out = out.replace(pattern, '$1' + key + '=REDACTED')
+  }
+  // Strip SigV4 Authorization values.
+  out = out.replace(
+    /AWS4-HMAC-SHA256\s+Credential=[^,\s]+,\s*SignedHeaders=[^,\s]+,\s*Signature=[A-Fa-f0-9]+/g,
+    'AWS4-HMAC-SHA256 REDACTED'
+  )
+  return out
+}
+
+// Walk a plain object up to `depth` levels deep, replacing string leaves in
+// place via `redactPresignedUrlString`. Cycle-safe via the `seen` set.
+function redactDeep(value: unknown, depth: number, seen: WeakSet<object>) {
+  if (depth <= 0 || value === null || value === undefined) return
+  if (typeof value === 'object') {
+    if (seen.has(value as object)) return
+    seen.add(value as object)
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i++) {
+        const v = value[i]
+        if (typeof v === 'string') value[i] = redactPresignedUrlString(v)
+        else redactDeep(v, depth - 1, seen)
+      }
+      return
+    }
+    const obj = value as Record<string, unknown>
+    for (const k of Object.keys(obj)) {
+      const v = obj[k]
+      if (typeof v === 'string') obj[k] = redactPresignedUrlString(v)
+      else redactDeep(v, depth - 1, seen)
+    }
+  }
+}
+
+function scrubPresignedUrls(event: SentryEvent): SentryEvent {
+  if (event.request?.url) {
+    event.request.url = redactPresignedUrlString(event.request.url)
+  }
+  if (Array.isArray(event.breadcrumbs)) {
+    for (const crumb of event.breadcrumbs) {
+      const data = crumb.data as Record<string, unknown> | undefined
+      if (!data) continue
+      for (const k of ['url', 'to', 'from']) {
+        const v = data[k]
+        if (typeof v === 'string') data[k] = redactPresignedUrlString(v)
+      }
+    }
+  }
+  const values = event.exception?.values
+  if (Array.isArray(values)) {
+    const seen = new WeakSet<object>()
+    for (const v of values) {
+      if (typeof v.value === 'string') {
+        v.value = redactPresignedUrlString(v.value)
+      }
+      // Sentry attaches arbitrary structured data under mechanism.data
+      // (including Error.cause snapshots); scrub it recursively.
+      const mech = (v as { mechanism?: { data?: unknown } }).mechanism
+      if (mech?.data) redactDeep(mech.data, 5, seen)
+      // Some Sentry SDKs preserve the original Error reference here.
+      const original = (v as { originalException?: unknown }).originalException
+      if (original) redactDeep(original, 5, seen)
+    }
+  }
+  if (typeof event.message === 'string') {
+    event.message = redactPresignedUrlString(event.message)
+  }
+  // Walk any `cause` chain attached to event.extra (Sentry's catch-all).
+  if (event.extra) redactDeep(event.extra, 5, new WeakSet())
+  return event
+}
+
+/**
  * Combined beforeSend hook for all runtimes
  */
 export function beforeSend(event: SentryEvent): SentryEvent | null {
@@ -124,6 +221,9 @@ export function beforeSend(event: SentryEvent): SentryEvent | null {
   const scrubbedEvent = scrubSensitiveData(event)
   if (!scrubbedEvent) return null
 
+  // Redact S3 presigned credentials before any noise filtering.
+  const presignedScrubbed = scrubPresignedUrls(scrubbedEvent)
+
   // Then filter noisy errors
-  return filterNoisyErrors(scrubbedEvent)
+  return filterNoisyErrors(presignedScrubbed)
 }

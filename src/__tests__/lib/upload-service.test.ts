@@ -22,16 +22,18 @@ function deferred<T>(): Deferred<T> {
 }
 
 function makeClient(overrides?: {
-  uploadFileDirect?: ReturnType<typeof vi.fn>
+  uploadFile?: ReturnType<typeof vi.fn>
   uploadFileByReference?: ReturnType<typeof vi.fn>
 }) {
   return {
     node: {
-      uploadFileDirect:
-        overrides?.uploadFileDirect ?? vi.fn().mockResolvedValue({ ok: true }),
       uploadFileByReference:
         overrides?.uploadFileByReference ??
         vi.fn().mockResolvedValue({ ok: true }),
+    },
+    fileStorage: {
+      uploadFile:
+        overrides?.uploadFile ?? vi.fn().mockResolvedValue({ ok: true }),
     },
   } as any
 }
@@ -107,48 +109,65 @@ describe('FileUploadService', () => {
     })
   })
 
-  describe('processQueue — sequential', () => {
-    it('drains sequentially: second task stays pending until first settles', async () => {
+  describe('processQueue — parallel + concurrency cap', () => {
+    it('drains tasks in parallel up to maxConcurrent', async () => {
       const d1 = deferred<{ ok: true }>()
       const d2 = deferred<{ ok: true }>()
 
-      const uploadFileDirect = vi
+      const uploadFile = vi
         .fn()
         .mockImplementationOnce(() => d1.promise)
         .mockImplementationOnce(() => d2.promise)
 
-      service = new FileUploadService(makeClient({ uploadFileDirect }))
+      // Default maxConcurrent = 3 → both tasks should run at once.
+      service = new FileUploadService(makeClient({ uploadFile }))
 
       service.addFile(makeTask({ id: 'first' }))
       service.addFile(makeTask({ id: 'second' }))
       await flush()
 
-      const statusAfterEnqueue = service
-        .getAllTasks()
-        .reduce<Record<string, string>>((acc, t) => {
-          acc[t.id] = t.status
-          return acc
-        }, {})
-
-      expect(statusAfterEnqueue.first).toBe('uploading')
-      expect(statusAfterEnqueue.second).toBe('pending')
+      const tasks = service.getAllTasks()
+      expect(tasks.find((t) => t.id === 'first')!.status).toBe('uploading')
+      expect(tasks.find((t) => t.id === 'second')!.status).toBe('uploading')
 
       d1.resolve({ ok: true })
-      await flush()
-
-      const mid = service
-        .getAllTasks()
-        .reduce<Record<string, string>>((acc, t) => {
-          acc[t.id] = t.status
-          return acc
-        }, {})
-      expect(mid.first).toBe('completed')
-      expect(mid.second).toBe('uploading')
-
       d2.resolve({ ok: true })
       await flush()
 
       expect(service.getUploadSummary().completed).toHaveLength(2)
+    })
+
+    it('respects maxConcurrent=1 (sequential)', async () => {
+      const d1 = deferred<{ ok: true }>()
+      const d2 = deferred<{ ok: true }>()
+      const uploadFile = vi
+        .fn()
+        .mockImplementationOnce(() => d1.promise)
+        .mockImplementationOnce(() => d2.promise)
+
+      service = new FileUploadService(makeClient({ uploadFile }), {
+        maxConcurrent: 1,
+      })
+
+      service.addFile(makeTask({ id: 'first' }))
+      service.addFile(makeTask({ id: 'second' }))
+      await flush()
+
+      expect(service.getAllTasks().find((t) => t.id === 'first')!.status).toBe(
+        'uploading'
+      )
+      expect(service.getAllTasks().find((t) => t.id === 'second')!.status).toBe(
+        'pending'
+      )
+
+      d1.resolve({ ok: true })
+      await flush()
+
+      expect(service.getAllTasks().find((t) => t.id === 'second')!.status).toBe(
+        'uploading'
+      )
+      d2.resolve({ ok: true })
+      await flush()
     })
   })
 
@@ -168,7 +187,7 @@ describe('FileUploadService', () => {
 
     it('failure: sets status=failed with error message and still notifies', async () => {
       client = makeClient({
-        uploadFileDirect: vi.fn().mockRejectedValue(new Error('boom')),
+        uploadFile: vi.fn().mockRejectedValue(new Error('boom')),
       })
       service = new FileUploadService(client)
 
@@ -186,9 +205,9 @@ describe('FileUploadService', () => {
 
     it('uses uploadFileByReference when attachment mode is reference', async () => {
       const uploadFileByReference = vi.fn().mockResolvedValue({ ok: true })
-      const uploadFileDirect = vi.fn()
+      const uploadFile = vi.fn()
       service = new FileUploadService(
-        makeClient({ uploadFileByReference, uploadFileDirect })
+        makeClient({ uploadFileByReference, uploadFile })
       )
 
       service.addFile(
@@ -204,7 +223,7 @@ describe('FileUploadService', () => {
       await flush()
 
       expect(uploadFileByReference).toHaveBeenCalledOnce()
-      expect(uploadFileDirect).not.toHaveBeenCalled()
+      expect(uploadFile).not.toHaveBeenCalled()
     })
 
     it('fails when no UUID is provided to attach to', async () => {
@@ -255,7 +274,7 @@ describe('FileUploadService', () => {
 
     it('keeps failed tasks so the user can retry', async () => {
       client = makeClient({
-        uploadFileDirect: vi.fn().mockRejectedValue(new Error('nope')),
+        uploadFile: vi.fn().mockRejectedValue(new Error('nope')),
       })
       service = new FileUploadService(client)
 
@@ -287,7 +306,7 @@ describe('FileUploadService', () => {
 
     it('resolves even when uploads fail', async () => {
       client = makeClient({
-        uploadFileDirect: vi.fn().mockRejectedValue(new Error('x')),
+        uploadFile: vi.fn().mockRejectedValue(new Error('x')),
       })
       service = new FileUploadService(client)
 
@@ -297,6 +316,266 @@ describe('FileUploadService', () => {
         ])
       ).resolves.toBeUndefined()
       expect(service.getUploadSummary().failed).toHaveLength(1)
+    })
+  })
+
+  describe('cancelTask', () => {
+    it('removes a still-pending task from the queue without ever uploading', async () => {
+      // First task hangs forever; second sits in the queue behind it.
+      // maxConcurrent=1 so the second task can't sneak past while the first
+      // is hanging.
+      const hang = deferred<{ ok: true }>()
+      const uploadFile = vi
+        .fn()
+        .mockImplementationOnce(() => hang.promise)
+        .mockResolvedValue({ ok: true })
+      service = new FileUploadService(makeClient({ uploadFile }), {
+        maxConcurrent: 1,
+      })
+
+      service.addFile(makeTask({ id: 'first' }))
+      service.addFile(makeTask({ id: 'second' }))
+      await flush()
+
+      service.cancelTask('second')
+      await flush()
+
+      const second = service.getAllTasks().find((t) => t.id === 'second')!
+      expect(second.status).toBe('failed')
+      expect(second.error).toBe('Cancelled')
+      // The SDK should never have been called for the cancelled task.
+      expect(uploadFile).toHaveBeenCalledTimes(1)
+
+      hang.resolve({ ok: true })
+      await flush()
+    })
+
+    it('aborts an in-flight task and marks it failed/Cancelled', async () => {
+      // The SDK contract: when signal is aborted, uploadFile rejects with
+      // a FileStorageError-shaped object whose kind is 'Aborted'.
+      const uploadFile = vi.fn(
+        ({ signal }: { signal?: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            signal?.addEventListener('abort', () => {
+              reject(Object.assign(new Error('Aborted'), { kind: 'Aborted' }))
+            })
+          })
+      )
+      service = new FileUploadService(makeClient({ uploadFile }))
+
+      service.addFile(makeTask({ id: 'live' }))
+      await flush()
+
+      const live = service.getAllTasks().find((t) => t.id === 'live')!
+      expect(live.status).toBe('uploading')
+      expect(live.abortController).toBeInstanceOf(AbortController)
+
+      service.cancelTask('live')
+      await flush()
+
+      const after = service.getAllTasks().find((t) => t.id === 'live')!
+      expect(after.status).toBe('failed')
+      expect(after.error).toBe('Cancelled')
+      expect(after.abortController).toBeUndefined()
+    })
+  })
+
+  describe('retryTask', () => {
+    it('restarts a failed task in place under the same id with a bumped retry counter', async () => {
+      client = makeClient({
+        uploadFile: vi
+          .fn()
+          .mockRejectedValueOnce(new Error('boom'))
+          .mockResolvedValueOnce({ ok: true }),
+      })
+      service = new FileUploadService(client)
+
+      service.addFile(makeTask({ id: 'first' }))
+      await flush()
+
+      const first = service.getAllTasks().find((t) => t.id === 'first')!
+      expect(first.status).toBe('failed')
+
+      service.retryTask('first')
+      await flush()
+
+      const all = service.getAllTasks()
+      // Retry mutates in place — no duplicate row, no key collision in the UI.
+      expect(all).toHaveLength(1)
+      const retried = all[0]
+      expect(retried.id).toBe('first')
+      expect(retried.retries).toBe(1)
+      expect(retried.status).toBe('completed')
+    })
+
+    it('is a no-op for tasks not in the failed state', async () => {
+      service.addFile(makeTask({ id: 'ok' }))
+      await flush()
+
+      service.retryTask('ok') // already completed
+      service.retryTask('does-not-exist')
+      await flush()
+
+      expect(service.getAllTasks()).toHaveLength(1)
+    })
+
+    it('rapid double-retry enqueues the task exactly once', async () => {
+      const uploadFile = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockResolvedValue({ ok: true })
+      service = new FileUploadService(makeClient({ uploadFile }))
+
+      service.addFile(makeTask({ id: 'r' }))
+      await flush()
+      expect(uploadFile).toHaveBeenCalledTimes(1)
+
+      // Two retries fired in the same tick — second one must be a no-op.
+      service.retryTask('r')
+      service.retryTask('r')
+      await flush()
+
+      expect(uploadFile).toHaveBeenCalledTimes(2)
+      expect(service.getAllTasks()).toHaveLength(1)
+    })
+  })
+
+  describe('addFile promise', () => {
+    it('resolves once the task reaches completed', async () => {
+      const done = service.addFile(makeTask({ id: 'p' }))
+      await expect(done).resolves.toBeUndefined()
+      expect(service.getAllTasks().find((t) => t.id === 'p')!.status).toBe(
+        'completed'
+      )
+    })
+
+    it('resolves once the task fails', async () => {
+      service = new FileUploadService(
+        makeClient({
+          uploadFile: vi.fn().mockRejectedValue(new Error('boom')),
+        })
+      )
+      const done = service.addFile(makeTask({ id: 'p' }))
+      await expect(done).resolves.toBeUndefined()
+      expect(service.getAllTasks().find((t) => t.id === 'p')!.status).toBe(
+        'failed'
+      )
+    })
+  })
+
+  describe('queueFileUploadsWithContext — concurrent batches', () => {
+    it('two interleaved batches each resolve only with their own ids', async () => {
+      // Slow first batch so it overlaps with the second batch's enqueue.
+      const slow = deferred<{ ok: true }>()
+      const uploadFile = vi
+        .fn()
+        .mockImplementationOnce(() => slow.promise)
+        .mockResolvedValue({ ok: true })
+      service = new FileUploadService(makeClient({ uploadFile }))
+
+      const a = service.queueFileUploadsWithContext([
+        { attachment: makeTask().attachment, objectUuid: 'obj-1' },
+      ])
+      const b = service.queueFileUploadsWithContext([
+        { attachment: makeTask().attachment, objectUuid: 'obj-1' },
+        { attachment: makeTask().attachment, objectUuid: 'obj-1' },
+      ])
+      let aDone = false
+      void a.then(() => {
+        aDone = true
+      })
+
+      // Batch B has no slow tasks — awaiting it must succeed even while
+      // batch A is still in-flight. This is the property the old global-
+      // callback hijack broke (B would never resolve until A resolved too).
+      await b
+      expect(aDone).toBe(false)
+
+      slow.resolve({ ok: true })
+      await a
+      expect(aDone).toBe(true)
+    })
+  })
+
+  describe('cancelTask — early cancel', () => {
+    it('cancelling a pending task that has not started yet still aborts its signal', async () => {
+      // Block the first task forever so the second never starts.
+      const hang = deferred<{ ok: true }>()
+      const uploadFile = vi
+        .fn()
+        .mockImplementationOnce(() => hang.promise)
+        .mockResolvedValue({ ok: true })
+      service = new FileUploadService(makeClient({ uploadFile }), {
+        maxConcurrent: 1,
+      })
+
+      service.addFile(makeTask({ id: 'first' }))
+      service.addFile(makeTask({ id: 'queued' }))
+      await flush()
+
+      const queued = service.getAllTasks().find((t) => t.id === 'queued')!
+      // Pre-creation guarantee: signal exists from the moment addFile runs.
+      expect(queued.abortController).toBeInstanceOf(AbortController)
+
+      service.cancelTask('queued')
+      await flush()
+
+      expect(service.getAllTasks().find((t) => t.id === 'queued')!.status).toBe(
+        'failed'
+      )
+      hang.resolve({ ok: true })
+      await flush()
+    })
+  })
+
+  describe('subscriber atomicity', () => {
+    it('subscriber sees status=completed AND progress=100 in the same notification', async () => {
+      const observed: Array<{ status: string; progress: number }> = []
+      service.subscribe(() => {
+        const t = service.getAllTasks().find((x) => x.id === 'atomic')
+        if (t && t.status === 'completed') {
+          observed.push({ status: t.status, progress: t.progress })
+        }
+      })
+
+      service.addFile(makeTask({ id: 'atomic' }))
+      await flush()
+
+      expect(observed.length).toBeGreaterThanOrEqual(1)
+      for (const o of observed) {
+        expect(o.progress).toBe(100)
+      }
+    })
+  })
+
+  describe('cancelling watchdog', () => {
+    it('forces a stuck cancelling task to failed after the timeout', async () => {
+      vi.useFakeTimers()
+      try {
+        // Upload that ignores the abort signal — simulates a backend that
+        // never acknowledges the cancel.
+        const uploadFile = vi.fn(() => new Promise(() => {}))
+        service = new FileUploadService(makeClient({ uploadFile }))
+
+        service.addFile(makeTask({ id: 'stuck' }))
+        // Let the upload start.
+        await Promise.resolve()
+        await Promise.resolve()
+
+        service.cancelTask('stuck')
+        // Cancelled, but the upload never resolves.
+        expect(
+          service.getAllTasks().find((t) => t.id === 'stuck')!.status
+        ).toBe('cancelling')
+
+        vi.advanceTimersByTime(11_000)
+
+        expect(
+          service.getAllTasks().find((t) => t.id === 'stuck')!.status
+        ).toBe('failed')
+      } finally {
+        vi.useRealTimers()
+      }
     })
   })
 })

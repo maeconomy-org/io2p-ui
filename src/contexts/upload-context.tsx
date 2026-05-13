@@ -29,6 +29,7 @@ export interface UploadContextValue {
     failed: number
     pending: number
     uploading: number
+    cancelling: number
   }
   isIdle: boolean
   enqueue: (
@@ -40,6 +41,8 @@ export interface UploadContextValue {
     }>
   ) => Promise<void>
   clearCompleted: () => void
+  cancelTask: (id: string) => void
+  retryTask: (id: string) => void
 }
 
 const UploadContext = createContext<UploadContextValue | null>(null)
@@ -63,6 +66,15 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       setTasks(next)
 
       for (const task of next) {
+        // Retry mutates a failed task back to pending under the same id. Drop
+        // the settled marker so the next completion re-invalidates caches.
+        if (
+          (task.status === 'pending' || task.status === 'uploading') &&
+          settledIdsRef.current.has(task.id)
+        ) {
+          settledIdsRef.current.delete(task.id)
+        }
+
         if (
           (task.status === 'completed' || task.status === 'failed') &&
           !settledIdsRef.current.has(task.id)
@@ -79,7 +91,10 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (task.status === 'failed') {
-            logger.error('Upload failed', {
+            // User-initiated cancel is intent, not an error — log at info so
+            // it doesn't clutter the console or page Sentry.
+            const log = task.error === 'Cancelled' ? logger.info : logger.error
+            log('Upload failed', {
               id: task.id,
               fileName: task.attachment?.fileName,
               error: task.error,
@@ -93,7 +108,14 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   }, [service, queryClient])
 
   const summary = useMemo(() => {
-    const s = { total: 0, completed: 0, failed: 0, pending: 0, uploading: 0 }
+    const s = {
+      total: 0,
+      completed: 0,
+      failed: 0,
+      pending: 0,
+      uploading: 0,
+      cancelling: 0,
+    }
     for (const task of tasks) {
       s.total += 1
       s[task.status] += 1
@@ -156,17 +178,36 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
 
   const clearCompleted = useCallback(() => {
     service.clearCompleted()
-    // Also forget their settled markers so re-uploads of the same id (rare)
-    // trigger the invalidation path again.
+    // Rebuild settled markers from the post-clear task list (read fresh from
+    // the service, not from a closed-over `tasks` array — concurrent flushes
+    // would otherwise race).
     settledIdsRef.current.clear()
-    tasks
+    service
+      .getAllTasks()
       .filter((t) => t.status !== 'completed')
       .forEach((t) => settledIdsRef.current.add(t.id))
-  }, [service, tasks])
+  }, [service])
+
+  const cancelTask = useCallback(
+    (id: string) => service.cancelTask(id),
+    [service]
+  )
+  const retryTask = useCallback(
+    (id: string) => service.retryTask(id),
+    [service]
+  )
 
   const value = useMemo<UploadContextValue>(
-    () => ({ tasks, summary, isIdle, enqueue, clearCompleted }),
-    [tasks, summary, isIdle, enqueue, clearCompleted]
+    () => ({
+      tasks,
+      summary,
+      isIdle,
+      enqueue,
+      clearCompleted,
+      cancelTask,
+      retryTask,
+    }),
+    [tasks, summary, isIdle, enqueue, clearCompleted, cancelTask, retryTask]
   )
 
   return (

@@ -5,7 +5,6 @@ import type { Attachment } from '@/types'
 import { useIomSdkClient } from '@/contexts'
 import { logger } from './logger'
 
-// Use the actual SDK Client type
 type ApiClient = Client
 
 export interface FileUploadTask {
@@ -15,10 +14,13 @@ export interface FileUploadTask {
   objectUuid?: string
   propertyUuid?: string
   valueUuid?: string
-  status: 'pending' | 'uploading' | 'completed' | 'failed'
+  status: 'pending' | 'uploading' | 'cancelling' | 'completed' | 'failed'
   progress: number
   retries: number
   error?: string
+  // Created at enqueue (not at upload start) so cancelTask can always abort,
+  // including during the SHA-256 hash phase before init returns.
+  abortController?: AbortController
 }
 
 export interface FileUploadOptions {
@@ -29,22 +31,23 @@ export interface FileUploadOptions {
   onError?: (taskId: string, error: string) => void
 }
 
-/**
- * Simplified service for handling binary file uploads to existing file records
- * The import API already creates file records and relationships
- */
+// If a task is told to cancel but the abort never propagates out of the SDK
+// (network stall, server hang), force it to 'failed' after this many ms.
+const CANCELLING_WATCHDOG_MS = 10_000
+
 export class FileUploadService {
   private client: ApiClient
-  // Queue: tasks still to be processed. Tasks are shifted out as processQueue
-  // picks them up, so this shrinks over time.
   private uploadQueue: FileUploadTask[] = []
-  // Persistent history: every task ever enqueued, in insertion order. Tasks
-  // mutate in place (status, progress, error), so subscribers see live updates
-  // without us re-pushing. Used by the UploadCenter widget.
   private allTasks: FileUploadTask[] = []
   private listeners = new Set<() => void>()
-  private processing = false
+  private inFlight = new Set<Promise<void>>()
   private options: Required<FileUploadOptions>
+  // Resolvers for addFile() promises. Drained the moment a task reaches a
+  // terminal state (completed | failed), and always after notify() so
+  // subscribers observe the final state before awaiters resume.
+  private waiters = new Map<string, () => void>()
+  // Active 'cancelling' watchdog timers, keyed by task id.
+  private cancellingTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
   constructor(client: ApiClient, options?: FileUploadOptions) {
     if (!client) {
@@ -62,9 +65,6 @@ export class FileUploadService {
     }
   }
 
-  /**
-   * Subscribe to queue state changes. Returns an unsubscribe function.
-   */
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener)
     return () => {
@@ -76,54 +76,95 @@ export class FileUploadService {
     this.listeners.forEach((l) => l())
   }
 
-  /**
-   * Get the full task history (pending, uploading, completed, failed).
-   */
+  // Resolves the awaiter for a task. Must be called AFTER notify() so any
+  // code awaiting addFile()/queueFileUploadsWithContext() observes the
+  // already-rendered final state.
+  private settle(id: string) {
+    const resolve = this.waiters.get(id)
+    if (resolve) {
+      this.waiters.delete(id)
+      resolve()
+    }
+    const timer = this.cancellingTimeouts.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      this.cancellingTimeouts.delete(id)
+    }
+  }
+
   getAllTasks(): FileUploadTask[] {
     return this.allTasks.slice()
   }
 
   /**
-   * Add a file to the upload queue
+   * Enqueue a file. Returns a promise that resolves once the task reaches a
+   * terminal state (completed or failed/cancelled). The promise never rejects
+   * — failures surface via task.status / task.error and the onError callback.
    */
-  addFile(task: FileUploadTask) {
+  addFile(task: FileUploadTask): Promise<void> {
+    // Pre-create the abort signal so cancelTask works during the hash phase.
+    if (!task.abortController) {
+      task.abortController = new AbortController()
+    }
+    const promise = new Promise<void>((resolve) => {
+      this.waiters.set(task.id, resolve)
+    })
     this.uploadQueue.push(task)
     this.allTasks.push(task)
     this.notify()
-    this.processQueue()
+    this.schedule()
+    return promise
   }
 
   /**
-   * Process the upload queue
+   * Event-driven scheduler. Called from `addFile` (new task arriving) and
+   * from the `.finally` of each in-flight upload (slot freed). Reads
+   * `maxConcurrent` fresh on every invocation so mid-flight config changes
+   * take effect immediately.
    */
-  private async processQueue() {
-    if (this.processing) return
-    this.processing = true
-
-    while (this.uploadQueue.length > 0) {
+  private schedule() {
+    const concurrent = Math.max(1, this.options.maxConcurrent)
+    while (this.uploadQueue.length > 0 && this.inFlight.size < concurrent) {
       const task = this.uploadQueue.shift()
-      if (!task) continue
+      if (!task) break
+      const p: Promise<void> = this.uploadFile(task)
+        .then(() => undefined)
+        .catch((error: any) => {
+          logger.error(`File upload failed for task ${task.id}:`, error)
+          const message: string = error?.message ?? 'Upload failed'
+          task.status = 'failed'
+          task.error = message
+          task.abortController = undefined
+          this.notify()
+          this.options.onError(task.id, message)
+          this.settle(task.id)
+        })
+        .finally(() => {
+          this.inFlight.delete(p)
+          // Slot freed — see if more queued work is waiting.
+          this.schedule()
+        })
+      this.inFlight.add(p)
+    }
+  }
 
-      try {
-        await this.uploadFile(task)
-      } catch (error: any) {
-        logger.error(`File upload failed for task ${task.id}:`, error)
-        task.status = 'failed'
-        task.error = error.message
-        this.notify()
-        this.options.onError(task.id, error.message)
-      }
+  private async uploadFile(task: FileUploadTask) {
+    if (!this.client?.fileStorage) {
+      throw new Error('SDK client fileStorage service not available')
     }
 
-    this.processing = false
-  }
-
-  /**
-   * Upload a single file
-   */
-  private async uploadFile(task: FileUploadTask) {
-    if (!this.client?.node) {
-      throw new Error('SDK client node service not available')
+    // AbortController was pre-created in addFile(); reuse it.
+    const abortController = task.abortController ?? new AbortController()
+    task.abortController = abortController
+    // If cancelTask already fired before we got a slot, short-circuit.
+    if (abortController.signal.aborted) {
+      task.status = 'failed'
+      task.error = 'Cancelled'
+      task.abortController = undefined
+      this.notify()
+      this.options.onError(task.id, 'Cancelled')
+      this.settle(task.id)
+      return
     }
 
     task.status = 'uploading'
@@ -138,51 +179,151 @@ export class FileUploadService {
       throw new Error('No UUID provided to attach the file to')
     }
 
-    this.options.onProgress(task.id, 50)
+    try {
+      let response
+      if (task.attachment.mode === 'reference') {
+        const fileReference =
+          task.attachment.fileReference || task.attachment.url
+        if (!fileReference) {
+          throw new Error(
+            'File reference URL is required for reference uploads'
+          )
+        }
 
-    let response
-    if (task.attachment.mode === 'reference') {
-      // Use uploadFileByReference for external file references
-      const fileReference = task.attachment.fileReference || task.attachment.url
-      if (!fileReference) {
-        throw new Error('File reference URL is required for reference uploads')
+        response = await this.client.node.uploadFileByReference({
+          fileName: task.attachment.fileName || '',
+          fileReference,
+          uuidToAttach,
+          contentType: task.attachment.mimeType,
+          size: task.attachment.size,
+          label: task.attachment.label,
+        })
+        this.options.onProgress(task.id, 100)
+      } else {
+        if (!task.attachment.blob) {
+          throw new Error('Blob is required for direct uploads')
+        }
+
+        const stored = await this.client.fileStorage.uploadFile({
+          file: task.attachment.blob as File,
+          fileName: task.attachment.fileName,
+          contentType: task.attachment.mimeType,
+          signal: abortController.signal,
+          onProgress: (loaded: number, total: number) => {
+            const pct = total > 0 ? Math.round((loaded / total) * 100) : 0
+            task.progress = pct
+            this.notify()
+            this.options.onProgress(task.id, pct)
+          },
+        })
+        response = await this.client.node.uploadFileByReference({
+          fileName: stored.fileName,
+          fileReference: stored.fileReference,
+          uuidToAttach,
+          contentType: stored.mimeType,
+          size: stored.size,
+          label: task.attachment.label,
+        })
       }
 
-      const uploadData = {
-        fileName: task.attachment.fileName || '',
-        fileReference: fileReference,
-        uuidToAttach: uuidToAttach,
-        contentType: task.attachment.mimeType,
-        size: task.attachment.size,
-        label: task.attachment.label,
+      // Commit all fields, then notify, then settle.
+      task.progress = 100
+      task.abortController = undefined
+      task.status = 'completed'
+      this.notify()
+      this.options.onComplete(task.id)
+      this.settle(task.id)
+      return response
+    } catch (err) {
+      task.abortController = undefined
+      if (isAbortError(err)) {
+        task.error = 'Cancelled'
+        task.status = 'failed'
+        this.notify()
+        this.options.onError(task.id, 'Cancelled')
+        this.settle(task.id)
+        return
       }
-
-      response = await this.client.node.uploadFileByReference(uploadData)
-    } else {
-      // Use the new uploadFileDirect method for file uploads
-      if (!task.attachment.blob) {
-        throw new Error('Blob is required for direct uploads')
-      }
-
-      response = await this.client.node.uploadFileDirect({
-        file: task.attachment.blob as File,
-        uuidToAttach: uuidToAttach,
-        label: task.attachment.label,
-      })
+      throw err
     }
-
-    this.options.onProgress(task.id, 100)
-
-    task.status = 'completed'
-    task.progress = 100
-    this.notify()
-    this.options.onComplete(task.id)
-    return response
   }
 
   /**
-   * Get the current queue status (full history, including terminal tasks).
+   * Cancel a task in any pre-terminal state. After A1 the abort signal exists
+   * from the moment addFile() is called, so this works during hashing, multi-
+   * part init, and individual part uploads alike.
    */
+  cancelTask(id: string) {
+    const task = this.allTasks.find((t) => t.id === id)
+    if (!task) return
+    if (task.status === 'completed' || task.status === 'failed') return
+
+    // Always abort the signal — the SDK uses it to skip pending work and to
+    // fire DELETE /api/FileStorage/{uploadId} when an init has already run.
+    task.abortController?.abort()
+
+    if (task.status === 'pending') {
+      // Task never started: remove from queue and mark failed synchronously.
+      this.uploadQueue = this.uploadQueue.filter((t) => t.id !== id)
+      task.error = 'Cancelled'
+      task.abortController = undefined
+      task.status = 'failed'
+      this.notify()
+      this.options.onError(id, 'Cancelled')
+      this.settle(id)
+      return
+    }
+
+    // 'uploading' or already 'cancelling' — show cancelling spinner and let
+    // uploadFile's catch transition to 'failed'. Watchdog forces the
+    // transition if the SDK never resolves.
+    if (task.status !== 'cancelling') {
+      task.status = 'cancelling'
+      this.notify()
+    }
+    if (!this.cancellingTimeouts.has(id)) {
+      const timer = setTimeout(() => {
+        this.cancellingTimeouts.delete(id)
+        const t = this.allTasks.find((x) => x.id === id)
+        if (!t || t.status !== 'cancelling') return
+        t.error = 'Cancelled'
+        t.abortController = undefined
+        t.status = 'failed'
+        this.notify()
+        this.options.onError(id, 'Cancelled')
+        this.settle(id)
+      }, CANCELLING_WATCHDOG_MS)
+      this.cancellingTimeouts.set(id, timer)
+    }
+  }
+
+  /**
+   * Re-enqueue a failed task. Mutates in place under the same id so React
+   * keys stay unique. Guards against rapid double-clicks: a second call
+   * while the task is already re-queued is a no-op.
+   */
+  retryTask(id: string) {
+    const task = this.allTasks.find((t) => t.id === id)
+    if (!task || task.status !== 'failed') return
+    if (this.uploadQueue.includes(task)) return
+
+    task.status = 'pending'
+    task.progress = 0
+    task.error = undefined
+    task.retries += 1
+    task.abortController = new AbortController()
+    const promise = new Promise<void>((resolve) => {
+      this.waiters.set(task.id, resolve)
+    })
+    // Promise is intentionally discarded — retryTask callers observe via
+    // subscribe, not via await. We just need the waiter installed so a
+    // future await on this id would work.
+    void promise
+    this.uploadQueue.push(task)
+    this.notify()
+    this.schedule()
+  }
+
   getQueueStatus() {
     return this.allTasks.map((task) => ({
       id: task.id,
@@ -193,39 +334,14 @@ export class FileUploadService {
   }
 
   /**
-   * Queue file uploads with context (for object creation)
+   * Queue file uploads with context. Concurrent-safe: each call awaits only
+   * its own task settlements via addFile()'s returned promise.
    */
-  queueFileUploadsWithContext(fileContexts: any[]) {
-    // Track each queued task's terminal state via a per-id promise so callers
-    // can reliably invalidate caches once uploads finish.
-    const pendingIds = new Set<string>()
-    let resolveAll: () => void
-    const allDone = new Promise<void>((r) => {
-      resolveAll = r
-    })
-
-    const prevOnComplete = this.options.onComplete
-    const prevOnError = this.options.onError
-    const markDone = (id: string) => {
-      if (pendingIds.delete(id) && pendingIds.size === 0) {
-        this.options.onComplete = prevOnComplete
-        this.options.onError = prevOnError
-        resolveAll()
-      }
-    }
-    this.options.onComplete = (id: string) => {
-      prevOnComplete(id)
-      markDone(id)
-    }
-    this.options.onError = (id: string, err: string) => {
-      prevOnError(id, err)
-      markDone(id)
-    }
-
-    fileContexts.forEach((context) => {
+  async queueFileUploadsWithContext(fileContexts: any[]): Promise<void> {
+    if (fileContexts.length === 0) return
+    const promises = fileContexts.map((context) => {
       const id = `upload-${Date.now()}-${Math.random()}`
-      pendingIds.add(id)
-      this.addFile({
+      return this.addFile({
         id,
         attachment: context.attachment,
         objectUuid: context.objectUuid,
@@ -236,30 +352,14 @@ export class FileUploadService {
         retries: 0,
       })
     })
-
-    if (pendingIds.size === 0) {
-      this.options.onComplete = prevOnComplete
-      this.options.onError = prevOnError
-      resolveAll!()
-    }
-
-    return allDone
+    await Promise.all(promises)
   }
 
-  /**
-   * Get upload summary across the full task history (not just the pending
-   * queue), so callers can see completed/failed counts after processQueue
-   * has shifted tasks out.
-   */
   getUploadSummary() {
-    const completed = this.allTasks.filter(
-      (task) => task.status === 'completed'
-    )
-    const failed = this.allTasks.filter((task) => task.status === 'failed')
-    const pending = this.allTasks.filter((task) => task.status === 'pending')
-    const uploading = this.allTasks.filter(
-      (task) => task.status === 'uploading'
-    )
+    const completed = this.allTasks.filter((t) => t.status === 'completed')
+    const failed = this.allTasks.filter((t) => t.status === 'failed')
+    const pending = this.allTasks.filter((t) => t.status === 'pending')
+    const uploading = this.allTasks.filter((t) => t.status === 'uploading')
 
     return {
       completed,
@@ -271,41 +371,57 @@ export class FileUploadService {
   }
 
   /**
-   * Clear completed uploads from the history. Failed uploads are kept so the
-   * user can retry them.
+   * Drop completed (and orphaned 'cancelling') tasks. Failed tasks are kept
+   * so the user can retry.
    */
   clearCompleted() {
-    this.uploadQueue = this.uploadQueue.filter(
-      (task) => task.status !== 'completed'
-    )
-    this.allTasks = this.allTasks.filter((task) => task.status !== 'completed')
+    const drop = (t: FileUploadTask) =>
+      t.status === 'completed' || t.status === 'cancelling'
+    this.uploadQueue = this.uploadQueue.filter((t) => !drop(t))
+    for (const t of this.allTasks) {
+      if (drop(t)) this.settle(t.id)
+    }
+    this.allTasks = this.allTasks.filter((t) => !drop(t))
     this.notify()
   }
 }
 
-// Module-level singleton so every component sees the same queue. The instance
-// is keyed by the SDK client so it's recreated if the client changes (e.g.
-// after re-auth). Previously this returned a fresh FileUploadService on every
-// render, which meant the Files tab and the Add sheet each had their own
-// (invisible) queue.
+function isAbortError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const kind = (err as { kind?: unknown }).kind
+  if (kind === 'Aborted') return true
+  const name = (err as { name?: unknown }).name
+  return name === 'AbortError'
+}
+
+// Module-level singleton keyed on the SDK client AND its current token, so a
+// re-auth that reuses the client instance still rebuilds the service (and
+// drops any in-flight queue state tied to the old session).
 let singletonClient: ApiClient | null = null
+let singletonToken: string | null = null
 let singletonService: FileUploadService | null = null
 
 export function useUploadService(): FileUploadService {
   const client = useIomSdkClient()
+  const token =
+    typeof (client as any)?.getToken === 'function'
+      ? ((client as any).getToken() as string | null)
+      : null
 
-  if (!singletonService || singletonClient !== client) {
+  if (
+    !singletonService ||
+    singletonClient !== client ||
+    singletonToken !== token
+  ) {
     singletonService = new FileUploadService(client)
     singletonClient = client
+    singletonToken = token
   }
 
   return singletonService
 }
 
-// Legacy function for non-React contexts (will be phased out)
 export function getUploadService() {
-  // This is a fallback for components that haven't been updated yet
-  // We'll gradually replace all usages with the hook
   throw new Error(
     'getUploadService() is deprecated. Use useUploadService() hook instead.'
   )
