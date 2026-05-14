@@ -102,9 +102,13 @@ export function AttachmentPreview({
   const [scale, setScale] = useState(1)
   const [rotation, setRotation] = useState(0)
 
+  // Depend on `file?.uuid` (primitive) rather than `file` (object identity).
+  // Parent re-renders frequently hand us a new `file` reference for the same
+  // attachment; without this we'd snap back to the originally-clicked file
+  // whenever the parent rerendered after a Next/Prev navigation.
   useEffect(() => {
     if (open) setCurrentUuid(file?.uuid ?? null)
-  }, [open, file])
+  }, [open, file?.uuid])
 
   const currentIndex = viewable.findIndex((f) => f.uuid === currentUuid)
   const current =
@@ -209,6 +213,11 @@ export function AttachmentPreview({
 
   const displayName = getDisplayName(current)
   const showImageControls = kind === 'image' && !!url
+  const previewBodyTestId = error
+    ? 'attachment-preview-error'
+    : kind === 'unsupported'
+      ? 'attachment-preview-fallback'
+      : `attachment-preview-${kind}`
 
   const body = (() => {
     if (error) {
@@ -384,7 +393,10 @@ export function AttachmentPreview({
         </div>
 
         {/* Body */}
-        <div className="relative flex-1 overflow-hidden">
+        <div
+          data-testid={previewBodyTestId}
+          className="relative flex-1 overflow-hidden"
+        >
           {body}
 
           {hasMultiple && (

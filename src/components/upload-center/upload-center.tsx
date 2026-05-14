@@ -59,6 +59,7 @@ export function UploadCenter() {
         className="fixed bottom-4 left-4 w-80 shadow-lg border z-[60] pointer-events-auto"
       >
         <div
+          data-testid="upload-center-toggle"
           className="p-3 cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
         >
@@ -175,6 +176,12 @@ function UploadTaskRow({ task, onCancel, onRetry }: UploadTaskRowProps) {
       data-testid={`upload-task-${task.id}`}
       className="flex items-center gap-2 text-xs"
     >
+      <span data-testid={`upload-task-status-${task.id}`} className="sr-only">
+        {task.status}
+      </span>
+      <span data-testid={`upload-task-progress-${task.id}`} className="sr-only">
+        {task.progress}
+      </span>
       <StatusIcon status={task.status} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">

@@ -199,6 +199,7 @@ function PropertyValueItem({
           onChange={(e) => onValueChange?.(valueIndex, e.target.value)}
           placeholder={valueHint ?? t('objects.propertyValuePlaceholder')}
           className="h-8"
+          data-testid={`property-value-input-${propertyId}-${valueIndex}`}
         />
       ) : (
         <div className="p-2 border rounded-md bg-background w-full">

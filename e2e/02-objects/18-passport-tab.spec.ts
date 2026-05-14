@@ -75,7 +75,13 @@ async function addDictProp(
   // will leave the property keyless and the form will silently drop it.
   await expect(nameInput).not.toHaveValue('')
 
-  await item.getByPlaceholder('Enter property value').first().fill(prop.value)
+  // The placeholder switches to a smart hint once an autocomplete suggestion
+  // is accepted (e.g. "Total Floors" → "e.g. 5"). Use the stable testid
+  // instead of getByPlaceholder.
+  await item
+    .locator('[data-testid^="property-value-input-"]')
+    .first()
+    .fill(prop.value)
 }
 
 async function createPassportObject(

@@ -659,7 +659,8 @@
       "rename": "Bestand hernoemen",
       "remove": "Bestand verwijderen",
       "dropzoneHint": "Bestanden hier loslaten om te uploaden",
-      "dropzoneOversize": "{names} overgeslagen: groter dan {size}MB"
+      "dropzoneOversize": "{names} overgeslagen: groter dan {size}MB",
+      "tooManyFiles": "Te veel bestanden in één keer — sleep maximaal {max} bestanden per batch"
     },
     "files": {
       "preview": "Voorbeeld in nieuw tabblad",

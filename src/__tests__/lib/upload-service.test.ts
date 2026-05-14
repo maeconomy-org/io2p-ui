@@ -548,6 +548,168 @@ describe('FileUploadService', () => {
     })
   })
 
+  describe('setMaxConcurrent', () => {
+    it('picks up queued work immediately when the cap is raised', async () => {
+      // Two in-flight uploads — we'll add a third while concurrency is 2,
+      // then raise to 3 and assert the third starts without waiting.
+      const inflight: Array<Deferred<{ ok: true }>> = []
+      const uploadFile = vi.fn(() => {
+        const d = deferred<{ ok: true }>()
+        inflight.push(d)
+        return d.promise
+      })
+
+      service = new FileUploadService(makeClient({ uploadFile }), {
+        maxConcurrent: 2,
+      })
+
+      service.addFile(makeTask({ id: 'a' }))
+      service.addFile(makeTask({ id: 'b' }))
+      service.addFile(makeTask({ id: 'c' }))
+
+      await flush()
+
+      // Only the first two should be uploading; c is still pending.
+      const before = service.getAllTasks()
+      expect(before.find((t) => t.id === 'a')!.status).toBe('uploading')
+      expect(before.find((t) => t.id === 'b')!.status).toBe('uploading')
+      expect(before.find((t) => t.id === 'c')!.status).toBe('pending')
+
+      service.setMaxConcurrent(3)
+      await flush()
+
+      const after = service.getAllTasks()
+      expect(after.find((t) => t.id === 'c')!.status).toBe('uploading')
+
+      // Tidy up so the test doesn't leave dangling promises.
+      inflight.forEach((d) => d.resolve({ ok: true }))
+      await flush()
+    })
+
+    it('floors the cap at 1 even if a smaller value is passed', () => {
+      service = new FileUploadService(makeClient())
+      service.setMaxConcurrent(0)
+      // Indirect check: enqueue 2 tasks, only one should run.
+      const inflight: Array<Deferred<{ ok: true }>> = []
+      const uploadFile = vi.fn(() => {
+        const d = deferred<{ ok: true }>()
+        inflight.push(d)
+        return d.promise
+      })
+      service = new FileUploadService(makeClient({ uploadFile }), {
+        maxConcurrent: 5,
+      })
+      service.setMaxConcurrent(-3)
+      service.addFile(makeTask({ id: 'x' }))
+      service.addFile(makeTask({ id: 'y' }))
+      return Promise.resolve().then(async () => {
+        await flush()
+        const tasks = service.getAllTasks()
+        const uploading = tasks.filter((t) => t.status === 'uploading')
+        expect(uploading).toHaveLength(1)
+        inflight.forEach((d) => d.resolve({ ok: true }))
+      })
+    })
+  })
+
+  describe('forceWatchdog', () => {
+    it('transitions a cancelling task to failed without waiting 10s', async () => {
+      const uploadFile = vi.fn(() => new Promise(() => {}))
+      service = new FileUploadService(makeClient({ uploadFile }))
+
+      service.addFile(makeTask({ id: 'stuck' }))
+      await flush()
+
+      service.cancelTask('stuck')
+      expect(service.getTask('stuck')!.status).toBe('cancelling')
+
+      service.forceWatchdog('stuck')
+      expect(service.getTask('stuck')!.status).toBe('failed')
+      expect(service.getTask('stuck')!.error).toBe('Cancelled')
+    })
+
+    it('is a no-op for tasks not in cancelling state', async () => {
+      service = new FileUploadService(makeClient())
+      service.addFile(makeTask({ id: 'done' }))
+      await flush()
+      // Task completed naturally; forceWatchdog should not flip it.
+      expect(service.getTask('done')!.status).toBe('completed')
+      service.forceWatchdog('done')
+      expect(service.getTask('done')!.status).toBe('completed')
+    })
+
+    it('returns silently for unknown ids', () => {
+      service = new FileUploadService(makeClient())
+      expect(() => service.forceWatchdog('nope')).not.toThrow()
+    })
+  })
+
+  describe('getTask', () => {
+    it('returns the live task object by id, or undefined if missing', async () => {
+      service = new FileUploadService(makeClient())
+      service.addFile(makeTask({ id: 'a' }))
+      await flush()
+      expect(service.getTask('a')?.id).toBe('a')
+      expect(service.getTask('missing')).toBeUndefined()
+    })
+  })
+
+  describe('subscriber atomicity — failed', () => {
+    it('failed status and error are visible in the same notification', async () => {
+      client = makeClient({
+        uploadFile: vi.fn().mockRejectedValue(new Error('disk full')),
+      })
+      service = new FileUploadService(client)
+
+      const observed: Array<{ status: string; error?: string }> = []
+      service.subscribe(() => {
+        const t = service.getAllTasks().find((x) => x.id === 'bad')
+        if (t && t.status === 'failed') {
+          observed.push({ status: t.status, error: t.error })
+        }
+      })
+
+      service.addFile(makeTask({ id: 'bad' }))
+      await flush()
+
+      expect(observed.length).toBeGreaterThanOrEqual(1)
+      for (const o of observed) {
+        // Whenever the subscriber sees 'failed', the error message must be
+        // populated — never an empty interstitial state.
+        expect(o.error).toBe('disk full')
+      }
+    })
+
+    it('cancelling status is observed strictly before failed:Cancelled', async () => {
+      const uploadFile = vi.fn(
+        ({ signal }: { signal?: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            signal?.addEventListener('abort', () => {
+              reject(Object.assign(new Error('Aborted'), { kind: 'Aborted' }))
+            })
+          })
+      )
+      service = new FileUploadService(makeClient({ uploadFile }))
+
+      const sequence: string[] = []
+      service.subscribe(() => {
+        const t = service.getAllTasks().find((x) => x.id === 'c')
+        if (t) sequence.push(t.status)
+      })
+
+      service.addFile(makeTask({ id: 'c' }))
+      await flush()
+      service.cancelTask('c')
+      await flush()
+
+      const cancellingIdx = sequence.indexOf('cancelling')
+      const failedIdx = sequence.indexOf('failed')
+      expect(cancellingIdx).toBeGreaterThanOrEqual(0)
+      expect(failedIdx).toBeGreaterThanOrEqual(0)
+      expect(cancellingIdx).toBeLessThan(failedIdx)
+    })
+  })
+
   describe('cancelling watchdog', () => {
     it('forces a stuck cancelling task to failed after the timeout', async () => {
       vi.useFakeTimers()

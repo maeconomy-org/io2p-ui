@@ -8,6 +8,7 @@ import type { Attachment } from '@/types'
 import { FileDropzone, Button, Input, Separator } from '@/components/ui'
 import { useAppConfig } from '@/contexts'
 import { formatSizeMB } from '@/lib/utils'
+import { MAX_FILES_PER_DROP } from '@/constants/limits'
 
 import { isOversize } from '../utils'
 import { AttachmentList } from './attachment-list'
@@ -61,6 +62,16 @@ export function AttachmentSection({
     if (!allowUpload || disabled) return
     setError(null)
     const maxMB = maxAttachmentSizeMB
+
+    // Reject the entire batch on overflow — partial accept hides which files
+    // were dropped vs which were silently skipped, and the upload queue can
+    // run away on huge multi-selects (e.g., from a folder picker).
+    if (files.length > MAX_FILES_PER_DROP) {
+      setError(
+        t('objects.attachments.tooManyFiles', { max: MAX_FILES_PER_DROP })
+      )
+      return
+    }
 
     const accepted: Attachment[] = []
     for (const file of files) {
@@ -127,6 +138,7 @@ export function AttachmentSection({
           disabled={disabled}
           multiple
           className="py-8"
+          dataTestId="attachment-section-dropzone"
         >
           <div className="flex flex-col items-center justify-center text-muted-foreground">
             <Upload className="h-5 w-5 mb-2" />

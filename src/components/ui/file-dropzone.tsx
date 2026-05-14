@@ -16,6 +16,7 @@ export interface FileDropzoneProps extends Omit<DropzoneOptions, 'onDrop'> {
   showLoader?: boolean
   error?: string | null
   progress?: number
+  dataTestId?: string
 }
 
 export function FileDropzone({
@@ -28,6 +29,7 @@ export function FileDropzone({
   showLoader = true,
   error = null,
   progress = 0,
+  dataTestId,
   ...props
 }: FileDropzoneProps) {
   const [isDropping, setIsDropping] = useState(false)
@@ -73,6 +75,7 @@ export function FileDropzone({
     <div className={`space-y-2 transition-all duration-300 ${animationClass}`}>
       <div
         {...getRootProps()}
+        data-testid={dataTestId}
         className={cn(
           'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
           isDragActive || isDropping

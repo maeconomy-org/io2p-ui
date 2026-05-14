@@ -46,7 +46,10 @@ test.describe('22 - Inline parent creation', () => {
     await expect(sheet).toBeVisible()
 
     // Open the parent picker popover.
-    await sheet.getByRole('combobox', { expanded: false }).first().click()
+    await sheet
+      .getByRole('combobox')
+      .filter({ hasText: /search for parent objects/i })
+      .click()
 
     const popover = page.getByRole('listbox')
     await expect(popover).toBeVisible()
@@ -62,7 +65,10 @@ test.describe('22 - Inline parent creation', () => {
     const outerSheet = getDialog(page, 'Add Object')
     await expect(outerSheet).toBeVisible()
 
-    await outerSheet.getByRole('combobox', { expanded: false }).first().click()
+    await outerSheet
+      .getByRole('combobox')
+      .filter({ hasText: /search for parent objects/i })
+      .click()
     await page
       .getByRole('listbox')
       .getByRole('option', { name: /create new parent/i })
@@ -76,7 +82,10 @@ test.describe('22 - Inline parent creation', () => {
 
     // Open the nested sheet's parent picker. The "+ Create new parent" action
     // must NOT appear here (allowInlineCreate=false → depth=1 enforced).
-    await nestedSheet.getByRole('combobox', { expanded: false }).first().click()
+    await nestedSheet
+      .getByRole('combobox')
+      .filter({ hasText: /search for parent objects/i })
+      .click()
 
     const popover = page.getByRole('listbox')
     await expect(popover).toBeVisible()
@@ -94,7 +103,10 @@ test.describe('22 - Inline parent creation', () => {
     const outerSheet = getDialog(page, 'Add Object')
     await outerSheet.getByLabel('Name').fill(`Outer Child ${runId}`)
 
-    await outerSheet.getByRole('combobox', { expanded: false }).first().click()
+    await outerSheet
+      .getByRole('combobox')
+      .filter({ hasText: /search for parent objects/i })
+      .click()
     await page
       .getByRole('listbox')
       .getByRole('option', { name: /create new parent/i })
@@ -126,7 +138,10 @@ test.describe('22 - Inline parent creation', () => {
     await page.getByRole('button', { name: /create object/i }).click()
     const outerSheet = getDialog(page, 'Add Object')
 
-    await outerSheet.getByRole('combobox', { expanded: false }).first().click()
+    await outerSheet
+      .getByRole('combobox')
+      .filter({ hasText: /search for parent objects/i })
+      .click()
     await page
       .getByRole('listbox')
       .getByRole('option', { name: /create new parent/i })

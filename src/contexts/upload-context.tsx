@@ -18,6 +18,7 @@ import {
   FileUploadTask,
   useUploadService,
 } from '@/lib/upload-service'
+import { installTestHooks } from '@/lib/test-hooks'
 import { queryKeys } from '@/lib/query-keys'
 import { logger } from '@/lib'
 
@@ -59,6 +60,13 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   // Remember which tasks we've already invalidated / toasted for so a re-render
   // doesn't fire the side effect twice.
   const settledIdsRef = useRef(new Set<string>())
+
+  // Expose Playwright test hooks. No-op in production via NODE_ENV guard
+  // inside installTestHooks() — the call here stays, the body is DCE'd.
+  useEffect(
+    () => installTestHooks(service, queryClient),
+    [service, queryClient]
+  )
 
   useEffect(() => {
     const unsubscribe = service.subscribe(() => {

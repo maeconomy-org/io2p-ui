@@ -463,7 +463,8 @@
       "rename": "Rename file",
       "remove": "Remove file",
       "dropzoneHint": "Drop files to upload",
-      "dropzoneOversize": "Skipped {names}: exceeds {size}MB"
+      "dropzoneOversize": "Skipped {names}: exceeds {size}MB",
+      "tooManyFiles": "Too many files at once — drop at most {max} files per batch"
     },
     "files": {
       "preview": "Preview in new tab",

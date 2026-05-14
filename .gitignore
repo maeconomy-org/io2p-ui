@@ -247,6 +247,7 @@ yarn-error.log*
 next-env.d.ts
 
 e2e/.auth/
+e2e/fixtures/uploads/
 playwright-report/
 test-results/
 docs/

@@ -15,6 +15,11 @@ export const IMPORT_MAPPING_TEMPLATES_KEY = 'import_mapping_templates'
 // 8 MB parts and never sit in memory whole, so the cap is much higher.
 export const MAX_IMPORT_FILE_SIZE_MB = 100
 export const MAX_ATTACHMENT_SIZE_MB = 1024
+// Per-drop file count cap. The OS file picker and folder drops can yield
+// thousands of File entries; without a ceiling, hashing/init storms can OOM
+// the page or saturate the upload queue. Rejected as a whole batch — partial
+// accept would leave the user guessing which files made it.
+export const MAX_FILES_PER_DROP = 100
 export const STREAM_CHUNK_SIZE = 2 * 1024 * 1024 // 2MB chunks for file streaming
 export const IMPORT_CHUNK_SIZE = 500 // Process objects at a time (UI chunking)
 export const API_CHUNK_SIZE = 100 // API storage chunk size (server-side)

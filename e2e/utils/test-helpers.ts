@@ -482,13 +482,14 @@ export async function addPropertyInForm(
   name: string,
   values: string[]
 ) {
-  // Use data-testid for counting so the count is decoupled from label-association
-  // quirks (the PropertyNameCombobox is a Radix Input wrapped in forwardRef; label
-  // lookup via getByLabel has occasionally double-counted on re-render).
+  // Count rows by `property-item-*` (always present), not `property-name-*`
+  // (only emitted when the row is expanded). Adding a new row collapses the
+  // existing ones, so counting name inputs sees the count drop transiently.
+  const propertyItems = sheet.locator('[data-testid^="property-item-"]')
   const propertyNameInputs = sheet.locator('[data-testid^="property-name-"]')
-  const beforeCount = await propertyNameInputs.count()
+  const beforeRows = await propertyItems.count()
 
-  if (beforeCount === 0) {
+  if (beforeRows === 0) {
     await sheet
       .getByRole('button', { name: 'Add Property', exact: true })
       .click()
@@ -501,17 +502,20 @@ export async function addPropertyInForm(
     await addBtn.click()
   }
 
-  // Wait until the property count has grown, then target the LAST input —
-  // this is robust to the rare case where clicking "Add" appends more than
-  // one empty row (e.g. React strict-mode double-invocation in dev).
   await expect
-    .poll(async () => propertyNameInputs.count(), { timeout: 10000 })
-    .toBeGreaterThan(beforeCount)
+    .poll(async () => propertyItems.count(), { timeout: 10000 })
+    .toBeGreaterThan(beforeRows)
 
-  const afterCount = await propertyNameInputs.count()
-  const lastIndex = afterCount - 1
-  await expect(propertyNameInputs.nth(lastIndex)).toBeVisible()
-  await propertyNameInputs.nth(lastIndex).fill(name)
+  // The new last row is the one we just appended. It must be expanded for the
+  // name input to render; expand it if useFieldArray rendered it collapsed.
+  const lastIndex = (await propertyItems.count()) - 1
+  const lastItem = propertyItems.nth(lastIndex)
+  const lastNameInput = lastItem.locator('[data-testid^="property-name-"]')
+  if ((await lastNameInput.count()) === 0) {
+    await lastItem.locator('[data-testid^="property-header-"]').click()
+  }
+  await expect(lastNameInput).toBeVisible({ timeout: 5000 })
+  await lastNameInput.fill(name)
 
   // Fill values — scope value inputs to the newly-added property row so we
   // never accidentally fill a value inside a sibling property.

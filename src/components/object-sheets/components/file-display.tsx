@@ -217,6 +217,7 @@ export const FileDisplay = memo(function FileDisplay({
   return (
     <>
       <div
+        data-testid={`file-display-row-${file.uuid || file.fileReference || displayName}`}
         className={cn(
           'flex items-center gap-2 p-2 rounded-md border transition-colors',
           isSoftDeleted

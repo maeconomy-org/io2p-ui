@@ -121,6 +121,35 @@ test.describe('17 - Attachment Preview', () => {
     ])
 
     await openFilesTab(page, name)
+
+    // The SDK's `getDownloadUrl` is a shim over `getPreviewUrl` (no
+    // `Content-Disposition: attachment` baked into the signed URL — see
+    // iom-sdk/.../file-storage-client.ts). Cross-origin browsers ignore the
+    // `<a download>` attribute, so without intercepting we just navigate
+    // inline. Rewrite the preview-url response to a same-origin endpoint
+    // that returns `Content-Disposition: attachment`; the download event
+    // then fires reliably and `suggestedFilename` reflects the header.
+    await page.route(`**/__test_download/${fileName}`, (route) =>
+      route.fulfill({
+        status: 200,
+        headers: {
+          'Content-Disposition': `attachment; filename="${fileName}"`,
+        },
+        contentType: 'text/plain',
+        body: 'download payload',
+      })
+    )
+    await page.route('**/api/FileStorage/*/preview-url', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          url: `/__test_download/${fileName}`,
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        }),
+      })
+    )
+
     await page.locator('[data-testid^="file-preview-"]').first().click()
 
     const dialog = page.locator(PREVIEW_DIALOG)
@@ -138,10 +167,11 @@ test.describe('17 - Attachment Preview', () => {
     page,
   }) => {
     const name = `TC125 Preview ${runId}`
+    const names = ['one.txt', 'two.txt', 'three.txt']
     await createObjectWithFiles(page, name, [
-      { name: 'one.txt', content: 'first' },
-      { name: 'two.txt', content: 'second' },
-      { name: 'three.txt', content: 'third' },
+      { name: names[0], content: 'first' },
+      { name: names[1], content: 'second' },
+      { name: names[2], content: 'third' },
     ])
 
     await openFilesTab(page, name)
@@ -150,31 +180,34 @@ test.describe('17 - Attachment Preview', () => {
     const dialog = page.locator(PREVIEW_DIALOG)
     await expect(dialog).toBeVisible()
 
-    // Counter format: "1 of 3" via counter translation. Fall back to matching
-    // the filename in the toolbar, which is a stable assertion.
-    await expect(dialog.getByText('one.txt').first()).toBeVisible()
+    // File ordering in the files tab is not guaranteed to match upload order,
+    // so assert navigation cycles through distinct sibling names rather than
+    // a specific sequence. The toolbar's truncate <p> holds the active name.
+    const toolbarName = dialog.locator('p.truncate').first()
+    const seen: string[] = []
+    seen.push((await toolbarName.textContent())?.trim() || '')
 
     await dialog.locator(NEXT_BTN).click()
-    await expect(dialog.getByText('two.txt').first()).toBeVisible({
-      timeout: 5000,
-    })
+    await expect(toolbarName).not.toHaveText(seen[0]!, { timeout: 5000 })
+    seen.push((await toolbarName.textContent())?.trim() || '')
 
     await dialog.locator(NEXT_BTN).click()
-    await expect(dialog.getByText('three.txt').first()).toBeVisible({
-      timeout: 5000,
-    })
+    await expect
+      .poll(async () => (await toolbarName.textContent())?.trim())
+      .not.toBe(seen[1]!)
+    seen.push((await toolbarName.textContent())?.trim() || '')
 
-    // Wrap around to the first sibling.
+    // All three siblings visited.
+    expect(new Set(seen).size).toBe(3)
+    for (const n of names) expect(seen).toContain(n)
+
+    // Wrap around: Next from the last lands on the first.
     await dialog.locator(NEXT_BTN).click()
-    await expect(dialog.getByText('one.txt').first()).toBeVisible({
-      timeout: 5000,
-    })
+    await expect(toolbarName).toHaveText(seen[0]!, { timeout: 5000 })
 
-    // Prev takes us back to the end.
+    // Prev wraps back to the last.
     await dialog.locator(PREV_BTN).click()
-    await expect(dialog.getByText('three.txt').first()).toBeVisible({
-      timeout: 5000,
-    })
+    await expect(toolbarName).toHaveText(seen[2]!, { timeout: 5000 })
   })
 
   test('TC126: navigates between siblings via arrow keys', async ({ page }) => {
@@ -189,17 +222,18 @@ test.describe('17 - Attachment Preview', () => {
 
     const dialog = page.locator(PREVIEW_DIALOG)
     await expect(dialog).toBeVisible()
-    await expect(dialog.getByText('alpha.txt').first()).toBeVisible()
+
+    // Order-agnostic: just verify ArrowRight cycles to the other sibling and
+    // ArrowLeft returns. The files tab does not guarantee upload-order.
+    const toolbarName = dialog.locator('p.truncate').first()
+    const initial = (await toolbarName.textContent())?.trim() || ''
+    expect(['alpha.txt', 'beta.txt']).toContain(initial)
 
     await page.keyboard.press('ArrowRight')
-    await expect(dialog.getByText('beta.txt').first()).toBeVisible({
-      timeout: 5000,
-    })
+    await expect(toolbarName).not.toHaveText(initial, { timeout: 5000 })
 
     await page.keyboard.press('ArrowLeft')
-    await expect(dialog.getByText('alpha.txt').first()).toBeVisible({
-      timeout: 5000,
-    })
+    await expect(toolbarName).toHaveText(initial, { timeout: 5000 })
   })
 
   test('TC127: hides the prev/next controls when only one sibling is previewable', async ({

@@ -92,6 +92,16 @@ export default [
     },
   },
   {
+    // Node-only ESM scripts (e.g. e2e fixture generators, build helpers)
+    // not covered by the .config.* glob above.
+    files: ['**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
     // Test files
     files: [
       '**/*.test.{js,ts,tsx}',

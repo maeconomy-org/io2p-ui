@@ -61,7 +61,9 @@ test.describe('03 - Group User Management', () => {
     await dialog.getByRole('button', { name: /add user/i }).click()
 
     // Fill in user UUID and submit
-    await dialog.getByPlaceholder(/enter user uuid/i).fill(testUserUUID)
+    await dialog
+      .getByPlaceholder(/user email or certificate cn/i)
+      .fill(testUserUUID)
     await dialog
       .locator('div.space-y-2.p-3')
       .getByRole('button')

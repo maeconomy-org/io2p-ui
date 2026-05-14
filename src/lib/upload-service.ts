@@ -96,6 +96,48 @@ export class FileUploadService {
     return this.allTasks.slice()
   }
 
+  getTask(id: string): FileUploadTask | undefined {
+    return this.allTasks.find((t) => t.id === id)
+  }
+
+  /**
+   * Adjust the parallel upload cap at runtime. Calls `schedule()` so a raised
+   * limit picks up queued work immediately instead of waiting for the next
+   * natural slot turnover.
+   */
+  setMaxConcurrent(n: number): void {
+    this.options.maxConcurrent = Math.max(1, n)
+    this.schedule()
+  }
+
+  /**
+   * Force a stuck `cancelling` task to `failed` without waiting the watchdog
+   * timeout. Used by E2E specs to skip the 10s sleep, and a no-op for tasks
+   * that aren't in `cancelling` state.
+   */
+  forceWatchdog(id: string): void {
+    const timer = this.cancellingTimeouts.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      this.cancellingTimeouts.delete(id)
+    }
+    this.forceCancellingToFailed(id)
+  }
+
+  // Shared body between the watchdog timer and forceWatchdog(). Both must
+  // produce the same notify+onError+settle sequence so subscribers can't tell
+  // them apart.
+  private forceCancellingToFailed(id: string): void {
+    const t = this.allTasks.find((x) => x.id === id)
+    if (!t || t.status !== 'cancelling') return
+    t.error = 'Cancelled'
+    t.abortController = undefined
+    t.status = 'failed'
+    this.notify()
+    this.options.onError(id, 'Cancelled')
+    this.settle(id)
+  }
+
   /**
    * Enqueue a file. Returns a promise that resolves once the task reaches a
    * terminal state (completed or failed/cancelled). The promise never rejects
@@ -284,14 +326,7 @@ export class FileUploadService {
     if (!this.cancellingTimeouts.has(id)) {
       const timer = setTimeout(() => {
         this.cancellingTimeouts.delete(id)
-        const t = this.allTasks.find((x) => x.id === id)
-        if (!t || t.status !== 'cancelling') return
-        t.error = 'Cancelled'
-        t.abortController = undefined
-        t.status = 'failed'
-        this.notify()
-        this.options.onError(id, 'Cancelled')
-        this.settle(id)
+        this.forceCancellingToFailed(id)
       }, CANCELLING_WATCHDOG_MS)
       this.cancellingTimeouts.set(id, timer)
     }

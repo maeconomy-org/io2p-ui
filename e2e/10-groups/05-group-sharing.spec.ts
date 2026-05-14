@@ -66,7 +66,9 @@ test.describe('05 - Group Sharing (Cross-User)', () => {
     await expect(dialog).toBeVisible()
 
     await dialog.getByRole('button', { name: /add user/i }).click()
-    await dialog.getByPlaceholder(/enter user uuid/i).fill(otherUserUUID)
+    await dialog
+      .getByPlaceholder(/user email or certificate cn/i)
+      .fill(otherUserUUID)
     await dialog
       .locator('div.space-y-2.p-3')
       .getByRole('button')
@@ -95,7 +97,9 @@ test.describe('05 - Group Sharing (Cross-User)', () => {
     await expect(dialog).toBeVisible()
 
     await dialog.getByRole('button', { name: /add user/i }).click()
-    await dialog.getByPlaceholder(/enter user uuid/i).fill(loginUserUUID)
+    await dialog
+      .getByPlaceholder(/user email or certificate cn/i)
+      .fill(loginUserUUID)
     await dialog
       .locator('div.space-y-2.p-3')
       .getByRole('button')

@@ -136,7 +136,8 @@ export function AttachmentList({
         return (
           <div
             key={
-              attachment.fileReference || attachment.fileName || `new-${index}`
+              attachment.fileReference ??
+              `${attachment.fileName ?? 'new'}-${index}`
             }
             className="flex items-center gap-2 p-2 rounded-md border bg-card"
           >
