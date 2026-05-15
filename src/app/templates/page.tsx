@@ -10,6 +10,7 @@ import type { UUMathFormulaDTO } from 'iom-sdk'
 import {
   Badge,
   Button,
+  GridPagination,
   Tabs,
   TabsContent,
   TabsList,
@@ -105,11 +106,18 @@ export default function TemplatesPage() {
     name: string
   } | null>(null)
 
+  const FORMULAS_PER_PAGE = 12
+  const [formulasPage, setFormulasPage] = useState(1)
   const {
     data: formulas,
+    totalPages: formulasTotalPages,
+    totalElements: formulasTotalElements,
     loading: formulasLoading,
     fetching: formulasFetching,
-  } = useFormulaData()
+  } = useFormulaData({
+    page: formulasPage - 1,
+    pageSize: FORMULAS_PER_PAGE,
+  })
   const { useDeleteFormula } = useMathFormulas()
   const deleteFormulaMutation = useDeleteFormula()
 
@@ -247,6 +255,15 @@ export default function TemplatesPage() {
                 onDelete={handleFormulaDelete}
                 loading={formulasLoading}
                 fetching={formulasFetching}
+              />
+
+              <GridPagination
+                currentPage={formulasPage}
+                totalPages={formulasTotalPages}
+                totalElements={formulasTotalElements}
+                pageSize={FORMULAS_PER_PAGE}
+                isFetching={formulasFetching}
+                onPageChange={setFormulasPage}
               />
             </TabsContent>
           </Tabs>

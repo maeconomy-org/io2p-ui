@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { keepPreviousData } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import type { UUMathFormulaDTO } from 'iom-sdk'
 
-import { useMathFormulas, usePagination } from '@/hooks'
+import { useMathFormulas } from '@/hooks'
 
 interface UseFormulaDataProps {
+  page?: number
   pageSize?: number
   showDeleted?: boolean
 }
@@ -15,6 +16,7 @@ interface UseFormulaDataProps {
  */
 export function useFormulaData({
   showDeleted = false,
+  page = 0,
   pageSize = 15,
 }: UseFormulaDataProps = {}) {
   const { useSearchFormulas } = useMathFormulas()
@@ -27,15 +29,27 @@ export function useFormulaData({
   )
 
   const {
-    data: formulas,
+    data: pageData,
     isLoading,
     isFetching,
-  } = useSearchFormulas(searchParams, {
-    enabled: true,
-  })
+  } = useSearchFormulas(
+    searchParams,
+    { page, size: pageSize },
+    { enabled: true }
+  )
+
+  const data = useMemo<UUMathFormulaDTO[]>(
+    () =>
+      (pageData?.content ?? []).filter(
+        (f): f is UUMathFormulaDTO => !!f.uuid && !!f.name && !!f.expression
+      ),
+    [pageData]
+  )
 
   return {
-    data: formulas || [],
+    data,
+    totalElements: pageData?.totalElements ?? 0,
+    totalPages: pageData?.totalPages ?? 0,
     loading: isLoading,
     fetching: isFetching,
   }

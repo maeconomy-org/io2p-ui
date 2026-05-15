@@ -69,10 +69,14 @@ export const queryKeys = {
     lists: () => [...queryKeys.groups.all, 'list'] as const,
     list: (params?: GroupListParams) =>
       [...queryKeys.groups.lists(), params] as const,
+    own: (params?: GroupListParams) =>
+      [...queryKeys.groups.all, 'own', params] as const,
+    shared: (params?: GroupListParams) =>
+      [...queryKeys.groups.all, 'shared', params] as const,
     details: () => [...queryKeys.groups.all, 'detail'] as const,
     detail: (uuid: UUID) => [...queryKeys.groups.details(), uuid] as const,
-    records: (uuid: UUID) =>
-      [...queryKeys.groups.all, uuid, 'records'] as const,
+    records: (uuid: UUID, params?: GroupListParams) =>
+      [...queryKeys.groups.all, uuid, 'records', params] as const,
   },
 
   // ─── Properties ──────────────────────────────────────────

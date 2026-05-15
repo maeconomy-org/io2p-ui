@@ -43,10 +43,23 @@ describe('useMathFormulas', () => {
     vi.clearAllMocks()
   })
 
+  const makePage = <T>(content: T[]): any => ({
+    content,
+    totalElements: content.length,
+    totalPages: 1,
+    size: content.length,
+    number: 0,
+    numberOfElements: content.length,
+    first: true,
+    last: true,
+    empty: content.length === 0,
+  })
+
   describe('useSearchFormulas', () => {
-    it('calls node.searchMathFormulas with given params and returns data', async () => {
+    it('calls node.searchMathFormulas with given params and returns a page', async () => {
       const items = [{ uuid: 'f1', name: 'F1', expression: 'a+b' }]
-      searchMathFormulas.mockResolvedValue(items)
+      const page = makePage(items)
+      searchMathFormulas.mockResolvedValue(page)
 
       const { wrapper } = makeWrapper()
       const { result } = renderHook(
@@ -55,10 +68,31 @@ describe('useMathFormulas', () => {
       )
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(result.current.data).toEqual(items)
+      expect(result.current.data).toEqual(page)
       expect(searchMathFormulas).toHaveBeenCalledWith(
         { softDeleted: false },
+        undefined,
         expect.objectContaining({ signal: expect.any(AbortSignal) })
+      )
+    })
+
+    it('passes pagination params through to the SDK', async () => {
+      searchMathFormulas.mockResolvedValue(makePage([]))
+      const { wrapper } = makeWrapper()
+      renderHook(
+        () =>
+          useMathFormulas().useSearchFormulas(
+            { softDeleted: false },
+            { page: 2, size: 50 }
+          ),
+        { wrapper }
+      )
+      await waitFor(() =>
+        expect(searchMathFormulas).toHaveBeenCalledWith(
+          { softDeleted: false },
+          { page: 2, size: 50 },
+          expect.objectContaining({ signal: expect.any(AbortSignal) })
+        )
       )
     })
 
@@ -66,7 +100,9 @@ describe('useMathFormulas', () => {
       const { wrapper } = makeWrapper()
       renderHook(
         () =>
-          useMathFormulas().useSearchFormulas(undefined, { enabled: false }),
+          useMathFormulas().useSearchFormulas(undefined, undefined, {
+            enabled: false,
+          }),
         { wrapper }
       )
       // Give React Query a tick to potentially fire; it should not.
@@ -78,7 +114,7 @@ describe('useMathFormulas', () => {
   describe('useFormulaByUUID', () => {
     it('returns the first match when a formula exists', async () => {
       const formula = { uuid: 'abc', name: 'Area', expression: 'l*w' }
-      searchMathFormulas.mockResolvedValue([formula])
+      searchMathFormulas.mockResolvedValue(makePage([formula]))
 
       const { wrapper } = makeWrapper()
       const { result } = renderHook(
@@ -90,7 +126,7 @@ describe('useMathFormulas', () => {
     })
 
     it('returns null when no formula found', async () => {
-      searchMathFormulas.mockResolvedValue([])
+      searchMathFormulas.mockResolvedValue(makePage([]))
       const { wrapper } = makeWrapper()
       const { result } = renderHook(
         () => useMathFormulas().useFormulaByUUID('missing'),

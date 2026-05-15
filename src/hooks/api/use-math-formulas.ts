@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query'
 import type {
   UUMathFormulaDTO,
   UUMathFormulaCalcDTO,
@@ -8,6 +13,11 @@ import type {
 import { useIomSdkClient } from '@/contexts'
 import { queryKeys } from '@/lib/query-keys'
 
+interface PageParams {
+  page?: number
+  size?: number
+}
+
 export function useMathFormulas() {
   const client = useIomSdkClient()
   const queryClient = useQueryClient()
@@ -16,14 +26,18 @@ export function useMathFormulas() {
 
   const useSearchFormulas = (
     params?: UUMathFormulaFindDTO,
+    pagination?: PageParams,
     options?: { enabled?: boolean }
   ) => {
     return useQuery({
-      queryKey: queryKeys.formulas.list(params),
+      queryKey: queryKeys.formulas.list({ ...params, ...pagination }),
       queryFn: async ({ signal }) => {
-        return client.node.searchMathFormulas(params ?? {}, { signal })
+        return client.node.searchMathFormulas(params ?? {}, pagination, {
+          signal,
+        })
       },
       enabled: options?.enabled !== false,
+      placeholderData: keepPreviousData,
       staleTime: 30000,
       gcTime: 5 * 60 * 1000,
     })
@@ -34,11 +48,12 @@ export function useMathFormulas() {
       queryKey: queryKeys.formulas.detail(uuid),
       queryFn: async ({ signal }) => {
         if (!uuid) return null
-        const results = await client.node.searchMathFormulas(
+        const page = await client.node.searchMathFormulas(
           { uuid },
+          { page: 0, size: 1 },
           { signal }
         )
-        return results?.[0] || null
+        return page?.content?.[0] || null
       },
       enabled: !!uuid && options?.enabled !== false,
       staleTime: 30000,

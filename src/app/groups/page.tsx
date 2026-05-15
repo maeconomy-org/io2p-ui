@@ -10,6 +10,7 @@ import { logger } from '@/lib'
 import {
   Button,
   EmptyState,
+  GridPagination,
   AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
@@ -20,7 +21,7 @@ import {
   AlertDialogAction,
 } from '@/components/ui'
 import { FacetedFilter } from '@/components/filters'
-import { GroupCard, useGroupFilters } from '@/components/groups'
+import { GroupCard } from '@/components/groups'
 
 // Lazy-load sheet components (only rendered on user interaction)
 const GroupViewSheet = dynamic(
@@ -38,7 +39,6 @@ const GroupCreateSheet = dynamic(
     ),
   { ssr: false }
 )
-import { useAuth } from '@/contexts'
 import { useGroups } from '@/hooks/api'
 
 type GroupFilter = 'all' | 'my' | 'shared'
@@ -47,8 +47,7 @@ const ITEMS_PER_PAGE = 12
 
 export default function GroupsPage() {
   const t = useTranslations()
-  const { userUUID } = useAuth()
-  const { useListGroups } = useGroups()
+  const { useListGroups, useListOwnGroups, useListSharedGroups } = useGroups()
 
   const [selectedGroup, setSelectedGroup] = useState<GroupCreateDTO | null>(
     null
@@ -63,20 +62,30 @@ export default function GroupsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [activeFilter, setActiveFilter] = useState<GroupFilter>('all')
 
-  // Fetch groups with server-side pagination (API is 0-indexed)
-  const {
-    data: page,
-    isLoading,
-    isError,
-    isFetching,
-  } = useListGroups({ page: currentPage - 1, size: ITEMS_PER_PAGE })
-
-  // Client-side owner filter on the current page content
-  const { filteredGroups, totalPages, totalElements } = useGroupFilters({
-    page,
-    userUUID,
-    activeFilter,
+  // API is 0-indexed; only the active filter's query runs
+  const queryParams = { page: currentPage - 1, size: ITEMS_PER_PAGE }
+  const allQuery = useListGroups(queryParams, {
+    enabled: activeFilter === 'all',
   })
+  const ownQuery = useListOwnGroups(queryParams, {
+    enabled: activeFilter === 'my',
+  })
+  const sharedQuery = useListSharedGroups(queryParams, {
+    enabled: activeFilter === 'shared',
+  })
+
+  const activeQuery =
+    activeFilter === 'my'
+      ? ownQuery
+      : activeFilter === 'shared'
+        ? sharedQuery
+        : allQuery
+
+  const { data: page, isLoading, isError, isFetching } = activeQuery
+
+  const groups = page?.content ?? []
+  const totalPages = page?.totalPages ?? 0
+  const totalElements = page?.totalElements ?? 0
 
   const handleFilterChange = useCallback((filter: GroupFilter) => {
     setActiveFilter(filter)
@@ -107,10 +116,6 @@ export default function GroupsPage() {
     logger.info('Group deleted (soft delete)')
     setGroupToDelete(null)
   }, [groupToDelete])
-
-  // Compute showing range from server pagination
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalElements)
 
   return (
     <div className="container mx-auto p-4">
@@ -173,7 +178,7 @@ export default function GroupsPage() {
             data-testid="groups-grid"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6"
           >
-            {filteredGroups.map((group) => (
+            {groups.map((group) => (
               <GroupCard
                 key={group.groupUUID}
                 group={group}
@@ -183,56 +188,16 @@ export default function GroupsPage() {
             ))}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                {t('groups.showing', {
-                  start: startIndex + 1,
-                  end: endIndex,
-                  total: totalElements,
-                })}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1 || isFetching}
-                >
-                  {t('common.previous')}
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (pageNum) => (
-                      <Button
-                        key={pageNum}
-                        variant={
-                          currentPage === pageNum ? 'default' : 'outline'
-                        }
-                        size="sm"
-                        onClick={() => handlePageChange(pageNum)}
-                        disabled={isFetching}
-                        className="w-8 h-8 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    )
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages || isFetching}
-                >
-                  {t('common.next')}
-                </Button>
-              </div>
-            </div>
-          )}
+          <GridPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            pageSize={ITEMS_PER_PAGE}
+            isFetching={isFetching}
+            onPageChange={handlePageChange}
+          />
 
-          {filteredGroups.length === 0 && (
+          {groups.length === 0 && (
             <EmptyState
               icon={<FolderOpen className="h-10 w-10" />}
               title={t('groups.noGroups')}

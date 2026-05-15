@@ -63,15 +63,46 @@ export function useGroups() {
     })
   }
 
-  const useListGroupRecords = (groupUUID: UUID, options = {}) => {
+  const useListGroupRecords = (
+    groupUUID: UUID,
+    params?: GroupListParams,
+    options = {}
+  ) => {
     return useQuery({
-      queryKey: queryKeys.groups.records(groupUUID),
+      queryKey: queryKeys.groups.records(groupUUID, params),
       queryFn: async () => {
-        return client.node.listGroupRecords(groupUUID)
+        return client.node.listGroupRecords(groupUUID, params)
       },
       enabled: !!groupUUID,
+      placeholderData: keepPreviousData,
       staleTime: 30000,
       gcTime: 5 * 60 * 1000,
+      ...options,
+    })
+  }
+
+  const useListOwnGroups = (params?: GroupListParams, options = {}) => {
+    return useQuery({
+      queryKey: queryKeys.groups.own(params),
+      queryFn: async () => {
+        return client.node.listOwnGroups(params)
+      },
+      placeholderData: keepPreviousData,
+      staleTime: 60000,
+      gcTime: 10 * 60 * 1000,
+      ...options,
+    })
+  }
+
+  const useListSharedGroups = (params?: GroupListParams, options = {}) => {
+    return useQuery({
+      queryKey: queryKeys.groups.shared(params),
+      queryFn: async () => {
+        return client.node.listSharedGroups(params)
+      },
+      placeholderData: keepPreviousData,
+      staleTime: 60000,
+      gcTime: 10 * 60 * 1000,
       ...options,
     })
   }
@@ -116,6 +147,8 @@ export function useGroups() {
     useAllGroups,
     useGetGroup,
     useListGroupRecords,
+    useListOwnGroups,
+    useListSharedGroups,
     useCreateGroup,
     useAddGroupRecords,
   }

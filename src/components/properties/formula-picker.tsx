@@ -37,9 +37,17 @@ export function FormulaPicker({
   const [open, setOpen] = useState(false)
 
   const { useSearchFormulas } = useMathFormulas()
-  const { data: formulas = [] } = useSearchFormulas(
+  const { data } = useSearchFormulas(
     { softDeleted: false },
+    { page: 0, size: 1000 },
     { enabled: open || !!value }
+  )
+  const formulas = useMemo<UUMathFormulaDTO[]>(
+    () =>
+      (data?.content ?? []).filter(
+        (f): f is UUMathFormulaDTO => !!f.uuid && !!f.name && !!f.expression
+      ),
+    [data]
   )
 
   const selectedFormula = useMemo(
