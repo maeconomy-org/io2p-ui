@@ -12,12 +12,17 @@ export interface ClientConfig {
   registryBaseUrl?: string
   nodeBaseUrl?: string
   userBaseUrl?: string
+  fileStorageBaseUrl?: string
 
   // Optional per-service timeout overrides in ms (default: 30000)
   authTimeout?: number
   registryTimeout?: number
   nodeTimeout?: number
   userTimeout?: number
+  fileStorageTimeout?: number
+
+  // Max concurrent file uploads (file-level, not S3 part-level). Default: 6
+  fileUploadConcurrency: number
 
   // Sentry config
   sentryDsn: string
@@ -62,6 +67,7 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   maxImportPayloadMB: 100,
   maxObjectsPerImport: 50000,
   maxAttachmentSizeMB: 1024,
+  fileUploadConcurrency: 6,
 }
 
 /**
@@ -79,6 +85,10 @@ export function buildRuntimeConfig(): ClientConfig {
     registryBaseUrl: process.env.REGISTRY_BASE_URL || undefined,
     nodeBaseUrl: process.env.NODE_BASE_URL || undefined,
     userBaseUrl: process.env.USER_BASE_URL || undefined,
+    fileStorageBaseUrl:
+      process.env.FILE_STORAGE_BASE_URL ||
+      process.env.FILE_STORAGE_API_URL ||
+      undefined,
     authTimeout: process.env.AUTH_TIMEOUT
       ? parseInt(process.env.AUTH_TIMEOUT)
       : undefined,
@@ -91,6 +101,10 @@ export function buildRuntimeConfig(): ClientConfig {
     userTimeout: process.env.USER_TIMEOUT
       ? parseInt(process.env.USER_TIMEOUT)
       : undefined,
+    fileStorageTimeout: process.env.FILE_STORAGE_TIMEOUT
+      ? parseInt(process.env.FILE_STORAGE_TIMEOUT)
+      : undefined,
+    fileUploadConcurrency: parseInt(process.env.FILE_UPLOAD_CONCURRENCY || '6'),
     sentryDsn: process.env.SENTRY_DSN || '',
     sentryEnabled: process.env.SENTRY_ENABLED || 'false',
     sentryRelease: process.env.SENTRY_RELEASE || process.env.APP_VERSION || '',

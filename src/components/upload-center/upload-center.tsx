@@ -1,16 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
-  ChevronUp,
-  ChevronDown,
-  Upload,
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  File as FileIcon,
+  FileAudio,
+  FileImage,
+  FileText,
+  FileVideo,
   Loader2,
   RotateCw,
+  Upload,
   X,
+  type LucideIcon,
 } from 'lucide-react'
 
 import { useOptionalUploadQueue } from '@/contexts'
@@ -19,15 +25,75 @@ import { cn } from '@/lib/utils'
 import { truncateText } from '@/lib'
 import type { FileUploadTask } from '@/lib/upload-service'
 
+function formatBytes(size?: number): string | null {
+  if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0)
+    return null
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  if (size < 1024 * 1024 * 1024)
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`
+  return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}
+
+function mimeIcon(mimeType?: string): LucideIcon {
+  if (!mimeType) return FileIcon
+  if (mimeType.startsWith('image/')) return FileImage
+  if (mimeType.startsWith('video/')) return FileVideo
+  if (mimeType.startsWith('audio/')) return FileAudio
+  if (mimeType === 'application/pdf' || mimeType.startsWith('text/'))
+    return FileText
+  return FileIcon
+}
+
 export function UploadCenter() {
   const t = useTranslations()
   const upload = useOptionalUploadQueue()
   const [isExpanded, setIsExpanded] = useState(true)
+  const [announcement, setAnnouncement] = useState('')
+  const previousStatuses = useRef<Map<string, FileUploadTask['status']>>(
+    new Map()
+  )
+
+  // Live announcer: emit a single sentence whenever a task crosses into a
+  // terminal state. We diff status against the previous render rather than
+  // listening on the service so the announcement aligns with what the user
+  // just visually saw.
+  useEffect(() => {
+    if (!upload) return
+    const next = new Map<string, FileUploadTask['status']>()
+    let message = ''
+    for (const task of upload.tasks) {
+      const prev = previousStatuses.current.get(task.id)
+      next.set(task.id, task.status)
+      if (prev === task.status) continue
+      const fileName = task.attachment?.fileName || task.id
+      if (task.status === 'completed') {
+        message = t('objects.uploadCenterAnnounceCompleted', { fileName })
+      } else if (task.status === 'failed') {
+        const isCancelled = task.error === 'Cancelled'
+        message = t(
+          isCancelled
+            ? 'objects.uploadCenterAnnounceCancelled'
+            : 'objects.uploadCenterAnnounceFailed',
+          { fileName }
+        )
+      }
+    }
+    previousStatuses.current = next
+    if (message) setAnnouncement(message)
+  }, [upload, t])
 
   if (!upload) return null
 
-  const { tasks, summary, isIdle, clearCompleted, cancelTask, retryTask } =
-    upload
+  const {
+    tasks,
+    summary,
+    isIdle,
+    clearCompleted,
+    cancelTask,
+    retryTask,
+    removeTask,
+  } = upload
 
   // Always render the idle sentinel so e2e tests can deterministically wait
   // for "no uploads pending" (replacement for brittle waitForTimeout).
@@ -56,8 +122,16 @@ export function UploadCenter() {
       )}
       <Card
         data-testid="upload-center"
-        className="fixed bottom-4 left-4 w-80 shadow-lg border z-[60] pointer-events-auto"
+        className="fixed bottom-4 left-4 w-96 shadow-lg border z-[60] pointer-events-auto"
       >
+        <div
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+          data-testid="upload-center-announcer"
+        >
+          {announcement}
+        </div>
         <div
           data-testid="upload-center-toggle"
           className="p-3 cursor-pointer"
@@ -127,7 +201,7 @@ export function UploadCenter() {
         {isExpanded && (
           <div className="px-3 pb-3 border-t">
             <ul
-              className="mt-2 max-h-48 overflow-y-auto space-y-1"
+              className="mt-2 max-h-64 overflow-y-auto space-y-2"
               data-testid="upload-center-tasks"
             >
               {tasks.map((task) => (
@@ -136,23 +210,10 @@ export function UploadCenter() {
                   task={task}
                   onCancel={cancelTask}
                   onRetry={retryTask}
+                  onRemove={removeTask}
                 />
               ))}
             </ul>
-
-            {isProcessing && (
-              <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-xs dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-300">
-                <div className="flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  <span className="font-medium">
-                    {t('objects.uploadCenterImportant')}
-                  </span>
-                </div>
-                <div className="mt-1">
-                  {t('objects.uploadCenterDoNotReload')}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </Card>
@@ -164,17 +225,25 @@ type UploadTaskRowProps = {
   task: FileUploadTask
   onCancel: (id: string) => void
   onRetry: (id: string) => void
+  onRemove: (id: string) => void
 }
 
-function UploadTaskRow({ task, onCancel, onRetry }: UploadTaskRowProps) {
+function UploadTaskRow({
+  task,
+  onCancel,
+  onRetry,
+  onRemove,
+}: UploadTaskRowProps) {
   const t = useTranslations()
   const name = task.attachment?.fileName || task.id
   const isCancelled = task.status === 'failed' && task.error === 'Cancelled'
+  const Icon = mimeIcon(task.attachment?.mimeType)
+  const sizeLabel = formatBytes(task.attachment?.size)
 
   return (
     <li
       data-testid={`upload-task-${task.id}`}
-      className="flex items-center gap-2 text-xs"
+      className="flex items-start gap-2 text-xs"
     >
       <span data-testid={`upload-task-status-${task.id}`} className="sr-only">
         {task.status}
@@ -182,11 +251,16 @@ function UploadTaskRow({ task, onCancel, onRetry }: UploadTaskRowProps) {
       <span data-testid={`upload-task-progress-${task.id}`} className="sr-only">
         {task.progress}
       </span>
-      <StatusIcon status={task.status} />
+      <div className="relative shrink-0 pt-0.5">
+        <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+        <span className="absolute -bottom-0.5 -right-0.5 inline-flex items-center justify-center rounded-full bg-background">
+          <StatusIcon status={task.status} />
+        </span>
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate" title={name}>
-            {truncateText(name, 32)}
+          <span className="truncate text-sm font-medium" title={name}>
+            {truncateText(name, 36)}
           </span>
           {task.status === 'uploading' && (
             <span className="tabular-nums text-muted-foreground">
@@ -194,12 +268,16 @@ function UploadTaskRow({ task, onCancel, onRetry }: UploadTaskRowProps) {
             </span>
           )}
         </div>
+        <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <StatusBadge task={task} />
+          {sizeLabel && <span>{sizeLabel}</span>}
+        </div>
         {task.status === 'uploading' && (
-          <Progress value={task.progress} className="h-0.5 mt-0.5" />
+          <Progress value={task.progress} className="h-0.5 mt-1" />
         )}
         {task.status === 'failed' && !isCancelled && task.error && (
           <p
-            className="truncate text-red-600 dark:text-red-400"
+            className="mt-0.5 truncate text-red-600 dark:text-red-400"
             title={task.error}
           >
             {truncateText(task.error, 60)}
@@ -233,8 +311,54 @@ function UploadTaskRow({ task, onCancel, onRetry }: UploadTaskRowProps) {
           <RotateCw className="h-3 w-3" />
         </Button>
       )}
+      {(task.status === 'completed' || task.status === 'failed') && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          onClick={() => onRemove(task.id)}
+          aria-label={t('objects.uploadCenterRemove')}
+          data-testid={`upload-task-remove-${task.id}`}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      )}
     </li>
   )
+}
+
+function StatusBadge({ task }: { task: FileUploadTask }) {
+  const t = useTranslations()
+  const isCancelled = task.status === 'failed' && task.error === 'Cancelled'
+  switch (task.status) {
+    case 'pending':
+      return <span>{t('objects.uploadCenterStatusPending')}</span>
+    case 'uploading':
+      return (
+        <span className="text-blue-600 dark:text-blue-400">
+          {t('objects.uploadCenterStatusUploading')}
+        </span>
+      )
+    case 'cancelling':
+      return <span>{t('objects.uploadCenterCancelling')}</span>
+    case 'completed':
+      return (
+        <span className="text-green-600 dark:text-green-400">
+          {t('objects.uploadCenterStatusDone')}
+        </span>
+      )
+    case 'failed':
+      return (
+        <span className="text-red-600 dark:text-red-400">
+          {isCancelled
+            ? t('objects.uploadCenterStatusCancelled')
+            : t('objects.uploadCenterStatusFailed')}
+        </span>
+      )
+    default:
+      return null
+  }
 }
 
 function StatusIcon({ status }: { status: FileUploadTask['status'] }) {

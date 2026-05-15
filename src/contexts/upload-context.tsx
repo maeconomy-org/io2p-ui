@@ -44,6 +44,7 @@ export interface UploadContextValue {
   clearCompleted: () => void
   cancelTask: (id: string) => void
   retryTask: (id: string) => void
+  removeTask: (id: string) => void
 }
 
 const UploadContext = createContext<UploadContextValue | null>(null)
@@ -99,9 +100,10 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
           }
 
           if (task.status === 'failed') {
-            // User-initiated cancel is intent, not an error — log at info so
-            // it doesn't clutter the console or page Sentry.
-            const log = task.error === 'Cancelled' ? logger.info : logger.error
+            // User-initiated cancel is intent, not an error — log at info.
+            // Other failures are a `warn`: the upload-service already logged
+            // the underlying axios cause, this is just the user-facing summary.
+            const log = task.error === 'Cancelled' ? logger.info : logger.warn
             log('Upload failed', {
               id: task.id,
               fileName: task.attachment?.fileName,
@@ -204,6 +206,10 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     (id: string) => service.retryTask(id),
     [service]
   )
+  const removeTask = useCallback(
+    (id: string) => service.removeTask(id),
+    [service]
+  )
 
   const value = useMemo<UploadContextValue>(
     () => ({
@@ -214,8 +220,18 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
       clearCompleted,
       cancelTask,
       retryTask,
+      removeTask,
     }),
-    [tasks, summary, isIdle, enqueue, clearCompleted, cancelTask, retryTask]
+    [
+      tasks,
+      summary,
+      isIdle,
+      enqueue,
+      clearCompleted,
+      cancelTask,
+      retryTask,
+      removeTask,
+    ]
   )
 
   return (

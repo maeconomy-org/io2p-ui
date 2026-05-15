@@ -10,10 +10,12 @@ function buildServiceOverrides(config: ClientConfig): SDKConfig['services'] {
     config.registryBaseUrl ||
     config.nodeBaseUrl ||
     config.userBaseUrl ||
+    config.fileStorageBaseUrl ||
     config.authTimeout ||
     config.registryTimeout ||
     config.nodeTimeout ||
-    config.userTimeout
+    config.userTimeout ||
+    config.fileStorageTimeout
 
   if (!hasOverrides) return undefined
 
@@ -51,6 +53,18 @@ function buildServiceOverrides(config: ClientConfig): SDKConfig['services'] {
           user: {
             ...(config.userBaseUrl && { baseUrl: config.userBaseUrl }),
             ...(config.userTimeout && { timeout: config.userTimeout }),
+          },
+        }
+      : {}),
+    ...(config.fileStorageBaseUrl || config.fileStorageTimeout
+      ? {
+          fileStorage: {
+            ...(config.fileStorageBaseUrl && {
+              baseUrl: config.fileStorageBaseUrl,
+            }),
+            ...(config.fileStorageTimeout && {
+              timeout: config.fileStorageTimeout,
+            }),
           },
         }
       : {}),

@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
@@ -40,12 +46,39 @@ export function presignedStaleTime(query: {
  * UUFile's own `uuid`. The file-storage service indexes blobs by their own
  * UUID, which lives on `UUFileDTO.fileReference`.
  */
+/**
+ * Refetch a presigned-URL query when the tab returns to visible AND the cached
+ * URL is within `PRESIGNED_REFRESH_LEAD_MS` of expiry. Compensates for the
+ * global `refetchOnWindowFocus: false` so users don't hit 403s after long tab
+ * suspensions.
+ */
+function useRefetchOnVisibleNearExpiry(
+  query: UseQueryResult<{ expiresAt?: string } | undefined>
+) {
+  const refetch = query.refetch
+  const expiresAt = query.data?.expiresAt
+  useEffect(() => {
+    if (typeof document === 'undefined' || !expiresAt) return
+    const expMs = Date.parse(expiresAt)
+    if (!Number.isFinite(expMs)) return
+
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() + PRESIGNED_REFRESH_LEAD_MS >= expMs) {
+        void refetch()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [expiresAt, refetch])
+}
+
 export function usePreviewUrl(
   fileReference: string | null | undefined,
   enabled = true
 ) {
   const client = useIomSdkClient()
-  return useQuery({
+  const query = useQuery({
     queryKey: queryKeys.files.previewUrl(fileReference ?? ''),
     queryFn: ({ signal }) =>
       client.fileStorage.getPreviewUrl(fileReference!, { signal }),
@@ -54,6 +87,8 @@ export function usePreviewUrl(
     gcTime: PRESIGNED_GC_MS,
     retry: 1,
   })
+  useRefetchOnVisibleNearExpiry(query)
+  return query
 }
 
 /**
@@ -65,7 +100,7 @@ export function useDownloadUrl(
   enabled = true
 ) {
   const client = useIomSdkClient()
-  return useQuery({
+  const query = useQuery({
     queryKey: queryKeys.files.downloadUrl(fileReference ?? ''),
     queryFn: ({ signal }) =>
       client.fileStorage.getDownloadUrl(fileReference!, { signal }),
@@ -74,6 +109,8 @@ export function useDownloadUrl(
     gcTime: PRESIGNED_GC_MS,
     retry: 1,
   })
+  useRefetchOnVisibleNearExpiry(query)
+  return query
 }
 
 export function useFilesApi() {

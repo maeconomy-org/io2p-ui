@@ -3,6 +3,7 @@
 import type { Client } from 'iom-sdk'
 import type { Attachment } from '@/types'
 import { useIomSdkClient } from '@/contexts'
+import { getCachedConfig } from '@/constants/client'
 import { logger } from './logger'
 
 type ApiClient = Client
@@ -172,8 +173,13 @@ export class FileUploadService {
       const p: Promise<void> = this.uploadFile(task)
         .then(() => undefined)
         .catch((error: any) => {
-          logger.error(`File upload failed for task ${task.id}:`, error)
           const message: string = error?.message ?? 'Upload failed'
+          logger.warn(`Upload failed: ${task.id}`, {
+            message,
+            status: error?.response?.status,
+            code: error?.code,
+            path: error?.config?.url,
+          })
           task.status = 'failed'
           task.error = message
           task.abortController = undefined
@@ -419,6 +425,20 @@ export class FileUploadService {
     this.allTasks = this.allTasks.filter((t) => !drop(t))
     this.notify()
   }
+
+  /**
+   * Drop a single terminal-state task (completed or failed) from the list.
+   * No-op for in-flight tasks — those must be cancelled first.
+   */
+  removeTask(id: string) {
+    const task = this.allTasks.find((t) => t.id === id)
+    if (!task) return
+    if (task.status !== 'completed' && task.status !== 'failed') return
+    this.uploadQueue = this.uploadQueue.filter((t) => t.id !== id)
+    this.allTasks = this.allTasks.filter((t) => t.id !== id)
+    this.settle(id)
+    this.notify()
+  }
 }
 
 function isAbortError(err: unknown): boolean {
@@ -448,7 +468,10 @@ export function useUploadService(): FileUploadService {
     singletonClient !== client ||
     singletonToken !== token
   ) {
-    singletonService = new FileUploadService(client)
+    const config = getCachedConfig()
+    singletonService = new FileUploadService(client, {
+      maxConcurrent: config?.fileUploadConcurrency,
+    })
     singletonClient = client
     singletonToken = token
   }

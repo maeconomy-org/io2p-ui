@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test'
 
 import { installFileStorageMock } from '../helpers/mock-file-storage'
-import { attachFileInSheet, getDialog } from '../utils/test-helpers'
+import {
+  attachFileInSheet,
+  getDialog,
+  waitForUploadsIdle,
+} from '../utils/test-helpers'
 
 /**
  * §27 — UploadCenter widget UX gaps not covered by 01-upload-center.spec.ts.
@@ -54,5 +58,54 @@ test.describe('05 - Upload Center — widget UX', () => {
     await expect(
       page.locator('[data-testid="upload-center-idle"]').first()
     ).toBeAttached()
+  })
+
+  test('TC274: header clear leaves failed rows in place', async ({ page }) => {
+    // Force the multipart `complete` POST to 500 so the upload reliably ends
+    // in `failed` — header clear must NOT remove it (per-row dismiss is the
+    // affordance for failed rows; the header X is "clear completed only").
+    await installFileStorageMock(page, { completeStatus: 500 })
+
+    await page.goto('/objects')
+    await page.waitForLoadState('networkidle')
+
+    await page.getByRole('button', { name: /create object/i }).click()
+    const sheet = getDialog(page, 'Add Object')
+    await expect(sheet).toBeVisible({ timeout: 5_000 })
+    await sheet.getByLabel('Name').fill(`TC274 ${runId}`)
+    await attachFileInSheet(page, sheet, {
+      name: 'fail-on-complete.bin',
+      content: 'x',
+    })
+    await sheet.getByRole('button', { name: 'Create' }).click()
+    await expect(sheet).toBeHidden({ timeout: 15_000 })
+
+    // Wait for the failure to land.
+    const taskId = await page
+      .waitForFunction(
+        () => {
+          const all = window.__testHooks?.uploadService.getAllTasks() ?? []
+          return all.find((t) => t.status === 'failed')?.id ?? null
+        },
+        null,
+        { timeout: 20_000 }
+      )
+      .then((h) => h.jsonValue() as Promise<string>)
+
+    // Idle sentinel mounts because there's nothing pending/uploading — that's
+    // when the header clear button is rendered.
+    await waitForUploadsIdle(page)
+
+    const clearBtn = page.locator('[data-testid="upload-center-clear"]')
+    await expect(clearBtn).toBeVisible({ timeout: 5_000 })
+    await clearBtn.click()
+
+    // Failed row survives — the user can still retry it.
+    await expect(
+      page.locator(`[data-testid="upload-task-${taskId}"]`)
+    ).toBeVisible()
+    await expect(
+      page.locator(`[data-testid="upload-task-retry-${taskId}"]`)
+    ).toBeVisible()
   })
 })

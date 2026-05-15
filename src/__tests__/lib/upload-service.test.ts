@@ -287,6 +287,78 @@ describe('FileUploadService', () => {
     })
   })
 
+  describe('removeTask', () => {
+    it('removes a completed task and notifies', async () => {
+      service.addFile(makeTask({ id: 'a' }))
+      service.addFile(makeTask({ id: 'b' }))
+      await flush()
+
+      const listener = vi.fn()
+      service.subscribe(listener)
+      listener.mockClear()
+
+      service.removeTask('a')
+
+      expect(service.getAllTasks().map((t) => t.id)).toEqual(['b'])
+      expect(listener).toHaveBeenCalled()
+    })
+
+    it('removes a failed task so the row can be dismissed after retry abandons', async () => {
+      service = new FileUploadService(
+        makeClient({
+          uploadFile: vi.fn().mockRejectedValue(new Error('nope')),
+        })
+      )
+      service.addFile(makeTask({ id: 'bad' }))
+      await flush()
+
+      service.removeTask('bad')
+
+      expect(service.getAllTasks()).toHaveLength(0)
+    })
+
+    it('is a no-op for in-flight tasks (cancel is the contract for those)', async () => {
+      // Hang the upload so the task stays in `uploading`.
+      const hang = deferred<{ ok: true }>()
+      service = new FileUploadService(
+        makeClient({ uploadFile: vi.fn().mockReturnValue(hang.promise) })
+      )
+      service.addFile(makeTask({ id: 'live' }))
+      await flush()
+
+      service.removeTask('live')
+
+      // Still present, status untouched.
+      const task = service.getAllTasks().find((t) => t.id === 'live')!
+      expect(task).toBeDefined()
+      expect(task.status).toBe('uploading')
+
+      hang.resolve({ ok: true })
+      await flush()
+    })
+
+    it('is a no-op for unknown ids', () => {
+      // No throw; no notification.
+      const listener = vi.fn()
+      service.subscribe(listener)
+      listener.mockClear()
+
+      service.removeTask('does-not-exist')
+
+      expect(listener).not.toHaveBeenCalled()
+    })
+
+    it('settles the addFile awaiter so callers do not hang', async () => {
+      const done = service.addFile(makeTask({ id: 'p' }))
+      await flush()
+      // Task is completed at this point; awaiter already resolved. The
+      // contract we care about: removing it after settlement does not
+      // re-trigger or break the awaiter.
+      service.removeTask('p')
+      await expect(done).resolves.toBeUndefined()
+    })
+  })
+
   describe('queueFileUploadsWithContext', () => {
     it('resolves after every queued task reaches a terminal state', async () => {
       const done = service.queueFileUploadsWithContext([

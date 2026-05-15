@@ -69,6 +69,16 @@ interface AttachmentPreviewProps {
 const MIN_SCALE = 0.2
 const MAX_SCALE = 8
 
+// Inline preview cap for byte-buffered renderers (image / PDF / text).
+// Video and audio stream via Range requests, so they're exempt from this guard.
+const INLINE_PREVIEW_MAX_BYTES = 100 * 1024 * 1024 // 100 MB
+
+const SIZE_GUARDED_KINDS: ReadonlySet<PreviewKind> = new Set([
+  'image',
+  'pdf',
+  'text',
+])
+
 function getDisplayName(file: FileData): string {
   return file.fileName || file.label || 'file'
 }
@@ -219,7 +229,22 @@ export function AttachmentPreview({
       ? 'attachment-preview-fallback'
       : `attachment-preview-${kind}`
 
+  const isOverSizeCap =
+    SIZE_GUARDED_KINDS.has(kind) &&
+    typeof current.size === 'number' &&
+    current.size > INLINE_PREVIEW_MAX_BYTES
+
   const body = (() => {
+    if (isOverSizeCap) {
+      return (
+        <TooLargeFallback
+          fileName={displayName}
+          size={current.size}
+          mimeType={current.contentType ?? mime}
+          onDownload={handleDownload}
+        />
+      )
+    }
     if (error) {
       return (
         <div className="flex h-full w-full items-center justify-center p-6 text-sm text-destructive">
@@ -434,6 +459,61 @@ export function AttachmentPreview({
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function formatBytes(size?: number): string | null {
+  if (!size) return null
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  if (size < 1024 * 1024 * 1024)
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`
+  return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}
+
+interface TooLargeFallbackProps {
+  fileName: string
+  size?: number
+  mimeType?: string
+  onDownload: () => void
+}
+
+function TooLargeFallback({
+  fileName,
+  size,
+  mimeType,
+  onDownload,
+}: TooLargeFallbackProps) {
+  const t = useTranslations()
+  const readable = formatBytes(size)
+  return (
+    <div
+      className="flex h-full w-full items-center justify-center p-6"
+      data-testid="attachment-preview-too-large"
+    >
+      <div className="flex max-w-md flex-col items-center gap-3 rounded-lg border border-white/15 bg-white/5 p-8 text-center text-white/90">
+        <Download className="h-12 w-12 text-white/70" />
+        <h3 className="text-base font-semibold">
+          {t('attachments.preview.tooLargeForPreview')}
+        </h3>
+        <p className="break-all text-sm text-white/70">{fileName}</p>
+        {(readable || mimeType) && (
+          <p className="text-xs text-white/50">
+            {[mimeType, readable].filter(Boolean).join(' · ')}
+          </p>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-2 gap-2 border-white/20 bg-white/5 text-white hover:border-white/30 hover:bg-white/15 hover:text-white"
+          onClick={onDownload}
+        >
+          <Download className="h-4 w-4" />
+          {t('common.download')}
+        </Button>
+      </div>
+    </div>
   )
 }
 
