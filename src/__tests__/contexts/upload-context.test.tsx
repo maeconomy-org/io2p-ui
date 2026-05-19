@@ -134,6 +134,8 @@ describe('UploadProvider', () => {
     toastMock.success.mockReset()
     toastMock.error.mockReset()
     loggerMock.error.mockReset()
+    loggerMock.info.mockReset()
+    loggerMock.warn.mockReset()
   })
 
   afterEach(() => {
@@ -213,7 +215,7 @@ describe('UploadProvider', () => {
     expect(invalidateSpy.mock.calls.length).toBe(afterFirst)
   })
 
-  it('logs via logger.error when a task transitions to failed', () => {
+  it('logs via logger.warn when a task transitions to failed', () => {
     tasks = [makeTask({ id: 'needs-fail', status: 'uploading' })]
     renderHook(() => useUploadQueue(), { wrapper })
 
@@ -228,10 +230,34 @@ describe('UploadProvider', () => {
       notify()
     })
 
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(logger.warn).toHaveBeenCalledWith(
       'Upload failed',
       expect.objectContaining({ id: 'needs-fail', error: 'boom' })
     )
+    expect(logger.error).not.toHaveBeenCalled()
+  })
+
+  it('logs via logger.info when a task is cancelled', () => {
+    tasks = [makeTask({ id: 'needs-cancel', status: 'uploading' })]
+    renderHook(() => useUploadQueue(), { wrapper })
+
+    act(() => {
+      tasks = [
+        makeTask({
+          id: 'needs-cancel',
+          status: 'failed',
+          error: 'Cancelled',
+        }),
+      ]
+      notify()
+    })
+
+    expect(logger.info).toHaveBeenCalledWith(
+      'Upload failed',
+      expect.objectContaining({ id: 'needs-cancel', error: 'Cancelled' })
+    )
+    expect(logger.warn).not.toHaveBeenCalled()
+    expect(logger.error).not.toHaveBeenCalled()
   })
 
   describe('beforeunload guard', () => {

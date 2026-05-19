@@ -279,6 +279,26 @@ export function ParentSelector({
               )}
             </div>
             <CommandList className="max-h-[300px] overflow-y-auto">
+              {allowInlineCreate && !disabled && (
+                <>
+                  <CommandGroup className="sticky top-0 z-10 bg-popover">
+                    <CommandItem
+                      value="__create_new_parent__"
+                      onSelect={() => {
+                        setIsOpen(false)
+                        onCreateInline?.()
+                      }}
+                      className="cursor-pointer flex items-center gap-2 text-primary aria-selected:bg-primary/10"
+                    >
+                      <Plus className="h-4 w-4 shrink-0" />
+                      <span className="font-medium">
+                        {t('objects.parentSelector.createNew')}
+                      </span>
+                    </CommandItem>
+                  </CommandGroup>
+                  <CommandSeparator />
+                </>
+              )}
               <CommandEmpty>
                 {isSearching
                   ? t('objects.parentSelector.searching')
@@ -316,26 +336,6 @@ export function ParentSelector({
                   )
                 })}
               </CommandGroup>
-              {allowInlineCreate && !disabled && (
-                <>
-                  <CommandSeparator />
-                  <CommandGroup>
-                    <CommandItem
-                      value="__create_new_parent__"
-                      onSelect={() => {
-                        setIsOpen(false)
-                        onCreateInline?.()
-                      }}
-                      className="cursor-pointer flex items-center gap-2 text-primary"
-                    >
-                      <Plus className="h-4 w-4 shrink-0" />
-                      <span className="font-medium">
-                        {t('objects.parentSelector.createNew')}
-                      </span>
-                    </CommandItem>
-                  </CommandGroup>
-                </>
-              )}
             </CommandList>
           </Command>
         </PopoverContent>
