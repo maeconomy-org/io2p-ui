@@ -1,6 +1,6 @@
 'use client'
 
-import { MouseEvent, useState, useMemo, lazy, Suspense } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { FileText, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -17,29 +17,17 @@ import {
   TooltipTrigger,
   CopyButton,
 } from '@/components/ui'
-import { cn, logger } from '@/lib'
-import { useUnifiedDelete, useObjects, useGroups } from '@/hooks'
+import { cn } from '@/lib'
+import { useUnifiedDelete, useGroups } from '@/hooks'
 import { GroupBadge } from '@/components/ui/group-badge'
-import {
-  CopyObjectsSheet,
-  ProductPassportSheet,
-} from '@/components/object-sheets'
+import { CopyObjectsSheet } from '@/components/object-sheets'
 import { DraftBadge } from '@/components/object-sheets/components'
-import { useObjectOperations } from '@/components/object-sheets/hooks/use-object-operations'
-import {
-  DeleteConfirmationDialog,
-  TemplateCreationDialog,
-} from '@/components/modals'
+import { DeleteConfirmationDialog } from '@/components/modals'
 
-const QRCodeModal = lazy(() =>
-  import('@/components/modals/qr-code-modal').then((m) => ({
-    default: m.QRCodeModal,
-  }))
-)
 import { DataTable, getSelectColumn } from './data-table'
 import { ObjectActionsCell } from './object-actions-cell'
-import { DraftActionsCell } from './draft-actions-cell'
-import { Badge, Checkbox } from '@/components/ui'
+import { DraftActions } from '@/components/object-sheets/components'
+import { Checkbox } from '@/components/ui'
 
 export interface DraftTableRow {
   id: string
@@ -79,6 +67,13 @@ interface ObjectsTableProps {
   draftRows?: DraftTableRow[]
   onOpenDraft?: (id: string) => void
   onDiscardDraft?: (id: string) => void
+  // Object-level actions owned by the parent page so both views share single
+  // modal instances (matches the existing onViewObject contract).
+  onShowQRCode?: (object: any) => void
+  onViewPassport?: (object: any) => void
+  onCreateTemplate?: (object: any) => void
+  onRestore?: (object: any) => void
+  isRestoring?: boolean
 }
 
 const isObjectDeleted = (object: any) => {
@@ -107,31 +102,18 @@ export function ObjectsTable({
   draftRows,
   onOpenDraft,
   onDiscardDraft,
+  onShowQRCode,
+  onViewPassport,
+  onCreateTemplate,
+  onRestore,
+  isRestoring = false,
 }: ObjectsTableProps) {
   const t = useTranslations()
   const router = useRouter()
 
-  const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
-  const [selectedQRObject, setSelectedQRObject] = useState<any>(null)
-
-  // Product Passport sheet state
-  const [isPassportSheetOpen, setIsPassportSheetOpen] = useState(false)
-  const [passportTarget, setPassportTarget] = useState<any>(null)
-
-  // Copy objects state
+  // Copy objects state (table-owned; copy sheet is not yet hoisted)
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
   const [copyTarget, setCopyTarget] = useState<any>(null)
-
-  // Template creation state
-  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
-  const [templateSource, setTemplateSource] = useState<any>(null)
-  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
-
-  // Template creation hook
-  const { createObject: createTemplate } = useObjectOperations({
-    isEditing: false,
-    isTemplate: true,
-  })
 
   // Unified delete hook
   const {
@@ -142,10 +124,6 @@ export function ObjectsTable({
     handleDeleteConfirm,
     handleDeleteCancel,
   } = useUnifiedDelete()
-
-  // Revert functionality
-  const { useRevertObject } = useObjects()
-  const revertObjectMutation = useRevertObject()
 
   // Fetch groups for group column display
   const { useAllGroups } = useGroups()
@@ -179,17 +157,6 @@ export function ObjectsTable({
     }
   }
 
-  const handleShowQRCode = (object: any, e: MouseEvent) => {
-    e.stopPropagation()
-    setSelectedQRObject(object)
-    setIsQRCodeModalOpen(true)
-  }
-
-  const handleViewPassport = (object: any) => {
-    setPassportTarget(object)
-    setIsPassportSheetOpen(true)
-  }
-
   const navigateToChildren = (object: any) => {
     router.push(`/objects/${object.uuid}`)
   }
@@ -208,82 +175,6 @@ export function ObjectsTable({
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString()
-  }
-
-  const handleRevertObject = async (object: any) => {
-    try {
-      await revertObjectMutation.mutateAsync({
-        uuid: object.uuid,
-        name: object.name,
-        abbreviation: object.abbreviation,
-        version: object.version,
-        description: object.description,
-      })
-    } catch (error) {
-      logger.error('Error reverting object:', error)
-    }
-  }
-
-  // Get initial template data from the source object
-  const getInitialTemplateData = (sourceObj: any) => {
-    if (!sourceObj)
-      return { name: '', abbreviation: '', version: '1.0', description: '' }
-
-    return {
-      name: `${sourceObj.name} Template`,
-      abbreviation: sourceObj.abbreviation || '',
-      version: '1.0',
-      description: `Template created from ${sourceObj.name}`,
-    }
-  }
-
-  // Handle confirming template creation
-  const handleConfirmTemplateCreation = async (templateData: {
-    name: string
-    abbreviation: string
-    version: string
-    description: string
-  }) => {
-    if (!templateSource) return
-
-    setIsCreatingTemplate(true)
-    try {
-      const fullTemplateData = {
-        name: templateData.name,
-        abbreviation: templateData.abbreviation,
-        version: templateData.version,
-        description: templateData.description,
-        properties:
-          templateSource.properties?.map((prop: any) => ({
-            key: prop.key,
-            label: prop.label || prop.key,
-            type: prop.type || 'string',
-            values: prop.values?.map((val: any) => ({
-              value: 'Variable',
-              valueTypeCast: val.valueTypeCast || 'string',
-              files: [],
-            })) || [
-              {
-                value: 'Variable',
-                valueTypeCast: 'string',
-                sourceType: 'manual',
-                files: [],
-              },
-            ],
-            files: [],
-          })) || [],
-        files: [],
-        parents: [],
-      }
-
-      await createTemplate(fullTemplateData)
-      setIsTemplateDialogOpen(false)
-      setTemplateSource(null)
-    } catch (error) {
-      logger.error('Error creating template:', error)
-    } finally {
-      setIsCreatingTemplate(false)
-    }
   }
 
   // --- Column definitions ---
@@ -449,7 +340,7 @@ export function ObjectsTable({
         const object = row.original
         if (object.__isDraft) {
           return (
-            <DraftActionsCell
+            <DraftActions
               draftId={object.__draftId}
               onOpen={(id) => onOpenDraft?.(id)}
               onDiscard={(id) => onDiscardDraft?.(id)}
@@ -463,25 +354,22 @@ export function ObjectsTable({
             object={object}
             isDeleted={isDeleted}
             onViewDetails={handleViewDetails}
-            onShowQRCode={handleShowQRCode}
-            onViewPassport={handleViewPassport}
+            onShowQRCode={(obj) => onShowQRCode?.(obj)}
+            onViewPassport={onViewPassport}
             onDuplicate={(obj) => {
               setCopyTarget(obj)
               setIsCopySheetOpen(true)
             }}
-            onCreateTemplate={(obj) => {
-              setTemplateSource(obj)
-              setIsTemplateDialogOpen(true)
-            }}
+            onCreateTemplate={(obj) => onCreateTemplate?.(obj)}
             onDelete={(obj) => {
               handleDelete({
                 uuid: obj.uuid,
                 name: obj.name,
               })
             }}
-            onRestore={handleRevertObject}
+            onRestore={(obj) => onRestore?.(obj)}
             isDeleting={isDeleting}
-            isRestoring={revertObjectMutation.isPending}
+            isRestoring={isRestoring}
             readOnly={readOnly}
           />
         )
@@ -547,18 +435,6 @@ export function ObjectsTable({
         emptyDescription={t('objects.noObjectsDescription')}
       />
 
-      {/* QR Code Modal (lazy-loaded) */}
-      {isQRCodeModalOpen && selectedQRObject && (
-        <Suspense fallback={null}>
-          <QRCodeModal
-            isOpen={isQRCodeModalOpen}
-            onClose={() => setIsQRCodeModalOpen(false)}
-            uuid={selectedQRObject.uuid}
-            objectName={selectedQRObject.name}
-          />
-        </Suspense>
-      )}
-
       {/* Unified Delete Confirmation Dialog */}
       {isDeleteModalOpen && objectToDelete && (
         <DeleteConfirmationDialog
@@ -585,27 +461,6 @@ export function ObjectsTable({
                 copyTarget.childCount || copyTarget.children?.length || 0,
             },
           ]}
-        />
-      )}
-
-      {/* Product Passport Sheet */}
-      {isPassportSheetOpen && passportTarget && (
-        <ProductPassportSheet
-          isOpen={isPassportSheetOpen}
-          onClose={() => setIsPassportSheetOpen(false)}
-          uuid={passportTarget.uuid}
-          object={passportTarget}
-        />
-      )}
-
-      {/* Template Creation Dialog */}
-      {isTemplateDialogOpen && templateSource && (
-        <TemplateCreationDialog
-          open={isTemplateDialogOpen}
-          onOpenChange={setIsTemplateDialogOpen}
-          initialData={getInitialTemplateData(templateSource)}
-          onConfirm={handleConfirmTemplateCreation}
-          isCreating={isCreatingTemplate}
         />
       )}
     </>

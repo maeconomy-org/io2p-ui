@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, MouseEvent } from 'react'
+import { memo } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   FileText,
@@ -29,7 +29,7 @@ interface ObjectActionsCellProps {
   /** Callback when "View Details" is clicked */
   onViewDetails: (object: any) => void
   /** Callback when "Show QR Code" is clicked */
-  onShowQRCode: (object: any, e: MouseEvent) => void
+  onShowQRCode: (object: any) => void
   /** Callback when "View Passport" is clicked */
   onViewPassport?: (object: any) => void
   /** Callback when "Duplicate" is clicked */
@@ -127,7 +127,12 @@ export const ObjectActionsCell = memo(function ObjectActionsCell({
                 {t('objects.actions.viewPassport')}
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={(e) => onShowQRCode(object, e)}>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation()
+                onShowQRCode(object)
+              }}
+            >
               <QrCode className="h-4 w-4 mr-2" />
               {t('objects.actions.showQrCode')}
             </DropdownMenuItem>

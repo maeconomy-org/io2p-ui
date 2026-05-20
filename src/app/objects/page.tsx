@@ -14,9 +14,10 @@ import {
   useBreadcrumbTrail,
   useBulkSelection,
   useGroups,
+  useObjects,
 } from '@/hooks'
 import { useSearch, useAuth } from '@/contexts'
-import { isObjectDeleted } from '@/lib'
+import { isObjectDeleted, logger } from '@/lib'
 import { canUserWriteRecords } from '@/components/groups'
 import ProtectedRoute from '@/components/protected-route'
 import InitialLoginTour from '@/components/onboarding/initial-login-tour'
@@ -28,6 +29,7 @@ import { ObjectViewContainer } from '@/components/object-view-container'
 import { BulkActionsToolbar, DataTableColumnToggle } from '@/components/tables'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { useObjectDrafts } from '@/components/object-sheets/hooks'
+import { useObjectOperations } from '@/components/object-sheets/hooks/use-object-operations'
 
 // Lazy-load sheet components — only rendered when opened by user interaction
 const ObjectDetailsSheet = dynamic(
@@ -49,6 +51,22 @@ const CopyObjectsSheet = dynamic(
     import('@/components/object-sheets/copy-objects-sheet').then(
       (mod) => mod.CopyObjectsSheet
     ),
+  { ssr: false }
+)
+const ProductPassportSheet = dynamic(
+  () =>
+    import('@/components/object-sheets').then(
+      (mod) => mod.ProductPassportSheet
+    ),
+  { ssr: false }
+)
+const QRCodeModal = dynamic(
+  () =>
+    import('@/components/modals/qr-code-modal').then((mod) => mod.QRCodeModal),
+  { ssr: false }
+)
+const TemplateCreationDialog = dynamic(
+  () => import('@/components/modals').then((mod) => mod.TemplateCreationDialog),
   { ssr: false }
 )
 
@@ -77,6 +95,24 @@ function ObjectsPageContent() {
   // Copy objects state (for columns view — table handles its own)
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
   const [copyTarget, setCopyTarget] = useState<AggregateEntity | null>(null)
+
+  // QR / Passport / Template state hoisted from the table so both views share
+  // a single modal instance — see the View Details pattern (handleViewObject).
+  const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
+  const [selectedQRObject, setSelectedQRObject] = useState<any>(null)
+  const [isPassportSheetOpen, setIsPassportSheetOpen] = useState(false)
+  const [passportTarget, setPassportTarget] = useState<any>(null)
+  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+  const [templateSource, setTemplateSource] = useState<any>(null)
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
+
+  const { createObject: createTemplate } = useObjectOperations({
+    isEditing: false,
+    isTemplate: true,
+  })
+
+  const { useRevertObject } = useObjects()
+  const revertObjectMutation = useRevertObject()
 
   // Draft state — UI-only, surfaced as pinned rows on page 1 when no filters
   const { drafts, deleteDraft } = useObjectDrafts()
@@ -187,13 +223,24 @@ function ObjectsPageContent() {
   }, [])
 
   // Drafts pin only when nothing is filtering the live data — otherwise the
-  // visual hierarchy ("here are real matches") would be muddied.
-  const draftRowsForTable = useMemo(() => {
+  // visual hierarchy ("here are real matches") would be muddied. Applies to
+  // both views: table pins on page 1 of the data, columns view pins on page 1
+  // of the root column. NOTE pagination indexing differs across views —
+  // table.currentPage is 0-based, columns.rootPagination.currentPage is
+  // 1-based (see use-view-data.ts).
+  const draftRows = useMemo(() => {
     if (hideDrafts) return undefined
     if (isSearchMode) return undefined
     if (selectedGroupUUID) return undefined
     if (showDeleted) return undefined
     if (viewData.type === 'table' && viewData.pagination.currentPage !== 0) {
+      return undefined
+    }
+    if (
+      viewData.type === 'columns' &&
+      viewData.rootPagination &&
+      viewData.rootPagination.currentPage > 1
+    ) {
       return undefined
     }
     return drafts.map((d) => ({
@@ -213,6 +260,95 @@ function ObjectsPageContent() {
   const handleViewObject = (object: AggregateEntity) => {
     setSelectedObject(object)
     setIsObjectSheetOpen(true)
+  }
+
+  const handleShowQRCode = useCallback((object: any) => {
+    setSelectedQRObject(object)
+    setIsQRCodeModalOpen(true)
+  }, [])
+
+  const handleViewPassport = useCallback((object: any) => {
+    setPassportTarget(object)
+    setIsPassportSheetOpen(true)
+  }, [])
+
+  const handleCreateTemplate = useCallback((object: any) => {
+    setTemplateSource(object)
+    setIsTemplateDialogOpen(true)
+  }, [])
+
+  const handleRestoreObject = useCallback(
+    async (object: any) => {
+      try {
+        await revertObjectMutation.mutateAsync({
+          uuid: object.uuid,
+          name: object.name,
+          abbreviation: object.abbreviation,
+          version: object.version,
+          description: object.description,
+        })
+      } catch (error) {
+        logger.error('Error reverting object:', error)
+      }
+    },
+    [revertObjectMutation]
+  )
+
+  const getInitialTemplateData = (sourceObj: any) => {
+    if (!sourceObj)
+      return { name: '', abbreviation: '', version: '1.0', description: '' }
+    return {
+      name: `${sourceObj.name} Template`,
+      abbreviation: sourceObj.abbreviation || '',
+      version: '1.0',
+      description: `Template created from ${sourceObj.name}`,
+    }
+  }
+
+  const handleConfirmTemplateCreation = async (templateData: {
+    name: string
+    abbreviation: string
+    version: string
+    description: string
+  }) => {
+    if (!templateSource) return
+    setIsCreatingTemplate(true)
+    try {
+      const fullTemplateData = {
+        name: templateData.name,
+        abbreviation: templateData.abbreviation,
+        version: templateData.version,
+        description: templateData.description,
+        properties:
+          templateSource.properties?.map((prop: any) => ({
+            key: prop.key,
+            label: prop.label || prop.key,
+            type: prop.type || 'string',
+            values: prop.values?.map((val: any) => ({
+              value: 'Variable',
+              valueTypeCast: val.valueTypeCast || 'string',
+              files: [],
+            })) || [
+              {
+                value: 'Variable',
+                valueTypeCast: 'string',
+                sourceType: 'manual',
+                files: [],
+              },
+            ],
+            files: [],
+          })) || [],
+        files: [],
+        parents: [],
+      }
+      await createTemplate(fullTemplateData)
+      setIsTemplateDialogOpen(false)
+      setTemplateSource(null)
+    } catch (error) {
+      logger.error('Error creating template:', error)
+    } finally {
+      setIsCreatingTemplate(false)
+    }
   }
 
   // Handle double-click to navigate to children page
@@ -316,9 +452,14 @@ function ObjectsPageContent() {
             onRowSelectionChange={setRowSelection}
             onPageSizeChange={setPageSize}
             readOnly={groupReadOnly}
-            draftRows={draftRowsForTable}
+            draftRows={draftRows}
             onOpenDraft={handleOpenDraft}
             onDiscardDraft={deleteDraft}
+            onShowQRCode={handleShowQRCode}
+            onViewPassport={handleViewPassport}
+            onCreateTemplate={handleCreateTemplate}
+            onRestore={handleRestoreObject}
+            isRestoring={revertObjectMutation.isPending}
           />
         )}
       </div>
@@ -342,6 +483,37 @@ function ObjectsPageContent() {
           setEditingDraftId(null)
         }}
       />
+
+      {/* QR Code modal (lazy) — single instance for both views */}
+      {isQRCodeModalOpen && selectedQRObject && (
+        <QRCodeModal
+          isOpen={isQRCodeModalOpen}
+          onClose={() => setIsQRCodeModalOpen(false)}
+          uuid={selectedQRObject.uuid}
+          objectName={selectedQRObject.name}
+        />
+      )}
+
+      {/* Product Passport sheet (lazy) — single instance for both views */}
+      {isPassportSheetOpen && passportTarget && (
+        <ProductPassportSheet
+          isOpen={isPassportSheetOpen}
+          onClose={() => setIsPassportSheetOpen(false)}
+          uuid={passportTarget.uuid}
+          object={passportTarget}
+        />
+      )}
+
+      {/* Template creation dialog (lazy) — single instance for both views */}
+      {isTemplateDialogOpen && templateSource && (
+        <TemplateCreationDialog
+          open={isTemplateDialogOpen}
+          onOpenChange={setIsTemplateDialogOpen}
+          initialData={getInitialTemplateData(templateSource)}
+          onConfirm={handleConfirmTemplateCreation}
+          isCreating={isCreatingTemplate}
+        />
+      )}
 
       {/* Copy Objects Sheet (columns view) */}
       {isCopySheetOpen && copyTarget && (

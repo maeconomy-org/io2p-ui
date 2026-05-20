@@ -142,6 +142,16 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
     queueMicrotask(() => setActiveIdForReturn(draftId))
   }
 
+  // Treat sheet open/close as a session boundary. The persisted draft (if
+  // any) is identified by its id in localStorage; the in-memory ref must not
+  // leak into the next open, otherwise the auto-cleanup branch in the watch
+  // callback below can wipe a previously-saved draft on the first keystroke
+  // of an unrelated new-create session (sheet is mounted unconditionally).
+  useEffect(() => {
+    activeIdRef.current = draftId
+    setActiveIdForReturn(draftId)
+  }, [isActive, draftId])
+
   const pauseSaving = useCallback(() => {
     isClearingRef.current = true
     setTimeout(() => {

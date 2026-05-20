@@ -245,6 +245,53 @@ describe('useFormDraftPersistence — id allocation safety', () => {
     expect(objectDraftsStore.read()).toHaveLength(0)
   })
 
+  it('does NOT delete a previously-saved draft when a new session starts in the same mount (regression: stale activeIdRef bug)', () => {
+    // Repro of the production bug: the create sheet is mounted unconditionally
+    // and only toggled via `isActive`. After a Save-as-draft close, the hook's
+    // internal activeIdRef still pointed at the saved draft id. Re-opening the
+    // sheet (still mounted, draftId=null) and typing a single character into
+    // a non-worthy field hit the auto-cleanup branch and wiped the previous
+    // draft. The fix re-anchors activeIdRef to the draftId prop on every
+    // isActive transition.
+    const { result, rerender } = setupHook(null)
+
+    // Session 1: cross the worthiness threshold, then persist via forceSaveDraft
+    // (simulating "Save as draft" close).
+    act(() => {
+      result.current.form.setValue('name', 'first-object')
+      result.current.form.setValue('abbreviation', 'FO')
+    })
+    expect(objectDraftsStore.read()).toHaveLength(1)
+    const firstDraftId = objectDraftsStore.read()[0].id
+
+    // Close the sheet (Save-as-draft path leaves the draft persisted).
+    act(() => {
+      rerender({ draftId: null, isActive: false })
+    })
+
+    // Reopen for a fresh create flow — same mount, draftId still null.
+    act(() => {
+      rerender({ draftId: null, isActive: true })
+      // Reset to blank as the real component does on open.
+      result.current.form.reset(blankDefaults)
+    })
+
+    // User starts typing the new object's name. This is a field-level edit
+    // that is dirty vs defaults but NOT yet worthy — the exact condition that
+    // used to wipe the previous draft.
+    act(() => {
+      result.current.form.setValue('name', 'x')
+    })
+
+    // The previous draft MUST survive.
+    expect(objectDraftsStore.read()).toHaveLength(1)
+    expect(objectDraftsStore.read()[0].id).toBe(firstDraftId)
+    expect(
+      localStorage.getItem(`${DRAFT_KEY_PREFIX}${firstDraftId}`)
+    ).not.toBeNull()
+    expect(result.current.persistence.activeDraftId).toBeNull()
+  })
+
   it('reuses the same id across multiple worthy edits in one session', () => {
     const { result, allocatedIds } = setupHook()
 

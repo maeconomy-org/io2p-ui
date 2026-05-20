@@ -9,6 +9,12 @@ import { ObjectColumn } from './components'
 import { useColumnsData } from './hooks/use-columns-data'
 import { useLoadChildren } from './hooks/use-load-children'
 
+interface DraftColumnRow {
+  id: string
+  name: string
+  updatedAt: number
+}
+
 interface ObjectColumnsViewProps {
   data: any[]
   fetching?: boolean
@@ -22,6 +28,17 @@ interface ObjectColumnsViewProps {
   onDuplicate?: (object: any) => void
   showDeleted?: boolean
   readOnly?: boolean
+  // Pinned draft rows for the root column (UI-only, no backend uuid).
+  draftRows?: DraftColumnRow[]
+  onOpenDraft?: (id: string) => void
+  onDiscardDraft?: (id: string) => void
+  // Object-level actions hoisted to the page so both views share a single
+  // modal instance (matches the onViewObject pattern).
+  onShowQRCode?: (object: any) => void
+  onViewPassport?: (object: any) => void
+  onCreateTemplate?: (object: any) => void
+  onRestore?: (object: any) => void
+  isRestoring?: boolean
 }
 
 export function ObjectColumnsView({
@@ -32,6 +49,14 @@ export function ObjectColumnsView({
   onDuplicate,
   showDeleted = false,
   readOnly = false,
+  draftRows,
+  onOpenDraft,
+  onDiscardDraft,
+  onShowQRCode,
+  onViewPassport,
+  onCreateTemplate,
+  onRestore,
+  isRestoring = false,
 }: ObjectColumnsViewProps) {
   const t = useTranslations()
   // Create loadChildren function locally for columns view
@@ -80,10 +105,27 @@ export function ObjectColumnsView({
                 ? getRootColumnPagination()
                 : getPaginationForColumn(index)
 
+              // Prepend pinned drafts only to the root column. Drafts are
+              // UI-only entries surfaced by the parent page; child columns
+              // never receive them because drafts have no parent context.
+              const itemsWithDrafts =
+                isRootColumn && draftRows && draftRows.length > 0
+                  ? [
+                      ...draftRows.map((d) => ({
+                        __isDraft: true as const,
+                        __draftId: d.id,
+                        uuid: d.id,
+                        name: d.name,
+                        updatedAt: d.updatedAt,
+                      })),
+                      ...items,
+                    ]
+                  : items
+
               return (
                 <ObjectColumn
                   key={`column-${index}`}
-                  items={items}
+                  items={itemsWithDrafts}
                   selectedId={selectedIds[index] || null}
                   isLoading={isColumnLoadingOrSearching(index)}
                   pagination={
@@ -113,11 +155,18 @@ export function ObjectColumnsView({
                           handleDelete({ uuid: item.uuid, name: item.name })
                   }
                   onDuplicate={readOnly ? undefined : onDuplicate}
+                  onShowQRCode={onShowQRCode}
+                  onViewPassport={onViewPassport}
+                  onCreateTemplate={readOnly ? undefined : onCreateTemplate}
+                  onRestore={readOnly ? undefined : onRestore}
+                  isRestoring={isRestoring}
                   searchTerm={getSearchTermForColumn(index)}
                   onSearchChange={(searchTerm) =>
                     handleColumnSearchChange(index, searchTerm)
                   }
                   columnTitle={getColumnTitle(index, t)}
+                  onOpenDraft={isRootColumn ? onOpenDraft : undefined}
+                  onDiscardDraft={isRootColumn ? onDiscardDraft : undefined}
                 />
               )
             })}

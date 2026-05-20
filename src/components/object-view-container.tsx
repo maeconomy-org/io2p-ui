@@ -30,6 +30,13 @@ interface ObjectViewContainerProps {
   draftRows?: DraftTableRow[]
   onOpenDraft?: (id: string) => void
   onDiscardDraft?: (id: string) => void
+  // Object-level actions hoisted to the page so both views share single modal
+  // instances (matches the existing onViewObject pattern).
+  onShowQRCode?: (object: any) => void
+  onViewPassport?: (object: any) => void
+  onCreateTemplate?: (object: any) => void
+  onRestore?: (object: any) => void
+  isRestoring?: boolean
 }
 
 export function ObjectViewContainer({
@@ -49,6 +56,11 @@ export function ObjectViewContainer({
   draftRows,
   onOpenDraft,
   onDiscardDraft,
+  onShowQRCode,
+  onViewPassport,
+  onCreateTemplate,
+  onRestore,
+  isRestoring = false,
 }: ObjectViewContainerProps) {
   const tableProps = {
     rowSelection,
@@ -75,6 +87,14 @@ export function ObjectViewContainer({
           onDuplicate={onDuplicate}
           showDeleted={showDeleted}
           readOnly={readOnly}
+          draftRows={draftRows}
+          onOpenDraft={onOpenDraft}
+          onDiscardDraft={onDiscardDraft}
+          onShowQRCode={onShowQRCode}
+          onViewPassport={onViewPassport}
+          onCreateTemplate={onCreateTemplate}
+          onRestore={onRestore}
+          isRestoring={isRestoring}
         />
       )
     }
@@ -112,6 +132,11 @@ export function ObjectViewContainer({
           draftRows={draftRows}
           onOpenDraft={onOpenDraft}
           onDiscardDraft={onDiscardDraft}
+          onShowQRCode={onShowQRCode}
+          onViewPassport={onViewPassport}
+          onCreateTemplate={onCreateTemplate}
+          onRestore={onRestore}
+          isRestoring={isRestoring}
           {...tableProps}
         />
       )

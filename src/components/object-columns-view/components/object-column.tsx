@@ -6,8 +6,10 @@ import {
   ChevronRight,
   Copy,
   FileText,
+  IdCard,
   MoreHorizontal,
   QrCode,
+  RotateCcw,
   Trash2,
 } from 'lucide-react'
 import {
@@ -20,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui'
 import { truncateText } from '@/lib'
+import { DraftBadge, DraftActions } from '@/components/object-sheets/components'
 import { hasChildren } from '../utils'
 import { ColumnHeader } from './column-header'
 
@@ -65,9 +68,18 @@ interface ObjectColumnProps {
   onDelete?: (item: ObjectItem) => void
   onDuplicate?: (item: ObjectItem) => void
   onShowQRCode?: (item: ObjectItem) => void
+  onViewPassport?: (item: ObjectItem) => void
+  onCreateTemplate?: (item: ObjectItem) => void
+  onRestore?: (item: ObjectItem) => void
+  isRestoring?: boolean
   searchTerm?: string
   onSearchChange?: (search: string) => void
   columnTitle?: string
+  // Draft handlers — only provided to the root column. When set, items with
+  // an `__isDraft` flag render as draft entries (badge + open/discard split
+  // button) instead of normal rows.
+  onOpenDraft?: (id: string) => void
+  onDiscardDraft?: (id: string) => void
 }
 
 export function ObjectColumn({
@@ -80,9 +92,15 @@ export function ObjectColumn({
   onDelete,
   onDuplicate,
   onShowQRCode,
+  onViewPassport,
+  onCreateTemplate,
+  onRestore,
+  isRestoring = false,
   searchTerm = '',
   onSearchChange,
   columnTitle,
+  onOpenDraft,
+  onDiscardDraft,
 }: ObjectColumnProps) {
   const t = useTranslations()
   const title = columnTitle ?? t('objects.title')
@@ -134,6 +152,40 @@ export function ObjectColumn({
             </div>
           ) : (
             filteredItems.map((item) => {
+              // Draft entries are UI-only rows surfaced by the parent page.
+              // They have no backend uuid and no children — clicking does not
+              // select (nothing to load); double-click opens the draft sheet.
+              const draftItem = item as any
+              if (draftItem.__isDraft) {
+                const displayName =
+                  (draftItem.name as string)?.trim() ||
+                  t('objects.drafts.untitled')
+                return (
+                  <div
+                    key={draftItem.__draftId}
+                    className="flex items-center justify-between p-2 rounded-md cursor-pointer mb-1 hover:bg-muted/50"
+                    onDoubleClick={() => onOpenDraft?.(draftItem.__draftId)}
+                  >
+                    <div className="flex items-center flex-1 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium select-none truncate">
+                          {truncateText(displayName, 22, true)}
+                        </span>
+                        <DraftBadge className="shrink-0" />
+                      </div>
+                    </div>
+                    {onOpenDraft && onDiscardDraft && (
+                      <DraftActions
+                        variant="kebab"
+                        draftId={draftItem.__draftId}
+                        onOpen={onOpenDraft}
+                        onDiscard={onDiscardDraft}
+                      />
+                    )}
+                  </div>
+                )
+              }
+
               const isSelected = item.uuid === selectedId
               const itemHasChildren = hasChildren(item)
               const isSoftDeleted =
@@ -199,6 +251,14 @@ export function ObjectColumn({
                           <Copy className="h-4 w-4 mr-2" />
                           {t('objects.actions.copyUuid')}
                         </DropdownMenuItem>
+                        {onViewPassport && (
+                          <DropdownMenuItem
+                            onClick={() => onViewPassport(item)}
+                          >
+                            <IdCard className="h-4 w-4 mr-2" />
+                            {t('objects.actions.viewPassport')}
+                          </DropdownMenuItem>
+                        )}
                         {onShowQRCode && (
                           <DropdownMenuItem onClick={() => onShowQRCode(item)}>
                             <QrCode className="h-4 w-4 mr-2" />
@@ -211,18 +271,36 @@ export function ObjectColumn({
                             {t('objects.duplicate.action')}
                           </DropdownMenuItem>
                         )}
-                        {onDelete && (
+                        {onCreateTemplate && !isSoftDeleted && (
+                          <DropdownMenuItem
+                            onClick={() => onCreateTemplate(item)}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            {t('objects.createTemplate')}
+                          </DropdownMenuItem>
+                        )}
+                        {(onDelete || onRestore) && (
                           <>
                             <DropdownMenuSeparator />
-                            {!isSoftDeleted && (
-                              <DropdownMenuItem
-                                onClick={() => onDelete(item)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                {t('common.delete')}
-                              </DropdownMenuItem>
-                            )}
+                            {isSoftDeleted
+                              ? onRestore && (
+                                  <DropdownMenuItem
+                                    onClick={() => onRestore(item)}
+                                    disabled={isRestoring}
+                                  >
+                                    <RotateCcw className="h-4 w-4 mr-2 text-blue-600" />
+                                    {t('objects.restoreTitle')}
+                                  </DropdownMenuItem>
+                                )
+                              : onDelete && (
+                                  <DropdownMenuItem
+                                    onClick={() => onDelete(item)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    {t('common.delete')}
+                                  </DropdownMenuItem>
+                                )}
                           </>
                         )}
                       </DropdownMenuContent>
