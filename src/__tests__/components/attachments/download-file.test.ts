@@ -12,12 +12,8 @@ vi.mock('@/lib', () => ({
 }))
 
 function makeClient(
-  getDownloadUrl: () => Promise<{
-    url: string
-    expiresAt: string
-  }> = async () => ({
-    url: 'https://s3.example/file?X-Amz-Signature=sig',
-    expiresAt: '2030-01-01T00:00:00Z',
+  getDownloadUrl: () => { url: string } = () => ({
+    url: 'https://api.example/api/FileStorage/u-1/download',
   })
 ): Client {
   return {
@@ -30,7 +26,7 @@ beforeEach(() => {
 })
 
 describe('downloadFileToClient', () => {
-  it('asks the SDK for a presigned URL and clicks an anchor', async () => {
+  it('asks the SDK for a download URL and clicks an anchor', () => {
     const click = vi.fn()
     const anchor = document.createElement('a')
     anchor.click = click
@@ -39,23 +35,23 @@ describe('downloadFileToClient', () => {
       .mockReturnValueOnce(anchor)
 
     const client = makeClient()
-    await downloadFileToClient(client, 'u-1', 'photo.png')
+    downloadFileToClient(client, 'u-1', 'photo.png')
 
     expect(client.fileStorage.getDownloadUrl).toHaveBeenCalledWith('u-1')
-    expect(anchor.href).toBe('https://s3.example/file?X-Amz-Signature=sig')
+    expect(anchor.href).toBe('https://api.example/api/FileStorage/u-1/download')
     expect(anchor.download).toBe('photo.png')
     expect(click).toHaveBeenCalledTimes(1)
     expect(anchor.isConnected).toBe(false)
     createSpy.mockRestore()
   })
 
-  it('rethrows when the SDK call fails and never touches the DOM', async () => {
+  it('rethrows when the SDK call fails and never touches the DOM', () => {
     const appendSpy = vi.spyOn(document.body, 'appendChild')
-    const client = makeClient(async () => {
+    const client = makeClient(() => {
       throw new Error('signing service down')
     })
 
-    await expect(downloadFileToClient(client, 'u-2', 'x.png')).rejects.toThrow(
+    expect(() => downloadFileToClient(client, 'u-2', 'x.png')).toThrow(
       'signing service down'
     )
 
@@ -63,12 +59,12 @@ describe('downloadFileToClient', () => {
     appendSpy.mockRestore()
   })
 
-  it('uses the requested filename as the download attribute', async () => {
+  it('uses the requested filename as the download attribute', () => {
     const anchor = document.createElement('a')
     anchor.click = vi.fn()
     vi.spyOn(document, 'createElement').mockReturnValueOnce(anchor)
 
-    await downloadFileToClient(makeClient(), 'u-3', 'report final v2.pdf')
+    downloadFileToClient(makeClient(), 'u-3', 'report final v2.pdf')
 
     expect(anchor.download).toBe('report final v2.pdf')
   })

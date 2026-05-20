@@ -91,28 +91,6 @@ export function usePreviewUrl(
   return query
 }
 
-/**
- * Resolve a presigned download URL. Same identifier semantics as
- * `usePreviewUrl` — pass the storage `fileReference`, not the node UUFile UUID.
- */
-export function useDownloadUrl(
-  fileReference: string | null | undefined,
-  enabled = true
-) {
-  const client = useIomSdkClient()
-  const query = useQuery({
-    queryKey: queryKeys.files.downloadUrl(fileReference ?? ''),
-    queryFn: ({ signal }) =>
-      client.fileStorage.getDownloadUrl(fileReference!, { signal }),
-    enabled: enabled && !!fileReference,
-    staleTime: presignedStaleTime,
-    gcTime: PRESIGNED_GC_MS,
-    retry: 1,
-  })
-  useRefetchOnVisibleNearExpiry(query)
-  return query
-}
-
 export function useFilesApi() {
   const client = useIomSdkClient()
   const queryClient = useQueryClient()

@@ -70,10 +70,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 RUN find .next -name '*.map' -delete 2>/dev/null || true
 
 # Create writable directories for runtime.
-# .next/cache is needed by Next.js at runtime; no app code writes to ./logs
-# (logger sinks are stdout + Sentry only), so we don't pre-create it.
-RUN mkdir -p ./.next/cache && \
-    chown -R nextjs:nodejs ./.next
+# Next.js lazily mkdir's these on first request (image optimizer, RSC fetch
+# cache, ISR). Pre-creating them with correct ownership avoids ENOENT on
+# cold start when the filesystem is mounted/overlayed in unexpected ways.
+# No app code writes to ./logs (logger sinks are stdout + Sentry only).
+RUN mkdir -p ./.next/cache/images ./.next/cache/fetch-cache && \
+    chown -R nextjs:nodejs ./.next && \
+    chmod -R u+rwX ./.next/cache
 
 # Switch to non-root user
 USER nextjs

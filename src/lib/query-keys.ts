@@ -14,7 +14,6 @@ import type {
   GroupListParams,
   QueryParams,
   UUStatementsAccessFindDTO,
-  AccessFindDTO,
   UUID,
 } from 'iom-sdk'
 
@@ -135,8 +134,6 @@ export const queryKeys = {
     all: ['files'] as const,
     previewUrl: (uuid: string) =>
       [...queryKeys.files.all, 'previewUrl', uuid] as const,
-    downloadUrl: (uuid: string) =>
-      [...queryKeys.files.all, 'downloadUrl', uuid] as const,
   },
 
   // ─── Formulas ────────────────────────────────────────────
