@@ -13,6 +13,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import type { AuthResponse as BaseAuthResponse, Client } from 'iom-sdk'
 import { PUBLIC_PAGES_SET } from '@/constants'
+import { clearLegacyDrafts } from '@/components/object-sheets/hooks/use-object-drafts'
 
 export interface CertificateInfo {
   certificateSha256?: string
@@ -114,6 +115,7 @@ export function AuthProvider({ children, client }: AuthProviderProps) {
       unsubscribe = client.onAuthStateChange(handleAuthStateChange)
 
       await client.ready
+      clearLegacyDrafts()
       setAuthLoading(false)
     }
 

@@ -105,13 +105,28 @@ export function useViewData({
         isTemplate: false,
         ...(showDeleted ? {} : { softDeleted: false }),
       },
-      // Group filter — pass groupUUIDList under accessFind when active
+      // Group filter — when a group is selected, scope strictly to it.
+      // Otherwise, expand to every scope the user can read so shared/own/public
+      // group objects appear in the default unfiltered view.
       ...(groupUUIDList && groupUUIDList.length > 0
         ? {
-            accessFind: { groupUUIDList },
+            // Explicitly disable all read scopes so the backend doesn't
+            // default them to true and widen the result past the listed group.
+            accessFind: {
+              readDefaultGroup: false,
+              readOwnGroups: false,
+              readPublicGroups: false,
+              readUserSharedGroups: false,
+              groupUUIDList,
+            },
           }
         : {
-            accessFind: { readDefaultGroup: true },
+            accessFind: {
+              readDefaultGroup: true,
+              readOwnGroups: true,
+              readPublicGroups: true,
+              readUserSharedGroups: true,
+            },
           }),
     },
     {

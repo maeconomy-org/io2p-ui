@@ -1,13 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useForm } from 'react-hook-form'
 
 import { useFormDraftPersistence } from '@/components/object-sheets/hooks/use-form-draft-persistence'
 import {
   objectDraftsStore,
-  INDEX_KEY,
-  DRAFT_KEY_PREFIX,
+  indexKeyFor,
+  draftKeyFor,
 } from '@/components/object-sheets/hooks/use-object-drafts'
+
+const USER_A = 'user-a-uuid'
+
+vi.mock('@/contexts/auth-context', () => ({
+  useAuth: () => ({ userUUID: USER_A }),
+}))
 
 interface TestForm {
   name: string
@@ -83,7 +89,7 @@ describe('useFormDraftPersistence — worthiness gate', () => {
     })
 
     expect(allocatedIds).toHaveLength(0)
-    expect(objectDraftsStore.read()).toHaveLength(0)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(0)
     expect(result.current.persistence.activeDraftId).toBeNull()
   })
 
@@ -98,8 +104,8 @@ describe('useFormDraftPersistence — worthiness gate', () => {
 
     expect(allocatedIds).toHaveLength(1)
     const id = allocatedIds[0]
-    expect(objectDraftsStore.read()).toHaveLength(1)
-    expect(objectDraftsStore.get(id)).toMatchObject({
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
+    expect(objectDraftsStore.get(USER_A, id)).toMatchObject({
       properties: [{ key: 'color', values: [{ value: 'red' }] }],
     })
   })
@@ -112,7 +118,7 @@ describe('useFormDraftPersistence — worthiness gate', () => {
     })
 
     expect(allocatedIds).toHaveLength(1)
-    expect(objectDraftsStore.read()).toHaveLength(1)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
   })
 
   it('saves when name + abbreviation together cross the threshold', () => {
@@ -124,7 +130,7 @@ describe('useFormDraftPersistence — worthiness gate', () => {
     })
 
     expect(allocatedIds.length).toBeGreaterThanOrEqual(1)
-    expect(objectDraftsStore.read()).toHaveLength(1)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
   })
 
   it('deletes a previously auto-saved draft when content drops below the threshold', () => {
@@ -136,7 +142,7 @@ describe('useFormDraftPersistence — worthiness gate', () => {
         { key: 'k', values: [{ value: 'v' }] },
       ])
     })
-    expect(objectDraftsStore.read()).toHaveLength(1)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
     const savedId = result.current.persistence.activeDraftId
     expect(savedId).not.toBeNull()
 
@@ -149,8 +155,8 @@ describe('useFormDraftPersistence — worthiness gate', () => {
       result.current.form.setValue('name', 'x')
     })
 
-    expect(objectDraftsStore.read()).toHaveLength(0)
-    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}${savedId}`)).toBeNull()
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(0)
+    expect(localStorage.getItem(draftKeyFor(USER_A, savedId!))).toBeNull()
     expect(result.current.persistence.activeDraftId).toBeNull()
   })
 })
@@ -164,8 +170,8 @@ describe('useFormDraftPersistence — id allocation safety', () => {
   it('does NOT allocate a new id when resuming an existing draft (regression: duplicate-on-open bug)', () => {
     // Seed an existing draft.
     const existingId = 'draft_existing'
-    objectDraftsStore.save(existingId, { name: 'seeded' }, 'seeded')
-    expect(objectDraftsStore.read()).toHaveLength(1)
+    objectDraftsStore.save(USER_A, existingId, { name: 'seeded' }, 'seeded')
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
 
     const { result, allocatedIds } = setupHook(existingId)
 
@@ -182,8 +188,8 @@ describe('useFormDraftPersistence — id allocation safety', () => {
     })
 
     expect(allocatedIds).toEqual([])
-    expect(objectDraftsStore.read()).toHaveLength(1)
-    expect(objectDraftsStore.read()[0].id).toBe(existingId)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
+    expect(objectDraftsStore.read(USER_A)[0].id).toBe(existingId)
   })
 
   it('does NOT delete a name-only draft loaded via form.reset (regression: vanishing-on-open bug)', () => {
@@ -193,7 +199,12 @@ describe('useFormDraftPersistence — id allocation safety', () => {
     // defaults but NOT worthy. The previous implementation deleted the draft
     // on that programmatic-reset watcher fire — this test pins the fix.
     const existingId = 'draft_nameonly'
-    objectDraftsStore.save(existingId, { name: 'just-a-name' }, 'just-a-name')
+    objectDraftsStore.save(
+      USER_A,
+      existingId,
+      { name: 'just-a-name' },
+      'just-a-name'
+    )
 
     const { result } = setupHook(existingId)
 
@@ -202,10 +213,8 @@ describe('useFormDraftPersistence — id allocation safety', () => {
     })
 
     // Draft must still exist after the load.
-    expect(objectDraftsStore.read()).toHaveLength(1)
-    expect(
-      localStorage.getItem(`${DRAFT_KEY_PREFIX}${existingId}`)
-    ).not.toBeNull()
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
+    expect(localStorage.getItem(draftKeyFor(USER_A, existingId))).not.toBeNull()
   })
 
   it('still deletes an under-threshold draft when the user actively edits it down', () => {
@@ -218,7 +227,7 @@ describe('useFormDraftPersistence — id allocation safety', () => {
         { key: 'k', values: [{ value: 'v' }] },
       ])
     })
-    expect(objectDraftsStore.read()).toHaveLength(1)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
     const id = result.current.persistence.activeDraftId
     expect(id).not.toBeNull()
 
@@ -227,8 +236,8 @@ describe('useFormDraftPersistence — id allocation safety', () => {
       result.current.form.setValue('name', 'still-only-name')
     })
 
-    expect(objectDraftsStore.read()).toHaveLength(0)
-    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}${id}`)).toBeNull()
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(0)
+    expect(localStorage.getItem(draftKeyFor(USER_A, id!))).toBeNull()
   })
 
   it('does not save when isActive is false', () => {
@@ -242,7 +251,7 @@ describe('useFormDraftPersistence — id allocation safety', () => {
     })
 
     expect(allocatedIds).toHaveLength(0)
-    expect(objectDraftsStore.read()).toHaveLength(0)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(0)
   })
 
   it('does NOT delete a previously-saved draft when a new session starts in the same mount (regression: stale activeIdRef bug)', () => {
@@ -261,8 +270,8 @@ describe('useFormDraftPersistence — id allocation safety', () => {
       result.current.form.setValue('name', 'first-object')
       result.current.form.setValue('abbreviation', 'FO')
     })
-    expect(objectDraftsStore.read()).toHaveLength(1)
-    const firstDraftId = objectDraftsStore.read()[0].id
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
+    const firstDraftId = objectDraftsStore.read(USER_A)[0].id
 
     // Close the sheet (Save-as-draft path leaves the draft persisted).
     act(() => {
@@ -284,10 +293,10 @@ describe('useFormDraftPersistence — id allocation safety', () => {
     })
 
     // The previous draft MUST survive.
-    expect(objectDraftsStore.read()).toHaveLength(1)
-    expect(objectDraftsStore.read()[0].id).toBe(firstDraftId)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
+    expect(objectDraftsStore.read(USER_A)[0].id).toBe(firstDraftId)
     expect(
-      localStorage.getItem(`${DRAFT_KEY_PREFIX}${firstDraftId}`)
+      localStorage.getItem(draftKeyFor(USER_A, firstDraftId))
     ).not.toBeNull()
     expect(result.current.persistence.activeDraftId).toBeNull()
   })
@@ -308,7 +317,7 @@ describe('useFormDraftPersistence — id allocation safety', () => {
     })
 
     expect(allocatedIds).toHaveLength(1)
-    expect(objectDraftsStore.read()).toHaveLength(1)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
   })
 })
 
@@ -326,7 +335,7 @@ describe('useFormDraftPersistence — clearDraft & forceSaveDraft', () => {
         { key: 'k', values: [{ value: 'v' }] },
       ])
     })
-    expect(objectDraftsStore.read()).toHaveLength(1)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
 
     act(() => {
       result.current.persistence.clearDraft()
@@ -334,8 +343,8 @@ describe('useFormDraftPersistence — clearDraft & forceSaveDraft', () => {
       result.current.form.reset(blankDefaults)
     })
 
-    expect(objectDraftsStore.read()).toHaveLength(0)
-    expect(localStorage.getItem(INDEX_KEY)).toEqual('[]')
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(0)
+    expect(localStorage.getItem(indexKeyFor(USER_A))).toEqual('[]')
   })
 
   it('forceSaveDraft persists below-threshold content (escape hatch for "Save as draft")', () => {
@@ -345,7 +354,7 @@ describe('useFormDraftPersistence — clearDraft & forceSaveDraft', () => {
     act(() => {
       result.current.form.setValue('name', 'just-a-name')
     })
-    expect(objectDraftsStore.read()).toHaveLength(0)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(0)
 
     let returnedId: string | null = null
     act(() => {
@@ -354,8 +363,8 @@ describe('useFormDraftPersistence — clearDraft & forceSaveDraft', () => {
 
     expect(returnedId).not.toBeNull()
     expect(allocatedIds).toEqual([returnedId!])
-    expect(objectDraftsStore.read()).toHaveLength(1)
-    expect(objectDraftsStore.get(returnedId!)).toMatchObject({
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(1)
+    expect(objectDraftsStore.get(USER_A, returnedId!)).toMatchObject({
       name: 'just-a-name',
     })
   })
@@ -369,7 +378,7 @@ describe('useFormDraftPersistence — clearDraft & forceSaveDraft', () => {
     })
 
     expect(returnedId).toBeNull()
-    expect(objectDraftsStore.read()).toHaveLength(0)
+    expect(objectDraftsStore.read(USER_A)).toHaveLength(0)
   })
 })
 
@@ -395,9 +404,9 @@ describe('useFormDraftPersistence — serialization', () => {
       ])
     })
 
-    const drafts = objectDraftsStore.read()
+    const drafts = objectDraftsStore.read(USER_A)
     expect(drafts).toHaveLength(1)
-    const stored: any = objectDraftsStore.get(drafts[0].id)
+    const stored: any = objectDraftsStore.get(USER_A, drafts[0].id)
     expect(stored.properties[0].files).toEqual([refFile])
     expect(stored.properties[0].values[0].files).toEqual([refFile])
   })
@@ -412,8 +421,8 @@ describe('useFormDraftPersistence — serialization', () => {
       result.current.form.setValue('files', [{ name: 'should-be-dropped' }])
     })
 
-    const drafts = objectDraftsStore.read()
-    const stored: any = objectDraftsStore.get(drafts[0].id)
+    const drafts = objectDraftsStore.read(USER_A)
+    const stored: any = objectDraftsStore.get(USER_A, drafts[0].id)
     expect(stored.files).toBeUndefined()
   })
 })

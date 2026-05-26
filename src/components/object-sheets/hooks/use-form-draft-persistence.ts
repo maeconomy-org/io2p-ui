@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { UseFormReturn } from 'react-hook-form'
 
+import { useAuth } from '@/contexts'
+
 import { objectDraftsStore } from './use-object-drafts'
 
 interface UseFormDraftPersistenceOptions<T extends Record<string, any>> {
@@ -120,6 +122,8 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
   onIdAllocated,
   getDraftName,
 }: UseFormDraftPersistenceOptions<T>) {
+  const { userUUID } = useAuth()
+
   // Active id is held in a ref so the watch callback always reads the latest
   // value synchronously. We mirror it into state ONLY for the public return
   // value (so consumers re-render when it changes).
@@ -161,15 +165,15 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
 
   const clearDraft = useCallback(() => {
     isClearingRef.current = true
-    if (activeIdRef.current) {
-      objectDraftsStore.delete(activeIdRef.current)
+    if (activeIdRef.current && userUUID) {
+      objectDraftsStore.delete(userUUID, activeIdRef.current)
     }
     activeIdRef.current = null
     setActiveIdForReturn(null)
     setTimeout(() => {
       isClearingRef.current = false
     }, 0)
-  }, [])
+  }, [userUUID])
 
   const hasUnsavedChanges = useCallback((): boolean => {
     return isFormDirty(form.getValues(), defaultValues, excludeFields)
@@ -181,6 +185,7 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
    * something the auto-save threshold would otherwise drop.
    */
   const forceSaveDraft = useCallback((): string | null => {
+    if (!userUUID) return null
     const values = form.getValues()
     if (!isFormDirty(values, defaultValues, excludeFields)) return null
     let id = activeIdRef.current
@@ -192,9 +197,10 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
     }
     const payload = serialize(values, excludeFields)
     const name = getDraftName(values).trim()
-    objectDraftsStore.save(id, payload, name)
+    objectDraftsStore.save(userUUID, id, payload, name)
     return id
   }, [
+    userUUID,
     form,
     defaultValues,
     excludeFields,
@@ -205,7 +211,7 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
 
   // Auto-save on every form change, gated by the worthiness predicate.
   useEffect(() => {
-    if (!isActive) return
+    if (!isActive || !userUUID) return
 
     const subscription = form.watch((_values, info) => {
       if (isClearingRef.current) return
@@ -223,7 +229,7 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
 
       if (!isDraftWorthy(values)) {
         if (isFieldEdit && activeIdRef.current) {
-          objectDraftsStore.delete(activeIdRef.current)
+          objectDraftsStore.delete(userUUID, activeIdRef.current)
           activeIdRef.current = null
           setActiveIdForReturn(null)
         }
@@ -239,12 +245,13 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
       }
       const payload = serialize(values, excludeFields)
       const name = getDraftName(values).trim()
-      objectDraftsStore.save(id, payload, name)
+      objectDraftsStore.save(userUUID, id, payload, name)
     })
 
     return () => subscription.unsubscribe()
   }, [
     isActive,
+    userUUID,
     form,
     defaultValues,
     excludeFields,

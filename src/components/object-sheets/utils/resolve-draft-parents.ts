@@ -41,6 +41,7 @@ function makeError(
  * the user can retry without re-creating the parents that already succeeded.
  */
 export async function resolveDraftParents(
+  userUUID: string,
   parents: string[],
   createObject: CreateObjectFn,
   onStep?: (current: number, total: number) => void
@@ -62,7 +63,7 @@ export async function resolveDraftParents(
     onStep?.(stepNum, total)
 
     const draftId = parents[idx]
-    const payload = objectDraftsStore.get<any>(draftId)
+    const payload = objectDraftsStore.get<any>(userUUID, draftId)
     if (!payload) {
       throw makeError(
         `Parent draft ${draftId} not found in storage`,
@@ -84,7 +85,7 @@ export async function resolveDraftParents(
 
     resolved[idx] = result.uuid
     partialResolved.push(result.uuid)
-    objectDraftsStore.delete(draftId)
+    objectDraftsStore.delete(userUUID, draftId)
   }
 
   return resolved

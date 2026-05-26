@@ -22,6 +22,7 @@ import {
 } from '@/components/ui'
 import { cn, truncateText, isDraftRef } from '@/lib/utils'
 import { useCommonApi } from '@/hooks/api'
+import { useAuth } from '@/contexts'
 import type { ParentObject } from '@/types'
 
 import { objectDraftsStore } from '../hooks/use-object-drafts'
@@ -65,6 +66,7 @@ export function ParentSelector({
   onCreateInline,
 }: ParentSelectorProps) {
   const t = useTranslations()
+  const { userUUID } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -344,9 +346,13 @@ export function ParentSelector({
         <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-md">
           {selectedParents.map((parent) => {
             const isDraft = isDraftRef(parent.uuid)
-            const draftPayload = isDraft
-              ? objectDraftsStore.get<{ name?: string }>(parent.uuid)
-              : null
+            const draftPayload =
+              isDraft && userUUID
+                ? objectDraftsStore.get<{ name?: string }>(
+                    userUUID,
+                    parent.uuid
+                  )
+                : null
             const searchResult = searchResults.find(
               (obj) => obj.uuid === parent.uuid
             )

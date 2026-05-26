@@ -6,8 +6,10 @@ import {
 } from '@/components/object-sheets/utils/resolve-draft-parents'
 import {
   objectDraftsStore,
-  DRAFT_KEY_PREFIX,
+  draftKeyFor,
 } from '@/components/object-sheets/hooks/use-object-drafts'
+
+const USER_A = 'user-a-uuid'
 
 describe('resolveDraftParents', () => {
   beforeEach(() => {
@@ -19,7 +21,7 @@ describe('resolveDraftParents', () => {
     const onStep = vi.fn()
     const real = ['00000000-0000-0000-0000-000000000001', 'b', 'c']
 
-    const result = await resolveDraftParents(real, createObject, onStep)
+    const result = await resolveDraftParents(USER_A, real, createObject, onStep)
 
     expect(result).toEqual(real)
     expect(createObject).not.toHaveBeenCalled()
@@ -28,7 +30,7 @@ describe('resolveDraftParents', () => {
 
   it('commits a single draft parent and swaps in the new uuid', async () => {
     const draftId = 'draft_abc'
-    objectDraftsStore.save(draftId, { name: 'parent A' }, 'parent A')
+    objectDraftsStore.save(USER_A, draftId, { name: 'parent A' }, 'parent A')
 
     const createObject = vi
       .fn()
@@ -36,6 +38,7 @@ describe('resolveDraftParents', () => {
 
     const onStep = vi.fn()
     const result = await resolveDraftParents(
+      USER_A,
       [draftId, 'real-existing'],
       createObject,
       onStep
@@ -45,14 +48,13 @@ describe('resolveDraftParents', () => {
     expect(createObject).toHaveBeenCalledTimes(1)
     expect(createObject).toHaveBeenCalledWith({ name: 'parent A' })
     expect(onStep).toHaveBeenCalledWith(1, 1)
-    // Draft must be removed from storage on success
-    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}${draftId}`)).toBeNull()
+    expect(localStorage.getItem(draftKeyFor(USER_A, draftId))).toBeNull()
   })
 
   it('commits a multi-draft batch in array order with onStep callbacks', async () => {
-    objectDraftsStore.save('draft_a', { name: 'a' }, 'a')
-    objectDraftsStore.save('draft_b', { name: 'b' }, 'b')
-    objectDraftsStore.save('draft_c', { name: 'c' }, 'c')
+    objectDraftsStore.save(USER_A, 'draft_a', { name: 'a' }, 'a')
+    objectDraftsStore.save(USER_A, 'draft_b', { name: 'b' }, 'b')
+    objectDraftsStore.save(USER_A, 'draft_c', { name: 'c' }, 'c')
 
     const createObject = vi
       .fn()
@@ -62,6 +64,7 @@ describe('resolveDraftParents', () => {
 
     const onStep = vi.fn()
     const result = await resolveDraftParents(
+      USER_A,
       ['draft_a', 'real-mixed-in', 'draft_b', 'draft_c'],
       createObject,
       onStep
@@ -73,15 +76,15 @@ describe('resolveDraftParents', () => {
       [2, 3],
       [3, 3],
     ])
-    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}draft_a`)).toBeNull()
-    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}draft_b`)).toBeNull()
-    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}draft_c`)).toBeNull()
+    expect(localStorage.getItem(draftKeyFor(USER_A, 'draft_a'))).toBeNull()
+    expect(localStorage.getItem(draftKeyFor(USER_A, 'draft_b'))).toBeNull()
+    expect(localStorage.getItem(draftKeyFor(USER_A, 'draft_c'))).toBeNull()
   })
 
   it('throws on mid-batch failure, preserves committed parents and leaves uncommitted drafts intact', async () => {
-    objectDraftsStore.save('draft_a', { name: 'a' }, 'a')
-    objectDraftsStore.save('draft_b', { name: 'b' }, 'b')
-    objectDraftsStore.save('draft_c', { name: 'c' }, 'c')
+    objectDraftsStore.save(USER_A, 'draft_a', { name: 'a' }, 'a')
+    objectDraftsStore.save(USER_A, 'draft_b', { name: 'b' }, 'b')
+    objectDraftsStore.save(USER_A, 'draft_c', { name: 'c' }, 'c')
 
     const createObject = vi
       .fn()
@@ -91,7 +94,11 @@ describe('resolveDraftParents', () => {
 
     let caught: ResolveDraftParentsError | null = null
     try {
-      await resolveDraftParents(['draft_a', 'draft_b', 'draft_c'], createObject)
+      await resolveDraftParents(
+        USER_A,
+        ['draft_a', 'draft_b', 'draft_c'],
+        createObject
+      )
     } catch (e) {
       caught = e as ResolveDraftParentsError
     }
@@ -100,11 +107,9 @@ describe('resolveDraftParents', () => {
     expect(caught!.failedDraftId).toBe('draft_b')
     expect(caught!.reason).toBe('create-failed')
     expect(caught!.partialResolved).toEqual(['uuid-a'])
-    // a was committed → its draft is gone; b/c never reached the delete step → still in storage
-    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}draft_a`)).toBeNull()
-    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}draft_b`)).not.toBeNull()
-    expect(localStorage.getItem(`${DRAFT_KEY_PREFIX}draft_c`)).not.toBeNull()
-    // c's createObject mock was prepared but should never have been invoked
+    expect(localStorage.getItem(draftKeyFor(USER_A, 'draft_a'))).toBeNull()
+    expect(localStorage.getItem(draftKeyFor(USER_A, 'draft_b'))).not.toBeNull()
+    expect(localStorage.getItem(draftKeyFor(USER_A, 'draft_c'))).not.toBeNull()
     expect(createObject).toHaveBeenCalledTimes(2)
   })
 
@@ -113,7 +118,7 @@ describe('resolveDraftParents', () => {
 
     let caught: ResolveDraftParentsError | null = null
     try {
-      await resolveDraftParents(['draft_ghost'], createObject)
+      await resolveDraftParents(USER_A, ['draft_ghost'], createObject)
     } catch (e) {
       caught = e as ResolveDraftParentsError
     }
