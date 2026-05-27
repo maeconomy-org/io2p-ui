@@ -92,13 +92,21 @@ export function ObjectColumnsView({
     }
   }
 
+  // When the server has no root objects but the user has unsaved drafts,
+  // synthesize an empty root column so the draft-prepend logic below has
+  // something to iterate. Without this, columns.length === 0 short-circuits
+  // to the empty state and drafts never render — diverging from table view.
+  const hasDrafts = !!(draftRows && draftRows.length > 0)
+  const effectiveColumns =
+    columns.length === 0 && hasDrafts ? [[] as any[]] : columns
+
   return (
     <>
       <div className="flex flex-col h-[calc(100vh-180px)]">
         {/* Columns container */}
         <div className="border rounded-md overflow-hidden flex-1">
           <div className="flex h-full overflow-x-auto">
-            {columns.map((items: any[], index: number) => {
+            {effectiveColumns.map((items: any[], index: number) => {
               // Root column (index 0) uses special pagination that accounts for search
               const isRootColumn = index === 0
               const paginationInfo = isRootColumn
@@ -175,7 +183,7 @@ export function ObjectColumnsView({
             {/* This part would need access to column pagination, so we'll keep it simple for now */}
 
             {/* Empty state for when no columns have content */}
-            {columns.length === 0 && (
+            {effectiveColumns.length === 0 && (
               <div className="flex-1 flex items-center justify-center p-8 text-center text-muted-foreground">
                 <div>
                   <FileText className="h-10 w-10 mx-auto mb-4 text-muted-foreground/50" />

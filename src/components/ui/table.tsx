@@ -1,6 +1,5 @@
-import * as React from 'react'
-
 import { cn } from '@/lib/utils'
+import * as React from 'react'
 
 const Table = React.forwardRef<
   HTMLTableElement,
@@ -37,7 +36,7 @@ const TableBody = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn('[&_tr:last-child]:border-0', className)}
+    className={cn('[&_tr:last-child]:border-b-0', className)}
     {...props}
   />
 ))

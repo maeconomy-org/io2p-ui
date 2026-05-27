@@ -163,7 +163,7 @@ export function ObjectColumn({
                 return (
                   <div
                     key={draftItem.__draftId}
-                    className="flex items-center justify-between p-2 rounded-md cursor-pointer mb-1 hover:bg-muted/50"
+                    className="flex items-center justify-between p-2 rounded-md cursor-pointer mb-1 bg-muted/30 border-l-2 border-l-primary hover:bg-muted/50"
                     onDoubleClick={() => onOpenDraft?.(draftItem.__draftId)}
                   >
                     <div className="flex items-center flex-1 min-w-0">

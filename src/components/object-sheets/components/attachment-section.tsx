@@ -17,6 +17,7 @@ type AttachmentSectionProps = {
   disabled?: boolean
   allowReference?: boolean
   allowUpload?: boolean
+  hideExisting?: boolean
 }
 
 export function AttachmentSection({
@@ -25,6 +26,7 @@ export function AttachmentSection({
   disabled = false,
   allowReference = true,
   allowUpload = true,
+  hideExisting = false,
 }: AttachmentSectionProps) {
   const t = useTranslations()
   const [referenceUrl, setReferenceUrl] = useState('')
@@ -165,21 +167,28 @@ export function AttachmentSection({
 
       <Separator />
 
-      {(attachments?.length ?? 0) > 0 ? (
-        <div className="space-y-2 overflow-y-auto max-h-[200px]">
-          <AttachmentList
-            attachments={attachments}
-            onRemoveAttachment={removeAttachmentByObject}
-            onRenameAttachment={renameAttachment}
-            allowHardRemove={true}
-            allowRename={true}
-          />
-        </div>
-      ) : (
-        <div className="text-sm text-muted-foreground italic">
-          {t('objects.attachments.noAttachments')}
-        </div>
-      )}
+      {(() => {
+        const visibleCount = hideExisting
+          ? (attachments ?? []).filter((att) => !att.uuid).length
+          : (attachments?.length ?? 0)
+
+        return visibleCount > 0 ? (
+          <div className="space-y-2 overflow-y-auto max-h-[200px]">
+            <AttachmentList
+              attachments={attachments}
+              onRemoveAttachment={removeAttachmentByObject}
+              onRenameAttachment={renameAttachment}
+              allowHardRemove={true}
+              allowRename={true}
+              hideExisting={hideExisting}
+            />
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground italic">
+            {t('objects.attachments.noAttachments')}
+          </div>
+        )
+      })()}
     </div>
   )
 }

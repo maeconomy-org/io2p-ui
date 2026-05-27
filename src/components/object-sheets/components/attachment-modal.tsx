@@ -219,6 +219,7 @@ export function AttachmentModal({
             allowReference={allowReference}
             allowUpload={allowUpload}
             disabled={disabled}
+            hideExisting
           />
 
           <DialogFooter>

@@ -21,13 +21,21 @@ export function useCommonApi() {
     })
   }
 
-  // Search for objects by text or UUID with pagination support
+  // Search for objects by text or UUID with pagination support.
+  // Defaults to the full readable scope so results include the user's own,
+  // public, and shared groups — not only the default group. Callers can still
+  // pass their own `accessFind` to override (e.g. to scope to a single group).
   const useSearch = () => {
     return useMutation({
       mutationFn: async (params: AggregateFindDTO) => {
         const response = await client.node.searchAggregates({
+          accessFind: {
+            readDefaultGroup: true,
+            readOwnGroups: true,
+            readPublicGroups: true,
+            readUserSharedGroups: true,
+          },
           ...params,
-          accessFind: { readDefaultGroup: true },
         })
         return response
       },

@@ -141,13 +141,13 @@ export function useObjectOperations({
       await toast.promise(deleteObjectMutation.mutateAsync(objectId), {
         loading: t('objects.deletingObject'),
         success: t('objects.objectDeletedSuccess'),
-        error: t('objects.objectDeleteFailed'),
+        error: (err) =>
+          isForbiddenError(err)
+            ? t('objects.permissionDeniedDelete')
+            : t('objects.objectDeleteFailed'),
       })
     } catch (error) {
       logger.error('Error deleting object:', error)
-      if (isForbiddenError(error)) {
-        toast.error(t('objects.permissionDenied'))
-      }
       throw error
     }
   }

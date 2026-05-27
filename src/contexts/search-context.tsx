@@ -1,6 +1,12 @@
 'use client'
 
-import React, { createContext, useContext, useState, useRef } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
 import { logger } from '@/lib'
@@ -56,6 +62,11 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     useState<PageAggregateEntity | null>(null)
   const [currentParsedSearch, setCurrentParsedSearch] =
     useState<ParsedSearch | null>(null)
+  // Tracks which root page (objects vs templates) the active search belongs
+  // to, so navigating to the other root clears the now-irrelevant results.
+  const [searchAnchor, setSearchAnchor] = useState<
+    'objects' | 'templates' | null
+  >(null)
 
   const pathname = usePathname()
   const router = useRouter()
@@ -154,6 +165,9 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
           setSearchViewResults([])
           setIsSearchMode(true)
         }
+        setSearchAnchor(
+          pathname.startsWith(MODELS_PAGE) ? 'templates' : 'objects'
+        )
       }
     } catch (error) {
       logger.error('Search in view failed:', error)
@@ -268,7 +282,23 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     setSearchCurrentPage(0)
     setIsSearchMode(false)
     setCurrentParsedSearch(null)
+    setSearchAnchor(null)
   }
+
+  // Reset search when crossing the objects ↔ templates boundary so stale
+  // results from one root don't leak into the other.
+  useEffect(() => {
+    if (!searchAnchor) return
+    const currentAnchor = pathname.startsWith(MODELS_PAGE)
+      ? 'templates'
+      : pathname.startsWith(OBJECTS_PAGE)
+        ? 'objects'
+        : null
+    if (currentAnchor !== searchAnchor) {
+      clearSearch()
+    }
+    // clearSearch is stable in practice (only setState calls); intentionally omitted to keep deps minimal.
+  }, [pathname, searchAnchor])
 
   return (
     <SearchContext.Provider

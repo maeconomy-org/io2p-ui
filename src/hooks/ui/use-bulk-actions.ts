@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import type { Predicate, UUID } from 'iom-sdk'
 
 import { useIomSdkClient } from '@/contexts'
+import { isForbiddenError } from '@/lib'
 import { queryKeys } from '@/lib/query-keys'
 
 export interface BulkObject {
@@ -40,11 +41,15 @@ export function useBulkActions() {
       const results = await Promise.allSettled(
         objects.map((obj) => client.node.softDeleteObject(obj.uuid))
       )
-      const failed = results.filter((r) => r.status === 'rejected')
+      const failed = results.filter(
+        (r): r is PromiseRejectedResult => r.status === 'rejected'
+      )
       if (failed.length > 0) {
-        throw new Error(
+        const err = new Error(
           `${failed.length} of ${objects.length} deletions failed`
-        )
+        ) as Error & { isForbidden?: boolean }
+        err.isForbidden = failed.some((f) => isForbiddenError(f.reason))
+        throw err
       }
       return results
     },
@@ -54,9 +59,13 @@ export function useBulkActions() {
         t('objects.bulk.bulkDeleteSuccess', { count: variables.length })
       )
     },
-    onError: () => {
+    onError: (error: Error & { isForbidden?: boolean }) => {
       invalidateAll()
-      toast.error(t('objects.bulk.bulkDeleteFailed'))
+      toast.error(
+        error?.isForbidden
+          ? t('objects.bulk.bulkDeletePermissionDenied')
+          : t('objects.bulk.bulkDeleteFailed')
+      )
     },
   })
 

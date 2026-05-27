@@ -168,12 +168,13 @@ export function useColumnsData({
     }
   }
 
-  // Update root column when data changes
+  // Update root column when data changes. We always sync — even when `data`
+  // is empty — so filter changes that yield zero results (e.g. toggling off
+  // "show deleted" when only soft-deleted objects exist) properly clear the
+  // stale columns instead of leaving them visible.
   useEffect(() => {
-    if (data && data.length > 0) {
-      initializeWithData(data)
-      clearAllPagination()
-    }
+    initializeWithData(data ?? [])
+    clearAllPagination()
   }, [data]) // Only depend on data, not the functions
 
   return {

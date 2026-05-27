@@ -232,7 +232,6 @@ function ObjectsPageContent() {
     if (hideDrafts) return undefined
     if (isSearchMode) return undefined
     if (selectedGroupUUID) return undefined
-    if (showDeleted) return undefined
     if (viewData.type === 'table' && viewData.pagination.currentPage !== 0) {
       return undefined
     }
@@ -248,14 +247,7 @@ function ObjectsPageContent() {
       name: d.name,
       updatedAt: d.updatedAt,
     }))
-  }, [
-    drafts,
-    hideDrafts,
-    isSearchMode,
-    selectedGroupUUID,
-    showDeleted,
-    viewData,
-  ])
+  }, [drafts, hideDrafts, isSearchMode, selectedGroupUUID, viewData])
 
   const handleViewObject = (object: AggregateEntity) => {
     setSelectedObject(object)

@@ -96,13 +96,13 @@ export function useColumnSelection({
     setColumns(newColumns)
   }
 
-  // Initialize with root data
+  // Initialize with root data. Always sync (including empty arrays) so filter
+  // changes that produce zero rows correctly clear the view; the caller above
+  // already debounces this via React Query / data identity.
   const initializeWithData = (data: any[]) => {
-    if (data && data.length > 0) {
-      setColumns([data])
-      setSelectedIds([])
-      setPath([])
-    }
+    setColumns([data ?? []])
+    setSelectedIds([])
+    setPath([])
   }
 
   return {

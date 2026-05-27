@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
-import { logger } from '@/lib'
+import { logger, isForbiddenError } from '@/lib'
 import { useObjects } from '@/hooks'
 
 interface ObjectToDelete {
@@ -43,7 +43,12 @@ export function useUnifiedDelete() {
       setWasDeleteSuccessful(true)
     } catch (error) {
       logger.error('Error deleting object:', error)
-      toast.error(t('objects.objectDeleteFailed'), { id: 'delete-object' })
+      toast.error(
+        isForbiddenError(error)
+          ? t('objects.permissionDeniedDelete')
+          : t('objects.objectDeleteFailed'),
+        { id: 'delete-object' }
+      )
     }
   }
 

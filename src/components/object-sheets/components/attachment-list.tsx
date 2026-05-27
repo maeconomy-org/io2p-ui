@@ -16,6 +16,7 @@ type AttachmentListProps = {
   onRenameAttachment?: (attachment: Attachment, newFileName: string) => void // For renaming during creation
   allowHardRemove?: boolean // Allow hard removal (for non-uploaded files)
   allowRename?: boolean // Allow renaming (only for new uploads without uuid)
+  hideExisting?: boolean // Hide already-persisted files (with uuid) — used by the "add files" modal
 }
 
 /**
@@ -54,19 +55,24 @@ export function AttachmentList({
   onRenameAttachment,
   allowHardRemove = false,
   allowRename = false,
+  hideExisting = false,
 }: AttachmentListProps) {
   const t = useTranslations()
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editValue, setEditValue] = useState('')
   const [editExtension, setEditExtension] = useState('') // Store extension separately
 
-  // Separate new uploads (editable) from existing files
+  // Separate new uploads (editable) from existing files.
+  // When hideExisting is set (e.g. inside the "add files" modal), already-
+  // persisted attachments (those with a uuid) are filtered out — only the
+  // current session's new uploads and references should be visible.
   const newUploads = attachments.filter(
     (att) => !att.uuid && att.mode === 'upload'
   )
-  const existingFiles = attachments.filter(
-    (att) => att.uuid || att.mode !== 'upload'
-  )
+  const existingFiles = attachments.filter((att) => {
+    if (hideExisting && att.uuid) return false
+    return att.uuid || att.mode !== 'upload'
+  })
 
   // Convert existing files to FileData format for FileList
   const files: FileData[] = existingFiles.map((att, index) =>
