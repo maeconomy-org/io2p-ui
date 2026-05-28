@@ -1,8 +1,0 @@
-minimumReleaseAge: 4320
-minimumReleaseAgeExclude: ['iom-sdk']
-
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@sentry/cli'
-  - '@swc/core'
-  - sharp
