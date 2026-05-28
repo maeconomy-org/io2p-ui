@@ -1,2 +1,2 @@
 minimumReleaseAge: 4320
-minimumReleaseAgeExclude: []
+minimumReleaseAgeExclude: ['iom-sdk']

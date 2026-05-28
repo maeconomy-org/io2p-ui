@@ -7,7 +7,7 @@ import {
 import type {
   UUMathFormulaDTO,
   UUMathFormulaCalcDTO,
-  UUMathFormulaFindDTO,
+  NodeFindDTO,
   UUMathFormulaCalcFindDTO,
 } from 'iom-sdk'
 import { useIomSdkClient } from '@/contexts'
@@ -25,7 +25,7 @@ export function useMathFormulas() {
   // ─── Query Hooks ───────────────────────────────────────────
 
   const useSearchFormulas = (
-    params?: UUMathFormulaFindDTO,
+    params?: NodeFindDTO,
     pagination?: PageParams,
     options?: { enabled?: boolean }
   ) => {
