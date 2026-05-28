@@ -25,7 +25,7 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --config.minimumReleaseAge=0 --config.strictDepBuilds=false
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder

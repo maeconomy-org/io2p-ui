@@ -16,7 +16,7 @@ RUN apk add --no-cache libc6-compat
 COPY package.json pnpm-lock.yaml ./
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --config.minimumReleaseAge=0 --config.strictDepBuilds=false
 
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
