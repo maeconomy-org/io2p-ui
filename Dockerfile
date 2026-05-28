@@ -18,16 +18,11 @@
 FROM node:25-alpine AS deps
 WORKDIR /app
 
-# Temporary deploy unblock: bypass pnpm cooldown + build-script gate.
-# Apply via env so every pnpm invocation (install, deps-status-check) sees it.
-ENV PNPM_CONFIG_MINIMUM_RELEASE_AGE=0
-ENV PNPM_CONFIG_STRICT_DEP_BUILDS=false
-
 # Install pnpm globally
 RUN npm install -g pnpm
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -37,10 +32,6 @@ RUN pnpm install --frozen-lockfile
 # -----------------------------------------------------------------------------
 FROM node:25-alpine AS builder
 WORKDIR /app
-
-# Same pnpm policy bypass as deps stage (deps-status-check runs before scripts).
-ENV PNPM_CONFIG_MINIMUM_RELEASE_AGE=0
-ENV PNPM_CONFIG_STRICT_DEP_BUILDS=false
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules

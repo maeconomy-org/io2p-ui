@@ -1,0 +1,12 @@
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - iom-sdk
+  - next
+  - react
+  - react-dom
+
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@sentry/cli'
+  - '@swc/core'
+  - sharp
