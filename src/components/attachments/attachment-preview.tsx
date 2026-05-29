@@ -34,6 +34,7 @@ import {
 import {
   detectMimeType,
   detectPreviewKind,
+  formatBytes,
   logger,
   type PreviewKind,
 } from '@/lib'
@@ -460,15 +461,6 @@ export function AttachmentPreview({
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatBytes(size?: number): string | null {
-  if (!size) return null
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  if (size < 1024 * 1024 * 1024)
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`
-  return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
 interface TooLargeFallbackProps {

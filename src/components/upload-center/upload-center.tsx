@@ -22,18 +22,8 @@ import {
 import { useOptionalUploadQueue } from '@/contexts'
 import { Button, Card, Progress } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { truncateText } from '@/lib'
+import { formatBytes, truncateText } from '@/lib'
 import type { FileUploadTask } from '@/lib/upload-service'
-
-function formatBytes(size?: number): string | null {
-  if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0)
-    return null
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  if (size < 1024 * 1024 * 1024)
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`
-  return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`
-}
 
 function mimeIcon(mimeType?: string): LucideIcon {
   if (!mimeType) return FileIcon

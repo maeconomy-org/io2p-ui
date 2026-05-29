@@ -3,17 +3,12 @@
 import { FileQuestion } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
+import { formatBytes } from '@/lib'
+
 interface UnsupportedFallbackProps {
   fileName: string
   size?: number
   mimeType?: string
-}
-
-function formatBytes(size?: number): string | null {
-  if (!size) return null
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`
 }
 
 export function UnsupportedFallback({

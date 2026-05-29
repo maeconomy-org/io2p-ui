@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Route } from '@playwright/test'
 
 import { attachFileInSheet, getDialog, openObject } from '../utils/test-helpers'
 
@@ -122,13 +122,14 @@ test.describe('17 - Attachment Preview', () => {
 
     await openFilesTab(page, name)
 
-    // The SDK's `getDownloadUrl` is a shim over `getPreviewUrl` (no
-    // `Content-Disposition: attachment` baked into the signed URL — see
+    // The SDK's `getDownloadUrl` does an authenticated GET to
+    // `/api/FileStorage/{ref}/download` and returns JSON `{ url, expiresAt }` —
+    // a presigned S3 URL with `Content-Disposition: attachment` baked in (see
     // iom-sdk/.../file-storage-client.ts). Cross-origin browsers ignore the
-    // `<a download>` attribute, so without intercepting we just navigate
-    // inline. Rewrite the preview-url response to a same-origin endpoint
-    // that returns `Content-Disposition: attachment`; the download event
+    // `<a download>` attribute, so we point the returned `url` at a same-origin
+    // stub that returns `Content-Disposition: attachment`; the download event
     // then fires reliably and `suggestedFilename` reflects the header.
+    // `preview-url` is mocked too so the text preview renders in the dialog.
     await page.route(`**/__test_download/${fileName}`, (route) =>
       route.fulfill({
         status: 200,
@@ -139,7 +140,7 @@ test.describe('17 - Attachment Preview', () => {
         body: 'download payload',
       })
     )
-    await page.route('**/api/FileStorage/*/preview-url', (route) =>
+    const signedUrlResponse = (route: Route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -148,7 +149,8 @@ test.describe('17 - Attachment Preview', () => {
           expiresAt: new Date(Date.now() + 60_000).toISOString(),
         }),
       })
-    )
+    await page.route('**/api/FileStorage/*/preview-url', signedUrlResponse)
+    await page.route('**/api/FileStorage/*/download', signedUrlResponse)
 
     await page.locator('[data-testid^="file-preview-"]').first().click()
 

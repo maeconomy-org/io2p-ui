@@ -5,18 +5,6 @@ export function isOversize(file: File, maxMB: number): boolean {
   return file.size > bytes
 }
 
-export function bytesToReadable(size?: number): string {
-  if (!size || size <= 0) return '0 B'
-  const i = Math.floor(Math.log(size) / Math.log(1024))
-  const value = (size / Math.pow(1024, i)).toFixed(2)
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  return `${value} ${units[i]}`
-}
-
-export function isReferenceAttachment(att: Attachment): boolean {
-  return att.mode === 'reference' && !!att.url
-}
-
 export function toApiFilePayload(att: Attachment): {
   file: {
     fileName: string

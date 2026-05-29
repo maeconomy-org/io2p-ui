@@ -11,6 +11,7 @@ const ROUTE = {
   complete: '**/api/FileStorage/*/complete',
   abort: '**/api/FileStorage/*', // DELETE — same path as metadata GET, method discriminates
   preview: '**/api/FileStorage/*/preview-url',
+  download: '**/api/FileStorage/*/download',
   softDelete: '**/api/FileStorage/*/delete',
   presignedPart: 'https://mock-s3.test/upload/**',
 } as const
@@ -33,6 +34,13 @@ export type MockFileStorageOptions = {
   abortHangs?: boolean
   /** Override response body for `preview-url`. */
   previewUrl?: string
+  /**
+   * Override the presigned URL returned by `download`. The real endpoint hands
+   * back a presigned S3 URL with `Content-Disposition: attachment` baked in;
+   * the SDK does an authenticated GET and the UI navigates the browser to it.
+   * Defaults to the same value as `previewUrl`.
+   */
+  downloadUrl?: string
 }
 
 type MockState = {
@@ -66,6 +74,7 @@ export function installFileStorageMock(
     presignedTTLSeconds = 900,
     abortHangs = false,
     previewUrl = 'https://mock-s3.test/preview/file.bin?X-Amz-Signature=mock',
+    downloadUrl = previewUrl,
   } = opts
 
   const state: MockState = {
@@ -149,6 +158,17 @@ export function installFileStorageMock(
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({ url: previewUrl, expiresAt: expiresAt() }),
+        })
+      },
+    },
+    {
+      url: ROUTE.download,
+      handler: (route) => {
+        if (route.request().method() !== 'GET') return route.fallback()
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ url: downloadUrl, expiresAt: expiresAt() }),
         })
       },
     },

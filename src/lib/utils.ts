@@ -23,6 +23,20 @@ export function formatSizeMB(mb: number): string {
   return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`
 }
 
+/**
+ * Human-readable byte size (e.g. "1.5 MB"). Returns null for missing/invalid
+ * sizes so callers can conditionally render the label.
+ */
+export function formatBytes(size?: number): string | null {
+  if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0)
+    return null
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  if (size < 1024 * 1024 * 1024)
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`
+  return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}
+
 export const formatFingerprint = (fingerprint: string) => {
   if (!fingerprint) return ''
   return fingerprint.length > 24
