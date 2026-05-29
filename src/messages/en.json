@@ -39,6 +39,7 @@
     "session": "Session:",
     "sessionActive": "Active",
     "demoWalkthrough": "Demo Walkthrough",
+    "settings": "Settings",
     "mobile": {
       "uuid": "UUID"
     }
@@ -48,6 +49,54 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account, appearance, and view preferences.",
+    "tabs": {
+      "account": "Account",
+      "appearance": "Appearance",
+      "preferences": "Preferences"
+    },
+    "account": {
+      "title": "Account details",
+      "description": "Your identity and how you authenticated.",
+      "userId": "User ID",
+      "authType": "Authentication",
+      "certificate": "Client certificate",
+      "email": "Email & password",
+      "username": "Username",
+      "createdAt": "Account created",
+      "certificateName": "Certificate name",
+      "issuer": "Issuer",
+      "validFrom": "Valid from",
+      "validTo": "Valid to",
+      "expiresIn": "Certificate expires",
+      "notAvailable": "Not available"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Customize how the interface looks.",
+      "theme": "Theme",
+      "language": "Language",
+      "languageReloadHint": "Changing the language reloads the page."
+    },
+    "preferences": {
+      "title": "View preferences",
+      "description": "Pick the view each area opens in. Your latest choice is remembered for this account.",
+      "objects": "Objects view",
+      "processes": "Processes view",
+      "properties": "Properties view",
+      "options": {
+        "table": "Table",
+        "columns": "Columns",
+        "dashboard": "Dashboard",
+        "sankey": "Sankey",
+        "network": "Network",
+        "detailed": "List",
+        "grid": "Grid"
+      }
+    }
   },
   "footer": {
     "rights": "All rights reserved.",

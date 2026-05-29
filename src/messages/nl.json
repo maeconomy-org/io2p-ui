@@ -39,6 +39,7 @@
     "session": "Sessie:",
     "sessionActive": "Actief",
     "demoWalkthrough": "Demo walkthrough",
+    "settings": "Instellingen",
     "mobile": {
       "uuid": "UUID"
     }
@@ -48,6 +49,54 @@
     "light": "Licht",
     "dark": "Donker",
     "system": "Systeem"
+  },
+  "settings": {
+    "title": "Instellingen",
+    "description": "Beheer je account, weergave en voorkeuren.",
+    "tabs": {
+      "account": "Account",
+      "appearance": "Weergave",
+      "preferences": "Voorkeuren"
+    },
+    "account": {
+      "title": "Accountgegevens",
+      "description": "Je identiteit en hoe je bent geauthenticeerd.",
+      "userId": "Gebruikers-ID",
+      "authType": "Authenticatie",
+      "certificate": "Clientcertificaat",
+      "email": "E-mail en wachtwoord",
+      "username": "Gebruikersnaam",
+      "createdAt": "Account aangemaakt",
+      "certificateName": "Certificaatnaam",
+      "issuer": "Uitgever",
+      "validFrom": "Geldig vanaf",
+      "validTo": "Geldig tot",
+      "expiresIn": "Certificaat verloopt",
+      "notAvailable": "Niet beschikbaar"
+    },
+    "appearance": {
+      "title": "Weergave",
+      "description": "Pas aan hoe de interface eruitziet.",
+      "theme": "Thema",
+      "language": "Taal",
+      "languageReloadHint": "Het wijzigen van de taal herlaadt de pagina."
+    },
+    "preferences": {
+      "title": "Weergavevoorkeuren",
+      "description": "Kies de weergave waarin elk onderdeel opent. Je laatste keuze wordt voor dit account onthouden.",
+      "objects": "Objectenweergave",
+      "processes": "Processenweergave",
+      "properties": "Eigenschappenweergave",
+      "options": {
+        "table": "Tabel",
+        "columns": "Kolommen",
+        "dashboard": "Dashboard",
+        "sankey": "Sankey",
+        "network": "Netwerk",
+        "detailed": "Lijst",
+        "grid": "Raster"
+      }
+    }
   },
   "footer": {
     "rights": "Alle rechten voorbehouden.",

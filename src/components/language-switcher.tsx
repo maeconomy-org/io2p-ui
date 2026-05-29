@@ -17,14 +17,14 @@ import {
   Button,
 } from '@/components/ui'
 
-const LOCALES = [
+export const LOCALES = [
   { value: 'en', label: 'English' },
   { value: 'nl', label: 'Nederlands' },
 ] as const
 
-type LocaleValue = (typeof LOCALES)[number]['value']
+export type LocaleValue = (typeof LOCALES)[number]['value']
 
-function setLocaleCookie(locale: LocaleValue) {
+export function setLocaleCookie(locale: LocaleValue) {
   document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=${60 * 60 * 24 * 365}`
 }
 

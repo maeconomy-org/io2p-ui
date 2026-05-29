@@ -12,6 +12,7 @@ import {
   Shield,
   Mail,
   Search,
+  Settings,
   User,
   Sun,
   Moon,
@@ -215,8 +216,23 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
 
             <Separator />
 
-            {/* Sign Out */}
-            <div className="px-4 py-3">
+            {/* Settings + Sign Out */}
+            <div className="px-4 py-3 space-y-1">
+              <SheetClose asChild>
+                <Link
+                  href="/settings"
+                  data-testid="mobile-nav-settings"
+                  className={cn(
+                    'flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-muted',
+                    pathname === '/settings'
+                      ? 'bg-muted text-primary'
+                      : 'text-foreground'
+                  )}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  {t('nav.settings')}
+                </Link>
+              </SheetClose>
               <Button
                 variant="ghost"
                 size="sm"

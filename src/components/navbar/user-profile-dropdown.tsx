@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import {
   LogOut,
@@ -10,6 +11,7 @@ import {
   User,
   RocketIcon,
   Mail,
+  Settings,
 } from 'lucide-react'
 
 import {
@@ -152,6 +154,14 @@ export function UserProfileDropdown() {
         <LanguageDropdownItem />
         <DropdownMenuSeparator />
         <ThemeDropdownItem />
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link href="/settings" data-testid="nav-settings">
+            <Settings className="h-4 w-4 mr-2" />
+            <span>{t('nav.settings')}</span>
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
