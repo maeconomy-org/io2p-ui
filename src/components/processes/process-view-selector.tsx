@@ -33,10 +33,7 @@ export function ProcessViewSelector({
         type="single"
         value={view}
         onValueChange={(value) => {
-          if (value) {
-            onChange(value as ProcessViewType)
-            localStorage.setItem('processView', value)
-          }
+          if (value) onChange(value as ProcessViewType)
         }}
       >
         {ENABLED_PROCESS_VIEW_TYPES.map((viewType) => {

@@ -29,10 +29,7 @@ export function ViewSelector({
           <button
             key={viewType.value}
             type="button"
-            onClick={() => {
-              onChange(viewType.value as ViewType)
-              localStorage.setItem('view', viewType.value)
-            }}
+            onClick={() => onChange(viewType.value as ViewType)}
             className={cn(
               'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-2 py-1 text-sm font-medium transition-all',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',

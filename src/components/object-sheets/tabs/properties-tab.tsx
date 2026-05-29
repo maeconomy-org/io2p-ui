@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Edit, LayoutGrid, List, Save, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { usePreference } from '@/hooks'
 import {
   Button,
   Tooltip,
@@ -37,7 +38,7 @@ export function PropertiesTab({
   setAttachmentModal,
 }: PropertiesTabProps) {
   const t = useTranslations()
-  const [viewMode, setViewMode] = useState<'detailed' | 'grid'>('detailed')
+  const [viewMode, setViewMode] = usePreference('propertiesView')
   const [isEditing, setIsEditing] = useState(false)
 
   // Handle attachment modal for properties and values

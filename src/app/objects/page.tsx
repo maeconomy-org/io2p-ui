@@ -15,6 +15,7 @@ import {
   useBulkSelection,
   useGroups,
   useObjects,
+  usePreference,
 } from '@/hooks'
 import { useSearch, useAuth } from '@/contexts'
 import { isObjectDeleted, logger } from '@/lib'
@@ -24,7 +25,7 @@ import InitialLoginTour from '@/components/onboarding/initial-login-tour'
 import { Button } from '@/components/ui'
 import { DeletedFilter, GroupFilter } from '@/components/filters'
 import { SearchResultsBar } from '@/components/search-results-bar'
-import { ViewSelector, ViewType } from '@/components/view-selector'
+import { ViewSelector } from '@/components/view-selector'
 import { ObjectViewContainer } from '@/components/object-view-container'
 import { BulkActionsToolbar, DataTableColumnToggle } from '@/components/tables'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
@@ -73,13 +74,7 @@ const TemplateCreationDialog = dynamic(
 function ObjectsPageContent() {
   const t = useTranslations()
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
-  const [viewType, setViewType] = useState<ViewType>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('view')
-      if (saved === 'table' || saved === 'columns') return saved
-    }
-    return 'table'
-  })
+  const [viewType, setViewType] = usePreference('objectsView')
   const [showDeleted, setShowDeleted] = useState<boolean>(false)
   const [selectedObject, setSelectedObject] = useState<AggregateEntity | null>(
     null
@@ -374,10 +369,7 @@ function ObjectsPageContent() {
             />
             <ViewSelector
               view={viewType}
-              onChange={(value: ViewType) => {
-                setViewType(value)
-                localStorage.setItem('view', value)
-              }}
+              onChange={setViewType}
               data-tour="view-selector"
             />
             <Button

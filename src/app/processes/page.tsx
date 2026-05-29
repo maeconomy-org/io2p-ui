@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { PlusCircle, Loader2, Filter, Layers, Focus, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -9,7 +9,7 @@ import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 
 import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
-import { useStatements } from '@/hooks'
+import { useStatements, usePreference } from '@/hooks'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
 import {
   LoadingState,
@@ -22,7 +22,6 @@ import {
   useSankeyDiagramData,
 } from '@/components/processes'
 
-import { ProcessViewType, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 import { logger } from '@/lib'
 
 // Simple loading placeholder for dynamic imports
@@ -59,7 +58,7 @@ const MaterialFlowPage = () => {
     useState<EnhancedMaterialRelationship | null>(null)
   const [isProcessFormOpen, setIsProcessFormOpen] = useState(false)
   const [isRelationshipSheetOpen, setIsRelationshipSheetOpen] = useState(false)
-  const [activeView, setActiveView] = useState<ProcessViewType>('dashboard')
+  const [activeView, setActiveView] = usePreference('processView')
   const [selectedMaterialUuids, setSelectedMaterialUuids] = useState<string[]>(
     []
   )
@@ -70,15 +69,6 @@ const MaterialFlowPage = () => {
     uuid: string
     name: string
   } | null>(null)
-
-  // Load saved view preference from localStorage
-  useEffect(() => {
-    const savedView = localStorage.getItem('processView') as ProcessViewType
-    const validViews = ENABLED_PROCESS_VIEW_TYPES.map((type) => type.value)
-    if (savedView && validViews.includes(savedView)) {
-      setActiveView(savedView)
-    }
-  }, [])
 
   const clearFilter = useCallback(() => {
     router.push('/processes')
