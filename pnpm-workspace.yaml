@@ -1,12 +1,19 @@
+# pnpm 11 blocks dependency build scripts by default and, with strictDepBuilds
+# (a pnpm 11 default), turns an ignored build into a hard error. The old
+# onlyBuiltDependencies list was replaced by the allowBuilds map — each native
+# dependency must be explicitly opted in (true) or out (false) here.
+allowBuilds:
+  '@parcel/watcher': true
+  '@sentry/cli': true
+  '@swc/core': true
+  sharp: true
+
+# Supply-chain cooldown: refuse any version published in the last 4320 minutes
+# (3 days), stronger than pnpm 11's 1-day default. Excludes our own SDK and the
+# framework packages we bump deliberately.
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - iom-sdk
   - next
   - react
   - react-dom
-
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@sentry/cli'
-  - '@swc/core'
-  - sharp

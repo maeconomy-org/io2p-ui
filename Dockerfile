@@ -18,8 +18,12 @@
 FROM node:25-alpine AS deps
 WORKDIR /app
 
-# Install pnpm globally
-RUN npm install -g pnpm
+# Install pnpm globally.
+RUN npm install -g pnpm@11.5.0
+
+# Husky's `prepare` script is irrelevant in CI/Docker (no .git, no commits here).
+# HUSKY=0 is the documented way to skip it cleanly.
+ENV HUSKY=0
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -42,7 +46,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build application (no NEXT_PUBLIC_* needed - config served at runtime)
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11.5.0
 RUN pnpm build
 
 # -----------------------------------------------------------------------------
@@ -70,9 +74,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 RUN find .next -name '*.map' -delete 2>/dev/null || true
 
 # Create writable directories for runtime.
-# Next.js lazily mkdir's these on first request (image optimizer, RSC fetch
-# cache, ISR). Pre-creating them with correct ownership avoids ENOENT on
-# cold start when the filesystem is mounted/overlayed in unexpected ways.
 # No app code writes to ./logs (logger sinks are stdout + Sentry only).
 RUN mkdir -p ./.next/cache/images ./.next/cache/fetch-cache && \
     chown -R nextjs:nodejs ./.next && \
