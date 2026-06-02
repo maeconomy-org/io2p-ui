@@ -6,8 +6,8 @@ import ReactECharts from 'echarts-for-react'
 import type {
   EnhancedMaterialObject,
   EnhancedMaterialRelationship,
-  FlowCategory,
 } from '@/types'
+import { buildFlowTooltip } from '../utils/flow-tooltip'
 
 interface NetworkDiagramProps {
   materials?: EnhancedMaterialObject[]
@@ -495,7 +495,8 @@ function getLinkProperties(
   let type: 'solid' | 'dashed' | 'dotted' = 'solid'
   let opacity = 0.6
 
-  const inputQuantity = rel.inputMaterial?.quantity || 1
+  const inputQuantity =
+    rel.inputMaterial?.canonicalQuantity ?? rel.inputMaterial?.quantity ?? 1
   const baseWidth = Math.max(
     1.5,
     Math.min(6, Math.log10(inputQuantity + 1) * 2)
@@ -567,47 +568,5 @@ function createNodeTooltip(material: EnhancedMaterialObject): string {
 }
 
 function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
-  const parts = [`<strong>${rel.subject.name} → ${rel.object.name}</strong>`]
-
-  if (rel.processName) {
-    parts.push(`Process: ${rel.processName}`)
-  }
-
-  if (rel.processTypeCode) {
-    parts.push(`Type: ${rel.processTypeCode.replace(/_/g, ' ')}`)
-  }
-
-  if (rel.flowCategory && rel.flowCategory !== 'STANDARD') {
-    const emoji = getFlowCategoryEmoji(rel.flowCategory)
-    parts.push(`${emoji} ${rel.flowCategory.replace(/_/g, ' ').toLowerCase()}`)
-  }
-
-  if (rel.emissionsTotal && rel.emissionsTotal > 0) {
-    parts.push(
-      `Emissions: ${rel.emissionsTotal} ${rel.emissionsUnit || 'kgCO2e'}`
-    )
-  }
-
-  if (rel.materialLossPercent && rel.materialLossPercent > 0) {
-    parts.push(`Loss: ${rel.materialLossPercent}%`)
-  }
-
-  return parts.join('<br/>')
-}
-
-function getFlowCategoryEmoji(category: FlowCategory): string {
-  switch (category) {
-    case 'RECYCLING':
-      return '♻️'
-    case 'REUSE':
-      return '🔄'
-    case 'DOWNCYCLING':
-      return '⬇️'
-    case 'CIRCULAR':
-      return '🔄'
-    case 'WASTE_FLOW':
-      return '🗑️'
-    default:
-      return '→'
-  }
+  return buildFlowTooltip(rel)
 }

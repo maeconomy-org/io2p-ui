@@ -6,10 +6,10 @@ import ReactECharts from 'echarts-for-react'
 import type {
   EnhancedMaterialObject,
   EnhancedMaterialRelationship,
-  FlowCategory,
 } from '@/types'
 import { toCapitalize } from '@/lib'
 import { detectAndRemoveCycles } from '../utils'
+import { buildFlowTooltip } from '../utils/flow-tooltip'
 
 interface SankeyDiagramProps {
   materials?: EnhancedMaterialObject[]
@@ -118,7 +118,10 @@ export const SankeyDiagram = memo(function SankeyDiagram({
       return {
         source: rel.subject.uuid,
         target: rel.object.uuid,
-        value: rel.inputMaterial?.quantity || 1,
+        value:
+          rel.inputMaterial?.canonicalQuantity ??
+          rel.inputMaterial?.quantity ??
+          1,
         lineStyle: {
           // Only override color for selected or special-category flows;
           // otherwise leave undefined so the series-level 'source' color mode applies
@@ -533,75 +536,9 @@ function createNodeTooltip(
 }
 
 /**
- * Create enhanced link tooltip with process-level data only (no material quantities)
+ * Clean, labelled flow tooltip — process name, the two endpoints, and the input/output
+ * quantity (with its property label). Only shows what we know; no property dump.
  */
 function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
-  const parts = [`<strong>${rel.subject.name} → ${rel.object.name}</strong>`]
-
-  if (rel.processName) {
-    parts.push(`Process: ${rel.processName}`)
-  }
-
-  if (rel.processTypeCode) {
-    parts.push(`Type: ${rel.processTypeCode.replace('_', ' ')}`)
-  }
-
-  if (rel.flowCategory) {
-    const categoryLabel = rel.flowCategory.replace('_', ' ').toLowerCase()
-    const emoji = getFlowCategoryEmoji(rel.flowCategory)
-    parts.push(`${emoji} Flow: ${toCapitalize(categoryLabel)}`)
-  }
-
-  // Impact data section
-  if (rel.emissionsTotal && rel.emissionsTotal > 0) {
-    parts.push(
-      `<strong>🌍 Emissions: ${rel.emissionsTotal} ${rel.emissionsUnit || 'kgCO2e'}</strong>`
-    )
-  }
-
-  if (rel.materialLossPercent && rel.materialLossPercent > 0) {
-    parts.push(`<strong>⚠️ Material Loss: ${rel.materialLossPercent}%</strong>`)
-  }
-
-  if (rel.qualityChangeCode) {
-    const qualityLabel =
-      rel.qualityChangeCode === 'UPCYCLED'
-        ? 'Upcycled'
-        : rel.qualityChangeCode === 'DOWNCYCLED'
-          ? 'Downcycled'
-          : 'Same Quality'
-    const qualityEmoji =
-      rel.qualityChangeCode === 'UPCYCLED'
-        ? '⬆️'
-        : rel.qualityChangeCode === 'DOWNCYCLED'
-          ? '⬇️'
-          : '➡️'
-    parts.push(`${qualityEmoji} Quality: ${qualityLabel}`)
-  }
-
-  if (rel.notes) {
-    parts.push(`<em>Note: ${rel.notes}</em>`)
-  }
-
-  return parts.join('<br/>')
-}
-
-/**
- * Get emoji for flow category
- */
-function getFlowCategoryEmoji(category: FlowCategory): string {
-  switch (category) {
-    case 'RECYCLING':
-      return '♻️'
-    case 'REUSE':
-      return '🔄'
-    case 'DOWNCYCLING':
-      return '⬇️'
-    case 'CIRCULAR':
-      return '🔄♻️'
-    case 'WASTE_FLOW':
-      return '🗑️'
-    default:
-      return '➡️'
-  }
+  return buildFlowTooltip(rel)
 }

@@ -121,6 +121,12 @@ export interface EnhancedMaterialObject {
 export interface MaterialData {
   quantity?: number
   unit?: string
+  /** value converted to the dimension's canonical unit — used for chart magnitudes */
+  canonicalQuantity?: number
+  /** raw value string exactly as entered (e.g. "0.1 t") — used for display */
+  displayValue?: string
+  /** label of the quantity property (e.g. "Quantity") — shown in tooltips */
+  quantityLabel?: string
   lifecycleStage?: string
   categoryCode?: string
   customProperties?: Record<string, string>

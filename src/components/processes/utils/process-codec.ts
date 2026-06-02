@@ -248,3 +248,52 @@ export function groupEdgesByProcess(
   }
   return groups
 }
+
+/**
+ * Decode one side's material properties from an edge ('in' | 'out') into the clean
+ * ProcessMaterialProperty list (key/label/values + isQuantity/unit/canonicalValue).
+ * Used by the chart/detail layer so it never sees the raw namespaced keys.
+ */
+export function decodeEdgeProperties(
+  edge: UUStatementDTO,
+  side: 'in' | 'out'
+): ProcessMaterialProperty[] {
+  return decodeMaterialProps(
+    edge.properties ?? [],
+    side === 'in' ? PREFIX.input : PREFIX.output
+  )
+}
+
+export interface EdgeQuantity {
+  /** value in the dimension's canonical unit (from #canon), or null if none */
+  canonical: number | null
+  /** unit text as typed (#unit), or null */
+  unit: string | null
+  /** raw value as typed, or null */
+  raw: string | null
+}
+
+/**
+ * Read the flagged quantity for one side of an edge ('in' | 'out'). Finds the property that
+ * carries a `#qty` flag under that namespace and returns its `#canon` / `#unit` / raw value.
+ * Used by the chart layer for flow magnitudes. Returns nulls when no quantity is flagged.
+ */
+export function getEdgeQuantity(
+  edge: UUStatementDTO,
+  side: 'in' | 'out'
+): EdgeQuantity {
+  const prefix = side === 'in' ? PREFIX.input : PREFIX.output
+  const bag = edge.properties ?? []
+  const qtyFlag = bag.find(
+    (p) => p.key?.startsWith(prefix) && p.key.endsWith(SUFFIX.qty)
+  )
+  if (!qtyFlag?.key) return { canonical: null, unit: null, raw: null }
+  const baseKey = qtyFlag.key.slice(0, -SUFFIX.qty.length)
+  const read = (suffix = '') => firstValue(bag, `${baseKey}${suffix}`) ?? null
+  const canonStr = read(SUFFIX.canon)
+  return {
+    canonical: canonStr !== null ? parseFloat(canonStr) : null,
+    unit: read(SUFFIX.unit),
+    raw: read(),
+  }
+}

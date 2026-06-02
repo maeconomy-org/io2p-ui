@@ -14,6 +14,8 @@ import {
   limitStatementDepth,
   limitStatementDepthBidirectional,
 } from '@/components/processes/utils'
+import { decodeEdgeProperties } from '@/components/processes/utils/process-codec'
+import { parseQuantity } from '@/lib/units/parse-quantity'
 
 interface SankeyDiagramData {
   materials: EnhancedMaterialObject[]
@@ -299,35 +301,25 @@ function processStatementsWithMetadata(
     const processName =
       getPropertyValue(statement, 'processName') || 'Unknown Process'
 
-    // Extract input material data (namespaced)
-    const inputQuantity =
-      getNamespacedNumberValue(statement, 'input', 'quantity') ||
-      parseFloat(getPropertyValue(statement, 'quantity') || '0')
-    const inputUnit =
-      getNamespacedPropertyValue(statement, 'input', 'unit') ||
-      getPropertyValue(statement, 'unit') ||
-      ''
+    // Decode each side's dynamic properties via the codec (clean labels, no raw keys).
+    // Display uses the raw value as typed; chart magnitude uses the canonical value.
+    const inSide = extractMaterialSide(statement, 'in', {
+      quantity:
+        getNamespacedNumberValue(statement, 'input', 'quantity') ||
+        parseFloat(getPropertyValue(statement, 'quantity') || '0'),
+      unit:
+        getNamespacedPropertyValue(statement, 'input', 'unit') ||
+        getPropertyValue(statement, 'unit') ||
+        '',
+    })
+    const outSide = extractMaterialSide(statement, 'out', {
+      quantity: getNamespacedNumberValue(statement, 'output', 'quantity') || 0,
+      unit: getNamespacedPropertyValue(statement, 'output', 'unit') || '',
+    })
 
-    // Extract output material data (namespaced)
-    const outputQuantity = getNamespacedNumberValue(
-      statement,
-      'output',
-      'quantity'
-    )
-    const outputUnit = getNamespacedPropertyValue(statement, 'output', 'unit')
-
-    if (
-      !processName ||
-      processName === 'Unknown Process' ||
-      inputQuantity <= 0
-    ) {
-      console.warn('Skipping relationship with invalid process data:', {
-        processName,
-        inputQuantity,
-        subject: subjectObj.name,
-        object: objectObj.name,
-        statement: statement,
-      })
+    // Only require a valid process name. Quantities are optional — a process with no
+    // quantity still renders (the chart falls back to a default magnitude).
+    if (!processName || processName === 'Unknown Process') {
       return
     }
 
@@ -377,10 +369,7 @@ function processStatementsWithMetadata(
       getNamespacedPropertyValue(statement, 'output', 'outputCategoryCode') || // Legacy: output_outputCategoryCode
       getPropertyValue(statement, 'outputCategoryCode') // Very old: outputCategoryCode
 
-    // Extract custom properties (separated by input/output)
-    const customProperties = extractCustomProperties(statement)
-
-    const uniqueKey = `${statement.subject}-${statement.object}-${processName}-${inputQuantity}-${inputUnit}`
+    const uniqueKey = `${statement.subject}-${statement.object}-${processName}-${inSide.displayValue}`
 
     if (!relationshipMap.has(uniqueKey)) {
       relationshipMap.set(uniqueKey, {
@@ -402,21 +391,27 @@ function processStatementsWithMetadata(
         materialLossPercent,
         qualityChangeCode,
         notes,
-        customProperties: customProperties.input, // Use input custom properties for backward compatibility
-        // NEW: Separated input/output data
+        customProperties: inSide.customProperties,
+        // Separated input/output data
         inputMaterial: {
-          quantity: inputQuantity,
-          unit: inputUnit,
+          quantity: inSide.quantity,
+          unit: inSide.unit,
+          canonicalQuantity: inSide.canonicalQuantity,
+          displayValue: inSide.displayValue,
+          quantityLabel: inSide.quantityLabel,
           lifecycleStage: inputLifecycleStage,
           categoryCode: inputCategoryCode,
-          customProperties: customProperties.input,
+          customProperties: inSide.customProperties,
         },
         outputMaterial: {
-          quantity: outputQuantity,
-          unit: outputUnit,
+          quantity: outSide.quantity,
+          unit: outSide.unit,
+          canonicalQuantity: outSide.canonicalQuantity,
+          displayValue: outSide.displayValue,
+          quantityLabel: outSide.quantityLabel,
           lifecycleStage: outputLifecycleStage,
           categoryCode: outputCategoryCode,
-          customProperties: customProperties.output,
+          customProperties: outSide.customProperties,
         },
       })
     }
@@ -650,83 +645,58 @@ function getNamespacedNumberValue(
   return value ? parseFloat(value) || undefined : undefined
 }
 
-function extractCustomProperties(statement: UUStatementDTO): {
-  input: Record<string, string>
-  output: Record<string, string>
-} {
-  const inputCustomProperties: Record<string, string> = {}
-  const outputCustomProperties: Record<string, string> = {}
+interface MaterialSide {
+  quantity: number // raw numeric value for display
+  unit: string // raw unit as typed
+  canonicalQuantity: number // canonical value for chart magnitude
+  displayValue: string // raw value string as typed (e.g. "0.1 t")
+  quantityLabel?: string // label of the quantity property (e.g. "Quantity")
+  customProperties: Record<string, string> // non-quantity properties, label -> value
+}
 
-  // Known metadata keys that are not custom properties (including namespaced versions)
-  const knownKeys = new Set([
-    // Process-level fields
-    'processName',
-    'processType',
-    'quantity',
-    'unit',
-    'processCategory',
-    'flowCategory',
-    'isRecycling',
-    'isDeconstruction',
-    'sourceBuildingUuid',
-    'targetBuildingUuid',
-    'emissionsTotal',
-    'emissionsUnit',
-    'materialLossPercent',
-    'qualityChangeCode',
-    'notes',
-    // Legacy material-level fields
-    'inputLifecycleStage',
-    'outputLifecycleStage',
-    'inputCategoryCode',
-    'outputCategoryCode',
-    'isReusedInput',
-    'isRecyclingMaterial',
-    // Namespaced versions (new simplified names)
-    'input_quantity',
-    'input_unit',
-    'output_quantity',
-    'output_unit',
-    'input_lifecycleStage',
-    'input_categoryCode',
-    'output_lifecycleStage',
-    'output_categoryCode',
-    // Namespaced versions (legacy double-prefixed names)
-    'input_inputLifecycleStage',
-    'input_inputCategoryCode',
-    'input_isReusedInput',
-    'input_isRecyclingMaterial',
-    'output_outputLifecycleStage',
-    'output_outputCategoryCode',
-    'output_isReusedInput',
-    'output_isRecyclingMaterial',
-  ])
+/**
+ * Resolve one side of an edge using the codec. New-format edges decode cleanly (quantity +
+ * labelled extras); when none are present, fall back to the legacy quantity/unit.
+ */
+function extractMaterialSide(
+  statement: UUStatementDTO,
+  side: 'in' | 'out',
+  legacy: { quantity: number; unit: string }
+): MaterialSide {
+  const props = decodeEdgeProperties(statement, side)
 
-  statement.properties?.forEach((property) => {
-    const key = property.key
-    const value = property.values?.[0]?.value
-
-    if (!value || !key) return
-
-    if (key.startsWith('input_') && !knownKeys.has(key)) {
-      // Remove "input_" prefix for display
-      const displayKey = key.substring(6)
-      inputCustomProperties[displayKey] = value
-    } else if (key.startsWith('output_') && !knownKeys.has(key)) {
-      // Remove "output_" prefix for display
-      const displayKey = key.substring(7)
-      outputCustomProperties[displayKey] = value
-    } else if (
-      !knownKeys.has(key) &&
-      !key.startsWith('input_') &&
-      !key.startsWith('output_')
-    ) {
-      // Legacy custom properties (not namespaced) - treat as input for backward compatibility
-      inputCustomProperties[key] = value
+  if (props.length === 0) {
+    const display = legacy.quantity
+      ? `${legacy.quantity} ${legacy.unit}`.trim()
+      : ''
+    return {
+      quantity: legacy.quantity,
+      unit: legacy.unit,
+      canonicalQuantity: legacy.quantity,
+      displayValue: display,
+      customProperties: {},
     }
-  })
+  }
 
-  return { input: inputCustomProperties, output: outputCustomProperties }
+  const qty = props.find((p) => p.isQuantity)
+  const parsed = qty ? parseQuantity(qty.values[0] ?? '') : null
+
+  const customProperties: Record<string, string> = {}
+  props
+    .filter((p) => !p.isQuantity)
+    .forEach((p) => {
+      customProperties[p.label || p.key] = p.values.filter(Boolean).join(', ')
+    })
+
+  return {
+    quantity: parsed?.value ?? 0,
+    unit: qty?.unit ?? parsed?.unit ?? '',
+    canonicalQuantity:
+      qty?.canonicalValue ?? parsed?.canonicalValue ?? parsed?.value ?? 0,
+    displayValue: qty?.values[0] ?? '',
+    quantityLabel: qty?.label,
+    customProperties,
+  }
 }
 
 function extractStringProperty(
