@@ -112,6 +112,12 @@ export const queryKeys = {
         includeDeleted,
       ] as const,
   },
+  processes: {
+    all: ['processes'] as const,
+    lists: () => [...queryKeys.processes.all, 'list'] as const,
+    detail: (processId: string) =>
+      [...queryKeys.processes.all, 'detail', processId] as const,
+  },
 
   // ─── Addresses ───────────────────────────────────────────
   addresses: {

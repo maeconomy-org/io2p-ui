@@ -9,7 +9,9 @@ import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 
 import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
-import { useStatements, usePreference } from '@/hooks'
+import { usePreference } from '@/hooks'
+import { useProcesses } from '@/hooks/api/use-processes'
+import type { ProcessModelInput } from '@/components/processes/sheets/process-create-sheet'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
 import {
   LoadingState,
@@ -117,44 +119,17 @@ const MaterialFlowPage = () => {
     }
   }, [allMaterials, allRelationships, selectedMaterialUuids])
 
-  // API hooks for mutations only
-  const { useCreateProcessFlow } = useStatements()
-  const createProcessFlowMutation = useCreateProcessFlow()
+  // Process create via the codec-backed adapter hook
+  const { useCreateProcess } = useProcesses()
+  const createProcessMutation = useCreateProcess()
 
   const handleProcessSave = useCallback(
-    async (newProcess: any) => {
+    async (model: ProcessModelInput) => {
       try {
         toast.loading(t('processes.form.createTitle'), {
           id: 'create-process-flow',
         })
-        await createProcessFlowMutation.mutateAsync({
-          processMetadata: {
-            processName: newProcess.name,
-            processType: newProcess.type,
-            quantity: 0,
-            unit: 'kg',
-            ...(newProcess.processMetadata || {}),
-          },
-          inputMaterials: newProcess.inputMaterials.map((input: any) => ({
-            uuid: input.object.uuid,
-            quantity: input.quantity,
-            unit: input.unit,
-            metadata: {
-              ...(input.metadata || {}),
-              ...(input.customProperties || {}), // Merge custom properties into metadata
-            },
-          })),
-          outputMaterials: newProcess.outputMaterials.map((output: any) => ({
-            uuid: output.object.uuid,
-            quantity: output.quantity,
-            unit: output.unit,
-            metadata: {
-              ...(output.metadata || {}),
-              ...(output.customProperties || {}), // Merge custom properties into metadata
-            },
-          })),
-        })
-
+        await createProcessMutation.mutateAsync(model)
         toast.success(t('processes.create'), {
           id: 'create-process-flow',
         })
@@ -166,7 +141,7 @@ const MaterialFlowPage = () => {
         })
       }
     },
-    [createProcessFlowMutation, t]
+    [createProcessMutation, t]
   )
 
   const handleRelationshipSelect = useCallback(
@@ -293,9 +268,9 @@ const MaterialFlowPage = () => {
             size="sm"
             className="flex-shrink-0"
             onClick={handleOpenProcessForm}
-            disabled={createProcessFlowMutation.isPending}
+            disabled={createProcessMutation.isPending}
           >
-            {createProcessFlowMutation.isPending ? (
+            {createProcessMutation.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -466,6 +441,7 @@ const MaterialFlowPage = () => {
         isOpen={isProcessFormOpen}
         onClose={handleCloseProcessForm}
         onSave={handleProcessSave}
+        isSaving={createProcessMutation.isPending}
       />
 
       {/* Relationship Details Sheet */}
