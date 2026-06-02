@@ -16,7 +16,11 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 const nextConfig = {
   output: 'standalone',
   serverExternalPackages: ['@react-pdf/renderer'],
-  productionBrowserSourceMaps: true,
+  // Source maps are emitted by the Sentry plugin (hidden-source-map, client +
+  // server) for upload, then deleted from the production image in the
+  // Dockerfile. We intentionally do NOT enable productionBrowserSourceMaps:
+  // it would duplicate the client maps the Sentry plugin already produces and
+  // serve them publicly.
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -123,8 +127,11 @@ const configuredNextConfig =
         org: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,
 
-        // Only upload source maps when auth token is provided (CI or local script)
-        authToken: process.env.SENTRY_AUTH_TOKEN,
+        // No authToken on purpose: the build injects debug IDs and emits hidden
+        // source maps but must NOT upload them. Uploading is owned solely by
+        // scripts/upload-sourcemaps.sh, which pushes a single debug-ID bundle to
+        // every Sentry project (iob-ui-*, iom-ui-*). Passing a token here would
+        // cause a duplicate upload to SENTRY_PROJECT on every local build.
 
         // Silent mode - no verbose logging during build
         silent: true,
