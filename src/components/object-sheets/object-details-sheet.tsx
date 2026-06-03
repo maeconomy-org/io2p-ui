@@ -47,7 +47,7 @@ import { PropertiesTab } from './tabs/properties-tab'
 import { RelationshipsTab } from './tabs/relationships-tab'
 import { AttachmentModal } from './components/attachment-modal'
 import { SheetDropzone } from './components/sheet-dropzone'
-import { isOversize } from './utils'
+import { isOversize, resolveFileContentType } from './utils'
 import { toast } from 'sonner'
 
 interface ObjectSheetProps {
@@ -273,7 +273,7 @@ function ObjectDetailsSheetInner({
           mode: 'upload',
           fileName: file.name,
           size: file.size,
-          mimeType: file.type,
+          mimeType: resolveFileContentType(file),
           blob: file,
         },
         objectUuid,
