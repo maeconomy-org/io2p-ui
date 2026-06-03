@@ -14,9 +14,15 @@ vi.mock('@/contexts/auth-context', () => ({
   useAuth: () => ({ userUUID: USER }),
 }))
 
+const cfg = vi.hoisted(() => ({ processDashboardEnabled: 'true' }))
+vi.mock('@/contexts', () => ({
+  useAppConfig: () => cfg,
+}))
+
 describe('PreferencesSettings', () => {
   beforeEach(() => {
     localStorage.clear()
+    cfg.processDashboardEnabled = 'true'
   })
 
   it('reflects the default properties view (detailed) on first render', () => {
@@ -64,5 +70,20 @@ describe('PreferencesSettings', () => {
     expect(screen.getByTestId('pref-objects')).toBeInTheDocument()
     expect(screen.getByTestId('pref-processes')).toBeInTheDocument()
     expect(screen.getByTestId('pref-properties')).toBeInTheDocument()
+  })
+
+  it('shows the dashboard process option when the flag is enabled', () => {
+    render(<PreferencesSettings />)
+    expect(screen.getByTestId('pref-processes-dashboard')).toBeInTheDocument()
+  })
+
+  it('hides the dashboard process option when PROCESS_DASHBOARD_ENABLED is off', () => {
+    cfg.processDashboardEnabled = 'false'
+    render(<PreferencesSettings />)
+    expect(
+      screen.queryByTestId('pref-processes-dashboard')
+    ).not.toBeInTheDocument()
+    // the other process views remain available
+    expect(screen.getByTestId('pref-processes-sankey')).toBeInTheDocument()
   })
 })

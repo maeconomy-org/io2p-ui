@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 
 import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
 import { usePreference } from '@/hooks'
+import { useAppConfig } from '@/contexts'
 import { useProcesses } from '@/hooks/api/use-processes'
 import { useSeedProcesses } from '@/components/processes/dev/use-seed-processes'
 import type { ProcessModelInput } from '@/components/processes/sheets/process-create-sheet'
@@ -101,7 +102,13 @@ const MaterialFlowPage = () => {
     useState<EnhancedMaterialRelationship | null>(null)
   const [isProcessFormOpen, setIsProcessFormOpen] = useState(false)
   const [isRelationshipSheetOpen, setIsRelationshipSheetOpen] = useState(false)
-  const [activeView, setActiveView] = usePreference('processView')
+  const [storedView, setActiveView] = usePreference('processView')
+  // Dashboard can be hidden via PROCESS_DASHBOARD_ENABLED. If it's off but the
+  // user's saved preference is 'dashboard', fall back to sankey for rendering
+  // without clobbering their stored choice (it returns if the flag is re-enabled).
+  const dashboardEnabled = useAppConfig().processDashboardEnabled === 'true'
+  const activeView =
+    storedView === 'dashboard' && !dashboardEnabled ? 'sankey' : storedView
   const [selectedMaterialUuids, setSelectedMaterialUuids] = useState<string[]>(
     []
   )
@@ -402,7 +409,11 @@ const MaterialFlowPage = () => {
               </Button>
             </div>
           )}
-          <ProcessViewSelector view={activeView} onChange={setActiveView} />
+          <ProcessViewSelector
+            view={activeView}
+            onChange={setActiveView}
+            excludedViews={dashboardEnabled ? undefined : ['dashboard']}
+          />
           <Button
             size="sm"
             className="flex-shrink-0"
