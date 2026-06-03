@@ -44,6 +44,7 @@ export function PreferencesSettings() {
   const [objectsView, setObjectsView] = usePreference('objectsView')
   const [processView, setProcessView] = usePreference('processView')
   const [propertiesView, setPropertiesView] = usePreference('propertiesView')
+  const [filesView, setFilesView] = usePreference('filesView')
 
   // Hide the Dashboard option (and coerce a stale saved preference) when the
   // processes dashboard is disabled via PROCESS_DASHBOARD_ENABLED.
@@ -95,6 +96,18 @@ export function PreferencesSettings() {
             testIdPrefix="pref-properties"
             options={[
               { value: 'detailed', label: tOpt('detailed'), icon: List },
+              { value: 'grid', label: tOpt('grid'), icon: LayoutGrid },
+            ]}
+          />
+        </Row>
+        <Row label={t('files')} testId="pref-files">
+          <SegmentedControl
+            ariaLabel={t('files')}
+            value={filesView}
+            onChange={setFilesView}
+            testIdPrefix="pref-files"
+            options={[
+              { value: 'list', label: tOpt('list'), icon: List },
               { value: 'grid', label: tOpt('grid'), icon: LayoutGrid },
             ]}
           />

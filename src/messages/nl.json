@@ -87,6 +87,7 @@
       "objects": "Objectenweergave",
       "processes": "Processenweergave",
       "properties": "Eigenschappenweergave",
+      "files": "Bestandenweergave",
       "options": {
         "table": "Tabel",
         "columns": "Kolommen",
@@ -94,6 +95,7 @@
         "sankey": "Sankey",
         "network": "Netwerk",
         "detailed": "Lijst",
+        "list": "Lijst",
         "grid": "Raster"
       }
     }
@@ -724,7 +726,9 @@
       "filePreview": "Bestandsvoorbeeld",
       "deleteTitle": "Bestand verwijderen",
       "deleteConfirm": "Weet u zeker dat u \"{name}\" wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
-      "noFiles": "Geen bestanden gevonden voor dit object"
+      "noFiles": "Geen bestanden gevonden voor dit object",
+      "listView": "Lijstweergave",
+      "gridView": "Rasterweergave"
     },
     "childrenPage": {
       "loadingParent": "Bovenliggend object laden...",

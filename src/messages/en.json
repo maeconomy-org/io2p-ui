@@ -87,6 +87,7 @@
       "objects": "Objects view",
       "processes": "Processes view",
       "properties": "Properties view",
+      "files": "Files view",
       "options": {
         "table": "Table",
         "columns": "Columns",
@@ -94,6 +95,7 @@
         "sankey": "Sankey",
         "network": "Network",
         "detailed": "List",
+        "list": "List",
         "grid": "Grid"
       }
     }
@@ -521,7 +523,9 @@
       "filePreview": "File Preview",
       "deleteTitle": "Delete File",
       "deleteConfirm": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
-      "noFiles": "No files found for this object"
+      "noFiles": "No files found for this object",
+      "listView": "List view",
+      "gridView": "Grid view"
     },
     "propertiesUpdated": "Properties updated successfully",
     "propertiesUpdateFailed": "Failed to update object properties",

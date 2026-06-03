@@ -19,11 +19,15 @@ export const PREFERENCES_VERSION = 'v1'
 /** Properties tab list/grid toggle — not part of the view-types config. */
 export type PropertiesViewType = 'detailed' | 'grid'
 
+/** Files tab list/grid toggle — not part of the view-types config. */
+export type FilesViewType = 'list' | 'grid'
+
 /** The value type stored under each preference key. */
 export interface ViewPreferenceValues {
   objectsView: ObjectViewType
   processView: ProcessViewType
   propertiesView: PropertiesViewType
+  filesView: FilesViewType
 }
 
 export type ViewPreferenceKey = keyof ViewPreferenceValues
@@ -51,5 +55,9 @@ export const VIEW_PREFERENCES: {
   propertiesView: {
     default: 'detailed',
     allowed: ['detailed', 'grid'],
+  },
+  filesView: {
+    default: 'list',
+    allowed: ['list', 'grid'],
   },
 }

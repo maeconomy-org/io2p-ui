@@ -65,11 +65,36 @@ describe('PreferencesSettings', () => {
     expect(blob.processView).toBe('sankey')
   })
 
-  it('renders a labelled row for each of the three preferences', () => {
+  it('reflects the default files view (list) on first render', () => {
+    render(<PreferencesSettings />)
+    expect(screen.getByTestId('pref-files-list')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    expect(screen.getByTestId('pref-files-grid')).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    )
+  })
+
+  it('persists the files view to the account blob when toggled', () => {
+    render(<PreferencesSettings />)
+    fireEvent.click(screen.getByTestId('pref-files-grid'))
+
+    expect(screen.getByTestId('pref-files-grid')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    const blob = JSON.parse(localStorage.getItem(keyFor(USER)) as string)
+    expect(blob.filesView).toBe('grid')
+  })
+
+  it('renders a labelled row for each of the four preferences', () => {
     render(<PreferencesSettings />)
     expect(screen.getByTestId('pref-objects')).toBeInTheDocument()
     expect(screen.getByTestId('pref-processes')).toBeInTheDocument()
     expect(screen.getByTestId('pref-properties')).toBeInTheDocument()
+    expect(screen.getByTestId('pref-files')).toBeInTheDocument()
   })
 
   it('shows the dashboard process option when the flag is enabled', () => {

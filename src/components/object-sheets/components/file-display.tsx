@@ -36,7 +36,7 @@ const AttachmentPreview = dynamic(
 
 import { isExternalFileReference } from '../utils'
 
-function isPreviewableFile(file: FileData): boolean {
+export function isPreviewableFile(file: FileData): boolean {
   return (
     detectPreviewKind(detectMimeType(file)) !== 'unsupported' &&
     !isExternalFileReference(file.fileReference)
@@ -85,7 +85,7 @@ function getFileTypeBadge(file: FileData): string {
 /**
  * Get display name - for references use label, for uploads use fileName
  */
-function getDisplayName(file: FileData): string {
+export function getDisplayName(file: FileData): string {
   const { fileName, label, fileReference } = file
 
   // Use the updated domain detection
@@ -105,7 +105,7 @@ function getDisplayName(file: FileData): string {
  * trigger the browser download through a blob URL. External references open
  * directly in a new tab.
  */
-async function handleFileOpen(
+export async function handleFileOpen(
   file: FileData,
   client: ReturnType<typeof useIomSdkClient>,
   onError: (error: unknown) => void
