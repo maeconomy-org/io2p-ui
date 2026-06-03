@@ -72,6 +72,9 @@ export const SankeyDiagram = memo(function SankeyDiagram({
       return {
         name: node.uuid,
         value: node.uuid,
+        // Pin the column when we have a real (integer) ALAP depth; omit for
+        // cycle nodes (fractional lifecycle fallback) so ECharts auto-places them.
+        ...(Number.isInteger(node.depth) ? { depth: node.depth } : {}),
         label: {
           show: true,
           formatter: node.name || node.uuid,
@@ -94,6 +97,14 @@ export const SankeyDiagram = memo(function SankeyDiagram({
         isRecyclingRelated,
       }
     })
+
+    // Clamp tiny links up to a minimum fraction of the largest, so a small flow
+    // (e.g. "1 pcs" next to "300 kg") stays wide enough to hover/click. Big links
+    // keep their true proportion; only sub-threshold ones are lifted.
+    const linkValueOf = (rel: EnhancedMaterialRelationship) =>
+      rel.inputMaterial?.canonicalQuantity ?? rel.inputMaterial?.quantity ?? 1
+    const maxLinkValue = Math.max(1, ...links.map(linkValueOf))
+    const minLinkValue = maxLinkValue * 0.04
 
     // Create enhanced links with metadata-driven styling and impact data
     const chartLinks = links.map((rel) => {
@@ -118,10 +129,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
       return {
         source: rel.subject.uuid,
         target: rel.object.uuid,
-        value:
-          rel.inputMaterial?.canonicalQuantity ??
-          rel.inputMaterial?.quantity ??
-          1,
+        value: Math.max(linkValueOf(rel), minLinkValue),
         lineStyle: {
           // Only override color for selected or special-category flows;
           // otherwise leave undefined so the series-level 'source' color mode applies
@@ -165,7 +173,9 @@ export const SankeyDiagram = memo(function SankeyDiagram({
           links: chartLinks,
           nodeWidth: 30,
           nodeGap: 15,
-          nodeAlign: 'left',
+          // Explicit per-node `depth` drives the columns; nodeAlign only affects
+          // any node left unpinned (a cycle node with no acyclic depth).
+          nodeAlign: 'right',
           orient: 'horizontal',
           layoutIterations: 64,
           emphasis: {
@@ -315,12 +325,15 @@ function computeEnhancedLayout(
   materials: EnhancedMaterialObject[],
   relationships: EnhancedMaterialRelationship[]
 ) {
-  // Assign stage levels based on lifecycle metadata
-  const nodes = materials.map((material) => ({
-    ...material,
-    layer: getStageFromLifecycle(material.lifecycleStage, material.type),
-    x: getStageFromLifecycle(material.lifecycleStage, material.type),
-  }))
+  // Column = the min-span topological depth computed by the data hook (so the chart
+  // matches the depth-window pager). Fall back to the lifecycle stage only for
+  // nodes with no acyclic depth (e.g. inside a cycle).
+  const nodes = materials.map((material) => {
+    const column =
+      material.depth ??
+      getStageFromLifecycle(material.lifecycleStage, material.type)
+    return { ...material, layer: column, x: column }
+  })
 
   // Separate flows by category
   const recyclingFlows: EnhancedMaterialRelationship[] = []

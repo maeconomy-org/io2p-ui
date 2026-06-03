@@ -13,9 +13,15 @@ import type {
 import {
   limitStatementDepth,
   limitStatementDepthBidirectional,
+  getMaxStatementDepth,
+  computeStatementDepths,
 } from '@/components/processes/utils'
-import { decodeEdgeProperties } from '@/components/processes/utils/process-codec'
+import {
+  decodeEdgeProperties,
+  decodeProcessProperties,
+} from '@/components/processes/utils/process-codec'
 import { parseQuantity } from '@/lib/units/parse-quantity'
+import { logger } from '@/lib'
 
 interface SankeyDiagramData {
   materials: EnhancedMaterialObject[]
@@ -23,6 +29,8 @@ interface SankeyDiagramData {
   isLoading: boolean
   error?: Error
   totalNodeCount: number
+  /** Number of topological levels in the full graph — drives the depth pager. */
+  totalLevels: number
 }
 
 interface SankeyLayoutData {
@@ -46,6 +54,7 @@ export function useSankeyDiagramData(
   objectUuid?: UUID,
   options?: {
     maxDepth?: number
+    minDepth?: number
     focusNode?: string
     focusNodeBidirectional?: string
   }
@@ -53,6 +62,7 @@ export function useSankeyDiagramData(
   const { useStatementsByPredicate, useObjectRelationships } = useStatements()
   const { useObjectsByUUIDs } = useObjects()
   const maxDepth = options?.maxDepth
+  const minDepth = options?.minDepth ?? 0
   const focusNode = options?.focusNode
   const focusNodeBidirectional = options?.focusNodeBidirectional
 
@@ -79,7 +89,8 @@ export function useSankeyDiagramData(
         : []
     }
 
-    if (!statements.length) return { kept: [] as UUID[], total: 0 }
+    if (!statements.length)
+      return { kept: [] as UUID[], total: 0, totalLevels: 0 }
 
     // Collect all unique UUIDs
     const allUuids = new Set<UUID>()
@@ -88,6 +99,9 @@ export function useSankeyDiagramData(
       allUuids.add(stmt.object)
     })
     const total = allUuids.size
+    // Full-graph depth (independent of the current window) so the pager knows
+    // how many slices exist. Levels = max 0-based depth + 1.
+    const totalLevels = getMaxStatementDepth(statements) + 1
 
     // Bidirectional focus takes priority: show 1 level upstream + downstream from a node
     if (focusNodeBidirectional) {
@@ -96,26 +110,33 @@ export function useSankeyDiagramData(
         1,
         focusNodeBidirectional
       )
-      return { kept: Array.from(keptSet) as UUID[], total }
+      return { kept: Array.from(keptSet) as UUID[], total, totalLevels }
     }
 
-    // If maxDepth is set, only include UUIDs within the depth limit
+    // If maxDepth is set, only include UUIDs inside the window [minDepth, +maxDepth)
     if (maxDepth !== undefined) {
-      const keptSet = limitStatementDepth(statements, maxDepth, focusNode)
-      return { kept: Array.from(keptSet) as UUID[], total }
+      const keptSet = limitStatementDepth(
+        statements,
+        maxDepth,
+        focusNode,
+        minDepth
+      )
+      return { kept: Array.from(keptSet) as UUID[], total, totalLevels }
     }
 
-    return { kept: Array.from(allUuids) as UUID[], total }
+    return { kept: Array.from(allUuids) as UUID[], total, totalLevels }
   }, [
     inputStatementsQuery.data,
     objectUuid,
     maxDepth,
+    minDepth,
     focusNode,
     focusNodeBidirectional,
   ])
 
   const participatingUUIDs = uuidResult.kept
   const totalNodeCount = uuidResult.total
+  const totalLevels = uuidResult.totalLevels
 
   // Fetch participating objects
   const objectsQuery = useObjectsByUUIDs(participatingUUIDs, {
@@ -165,6 +186,7 @@ export function useSankeyDiagramData(
     layoutData,
     isLoading,
     totalNodeCount,
+    totalLevels,
     error: inputStatementsQuery.error || objectsQuery.error || undefined,
   }
 }
@@ -182,6 +204,10 @@ function processStatementsWithMetadata(
 } {
   // Create object lookup map
   const objectMap = new Map(objects.map((obj) => [obj.uuid, obj]))
+
+  // ALAP column per node, computed over the FULL graph so columns stay stable as
+  // the user pages depth slices (and so the chart matches the fetch window).
+  const nodeDepths = computeStatementDepths(statements)
 
   // Analyze graph structure for material roles (same as before)
   const allSubjects = new Set(statements.map((s) => s.subject))
@@ -279,6 +305,7 @@ function processStatementsWithMetadata(
         domainCategoryCode,
         sourceBuildingUuid,
         targetBuildingUuid,
+        depth: nodeDepths.get(obj.uuid),
       }
     })
 
@@ -290,7 +317,10 @@ function processStatementsWithMetadata(
     const objectObj = objectMap.get(statement.object)
 
     if (!subjectObj || !objectObj) {
-      console.warn('Skipping relationship with missing objects:', {
+      // Expected under depth-limiting: an edge crossing the visible slice's
+      // boundary points to a node we intentionally did not fetch, so we drop it.
+      // Debug-level (not warn) — this is normal, not an error.
+      logger.debug('Skipping boundary relationship (object not in window)', {
         subject: statement.subject,
         object: statement.object,
       })
@@ -349,7 +379,9 @@ function processStatementsWithMetadata(
       statement,
       'qualityChangeCode'
     ) as QualityChangeCode
-    const notes = getPropertyValue(statement, 'notes')
+    const notes =
+      getPropertyValue(statement, 'notes') ||
+      getPropertyValue(statement, 'processDescription')
 
     // Extract input and output material metadata (try new simplified names first, then legacy)
     const inputLifecycleStage =
@@ -392,6 +424,12 @@ function processStatementsWithMetadata(
         qualityChangeCode,
         notes,
         customProperties: inSide.customProperties,
+        processProperties: Object.fromEntries(
+          decodeProcessProperties(statement).map((p) => [
+            p.label || p.key,
+            p.values.filter(Boolean).join(', '),
+          ])
+        ),
         // Separated input/output data
         inputMaterial: {
           quantity: inSide.quantity,
@@ -417,9 +455,21 @@ function processStatementsWithMetadata(
     }
   })
 
+  const relationships = Array.from(relationshipMap.values())
+
+  // Drop orphan nodes: a node kept by depth-limiting whose only edges point to
+  // excluded (deep) nodes would otherwise float with no visible flow. Show only
+  // materials that still participate in a surviving relationship.
+  const connectedUuids = new Set<string>()
+  relationships.forEach((rel) => {
+    connectedUuids.add(rel.subject.uuid)
+    connectedUuids.add(rel.object.uuid)
+  })
+  const connectedMaterials = materials.filter((m) => connectedUuids.has(m.uuid))
+
   return {
-    materials,
-    relationships: Array.from(relationshipMap.values()),
+    materials: connectedMaterials,
+    relationships,
   }
 }
 

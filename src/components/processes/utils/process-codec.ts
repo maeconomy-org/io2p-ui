@@ -264,6 +264,13 @@ export function decodeEdgeProperties(
   )
 }
 
+/** Decode the process-level (plain) properties from an edge — for detail display. */
+export function decodeProcessProperties(
+  edge: UUStatementDTO
+): ProcessProperty[] {
+  return decodeProcessLevelProps(edge.properties ?? [])
+}
+
 export interface EdgeQuantity {
   /** value in the dimension's canonical unit (from #canon), or null if none */
   canonical: number | null

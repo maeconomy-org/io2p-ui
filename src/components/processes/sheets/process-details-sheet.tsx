@@ -217,6 +217,34 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
               </div>
             </div>
 
+            {/* Process Properties (dynamic) */}
+            {enhanced?.processProperties &&
+              Object.keys(enhanced.processProperties).length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      {t('processProperties')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {Object.entries(enhanced.processProperties).map(
+                      ([key, value]) => (
+                        <div
+                          key={key}
+                          className="flex items-start justify-between gap-4 text-sm"
+                        >
+                          <span className="text-muted-foreground">{key}</span>
+                          <span className="font-medium text-right break-words">
+                            {String(value)}
+                          </span>
+                        </div>
+                      )
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
             {/* Impact Metrics */}
             {hasImpactData && (
               <div className="space-y-3">
@@ -401,18 +429,18 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
                     {enhanced?.inputMaterial?.quantity !== undefined && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('quantity')}
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right break-words">
                           {enhanced.inputMaterial.quantity.toLocaleString()}{' '}
                           {enhanced.inputMaterial.unit || ''}
                         </span>
                       </div>
                     )}
                     {enhanced?.inputMaterial?.lifecycleStage && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('lifecycle')}
                         </span>
@@ -425,11 +453,11 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                       </div>
                     )}
                     {enhanced?.inputMaterial?.categoryCode && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('category')}
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right break-words">
                           {enhanced.inputMaterial.categoryCode}
                         </span>
                       </div>
@@ -451,12 +479,12 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                           ).map(([key, value]) => (
                             <div
                               key={key}
-                              className="flex justify-between items-center text-sm"
+                              className="flex items-start justify-between gap-4 text-sm"
                             >
                               <span className="text-muted-foreground">
                                 {key}
                               </span>
-                              <span className="font-medium">
+                              <span className="font-medium text-right break-words">
                                 {String(value)}
                               </span>
                             </div>
@@ -478,18 +506,18 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
                     {enhanced?.outputMaterial?.quantity !== undefined && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('quantity')}
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right break-words">
                           {enhanced.outputMaterial.quantity.toLocaleString()}{' '}
                           {enhanced.outputMaterial.unit || ''}
                         </span>
                       </div>
                     )}
                     {enhanced?.outputMaterial?.lifecycleStage && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('lifecycle')}
                         </span>
@@ -502,11 +530,11 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                       </div>
                     )}
                     {enhanced?.outputMaterial?.categoryCode && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('category')}
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right break-words">
                           {enhanced.outputMaterial.categoryCode}
                         </span>
                       </div>
@@ -528,12 +556,12 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                           ).map(([key, value]) => (
                             <div
                               key={key}
-                              className="flex justify-between items-center text-sm"
+                              className="flex items-start justify-between gap-4 text-sm"
                             >
                               <span className="text-muted-foreground">
                                 {key}
                               </span>
-                              <span className="font-medium">
+                              <span className="font-medium text-right break-words">
                                 {String(value)}
                               </span>
                             </div>

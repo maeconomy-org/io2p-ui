@@ -113,6 +113,13 @@ export interface EnhancedMaterialObject {
   // Existing fields
   category?: string
   color?: string
+
+  /**
+   * Min-span topological column (0-based), computed once over the full graph so the
+   * chart and the depth-window pager agree on each node's level. Undefined for
+   * nodes in a cycle (no acyclic depth).
+   */
+  depth?: number
 }
 
 /**
@@ -157,6 +164,9 @@ export interface EnhancedMaterialRelationship {
 
   // LEGACY: custom properties from material metadata (for backward compatibility)
   customProperties?: Record<string, string>
+
+  // Process-level dynamic properties (label -> value), e.g. Category, Method, Emissions
+  processProperties?: Record<string, string>
 
   // NEW: Separated input/output material data
   inputMaterial?: MaterialData

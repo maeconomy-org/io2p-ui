@@ -813,6 +813,11 @@
     "clearAll": "Clear All",
     "depthLimited": "3 Levels",
     "depthFull": "Full Depth",
+    "depthWindow": {
+      "label": "Levels {from}–{to} of {total}",
+      "prev": "Previous levels",
+      "next": "Next levels"
+    },
     "drillDown": {
       "root": "Root",
       "reset": "Reset View"
@@ -1518,6 +1523,7 @@
     "quality": "Quality",
     "qualityChange": "Quality change",
     "unchanged": "Unchanged",
+    "processProperties": "Process Properties",
     "inputMaterialDetails": "Input Material Details",
     "outputMaterialDetails": "Output Material Details",
     "quantity": "Quantity",

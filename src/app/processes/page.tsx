@@ -1,8 +1,17 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { PlusCircle, Loader2, Filter, Layers, Focus, X } from 'lucide-react'
+import {
+  PlusCircle,
+  Loader2,
+  Filter,
+  Layers,
+  Focus,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import type { UUID } from 'iom-sdk'
 import dynamic from 'next/dynamic'
@@ -11,6 +20,7 @@ import { toast } from 'sonner'
 import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
 import { usePreference } from '@/hooks'
 import { useProcesses } from '@/hooks/api/use-processes'
+import { useSeedProcesses } from '@/components/processes/dev/use-seed-processes'
 import type { ProcessModelInput } from '@/components/processes/sheets/process-create-sheet'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
 import {
@@ -25,6 +35,16 @@ import {
 } from '@/components/processes'
 
 import { logger } from '@/lib'
+
+// How many topological levels a single depth slice shows.
+const DEPTH_WINDOW_SIZE = 3
+
+// The pager advances by size − 1, so consecutive slices OVERLAP by one level. That
+// shared level is the handoff: it's the right edge of one slice and the left edge
+// of the next, so a flow crossing the border stays traceable (Concrete→Wall on one
+// page, Wall→Floor on the next). Stepping by the full size would drop those edges
+// into the gap between pages.
+const DEPTH_WINDOW_STEP = DEPTH_WINDOW_SIZE - 1
 
 // Simple loading placeholder for dynamic imports
 const DiagramLoader = () => (
@@ -56,6 +76,27 @@ const MaterialFlowPage = () => {
   const router = useRouter()
   const objectUuid = searchParams.get('objectUuid')
 
+  // Hidden helper: /processes?seedProcesses=1 reveals a minimal footer link to seed
+  // demo processes from templates (available in all environments, but undiscoverable
+  // without the query param).
+  const showSeed = searchParams.get('seedProcesses') === '1'
+  const { seed, isSeeding } = useSeedProcesses()
+  const handleSeed = useCallback(async () => {
+    try {
+      const { created, skipped, unresolved } = await seed()
+      const extra = [
+        skipped ? `${skipped} skipped` : '',
+        unresolved.length ? `unresolved: ${unresolved.join(', ')}` : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+      toast.success(`Seeded ${created} processes${extra ? ` (${extra})` : ''}`)
+    } catch (error) {
+      logger.error('Seed failed', { error })
+      toast.error('Seed failed — see console')
+    }
+  }, [seed])
+
   const [selectedRelationship, setSelectedRelationship] =
     useState<EnhancedMaterialRelationship | null>(null)
   const [isProcessFormOpen, setIsProcessFormOpen] = useState(false)
@@ -65,6 +106,17 @@ const MaterialFlowPage = () => {
     []
   )
   const [isDepthLimited, setIsDepthLimited] = useState(true)
+
+  // Depth pager: which slice of topological levels is visible. 0 = levels 1–3,
+  // DEPTH_WINDOW_SIZE = levels 4–6, etc. Lets users walk a huge chain a slice at a
+  // time instead of "first 3 levels or all of it".
+  const [depthWindowStart, setDepthWindowStart] = useState(0)
+
+  // The object filter changes which graph we're looking at, so its level count can
+  // change too — snap back to the first slice to avoid landing past the new end.
+  useEffect(() => {
+    setDepthWindowStart(0)
+  }, [objectUuid])
 
   // Node focus state: click a node to show its inputs & outputs (bidirectional 3-level fetch)
   const [focusedNode, setFocusedNode] = useState<{
@@ -80,13 +132,22 @@ const MaterialFlowPage = () => {
   // When depth-limited, the hook only fetches objects within 3 topological levels,
   // avoiding unnecessary API calls for deep nodes in large graphs.
   // focusNode enables drill-down: BFS starts from that node instead of roots.
+  // The depth window is a Sankey-only concept: it's a left-to-right topological
+  // slice, which only makes sense in the layered Sankey layout. Network is
+  // force-directed and shows the WHOLE graph (cycles included) — that's its job, so
+  // it never windows. Focus still takes over on either view (its own bidirectional
+  // fetch), and Full mode shows everything.
+  const isWindowed = activeView === 'sankey' && isDepthLimited && !focusedNode
+
   const {
     materials: allMaterials,
     relationships: allRelationships,
     isLoading,
     totalNodeCount,
+    totalLevels,
   } = useSankeyDiagramData(objectUuid as UUID | undefined, {
-    maxDepth: isDepthLimited && !focusedNode ? 3 : undefined,
+    maxDepth: isWindowed ? DEPTH_WINDOW_SIZE : undefined,
+    minDepth: isWindowed ? depthWindowStart : undefined,
     focusNodeBidirectional: focusedNode?.uuid,
   })
 
@@ -94,6 +155,35 @@ const MaterialFlowPage = () => {
   const truncatedCount = isDepthLimited
     ? Math.max(0, totalNodeCount - allMaterials.length)
     : 0
+
+  // Depth pager bounds. Next is available while deeper levels remain unshown; the
+  // last slice simply runs to the final level (it may be shorter than a full slice).
+  // Stepping by DEPTH_WINDOW_STEP keeps a one-level overlap between adjacent slices.
+  const showDepthPager = isWindowed && totalLevels > DEPTH_WINDOW_SIZE
+  const canDepthPrev = showDepthPager && depthWindowStart > 0
+  const canDepthNext =
+    showDepthPager && depthWindowStart + DEPTH_WINDOW_SIZE < totalLevels
+  const windowFrom = depthWindowStart + 1
+  const windowTo = Math.min(depthWindowStart + DEPTH_WINDOW_SIZE, totalLevels)
+
+  // Center-button label doubles as the slice readout: the level range when there's
+  // something to page through, otherwise the plain Limited/Full state.
+  const depthCenterLabel = !isDepthLimited
+    ? t('processes.depthFull')
+    : showDepthPager
+      ? t('processes.depthWindow.label', {
+          from: windowFrom,
+          to: windowTo,
+          total: totalLevels,
+        })
+      : t('processes.depthLimited')
+
+  const handleDepthPrev = useCallback(() => {
+    setDepthWindowStart((s) => Math.max(0, s - DEPTH_WINDOW_STEP))
+  }, [])
+  const handleDepthNext = useCallback(() => {
+    setDepthWindowStart((s) => s + DEPTH_WINDOW_STEP)
+  }, [])
 
   // Filter data based on selected materials
   const { materials, relationships } = useMemo(() => {
@@ -243,26 +333,57 @@ const MaterialFlowPage = () => {
             placeholder={t('processes.filterObjects')}
             maxSelections={10}
           />
-          {/* Depth Limit Toggle */}
-          <Button
-            variant={isDepthLimited ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setIsDepthLimited(!isDepthLimited)}
-            className="flex-shrink-0 gap-1.5"
-          >
-            <Layers className="h-4 w-4" />
-            {isDepthLimited
-              ? t('processes.depthLimited')
-              : t('processes.depthFull')}
-            {isDepthLimited && truncatedCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="ml-1 h-5 px-1.5 text-[10px]"
+          {/* Depth control: one segmented button. The center toggles Limited(3)/Full
+              and doubles as the slice readout; the flanking arrows page through the
+              depth slices and only light up while limited and more slices exist.
+              Sankey-only — Network always shows the full graph. */}
+          {activeView === 'sankey' && (
+            <div className="inline-flex flex-shrink-0 items-center overflow-hidden rounded-md border">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-none"
+                onClick={handleDepthPrev}
+                disabled={!canDepthPrev}
+                aria-label={t('processes.depthWindow.prev')}
               >
-                +{truncatedCount}
-              </Badge>
-            )}
-          </Button>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={isDepthLimited ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => {
+                  setIsDepthLimited((prev) => !prev)
+                  setDepthWindowStart(0)
+                }}
+                className="h-8 min-w-[8.5rem] justify-center gap-1.5 rounded-none border-x tabular-nums"
+              >
+                <Layers className="h-4 w-4" />
+                {depthCenterLabel}
+                {isDepthLimited && truncatedCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 h-5 px-1.5 text-[10px]"
+                  >
+                    +{truncatedCount}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-none"
+                onClick={handleDepthNext}
+                disabled={!canDepthNext}
+                aria-label={t('processes.depthWindow.next')}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <ProcessViewSelector view={activeView} onChange={setActiveView} />
           <Button
             size="sm"
@@ -450,6 +571,20 @@ const MaterialFlowPage = () => {
         isOpen={isRelationshipSheetOpen}
         onClose={handleCloseRelationshipSheet}
       />
+
+      {/* Hidden seed helper — only when ?seedProcesses=1 (any env). Minimal footer text. */}
+      {showSeed && (
+        <div className="mt-8 border-t pt-3 text-center">
+          <button
+            type="button"
+            onClick={handleSeed}
+            disabled={isSeeding}
+            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+          >
+            {isSeeding ? 'Seeding…' : 'Seed demo data'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

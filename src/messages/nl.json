@@ -813,6 +813,11 @@
     "clearAll": "Alles wissen",
     "depthLimited": "3 Niveaus",
     "depthFull": "Volledige diepte",
+    "depthWindow": {
+      "label": "Niveaus {from}–{to} van {total}",
+      "prev": "Vorige niveaus",
+      "next": "Volgende niveaus"
+    },
     "drillDown": {
       "root": "Basis",
       "reset": "Weergave resetten"
@@ -1519,6 +1524,7 @@
     "quality": "Kwaliteit",
     "qualityChange": "Kwaliteitsverandering",
     "unchanged": "Ongewijzigd",
+    "processProperties": "Proceseigenschappen",
     "inputMaterialDetails": "Invoermateriaal details",
     "outputMaterialDetails": "Uitvoermateriaal details",
     "quantity": "Hoeveelheid",
