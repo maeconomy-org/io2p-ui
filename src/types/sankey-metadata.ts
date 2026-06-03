@@ -105,7 +105,6 @@ export interface EnhancedMaterialObject {
   lifecycleStage?: LifecycleStage
   isRecyclingMaterial?: boolean
   isReusedComponent?: boolean
-  reuseCycleIndex?: number // 0 = first life, 1 = second life, etc.
   domainCategoryCode?: string
   sourceBuildingUuid?: string
   targetBuildingUuid?: string

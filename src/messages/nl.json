@@ -818,10 +818,6 @@
       "prev": "Vorige niveaus",
       "next": "Volgende niveaus"
     },
-    "drillDown": {
-      "root": "Basis",
-      "reset": "Weergave resetten"
-    },
     "nodeFocus": {
       "viewing": "Gefocust op",
       "description": "Toont directe invoer & uitvoer",
@@ -830,15 +826,12 @@
     "object": "Object",
     "inputs": "Invoer",
     "outputs": "Uitvoer",
-    "flowSummary": "Overzicht procesflow",
     "relationships": "Dit maakt {count} materiaalrelaties aan",
     "form": {
-      "editTitle": "Procesflow bewerken",
       "createTitle": "Procesflow aanmaken",
       "subtitle": "Een proces heeft een naam plus vrije eigenschappen. In- en uitvoer zijn objecten; markeer een eigenschap als hoeveelheid voor de stroomdiagrammen.",
       "nameLabel": "Naam",
       "namePlaceholder": "bijv. Beton recyclen",
-      "typeLabel": "Type (optioneel)",
       "descriptionLabel": "Omschrijving (optioneel)",
       "properties": "Eigenschappen",
       "addProperty": "Eigenschap toevoegen",
@@ -853,62 +846,13 @@
       "searchHint": "Typ minstens 2 tekens om te zoeken.",
       "selectedObject": "Geselecteerd object",
       "removeMaterial": "Verwijderen",
-      "isQuantity": "Hoeveelheid (voor stroomdiagrammen)",
       "quantityField": "Hoeveelheidsveld:",
       "quantityNone": "Geen",
       "unnamedProperty": "Eigenschap {n}",
       "quantityWarning": "{count, plural, one {# hoeveelheid heeft geen herkenbaar getal} other {# hoeveelheden hebben geen herkenbaar getal}} — opgeslagen zoals ingevoerd.",
       "attachments": "Bijlagen",
       "attachmentsComingSoon": "Bestandsbijlagen voor processen komen binnenkort.",
-      "createButton": "Proces aanmaken",
-      "processName": "Procesnaam",
-      "processNamePlaceholder": "bijv. Betonproductie, Staalrecycling",
-      "processCategory": "Procescategorie",
-      "flowType": "Flowtype",
-      "qualityChange": "Kwaliteitsverandering",
-      "selectProcessCategory": "Selecteer procescategorie",
-      "selectFlowType": "Selecteer flowtype",
-      "selectQualityChange": "Selecteer kwaliteitsverandering",
-      "emissions": "Koolstofemissies (Optioneel)",
-      "materialLoss": "Materiaalverlies % (Optioneel)",
-      "notes": "Procesnotities (Optioneel)",
-      "notesPlaceholder": "Extra notities over dit proces...",
-      "inputMaterials": "Invoermaterialen",
-      "outputMaterials": "Uitvoermaterialen",
-      "add": "Toevoegen",
-      "edit": "Bewerken",
-      "empty": "Klik op \"Toevoegen\" om te starten",
-      "duplicateTitle": "Dubbele materialen gedetecteerd",
-      "duplicateHint": "Verwijder dubbele materialen of gebruik verschillende materialen voor invoer en uitvoer.",
-      "cancel": "Annuleren",
-      "create": "Proces aanmaken",
-      "update": "Proces bijwerken",
-      "process": "Proces"
-    },
-    "errors": {
-      "nameRequired": "Procesnaam is verplicht",
-      "inputsRequired": "Minstens één invoermateriaal is verplicht",
-      "outputsRequired": "Minstens één uitvoermateriaal is verplicht",
-      "duplicate": "De volgende materialen kunnen niet zowel invoer als uitvoer zijn: {materials}"
-    },
-    "types": {
-      "processing": "Verwerking",
-      "assembly": "Assemblage",
-      "recycling": "Recycling",
-      "disposal": "Afvoer"
-    },
-    "flowCategories": {
-      "STANDARD": "Standaardflow",
-      "RECYCLING": "Recycling",
-      "REUSE": "Hergebruik",
-      "DOWNCYCLING": "Downcycling",
-      "CIRCULAR": "Circulaire flow",
-      "WASTE_FLOW": "Afvalflow"
-    },
-    "qualityChanges": {
-      "UPCYCLED": "Geüpcycled (Verbeterde kwaliteit)",
-      "SAME": "Zelfde kwaliteit",
-      "DOWNCYCLED": "Gedegradeerd (Verminderde kwaliteit)"
+      "createButton": "Proces aanmaken"
     },
     "dashboard": {
       "noDataTitle": "Geen procesgegevens",

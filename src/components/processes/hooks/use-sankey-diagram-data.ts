@@ -33,19 +33,6 @@ interface SankeyDiagramData {
   totalLevels: number
 }
 
-interface SankeyLayoutData {
-  nodes: Array<EnhancedMaterialObject & { layer: number; x: number }>
-  links: EnhancedMaterialRelationship[]
-  recyclingFlows: EnhancedMaterialRelationship[]
-  stats: {
-    totalFlows: number
-    recyclingFlows: number
-    recyclingRate: number
-    totalQuantity: number
-    recyclingQuantity: number
-  }
-}
-
 /**
  * New unified hook for Sankey diagram data that reads metadata from statement properties
  * Replaces the old chain of useSankeyData + useMaterialFlowProcessing + createLayeredLayout
@@ -57,7 +44,7 @@ export function useSankeyDiagramData(
     minDepth?: number
     focusNodeBidirectional?: string
   }
-): SankeyDiagramData & { layoutData: SankeyLayoutData | null } {
+): SankeyDiagramData {
   const { useStatementsByPredicate, useObjectRelationships } = useStatements()
   const { useObjectsByUUIDs } = useObjects()
   const maxDepth = options?.maxDepth
@@ -161,21 +148,11 @@ export function useSankeyDiagramData(
     return result
   }, [inputStatementsQuery.data, objectsQuery.data, objectUuid])
 
-  // Compute layout data
-  const layoutData = useMemo(() => {
-    if (!processedData.materials.length) return null
-    return computeMetadataDrivenLayout(
-      processedData.materials,
-      processedData.relationships
-    )
-  }, [processedData])
-
   const isLoading = inputStatementsQuery.isLoading || objectsQuery.isLoading
 
   return {
     materials: processedData.materials,
     relationships: processedData.relationships,
-    layoutData,
     isLoading,
     totalNodeCount,
     totalLevels,
@@ -541,107 +518,6 @@ function getLifecycleStageColor(
           return '#CFC0E8' // Lavender
         default:
           return '#B4CDE3' // Steel blue
-      }
-  }
-}
-
-/**
- * Compute metadata-driven layout (replaces createLayeredLayout)
- */
-function computeMetadataDrivenLayout(
-  materials: EnhancedMaterialObject[],
-  relationships: EnhancedMaterialRelationship[]
-): SankeyLayoutData {
-  // Assign stage levels based on lifecycle metadata instead of names
-  const nodes = materials.map((material) => ({
-    ...material,
-    layer: getStageFromLifecycle(material.lifecycleStage, material.type),
-    x: getStageFromLifecycle(material.lifecycleStage, material.type),
-  }))
-
-  // Separate recycling/circular flows from standard flows
-  const recyclingFlows: EnhancedMaterialRelationship[] = []
-  const standardFlows: EnhancedMaterialRelationship[] = []
-
-  relationships.forEach((rel) => {
-    const isRecyclingFlow =
-      rel.flowCategory === 'RECYCLING' ||
-      rel.flowCategory === 'CIRCULAR' ||
-      rel.flowCategory === 'REUSE' ||
-      rel.flowCategory === 'DOWNCYCLING' ||
-      rel.isCircular
-
-    if (isRecyclingFlow) {
-      recyclingFlows.push(rel)
-    }
-    standardFlows.push(rel) // Include recycling flows in main diagram too
-  })
-
-  // Calculate statistics
-  const totalQuantity = relationships.reduce(
-    (sum, rel) => sum + (rel.quantity || 0),
-    0
-  )
-  const recyclingQuantity = recyclingFlows.reduce(
-    (sum, rel) => sum + (rel.quantity || 0),
-    0
-  )
-  const recyclingRate =
-    totalQuantity > 0
-      ? Math.round((recyclingQuantity / totalQuantity) * 100)
-      : 0
-
-  return {
-    nodes,
-    links: standardFlows,
-    recyclingFlows,
-    stats: {
-      totalFlows: relationships.length,
-      recyclingFlows: recyclingFlows.length,
-      recyclingRate,
-      totalQuantity,
-      recyclingQuantity,
-    },
-  }
-}
-
-/**
- * Get stage number from lifecycle metadata instead of name-based heuristics
- */
-function getStageFromLifecycle(
-  stage: LifecycleStage | undefined,
-  fallbackType: string
-): number {
-  switch (stage) {
-    case 'PRIMARY_INPUT':
-      return 0.0
-    case 'SECONDARY_INPUT':
-      return 0.2
-    case 'REUSED_COMPONENT':
-      return 0.8
-    case 'PROCESSING':
-      return 1.5
-    case 'COMPONENT':
-      return 3.0
-    case 'PRODUCT':
-      return 3.5
-    case 'USE_PHASE':
-      return 3.7
-    case 'WASTE':
-      return 4.2
-    case 'DISPOSAL':
-      return 4.8
-    default:
-      // Fallback based on graph role
-      switch (fallbackType) {
-        case 'input':
-          return 0.0
-        case 'intermediate':
-          return 2.0
-        case 'output':
-          return 3.5
-        default:
-          return 2.0
       }
   }
 }
