@@ -81,14 +81,6 @@ const EMPTY_FORM: ProcessFormShape = {
   outputs: [],
 }
 
-const newQuantityProperty = (): RHFMaterialProperty => ({
-  key: 'quantity',
-  label: 'Quantity',
-  values: [{ value: '', files: [] }],
-  files: [],
-  isQuantity: true,
-})
-
 const newPlainProperty = (isQuantity = false): RHFMaterialProperty => ({
   key: '',
   label: '',
@@ -216,7 +208,7 @@ export function ProcessCreateSheet({
                         inputs.append({
                           objectUuid: obj.uuid,
                           objectName: obj.name,
-                          properties: [newQuantityProperty()],
+                          properties: [],
                         })
                       }
                       onRemove={(i) => inputs.remove(i)}
@@ -230,7 +222,7 @@ export function ProcessCreateSheet({
                         outputs.append({
                           objectUuid: obj.uuid,
                           objectName: obj.name,
-                          properties: [newQuantityProperty()],
+                          properties: [],
                         })
                       }
                       onRemove={(i) => outputs.remove(i)}
@@ -251,8 +243,9 @@ export function ProcessCreateSheet({
             </ScrollArea>
 
             <SheetFooter className="mt-auto gap-2 border-t pt-4">
-              <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <div className="flex w-full flex-col-reverse items-center justify-between gap-2 sm:flex-row">
                 <Button
+                  className="w-full"
                   type="button"
                   variant="outline"
                   onClick={onClose}
@@ -260,7 +253,7 @@ export function ProcessCreateSheet({
                 >
                   {t('common.cancel')}
                 </Button>
-                <Button type="submit" disabled={isSaving}>
+                <Button className="w-full" type="submit" disabled={isSaving}>
                   {isSaving && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
