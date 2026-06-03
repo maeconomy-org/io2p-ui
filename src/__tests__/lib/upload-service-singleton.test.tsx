@@ -1,12 +1,14 @@
 import { renderHook } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock the SDK client provider — the hook reads from this context. By
+// Mock the SDK client + auth providers — the hook reads from both contexts. By
 // re-importing the hook fresh in each test (with vi.resetModules) we also
 // reset the module-level singleton state inside upload-service.ts.
 let mockClient: any
+let mockUserUUID: string | undefined
 vi.mock('@/contexts', () => ({
   useIomSdkClient: () => mockClient,
+  useAuth: () => ({ userUUID: mockUserUUID }),
 }))
 
 // Mock the logger so test output stays clean.
@@ -25,9 +27,10 @@ function makeClient(token: string | null) {
 describe('useUploadService — singleton keying', () => {
   beforeEach(() => {
     vi.resetModules()
+    mockUserUUID = 'user-1'
   })
 
-  it('returns the same service across re-renders when (client, token) is unchanged', async () => {
+  it('returns the same service across re-renders when (client, identity) is unchanged', async () => {
     mockClient = makeClient('jwt-A')
     const { useUploadService } = await import('@/lib/upload-service')
 
@@ -39,16 +42,34 @@ describe('useUploadService — singleton keying', () => {
     expect(second).toBe(first)
   })
 
-  it('rebuilds the service when the token changes (re-auth on same client)', async () => {
+  it('preserves the service across a background token refresh (same user, new JWT)', async () => {
     mockClient = makeClient('jwt-A')
     const { useUploadService } = await import('@/lib/upload-service')
 
     const { result, rerender } = renderHook(() => useUploadService())
     const before = result.current
 
-    // Same client object, new JWT — must NOT reuse the old service so any
-    // in-flight queue tied to the previous session is dropped.
+    // The SDK auto-refreshes the access token while keeping the same user.
+    // The service MUST survive so any in-flight upload keeps notifying the UI
+    // instead of being orphaned on the old instance (the bug that left the
+    // upload-center stuck at "uploading 0%").
     mockClient.getToken = () => 'jwt-B'
+    rerender()
+    const after = result.current
+
+    expect(after).toBe(before)
+  })
+
+  it('rebuilds the service on identity change (logout / user switch)', async () => {
+    mockClient = makeClient('jwt-A')
+    const { useUploadService } = await import('@/lib/upload-service')
+
+    const { result, rerender } = renderHook(() => useUploadService())
+    const before = result.current
+
+    // Different user now — must NOT reuse the old service so the previous
+    // session's queue is dropped.
+    mockUserUUID = 'user-2'
     rerender()
     const after = result.current
 
@@ -62,7 +83,7 @@ describe('useUploadService — singleton keying', () => {
     const { result, rerender } = renderHook(() => useUploadService())
     const before = result.current
 
-    mockClient = makeClient('jwt-A') // new identity, same token value
+    mockClient = makeClient('jwt-A') // new client instance, same identity
     rerender()
     const after = result.current
 

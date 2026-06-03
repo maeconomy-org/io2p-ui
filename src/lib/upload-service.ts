@@ -2,7 +2,7 @@
 
 import type { Client } from 'iom-sdk'
 import type { Attachment } from '@/types'
-import { useIomSdkClient } from '@/contexts'
+import { useIomSdkClient, useAuth } from '@/contexts'
 import { getCachedConfig } from '@/constants/client'
 import { logger } from './logger'
 
@@ -449,31 +449,37 @@ function isAbortError(err: unknown): boolean {
   return name === 'AbortError'
 }
 
-// Module-level singleton keyed on the SDK client AND its current token, so a
-// re-auth that reuses the client instance still rebuilds the service (and
-// drops any in-flight queue state tied to the old session).
+// Module-level singleton keyed on the SDK client AND the authenticated
+// identity (userUUID), so a real re-auth/user-switch rebuilds the service and
+// drops any in-flight queue state tied to the old session.
+//
+// Deliberately NOT keyed on the raw JWT: the SDK auto-refreshes the token
+// every few minutes (rotating the access token while keeping the same user).
+// Keying on the token rebuilt the service mid-upload, orphaning the in-flight
+// task on the old instance — the file finished uploading and appeared in the
+// sheet, but the upload-center stayed frozen at "uploading 0%" and the
+// beforeunload reload guard never disarmed. userUUID is stable across refreshes
+// and only changes on login/logout/user-switch — exactly when we want a reset.
 let singletonClient: ApiClient | null = null
-let singletonToken: string | null = null
+let singletonIdentity: string | null = null
 let singletonService: FileUploadService | null = null
 
 export function useUploadService(): FileUploadService {
   const client = useIomSdkClient()
-  const token =
-    typeof (client as any)?.getToken === 'function'
-      ? ((client as any).getToken() as string | null)
-      : null
+  const { userUUID } = useAuth()
+  const identity = userUUID ?? null
 
   if (
     !singletonService ||
     singletonClient !== client ||
-    singletonToken !== token
+    singletonIdentity !== identity
   ) {
     const config = getCachedConfig()
     singletonService = new FileUploadService(client, {
       maxConcurrent: config?.fileUploadConcurrency,
     })
     singletonClient = client
-    singletonToken = token
+    singletonIdentity = identity
   }
 
   return singletonService
