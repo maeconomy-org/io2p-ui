@@ -22,7 +22,7 @@ export function useProcesses() {
   const queryClient = useQueryClient()
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.statements.lists() })
+    queryClient.invalidateQueries({ queryKey: queryKeys.statements.all })
     queryClient.invalidateQueries({ queryKey: queryKeys.aggregates.all })
     queryClient.invalidateQueries({ queryKey: queryKeys.processes.all })
   }
