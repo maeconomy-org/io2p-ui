@@ -816,7 +816,9 @@
     "depthWindow": {
       "label": "Levels {from}–{to} of {total}",
       "prev": "Previous levels",
-      "next": "Next levels"
+      "next": "Next levels",
+      "groupLabel": "Depth levels",
+      "hiddenCount": "{count} more nodes not shown"
     },
     "nodeFocus": {
       "viewing": "Focused on",

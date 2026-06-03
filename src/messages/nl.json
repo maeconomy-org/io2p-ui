@@ -816,7 +816,9 @@
     "depthWindow": {
       "label": "Niveaus {from}–{to} van {total}",
       "prev": "Vorige niveaus",
-      "next": "Volgende niveaus"
+      "next": "Volgende niveaus",
+      "groupLabel": "Diepteniveaus",
+      "hiddenCount": "{count} meer nodes niet getoond"
     },
     "nodeFocus": {
       "viewing": "Gefocust op",

@@ -117,10 +117,13 @@ export function useSankeyDiagramData(
   const totalNodeCount = uuidResult.total
   const totalLevels = uuidResult.totalLevels
 
-  // Fetch participating objects
+  // Fetch participating objects. keepPreviousData so paging a depth slice (which
+  // changes the UUID set, hence the query key) doesn't blank the chart to a loader
+  // between steps — the previous slice stays painted until the next one resolves.
   const objectsQuery = useObjectsByUUIDs(participatingUUIDs, {
     enabled: participatingUUIDs.length > 0,
     includeDeleted: false,
+    keepPreviousData: true,
   })
 
   // Process statements and objects into enhanced materials and relationships

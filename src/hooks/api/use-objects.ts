@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query'
 import type { UUObjectDTO, UUID, QueryParams } from 'iom-sdk'
 import { useIomSdkClient } from '@/contexts'
 import { queryKeys } from '@/lib/query-keys'
@@ -43,10 +48,16 @@ export function useObjects() {
   // Get multiple objects by UUIDs efficiently
   const useObjectsByUUIDs = (
     uuids: string[],
-    options?: { enabled?: boolean; includeDeleted?: boolean }
+    options?: {
+      enabled?: boolean
+      includeDeleted?: boolean
+      /** Keep the prior result visible while a new UUID set loads (no blank flash). */
+      keepPreviousData?: boolean
+    }
   ) => {
     return useQuery({
       queryKey: queryKeys.objects.byUUIDs(uuids, options?.includeDeleted),
+      placeholderData: options?.keepPreviousData ? keepPreviousData : undefined,
       queryFn: async () => {
         if (!uuids.length) return []
 

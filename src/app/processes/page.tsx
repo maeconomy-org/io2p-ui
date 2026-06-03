@@ -348,7 +348,11 @@ const MaterialFlowPage = () => {
               depth slices and only light up while limited and more slices exist.
               Sankey-only — Network always shows the full graph. */}
           {activeView === 'sankey' && (
-            <div className="inline-flex flex-shrink-0 items-center overflow-hidden rounded-md border">
+            <div
+              role="group"
+              aria-label={t('processes.depthWindow.groupLabel')}
+              className="inline-flex flex-shrink-0 items-center overflow-hidden rounded-md border"
+            >
               <Button
                 type="button"
                 variant="ghost"
@@ -364,6 +368,7 @@ const MaterialFlowPage = () => {
                 type="button"
                 variant={isDepthLimited ? 'default' : 'ghost'}
                 size="sm"
+                aria-pressed={isDepthLimited}
                 onClick={() => {
                   setIsDepthLimited((prev) => !prev)
                   setDepthWindowStart(0)
@@ -375,6 +380,9 @@ const MaterialFlowPage = () => {
                 {isDepthLimited && truncatedCount > 0 && (
                   <Badge
                     variant="secondary"
+                    aria-label={t('processes.depthWindow.hiddenCount', {
+                      count: truncatedCount,
+                    })}
                     className="ml-1 h-5 px-1.5 text-[10px]"
                   >
                     +{truncatedCount}
