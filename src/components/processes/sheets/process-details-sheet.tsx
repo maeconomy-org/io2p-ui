@@ -10,9 +10,9 @@ import {
   Droplets,
   Flame,
   RefreshCw,
-  ChevronRight,
   FileText,
   Scale,
+  ArrowDown,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -149,74 +149,6 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
         {/* Content */}
         <ScrollArea className="flex-1 -mx-6 px-6">
           <div className="space-y-6 pb-4">
-            {/* Visual Flow Diagram */}
-            <div>
-              <div className="flex items-center justify-between gap-4">
-                {/* Input */}
-                <div className="flex-1">
-                  <div className="bg-background rounded-lg p-4 border border-blue-200 dark:border-blue-800 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-blue-600" />
-                      <span className="text-xs font-medium text-blue-600 uppercase">
-                        {t('input')}
-                      </span>
-                    </div>
-                    <div className="font-semibold text-foreground">
-                      {relationship.subject.name}
-                    </div>
-                    {enhanced?.inputMaterial?.quantity !== undefined && (
-                      <div className="text-sm text-muted-foreground">
-                        {enhanced.inputMaterial.quantity.toLocaleString()}{' '}
-                        {enhanced.inputMaterial.unit || 'units'}
-                      </div>
-                    )}
-                    {enhanced?.inputMaterial?.lifecycleStage && (
-                      <div className="text-xs text-blue-600">
-                        {enhanced.inputMaterial.lifecycleStage.replace(
-                          /_/g,
-                          ' '
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Arrow */}
-                <div className="flex flex-col items-center gap-1 px-2 flex-shrink-0">
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </div>
-
-                {/* Output */}
-                <div className="flex-1">
-                  <div className="bg-background rounded-lg p-4 border border-emerald-200 dark:border-emerald-800 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-emerald-600" />
-                      <span className="text-xs font-medium text-emerald-600 uppercase">
-                        {t('output')}
-                      </span>
-                    </div>
-                    <div className="font-semibold text-foreground">
-                      {relationship.object.name}
-                    </div>
-                    {enhanced?.outputMaterial?.quantity !== undefined && (
-                      <div className="text-sm text-muted-foreground">
-                        {enhanced.outputMaterial.quantity.toLocaleString()}{' '}
-                        {enhanced.outputMaterial.unit || 'units'}
-                      </div>
-                    )}
-                    {enhanced?.outputMaterial?.lifecycleStage && (
-                      <div className="text-xs text-emerald-600">
-                        {enhanced.outputMaterial.lifecycleStage.replace(
-                          /_/g,
-                          ' '
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Impact Metrics */}
             {hasImpactData && (
               <div className="space-y-3">
@@ -388,8 +320,8 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
               </div>
             )}
 
-            {/* Material Details */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            {/* Material Details — input above output with a direction arrow between */}
+            <div className="flex flex-col gap-3">
               {/* Input Material Details */}
               <Card>
                 <CardHeader className="pb-3">
@@ -401,18 +333,18 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
                     {enhanced?.inputMaterial?.quantity !== undefined && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('quantity')}
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right break-words">
                           {enhanced.inputMaterial.quantity.toLocaleString()}{' '}
                           {enhanced.inputMaterial.unit || ''}
                         </span>
                       </div>
                     )}
                     {enhanced?.inputMaterial?.lifecycleStage && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('lifecycle')}
                         </span>
@@ -425,11 +357,11 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                       </div>
                     )}
                     {enhanced?.inputMaterial?.categoryCode && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('category')}
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right break-words">
                           {enhanced.inputMaterial.categoryCode}
                         </span>
                       </div>
@@ -451,12 +383,12 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                           ).map(([key, value]) => (
                             <div
                               key={key}
-                              className="flex justify-between items-center text-sm"
+                              className="flex items-start justify-between gap-4 text-sm"
                             >
                               <span className="text-muted-foreground">
                                 {key}
                               </span>
-                              <span className="font-medium">
+                              <span className="font-medium text-right break-words">
                                 {String(value)}
                               </span>
                             </div>
@@ -466,6 +398,11 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                     )}
                 </CardContent>
               </Card>
+
+              {/* Direction: input flows down to output */}
+              <div className="flex justify-center" aria-hidden="true">
+                <ArrowDown className="h-5 w-5 text-muted-foreground" />
+              </div>
 
               {/* Output Material Details */}
               <Card>
@@ -478,18 +415,18 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                 <CardContent className="space-y-3">
                   <div className="space-y-2">
                     {enhanced?.outputMaterial?.quantity !== undefined && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('quantity')}
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right break-words">
                           {enhanced.outputMaterial.quantity.toLocaleString()}{' '}
                           {enhanced.outputMaterial.unit || ''}
                         </span>
                       </div>
                     )}
                     {enhanced?.outputMaterial?.lifecycleStage && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('lifecycle')}
                         </span>
@@ -502,11 +439,11 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                       </div>
                     )}
                     {enhanced?.outputMaterial?.categoryCode && (
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-start justify-between gap-4 text-sm">
                         <span className="text-muted-foreground">
                           {t('category')}
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium text-right break-words">
                           {enhanced.outputMaterial.categoryCode}
                         </span>
                       </div>
@@ -528,12 +465,12 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
                           ).map(([key, value]) => (
                             <div
                               key={key}
-                              className="flex justify-between items-center text-sm"
+                              className="flex items-start justify-between gap-4 text-sm"
                             >
                               <span className="text-muted-foreground">
                                 {key}
                               </span>
-                              <span className="font-medium">
+                              <span className="font-medium text-right break-words">
                                 {String(value)}
                               </span>
                             </div>
@@ -545,21 +482,43 @@ const RelationshipDetailsSheet: React.FC<RelationshipDetailsSheetProps> = ({
               </Card>
             </div>
 
-            {/* Notes */}
-            {enhanced?.notes && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+            {/* Process Properties (dynamic) — flat, no card (it's already in a sheet) */}
+            {enhanced?.processProperties &&
+              Object.keys(enhanced.processProperties).length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    {t('processNotes')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {enhanced.notes}
-                  </p>
-                </CardContent>
-              </Card>
+                    {t('processProperties')}
+                  </h3>
+                  <div className="space-y-2">
+                    {Object.entries(enhanced.processProperties).map(
+                      ([key, value]) => (
+                        <div
+                          key={key}
+                          className="flex items-start justify-between gap-4 text-sm"
+                        >
+                          <span className="text-muted-foreground">{key}</span>
+                          <span className="font-medium text-right break-words">
+                            {String(value)}
+                          </span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {/* Notes — flat, like an object description */}
+            {enhanced?.notes && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  {t('processNotes')}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {enhanced.notes}
+                </p>
+              </div>
             )}
           </div>
         </ScrollArea>

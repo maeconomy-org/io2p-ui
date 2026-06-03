@@ -15,6 +15,7 @@ import {
   ENABLED_PROCESS_VIEW_TYPES,
 } from '@/constants'
 import { usePreference } from '@/hooks'
+import { useAppConfig } from '@/contexts'
 import { SegmentedControl } from './segmented-control'
 
 function Row({
@@ -44,6 +45,15 @@ export function PreferencesSettings() {
   const [processView, setProcessView] = usePreference('processView')
   const [propertiesView, setPropertiesView] = usePreference('propertiesView')
 
+  // Hide the Dashboard option (and coerce a stale saved preference) when the
+  // processes dashboard is disabled via PROCESS_DASHBOARD_ENABLED.
+  const dashboardEnabled = useAppConfig().processDashboardEnabled === 'true'
+  const processViewTypes = dashboardEnabled
+    ? ENABLED_PROCESS_VIEW_TYPES
+    : ENABLED_PROCESS_VIEW_TYPES.filter((v) => v.value !== 'dashboard')
+  const processViewValue =
+    processView === 'dashboard' && !dashboardEnabled ? 'sankey' : processView
+
   return (
     <Card>
       <CardHeader>
@@ -67,10 +77,10 @@ export function PreferencesSettings() {
         <Row label={t('processes')} testId="pref-processes">
           <SegmentedControl
             ariaLabel={t('processes')}
-            value={processView}
+            value={processViewValue}
             onChange={setProcessView}
             testIdPrefix="pref-processes"
-            options={ENABLED_PROCESS_VIEW_TYPES.map((v) => ({
+            options={processViewTypes.map((v) => ({
               value: v.value,
               label: tOpt(v.value),
               icon: v.icon,

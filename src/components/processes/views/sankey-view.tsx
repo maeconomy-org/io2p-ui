@@ -6,10 +6,10 @@ import ReactECharts from 'echarts-for-react'
 import type {
   EnhancedMaterialObject,
   EnhancedMaterialRelationship,
-  FlowCategory,
 } from '@/types'
 import { toCapitalize } from '@/lib'
 import { detectAndRemoveCycles } from '../utils'
+import { buildFlowTooltip } from '../utils/flow-tooltip'
 
 interface SankeyDiagramProps {
   materials?: EnhancedMaterialObject[]
@@ -72,6 +72,9 @@ export const SankeyDiagram = memo(function SankeyDiagram({
       return {
         name: node.uuid,
         value: node.uuid,
+        // Pin the column when we have a real (integer) ALAP depth; omit for
+        // cycle nodes (fractional lifecycle fallback) so ECharts auto-places them.
+        ...(Number.isInteger(node.depth) ? { depth: node.depth } : {}),
         label: {
           show: true,
           formatter: node.name || node.uuid,
@@ -94,6 +97,14 @@ export const SankeyDiagram = memo(function SankeyDiagram({
         isRecyclingRelated,
       }
     })
+
+    // Clamp tiny links up to a minimum fraction of the largest, so a small flow
+    // (e.g. "1 pcs" next to "300 kg") stays wide enough to hover/click. Big links
+    // keep their true proportion; only sub-threshold ones are lifted.
+    const linkValueOf = (rel: EnhancedMaterialRelationship) =>
+      rel.inputMaterial?.canonicalQuantity ?? rel.inputMaterial?.quantity ?? 1
+    const maxLinkValue = Math.max(1, ...links.map(linkValueOf))
+    const minLinkValue = maxLinkValue * 0.04
 
     // Create enhanced links with metadata-driven styling and impact data
     const chartLinks = links.map((rel) => {
@@ -118,7 +129,7 @@ export const SankeyDiagram = memo(function SankeyDiagram({
       return {
         source: rel.subject.uuid,
         target: rel.object.uuid,
-        value: rel.inputMaterial?.quantity || 1,
+        value: Math.max(linkValueOf(rel), minLinkValue),
         lineStyle: {
           // Only override color for selected or special-category flows;
           // otherwise leave undefined so the series-level 'source' color mode applies
@@ -162,7 +173,9 @@ export const SankeyDiagram = memo(function SankeyDiagram({
           links: chartLinks,
           nodeWidth: 30,
           nodeGap: 15,
-          nodeAlign: 'left',
+          // Explicit per-node `depth` drives the columns; nodeAlign only affects
+          // any node left unpinned (a cycle node with no acyclic depth).
+          nodeAlign: 'right',
           orient: 'horizontal',
           layoutIterations: 64,
           emphasis: {
@@ -312,12 +325,15 @@ function computeEnhancedLayout(
   materials: EnhancedMaterialObject[],
   relationships: EnhancedMaterialRelationship[]
 ) {
-  // Assign stage levels based on lifecycle metadata
-  const nodes = materials.map((material) => ({
-    ...material,
-    layer: getStageFromLifecycle(material.lifecycleStage, material.type),
-    x: getStageFromLifecycle(material.lifecycleStage, material.type),
-  }))
+  // Column = the min-span topological depth computed by the data hook (so the chart
+  // matches the depth-window pager). Fall back to the lifecycle stage only for
+  // nodes with no acyclic depth (e.g. inside a cycle).
+  const nodes = materials.map((material) => {
+    const column =
+      material.depth ??
+      getStageFromLifecycle(material.lifecycleStage, material.type)
+    return { ...material, layer: column, x: column }
+  })
 
   // Separate flows by category
   const recyclingFlows: EnhancedMaterialRelationship[] = []
@@ -533,75 +549,9 @@ function createNodeTooltip(
 }
 
 /**
- * Create enhanced link tooltip with process-level data only (no material quantities)
+ * Clean, labelled flow tooltip — process name, the two endpoints, and the input/output
+ * quantity (with its property label). Only shows what we know; no property dump.
  */
 function createLinkTooltip(rel: EnhancedMaterialRelationship): string {
-  const parts = [`<strong>${rel.subject.name} → ${rel.object.name}</strong>`]
-
-  if (rel.processName) {
-    parts.push(`Process: ${rel.processName}`)
-  }
-
-  if (rel.processTypeCode) {
-    parts.push(`Type: ${rel.processTypeCode.replace('_', ' ')}`)
-  }
-
-  if (rel.flowCategory) {
-    const categoryLabel = rel.flowCategory.replace('_', ' ').toLowerCase()
-    const emoji = getFlowCategoryEmoji(rel.flowCategory)
-    parts.push(`${emoji} Flow: ${toCapitalize(categoryLabel)}`)
-  }
-
-  // Impact data section
-  if (rel.emissionsTotal && rel.emissionsTotal > 0) {
-    parts.push(
-      `<strong>🌍 Emissions: ${rel.emissionsTotal} ${rel.emissionsUnit || 'kgCO2e'}</strong>`
-    )
-  }
-
-  if (rel.materialLossPercent && rel.materialLossPercent > 0) {
-    parts.push(`<strong>⚠️ Material Loss: ${rel.materialLossPercent}%</strong>`)
-  }
-
-  if (rel.qualityChangeCode) {
-    const qualityLabel =
-      rel.qualityChangeCode === 'UPCYCLED'
-        ? 'Upcycled'
-        : rel.qualityChangeCode === 'DOWNCYCLED'
-          ? 'Downcycled'
-          : 'Same Quality'
-    const qualityEmoji =
-      rel.qualityChangeCode === 'UPCYCLED'
-        ? '⬆️'
-        : rel.qualityChangeCode === 'DOWNCYCLED'
-          ? '⬇️'
-          : '➡️'
-    parts.push(`${qualityEmoji} Quality: ${qualityLabel}`)
-  }
-
-  if (rel.notes) {
-    parts.push(`<em>Note: ${rel.notes}</em>`)
-  }
-
-  return parts.join('<br/>')
-}
-
-/**
- * Get emoji for flow category
- */
-function getFlowCategoryEmoji(category: FlowCategory): string {
-  switch (category) {
-    case 'RECYCLING':
-      return '♻️'
-    case 'REUSE':
-      return '🔄'
-    case 'DOWNCYCLING':
-      return '⬇️'
-    case 'CIRCULAR':
-      return '🔄♻️'
-    case 'WASTE_FLOW':
-      return '🗑️'
-    default:
-      return '➡️'
-  }
+  return buildFlowTooltip(rel)
 }

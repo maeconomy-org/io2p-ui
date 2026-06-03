@@ -13,7 +13,15 @@ import type {
 import {
   limitStatementDepth,
   limitStatementDepthBidirectional,
+  getMaxStatementDepth,
+  computeStatementDepths,
 } from '@/components/processes/utils'
+import {
+  decodeEdgeProperties,
+  decodeProcessProperties,
+} from '@/components/processes/utils/process-codec'
+import { parseQuantity } from '@/lib/units/parse-quantity'
+import { logger } from '@/lib'
 
 interface SankeyDiagramData {
   materials: EnhancedMaterialObject[]
@@ -21,19 +29,8 @@ interface SankeyDiagramData {
   isLoading: boolean
   error?: Error
   totalNodeCount: number
-}
-
-interface SankeyLayoutData {
-  nodes: Array<EnhancedMaterialObject & { layer: number; x: number }>
-  links: EnhancedMaterialRelationship[]
-  recyclingFlows: EnhancedMaterialRelationship[]
-  stats: {
-    totalFlows: number
-    recyclingFlows: number
-    recyclingRate: number
-    totalQuantity: number
-    recyclingQuantity: number
-  }
+  /** Number of topological levels in the full graph — drives the depth pager. */
+  totalLevels: number
 }
 
 /**
@@ -44,14 +41,14 @@ export function useSankeyDiagramData(
   objectUuid?: UUID,
   options?: {
     maxDepth?: number
-    focusNode?: string
+    minDepth?: number
     focusNodeBidirectional?: string
   }
-): SankeyDiagramData & { layoutData: SankeyLayoutData | null } {
+): SankeyDiagramData {
   const { useStatementsByPredicate, useObjectRelationships } = useStatements()
   const { useObjectsByUUIDs } = useObjects()
   const maxDepth = options?.maxDepth
-  const focusNode = options?.focusNode
+  const minDepth = options?.minDepth ?? 0
   const focusNodeBidirectional = options?.focusNodeBidirectional
 
   // Fetch input relationships
@@ -77,7 +74,8 @@ export function useSankeyDiagramData(
         : []
     }
 
-    if (!statements.length) return { kept: [] as UUID[], total: 0 }
+    if (!statements.length)
+      return { kept: [] as UUID[], total: 0, totalLevels: 0 }
 
     // Collect all unique UUIDs
     const allUuids = new Set<UUID>()
@@ -86,6 +84,9 @@ export function useSankeyDiagramData(
       allUuids.add(stmt.object)
     })
     const total = allUuids.size
+    // Full-graph depth (independent of the current window) so the pager knows
+    // how many slices exist. Levels = max 0-based depth + 1.
+    const totalLevels = getMaxStatementDepth(statements) + 1
 
     // Bidirectional focus takes priority: show 1 level upstream + downstream from a node
     if (focusNodeBidirectional) {
@@ -94,31 +95,35 @@ export function useSankeyDiagramData(
         1,
         focusNodeBidirectional
       )
-      return { kept: Array.from(keptSet) as UUID[], total }
+      return { kept: Array.from(keptSet) as UUID[], total, totalLevels }
     }
 
-    // If maxDepth is set, only include UUIDs within the depth limit
+    // If maxDepth is set, only include UUIDs inside the window [minDepth, +maxDepth)
     if (maxDepth !== undefined) {
-      const keptSet = limitStatementDepth(statements, maxDepth, focusNode)
-      return { kept: Array.from(keptSet) as UUID[], total }
+      const keptSet = limitStatementDepth(statements, maxDepth, minDepth)
+      return { kept: Array.from(keptSet) as UUID[], total, totalLevels }
     }
 
-    return { kept: Array.from(allUuids) as UUID[], total }
+    return { kept: Array.from(allUuids) as UUID[], total, totalLevels }
   }, [
     inputStatementsQuery.data,
     objectUuid,
     maxDepth,
-    focusNode,
+    minDepth,
     focusNodeBidirectional,
   ])
 
   const participatingUUIDs = uuidResult.kept
   const totalNodeCount = uuidResult.total
+  const totalLevels = uuidResult.totalLevels
 
-  // Fetch participating objects
+  // Fetch participating objects. keepPreviousData so paging a depth slice (which
+  // changes the UUID set, hence the query key) doesn't blank the chart to a loader
+  // between steps — the previous slice stays painted until the next one resolves.
   const objectsQuery = useObjectsByUUIDs(participatingUUIDs, {
     enabled: participatingUUIDs.length > 0,
     includeDeleted: false,
+    keepPreviousData: true,
   })
 
   // Process statements and objects into enhanced materials and relationships
@@ -146,23 +151,14 @@ export function useSankeyDiagramData(
     return result
   }, [inputStatementsQuery.data, objectsQuery.data, objectUuid])
 
-  // Compute layout data
-  const layoutData = useMemo(() => {
-    if (!processedData.materials.length) return null
-    return computeMetadataDrivenLayout(
-      processedData.materials,
-      processedData.relationships
-    )
-  }, [processedData])
-
   const isLoading = inputStatementsQuery.isLoading || objectsQuery.isLoading
 
   return {
     materials: processedData.materials,
     relationships: processedData.relationships,
-    layoutData,
     isLoading,
     totalNodeCount,
+    totalLevels,
     error: inputStatementsQuery.error || objectsQuery.error || undefined,
   }
 }
@@ -180,6 +176,10 @@ function processStatementsWithMetadata(
 } {
   // Create object lookup map
   const objectMap = new Map(objects.map((obj) => [obj.uuid, obj]))
+
+  // ALAP column per node, computed over the FULL graph so columns stay stable as
+  // the user pages depth slices (and so the chart matches the fetch window).
+  const nodeDepths = computeStatementDepths(statements)
 
   // Analyze graph structure for material roles (same as before)
   const allSubjects = new Set(statements.map((s) => s.subject))
@@ -277,6 +277,7 @@ function processStatementsWithMetadata(
         domainCategoryCode,
         sourceBuildingUuid,
         targetBuildingUuid,
+        depth: nodeDepths.get(obj.uuid),
       }
     })
 
@@ -288,7 +289,10 @@ function processStatementsWithMetadata(
     const objectObj = objectMap.get(statement.object)
 
     if (!subjectObj || !objectObj) {
-      console.warn('Skipping relationship with missing objects:', {
+      // Expected under depth-limiting: an edge crossing the visible slice's
+      // boundary points to a node we intentionally did not fetch, so we drop it.
+      // Debug-level (not warn) — this is normal, not an error.
+      logger.debug('Skipping boundary relationship (object not in window)', {
         subject: statement.subject,
         object: statement.object,
       })
@@ -299,35 +303,25 @@ function processStatementsWithMetadata(
     const processName =
       getPropertyValue(statement, 'processName') || 'Unknown Process'
 
-    // Extract input material data (namespaced)
-    const inputQuantity =
-      getNamespacedNumberValue(statement, 'input', 'quantity') ||
-      parseFloat(getPropertyValue(statement, 'quantity') || '0')
-    const inputUnit =
-      getNamespacedPropertyValue(statement, 'input', 'unit') ||
-      getPropertyValue(statement, 'unit') ||
-      ''
+    // Decode each side's dynamic properties via the codec (clean labels, no raw keys).
+    // Display uses the raw value as typed; chart magnitude uses the canonical value.
+    const inSide = extractMaterialSide(statement, 'in', {
+      quantity:
+        getNamespacedNumberValue(statement, 'input', 'quantity') ||
+        parseFloat(getPropertyValue(statement, 'quantity') || '0'),
+      unit:
+        getNamespacedPropertyValue(statement, 'input', 'unit') ||
+        getPropertyValue(statement, 'unit') ||
+        '',
+    })
+    const outSide = extractMaterialSide(statement, 'out', {
+      quantity: getNamespacedNumberValue(statement, 'output', 'quantity') || 0,
+      unit: getNamespacedPropertyValue(statement, 'output', 'unit') || '',
+    })
 
-    // Extract output material data (namespaced)
-    const outputQuantity = getNamespacedNumberValue(
-      statement,
-      'output',
-      'quantity'
-    )
-    const outputUnit = getNamespacedPropertyValue(statement, 'output', 'unit')
-
-    if (
-      !processName ||
-      processName === 'Unknown Process' ||
-      inputQuantity <= 0
-    ) {
-      console.warn('Skipping relationship with invalid process data:', {
-        processName,
-        inputQuantity,
-        subject: subjectObj.name,
-        object: objectObj.name,
-        statement: statement,
-      })
+    // Only require a valid process name. Quantities are optional — a process with no
+    // quantity still renders (the chart falls back to a default magnitude).
+    if (!processName || processName === 'Unknown Process') {
       return
     }
 
@@ -357,7 +351,9 @@ function processStatementsWithMetadata(
       statement,
       'qualityChangeCode'
     ) as QualityChangeCode
-    const notes = getPropertyValue(statement, 'notes')
+    const notes =
+      getPropertyValue(statement, 'notes') ||
+      getPropertyValue(statement, 'processDescription')
 
     // Extract input and output material metadata (try new simplified names first, then legacy)
     const inputLifecycleStage =
@@ -377,10 +373,7 @@ function processStatementsWithMetadata(
       getNamespacedPropertyValue(statement, 'output', 'outputCategoryCode') || // Legacy: output_outputCategoryCode
       getPropertyValue(statement, 'outputCategoryCode') // Very old: outputCategoryCode
 
-    // Extract custom properties (separated by input/output)
-    const customProperties = extractCustomProperties(statement)
-
-    const uniqueKey = `${statement.subject}-${statement.object}-${processName}-${inputQuantity}-${inputUnit}`
+    const uniqueKey = `${statement.subject}-${statement.object}-${processName}-${inSide.displayValue}`
 
     if (!relationshipMap.has(uniqueKey)) {
       relationshipMap.set(uniqueKey, {
@@ -402,29 +395,53 @@ function processStatementsWithMetadata(
         materialLossPercent,
         qualityChangeCode,
         notes,
-        customProperties: customProperties.input, // Use input custom properties for backward compatibility
-        // NEW: Separated input/output data
+        customProperties: inSide.customProperties,
+        processProperties: Object.fromEntries(
+          decodeProcessProperties(statement).map((p) => [
+            p.label || p.key,
+            p.values.filter(Boolean).join(', '),
+          ])
+        ),
+        // Separated input/output data
         inputMaterial: {
-          quantity: inputQuantity,
-          unit: inputUnit,
+          quantity: inSide.quantity,
+          unit: inSide.unit,
+          canonicalQuantity: inSide.canonicalQuantity,
+          displayValue: inSide.displayValue,
+          quantityLabel: inSide.quantityLabel,
           lifecycleStage: inputLifecycleStage,
           categoryCode: inputCategoryCode,
-          customProperties: customProperties.input,
+          customProperties: inSide.customProperties,
         },
         outputMaterial: {
-          quantity: outputQuantity,
-          unit: outputUnit,
+          quantity: outSide.quantity,
+          unit: outSide.unit,
+          canonicalQuantity: outSide.canonicalQuantity,
+          displayValue: outSide.displayValue,
+          quantityLabel: outSide.quantityLabel,
           lifecycleStage: outputLifecycleStage,
           categoryCode: outputCategoryCode,
-          customProperties: customProperties.output,
+          customProperties: outSide.customProperties,
         },
       })
     }
   })
 
+  const relationships = Array.from(relationshipMap.values())
+
+  // Drop orphan nodes: a node kept by depth-limiting whose only edges point to
+  // excluded (deep) nodes would otherwise float with no visible flow. Show only
+  // materials that still participate in a surviving relationship.
+  const connectedUuids = new Set<string>()
+  relationships.forEach((rel) => {
+    connectedUuids.add(rel.subject.uuid)
+    connectedUuids.add(rel.object.uuid)
+  })
+  const connectedMaterials = materials.filter((m) => connectedUuids.has(m.uuid))
+
   return {
-    materials,
-    relationships: Array.from(relationshipMap.values()),
+    materials: connectedMaterials,
+    relationships,
   }
 }
 
@@ -508,107 +525,6 @@ function getLifecycleStageColor(
   }
 }
 
-/**
- * Compute metadata-driven layout (replaces createLayeredLayout)
- */
-function computeMetadataDrivenLayout(
-  materials: EnhancedMaterialObject[],
-  relationships: EnhancedMaterialRelationship[]
-): SankeyLayoutData {
-  // Assign stage levels based on lifecycle metadata instead of names
-  const nodes = materials.map((material) => ({
-    ...material,
-    layer: getStageFromLifecycle(material.lifecycleStage, material.type),
-    x: getStageFromLifecycle(material.lifecycleStage, material.type),
-  }))
-
-  // Separate recycling/circular flows from standard flows
-  const recyclingFlows: EnhancedMaterialRelationship[] = []
-  const standardFlows: EnhancedMaterialRelationship[] = []
-
-  relationships.forEach((rel) => {
-    const isRecyclingFlow =
-      rel.flowCategory === 'RECYCLING' ||
-      rel.flowCategory === 'CIRCULAR' ||
-      rel.flowCategory === 'REUSE' ||
-      rel.flowCategory === 'DOWNCYCLING' ||
-      rel.isCircular
-
-    if (isRecyclingFlow) {
-      recyclingFlows.push(rel)
-    }
-    standardFlows.push(rel) // Include recycling flows in main diagram too
-  })
-
-  // Calculate statistics
-  const totalQuantity = relationships.reduce(
-    (sum, rel) => sum + (rel.quantity || 0),
-    0
-  )
-  const recyclingQuantity = recyclingFlows.reduce(
-    (sum, rel) => sum + (rel.quantity || 0),
-    0
-  )
-  const recyclingRate =
-    totalQuantity > 0
-      ? Math.round((recyclingQuantity / totalQuantity) * 100)
-      : 0
-
-  return {
-    nodes,
-    links: standardFlows,
-    recyclingFlows,
-    stats: {
-      totalFlows: relationships.length,
-      recyclingFlows: recyclingFlows.length,
-      recyclingRate,
-      totalQuantity,
-      recyclingQuantity,
-    },
-  }
-}
-
-/**
- * Get stage number from lifecycle metadata instead of name-based heuristics
- */
-function getStageFromLifecycle(
-  stage: LifecycleStage | undefined,
-  fallbackType: string
-): number {
-  switch (stage) {
-    case 'PRIMARY_INPUT':
-      return 0.0
-    case 'SECONDARY_INPUT':
-      return 0.2
-    case 'REUSED_COMPONENT':
-      return 0.8
-    case 'PROCESSING':
-      return 1.5
-    case 'COMPONENT':
-      return 3.0
-    case 'PRODUCT':
-      return 3.5
-    case 'USE_PHASE':
-      return 3.7
-    case 'WASTE':
-      return 4.2
-    case 'DISPOSAL':
-      return 4.8
-    default:
-      // Fallback based on graph role
-      switch (fallbackType) {
-        case 'input':
-          return 0.0
-        case 'intermediate':
-          return 2.0
-        case 'output':
-          return 3.5
-        default:
-          return 2.0
-      }
-  }
-}
-
 // Helper functions for extracting metadata from statement properties
 function getPropertyValue(
   statement: UUStatementDTO,
@@ -650,83 +566,58 @@ function getNamespacedNumberValue(
   return value ? parseFloat(value) || undefined : undefined
 }
 
-function extractCustomProperties(statement: UUStatementDTO): {
-  input: Record<string, string>
-  output: Record<string, string>
-} {
-  const inputCustomProperties: Record<string, string> = {}
-  const outputCustomProperties: Record<string, string> = {}
+interface MaterialSide {
+  quantity: number // raw numeric value for display
+  unit: string // raw unit as typed
+  canonicalQuantity: number // canonical value for chart magnitude
+  displayValue: string // raw value string as typed (e.g. "0.1 t")
+  quantityLabel?: string // label of the quantity property (e.g. "Quantity")
+  customProperties: Record<string, string> // non-quantity properties, label -> value
+}
 
-  // Known metadata keys that are not custom properties (including namespaced versions)
-  const knownKeys = new Set([
-    // Process-level fields
-    'processName',
-    'processType',
-    'quantity',
-    'unit',
-    'processCategory',
-    'flowCategory',
-    'isRecycling',
-    'isDeconstruction',
-    'sourceBuildingUuid',
-    'targetBuildingUuid',
-    'emissionsTotal',
-    'emissionsUnit',
-    'materialLossPercent',
-    'qualityChangeCode',
-    'notes',
-    // Legacy material-level fields
-    'inputLifecycleStage',
-    'outputLifecycleStage',
-    'inputCategoryCode',
-    'outputCategoryCode',
-    'isReusedInput',
-    'isRecyclingMaterial',
-    // Namespaced versions (new simplified names)
-    'input_quantity',
-    'input_unit',
-    'output_quantity',
-    'output_unit',
-    'input_lifecycleStage',
-    'input_categoryCode',
-    'output_lifecycleStage',
-    'output_categoryCode',
-    // Namespaced versions (legacy double-prefixed names)
-    'input_inputLifecycleStage',
-    'input_inputCategoryCode',
-    'input_isReusedInput',
-    'input_isRecyclingMaterial',
-    'output_outputLifecycleStage',
-    'output_outputCategoryCode',
-    'output_isReusedInput',
-    'output_isRecyclingMaterial',
-  ])
+/**
+ * Resolve one side of an edge using the codec. New-format edges decode cleanly (quantity +
+ * labelled extras); when none are present, fall back to the legacy quantity/unit.
+ */
+function extractMaterialSide(
+  statement: UUStatementDTO,
+  side: 'in' | 'out',
+  legacy: { quantity: number; unit: string }
+): MaterialSide {
+  const props = decodeEdgeProperties(statement, side)
 
-  statement.properties?.forEach((property) => {
-    const key = property.key
-    const value = property.values?.[0]?.value
-
-    if (!value || !key) return
-
-    if (key.startsWith('input_') && !knownKeys.has(key)) {
-      // Remove "input_" prefix for display
-      const displayKey = key.substring(6)
-      inputCustomProperties[displayKey] = value
-    } else if (key.startsWith('output_') && !knownKeys.has(key)) {
-      // Remove "output_" prefix for display
-      const displayKey = key.substring(7)
-      outputCustomProperties[displayKey] = value
-    } else if (
-      !knownKeys.has(key) &&
-      !key.startsWith('input_') &&
-      !key.startsWith('output_')
-    ) {
-      // Legacy custom properties (not namespaced) - treat as input for backward compatibility
-      inputCustomProperties[key] = value
+  if (props.length === 0) {
+    const display = legacy.quantity
+      ? `${legacy.quantity} ${legacy.unit}`.trim()
+      : ''
+    return {
+      quantity: legacy.quantity,
+      unit: legacy.unit,
+      canonicalQuantity: legacy.quantity,
+      displayValue: display,
+      customProperties: {},
     }
-  })
+  }
 
-  return { input: inputCustomProperties, output: outputCustomProperties }
+  const qty = props.find((p) => p.isQuantity)
+  const parsed = qty ? parseQuantity(qty.values[0] ?? '') : null
+
+  const customProperties: Record<string, string> = {}
+  props
+    .filter((p) => !p.isQuantity)
+    .forEach((p) => {
+      customProperties[p.label || p.key] = p.values.filter(Boolean).join(', ')
+    })
+
+  return {
+    quantity: parsed?.value ?? 0,
+    unit: qty?.unit ?? parsed?.unit ?? '',
+    canonicalQuantity:
+      qty?.canonicalValue ?? parsed?.canonicalValue ?? parsed?.value ?? 0,
+    displayValue: qty?.values[0] ?? '',
+    quantityLabel: qty?.label,
+    customProperties,
+  }
 }
 
 function extractStringProperty(

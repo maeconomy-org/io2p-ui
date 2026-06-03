@@ -70,6 +70,12 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   )
 
   useEffect(() => {
+    // Sync immediately on (re)subscribe. If `service` was swapped (identity
+    // change), the previous instance's last snapshot is still in React state —
+    // without this the UI would stay frozen on those stale tasks (e.g. a
+    // permanent "uploading 0%" that keeps the beforeunload guard armed).
+    setTasks(service.getAllTasks())
+
     const unsubscribe = service.subscribe(() => {
       const next = service.getAllTasks()
       setTasks(next)

@@ -20,13 +20,19 @@ export type { ProcessViewType }
 interface ProcessViewSelectorProps {
   view: ProcessViewType
   onChange: (view: ProcessViewType) => void
+  /** Views to hide at runtime (e.g. dashboard when PROCESS_DASHBOARD_ENABLED=false). */
+  excludedViews?: ProcessViewType[]
 }
 
 export function ProcessViewSelector({
   view,
   onChange,
+  excludedViews,
 }: ProcessViewSelectorProps) {
   const t = useTranslations()
+  const viewTypes = excludedViews?.length
+    ? ENABLED_PROCESS_VIEW_TYPES.filter((v) => !excludedViews.includes(v.value))
+    : ENABLED_PROCESS_VIEW_TYPES
   return (
     <TooltipProvider>
       <ToggleGroup
@@ -36,7 +42,7 @@ export function ProcessViewSelector({
           if (value) onChange(value as ProcessViewType)
         }}
       >
-        {ENABLED_PROCESS_VIEW_TYPES.map((viewType) => {
+        {viewTypes.map((viewType) => {
           const Icon = viewType.icon
           return (
             <Tooltip key={viewType.value}>

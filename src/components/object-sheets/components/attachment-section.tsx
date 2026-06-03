@@ -10,7 +10,7 @@ import { useAppConfig } from '@/contexts'
 import { formatSizeMB } from '@/lib/utils'
 import { MAX_FILES_PER_DROP } from '@/constants/limits'
 
-import { isOversize } from '../utils'
+import { isOversize, resolveFileContentType } from '../utils'
 import { AttachmentList } from './attachment-list'
 
 type AttachmentSectionProps = {
@@ -83,7 +83,7 @@ export function AttachmentSection({
         mode: 'upload',
         fileName: file.name,
         size: file.size,
-        mimeType: file.type,
+        mimeType: resolveFileContentType(file),
         blob: file,
       })
     }

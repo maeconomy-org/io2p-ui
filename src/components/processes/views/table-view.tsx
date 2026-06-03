@@ -17,7 +17,7 @@ import {
 import { usePagination } from '@/hooks'
 import {
   EnhancedMaterialRelationship,
-  QualityChangeCode,
+  MaterialData,
 } from '@/types/sankey-metadata'
 
 interface ProcessTableViewProps {
@@ -81,45 +81,13 @@ export function ProcessTableView({
     return filteredRelationships.slice(startIndex, endIndex)
   }, [filteredRelationships, currentPage, pageSize])
 
-  const formatQuantity = (relationship: EnhancedMaterialRelationship) => {
-    // Use input material quantity/unit from the new structure
-    const quantity =
-      relationship.inputMaterial?.quantity || relationship.quantity
-    const unit = relationship.inputMaterial?.unit || relationship.unit
-
-    if (quantity && unit) {
-      return `${quantity.toLocaleString()} ${unit}`
+  // Raw value as entered ("0.1 t"), with a fallback for legacy quantity/unit.
+  const displayQuantity = (material?: MaterialData) => {
+    if (material?.displayValue) return material.displayValue
+    if (material?.quantity) {
+      return `${material.quantity.toLocaleString()} ${material.unit ?? ''}`.trim()
     }
-    return 'Not specified'
-  }
-
-  // Helper to get text and styling for quality change
-  const getQualityChangeInfo = (code?: QualityChangeCode) => {
-    switch (code) {
-      case 'UPCYCLED':
-        return {
-          text: 'UPCYCLED',
-          className:
-            'text-xs bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-        }
-      case 'SAME':
-        return {
-          text: 'SAME',
-          className:
-            'text-xs bg-slate-50 dark:bg-slate-800/30 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
-        }
-      case 'DOWNCYCLED':
-        return {
-          text: 'DOWNCYCLED',
-          className:
-            'text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
-        }
-      default:
-        return {
-          text: '',
-          className: 'text-xs bg-muted text-muted-foreground border-border',
-        }
-    }
+    return null
   }
 
   return (
@@ -129,14 +97,9 @@ export function ProcessTableView({
           <TableHeader>
             <TableRow>
               <TableHead>{t('process')}</TableHead>
-              <TableHead className="text-right">{t('quantity')}</TableHead>
               <TableHead>{t('inputMaterial')}</TableHead>
               <TableHead className="text-center w-12"></TableHead>
               <TableHead>{t('outputMaterial')}</TableHead>
-              <TableHead className="text-center">{t('flow')}</TableHead>
-              <TableHead className="text-right">{t('emissions')}</TableHead>
-              <TableHead className="text-right">{t('loss')}</TableHead>
-              <TableHead className="text-center">{t('quality')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -144,7 +107,7 @@ export function ProcessTableView({
               <TableRow>
                 <TableCell
                   className="text-center py-8 text-muted-foreground"
-                  {...{ colSpan: 9 }}
+                  {...{ colSpan: 4 }}
                 >
                   {filteredRelationships.length === 0
                     ? t('noRelationshipsFound')
@@ -152,113 +115,57 @@ export function ProcessTableView({
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedRelationships.map((relationship) => (
-                <TableRow
-                  key={`${relationship.subject.uuid}-${relationship.object.uuid}-${relationship.processName}-${relationship.inputMaterial?.quantity || 0}-${relationship.inputMaterial?.unit || ''}`}
-                  className={`cursor-pointer transition-colors ${
-                    selectedRelationship?.subject.uuid ===
-                      relationship.subject.uuid &&
-                    selectedRelationship?.object.uuid ===
-                      relationship.object.uuid &&
-                    selectedRelationship?.processName ===
-                      relationship.processName
-                      ? 'bg-muted/50 border-l-4 border-l-primary'
-                      : 'hover:bg-muted/30'
-                  }`}
-                  onClick={() => onRelationshipSelect?.(relationship)}
-                >
-                  <TableCell>
-                    {relationship.processName && (
-                      <span className="text-sm font-medium">
-                        {relationship.processName}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    <Badge variant="secondary">
-                      {formatQuantity(relationship)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div>
+              paginatedRelationships.map((relationship) => {
+                const inQty = displayQuantity(relationship.inputMaterial)
+                const outQty = displayQuantity(relationship.outputMaterial)
+                return (
+                  <TableRow
+                    key={`${relationship.subject.uuid}-${relationship.object.uuid}-${relationship.processName}-${relationship.inputMaterial?.displayValue || ''}`}
+                    className={`cursor-pointer transition-colors ${
+                      selectedRelationship?.subject.uuid ===
+                        relationship.subject.uuid &&
+                      selectedRelationship?.object.uuid ===
+                        relationship.object.uuid &&
+                      selectedRelationship?.processName ===
+                        relationship.processName
+                        ? 'bg-muted/50 border-l-4 border-l-primary'
+                        : 'hover:bg-muted/30'
+                    }`}
+                    onClick={() => onRelationshipSelect?.(relationship)}
+                  >
+                    <TableCell>
+                      {relationship.processName && (
+                        <span className="text-sm font-medium">
+                          {relationship.processName}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <div className="font-medium">
                         {relationship.subject.name}
                       </div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {relationship.subject.uuid}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </TableCell>
-                  <TableCell>
-                    <div>
+                      {inQty && (
+                        <Badge variant="secondary" className="mt-1 font-mono">
+                          {inQty}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </TableCell>
+                    <TableCell>
                       <div className="font-medium">
                         {relationship.object.name}
                       </div>
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {relationship.object.uuid}
-                      </div>
-                    </div>
-                  </TableCell>
-
-                  <TableCell className="text-center">
-                    {relationship.flowCategory && (
-                      <Badge variant="secondary" className="text-xs">
-                        {relationship.flowCategory.replace('_', ' ')}
-                      </Badge>
-                    )}
-                  </TableCell>
-
-                  <TableCell className="text-right">
-                    {relationship.emissionsTotal !== undefined ? (
-                      <Badge
-                        variant="outline"
-                        className="text-xs bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800"
-                      >
-                        {relationship.emissionsTotal}{' '}
-                        {relationship.emissionsUnit || 'kgCO2e'}
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-
-                  <TableCell className="text-right">
-                    {relationship.materialLossPercent !== undefined ? (
-                      <Badge
-                        variant="outline"
-                        className="text-xs bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
-                      >
-                        {relationship.materialLossPercent}%
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-
-                  <TableCell className="text-center">
-                    {relationship.qualityChangeCode ? (
-                      (() => {
-                        const qualityInfo = getQualityChangeInfo(
-                          relationship.qualityChangeCode
-                        )
-                        return (
-                          <Badge
-                            variant="outline"
-                            className={qualityInfo.className}
-                          >
-                            {qualityInfo.text}
-                          </Badge>
-                        )
-                      })()
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+                      {outQty && (
+                        <Badge variant="secondary" className="mt-1 font-mono">
+                          {outQty}
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
