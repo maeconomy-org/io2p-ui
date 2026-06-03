@@ -118,7 +118,8 @@ const MaterialFlowPage = () => {
     setDepthWindowStart(0)
   }, [objectUuid])
 
-  // Node focus state: click a node to show its inputs & outputs (bidirectional 3-level fetch)
+  // Node focus state: click a node to show its direct inputs & outputs (1 hop each
+  // way, via the hook's bidirectional fetch).
   const [focusedNode, setFocusedNode] = useState<{
     uuid: string
     name: string
@@ -128,10 +129,9 @@ const MaterialFlowPage = () => {
     router.push('/processes')
   }, [router])
 
-  // Data fetching with depth limiting at the fetch level.
-  // When depth-limited, the hook only fetches objects within 3 topological levels,
-  // avoiding unnecessary API calls for deep nodes in large graphs.
-  // focusNode enables drill-down: BFS starts from that node instead of roots.
+  // Data fetching with depth limiting at the fetch level. When windowed, the hook
+  // only fetches objects within the current slice, avoiding API calls for deep nodes
+  // in large graphs.
   // The depth window is a Sankey-only concept: it's a left-to-right topological
   // slice, which only makes sense in the layered Sankey layout. Network is
   // force-directed and shows the WHOLE graph (cycles included) — that's its job, so
@@ -151,7 +151,17 @@ const MaterialFlowPage = () => {
     focusNodeBidirectional: focusedNode?.uuid,
   })
 
-  // Truncated count = total nodes in graph minus nodes actually fetched
+  // Guard against a stale window: if the graph becomes shallower (e.g. a refetch or
+  // a different object), a previously-deep start could point past the new end, which
+  // would render an empty slice with both pager arrows disabled — a dead end. Clamp
+  // it back to the last valid slice start.
+  useEffect(() => {
+    const maxStart = Math.max(0, totalLevels - DEPTH_WINDOW_SIZE)
+    setDepthWindowStart((s) => Math.min(s, maxStart))
+  }, [totalLevels])
+
+  // "+N" badge: how many of the graph's nodes aren't rendered in the current slice.
+  // (Every node is an edge endpoint, so there are no truly-isolated nodes to skew it.)
   const truncatedCount = isDepthLimited
     ? Math.max(0, totalNodeCount - allMaterials.length)
     : 0

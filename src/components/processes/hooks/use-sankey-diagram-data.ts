@@ -55,7 +55,6 @@ export function useSankeyDiagramData(
   options?: {
     maxDepth?: number
     minDepth?: number
-    focusNode?: string
     focusNodeBidirectional?: string
   }
 ): SankeyDiagramData & { layoutData: SankeyLayoutData | null } {
@@ -63,7 +62,6 @@ export function useSankeyDiagramData(
   const { useObjectsByUUIDs } = useObjects()
   const maxDepth = options?.maxDepth
   const minDepth = options?.minDepth ?? 0
-  const focusNode = options?.focusNode
   const focusNodeBidirectional = options?.focusNodeBidirectional
 
   // Fetch input relationships
@@ -115,12 +113,7 @@ export function useSankeyDiagramData(
 
     // If maxDepth is set, only include UUIDs inside the window [minDepth, +maxDepth)
     if (maxDepth !== undefined) {
-      const keptSet = limitStatementDepth(
-        statements,
-        maxDepth,
-        focusNode,
-        minDepth
-      )
+      const keptSet = limitStatementDepth(statements, maxDepth, minDepth)
       return { kept: Array.from(keptSet) as UUID[], total, totalLevels }
     }
 
@@ -130,7 +123,6 @@ export function useSankeyDiagramData(
     objectUuid,
     maxDepth,
     minDepth,
-    focusNode,
     focusNodeBidirectional,
   ])
 

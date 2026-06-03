@@ -75,7 +75,7 @@ describe('limitStatementDepth', () => {
     ]
 
     it('slides the window deeper: minLevel 2, size 2 keeps levels 2–3 only', () => {
-      const kept = limitStatementDepth(chain, 2, undefined, 2)
+      const kept = limitStatementDepth(chain, 2, 2)
       expect(kept.has('a')).toBe(false) // 0
       expect(kept.has('b')).toBe(false) // 1
       expect(kept.has('c')).toBe(true) // 2
@@ -91,9 +91,9 @@ describe('limitStatementDepth', () => {
         { subject: 'x', object: 'y' },
         { subject: 'y', object: 'x' },
       ]
-      const base = limitStatementDepth(withCycle, 2, undefined, 0)
+      const base = limitStatementDepth(withCycle, 2, 0)
       expect(base.has('x')).toBe(true)
-      const deeper = limitStatementDepth(withCycle, 2, undefined, 2)
+      const deeper = limitStatementDepth(withCycle, 2, 2)
       expect(deeper.has('x')).toBe(false)
       expect(deeper.has('y')).toBe(false)
     })
@@ -154,11 +154,11 @@ describe('limitStatementDepth', () => {
 
     it('windows the leaf input together with its consumer', () => {
       // Deep slice [2,4) holds both x and d — they travel together.
-      const deep = limitStatementDepth(statements, 2, undefined, 2)
+      const deep = limitStatementDepth(statements, 2, 2)
       expect(deep.has('x')).toBe(true)
       expect(deep.has('d')).toBe(true)
       // Base slice [0,2) must NOT contain x anymore (the old stranding bug).
-      const base = limitStatementDepth(statements, 2, undefined, 0)
+      const base = limitStatementDepth(statements, 2, 0)
       expect(base.has('x')).toBe(false)
     })
 
