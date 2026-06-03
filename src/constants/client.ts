@@ -61,7 +61,7 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   sentryRelease: '',
   nodeEnv: 'development',
   emailLoginEnabled: 'false',
-  processDashboardEnabled: 'true',
+  processDashboardEnabled: 'false',
   appName: 'Internet of Materials',
   appDescription: 'Material Management System',
   appAcronym: 'IoM',
