@@ -229,8 +229,9 @@ async function startProcessing(jobId: string) {
       jobId,
     })
 
-    // Update job status to processing
-    await redis.hset(`import:${jobId}`, { status: 'processing' })
+    // Note: the 'processing' status transition now happens inside
+    // processImportJob (after its terminal-status guard) so it can never be
+    // written after the job has already completed. See import-processor.ts.
 
     // Process the job in the background
     setImmediate(() => {

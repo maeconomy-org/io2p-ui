@@ -22,12 +22,20 @@ export async function processImportJob(jobId: string) {
     if (
       !jobData ||
       jobData.status === 'completed' ||
+      jobData.status === 'completed_with_errors' ||
       jobData.status === 'failed' ||
       jobData.status === 'cancelled'
     ) {
       // Job already processed, cancelled, or invalid - no logging needed
       return
     }
+
+    // Mark the job as processing here (not in startProcessing) so that the
+    // "processing" transition is strictly ordered before the terminal write
+    // below and can never overwrite a job that has already completed. Combined
+    // with the terminal-status guard above, this also makes the function
+    // idempotent against duplicate/re-entrant triggers.
+    await hsetWithTTL(REDIS_KEYS.job(jobId), { status: 'processing' })
 
     const totalChunks = parseInt(jobData.totalChunks || '0')
     let processed = parseInt(jobData.processed || '0')

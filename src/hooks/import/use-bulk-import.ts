@@ -87,7 +87,9 @@ export function useBulkImport({
           })
 
           if (autoRedirect) {
-            router.push(`/import-status?jobId=${jobId}`)
+            // redirect=true lets the status page navigate to /objects once the
+            // job reaches a completed state (see import-status/page.tsx).
+            router.push(`/import-status?jobId=${jobId}&redirect=true`)
           }
 
           return { success: true, jobId }
