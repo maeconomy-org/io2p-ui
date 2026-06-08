@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  axios@>=1.0.0 <1.17.0: '>=1.17.0'
+
 importers:
 
   .:
@@ -126,8 +129,8 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       iom-sdk:
-        specifier: 0.2.6
-        version: 0.2.6(axios@1.16.0)
+        specifier: 0.2.7
+        version: 0.2.7(axios@1.17.0)
       ioredis:
         specifier: ^5.10.1
         version: 5.10.1
@@ -2748,8 +2751,8 @@ packages:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
 
-  axios@1.16.0:
-    resolution: {integrity: sha512-6hp5CwvTPlN2A31g5dxnwAX0orzM7pmCRDLnZSX772mv8WDqICwFjowHuPs04Mc8deIld1+ejhtaMn5vp6b+1w==}
+  axios@1.17.0:
+    resolution: {integrity: sha512-J8SwNxprqqpbfenehxWYXE7CW+wM1BB4w3+N+g+/Wx40xM4rsLrfPmHHxSWIxJLYDgSY/HqlFPIYb2/S3rxafw==}
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
@@ -3591,10 +3594,10 @@ packages:
   intl-messageformat@11.2.4:
     resolution: {integrity: sha512-iKP6+uJXn+XcfRgYfGPE3+mqCoODV2vATrXDLo/YkYgIdelJHJPBEbc0GZThipAYPuk+8QJFiPgOfblU085ABg==}
 
-  iom-sdk@0.2.6:
-    resolution: {integrity: sha512-fgpowGC6TihL3+j6o8CrG8Qv1nlFTvL47rbOG9rkjDU3GGDwNEU16eptm1GwGD9dVLddZ2oRxwIhE0OLMqXH1w==}
+  iom-sdk@0.2.7:
+    resolution: {integrity: sha512-nj7wm2W4zhczQpRtFmMbzxReSOkefqxhw1EuKDU5cUguDl/5y42TJquMSaX0e9QpQhhy6JWu7e5BsGWgWOnPbg==}
     peerDependencies:
-      axios: ^1.15.2
+      axios: ^1.17.0
 
   ioredis@5.10.1:
     resolution: {integrity: sha512-HuEDBTI70aYdx1v6U97SbNx9F1+svQKBDo30o0b9fw055LMepzpOOd0Ccg9Q6tbqmBSJaMuY0fB7yw9/vjBYCA==}
@@ -7859,13 +7862,15 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.1.0
 
-  axios@1.16.0:
+  axios@1.17.0:
     dependencies:
       follow-redirects: 1.16.0
       form-data: 4.0.5
+      https-proxy-agent: 5.0.1
       proxy-from-env: 2.1.0
     transitivePeerDependencies:
       - debug
+      - supports-color
 
   balanced-match@1.0.2: {}
 
@@ -8788,9 +8793,9 @@ snapshots:
       '@formatjs/fast-memoize': 3.1.4
       '@formatjs/icu-messageformat-parser': 3.5.7
 
-  iom-sdk@0.2.6(axios@1.16.0):
+  iom-sdk@0.2.7(axios@1.17.0):
     dependencies:
-      axios: 1.16.0
+      axios: 1.17.0
       hash-wasm: 4.12.0
       zod: 3.25.76
 

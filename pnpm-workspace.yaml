@@ -17,3 +17,8 @@ minimumReleaseAgeExclude:
   - next
   - react
   - react-dom
+
+# Security floor: keep axios on the patched line that iom-sdk's peer requires
+# (^1.17.0). Covers the SDK peer and any other transitive axios consumer.
+overrides:
+  axios@>=1.0.0 <1.17.0: '>=1.17.0'
