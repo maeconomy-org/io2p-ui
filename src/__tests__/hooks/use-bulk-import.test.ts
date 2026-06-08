@@ -70,7 +70,9 @@ describe('useBulkImport', () => {
       'import.toasts.jobStarted',
       expect.anything()
     )
-    expect(mockPush).toHaveBeenCalledWith(`/import-status?jobId=${mockJobId}`)
+    expect(mockPush).toHaveBeenCalledWith(
+      `/import-status?jobId=${mockJobId}&redirect=true`
+    )
     expect(response).toEqual({ success: true, jobId: mockJobId })
   })
 
