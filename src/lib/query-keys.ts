@@ -7,12 +7,6 @@
  * Pattern: each entity has a base key, with sub-keys for different
  * query variants. Mutations should invalidate the narrowest possible
  * scope using these keys.
- *
- * TARGET CONVENTION (io2p-client model, see internal-docs §12): entity keys are
- * `entity.list(query)` / `entity.detail(id)` / `entity.children(parentId, query)` typed with
- * io2p-client query shapes; invalidation is narrow (`objects.detail(id)` / `objects.lists()`).
- * The `aggregates.*` / `statements.*` / `groups.*` namespaces are DEPRECATED — they retire as their
- * dormant hooks migrate off `iom-sdk`. New resource namespaces (templates/constants/access) below.
  */
 
 import type {
@@ -35,8 +29,7 @@ export const queryKeys = {
   objects: {
     all: ['objects'] as const,
     lists: () => [...queryKeys.objects.all, 'list'] as const,
-    // Cache-key param is identity-only, so typed loosely (`unknown`) to serve both the io2p
-    // `ListObjectsQuery` (new hooks) and the dormant `QueryParams` during the migration.
+    // `unknown` param serves both the new ListObjectsQuery and the dormant QueryParams mid-migration.
     list: (query?: unknown) => [...queryKeys.objects.lists(), query] as const,
     details: () => [...queryKeys.objects.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.objects.details(), id] as const,

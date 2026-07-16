@@ -1,18 +1,8 @@
 'use client'
 
-/**
- * `createEntityHooks` — the React Query engine every io2p-core *entity* resource rides on.
- *
- * Objects / processes / templates share one surface (`list/get/create/update/delete/restore`) over the
- * `properties[].values[].files[]` substrate; they differ only by facet (objects add hierarchy, processes add
- * inputs/outputs). Rather than hand-write three near-identical hook files, this factory wires the query keys,
- * narrow invalidation, and staleTime once and takes the resource + its key namespace as config. See
- * `internal-docs/ui-refactor-plan.md` §12 (the archetype model).
- *
- * The factory is auth/network-agnostic — it drives whatever `EntityResource` `select(client)` returns, so it
- * unit-tests against a fake resource with no SDK. Instantiation for a concrete resource (`useObjects` etc.)
- * happens in that resource's vertical, where its query-key shape is finalized.
- */
+// The React Query engine for io2p entity resources (objects/processes): list/get/create/update/
+// delete/restore with narrow per-entity invalidation. Network-agnostic — driven by `select(client)`
+// + a key namespace, so it unit-tests against a fake resource.
 
 import {
   useQuery,
@@ -31,10 +21,8 @@ import type {
 import type { Page } from '@/types/iom'
 import { useIomClient } from '@/lib/io2p'
 
-/** Default freshness for entity reads (matches the old hooks' 30s); override per resource. */
 const DEFAULT_STALE_TIME = 30_000
 
-/** The subset of an io2p entity resource the hooks drive (objects & processes satisfy this structurally). */
 export interface EntityResource<
   Dto,
   ListQuery,
@@ -54,7 +42,6 @@ export interface EntityResource<
   restore: (id: string, options?: WriteOptions) => Promise<Dto>
 }
 
-/** The query-key namespace the factory invalidates through (a slice of the `queryKeys` factory). */
 export interface EntityKeys<ListQuery> {
   lists: () => readonly unknown[]
   list: (query?: ListQuery) => readonly unknown[]
@@ -69,13 +56,10 @@ export interface EntityHooksConfig<
   CreateResp,
   UpdateBody,
 > {
-  /** Pick this resource off the io2p client (e.g. `(c) => c.objects`). */
   select: (
     client: Io2pClient
   ) => EntityResource<Dto, ListQuery, CreateBody, CreateResp, UpdateBody>
-  /** This resource's key namespace (e.g. `queryKeys.objects`). */
   keys: EntityKeys<ListQuery>
-  /** Read freshness; defaults to 30s. */
   staleTime?: number
 }
 
@@ -90,7 +74,6 @@ export function createEntityHooks<
 ) {
   const { select, keys, staleTime = DEFAULT_STALE_TIME } = config
 
-  /** Paginated list. `keepPreviousData` avoids a blank flash across page/filter changes. */
   function useList(
     query?: ListQuery,
     options?: { enabled?: boolean; keepPreviousData?: boolean }
@@ -105,7 +88,6 @@ export function createEntityHooks<
     })
   }
 
-  /** Single entity by id — the whole aggregate in one call. Disabled until `id` is present. */
   function useGet(
     id: string | undefined,
     options?: { enabled?: boolean; enrichFiles?: boolean }

@@ -1,14 +1,8 @@
 'use client'
 
-/**
- * The io2p-client entity hooks — `objects` and `processes` instantiated on the `createEntityHooks`
- * factory. These are the TARGET hooks the migration rewires consumers onto; they live here (not the
- * `hooks/api` barrel yet) so they coexist with the dormant `use-objects`/`use-processes` during the
- * transition. When the last consumer moves, the dormant files delete and the barrel flips to these.
- *
- * `templates` is NOT here: the node honors no idempotency/If-Match on template writes, so its
- * `update/delete/restore` signatures differ from `EntityResource` — it gets its own hook later.
- */
+// io2p entity hooks the migration rewires consumers onto. Kept out of the barrel so they coexist with
+// the dormant use-objects/use-processes until their consumers move. Templates omitted — its writes
+// carry no idempotency/If-Match, so its signatures don't fit the factory's EntityResource.
 
 import { useQuery } from '@tanstack/react-query'
 
@@ -42,7 +36,6 @@ const objectBase = createEntityHooks<
   keys: queryKeys.objects,
 })
 
-/** Direct children of `parentId` (the node's `?parent=` filter) — a paginated `Page<ObjectDTO>`. */
 function useObjectChildren(
   parentId: string | undefined,
   query?: ListObjectsQuery,
@@ -57,7 +50,6 @@ function useObjectChildren(
   })
 }
 
-/** The whole descendant subtree of `ancestorId` (the node's `?ancestor=` filter). */
 function useObjectSubtree(
   ancestorId: string | undefined,
   query?: ListObjectsQuery,
@@ -78,7 +70,6 @@ const objectBundle = {
   useSubtree: useObjectSubtree,
 }
 
-/** The objects entity hooks: `useList/useGet/useCreate/useUpdate/useRemove/useRestore` + hierarchy. */
 export function useObjects() {
   return objectBundle
 }
@@ -94,7 +85,6 @@ const processBundle = createEntityHooks<
   keys: queryKeys.processes,
 })
 
-/** The processes entity hooks (no hierarchy — processes have no parent/ancestor filter). */
 export function useProcesses() {
   return processBundle
 }
