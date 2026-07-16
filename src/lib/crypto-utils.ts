@@ -54,7 +54,7 @@ export function encrypt(plaintext: string): string {
     return combined.toString('base64')
   } catch (error) {
     logger.error('Encryption failed', { error })
-    throw new Error('Failed to encrypt value')
+    throw new Error('Failed to encrypt value', { cause: error })
   }
 }
 

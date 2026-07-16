@@ -295,11 +295,11 @@ function getNodeProperties(
   material: EnhancedMaterialObject,
   allMaterials: EnhancedMaterialObject[]
 ) {
-  let category = 0
+  let category: number
   let symbolSize = 35
   let symbol = 'circle'
-  let x = 0
-  let y = 0
+  let x: number
+  let y: number
 
   // Group materials by lifecycle stage for even distribution
   const primaryInputs = allMaterials.filter(
@@ -491,7 +491,7 @@ function getLinkProperties(
   isSelected: boolean
 ) {
   let color = '#9CA3AF'
-  let width = 2
+  let width: number
   let type: 'solid' | 'dashed' | 'dotted' = 'solid'
   let opacity = 0.6
 

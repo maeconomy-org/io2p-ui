@@ -28,9 +28,10 @@ export function PassportQr({ uuid, size = 128, className }: PassportQrProps) {
     const node = containerRef.current
     if (!node) return
 
-    let instance: QRCodeStyling | null = null
     try {
-      instance = new QRCodeStyling(buildQrCodeConfig({ data: uuid, size }))
+      const instance = new QRCodeStyling(
+        buildQrCodeConfig({ data: uuid, size })
+      )
       node.innerHTML = ''
       instance.append(node)
     } catch (error) {
@@ -39,7 +40,6 @@ export function PassportQr({ uuid, size = 128, className }: PassportQrProps) {
 
     return () => {
       if (node) node.innerHTML = ''
-      instance = null
     }
   }, [uuid, size])
 

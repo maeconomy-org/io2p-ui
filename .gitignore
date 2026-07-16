@@ -269,3 +269,5 @@ deploy/certbot/
 .claude/**.local.json
 
 .sentry-projects
+
+internal-docs/
