@@ -1,10 +1,11 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
-import { ChevronRight } from 'lucide-react'
+import type { Column, ColumnDef } from '@tanstack/react-table'
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown } from 'lucide-react'
 
 import {
+  Button,
   CopyButton,
   Tooltip,
   TooltipContent,
@@ -15,6 +16,52 @@ import { cn } from '@/lib'
 
 import { getSelectColumn } from './data-table'
 
+interface SortableOpts {
+  /** Make the column header a server-side sort toggle (needs the table's sort wiring). */
+  sortable?: boolean
+}
+
+// A clickable header that cycles asc → desc → none via TanStack's toggle handler.
+function SortableHeader<T>({
+  column,
+  label,
+}: {
+  column: Column<T, unknown>
+  label: string
+}) {
+  const sorted = column.getIsSorted()
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="-ml-3 h-8"
+      onClick={column.getToggleSortingHandler()}
+    >
+      {label}
+      {sorted === 'asc' ? (
+        <ArrowUp className="ml-1 h-3.5 w-3.5" />
+      ) : sorted === 'desc' ? (
+        <ArrowDown className="ml-1 h-3.5 w-3.5" />
+      ) : (
+        <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-40" />
+      )}
+    </Button>
+  )
+}
+
+function headerCell<T>(
+  id: string,
+  label: string,
+  sortable: boolean | undefined
+): Pick<ColumnDef<T, unknown>, 'header' | 'enableSorting'> {
+  if (!sortable) return { header: () => label, enableSorting: false }
+  return {
+    enableSorting: true,
+    header: ({ column }) => <SortableHeader column={column} label={label} />,
+  }
+}
+
 export function selectColumn<T>(): ColumnDef<T, unknown> {
   return getSelectColumn<T>()
 }
@@ -22,11 +69,12 @@ export function selectColumn<T>(): ColumnDef<T, unknown> {
 export function textColumn<T>(
   id: string,
   header: string,
-  get: (row: T) => ReactNode
+  get: (row: T) => ReactNode,
+  opts: SortableOpts = {}
 ): ColumnDef<T, unknown> {
   return {
     id,
-    header: () => header,
+    ...headerCell<T>(id, header, opts.sortable),
     cell: ({ row }) => get(row.original) ?? '—',
   }
 }
@@ -38,6 +86,7 @@ export function idColumn<T>(
   return {
     id: 'id',
     header: () => header,
+    enableSorting: false,
     cell: ({ row }) => {
       const id = get(row.original)
       return (
@@ -59,11 +108,12 @@ export function formatTimestamp(ms?: number): string {
 export function timestampColumn<T>(
   id: string,
   header: string,
-  get: (row: T) => number | undefined
+  get: (row: T) => number | undefined,
+  opts: SortableOpts = {}
 ): ColumnDef<T, unknown> {
   return {
     id,
-    header: () => header,
+    ...headerCell<T>(id, header, opts.sortable),
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {formatTimestamp(get(row.original))}
@@ -76,6 +126,7 @@ export function nameColumn<T>(
   getName: (row: T) => string,
   options: {
     header?: string
+    sortable?: boolean
     getChildCount?: (row: T) => number | undefined
     getDeleted?: (row: T) => boolean
     deletedLabel?: string
@@ -85,7 +136,7 @@ export function nameColumn<T>(
   const { header = 'Name', getChildCount, getDeleted } = options
   return {
     id: 'name',
-    header: () => header,
+    ...headerCell<T>('name', header, options.sortable),
     cell: ({ row }) => {
       const name = getName(row.original)
       const count = getChildCount?.(row.original) ?? 0
