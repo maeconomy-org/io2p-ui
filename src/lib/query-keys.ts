@@ -7,6 +7,12 @@
  * Pattern: each entity has a base key, with sub-keys for different
  * query variants. Mutations should invalidate the narrowest possible
  * scope using these keys.
+ *
+ * TARGET CONVENTION (io2p-client model, see internal-docs §12): entity keys are
+ * `entity.list(query)` / `entity.detail(id)` / `entity.children(parentId, query)` typed with
+ * io2p-client query shapes; invalidation is narrow (`objects.detail(id)` / `objects.lists()`).
+ * The `aggregates.*` / `statements.*` / `groups.*` namespaces are DEPRECATED — they retire as their
+ * dormant hooks migrate off `iom-sdk`. New resource namespaces (templates/constants/access) below.
  */
 
 import type {
@@ -16,6 +22,13 @@ import type {
   UUStatementsAccessFindDTO,
   UUID,
 } from 'iom-sdk'
+import type {
+  ListTemplatesQuery,
+  ListConstantsQuery,
+  ListSharesQuery,
+  ListFilesQuery,
+  ListUsersQuery,
+} from '@/types/iom'
 
 export const queryKeys = {
   // ─── Objects ─────────────────────────────────────────────
@@ -36,6 +49,7 @@ export const queryKeys = {
   },
 
   // ─── Aggregates ──────────────────────────────────────────
+  // @deprecated io2p-client returns the full aggregate from `objects.get` — retires with use-aggregate.
   aggregates: {
     all: ['aggregates'] as const,
     lists: () => [...queryKeys.aggregates.all, 'list'] as const,
@@ -63,6 +77,7 @@ export const queryKeys = {
   },
 
   // ─── Groups ──────────────────────────────────────────────
+  // @deprecated no groups in v2 — sharing moves to `access.*` (grants + shares).
   groups: {
     all: ['groups'] as const,
     lists: () => [...queryKeys.groups.all, 'list'] as const,
@@ -90,6 +105,7 @@ export const queryKeys = {
   },
 
   // ─── Statements ──────────────────────────────────────────
+  // @deprecated no triples in v2 — relationships are `parents[]`/`ancestor` + first-class processes.
   statements: {
     all: ['statements'] as const,
     lists: () => [...queryKeys.statements.all, 'list'] as const,
@@ -136,6 +152,9 @@ export const queryKeys = {
     current: ['users', 'current'] as const,
     findByIdentifier: (identifier: string) =>
       ['users', 'findByIdentifier', identifier] as const,
+    lists: () => [...queryKeys.users.all, 'list'] as const,
+    list: (query?: ListUsersQuery) =>
+      [...queryKeys.users.lists(), query] as const,
   },
 
   // ─── Files (presigned URLs) ──────────────────────────────
@@ -145,6 +164,11 @@ export const queryKeys = {
     all: ['files'] as const,
     previewUrl: (uuid: string) =>
       [...queryKeys.files.all, 'previewUrl', uuid] as const,
+    lists: () => [...queryKeys.files.all, 'list'] as const,
+    list: (query?: ListFilesQuery) =>
+      [...queryKeys.files.lists(), query] as const,
+    details: () => [...queryKeys.files.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.files.details(), id] as const,
   },
 
   // ─── Formulas ────────────────────────────────────────────
@@ -154,5 +178,43 @@ export const queryKeys = {
     list: (params?: any) => [...queryKeys.formulas.lists(), params] as const,
     details: () => [...queryKeys.formulas.all, 'detail'] as const,
     detail: (uuid: string) => [...queryKeys.formulas.details(), uuid] as const,
+  },
+
+  // ─── Templates (io2p-client entity resource) ─────────────
+  templates: {
+    all: ['templates'] as const,
+    lists: () => [...queryKeys.templates.all, 'list'] as const,
+    list: (query?: ListTemplatesQuery) =>
+      [...queryKeys.templates.lists(), query] as const,
+    details: () => [...queryKeys.templates.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.templates.details(), id] as const,
+  },
+
+  // ─── Constants (io2p-client leaf resource) ───────────────
+  constants: {
+    all: ['constants'] as const,
+    lists: () => [...queryKeys.constants.all, 'list'] as const,
+    list: (query?: ListConstantsQuery) =>
+      [...queryKeys.constants.lists(), query] as const,
+    details: () => [...queryKeys.constants.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.constants.details(), id] as const,
+  },
+
+  // ─── Access (grants + shares; replaces groups) ───────────
+  access: {
+    all: ['access'] as const,
+    grants: {
+      forResource: (resourceId: string) =>
+        [...queryKeys.access.all, 'grants', resourceId] as const,
+      sharedByMe: () => [...queryKeys.access.all, 'sharedByMe'] as const,
+    },
+    shares: {
+      all: ['access', 'shares'] as const,
+      lists: () => [...queryKeys.access.shares.all, 'list'] as const,
+      list: (query?: ListSharesQuery) =>
+        [...queryKeys.access.shares.lists(), query] as const,
+      detail: (id: string) =>
+        [...queryKeys.access.shares.all, 'detail', id] as const,
+    },
   },
 } as const
