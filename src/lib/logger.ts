@@ -43,20 +43,27 @@ function logToConsole(level: LogLevel, message: string, context?: LogContext) {
 
   const timestamp = new Date().toISOString()
   const prefix = `[${timestamp}] [${level.toUpperCase()}]`
-  const contextStr = context ? JSON.stringify(context) : ''
+  // Pass the context NATIVELY (not JSON.stringify) so the console renders
+  // Errors with their real message + stack and objects as expandable trees.
+  // JSON.stringify(error) === '{}', which is why errors used to log as empty
+  // and the only visible stack was this logger's own console call.
+  const args =
+    context === undefined || context === null
+      ? [prefix, message]
+      : [prefix, message, context]
 
   switch (level) {
     case 'debug':
-      console.debug(prefix, message, contextStr)
+      console.debug(...args)
       break
     case 'info':
-      console.info(prefix, message, contextStr)
+      console.info(...args)
       break
     case 'warn':
-      console.warn(prefix, message, contextStr)
+      console.warn(...args)
       break
     case 'error':
-      console.error(prefix, message, contextStr)
+      console.error(...args)
       break
   }
 }
