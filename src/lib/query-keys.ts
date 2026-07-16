@@ -35,10 +35,16 @@ export const queryKeys = {
   objects: {
     all: ['objects'] as const,
     lists: () => [...queryKeys.objects.all, 'list'] as const,
-    list: (params?: QueryParams) =>
-      [...queryKeys.objects.lists(), params] as const,
+    // Cache-key param is identity-only, so typed loosely (`unknown`) to serve both the io2p
+    // `ListObjectsQuery` (new hooks) and the dormant `QueryParams` during the migration.
+    list: (query?: unknown) => [...queryKeys.objects.lists(), query] as const,
     details: () => [...queryKeys.objects.all, 'detail'] as const,
-    detail: (uuid: string) => [...queryKeys.objects.details(), uuid] as const,
+    detail: (id: string) => [...queryKeys.objects.details(), id] as const,
+    children: (parentId: string, query?: unknown) =>
+      [...queryKeys.objects.all, 'children', parentId, query] as const,
+    subtree: (ancestorId: string, query?: unknown) =>
+      [...queryKeys.objects.all, 'subtree', ancestorId, query] as const,
+    // @deprecated version-dedup hack of the dormant use-objects — dies with it.
     byUUIDs: (uuids: string[], includeDeleted?: boolean) =>
       [
         ...queryKeys.objects.all,
@@ -131,8 +137,9 @@ export const queryKeys = {
   processes: {
     all: ['processes'] as const,
     lists: () => [...queryKeys.processes.all, 'list'] as const,
-    detail: (processId: string) =>
-      [...queryKeys.processes.all, 'detail', processId] as const,
+    list: (query?: unknown) => [...queryKeys.processes.lists(), query] as const,
+    details: () => [...queryKeys.processes.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.processes.details(), id] as const,
   },
 
   // ─── Addresses ───────────────────────────────────────────
