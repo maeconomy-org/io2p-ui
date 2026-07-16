@@ -325,7 +325,10 @@
       "passwordLowercase": "Wachtwoord moet minimaal één kleine letter bevatten",
       "passwordUppercase": "Wachtwoord moet minimaal één hoofdletter bevatten",
       "passwordDigit": "Wachtwoord moet minimaal één cijfer bevatten",
-      "passwordSpecial": "Wachtwoord moet minimaal één speciaal teken bevatten"
+      "passwordSpecial": "Wachtwoord moet minimaal één speciaal teken bevatten",
+      "passwordsMustMatch": "Wachtwoorden komen niet overeen",
+      "codeRequired": "Verificatiecode is vereist",
+      "codeInvalid": "Voer de 6-cijferige code in"
     },
     "errors": {
       "authFailed": "Authenticatie mislukt",
@@ -346,6 +349,27 @@
       "differentCert": "Sluit uw browser volledig en start opnieuw. Browsers cachen mTLS-certificaten en de selectie kan niet worden gewijzigd zonder de browser opnieuw te starten.",
       "stillIssuesTitle": "Nog steeds problemen?",
       "stillIssues": "Neem contact op met uw systeembeheerder of IT-ondersteuning. Zij kunnen uw certificaatrechten controleren en helpen bij installatie indien nodig."
+    },
+    "resetPassword": {
+      "title": "Stel een nieuw wachtwoord in",
+      "subtitle": "Kies een sterk wachtwoord voor uw account.",
+      "newPassword": "Nieuw wachtwoord",
+      "confirmPassword": "Bevestig wachtwoord",
+      "confirmPlaceholder": "Voer uw wachtwoord opnieuw in",
+      "submit": "Wachtwoord instellen",
+      "success": "Uw wachtwoord is ingesteld. U kunt nu inloggen.",
+      "error": "Instellen van uw wachtwoord is mislukt. De link is mogelijk verlopen — vraag een nieuwe aan.",
+      "invalidToken": "Deze resetlink is ongeldig of verlopen. Vraag een nieuwe aan om door te gaan.",
+      "requestNew": "Nieuwe link aanvragen"
+    },
+    "twoFactor": {
+      "title": "Tweestapsverificatie",
+      "subtitle": "Voer de 6-cijferige code in om door te gaan.",
+      "comingSoon": "Tweestapsverificatie is nog niet ingeschakeld voor uw account.",
+      "codeLabel": "Verificatiecode",
+      "codePlaceholder": "000000",
+      "verify": "Verifiëren",
+      "notEnabled": "Tweestapsverificatie is nog niet ingeschakeld."
     }
   },
   "objects": {

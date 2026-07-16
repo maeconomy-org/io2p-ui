@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { ArrowRight, Shield, AlertTriangle, Mail, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
@@ -234,7 +235,15 @@ export default function LoginPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem className="text-left">
-                        <FormLabel>{t('auth.password.label')}</FormLabel>
+                        <div className="flex items-center justify-between">
+                          <FormLabel>{t('auth.password.label')}</FormLabel>
+                          <Link
+                            href="/forgot-password"
+                            className="text-sm text-primary transition-colors hover:text-primary/80"
+                          >
+                            {t('auth.forgotPassword.link')}
+                          </Link>
+                        </div>
                         <FormControl>
                           <PasswordInput
                             placeholder={t('auth.password.placeholder')}

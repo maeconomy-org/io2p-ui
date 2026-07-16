@@ -19,7 +19,15 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-export const PUBLIC_PAGES: string[] = ['/', '/help', '/terms', '/privacy']
+export const PUBLIC_PAGES: string[] = [
+  '/',
+  '/help',
+  '/terms',
+  '/privacy',
+  '/forgot-password',
+  '/reset-password',
+  '/two-factor',
+]
 export const PUBLIC_PAGES_SET = new Set(PUBLIC_PAGES)
 
 export type AuthScene = {

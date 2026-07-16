@@ -325,7 +325,10 @@
       "passwordLowercase": "Password must contain at least one lowercase letter",
       "passwordUppercase": "Password must contain at least one uppercase letter",
       "passwordDigit": "Password must contain at least one digit",
-      "passwordSpecial": "Password must contain at least one special character"
+      "passwordSpecial": "Password must contain at least one special character",
+      "passwordsMustMatch": "Passwords do not match",
+      "codeRequired": "Verification code is required",
+      "codeInvalid": "Enter the 6-digit code"
     },
     "errors": {
       "authFailed": "Authentication failed",
@@ -346,6 +349,27 @@
       "differentCert": "Close your browser completely and reopen it. Browsers cache mTLS certificates and the selection cannot be changed without a full browser restart.",
       "stillIssuesTitle": "Still having issues?",
       "stillIssues": "Contact your system administrator or IT support team. They can verify your certificate permissions and help with installation if needed."
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "subtitle": "Choose a strong password for your account.",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "confirmPlaceholder": "Re-enter your password",
+      "submit": "Set Password",
+      "success": "Your password has been set. You can now sign in.",
+      "error": "Failed to set your password. The link may have expired — request a new one.",
+      "invalidToken": "This reset link is invalid or has expired. Request a new one to continue.",
+      "requestNew": "Request a new link"
+    },
+    "twoFactor": {
+      "title": "Two-factor authentication",
+      "subtitle": "Enter the 6-digit code to continue.",
+      "comingSoon": "Two-factor authentication isn't enabled for your account yet.",
+      "codeLabel": "Verification code",
+      "codePlaceholder": "000000",
+      "verify": "Verify",
+      "notEnabled": "Two-factor authentication is not enabled yet."
     }
   },
   "objects": {
