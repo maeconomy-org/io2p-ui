@@ -55,7 +55,10 @@ function ResetPasswordForm() {
         token,
       })
       if (resetError) {
-        throw new Error(resetError.message)
+        // Surface the issuer's reason (e.g. HIBP breach / policy) verbatim;
+        // fall back to the generic copy only if it's empty.
+        setError(resetError.message || t('auth.resetPassword.error'))
+        return
       }
       toast.success(t('auth.resetPassword.success'))
       router.replace('/')

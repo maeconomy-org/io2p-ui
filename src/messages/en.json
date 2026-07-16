@@ -56,7 +56,8 @@
     "tabs": {
       "account": "Account",
       "appearance": "Appearance",
-      "preferences": "Preferences"
+      "preferences": "Preferences",
+      "security": "Security"
     },
     "account": {
       "title": "Account details",
@@ -72,7 +73,10 @@
       "validFrom": "Valid from",
       "validTo": "Valid to",
       "expiresIn": "Certificate expires",
-      "notAvailable": "Not available"
+      "notAvailable": "Not available",
+      "emailAddress": "Email",
+      "verified": "Verified",
+      "unverified": "Unverified"
     },
     "appearance": {
       "title": "Appearance",
@@ -95,6 +99,66 @@
         "network": "Network",
         "detailed": "List",
         "grid": "Grid"
+      }
+    },
+    "security": {
+      "notAvailable": "Not available yet",
+      "common": {
+        "continue": "Continue"
+      },
+      "password": {
+        "title": "Your password",
+        "description": "Change the password you use to sign in.",
+        "current": "Current password",
+        "new": "New password",
+        "save": "Save",
+        "success": "Password updated. Other sessions were signed out.",
+        "error": "Could not update your password. Check your current password and try again."
+      },
+      "twoFactor": {
+        "title": "Two-factor authentication",
+        "description": "Add an extra layer of security to your account.",
+        "enable": "Enable two-factor authentication",
+        "disable": "Disable two-factor authentication",
+        "enabledLabel": "You have two-factor authentication enabled",
+        "setupTitle": "Enable two-factor authentication",
+        "setupDescription": "Scan the QR code with your authenticator app, or enter the secret manually, then enter the 6-digit code.",
+        "codeLabel": "Enter the 6-digit code to verify the setup",
+        "verify": "Verify",
+        "enabled": "Two-factor authentication enabled.",
+        "enableError": "Could not start two-factor setup. Check your password and try again.",
+        "verifyError": "That code was not valid. Try again.",
+        "disabled": "Two-factor authentication disabled.",
+        "disableError": "Could not disable two-factor authentication.",
+        "disableTitle": "Disable two-factor authentication",
+        "disableDescription": "Enter your password to turn off two-factor authentication."
+      },
+      "verifyPassword": {
+        "title": "Verify with password",
+        "description": "Please verify your account by entering your password.",
+        "label": "Your password"
+      },
+      "sessions": {
+        "title": "Active sessions",
+        "description": "These are the devices currently signed in to your account.",
+        "loading": "Loading sessions…",
+        "current": "This session",
+        "other": "Signed-in device",
+        "thisDevice": "Current",
+        "unknownDevice": "Unknown device",
+        "revoke": "End session",
+        "revoked": "Session ended.",
+        "revokeError": "Could not end the session.",
+        "revokedOthers": "All other sessions signed out.",
+        "signOutOthers": "Sign out other sessions"
+      },
+      "connectedAccounts": {
+        "title": "Connected accounts",
+        "description": "Link Google or GitHub to sign in faster."
+      },
+      "passkeys": {
+        "title": "Passkeys",
+        "description": "Use passkeys as a secure alternative to passwords."
       }
     }
   },
@@ -328,7 +392,8 @@
       "passwordSpecial": "Password must contain at least one special character",
       "passwordsMustMatch": "Passwords do not match",
       "codeRequired": "Verification code is required",
-      "codeInvalid": "Enter the 6-digit code"
+      "codeInvalid": "Enter the 6-digit code",
+      "passwordMaxLength": "Password must be at most 256 characters"
     },
     "errors": {
       "authFailed": "Authentication failed",
@@ -369,7 +434,13 @@
       "codeLabel": "Verification code",
       "codePlaceholder": "000000",
       "verify": "Verify",
-      "notEnabled": "Two-factor authentication is not enabled yet."
+      "notEnabled": "Two-factor authentication is not enabled yet.",
+      "backupSubtitle": "Enter one of your backup codes.",
+      "backupLabel": "Backup code",
+      "useBackupCode": "Use a backup code",
+      "useAuthenticator": "Use authenticator app",
+      "trustDevice": "Trust this device for 30 days",
+      "error": "That code was not valid. Try again."
     }
   },
   "objects": {

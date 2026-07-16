@@ -56,7 +56,8 @@
     "tabs": {
       "account": "Account",
       "appearance": "Weergave",
-      "preferences": "Voorkeuren"
+      "preferences": "Voorkeuren",
+      "security": "Beveiliging"
     },
     "account": {
       "title": "Accountgegevens",
@@ -72,7 +73,10 @@
       "validFrom": "Geldig vanaf",
       "validTo": "Geldig tot",
       "expiresIn": "Certificaat verloopt",
-      "notAvailable": "Niet beschikbaar"
+      "notAvailable": "Niet beschikbaar",
+      "emailAddress": "E-mail",
+      "verified": "Geverifieerd",
+      "unverified": "Niet geverifieerd"
     },
     "appearance": {
       "title": "Weergave",
@@ -95,6 +99,66 @@
         "network": "Netwerk",
         "detailed": "Lijst",
         "grid": "Raster"
+      }
+    },
+    "security": {
+      "notAvailable": "Nog niet beschikbaar",
+      "common": {
+        "continue": "Doorgaan"
+      },
+      "password": {
+        "title": "Uw wachtwoord",
+        "description": "Wijzig het wachtwoord waarmee u inlogt.",
+        "current": "Huidig wachtwoord",
+        "new": "Nieuw wachtwoord",
+        "save": "Opslaan",
+        "success": "Wachtwoord bijgewerkt. Andere sessies zijn afgemeld.",
+        "error": "Kan uw wachtwoord niet bijwerken. Controleer uw huidige wachtwoord en probeer het opnieuw."
+      },
+      "twoFactor": {
+        "title": "Tweestapsverificatie",
+        "description": "Voeg een extra beveiligingslaag toe aan uw account.",
+        "enable": "Tweestapsverificatie inschakelen",
+        "disable": "Tweestapsverificatie uitschakelen",
+        "enabledLabel": "Tweestapsverificatie is ingeschakeld",
+        "setupTitle": "Tweestapsverificatie inschakelen",
+        "setupDescription": "Scan de QR-code met uw authenticator-app, of voer de sleutel handmatig in, en voer daarna de 6-cijferige code in.",
+        "codeLabel": "Voer de 6-cijferige code in om de installatie te verifiëren",
+        "verify": "Verifiëren",
+        "enabled": "Tweestapsverificatie ingeschakeld.",
+        "enableError": "Kan de installatie niet starten. Controleer uw wachtwoord en probeer het opnieuw.",
+        "verifyError": "Die code was ongeldig. Probeer het opnieuw.",
+        "disabled": "Tweestapsverificatie uitgeschakeld.",
+        "disableError": "Kan tweestapsverificatie niet uitschakelen.",
+        "disableTitle": "Tweestapsverificatie uitschakelen",
+        "disableDescription": "Voer uw wachtwoord in om tweestapsverificatie uit te schakelen."
+      },
+      "verifyPassword": {
+        "title": "Verifiëren met wachtwoord",
+        "description": "Verifieer uw account door uw wachtwoord in te voeren.",
+        "label": "Uw wachtwoord"
+      },
+      "sessions": {
+        "title": "Actieve sessies",
+        "description": "Dit zijn de apparaten die momenteel bij uw account zijn ingelogd.",
+        "loading": "Sessies laden…",
+        "current": "Deze sessie",
+        "other": "Ingelogd apparaat",
+        "thisDevice": "Huidige",
+        "unknownDevice": "Onbekend apparaat",
+        "revoke": "Sessie beëindigen",
+        "revoked": "Sessie beëindigd.",
+        "revokeError": "Kan de sessie niet beëindigen.",
+        "revokedOthers": "Alle andere sessies afgemeld.",
+        "signOutOthers": "Andere sessies afmelden"
+      },
+      "connectedAccounts": {
+        "title": "Gekoppelde accounts",
+        "description": "Koppel Google of GitHub om sneller in te loggen."
+      },
+      "passkeys": {
+        "title": "Passkeys",
+        "description": "Gebruik passkeys als veilig alternatief voor wachtwoorden."
       }
     }
   },
@@ -328,7 +392,8 @@
       "passwordSpecial": "Wachtwoord moet minimaal één speciaal teken bevatten",
       "passwordsMustMatch": "Wachtwoorden komen niet overeen",
       "codeRequired": "Verificatiecode is vereist",
-      "codeInvalid": "Voer de 6-cijferige code in"
+      "codeInvalid": "Voer de 6-cijferige code in",
+      "passwordMaxLength": "Wachtwoord mag maximaal 256 tekens bevatten"
     },
     "errors": {
       "authFailed": "Authenticatie mislukt",
@@ -369,7 +434,13 @@
       "codeLabel": "Verificatiecode",
       "codePlaceholder": "000000",
       "verify": "Verifiëren",
-      "notEnabled": "Tweestapsverificatie is nog niet ingeschakeld."
+      "notEnabled": "Tweestapsverificatie is nog niet ingeschakeld.",
+      "backupSubtitle": "Voer een van uw back-upcodes in.",
+      "backupLabel": "Back-upcode",
+      "useBackupCode": "Een back-upcode gebruiken",
+      "useAuthenticator": "Authenticator-app gebruiken",
+      "trustDevice": "Dit apparaat 30 dagen vertrouwen",
+      "error": "Die code was ongeldig. Probeer het opnieuw."
     }
   },
   "objects": {

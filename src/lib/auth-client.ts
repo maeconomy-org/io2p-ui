@@ -1,6 +1,7 @@
 'use client'
 
 import { createAuthClient } from 'better-auth/react'
+import { twoFactorClient } from 'better-auth/client/plugins'
 
 import { getCachedConfig } from '@/constants/client'
 
@@ -17,6 +18,18 @@ const authBaseUrl = getCachedConfig()?.authBaseUrl || undefined
 
 export const authClient = createAuthClient({
   baseURL: authBaseUrl,
+  // twoFactorClient is the client counterpart to the issuer's `twoFactor`
+  // server plugin — it exposes authClient.twoFactor.* for the settings UI and
+  // routes a 2FA-enabled user to /two-factor to verify after sign-in.
+  plugins: [
+    twoFactorClient({
+      onTwoFactorRedirect() {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/two-factor'
+        }
+      },
+    }),
+  ],
 })
 
 export const { useSession, signIn, signOut } = authClient

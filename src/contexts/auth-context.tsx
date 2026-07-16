@@ -26,6 +26,8 @@ export interface CertificateInfo {
 // migrate; certificateInfo comes from the issuer's /mtls/credential (deferred).
 export interface AuthResponse {
   username?: string
+  email?: string
+  emailVerified?: boolean
   identifier?: string
   identifierType?: string
   credentials?: string
@@ -38,6 +40,7 @@ export interface AuthResponse {
 interface SessionUser {
   id: string
   email?: string | null
+  emailVerified?: boolean | null
   name?: string | null
   createdAt?: string | Date | null
 }
@@ -45,7 +48,11 @@ interface SessionUser {
 function mapAccount(user: SessionUser): AuthResponse {
   const email = user.email ?? undefined
   return {
-    username: user.name ?? email ?? undefined,
+    // The auth session's `name` — shown as-is; no email fallback so the
+    // Username row only appears when the account actually has a name.
+    username: user.name ?? undefined,
+    email,
+    emailVerified: user.emailVerified ?? undefined,
     identifier: email,
     // TODO: derive from the last-used login method (cert vs email) once the
     // issuer's lastLoginMethod plugin is wired. Until then, treat as UP.
