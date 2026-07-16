@@ -152,8 +152,10 @@ function diffValues(
     const prev = beforeById.get(v.id)
     if (!prev) continue
     const dataChanged = v.data !== undefined && v.data !== prev.data
-    // The read model exposes no calc recipe, only `source`. A recipe is always a (re)bind; an explicit
-    // `null` reverts derived→authored (a change only if it WAS derived); `undefined` leaves it be.
+    // We key calc changes on `source`, not a recipe compare: the read model DOES carry the recipe
+    // (`value.provenance`), but its args are RESOLVED (valueId/constantId) whereas an editable `calc`
+    // uses temp `ref`/constant-name — not field-comparable. So a draft recipe is treated as a (re)bind
+    // (the server no-ops an identical one), and `null` reverts derived→authored only if it WAS derived.
     let calc: CalcInput | null | undefined
     if (v.calc === null) {
       if (prev.source === 'derived') calc = null
