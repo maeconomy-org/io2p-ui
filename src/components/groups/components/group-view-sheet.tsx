@@ -63,7 +63,7 @@ export function GroupViewSheet({
   const t = useTranslations()
   const { useCreateGroup, useGetGroup } = useGroups()
   const updateGroup = useCreateGroup()
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
   const router = useRouter()
 
   // Fetch live group data so changes (from mutations) are reflected immediately
@@ -96,7 +96,7 @@ export function GroupViewSheet({
     permissions: currentUserPermissions,
     isOwner,
     source: permSource,
-  } = getEffectivePermissions(group, userUUID)
+  } = getEffectivePermissions(group, userId)
 
   const canWrite = isOwner || canEditGroup(currentUserPermissions)
 

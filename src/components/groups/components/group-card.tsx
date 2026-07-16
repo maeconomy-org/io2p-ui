@@ -53,7 +53,7 @@ export const GroupCard = memo(function GroupCard({
   onDelete,
 }: GroupCardProps) {
   const t = useTranslations()
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
   const { useCreateGroup } = useGroups()
   const updateGroup = useCreateGroup()
   const router = useRouter()
@@ -70,7 +70,7 @@ export const GroupCard = memo(function GroupCard({
     permissions: currentUserPermissions,
     isOwner,
     source: permSource,
-  } = getEffectivePermissions(group, userUUID)
+  } = getEffectivePermissions(group, userId)
 
   // Can edit group if owner or has GROUP_WRITE permission
   const canWrite = isOwner || canEditGroup(currentUserPermissions)

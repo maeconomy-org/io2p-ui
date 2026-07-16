@@ -78,7 +78,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export function AccountDetails() {
   const t = useTranslations('settings.account')
   const locale = useLocale()
-  const { userInfo } = useAuth()
+  const { userInfo, userId } = useAuth()
 
   const isEmailAuth = userInfo?.identifierType === 'UserAuthUP'
   const cert = userInfo?.certificateInfo
@@ -96,13 +96,13 @@ export function AccountDetails() {
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="divide-y">
-        {userInfo?.userUUID && (
+        {userId && (
           <Row label={t('userId')}>
             <span className="flex items-center gap-2">
               <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs">
-                {userInfo.userUUID}
+                {userId}
               </code>
-              <CopyButton text={userInfo.userUUID} className="h-6 w-6 p-0" />
+              <CopyButton text={userId} className="h-6 w-6 p-0" />
             </span>
           </Row>
         )}

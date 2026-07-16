@@ -122,7 +122,7 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
   onIdAllocated,
   getDraftName,
 }: UseFormDraftPersistenceOptions<T>) {
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
 
   // Active id is held in a ref so the watch callback always reads the latest
   // value synchronously. We mirror it into state ONLY for the public return
@@ -165,15 +165,15 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
 
   const clearDraft = useCallback(() => {
     isClearingRef.current = true
-    if (activeIdRef.current && userUUID) {
-      objectDraftsStore.delete(userUUID, activeIdRef.current)
+    if (activeIdRef.current && userId) {
+      objectDraftsStore.delete(userId, activeIdRef.current)
     }
     activeIdRef.current = null
     setActiveIdForReturn(null)
     setTimeout(() => {
       isClearingRef.current = false
     }, 0)
-  }, [userUUID])
+  }, [userId])
 
   const hasUnsavedChanges = useCallback((): boolean => {
     return isFormDirty(form.getValues(), defaultValues, excludeFields)
@@ -185,7 +185,7 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
    * something the auto-save threshold would otherwise drop.
    */
   const forceSaveDraft = useCallback((): string | null => {
-    if (!userUUID) return null
+    if (!userId) return null
     const values = form.getValues()
     if (!isFormDirty(values, defaultValues, excludeFields)) return null
     let id = activeIdRef.current
@@ -197,10 +197,10 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
     }
     const payload = serialize(values, excludeFields)
     const name = getDraftName(values).trim()
-    objectDraftsStore.save(userUUID, id, payload, name)
+    objectDraftsStore.save(userId, id, payload, name)
     return id
   }, [
-    userUUID,
+    userId,
     form,
     defaultValues,
     excludeFields,
@@ -211,7 +211,7 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
 
   // Auto-save on every form change, gated by the worthiness predicate.
   useEffect(() => {
-    if (!isActive || !userUUID) return
+    if (!isActive || !userId) return
 
     const subscription = form.watch((_values, info) => {
       if (isClearingRef.current) return
@@ -229,7 +229,7 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
 
       if (!isDraftWorthy(values)) {
         if (isFieldEdit && activeIdRef.current) {
-          objectDraftsStore.delete(userUUID, activeIdRef.current)
+          objectDraftsStore.delete(userId, activeIdRef.current)
           activeIdRef.current = null
           setActiveIdForReturn(null)
         }
@@ -245,13 +245,13 @@ export function useFormDraftPersistence<T extends Record<string, any>>({
       }
       const payload = serialize(values, excludeFields)
       const name = getDraftName(values).trim()
-      objectDraftsStore.save(userUUID, id, payload, name)
+      objectDraftsStore.save(userId, id, payload, name)
     })
 
     return () => subscription.unsubscribe()
   }, [
     isActive,
-    userUUID,
+    userId,
     form,
     defaultValues,
     excludeFields,

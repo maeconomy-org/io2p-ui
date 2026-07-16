@@ -53,7 +53,7 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
   const t = useTranslations()
   const themeT = useTranslations('theme')
   const [isOpen, setIsOpen] = useState(false)
-  const { userInfo, logout } = useAuth()
+  const { userInfo, logout, userId } = useAuth()
   const config = useAppConfig()
   const locale = useLocale()
   const { theme, setTheme } = useTheme()
@@ -205,11 +205,8 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
                     )}
                   </div>
                 </div>
-                {userInfo?.userUUID && (
-                  <CopyButton
-                    text={userInfo.userUUID}
-                    className="h-6 w-6 p-0 shrink-0"
-                  />
+                {userId && (
+                  <CopyButton text={userId} className="h-6 w-6 p-0 shrink-0" />
                 )}
               </div>
             </div>

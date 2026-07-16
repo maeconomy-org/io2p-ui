@@ -11,7 +11,7 @@ vi.mock('next-intl', () => ({
 
 const USER = 'user-a-uuid'
 vi.mock('@/contexts/auth-context', () => ({
-  useAuth: () => ({ userUUID: USER }),
+  useAuth: () => ({ userId: USER }),
 }))
 
 const cfg = vi.hoisted(() => ({ processDashboardEnabled: 'true' }))

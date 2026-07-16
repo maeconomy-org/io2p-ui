@@ -7,6 +7,10 @@ export interface ClientConfig {
   // Optional mTLS certificate port (default: 553)
   certPort?: number
 
+  // io2p backend (new): storage-node origin consumed by io2p-client.
+  // authBaseUrl (below) doubles as the better-auth issuer origin.
+  coreBaseUrl?: string
+
   // Optional per-service URL overrides (when services live on different hosts)
   authBaseUrl?: string
   registryBaseUrl?: string
@@ -85,6 +89,8 @@ export function buildRuntimeConfig(): ClientConfig {
     certPort: process.env.CERT_PORT
       ? parseInt(process.env.CERT_PORT)
       : undefined,
+    coreBaseUrl:
+      process.env.CORE_BASE_URL || process.env.NODE_BASE_URL || undefined,
     authBaseUrl: process.env.AUTH_BASE_URL || undefined,
     registryBaseUrl: process.env.REGISTRY_BASE_URL || undefined,
     nodeBaseUrl: process.env.NODE_BASE_URL || undefined,

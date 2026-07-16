@@ -37,7 +37,7 @@ interface UseImportManagerResult {
 export function useImportManager(
   initialJobId?: string | null
 ): UseImportManagerResult {
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
 
   // Jobs list state
   const [jobs, setJobs] = useState<ImportJobSummary[]>([])
@@ -82,7 +82,7 @@ export function useImportManager(
     } finally {
       setJobsLoading(false)
     }
-  }, [userUUID])
+  }, [userId])
 
   // Fetch selected job details
   const fetchSelectedJob = useCallback(

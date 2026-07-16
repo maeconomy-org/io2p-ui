@@ -8,7 +8,7 @@ let mockClient: any
 let mockUserUUID: string | undefined
 vi.mock('@/contexts', () => ({
   useIomSdkClient: () => mockClient,
-  useAuth: () => ({ userUUID: mockUserUUID }),
+  useAuth: () => ({ userId: mockUserUUID }),
 }))
 
 // Mock the logger so test output stays clean.

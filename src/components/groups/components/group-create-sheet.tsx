@@ -59,7 +59,7 @@ export function GroupCreateSheet({
   const t = useTranslations()
   const { useCreateGroup } = useGroups()
   const createGroup = useCreateGroup()
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
 
   const {
     form,
@@ -77,7 +77,7 @@ export function GroupCreateSheet({
   } = useGroupForm({
     open,
     defaultName: group?.name ?? '',
-    ownerUserUUID: userUUID,
+    ownerUserUUID: userId,
   })
 
   const onSubmit = async (data: any) => {

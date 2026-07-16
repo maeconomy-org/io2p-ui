@@ -7,10 +7,9 @@ import { NextIntlClientProvider } from 'next-intl'
 import { Toaster } from '@/components/ui/sonner'
 import {
   QueryProvider,
-  AuthProvider,
+  AuthEffects,
   SearchProvider,
   UploadProvider,
-  useIomSdkClient,
 } from '@/contexts'
 import { UploadCenter } from '@/components/upload-center'
 
@@ -26,10 +25,12 @@ interface ProvidersProps {
  *
  * ThemeProvider (next-themes)
  *   NextIntlClientProvider (i18n messages from server)
- *     QueryProvider (SDK client + config + React Query)
- *       AuthProvider (auth state, depends on SDK client)
- *         SearchProvider (search state, depends on SDK client)
- *           children
+ *     QueryProvider (dormant iom-sdk client + config + React Query)
+ *       AuthEffects (better-auth side effects: cache-wipe, route-guard)
+ *       UploadProvider / SearchProvider
+ *         children
+ *
+ * Auth state itself has no provider — better-auth's useSession is global.
  */
 export function Providers({ children, messages, locale }: ProvidersProps) {
   return (
@@ -50,18 +51,17 @@ export function Providers({ children, messages, locale }: ProvidersProps) {
 }
 
 /**
- * Inner providers that depend on QueryProvider being available.
- * Separated because useIomSdkClient requires QueryProvider context.
+ * Inner providers that depend on QueryProvider being available (React Query
+ * client + config). AuthEffects mounts the one-time auth side effects.
  */
 function InnerProviders({ children }: { children: ReactNode }) {
-  const client = useIomSdkClient()
-
   return (
-    <AuthProvider client={client}>
+    <>
+      <AuthEffects />
       <UploadProvider>
         <SearchProvider>{children}</SearchProvider>
         <UploadCenter />
       </UploadProvider>
-    </AuthProvider>
+    </>
   )
 }

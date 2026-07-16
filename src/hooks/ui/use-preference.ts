@@ -15,7 +15,7 @@ import {
  * Account-scoped UI preferences persisted in `localStorage`.
  *
  * Clones the `useSyncExternalStore` idiom from `use-object-drafts.ts`: a single
- * versioned blob per `userUUID`, a module-level listener set for same-tab sync,
+ * versioned blob per `userId`, a module-level listener set for same-tab sync,
  * a `storage`-event subscription for cross-tab sync, silent-fail `try/catch`,
  * and an SSR-safe server snapshot. All view preferences share one blob, so a
  * single read/write covers them and a future settings page edits the same
@@ -113,24 +113,24 @@ function getServerSnapshot(): string {
 /**
  * Read + write one account-scoped view preference. Returns `[value, setValue]`
  * like `useState`. `value` is the validated stored value or the hardcoded
- * default. Until `userUUID` resolves (auth init / logged out) it returns the
+ * default. Until `userId` resolves (auth init / logged out) it returns the
  * default and `setValue` is a no-op — we never persist without an account.
  */
 export function usePreference<K extends ViewPreferenceKey>(
   key: K
 ): [ViewPreferenceValues[K], (value: ViewPreferenceValues[K]) => void] {
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
 
   // Recreate subscribe/getSnapshot only when the account changes — the raw
   // snapshot must keep a stable string identity (parsing happens below).
-  const subscribe = useMemo(() => subscribeFactory(userUUID), [userUUID])
-  const getSnapshot = useMemo(() => getSnapshotFactory(userUUID), [userUUID])
+  const subscribe = useMemo(() => subscribeFactory(userId), [userId])
+  const getSnapshot = useMemo(() => getSnapshotFactory(userId), [userId])
 
   const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   const value = useMemo<ViewPreferenceValues[K]>(() => {
     const fallback = VIEW_PREFERENCES[key].default
-    if (!userUUID || !raw) return fallback
+    if (!userId || !raw) return fallback
     try {
       const parsed = JSON.parse(raw) as PreferenceBlob
       const stored = parsed?.[key]
@@ -138,14 +138,14 @@ export function usePreference<K extends ViewPreferenceKey>(
     } catch {
       return fallback
     }
-  }, [raw, key, userUUID])
+  }, [raw, key, userId])
 
   const setValue = useCallback(
     (next: ViewPreferenceValues[K]) => {
-      if (!userUUID) return
-      writePreference(userUUID, key, next)
+      if (!userId) return
+      writePreference(userId, key, next)
     },
-    [userUUID, key]
+    [userId, key]
   )
 
   return [value, setValue]

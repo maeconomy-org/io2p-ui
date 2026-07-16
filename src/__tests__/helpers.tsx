@@ -58,7 +58,7 @@ export const createMockAuthContext = (overrides = {}) => ({
   isAuthenticated: true,
   authLoading: false,
   isRefreshing: false,
-  userUUID: 'test-user-uuid',
+  userId: 'test-user-uuid',
   userInfo: {
     userUUID: 'test-user-uuid',
     email: 'test@example.com',

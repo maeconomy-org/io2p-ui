@@ -76,11 +76,11 @@ export function BulkActionsToolbar({
   const t = useTranslations()
   const { useAllGroups } = useGroups()
   const { data: allGroups } = useAllGroups({ enabled: selectedCount > 0 })
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
 
   // Only show groups where the user can write records
   const groups = (allGroups ?? []).filter((g: GroupCreateDTO) =>
-    canUserWriteRecords(g, userUUID)
+    canUserWriteRecords(g, userId)
   )
 
   const [newGroupName, setNewGroupName] = useState('')

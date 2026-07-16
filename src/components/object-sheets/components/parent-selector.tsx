@@ -66,7 +66,7 @@ export function ParentSelector({
   onCreateInline,
 }: ParentSelectorProps) {
   const t = useTranslations()
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -347,11 +347,8 @@ export function ParentSelector({
           {selectedParents.map((parent) => {
             const isDraft = isDraftRef(parent.uuid)
             const draftPayload =
-              isDraft && userUUID
-                ? objectDraftsStore.get<{ name?: string }>(
-                    userUUID,
-                    parent.uuid
-                  )
+              isDraft && userId
+                ? objectDraftsStore.get<{ name?: string }>(userId, parent.uuid)
                 : null
             const searchResult = searchResults.find(
               (obj) => obj.uuid === parent.uuid

@@ -450,7 +450,7 @@ function isAbortError(err: unknown): boolean {
 }
 
 // Module-level singleton keyed on the SDK client AND the authenticated
-// identity (userUUID), so a real re-auth/user-switch rebuilds the service and
+// identity (userId), so a real re-auth/user-switch rebuilds the service and
 // drops any in-flight queue state tied to the old session.
 //
 // Deliberately NOT keyed on the raw JWT: the SDK auto-refreshes the token
@@ -458,7 +458,7 @@ function isAbortError(err: unknown): boolean {
 // Keying on the token rebuilt the service mid-upload, orphaning the in-flight
 // task on the old instance — the file finished uploading and appeared in the
 // sheet, but the upload-center stayed frozen at "uploading 0%" and the
-// beforeunload reload guard never disarmed. userUUID is stable across refreshes
+// beforeunload reload guard never disarmed. userId is stable across refreshes
 // and only changes on login/logout/user-switch — exactly when we want a reset.
 let singletonClient: ApiClient | null = null
 let singletonIdentity: string | null = null
@@ -466,8 +466,8 @@ let singletonService: FileUploadService | null = null
 
 export function useUploadService(): FileUploadService {
   const client = useIomSdkClient()
-  const { userUUID } = useAuth()
-  const identity = userUUID ?? null
+  const { userId } = useAuth()
+  const identity = userId ?? null
 
   if (
     !singletonService ||

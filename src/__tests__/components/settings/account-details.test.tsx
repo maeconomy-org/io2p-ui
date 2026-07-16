@@ -12,7 +12,12 @@ vi.mock('next-intl', () => ({
 
 let mockUserInfo: Record<string, unknown> | null = null
 vi.mock('@/contexts', () => ({
-  useAuth: () => ({ userInfo: mockUserInfo }),
+  useAuth: () => ({
+    userInfo: mockUserInfo,
+    // The id column now reads the top-level userId (core /me.id); tests carry it
+    // on the mock fixture under `userUUID` for brevity.
+    userId: mockUserInfo?.userUUID as string | undefined,
+  }),
 }))
 
 describe('AccountDetails', () => {

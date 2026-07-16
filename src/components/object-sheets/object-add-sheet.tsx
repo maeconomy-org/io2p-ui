@@ -82,7 +82,7 @@ export function ObjectAddSheet({
   onSavedAsDraft,
 }: ObjectAddSheetProps) {
   const t = useTranslations()
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
   const { createObject, isCreating } = useObjectOperations({
     isEditing: false,
     onRefetch: onSave ? () => onSave({}) : undefined, // Wrap onSave to match signature
@@ -278,13 +278,13 @@ export function ObjectAddSheet({
     const hasDraftParents = resolvedParents.some(isDraftRef)
 
     if (hasDraftParents) {
-      if (!userUUID) {
+      if (!userId) {
         toast.error(t('objects.parentCreationFailed', { name: '' }))
         return
       }
       try {
         resolvedParents = await resolveDraftParents(
-          userUUID,
+          userId,
           resolvedParents,
           async (payload) => {
             const result = await createObject(payload as any)
@@ -300,7 +300,7 @@ export function ObjectAddSheet({
       } catch (err) {
         const e = err as ResolveDraftParentsError
         const draftPayload = objectDraftsStore.get<{ name?: string }>(
-          userUUID,
+          userId,
           e?.failedDraftId || ''
         )
         const failedName = draftPayload?.name || t('objects.drafts.untitled')

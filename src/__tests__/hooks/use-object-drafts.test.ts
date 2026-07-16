@@ -16,7 +16,7 @@ const USER_B = 'user-b-uuid'
 let currentUUID: string | undefined = USER_A
 
 vi.mock('@/contexts/auth-context', () => ({
-  useAuth: () => ({ userUUID: currentUUID }),
+  useAuth: () => ({ userId: currentUUID }),
 }))
 
 describe('useObjectDrafts', () => {

@@ -160,7 +160,7 @@ function ObjectsPageContent() {
   // Determine if user has write permissions for the selected group(s)
   const { useAllGroups } = useGroups()
   const { data: allGroups } = useAllGroups()
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
 
   const groupReadOnly = useMemo(() => {
     if (!selectedGroupUUID || !allGroups) return false
@@ -168,8 +168,8 @@ function ObjectsPageContent() {
       (g: GroupCreateDTO) => g.groupUUID === selectedGroupUUID
     )
     if (!group) return false
-    return !canUserWriteRecords(group, userUUID)
-  }, [selectedGroupUUID, allGroups, userUUID])
+    return !canUserWriteRecords(group, userId)
+  }, [selectedGroupUUID, allGroups, userId])
 
   // Use the data adapter hook - handles all data fetching internally
   const viewData = useViewData({

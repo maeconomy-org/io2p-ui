@@ -68,16 +68,16 @@ function getServerSnapshot(): string {
 }
 
 export function useObjectDrafts() {
-  const { userUUID } = useAuth()
+  const { userId } = useAuth()
 
   const indexRaw = useSyncExternalStore(
-    subscribeFactory(userUUID),
-    getSnapshotFactory(userUUID),
+    subscribeFactory(userId),
+    getSnapshotFactory(userId),
     getServerSnapshot
   )
 
   const drafts: DraftIndexEntry[] = (() => {
-    if (!userUUID) return []
+    if (!userId) return []
     try {
       const parsed = JSON.parse(indexRaw)
       if (!Array.isArray(parsed)) return []
@@ -99,24 +99,24 @@ export function useObjectDrafts() {
 
   const getDraft = useCallback(
     <T = unknown>(id: string): T | null => {
-      if (typeof window === 'undefined' || !userUUID) return null
+      if (typeof window === 'undefined' || !userId) return null
       try {
-        const raw = localStorage.getItem(draftKeyFor(userUUID, id))
+        const raw = localStorage.getItem(draftKeyFor(userId, id))
         if (!raw) return null
         return JSON.parse(raw) as T
       } catch {
         return null
       }
     },
-    [userUUID]
+    [userId]
   )
 
   const saveDraft = useCallback(
     (id: string, payload: unknown, name: string) => {
-      if (typeof window === 'undefined' || !userUUID) return
+      if (typeof window === 'undefined' || !userId) return
       try {
-        localStorage.setItem(draftKeyFor(userUUID, id), JSON.stringify(payload))
-        const current = readIndex(userUUID).filter((e) => e.id !== id)
+        localStorage.setItem(draftKeyFor(userId, id), JSON.stringify(payload))
+        const current = readIndex(userId).filter((e) => e.id !== id)
         const next: DraftIndexEntry[] = [
           { id, updatedAt: Date.now(), name },
           ...current,
@@ -126,38 +126,38 @@ export function useObjectDrafts() {
           const evicted = sorted.slice(MAX_DRAFTS)
           for (const e of evicted) {
             try {
-              localStorage.removeItem(draftKeyFor(userUUID, e.id))
+              localStorage.removeItem(draftKeyFor(userId, e.id))
             } catch {
               // silent fail
             }
           }
-          writeIndex(userUUID, sorted.slice(0, MAX_DRAFTS))
+          writeIndex(userId, sorted.slice(0, MAX_DRAFTS))
         } else {
-          writeIndex(userUUID, next)
+          writeIndex(userId, next)
         }
         notify()
       } catch {
         // silent fail
       }
     },
-    [userUUID]
+    [userId]
   )
 
   const deleteDraft = useCallback(
     (id: string) => {
-      if (typeof window === 'undefined' || !userUUID) return
+      if (typeof window === 'undefined' || !userId) return
       try {
-        localStorage.removeItem(draftKeyFor(userUUID, id))
+        localStorage.removeItem(draftKeyFor(userId, id))
         writeIndex(
-          userUUID,
-          readIndex(userUUID).filter((e) => e.id !== id)
+          userId,
+          readIndex(userId).filter((e) => e.id !== id)
         )
         notify()
       } catch {
         // silent fail
       }
     },
-    [userUUID]
+    [userId]
   )
 
   return {
@@ -171,7 +171,7 @@ export function useObjectDrafts() {
 
 // Non-hook escape hatch — useful inside RHF watch callbacks and pure
 // utilities where we can't call useAuth(). Callers must pass the current
-// userUUID; this is the security boundary that isolates drafts per user.
+// userId; this is the security boundary that isolates drafts per user.
 export const objectDraftsStore = {
   read(uuid: string) {
     return readIndex(uuid)

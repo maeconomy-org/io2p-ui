@@ -12,7 +12,7 @@ import {
 const USER_A = 'user-a-uuid'
 
 vi.mock('@/contexts/auth-context', () => ({
-  useAuth: () => ({ userUUID: USER_A }),
+  useAuth: () => ({ userId: USER_A }),
 }))
 
 interface TestForm {
