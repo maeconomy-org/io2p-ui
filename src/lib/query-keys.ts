@@ -125,6 +125,11 @@ export const queryKeys = {
     detail: (uuid: string) => [...queryKeys.addresses.all, uuid] as const,
   },
 
+  // ─── Auth (better-auth session list) ─────────────────────
+  auth: {
+    sessions: ['auth', 'sessions'] as const,
+  },
+
   // ─── Users ───────────────────────────────────────────────
   users: {
     all: ['users'] as const,

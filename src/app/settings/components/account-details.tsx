@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { AlertTriangle, Mail, Shield, ShieldCheck } from 'lucide-react'
 
 import {
+  Badge,
   Card,
   CardContent,
   CardDescription,
@@ -123,9 +124,31 @@ export function AccountDetails() {
           </span>
         </Row>
 
-        {isEmailAuth && userInfo?.username && (
+        {userInfo?.email && (
+          <Row label={t('emailAddress')}>
+            <span className="flex items-center gap-2">
+              {userInfo.email}
+              <Badge
+                variant="outline"
+                className={cn(
+                  'text-[10px]',
+                  userInfo.emailVerified
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-amber-600 dark:text-amber-400'
+                )}
+              >
+                {userInfo.emailVerified ? t('verified') : t('unverified')}
+              </Badge>
+            </span>
+          </Row>
+        )}
+
+        {userInfo?.username && (
           <Row label={t('username')}>{userInfo.username}</Row>
         )}
+
+        <Row label={t('createdAt')}>{createdAt ?? t('notAvailable')}</Row>
+
         {!isEmailAuth && certName && (
           <Row label={t('certificateName')}>{certName}</Row>
         )}
@@ -151,8 +174,6 @@ export function AccountDetails() {
             </span>
           </Row>
         )}
-
-        <Row label={t('createdAt')}>{createdAt ?? t('notAvailable')}</Row>
       </CardContent>
     </Card>
   )
