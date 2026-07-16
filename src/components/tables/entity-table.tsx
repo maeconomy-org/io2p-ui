@@ -1,0 +1,78 @@
+'use client'
+
+import type { ReactNode } from 'react'
+import type {
+  ColumnDef,
+  OnChangeFn,
+  Row,
+  RowSelectionState,
+  VisibilityState,
+} from '@tanstack/react-table'
+import type { Page } from 'io2p-client'
+
+import { DataTable } from './data-table'
+import { pageMeta } from './page-meta'
+
+export interface EntityTableProps<T> {
+  columns: ColumnDef<T, unknown>[]
+  page?: Page<T>
+  getRowId: (row: T) => string
+  fetching?: boolean
+
+  // Pagination — 1-based to the outside; the 0↔1 conversion lives here only.
+  onPageChange?: (page: number) => void
+  onPageSizeChange?: (size: number) => void
+
+  rowSelection?: RowSelectionState
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>
+  enableRowSelection?: boolean | ((row: Row<T>) => boolean)
+
+  columnVisibility?: VisibilityState
+  onColumnVisibilityChange?: OnChangeFn<VisibilityState>
+
+  onRowClick?: (row: T) => void
+  onRowDoubleClick?: (row: T) => void
+  rowClassName?: (row: T) => string | undefined
+
+  emptyIcon?: ReactNode
+  emptyTitle?: string
+  emptyDescription?: string
+}
+
+export function EntityTable<T>({
+  columns,
+  page,
+  getRowId,
+  fetching = false,
+  onPageChange,
+  onPageSizeChange,
+  ...rest
+}: EntityTableProps<T>) {
+  const data = page?.data ?? []
+  const meta = pageMeta(page)
+
+  const emit = (page1Based: number) => {
+    const clamped = Math.min(
+      Math.max(1, page1Based),
+      Math.max(1, meta.totalPages)
+    )
+    onPageChange?.(clamped)
+  }
+
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      getRowId={getRowId}
+      fetching={fetching}
+      pagination={meta}
+      onPageChange={(zeroBased) => emit(zeroBased + 1)}
+      onFirstPage={() => emit(1)}
+      onPreviousPage={() => emit(meta.currentPage - 1)}
+      onNextPage={() => emit(meta.currentPage + 1)}
+      onLastPage={() => emit(meta.totalPages)}
+      onPageSizeChange={onPageSizeChange}
+      {...rest}
+    />
+  )
+}
