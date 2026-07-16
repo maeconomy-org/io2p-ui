@@ -16,9 +16,9 @@ import type {
   CreateOptions,
   UpdateOptions,
   WriteOptions,
+  Page,
 } from 'io2p-client'
 
-import type { Page } from '@/types/iom'
 import { useIomClient } from '@/lib/io2p'
 
 const DEFAULT_STALE_TIME = 30_000

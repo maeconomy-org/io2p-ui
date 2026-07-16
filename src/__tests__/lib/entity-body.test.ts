@@ -5,7 +5,7 @@ import {
   buildUpdateObjectBody,
   type EntityDraft,
 } from '@/lib/entity-body'
-import type { ObjectDTO } from '@/types/iom'
+import type { ObjectDTO } from 'io2p-client'
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 

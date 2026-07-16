@@ -19,7 +19,7 @@ import type {
   UpdateProcessBody,
   ListObjectsQuery,
   ListProcessesQuery,
-} from '@/types/iom'
+} from 'io2p-client'
 
 import { createEntityHooks } from './create-entity-hooks'
 

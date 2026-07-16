@@ -8,7 +8,7 @@ import type {
   UpdateObjectBody,
   ValueInput,
   CalcInput,
-} from '@/types/iom'
+} from 'io2p-client'
 
 export type DraftAddress = NonNullable<ObjectDTO['address']>
 

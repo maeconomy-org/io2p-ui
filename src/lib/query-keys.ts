@@ -22,7 +22,7 @@ import type {
   ListSharesQuery,
   ListFilesQuery,
   ListUsersQuery,
-} from '@/types/iom'
+} from 'io2p-client'
 
 export const queryKeys = {
   // ─── Objects ─────────────────────────────────────────────
