@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Loader2, Pencil } from 'lucide-react'
-import type { ObjectDTO } from 'io2p-client'
 
 import {
   Button,
@@ -14,11 +13,13 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
+  Skeleton,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@/components/ui'
+import { useObjects } from '@/hooks/api/entities'
 
 import { useEntityForm } from './hooks/use-entity-form'
 import {
@@ -31,8 +32,8 @@ import {
 export interface EntitySheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** The loaded entity to view/edit; omit (or null) to create. */
-  entity?: ObjectDTO | null
+  /** Id of the entity to view/edit; omit (or null) to create. The full aggregate is fetched here. */
+  entityId?: string | null
   /** Parents to preset on a create draft (the "add child" flow). */
   defaultParentIds?: string[]
 }
@@ -47,11 +48,18 @@ function DirtyDot({ show }: { show: boolean }) {
 export function EntitySheet({
   open,
   onOpenChange,
-  entity,
+  entityId,
   defaultParentIds,
 }: EntitySheetProps) {
   const t = useTranslations()
-  const isCreate = !entity
+  const isCreate = !entityId
+
+  const { data: entity, isLoading } = useObjects().useGet(
+    entityId ?? undefined,
+    { enrichFiles: true }
+  )
+  const loading = !isCreate && (isLoading || !entity)
+
   const [editing, setEditing] = useState(isCreate)
 
   const { form, submit, isSubmitting } = useEntityForm(entity, {
@@ -100,97 +108,124 @@ export function EntitySheet({
       open={open}
       onOpenChange={(next) => (next ? onOpenChange(true) : requestClose())}
     >
-      <SheetContent className="flex w-full flex-col gap-0 sm:max-w-xl">
-        <SheetHeader>
+      <SheetContent className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-xl">
+        <SheetHeader className="border-b px-6 py-4 pr-12">
           <SheetTitle>
-            {isCreate ? t('objects.create') : (entity?.name ?? '')}
+            {isCreate
+              ? t('objects.create')
+              : loading
+                ? t('common.loading')
+                : (entity?.name ?? '')}
           </SheetTitle>
           <SheetDescription className="sr-only">
             {isCreate ? t('objects.create') : (entity?.name ?? '')}
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-          <Tabs
-            defaultValue="properties"
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            <TabsList className="mx-4">
-              <TabsTrigger value="properties">
-                {t('objects.fields.properties')}
-                <DirtyDot show={!!dirtyFields.properties} />
-              </TabsTrigger>
-              <TabsTrigger value="details">
-                {t('objects.detailsSheet.tabDetails')}
-                <DirtyDot
-                  show={
-                    !!(
-                      dirtyFields.name ||
-                      dirtyFields.description ||
-                      dirtyFields.address
-                    )
-                  }
-                />
-              </TabsTrigger>
-              <TabsTrigger value="parents">
-                {t('objects.detailsSheet.tabParents')}
-                <DirtyDot show={!!dirtyFields.parentIds} />
-              </TabsTrigger>
-            </TabsList>
+        {loading && (
+          <div className="flex-1 space-y-3 px-6 py-6">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-8 w-2/3" />
+          </div>
+        )}
 
-            <ScrollArea className="min-h-0 flex-1 px-4 py-4">
-              <TabsContent value="properties" className="mt-0">
-                <PropertyFields
-                  form={form}
-                  editing={editing}
-                  derivedValueIds={derivedValueIds}
-                />
-              </TabsContent>
-              <TabsContent value="details" className="mt-0 space-y-6">
-                <MetadataFields form={form} editing={editing} />
-                <AddressField form={form} editing={editing} />
-              </TabsContent>
-              <TabsContent value="parents" className="mt-0">
-                <ParentsField
-                  form={form}
-                  editing={editing}
-                  parentNames={parentNames}
-                />
-              </TabsContent>
-            </ScrollArea>
-          </Tabs>
+        {!loading && (
+          <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+            <Tabs
+              defaultValue="properties"
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <TabsList className="mx-6 mt-4 grid grid-cols-3">
+                <TabsTrigger value="properties">
+                  {t('objects.fields.properties')}
+                  <DirtyDot show={!!dirtyFields.properties} />
+                </TabsTrigger>
+                <TabsTrigger value="details">
+                  {t('objects.detailsSheet.tabDetails')}
+                  <DirtyDot
+                    show={
+                      !!(
+                        dirtyFields.name ||
+                        dirtyFields.description ||
+                        dirtyFields.address
+                      )
+                    }
+                  />
+                </TabsTrigger>
+                <TabsTrigger value="parents">
+                  {t('objects.detailsSheet.tabParents')}
+                  <DirtyDot show={!!dirtyFields.parentIds} />
+                </TabsTrigger>
+              </TabsList>
 
-          {isDirty && (
-            <div className="flex items-center gap-2 border-t bg-muted/40 px-4 py-2 text-sm">
-              <span className="font-medium">
-                {t('objects.detailsSheet.unsavedChanges', {
-                  count: dirtyCount,
-                })}
-              </span>
-            </div>
-          )}
+              <ScrollArea className="min-h-0 flex-1 px-4 py-4">
+                <TabsContent value="properties" className="mt-0">
+                  <PropertyFields
+                    form={form}
+                    editing={editing}
+                    derivedValueIds={derivedValueIds}
+                  />
+                </TabsContent>
+                <TabsContent value="details" className="mt-0 space-y-6">
+                  <MetadataFields form={form} editing={editing} />
+                  <AddressField form={form} editing={editing} />
+                </TabsContent>
+                <TabsContent value="parents" className="mt-0">
+                  <ParentsField
+                    form={form}
+                    editing={editing}
+                    parentNames={parentNames}
+                  />
+                </TabsContent>
+              </ScrollArea>
+            </Tabs>
 
-          <SheetFooter className="flex-row justify-end gap-2 border-t px-4 py-3">
-            {!editing ? (
-              <Button type="button" onClick={() => setEditing(true)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                {t('common.edit')}
-              </Button>
-            ) : (
-              <>
-                <Button type="button" variant="outline" onClick={cancel}>
-                  {t('common.cancel')}
-                </Button>
-                <Button type="submit" disabled={isSubmitting || !isDirty}>
-                  {isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {t('common.save')}
-                </Button>
-              </>
+            {isDirty && (
+              <div className="flex items-center gap-2 border-t bg-muted/40 px-4 py-2 text-sm">
+                <span className="font-medium">
+                  {t('objects.detailsSheet.unsavedChanges', {
+                    count: dirtyCount,
+                  })}
+                </span>
+              </div>
             )}
-          </SheetFooter>
-        </form>
+
+            <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
+              {!editing ? (
+                <Button
+                  type="button"
+                  className="flex-1"
+                  onClick={() => setEditing(true)}
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  {t('common.edit')}
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={cancel}
+                  >
+                    {t('common.cancel')}
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={isSubmitting || !isDirty}
+                  >
+                    {isSubmitting && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {t('common.save')}
+                  </Button>
+                </>
+              )}
+            </SheetFooter>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   )

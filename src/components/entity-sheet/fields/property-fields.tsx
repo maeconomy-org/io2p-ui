@@ -4,7 +4,8 @@ import { useTranslations } from 'next-intl'
 import { Plus, Trash2 } from 'lucide-react'
 import { useFieldArray, type UseFormReturn } from 'react-hook-form'
 
-import { Badge, Button, Input, Label } from '@/components/ui'
+import { Badge, Button, Input } from '@/components/ui'
+import { PropertyNameCombobox } from '@/components/properties'
 import type { EntityDraft } from '@/lib/entity-body'
 
 interface PropertyFieldsProps {
@@ -107,22 +108,17 @@ function PropertyRow({
   return (
     <div className="space-y-3 rounded-md border p-3">
       <div className="flex items-end gap-2">
-        <div className="flex-1 space-y-1.5">
-          <Label htmlFor={`prop-${index}-key`}>
-            {t('objects.propertyEditor.key')}
-          </Label>
-          <Input
-            id={`prop-${index}-key`}
-            {...form.register(`properties.${index}.key`, { required: true })}
-          />
-        </div>
-        <div className="flex-1 space-y-1.5">
-          <Label htmlFor={`prop-${index}-label`}>
-            {t('objects.propertyEditor.label')}
-          </Label>
-          <Input
-            id={`prop-${index}-label`}
-            {...form.register(`properties.${index}.label`)}
+        <div className="flex-1">
+          <PropertyNameCombobox
+            value={form.watch(`properties.${index}.key`) ?? ''}
+            onChange={(key, label) => {
+              form.setValue(`properties.${index}.key`, key, {
+                shouldDirty: true,
+              })
+              form.setValue(`properties.${index}.label`, label, {
+                shouldDirty: true,
+              })
+            }}
           />
         </div>
         <Button

@@ -26,18 +26,8 @@ import { useObjectOperations } from '@/components/object-sheets/hooks/use-object
 
 import { buildObjectColumns } from './components/object-columns'
 
-const ObjectDetailsSheet = dynamic(
-  () =>
-    import('@/components/object-sheets/object-details-sheet').then(
-      (mod) => mod.ObjectDetailsSheet
-    ),
-  { ssr: false }
-)
-const ObjectAddSheet = dynamic(
-  () =>
-    import('@/components/object-sheets/object-add-sheet').then(
-      (mod) => mod.ObjectAddSheet
-    ),
+const EntitySheet = dynamic(
+  () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
   { ssr: false }
 )
 const CopyObjectsSheet = dynamic(
@@ -386,19 +376,17 @@ function ObjectsPageContent() {
         )}
       </div>
 
-      <ObjectDetailsSheet
-        isOpen={isObjectSheetOpen}
-        onClose={() => setIsObjectSheetOpen(false)}
-        object={selectedObject}
-        uuid={selectedObject ? idOf(selectedObject) : undefined}
-        isDeleted={selectedObject?.deleted ?? false}
-      />
+      {isObjectSheetOpen && (
+        <EntitySheet
+          open={isObjectSheetOpen}
+          onOpenChange={setIsObjectSheetOpen}
+          entityId={selectedObject ? idOf(selectedObject) : undefined}
+        />
+      )}
 
-      <ObjectAddSheet
-        isOpen={isAddSheetOpen}
-        draftId={null}
-        onClose={() => setIsAddSheetOpen(false)}
-      />
+      {isAddSheetOpen && (
+        <EntitySheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen} />
+      )}
 
       {qrTarget && (
         <QRCodeModal
