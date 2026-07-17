@@ -299,6 +299,204 @@ describe('buildUpdateObjectBody', () => {
   })
 })
 
+// ── files (author at value / property / object; lazy-upload id resolved via fileIdMap) ──────────
+
+describe('files', () => {
+  const ref = (url: string, label?: string) => ({
+    _localId: 'l-' + url,
+    kind: 'reference' as const,
+    reference: { url },
+    ...(label ? { label } : {}),
+  })
+  const pendingUpload = (localId: string, fileName: string) => ({
+    _localId: localId,
+    kind: 'upload' as const,
+    fileName,
+    blob: new File(['x'], fileName),
+  })
+
+  it('create: a reference on a value is authored inline (no id, no upload)', () => {
+    const body = buildCreateObjectInput(
+      draft({
+        properties: [
+          {
+            key: 'spec',
+            values: [{ data: 'sheet', files: [ref('https://x/y.pdf', 'Y')] }],
+          },
+        ],
+      })
+    )
+    expect(body.properties?.[0].values?.[0].files).toEqual([
+      { kind: 'reference', reference: { url: 'https://x/y.pdf' }, label: 'Y' },
+    ])
+  })
+
+  it('create: a pending upload resolves its minted id from the fileIdMap', () => {
+    const body = buildCreateObjectInput(
+      draft({
+        properties: [
+          {
+            key: 'spec',
+            values: [{ data: 'v', files: [pendingUpload('l1', 'a.pdf')] }],
+          },
+        ],
+      }),
+      new Map([['l1', 'file-1']])
+    )
+    expect(body.properties?.[0].values?.[0].files).toEqual([
+      { kind: 'upload', id: 'file-1' },
+    ])
+  })
+
+  it('create: a pending upload with no resolved id is dropped', () => {
+    const body = buildCreateObjectInput(
+      draft({
+        properties: [
+          {
+            key: 'spec',
+            values: [{ data: 'v', files: [pendingUpload('l1', 'a.pdf')] }],
+          },
+        ],
+      })
+    )
+    expect(body.properties?.[0].values?.[0].files).toBeUndefined()
+  })
+
+  it('create: authors object-level and property-level files', () => {
+    const body = buildCreateObjectInput(
+      draft({
+        files: [ref('https://x/obj.pdf')],
+        properties: [
+          {
+            key: 'spec',
+            values: [{ data: 'v' }],
+            files: [ref('https://x/prop.pdf')],
+          },
+        ],
+      })
+    )
+    expect(body.files).toEqual([
+      { kind: 'reference', reference: { url: 'https://x/obj.pdf' } },
+    ])
+    expect(body.properties?.[0].files).toEqual([
+      { kind: 'reference', reference: { url: 'https://x/prop.pdf' } },
+    ])
+  })
+
+  it('update: adds a new file and removes a dropped one on an existing value', () => {
+    const before = loaded({
+      properties: [
+        {
+          id: 'p1',
+          key: 'spec',
+          values: [
+            {
+              id: 'v1',
+              data: 'v',
+              source: 'authored',
+              files: [{ id: 'f-old', kind: 'upload' }],
+            },
+          ],
+        },
+      ],
+    } as unknown as Partial<ObjectDTO>)
+    const body = buildUpdateObjectBody(
+      before,
+      draft({
+        properties: [
+          {
+            id: 'p1',
+            key: 'spec',
+            values: [
+              { id: 'v1', data: 'v', files: [ref('https://x/new.pdf')] },
+            ],
+          },
+        ],
+      })
+    )
+    expect(body.properties?.update?.[0].values?.update).toEqual([
+      {
+        id: 'v1',
+        files: {
+          add: [{ kind: 'reference', reference: { url: 'https://x/new.pdf' } }],
+          remove: ['f-old'],
+        },
+      },
+    ])
+  })
+
+  it('update: a files-only change still emits a value update entry (data omitted)', () => {
+    const before = loaded({
+      properties: [
+        {
+          id: 'p1',
+          key: 'spec',
+          values: [{ id: 'v1', data: 'v', source: 'authored', files: [] }],
+        },
+      ],
+    } as unknown as Partial<ObjectDTO>)
+    const body = buildUpdateObjectBody(
+      before,
+      draft({
+        properties: [
+          {
+            id: 'p1',
+            key: 'spec',
+            values: [
+              { id: 'v1', data: 'v', files: [pendingUpload('l9', 'a.pdf')] },
+            ],
+          },
+        ],
+      }),
+      new Map([['l9', 'file-9']])
+    )
+    expect(body.properties?.update?.[0].values?.update).toEqual([
+      { id: 'v1', files: { add: [{ kind: 'upload', id: 'file-9' }] } },
+    ])
+  })
+
+  it('update: diffs entity-level files', () => {
+    const before = loaded({
+      files: [{ id: 'f-old', kind: 'upload' }],
+    } as unknown as Partial<ObjectDTO>)
+    const body = buildUpdateObjectBody(
+      before,
+      draft({ files: [ref('https://x/obj.pdf')] })
+    )
+    expect(body.files).toEqual({
+      add: [{ kind: 'reference', reference: { url: 'https://x/obj.pdf' } }],
+      remove: ['f-old'],
+    })
+  })
+
+  it('update: unchanged files → no body', () => {
+    const before = loaded({
+      properties: [
+        {
+          id: 'p1',
+          key: 'spec',
+          values: [
+            {
+              id: 'v1',
+              data: 'v',
+              source: 'authored',
+              files: [
+                {
+                  id: 'f1',
+                  kind: 'reference',
+                  reference: { url: 'https://x/y' },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as Partial<ObjectDTO>)
+    // load → no edits → the file's id is preserved on the draft, so it is neither added nor removed
+    expect(buildUpdateObjectBody(before, dtoToDraft(before))).toEqual({})
+  })
+})
+
 // ── dtoToDraft ──────────────────────────────────────────────────────────────
 
 describe('dtoToDraft', () => {

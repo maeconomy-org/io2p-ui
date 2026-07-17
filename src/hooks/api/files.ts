@@ -11,6 +11,24 @@ import type { FileTarget, UploadInput, UploadProgress } from 'io2p-client'
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
 
+// Byte-upload WITHOUT attaching: bytes land in the files collection and the minted id is returned, to be
+// authored inline in an entity body (the lazy, Save-all path — see plan §18). No entity invalidation:
+// the entity mutation that follows owns the cache. Distinct from useFileUpload (target auto-attach).
+export function useFileByteUpload() {
+  const client = useIomClient()
+  return useMutation({
+    mutationFn: (vars: {
+      file: UploadInput
+      onProgress?: (p: UploadProgress) => void
+      signal?: AbortSignal
+    }) =>
+      client.files.upload(vars.file, undefined, {
+        onProgress: vars.onProgress,
+        signal: vars.signal,
+      }),
+  })
+}
+
 export function useFileUpload() {
   const client = useIomClient()
   const qc = useQueryClient()

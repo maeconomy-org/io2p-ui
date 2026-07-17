@@ -16,10 +16,18 @@ const objects = {
   children: vi.fn(),
   subtree: vi.fn(),
 }
+const files = { upload: vi.fn() }
 
 vi.mock('@/lib/io2p', () => ({
-  useIomClient: () => ({ objects }),
+  useIomClient: () => ({ objects, files }),
 }))
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}))
+
+const toastError = vi.fn()
+vi.mock('sonner', () => ({ toast: { error: (m: string) => toastError(m) } }))
 
 function makeWrapper() {
   const queryClient = new QueryClient({
@@ -75,6 +83,96 @@ describe('useEntityForm', () => {
       { name: 'Child', parents: ['p1'] },
       undefined
     )
+  })
+
+  it('create: uploads pending files first, then authors their minted ids', async () => {
+    objects.create.mockResolvedValue({ id: 'new-3' })
+    files.upload.mockResolvedValue({ file: { id: 'file-1' } })
+    const onSaved = vi.fn()
+    const { result } = renderHook(() => useEntityForm(null, { onSaved }), {
+      wrapper: makeWrapper(),
+    })
+
+    act(() => {
+      result.current.form.setValue('name', 'With File')
+      result.current.form.setValue('properties', [
+        {
+          key: 'spec',
+          values: [
+            {
+              data: 'v',
+              files: [
+                {
+                  _localId: 'l1',
+                  kind: 'upload' as const,
+                  blob: new File(['x'], 'a.pdf'),
+                },
+              ],
+            },
+          ],
+        },
+      ])
+    })
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(files.upload).toHaveBeenCalledTimes(1)
+    expect(objects.create).toHaveBeenCalledWith(
+      {
+        name: 'With File',
+        properties: [
+          {
+            key: 'spec',
+            values: [
+              {
+                data: 'v',
+                ref: undefined,
+                files: [{ kind: 'upload', id: 'file-1' }],
+              },
+            ],
+          },
+        ],
+      },
+      undefined
+    )
+    expect(onSaved).toHaveBeenCalledWith('new-3')
+  })
+
+  it('aborts the save (and toasts) when an upload fails', async () => {
+    files.upload.mockRejectedValue(new Error('boom'))
+    const onSaved = vi.fn()
+    const { result } = renderHook(() => useEntityForm(null, { onSaved }), {
+      wrapper: makeWrapper(),
+    })
+
+    act(() => {
+      result.current.form.setValue('name', 'X')
+      result.current.form.setValue('properties', [
+        {
+          key: 'spec',
+          values: [
+            {
+              data: 'v',
+              files: [
+                {
+                  _localId: 'l1',
+                  kind: 'upload' as const,
+                  blob: new File(['x'], 'a.pdf'),
+                },
+              ],
+            },
+          ],
+        },
+      ])
+    })
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(objects.create).not.toHaveBeenCalled()
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(toastError).toHaveBeenCalledWith('objects.files.uploadFailed')
   })
 
   it('edit with no changes: no update call (empty diff), still reports saved', async () => {

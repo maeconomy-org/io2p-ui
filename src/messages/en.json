@@ -646,6 +646,9 @@
     },
     "files": {
       "preview": "Preview in new tab",
+      "attach": "Attach",
+      "saveToAttach": "Save the object first to attach files",
+      "uploadFailed": "Could not upload one or more files — nothing was saved",
       "delete": "Delete file",
       "filePreview": "File Preview",
       "deleteTitle": "Delete File",

@@ -849,6 +849,9 @@
     },
     "files": {
       "preview": "Voorbeeld in nieuw tabblad",
+      "attach": "Bijlage",
+      "saveToAttach": "Sla het object eerst op om bestanden toe te voegen",
+      "uploadFailed": "Een of meer bestanden konden niet worden geüpload — er is niets opgeslagen",
       "delete": "Bestand verwijderen",
       "filePreview": "Bestandsvoorbeeld",
       "deleteTitle": "Bestand verwijderen",
