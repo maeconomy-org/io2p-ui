@@ -170,6 +170,7 @@
     "back": "Terug",
     "backToHome": "Terug naar start",
     "cancel": "Annuleren",
+    "remove": "Verwijderen",
     "add": "Toevoegen",
     "update": "Bijwerken",
     "edit": "Bewerken",
@@ -565,6 +566,18 @@
       "properties": "Eigenschappen",
       "files": "Bestanden",
       "group": "Groep"
+    },
+    "detailsSheet": {
+      "noParents": "Geen bovenliggende objecten",
+      "noProperties": "Geen eigenschappen"
+    },
+    "propertyEditor": {
+      "key": "Sleutel",
+      "label": "Label",
+      "value": "Waarde",
+      "derived": "Afgeleid",
+      "addProperty": "Eigenschap toevoegen",
+      "addValue": "Waarde toevoegen"
     },
     "address": {
       "street": "Straat",

@@ -170,6 +170,7 @@
     "back": "Back",
     "backToHome": "Back to Home",
     "cancel": "Cancel",
+    "remove": "Remove",
     "add": "Add",
     "update": "Update",
     "edit": "Edit",
@@ -562,6 +563,18 @@
       "properties": "Properties",
       "files": "Files",
       "group": "Group"
+    },
+    "detailsSheet": {
+      "noParents": "No parents",
+      "noProperties": "No properties"
+    },
+    "propertyEditor": {
+      "key": "Key",
+      "label": "Label",
+      "value": "Value",
+      "derived": "Derived",
+      "addProperty": "Add property",
+      "addValue": "Add value"
     },
     "address": {
       "street": "Street",
