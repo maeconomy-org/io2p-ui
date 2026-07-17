@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   buildCreateObjectInput,
   buildUpdateObjectBody,
+  dtoToDraft,
   type EntityDraft,
 } from '@/lib/entity-body'
 import type { ObjectDTO } from 'io2p-client'
@@ -295,5 +296,75 @@ describe('buildUpdateObjectBody', () => {
       })
     )
     expect(body).toEqual({})
+  })
+})
+
+// ── dtoToDraft ──────────────────────────────────────────────────────────────
+
+describe('dtoToDraft', () => {
+  it('maps scalars, parents (to ids), and properties/values (with ids)', () => {
+    const dto = loaded({
+      name: 'Wall A',
+      description: 'a wall',
+      address: { city: 'Zurich' },
+      parents: [{ id: 'p1', name: 'Building' }, { id: 'p2' }],
+      properties: [
+        {
+          id: 'prop1',
+          key: 'height',
+          label: 'Height',
+          values: [{ id: 'v1', data: '3m', source: 'authored' }],
+        },
+      ],
+    } as unknown as Partial<ObjectDTO>)
+
+    expect(dtoToDraft(dto)).toEqual({
+      name: 'Wall A',
+      description: 'a wall',
+      address: { city: 'Zurich' },
+      parentIds: ['p1', 'p2'],
+      properties: [
+        {
+          id: 'prop1',
+          key: 'height',
+          label: 'Height',
+          description: undefined,
+          values: [{ id: 'v1', data: '3m' }],
+        },
+      ],
+    })
+  })
+
+  it('defaults missing description/address/parents/properties to empty', () => {
+    const d = dtoToDraft(loaded({ name: 'Bare' }))
+    expect(d).toEqual({
+      name: 'Bare',
+      description: null,
+      address: null,
+      parentIds: [],
+      properties: [],
+    })
+  })
+
+  it('round-trips: load → no edits → empty PATCH body', () => {
+    const dto = loaded({
+      name: 'Wall A',
+      description: 'a wall',
+      address: { city: 'Zurich' },
+      parents: [{ id: 'p1', name: 'Building' }],
+      properties: [
+        {
+          id: 'prop1',
+          key: 'height',
+          label: 'Height',
+          values: [
+            { id: 'v1', data: '3m', source: 'authored' },
+            { id: 'v2', data: '9', source: 'derived' },
+          ],
+        },
+      ],
+    } as unknown as Partial<ObjectDTO>)
+
+    expect(buildUpdateObjectBody(dto, dtoToDraft(dto))).toEqual({})
   })
 })

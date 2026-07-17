@@ -35,6 +35,26 @@ export interface EntityDraft {
   properties: DraftProperty[]
 }
 
+// The read half of the round-trip: load an ObjectDTO into an editable draft. Derived values carry
+// their computed `data` and keep `calc` unset — so an untouched save is a no-op (diffValues sees no
+// data/calc change) and derivation is preserved. Re-binding a formula (editable calc) is a later
+// enhancement; the read view renders the recipe from `value.provenance`.
+export function dtoToDraft(dto: ObjectDTO): EntityDraft {
+  return {
+    name: dto.name,
+    description: dto.description ?? null,
+    address: dto.address ?? null,
+    parentIds: (dto.parents ?? []).map((p) => p.id),
+    properties: (dto.properties ?? []).map((p) => ({
+      id: p.id,
+      key: p.key,
+      label: p.label,
+      description: p.description,
+      values: p.values.map((v) => ({ id: v.id, data: v.data })),
+    })),
+  }
+}
+
 function toCreateValue(v: DraftValue): ValueInput {
   if (v.calc) return { calc: v.calc, ref: v.ref }
   return { data: v.data ?? '', ref: v.ref }
