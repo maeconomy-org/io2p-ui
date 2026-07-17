@@ -55,14 +55,22 @@ export function dtoToDraft(dto: ObjectDTO): EntityDraft {
   }
 }
 
+// A calc is only real once it has a source (a stored formula or an inline expression). A value in
+// "formula mode" before a formula is picked (`{ args: [] }`) is NOT a value — the node would 422 it.
+function isRealCalc(calc: CalcInput | null | undefined): calc is CalcInput {
+  return !!calc && (!!calc.formulaId || !!calc.expression)
+}
+
 function toCreateValue(v: DraftValue): ValueInput {
-  if (v.calc) return { calc: v.calc, ref: v.ref }
+  if (isRealCalc(v.calc)) return { calc: v.calc, ref: v.ref }
   return { data: v.data ?? '', ref: v.ref }
 }
 
-// Blank, non-derived values aren't real values.
+// Blank authored values and half-formed calcs aren't real values.
 function nonEmptyValues(values: DraftValue[]): DraftValue[] {
-  return values.filter((v) => v.calc || (v.data ?? '').trim() !== '')
+  return values.filter(
+    (v) => isRealCalc(v.calc) || (v.data ?? '').trim() !== ''
+  )
 }
 
 export function buildCreateObjectInput(draft: EntityDraft): CreateObjectInput {
@@ -125,7 +133,7 @@ type ValueSections = NonNullable<PropertyUpdate['values']>
 type ValueAdd = NonNullable<ValueSections['add']>[number]
 
 function toAddValue(v: DraftValue): ValueAdd {
-  if (v.calc) return { calc: v.calc, ref: v.ref }
+  if (isRealCalc(v.calc)) return { calc: v.calc, ref: v.ref }
   return { data: v.data ?? '', ref: v.ref }
 }
 
@@ -152,7 +160,7 @@ function diffValues(
     let calc: CalcInput | null | undefined
     if (v.calc === null) {
       if (prev.source === 'derived') calc = null
-    } else if (v.calc) {
+    } else if (isRealCalc(v.calc)) {
       calc = v.calc
     }
     const calcChanged = calc !== undefined

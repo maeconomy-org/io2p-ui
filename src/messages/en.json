@@ -565,6 +565,18 @@
       "files": "Files",
       "group": "Group"
     },
+    "formulaEditor": {
+      "expression": "Expression",
+      "switchToFormula": "Use a formula",
+      "switchToText": "Use a plain value",
+      "selectFormula": "Select a formula",
+      "noVariables": "This formula has no variables",
+      "noNumericValues": "No numeric values to bind",
+      "expressionPlaceholder": "e.g. w * h",
+      "bindVariables": "Bind variables",
+      "selectValue": "Select a value",
+      "result": "Result"
+    },
     "detailsSheet": {
       "noParents": "No parents",
       "tabDetails": "Details",

@@ -568,6 +568,18 @@
       "files": "Bestanden",
       "group": "Groep"
     },
+    "formulaEditor": {
+      "expression": "Formule",
+      "switchToFormula": "Formule gebruiken",
+      "switchToText": "Vaste waarde gebruiken",
+      "selectFormula": "Kies een formule",
+      "noVariables": "Deze formule heeft geen variabelen",
+      "noNumericValues": "Geen numerieke waarden om te koppelen",
+      "expressionPlaceholder": "bijv. b * h",
+      "bindVariables": "Variabelen koppelen",
+      "selectValue": "Kies een waarde",
+      "result": "Resultaat"
+    },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",
       "tabDetails": "Details",

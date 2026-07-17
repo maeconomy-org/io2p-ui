@@ -1,22 +1,54 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import { Plus, Trash2 } from 'lucide-react'
+import { FunctionSquare, Plus, Trash2, TextInitial } from 'lucide-react'
 import { useFieldArray, type UseFormReturn } from 'react-hook-form'
 
-import { Badge, Button, Input, Label } from '@/components/ui'
+import { Badge, Button, Label } from '@/components/ui'
+import { cn } from '@/lib'
 import { PropertyNameCombobox } from '@/components/properties'
 import {
   getValuePlaceholder,
   type PropertyDictionaryLocale,
 } from '@/constants/property-dictionary'
-import type { EntityDraft } from '@/lib/entity-body'
+import type { EntityDraft, DraftValue } from '@/lib/entity-body'
+
+import {
+  FormulaSelect,
+  FormulaBindings,
+  type FormulaSibling,
+} from './formula-value-editor'
 
 interface PropertyFieldsProps {
   form: UseFormReturn<EntityDraft>
   editing: boolean
-  /** Value ids whose source is derived — rendered read-only (formula re-binding is a follow-up). */
+  /** Value ids whose source is derived on the loaded entity — read-only (editing is phase 2). */
   derivedValueIds: Set<string>
+}
+
+// A new value carries a client `ref` so a sibling formula can bind to it (calc arg -> ref).
+function newValue(): DraftValue {
+  return { data: '', ref: crypto.randomUUID() }
+}
+
+// Numeric draft values a formula can bind to: key = existing id ?? new ref. Non-numeric values
+// (pure text) are excluded — a formula can only compute over numbers.
+function collectSiblings(
+  properties: EntityDraft['properties'],
+  selfKey: string | undefined
+): FormulaSibling[] {
+  const out: FormulaSibling[] = []
+  properties.forEach((p) => {
+    p.values.forEach((v) => {
+      const key = v.id ?? v.ref
+      if (!key || key === selfKey || v.calc) return // skip self + other formulas
+      const num = Number.parseFloat(v.data ?? '')
+      if (Number.isFinite(num)) {
+        out.push({ key, label: p.label || p.key || '—', num })
+      }
+    })
+  })
+  return out
 }
 
 export function PropertyFields({
@@ -79,12 +111,11 @@ export function PropertyFields({
           onRemove={() => remove(index)}
         />
       ))}
-      {/* A new property always starts with one (empty) value. */}
       <Button
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => append({ key: '', label: '', values: [{ data: '' }] })}
+        onClick={() => append({ key: '', label: '', values: [newValue()] })}
       >
         <Plus className="mr-2 h-4 w-4" />
         {t('objects.propertyEditor.addProperty')}
@@ -111,10 +142,10 @@ function PropertyRow({
     name: `properties.${index}.values`,
   })
 
-  // Selecting a known property surfaces its expected-format example as the value placeholder.
   const propKey = form.watch(`properties.${index}.key`)
   const valuePlaceholder =
     getValuePlaceholder(propKey, locale) ?? t('objects.propertyEditor.value')
+  const allProperties = form.watch('properties')
 
   return (
     <div className="space-y-3 rounded-md border p-3">
@@ -124,7 +155,7 @@ function PropertyRow({
           <PropertyNameCombobox
             className="h-10"
             placeholder={t('objects.propertyEditor.namePlaceholder')}
-            value={form.watch(`properties.${index}.key`) ?? ''}
+            value={propKey ?? ''}
             onChange={(key, label) => {
               form.setValue(`properties.${index}.key`, key, {
                 shouldDirty: true,
@@ -150,24 +181,79 @@ function PropertyRow({
         <Label>{t('objects.propertyEditor.value')}</Label>
         <div className="space-y-2">
           {fields.map((field, vIndex) => {
-            const valueId = form.watch(
-              `properties.${index}.values.${vIndex}.id`
-            )
-            const isDerived = !!valueId && derivedValueIds.has(valueId)
-            return (
-              <div key={field.id} className="flex items-center gap-2">
-                <Input
-                  placeholder={valuePlaceholder}
-                  readOnly={isDerived}
-                  {...form.register(
-                    `properties.${index}.values.${vIndex}.data`
-                  )}
-                />
-                {isDerived ? (
-                  <Badge variant="outline" className="shrink-0 text-[10px]">
+            const base = `properties.${index}.values.${vIndex}` as const
+            const value = form.watch(base)
+            const existingDerived =
+              !!value?.id && derivedValueIds.has(value.id) && !value.calc
+            const isFormula = !!value?.calc
+            const selfKey = value?.id ?? value?.ref
+
+            // Loaded derived values render read-only until the provenance editor lands (phase 2).
+            if (existingDerived) {
+              return (
+                <div
+                  key={field.id}
+                  className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                >
+                  <span>{value?.data || '—'}</span>
+                  <Badge variant="outline" className="text-[10px]">
                     {t('objects.propertyEditor.derived')}
                   </Badge>
-                ) : (
+                </div>
+              )
+            }
+
+            const toggleLabel = isFormula
+              ? t('objects.formulaEditor.switchToText')
+              : t('objects.formulaEditor.switchToFormula')
+
+            return (
+              <div key={field.id} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  {/* One field, mode-switch button inside (currency-selector pattern). */}
+                  <div className="flex flex-1 items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                    {isFormula ? (
+                      <FormulaSelect
+                        className="h-10 flex-1 border-0 shadow-none focus:ring-0 focus:ring-offset-0"
+                        formulaId={value?.calc?.formulaId}
+                        onSelect={(formulaId) =>
+                          form.setValue(
+                            `${base}.calc`,
+                            { formulaId, args: [] },
+                            { shouldDirty: true }
+                          )
+                        }
+                      />
+                    ) : (
+                      <input
+                        className="h-10 min-w-0 flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground"
+                        placeholder={valuePlaceholder}
+                        {...form.register(`${base}.data`)}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        form.setValue(
+                          `${base}.calc`,
+                          isFormula ? undefined : { args: [] },
+                          { shouldDirty: true }
+                        )
+                      }
+                      title={toggleLabel}
+                      aria-label={toggleLabel}
+                      className={cn(
+                        'flex h-10 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground',
+                        isFormula && 'text-primary'
+                      )}
+                    >
+                      {isFormula ? (
+                        <TextInitial className="h-4 w-4" />
+                      ) : (
+                        <FunctionSquare className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"
@@ -177,6 +263,15 @@ function PropertyRow({
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                </div>
+                {isFormula && value?.calc?.formulaId && (
+                  <FormulaBindings
+                    calc={value.calc}
+                    siblings={collectSiblings(allProperties, selfKey)}
+                    onChange={(calc) =>
+                      form.setValue(`${base}.calc`, calc, { shouldDirty: true })
+                    }
+                  />
                 )}
               </div>
             )
@@ -185,7 +280,7 @@ function PropertyRow({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => append({ data: '' })}
+            onClick={() => append(newValue())}
           >
             <Plus className="mr-2 h-4 w-4" />
             {t('objects.propertyEditor.addValue')}
