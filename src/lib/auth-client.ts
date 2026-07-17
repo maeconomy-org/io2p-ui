@@ -34,17 +34,39 @@ export const authClient = createAuthClient({
 
 export const { useSession, signIn, signOut } = authClient
 
+// The io2p-client calls getToken() before EVERY request, so the ~15-min JWT is cached in-memory and
+// reused until shortly before it expires. A `force` (the client's one-shot retry on a 401) or logout
+// bypasses/clears the cache.
+let cachedToken: { token: string; expMs: number } | null = null
+
+function jwtExpMs(token: string): number {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1] ?? ''))
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : 0
+  } catch {
+    return 0
+  }
+}
+
+/** Drop the cached core token (call on logout / identity switch). */
+export function clearCoreToken(): void {
+  cachedToken = null
+}
+
 /**
- * Mint the short-lived (~15 min) JWT that io2p-core expects as a Bearer token.
- * The better-auth session cookie authenticates this request (`credentials:
- * 'include'`); io2p-core verifies the JWT offline via the issuer's JWKS. This
- * is the closure handed to `createClient({ getToken })` — the io2p-client
- * re-invokes it with `{ force: true }` once on a 401, and since the endpoint
- * always mints fresh from the session, no client-side caching is needed here.
+ * Mint (or return the cached) short-lived JWT io2p-core expects as a Bearer token. The better-auth
+ * session cookie authenticates the mint request; io2p-core verifies the JWT offline via the issuer's
+ * JWKS. Handed to `createClient({ getToken })`.
  */
-export async function getCoreToken(_opts?: {
+export async function getCoreToken(opts?: {
   force?: boolean
 }): Promise<string> {
+  const now = Date.now()
+  // Refresh 60s early to avoid handing io2p-core a token that expires mid-flight.
+  if (!opts?.force && cachedToken && cachedToken.expMs - 60_000 > now) {
+    return cachedToken.token
+  }
+
   const base = getCachedConfig()?.authBaseUrl ?? ''
   const res = await fetch(`${base}/api/auth/token`, { credentials: 'include' })
   if (!res.ok) {
@@ -53,6 +75,11 @@ export async function getCoreToken(_opts?: {
   const data = (await res.json()) as { token?: string }
   if (!data.token) {
     throw new Error('Token endpoint returned no token')
+  }
+
+  cachedToken = {
+    token: data.token,
+    expMs: jwtExpMs(data.token) || now + 14 * 60_000,
   }
   return data.token
 }

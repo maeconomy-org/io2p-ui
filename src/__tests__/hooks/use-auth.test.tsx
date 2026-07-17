@@ -26,6 +26,7 @@ const mockGetSession = vi.fn()
 
 vi.mock('@/lib/auth-client', () => ({
   useSession: () => sessionState,
+  clearCoreToken: () => {},
   authClient: {
     signIn: { email: (input: any) => mockSignInEmail(input) },
     signOut: () => mockSignOut(),

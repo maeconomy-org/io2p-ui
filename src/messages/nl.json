@@ -897,7 +897,8 @@
       "failed": "Objecten kopiëren mislukt",
       "action": "Kopiëren",
       "copyHere": "Objecten hier kopiëren"
-    }
+    },
+    "itemsCount": "{count} item{count, plural, one {} other {s}}"
   },
   "processes": {
     "title": "I/O-processen",

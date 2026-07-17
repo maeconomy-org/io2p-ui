@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { PUBLIC_PAGES_SET, getCachedConfig } from '@/constants'
 import { clearLegacyDrafts } from '@/components/object-sheets/hooks/use-object-drafts'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, clearCoreToken, useSession } from '@/lib/auth-client'
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
 
@@ -91,6 +91,7 @@ export function useAuth() {
   const logout = () => {
     // Clear cached server state synchronously so the login screen can't flash
     // the previous user's data, then sign out at the issuer.
+    clearCoreToken()
     queryClient.clear()
     router.push('/')
     void authClient.signOut()
@@ -171,6 +172,7 @@ export function AuthEffects() {
   useEffect(() => {
     const prev = prevUserIdRef.current
     if (prev && prev !== sessionUserId) {
+      clearCoreToken()
       queryClient.clear()
     }
     prevUserIdRef.current = sessionUserId

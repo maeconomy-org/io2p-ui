@@ -897,7 +897,8 @@
       "failed": "Failed to copy objects",
       "action": "Duplicate",
       "copyHere": "Copy Objects Here"
-    }
+    },
+    "itemsCount": "{count} item{count, plural, one {} other {s}}"
   },
   "processes": {
     "title": "I/O Processes",
