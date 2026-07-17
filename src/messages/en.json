@@ -171,6 +171,7 @@
     "backToHome": "Back to Home",
     "cancel": "Cancel",
     "remove": "Remove",
+    "discard": "Discard",
     "add": "Add",
     "update": "Update",
     "edit": "Edit",
@@ -566,6 +567,11 @@
     },
     "detailsSheet": {
       "noParents": "No parents",
+      "tabDetails": "Details",
+      "tabParents": "Parents",
+      "unsavedChanges": "{count} unsaved change{count, plural, one {} other {s}}",
+      "discardConfirm": "Discard unsaved changes?",
+      "editEntity": "Edit",
       "noProperties": "No properties"
     },
     "propertyEditor": {

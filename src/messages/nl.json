@@ -171,6 +171,7 @@
     "backToHome": "Terug naar start",
     "cancel": "Annuleren",
     "remove": "Verwijderen",
+    "discard": "Weggooien",
     "add": "Toevoegen",
     "update": "Bijwerken",
     "edit": "Bewerken",
@@ -569,6 +570,11 @@
     },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",
+      "tabDetails": "Details",
+      "tabParents": "Bovenliggend",
+      "unsavedChanges": "{count} niet-opgeslagen wijziging{count, plural, one {} other {en}}",
+      "discardConfirm": "Niet-opgeslagen wijzigingen weggooien?",
+      "editEntity": "Bewerken",
       "noProperties": "Geen eigenschappen"
     },
     "propertyEditor": {
