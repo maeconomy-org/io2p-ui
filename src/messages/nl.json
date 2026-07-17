@@ -996,6 +996,12 @@
   },
   "models": {
     "title": "Sjablonen",
+    "fields": {
+      "type": "Type"
+    },
+    "systemBadge": "Ingebouwd",
+    "deleted": "Sjabloon verwijderd",
+    "deleteFailed": "Sjabloon verwijderen mislukt",
     "tabObjectTemplates": "Objectsjablonen",
     "tabFormulas": "Formules",
     "showDeleted": "Verwijderde items tonen",

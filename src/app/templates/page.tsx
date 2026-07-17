@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, Search, X, HelpCircle } from 'lucide-react'
+import { PlusCircle, HelpCircle, FileText } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
 import type { UUMathFormulaDTO } from 'iom-sdk'
+import type { TemplateDTO } from 'io2p-client'
 
 import {
-  Badge,
   Button,
   GridPagination,
   Tabs,
@@ -17,12 +17,21 @@ import {
   TabsTrigger,
 } from '@/components/ui'
 import { DeletedFilter } from '@/components/filters'
-import { ObjectModelsTable, FormulasTable } from '@/components/tables'
-import { useModelData, useUnifiedDelete, useMathFormulas } from '@/hooks'
+import {
+  FormulasTable,
+  EntityTable,
+  useEntityListQuery,
+} from '@/components/tables'
+import { SearchResultsBar } from '@/components/search-results-bar'
+import { useMathFormulas } from '@/hooks'
+import { useTemplates } from '@/hooks/api/entities'
 import { useFormulaData } from '@/hooks/data/use-formula-data'
 import { useSearch } from '@/contexts'
 import { DeleteConfirmationDialog } from '@/components/modals'
+import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { logger } from '@/lib'
+
+import { buildTemplateColumns } from './components/template-columns'
 
 // Lazy-load sheet components — only rendered when opened by user interaction
 const ObjectModelSheet = dynamic(
@@ -54,45 +63,71 @@ export default function TemplatesPage() {
 
   // --- Object Templates state ---
   const [modelSheetOpen, setModelSheetOpen] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<any | null>(null)
+  const [selectedModel, setSelectedModel] = useState<TemplateDTO | null>(null)
   const [isEditingModel, setIsEditingModel] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
+  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
+  const [templateToDelete, setTemplateToDelete] = useState<TemplateDTO | null>(
+    null
+  )
 
-  const {
-    isSearchMode,
-    searchQuery,
-    searchViewResults,
-    searchPagination,
-    clearSearch,
-  } = useSearch()
+  const { isSearchMode, searchQuery, clearSearch } = useSearch()
 
-  const {
-    data: models,
-    loading: modelsLoading,
-    fetching: modelsFetching,
-    pagination,
-  } = useModelData({ showDeleted })
+  const listQuery = useEntityListQuery()
+  const { useList, useRemove } = useTemplates()
+  const removeMutation = useRemove()
+  const { data: templatesPage, isFetching } = useList(
+    {
+      ...listQuery.query,
+      size: pageSize,
+      scope: 'all',
+      q: isSearchMode ? searchQuery : undefined,
+      deleted: showDeleted ? 'include' : undefined,
+    },
+    { keepPreviousData: true }
+  )
 
-  // Unified delete for models
-  const {
-    isDeleteModalOpen: isModelDeleteOpen,
-    objectToDelete: modelToDelete,
-    handleDelete: handleModelDelete,
-    handleDeleteConfirm: handleModelDeleteConfirm,
-    handleDeleteCancel: handleModelDeleteCancel,
-  } = useUnifiedDelete()
-
-  const handleAddModel = () => {
+  const handleAddModel = useCallback(() => {
     setSelectedModel(null)
     setIsEditingModel(false)
     setModelSheetOpen(true)
-  }
+  }, [])
 
-  const handleEditModel = (model: any) => {
-    setSelectedModel(model)
+  const handleEditModel = useCallback((template: TemplateDTO) => {
+    setSelectedModel(template)
     setIsEditingModel(true)
     setModelSheetOpen(true)
-  }
+  }, [])
+
+  const handlePageSizeChange = useCallback(
+    (size: number) => {
+      setPageSize(size)
+      listQuery.setPage(1)
+    },
+    [listQuery]
+  )
+
+  const confirmDeleteModel = useCallback(async () => {
+    if (!templateToDelete) return
+    try {
+      await removeMutation.mutateAsync({ id: templateToDelete.id })
+      toast.success(t('models.deleted'))
+    } catch (error) {
+      logger.error('Error deleting template:', error)
+      toast.error(t('models.deleteFailed'))
+    } finally {
+      setTemplateToDelete(null)
+    }
+  }, [templateToDelete, removeMutation, t])
+
+  const columns = useMemo(
+    () =>
+      buildTemplateColumns({
+        t,
+        actions: { onEdit: handleEditModel, onDelete: setTemplateToDelete },
+      }),
+    [t, handleEditModel]
+  )
 
   // --- Formulas state ---
   const [formulaReferenceOpen, setFormulaReferenceOpen] = useState(false)
@@ -154,7 +189,7 @@ export default function TemplatesPage() {
 
   return (
     <>
-      <div className="container mx-auto p-4 flex-1">
+      <div className="container mx-auto flex-1 p-4">
         <div className="space-y-4">
           <Tabs defaultValue="object-templates">
             <div className="flex items-center justify-between">
@@ -171,7 +206,7 @@ export default function TemplatesPage() {
 
             {/* Object Templates Tab */}
             <TabsContent value="object-templates" className="space-y-4">
-              <div className="flex justify-end items-center gap-2">
+              <div className="flex items-center justify-end gap-2">
                 <DeletedFilter
                   showDeleted={showDeleted}
                   onShowDeletedChange={setShowDeleted}
@@ -183,57 +218,34 @@ export default function TemplatesPage() {
                 </Button>
               </div>
 
-              {/* Search Mode Indicator */}
               {isSearchMode && (
-                <div className="p-3 bg-muted/50 border border-border rounded-lg">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Search className="h-4 w-4 text-primary flex-shrink-0" />
-                        <span className="text-sm font-medium truncate">
-                          {t('models.searchResults', {
-                            query: searchQuery || '...',
-                          })}
-                        </span>
-                      </div>
-                      <Badge variant="secondary" className="whitespace-nowrap">
-                        {searchPagination
-                          ? t('models.resultsPage', {
-                              count: searchPagination.totalElements,
-                              page: searchPagination.currentPage + 1,
-                              pages: searchPagination.totalPages,
-                            })
-                          : t('models.results', {
-                              count: searchViewResults.length,
-                            })}
-                      </Badge>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearSearch}
-                      className="flex-shrink-0"
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      {t('models.clearSearch')}
-                    </Button>
-                  </div>
-                </div>
+                <SearchResultsBar
+                  searchQuery={searchQuery}
+                  resultsCount={templatesPage?.page.totalElements ?? 0}
+                  onClearSearch={clearSearch}
+                />
               )}
 
-              <ObjectModelsTable
-                models={isSearchMode ? searchViewResults : models}
-                onEdit={handleEditModel}
-                onDelete={handleModelDelete}
-                loading={modelsLoading}
-                fetching={modelsFetching}
-                pagination={isSearchMode ? undefined : pagination}
+              <EntityTable
+                columns={columns}
+                page={templatesPage}
+                getRowId={(template) => template.id}
+                fetching={isFetching}
+                sort={listQuery.query.sort}
+                onSortChange={listQuery.setSort}
+                onPageChange={listQuery.setPage}
+                onPageSizeChange={handlePageSizeChange}
+                emptyIcon={
+                  <FileText className="h-10 w-10 text-muted-foreground/50" />
+                }
+                emptyTitle={t('models.noTemplatesTitle')}
+                emptyDescription={t('models.noTemplatesDescription')}
               />
             </TabsContent>
 
             {/* Formulas Tab */}
             <TabsContent value="formulas" className="space-y-4">
-              <div className="flex justify-end items-center gap-2">
+              <div className="flex items-center justify-end gap-2">
                 <Button
                   type="button"
                   size="sm"
@@ -271,10 +283,12 @@ export default function TemplatesPage() {
       </div>
 
       {/* Object Model Sheet */}
+      {/* Transitional: this sheet types on the pre-io2p ObjectModel and can't consume a
+          TemplateDTO — create/edit is rebuilt as the shared EntitySheet in §13. */}
       <ObjectModelSheet
         open={modelSheetOpen}
         onOpenChange={setModelSheetOpen}
-        model={selectedModel}
+        model={selectedModel as never}
         isEditing={isEditingModel}
       />
 
@@ -286,12 +300,12 @@ export default function TemplatesPage() {
         isEditing={isEditingFormula}
       />
 
-      {/* Model Delete Confirmation */}
+      {/* Template Delete Confirmation */}
       <DeleteConfirmationDialog
-        open={isModelDeleteOpen}
-        onOpenChange={handleModelDeleteCancel}
-        onDelete={handleModelDeleteConfirm}
-        objectName={modelToDelete?.name || t('models.defaultName')}
+        open={!!templateToDelete}
+        onOpenChange={(open) => !open && setTemplateToDelete(null)}
+        onDelete={confirmDeleteModel}
+        objectName={templateToDelete?.name || t('models.defaultName')}
       />
 
       {/* Formula Delete Confirmation */}

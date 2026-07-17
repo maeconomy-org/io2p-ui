@@ -996,6 +996,12 @@
   },
   "models": {
     "title": "Templates",
+    "fields": {
+      "type": "Type"
+    },
+    "systemBadge": "Built-in",
+    "deleted": "Template deleted",
+    "deleteFailed": "Failed to delete template",
     "tabObjectTemplates": "Object Templates",
     "tabFormulas": "Formulas",
     "showDeleted": "Show deleted items",
