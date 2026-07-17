@@ -201,7 +201,8 @@
     "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",
     "savedSuccessfully": "Wijzigingen succesvol opgeslagen",
     "noResults": "Geen resultaten.",
-    "apply": "Toepassen"
+    "apply": "Toepassen",
+    "error": "Er is iets misgegaan"
   },
   "copyButton": {
     "copied": "Gekopieerd!",

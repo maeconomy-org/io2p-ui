@@ -8,7 +8,7 @@ import { PlusCircle, FileText, Trash2, RotateCcw, X } from 'lucide-react'
 import type { RowSelectionState } from '@tanstack/react-table'
 import type { ObjectDTO } from 'io2p-client'
 
-import { useBreadcrumbTrail, useViewData, usePreference } from '@/hooks'
+import { useBreadcrumbTrail, usePreference } from '@/hooks'
 import { useObjects } from '@/hooks/api/entities'
 import { useSearch } from '@/contexts'
 import { logger } from '@/lib'
@@ -18,7 +18,7 @@ import { Button } from '@/components/ui'
 import { DeletedFilter } from '@/components/filters'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
-import { ObjectViewContainer } from '@/components/object-view-container'
+import { ObjectColumnsView } from '@/components/object-columns-view'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
@@ -64,9 +64,7 @@ const TemplateCreationDialog = dynamic(
   { ssr: false }
 )
 
-// During the table→columns migration the still-old columns view yields rows keyed by `uuid`;
-// the migrated table yields `ObjectDTO.id`. Shared sheets/modals fetch by that id either way.
-const idOf = (o: { id?: string; uuid?: string }) => o.id ?? o.uuid ?? ''
+const idOf = (o: ObjectDTO) => o.id
 
 function ObjectsPageContent() {
   const t = useTranslations()
@@ -119,13 +117,6 @@ function ObjectsPageContent() {
     },
     { enabled: viewType === 'table', keepPreviousData: true }
   )
-
-  // Columns (Miller) view still runs on the old adapter until it migrates next.
-  const viewData = useViewData({
-    viewType,
-    showDeleted,
-    tablePageSize: pageSize,
-  })
 
   const selectedIds = useMemo(
     () => Object.keys(rowSelection).filter((id) => rowSelection[id]),
@@ -381,18 +372,16 @@ function ObjectsPageContent() {
             emptyDescription={t('objects.noObjectsDescription')}
           />
         ) : (
-          <ObjectViewContainer
-            viewType={viewType}
-            viewData={viewData}
-            onViewObject={openDetails}
-            onObjectDoubleClick={handleDoubleClick}
-            onDuplicate={setCopyTarget}
+          <ObjectColumnsView
             showDeleted={showDeleted}
+            isRestoring={restoreMutation.isPending}
+            onViewObject={openDetails}
+            onDelete={setObjectToDelete}
+            onDuplicate={setCopyTarget}
             onShowQRCode={setQrTarget}
             onViewPassport={setPassportTarget}
             onCreateTemplate={setTemplateSource}
             onRestore={handleRestore}
-            isRestoring={restoreMutation.isPending}
           />
         )}
       </div>

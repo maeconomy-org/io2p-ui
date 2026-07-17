@@ -201,7 +201,8 @@
     "saveFailed": "Failed to save changes. Please try again.",
     "savedSuccessfully": "Changes saved successfully",
     "noResults": "No results.",
-    "apply": "Apply"
+    "apply": "Apply",
+    "error": "Something went wrong"
   },
   "copyButton": {
     "copied": "Copied!",
