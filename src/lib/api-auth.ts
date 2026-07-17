@@ -29,19 +29,21 @@ export function validateApiAuth(req: NextRequest | Request): AuthResult {
 
   const payload = decodeJWTPayload(token)
 
-  if (!payload?.userUUID) {
-    return { valid: false, error: 'Invalid token: missing userUUID' }
+  // better-auth JWTs carry the user id as the standard `sub` claim; old uuobject tokens used `userUUID`.
+  const userId = payload?.sub ?? payload?.userUUID
+  if (!userId) {
+    return { valid: false, error: 'Invalid token: missing subject' }
   }
 
   // Check token expiry (if exp claim exists)
-  if (payload.exp) {
+  if (payload?.exp) {
     const now = Math.floor(Date.now() / 1000)
     if (now >= payload.exp) {
       return { valid: false, error: 'Token expired' }
     }
   }
 
-  return { valid: true, userUUID: payload.userUUID, token }
+  return { valid: true, userUUID: userId, token }
 }
 
 /**

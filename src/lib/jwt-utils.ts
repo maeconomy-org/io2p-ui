@@ -3,7 +3,10 @@
  */
 
 interface JWTPayload {
-  userUUID: string
+  /** better-auth JWT subject (the operational user id). */
+  sub?: string
+  /** Legacy uuobject claim — kept for tokens minted by the old backend. */
+  userUUID?: string
   credentials?: string
   authorities?: string[]
   enabled?: boolean
@@ -49,5 +52,5 @@ export function decodeJWTPayload(token: string): JWTPayload | null {
  */
 export function getUserUUIDFromJWT(token: string): string | null {
   const payload = decodeJWTPayload(token)
-  return payload?.userUUID || null
+  return payload?.sub ?? payload?.userUUID ?? null
 }
