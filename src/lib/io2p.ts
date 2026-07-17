@@ -13,7 +13,14 @@ import { getCoreToken } from './auth-client'
  * One client per node (never a module singleton — the old SDK's trap).
  */
 export function createIo2pClient(baseUrl: string): Io2pClient {
-  return createClient({ baseUrl, getToken: getCoreToken })
+  // Inject a BOUND fetch. The SDK calls its raw fetch as `transport.fetch(url)` for the direct-to-S3
+  // PUT (upload orchestrator); an unbound native `fetch` invoked as a method throws "Illegal
+  // invocation" (its `this` must be the global). Binding once here keeps every path safe.
+  return createClient({
+    baseUrl,
+    getToken: getCoreToken,
+    fetch: globalThis.fetch.bind(globalThis),
+  })
 }
 
 /**

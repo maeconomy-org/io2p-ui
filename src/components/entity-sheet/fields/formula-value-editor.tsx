@@ -40,7 +40,7 @@ export function FormulaSelect({
 
   return (
     <Select value={formulaId ?? ''} onValueChange={onSelect}>
-      <SelectTrigger className={cn('h-10', className)}>
+      <SelectTrigger className={cn('h-8', className)}>
         <SelectValue placeholder={t('objects.formulaEditor.selectFormula')} />
       </SelectTrigger>
       <SelectContent>
@@ -121,7 +121,7 @@ export function FormulaBindings({
                 value={bindingFor(variable)}
                 onValueChange={(val) => bindVariable(variable, val)}
               >
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-8">
                   <SelectValue
                     placeholder={t('objects.formulaEditor.selectValue')}
                   />

@@ -4,6 +4,8 @@ import {
   buildCreateObjectInput,
   buildUpdateObjectBody,
   dtoToDraft,
+  hasPendingUploads,
+  resolveUploadTargets,
   type EntityDraft,
 } from '@/lib/entity-body'
 import type { ObjectDTO } from 'io2p-client'
@@ -331,24 +333,7 @@ describe('files', () => {
     ])
   })
 
-  it('create: a pending upload resolves its minted id from the fileIdMap', () => {
-    const body = buildCreateObjectInput(
-      draft({
-        properties: [
-          {
-            key: 'spec',
-            values: [{ data: 'v', files: [pendingUpload('l1', 'a.pdf')] }],
-          },
-        ],
-      }),
-      new Map([['l1', 'file-1']])
-    )
-    expect(body.properties?.[0].values?.[0].files).toEqual([
-      { kind: 'upload', id: 'file-1' },
-    ])
-  })
-
-  it('create: a pending upload with no resolved id is dropped', () => {
+  it('create: a pending upload is NOT authored in the body (attaches post-save)', () => {
     const body = buildCreateObjectInput(
       draft({
         properties: [
@@ -425,7 +410,39 @@ describe('files', () => {
     ])
   })
 
-  it('update: a files-only change still emits a value update entry (data omitted)', () => {
+  it('update: a reference-only change still emits a value update entry (data omitted)', () => {
+    const before = loaded({
+      properties: [
+        {
+          id: 'p1',
+          key: 'spec',
+          values: [{ id: 'v1', data: 'v', source: 'authored', files: [] }],
+        },
+      ],
+    } as unknown as Partial<ObjectDTO>)
+    const body = buildUpdateObjectBody(
+      before,
+      draft({
+        properties: [
+          {
+            id: 'p1',
+            key: 'spec',
+            values: [{ id: 'v1', data: 'v', files: [ref('https://x/r.pdf')] }],
+          },
+        ],
+      })
+    )
+    expect(body.properties?.update?.[0].values?.update).toEqual([
+      {
+        id: 'v1',
+        files: {
+          add: [{ kind: 'reference', reference: { url: 'https://x/r.pdf' } }],
+        },
+      },
+    ])
+  })
+
+  it('update: a pending upload does NOT appear in the value body diff', () => {
     const before = loaded({
       properties: [
         {
@@ -447,12 +464,9 @@ describe('files', () => {
             ],
           },
         ],
-      }),
-      new Map([['l9', 'file-9']])
+      })
     )
-    expect(body.properties?.update?.[0].values?.update).toEqual([
-      { id: 'v1', files: { add: [{ kind: 'upload', id: 'file-9' }] } },
-    ])
+    expect(body).toEqual({}) // upload isn't body-authored; nothing else changed
   })
 
   it('update: diffs entity-level files', () => {
@@ -494,6 +508,119 @@ describe('files', () => {
     } as unknown as Partial<ObjectDTO>)
     // load → no edits → the file's id is preserved on the draft, so it is neither added nor removed
     expect(buildUpdateObjectBody(before, dtoToDraft(before))).toEqual({})
+  })
+})
+
+// ── uploads: post-save target resolution ────────────────────────────────────
+
+describe('resolveUploadTargets / hasPendingUploads', () => {
+  const pending = (localId: string) => ({
+    _localId: localId,
+    kind: 'upload' as const,
+    fileName: `${localId}.pdf`,
+    blob: new File(['x'], `${localId}.pdf`),
+  })
+
+  it('hasPendingUploads is true only when a blob without an id exists', () => {
+    expect(hasPendingUploads(draft())).toBe(false)
+    expect(
+      hasPendingUploads(
+        draft({
+          properties: [
+            { key: 'k', values: [{ data: 'v', files: [pending('l1')] }] },
+          ],
+        })
+      )
+    ).toBe(true)
+    // an already-uploaded file (has id) is not pending
+    expect(
+      hasPendingUploads(
+        draft({ files: [{ _localId: 'x', id: 'f1', kind: 'upload' }] })
+      )
+    ).toBe(false)
+  })
+
+  it('resolves value/property/object targets against the committed object', () => {
+    const committed = loaded({
+      id: 'obj-1',
+      properties: [
+        {
+          id: 'cp1',
+          key: 'spec',
+          values: [{ id: 'cv1', data: 'v', source: 'authored' }],
+        },
+      ],
+    } as unknown as Partial<ObjectDTO>)
+
+    const d = draft({
+      files: [pending('obj')],
+      properties: [
+        {
+          key: 'spec', // new draft (no id) → resolved by key
+          files: [pending('prop')],
+          values: [{ data: 'v', files: [pending('val')] }], // new value → id by position
+        },
+      ],
+    })
+
+    const targets = resolveUploadTargets(committed, d)
+    expect(targets).toEqual([
+      {
+        file: expect.objectContaining({ _localId: 'obj' }),
+        target: { entityId: 'obj-1' },
+      },
+      {
+        file: expect.objectContaining({ _localId: 'prop' }),
+        target: { entityId: 'obj-1', propertyId: 'cp1' },
+      },
+      {
+        file: expect.objectContaining({ _localId: 'val' }),
+        target: { entityId: 'obj-1', propertyId: 'cp1', valueId: 'cv1' },
+      },
+    ])
+  })
+
+  it('uses an existing draft value id directly (edit of a saved value)', () => {
+    const committed = loaded({
+      id: 'obj-1',
+      properties: [
+        {
+          id: 'p1',
+          key: 'spec',
+          values: [{ id: 'v1', data: 'v', source: 'authored' }],
+        },
+      ],
+    } as unknown as Partial<ObjectDTO>)
+    const d = draft({
+      properties: [
+        {
+          id: 'p1',
+          key: 'spec',
+          values: [{ id: 'v1', data: 'v', files: [pending('val')] }],
+        },
+      ],
+    })
+    expect(resolveUploadTargets(committed, d)[0].target).toEqual({
+      entityId: 'obj-1',
+      propertyId: 'p1',
+      valueId: 'v1',
+    })
+  })
+
+  it('falls back to the property target when the value id cannot be resolved', () => {
+    const committed = loaded({
+      id: 'obj-1',
+      properties: [{ id: 'cp1', key: 'spec', values: [] }],
+    } as unknown as Partial<ObjectDTO>)
+    const d = draft({
+      properties: [
+        { key: 'spec', values: [{ data: 'v', files: [pending('val')] }] },
+      ],
+    })
+    expect(resolveUploadTargets(committed, d)[0].target).toEqual({
+      entityId: 'obj-1',
+      propertyId: 'cp1',
+    })
   })
 })
 

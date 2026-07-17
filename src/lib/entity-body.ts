@@ -1,7 +1,11 @@
 // Maps the EntitySheet form (EntityDraft) to an io2p write body: `buildCreateObjectInput` is
 // near-identity; `buildUpdateObjectBody` diffs the draft against the loaded entity into the PATCH's
-// per-section add/update/remove. Files author at value/property/object level; a pending upload's minted
-// id is resolved via `fileIdMap` (built at submit time) so these builders stay pure — see plan §18.
+// per-section add/update/remove.
+//
+// Files split by kind (§18): a `reference` (external url) is authored inline in the body; an `upload`
+// is NOT — io2p requires an upload to name an existing target entity, so bytes attach AFTER the entity
+// exists via `files.upload(blob, target)`. `resolveUploadTargets` pairs each pending upload with its
+// target against the committed object. Removals (either kind) diff by id in the body.
 
 import type {
   ObjectDTO,
@@ -10,6 +14,7 @@ import type {
   ValueInput,
   CalcInput,
   FileInput,
+  FileTarget,
 } from 'io2p-client'
 
 export type DraftAddress = NonNullable<ObjectDTO['address']>
@@ -19,9 +24,9 @@ type ReadValue = NonNullable<ObjectDTO['properties']>[number]['values'][number]
 type ReadFile = NonNullable<ReadValue['files']>[number]
 
 /**
- * A file on the draft. Uploads authored on CREATE arrive as a pending `blob` with NO `id` — the byte
- * upload runs at submit time (lazy), and its minted files-collection id is resolved via `fileIdMap`
- * keyed on `_localId`. Existing files (from the read model) carry `id`. References carry only `reference`.
+ * A file on the draft. A `reference` carries just its url (+ label) and authors in the body. An
+ * `upload` pick arrives as a pending `blob` with NO `id`; it uploads (with a target) after the entity
+ * is saved. Existing files (from the read model) carry `id` + display metadata.
  */
 export interface DraftFile {
   _localId: string
@@ -29,7 +34,7 @@ export interface DraftFile {
   kind: 'upload' | 'reference'
   label?: string
   reference?: { url: string }
-  /** A not-yet-uploaded pick (kind:'upload' only); its id is resolved at submit. */
+  /** A not-yet-uploaded pick (kind:'upload' only); attached post-save via resolveUploadTargets. */
   blob?: File
   // Display-only, from the read model (absent on a fresh pick; thumbnails are worker-derived post-save).
   fileName?: string
@@ -65,23 +70,20 @@ export interface EntityDraft {
   files?: DraftFile[]
 }
 
-// Resolves a pending upload's `_localId` to its minted files-collection id (built at submit time).
-export type FileIdMap = Map<string, string>
+// A pending upload (blob, no id yet).
+function isPendingUpload(f: DraftFile): boolean {
+  return !!f.blob && !f.id
+}
 
-// Every not-yet-uploaded pick across the draft (value/property/object level). Submit uploads these to
-// mint ids, then passes the resulting `_localId → id` map to the builders. Kept here (pure) so the
-// walk is unit-testable and the builders stay side-effect free.
-export function collectPendingUploads(draft: EntityDraft): DraftFile[] {
-  const out: DraftFile[] = []
-  const scan = (files?: DraftFile[]) => {
-    for (const f of files ?? []) if (f.blob && !f.id) out.push(f)
-  }
-  scan(draft.files)
-  for (const p of draft.properties) {
-    scan(p.files)
-    for (const v of p.values) scan(v.files)
-  }
-  return out
+// True if the draft carries any pending upload (so submit knows to run the post-save attach step).
+export function hasPendingUploads(draft: EntityDraft): boolean {
+  const any = (fs?: DraftFile[]) => (fs ?? []).some(isPendingUpload)
+  return (
+    any(draft.files) ||
+    draft.properties.some(
+      (p) => any(p.files) || p.values.some((v) => any(v.files))
+    )
+  )
 }
 
 // A read-model file → draft file. Existing files always carry an `id`; `_localId` reuses it so the
@@ -136,43 +138,34 @@ function isRealCalc(calc: CalcInput | null | undefined): calc is CalcInput {
   return !!calc && (!!calc.formulaId || !!calc.expression)
 }
 
-// A draft file → a create/PATCH FileInput. An upload resolves its minted files-collection id from the
-// idMap (keyed on `_localId`) or an already-persisted `id`; a pending upload whose bytes never landed
-// (no resolvable id) is dropped. A reference needs a url.
-function toFileInput(f: DraftFile, idMap: FileIdMap): FileInput | null {
-  if (f.kind === 'reference') {
-    if (!f.reference?.url) return null
-    return {
-      kind: 'reference',
-      reference: f.reference,
-      ...(f.label ? { label: f.label } : {}),
-    }
+// A draft file → a body FileInput. ONLY references are body-authored (uploads attach out of band via
+// resolveUploadTargets). A new reference needs its url.
+function toReferenceInput(f: DraftFile): FileInput | null {
+  if (f.kind !== 'reference' || !f.reference?.url) return null
+  return {
+    kind: 'reference',
+    reference: f.reference,
+    ...(f.label ? { label: f.label } : {}),
   }
-  const id = f.id ?? idMap.get(f._localId)
-  return id
-    ? { kind: 'upload', id, ...(f.label ? { label: f.label } : {}) }
-    : null
 }
 
-function toFileInputs(
-  files: DraftFile[] | undefined,
-  idMap: FileIdMap
-): FileInput[] {
+function newReferenceInputs(files: DraftFile[] | undefined): FileInput[] {
   return (files ?? [])
-    .map((f) => toFileInput(f, idMap))
+    .filter((f) => !f.id) // only NEW files author; existing ones stay put
+    .map(toReferenceInput)
     .filter((f): f is FileInput => f !== null)
 }
 
-function toCreateValue(v: DraftValue, idMap: FileIdMap): ValueInput {
-  const files = toFileInputs(v.files, idMap)
+function toCreateValue(v: DraftValue): ValueInput {
+  const files = newReferenceInputs(v.files)
   const filesPart = files.length ? { files } : {}
   if (isRealCalc(v.calc)) return { calc: v.calc, ref: v.ref, ...filesPart }
   return { data: v.data ?? '', ref: v.ref, ...filesPart }
 }
 
-function toCreateProperty(p: DraftProperty, idMap: FileIdMap) {
-  const values = nonEmptyValues(p.values).map((v) => toCreateValue(v, idMap))
-  const files = toFileInputs(p.files, idMap)
+function toCreateProperty(p: DraftProperty) {
+  const values = nonEmptyValues(p.values).map(toCreateValue)
+  const files = newReferenceInputs(p.files)
   return {
     key: p.key,
     ...(p.label ? { label: p.label } : {}),
@@ -189,10 +182,7 @@ function nonEmptyValues(values: DraftValue[]): DraftValue[] {
   )
 }
 
-export function buildCreateObjectInput(
-  draft: EntityDraft,
-  fileIdMap: FileIdMap = new Map()
-): CreateObjectInput {
+export function buildCreateObjectInput(draft: EntityDraft): CreateObjectInput {
   const body: CreateObjectInput = { name: draft.name }
   if (draft.description) body.description = draft.description
   if (draft.address) body.address = draft.address
@@ -200,10 +190,10 @@ export function buildCreateObjectInput(
 
   const properties = draft.properties
     .filter((p) => p.key.trim() !== '')
-    .map((p) => toCreateProperty(p, fileIdMap))
+    .map(toCreateProperty)
   if (properties.length) body.properties = properties
 
-  const files = toFileInputs(draft.files, fileIdMap)
+  const files = newReferenceInputs(draft.files)
   if (files.length) body.files = files
 
   return body
@@ -246,28 +236,24 @@ type PropertyUpdate = NonNullable<UpdateProperties['update']>[number]
 type ValueSections = NonNullable<PropertyUpdate['values']>
 type ValueAdd = NonNullable<ValueSections['add']>[number]
 
-function toAddValue(v: DraftValue, idMap: FileIdMap): ValueAdd {
-  const files = toFileInputs(v.files, idMap)
+function toAddValue(v: DraftValue): ValueAdd {
+  const files = newReferenceInputs(v.files)
   const filesPart = files.length ? { files } : {}
   if (isRealCalc(v.calc)) return { calc: v.calc, ref: v.ref, ...filesPart }
   return { data: v.data ?? '', ref: v.ref, ...filesPart }
 }
 
-// Files are add/remove only (never edited): new draft files (no `id`) are added; read-model files
-// absent from the draft are removed by id. Returns `undefined` when nothing changed.
+// Body file diff: new REFERENCES are added; files (either kind) present before but gone from the draft
+// are removed by id. New uploads are NOT here — they attach post-save (resolveUploadTargets).
 type FileSections = { add?: FileInput[]; remove?: string[] }
 function diffFiles(
   before: ReadFile[] | undefined,
-  after: DraftFile[] | undefined,
-  idMap: FileIdMap
+  after: DraftFile[] | undefined
 ): FileSections | undefined {
   const keptIds = new Set(
     (after ?? []).filter((f) => f.id).map((f) => f.id as string)
   )
-  const add = (after ?? [])
-    .filter((f) => !f.id)
-    .map((f) => toFileInput(f, idMap))
-    .filter((f): f is FileInput => f !== null)
+  const add = newReferenceInputs(after)
   const remove = (before ?? [])
     .map((f) => f.id)
     .filter((id) => !keptIds.has(id))
@@ -280,15 +266,12 @@ function diffFiles(
 
 function diffValues(
   before: NonNullable<ObjectDTO['properties']>[number]['values'],
-  after: DraftValue[],
-  idMap: FileIdMap
+  after: DraftValue[]
 ): ValueSections | undefined {
   const beforeById = new Map(before.map((v) => [v.id, v]))
   const keptIds = new Set(after.filter((v) => v.id).map((v) => v.id as string))
 
-  const add = nonEmptyValues(after.filter((v) => !v.id)).map((v) =>
-    toAddValue(v, idMap)
-  )
+  const add = nonEmptyValues(after.filter((v) => !v.id)).map(toAddValue)
   const remove = [...beforeById.keys()].filter((id) => !keptIds.has(id))
 
   const update: NonNullable<ValueSections['update']> = []
@@ -308,7 +291,7 @@ function diffValues(
       calc = v.calc
     }
     const calcChanged = calc !== undefined
-    const files = diffFiles(prev.files, v.files, idMap)
+    const files = diffFiles(prev.files, v.files)
     if (!dataChanged && !calcChanged && !files) continue
     update.push({
       id: v.id,
@@ -327,15 +310,14 @@ function diffValues(
 
 function diffProperties(
   before: ObjectDTO['properties'],
-  after: DraftProperty[],
-  idMap: FileIdMap
+  after: DraftProperty[]
 ): UpdateProperties | undefined {
   const beforeById = new Map((before ?? []).map((p) => [p.id, p]))
   const keptIds = new Set(after.filter((p) => p.id).map((p) => p.id as string))
 
   const add = after
     .filter((p) => !p.id && p.key.trim() !== '')
-    .map((p) => toCreateProperty(p, idMap))
+    .map(toCreateProperty)
 
   const remove = [...beforeById.keys()].filter((id) => !keptIds.has(id))
 
@@ -346,8 +328,8 @@ function diffProperties(
     if (!prev) continue
     const labelChange = scalarChange(prev.label, p.label)
     const descChange = scalarChange(prev.description, p.description)
-    const values = diffValues(prev.values, p.values, idMap)
-    const files = diffFiles(prev.files, p.files, idMap)
+    const values = diffValues(prev.values, p.values)
+    const files = diffFiles(prev.files, p.files)
     if (
       labelChange === undefined &&
       descChange === undefined &&
@@ -374,8 +356,7 @@ function diffProperties(
 // An all-unchanged draft returns `{}` (a node no-op). Callers pass if-match = before.currentVersion.
 export function buildUpdateObjectBody(
   before: ObjectDTO,
-  draft: EntityDraft,
-  fileIdMap: FileIdMap = new Map()
+  draft: EntityDraft
 ): UpdateObjectBody {
   const body: UpdateObjectBody = {}
 
@@ -400,15 +381,56 @@ export function buildUpdateObjectBody(
     }
   }
 
-  const properties = diffProperties(
-    before.properties,
-    draft.properties,
-    fileIdMap
-  )
+  const properties = diffProperties(before.properties, draft.properties)
   if (properties) body.properties = properties
 
-  const files = diffFiles(before.files, draft.files, fileIdMap)
+  const files = diffFiles(before.files, draft.files)
   if (files) body.files = files
 
   return body
+}
+
+export interface ResolvedUpload {
+  file: DraftFile
+  target: FileTarget
+}
+
+// After a save, pair each pending upload (a draft file with a blob and no id) with its attach target,
+// resolved against the COMMITTED object — io2p requires an upload to name an existing target. A draft
+// id is used directly; a new property/value borrows its id from `committed` (property by key, value by
+// authored position). A value whose id can't be resolved falls back to its property target so the file
+// still attaches (surfaced at the property level).
+export function resolveUploadTargets(
+  committed: ObjectDTO,
+  draft: EntityDraft
+): ResolvedUpload[] {
+  const out: ResolvedUpload[] = []
+  const entityId = committed.id
+  const pending = (files?: DraftFile[]) => (files ?? []).filter(isPendingUpload)
+
+  for (const f of pending(draft.files))
+    out.push({ file: f, target: { entityId } })
+
+  const committedProps = committed.properties ?? []
+  for (const p of draft.properties) {
+    if (p.key.trim() === '') continue
+    const cp = p.id
+      ? committedProps.find((x) => x.id === p.id)
+      : committedProps.find((x) => x.key === p.key)
+    const propertyId = p.id ?? cp?.id
+    if (!propertyId) continue // couldn't resolve — the file stays pending, surfaced on reload
+
+    for (const f of pending(p.files)) {
+      out.push({ file: f, target: { entityId, propertyId } })
+    }
+
+    nonEmptyValues(p.values).forEach((v, i) => {
+      const valueId = v.id ?? cp?.values?.[i]?.id
+      const target: FileTarget = valueId
+        ? { entityId, propertyId, valueId }
+        : { entityId, propertyId }
+      for (const f of pending(v.files)) out.push({ file: f, target })
+    })
+  }
+  return out
 }

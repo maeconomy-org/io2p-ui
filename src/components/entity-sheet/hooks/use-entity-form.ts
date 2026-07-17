@@ -2,18 +2,20 @@
 
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import type { ObjectDTO } from 'io2p-client'
 
 import { useObjects } from '@/hooks/api/entities'
-import { useFileByteUpload } from '@/hooks/api/files'
+import { useIomClient } from '@/lib/io2p'
+import { queryKeys } from '@/lib/query-keys'
 import { logger } from '@/lib'
 import {
   type EntityDraft,
-  type FileIdMap,
   dtoToDraft,
-  collectPendingUploads,
+  hasPendingUploads,
+  resolveUploadTargets,
   buildCreateObjectInput,
   buildUpdateObjectBody,
 } from '@/lib/entity-body'
@@ -37,6 +39,11 @@ export interface UseEntityFormOptions {
  * The one form behind the EntitySheet. Loads an entity into an editable draft (or opens empty for
  * create) and, on submit, diffs it into a single write body. An unchanged edit is a no-op (empty
  * PATCH) — no network call. Shared by objects now; processes/templates reuse the same builders.
+ *
+ * File uploads attach AFTER the entity write: io2p requires an upload to target an existing entity, so
+ * once the object is committed we resolve each pending pick's target and `files.upload(blob, target)`.
+ * References author inline in the body. A failed upload does NOT roll back the (already-saved) entity —
+ * it toasts; the file simply isn't attached (visible on the next reload as absent).
  */
 export function useEntityForm(
   entity?: ObjectDTO | null,
@@ -44,6 +51,8 @@ export function useEntityForm(
 ) {
   const { defaultParentIds, onSaved } = options
   const t = useTranslations()
+  const client = useIomClient()
+  const qc = useQueryClient()
 
   const initial: EntityDraft = entity
     ? dtoToDraft(entity)
@@ -54,21 +63,6 @@ export function useEntityForm(
   const { useCreate, useUpdate } = useObjects()
   const createMutation = useCreate()
   const updateMutation = useUpdate()
-  const byteUpload = useFileByteUpload()
-
-  // Lazy upload: push every pending pick's bytes to S3 (no target), returning `_localId → file id`.
-  // Uploads run in parallel; any failure rejects so submit aborts before touching the entity.
-  const uploadPending = async (draft: EntityDraft): Promise<FileIdMap> => {
-    const pending = collectPendingUploads(draft)
-    if (pending.length === 0) return new Map()
-    const entries = await Promise.all(
-      pending.map(async (f) => {
-        const res = await byteUpload.mutateAsync({ file: f.blob! })
-        return [f._localId, res.file.id] as const
-      })
-    )
-    return new Map(entries)
-  }
 
   // Reload the form whenever a different entity (or a newer version after save) arrives.
   const loadedKey = entity ? `${entity.id}:${entity.currentVersion}` : 'new'
@@ -80,19 +74,31 @@ export function useEntityForm(
     )
   }, [loadedKey])
 
-  const submit = form.handleSubmit(async (draft) => {
-    // Uploads happen first; if any fails we abort BEFORE the entity write, so no half-attached state.
-    let fileIdMap: FileIdMap
+  // Attach pending picks against the committed object (upload → target). Best-effort: the entity is
+  // already saved, so a failure toasts but doesn't roll back.
+  const attachUploads = async (committed: ObjectDTO, draft: EntityDraft) => {
+    const uploads = resolveUploadTargets(committed, draft)
+    if (uploads.length === 0) return
     try {
-      fileIdMap = await uploadPending(draft)
+      await Promise.all(
+        uploads.map((u) => client.files.upload(u.file.blob!, u.target))
+      )
     } catch (err) {
-      logger.error('File upload failed during save', { error: err })
+      // Log the readable message — an Error serializes to `{}` when wrapped in an object.
+      logger.error('File upload failed after save', {
+        error: err instanceof Error ? err.message : String(err),
+      })
       toast.error(t('objects.files.uploadFailed'))
-      return
+    } finally {
+      qc.invalidateQueries({ queryKey: queryKeys.objects.detail(committed.id) })
     }
+  }
+
+  const submit = form.handleSubmit(async (draft) => {
+    let committed: ObjectDTO
 
     if (entity) {
-      const body = buildUpdateObjectBody(entity, draft, fileIdMap)
+      const body = buildUpdateObjectBody(entity, draft)
       if (Object.keys(body).length > 0) {
         await updateMutation.mutateAsync({
           id: entity.id,
@@ -100,23 +106,30 @@ export function useEntityForm(
           options: { ifMatch: entity.currentVersion },
         })
       }
-      onSaved?.(entity.id)
-      return
+      // Uploads need the committed tree (new value/property ids) to resolve their targets.
+      committed = hasPendingUploads(draft)
+        ? await client.objects.get(entity.id)
+        : entity
+    } else {
+      const res = await createMutation.mutateAsync({
+        body: buildCreateObjectInput(draft),
+      })
+      committed = res as unknown as ObjectDTO
     }
-    const res = await createMutation.mutateAsync({
-      body: buildCreateObjectInput(draft, fileIdMap),
-    })
-    onSaved?.(res.id)
+
+    await attachUploads(committed, draft)
+    // Clear the dirty baseline so the tab dot / unsaved bar reset immediately. A body change bumps the
+    // version → the load effect re-syncs to the server truth (file ids/thumbnails); a file-only save
+    // (no version bump) has no reload, so this reset is what clears the dot.
+    form.reset(form.getValues())
+    onSaved?.(committed.id)
   })
 
   return {
     form,
     submit,
     isEditing: !!entity,
-    isSubmitting:
-      byteUpload.isPending ||
-      createMutation.isPending ||
-      updateMutation.isPending,
+    isSubmitting: createMutation.isPending || updateMutation.isPending,
     reset: () => form.reset(),
   }
 }

@@ -22,6 +22,31 @@ vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({ objects, files }),
 }))
 
+// A committed object (create/get response) with the property + value ids uploads resolve against.
+const committed = {
+  id: 'new-3',
+  name: 'With File',
+  currentVersion: 1,
+  properties: [{ id: 'cp1', key: 'spec', values: [{ id: 'cv1', data: 'v' }] }],
+}
+const draftWithUpload = () => [
+  {
+    key: 'spec',
+    values: [
+      {
+        data: 'v',
+        files: [
+          {
+            _localId: 'l1',
+            kind: 'upload' as const,
+            blob: new File(['x'], 'a.pdf'),
+          },
+        ],
+      },
+    ],
+  },
+]
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }))
@@ -85,8 +110,8 @@ describe('useEntityForm', () => {
     )
   })
 
-  it('create: uploads pending files first, then authors their minted ids', async () => {
-    objects.create.mockResolvedValue({ id: 'new-3' })
+  it('create: saves first, then uploads pending files against the committed ids', async () => {
+    objects.create.mockResolvedValue(committed)
     files.upload.mockResolvedValue({ file: { id: 'file-1' } })
     const onSaved = vi.fn()
     const { result } = renderHook(() => useEntityForm(null, { onSaved }), {
@@ -95,51 +120,32 @@ describe('useEntityForm', () => {
 
     act(() => {
       result.current.form.setValue('name', 'With File')
-      result.current.form.setValue('properties', [
-        {
-          key: 'spec',
-          values: [
-            {
-              data: 'v',
-              files: [
-                {
-                  _localId: 'l1',
-                  kind: 'upload' as const,
-                  blob: new File(['x'], 'a.pdf'),
-                },
-              ],
-            },
-          ],
-        },
-      ])
+      result.current.form.setValue('properties', draftWithUpload())
     })
     await act(async () => {
       await result.current.submit()
     })
 
-    expect(files.upload).toHaveBeenCalledTimes(1)
+    // No upload authored in the create body (references only).
     expect(objects.create).toHaveBeenCalledWith(
       {
         name: 'With File',
-        properties: [
-          {
-            key: 'spec',
-            values: [
-              {
-                data: 'v',
-                ref: undefined,
-                files: [{ kind: 'upload', id: 'file-1' }],
-              },
-            ],
-          },
-        ],
+        properties: [{ key: 'spec', values: [{ data: 'v', ref: undefined }] }],
       },
       undefined
     )
+    // The upload attaches AFTER the save, targeting the committed value.
+    expect(files.upload).toHaveBeenCalledTimes(1)
+    expect(files.upload.mock.calls[0][1]).toEqual({
+      entityId: 'new-3',
+      propertyId: 'cp1',
+      valueId: 'cv1',
+    })
     expect(onSaved).toHaveBeenCalledWith('new-3')
   })
 
-  it('aborts the save (and toasts) when an upload fails', async () => {
+  it('a failed upload toasts but does NOT roll back the saved entity', async () => {
+    objects.create.mockResolvedValue(committed)
     files.upload.mockRejectedValue(new Error('boom'))
     const onSaved = vi.fn()
     const { result } = renderHook(() => useEntityForm(null, { onSaved }), {
@@ -147,32 +153,16 @@ describe('useEntityForm', () => {
     })
 
     act(() => {
-      result.current.form.setValue('name', 'X')
-      result.current.form.setValue('properties', [
-        {
-          key: 'spec',
-          values: [
-            {
-              data: 'v',
-              files: [
-                {
-                  _localId: 'l1',
-                  kind: 'upload' as const,
-                  blob: new File(['x'], 'a.pdf'),
-                },
-              ],
-            },
-          ],
-        },
-      ])
+      result.current.form.setValue('name', 'With File')
+      result.current.form.setValue('properties', draftWithUpload())
     })
     await act(async () => {
       await result.current.submit()
     })
 
-    expect(objects.create).not.toHaveBeenCalled()
-    expect(onSaved).not.toHaveBeenCalled()
+    expect(objects.create).toHaveBeenCalledTimes(1) // entity was saved
     expect(toastError).toHaveBeenCalledWith('objects.files.uploadFailed')
+    expect(onSaved).toHaveBeenCalledWith('new-3') // save still reported
   })
 
   it('edit with no changes: no update call (empty diff), still reports saved', async () => {
