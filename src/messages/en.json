@@ -994,7 +994,7 @@
       "createFirst": "Create First Process"
     }
   },
-  "models": {
+  "templates": {
     "title": "Templates",
     "fields": {
       "type": "Type"
@@ -1005,12 +1005,12 @@
     "tabObjectTemplates": "Object Templates",
     "tabFormulas": "Formulas",
     "showDeleted": "Show deleted items",
-    "defaultName": "Model",
-    "editTitle": "Edit Model",
-    "createTitle": "Create New Model",
+    "defaultName": "Template",
+    "editTitle": "Edit Template",
+    "createTitle": "Create New Template",
     "detailsDescription": "View and edit object properties, relationships, and files",
-    "editDescription": "Update this model template and its properties.",
-    "createDescription": "Create a new model template that can be used to generate objects.",
+    "editDescription": "Update this template and its properties.",
+    "createDescription": "Create a new template that can be used to generate objects.",
     "placeholders": {
       "name": "e.g. School Building",
       "abbreviation": "e.g. SB (optional)",
@@ -1020,12 +1020,12 @@
     "addFirstProperty": "Add First Property",
     "creating": "Creating...",
     "updating": "Updating...",
-    "create": "Create Model",
-    "update": "Update Model",
+    "create": "Create Template",
+    "update": "Update Template",
     "loading": "Loading templates...",
     "noTemplatesTitle": "No Templates Found",
     "noTemplatesDescription": "There are no templates to display",
-    "restoreTitle": "Restore model",
+    "restoreTitle": "Restore template",
     "searchResults": "Search Results for: \"{query}\"",
     "results": "{count} result{count, plural, one {} other {s}}",
     "resultsPage": "{count} result{count, plural, one {} other {s}} (page {page} of {pages})",

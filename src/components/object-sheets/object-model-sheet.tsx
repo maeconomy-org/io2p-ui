@@ -242,12 +242,12 @@ export function ObjectModelSheet({
       <SheetContent className="sm:max-w-xl w-full flex flex-col">
         <SheetHeader>
           <SheetTitle>
-            {isEditing ? t('models.editTitle') : t('models.createTitle')}
+            {isEditing ? t('templates.editTitle') : t('templates.createTitle')}
           </SheetTitle>
           <SheetDescription>
             {isEditing
-              ? t('models.editDescription')
-              : t('models.createDescription')}
+              ? t('templates.editDescription')
+              : t('templates.createDescription')}
           </SheetDescription>
         </SheetHeader>
 
@@ -267,7 +267,7 @@ export function ObjectModelSheet({
                       <FormLabel>{t('objects.fields.name')}</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder={t('models.placeholders.name')}
+                          placeholder={t('templates.placeholders.name')}
                           data-testid="model-name-input"
                           {...field}
                         />
@@ -288,7 +288,9 @@ export function ObjectModelSheet({
                         </FormLabel>
                         <FormControl>
                           <Input
-                            placeholder={t('models.placeholders.abbreviation')}
+                            placeholder={t(
+                              'templates.placeholders.abbreviation'
+                            )}
                             {...field}
                           />
                         </FormControl>
@@ -304,7 +306,7 @@ export function ObjectModelSheet({
                         <FormLabel>{t('objects.fields.version')}</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder={t('models.placeholders.version')}
+                            placeholder={t('templates.placeholders.version')}
                             {...field}
                           />
                         </FormControl>
@@ -322,7 +324,7 @@ export function ObjectModelSheet({
                       <FormLabel>{t('objects.fields.description')}</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder={t('models.placeholders.description')}
+                          placeholder={t('templates.placeholders.description')}
                           className="min-h-24"
                           {...field}
                         />
@@ -373,7 +375,7 @@ export function ObjectModelSheet({
                       onClick={addProperty}
                     >
                       <PlusIcon className="h-4 w-4 mr-2" />
-                      {t('models.addFirstProperty')}
+                      {t('templates.addFirstProperty')}
                     </Button>
                   </div>
                 )}
@@ -395,12 +397,14 @@ export function ObjectModelSheet({
                 {isCreating ? (
                   <>
                     <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
-                    {isEditing ? t('models.updating') : t('models.creating')}
+                    {isEditing
+                      ? t('templates.updating')
+                      : t('templates.creating')}
                   </>
                 ) : isEditing ? (
-                  t('models.update')
+                  t('templates.update')
                 ) : (
-                  t('models.create')
+                  t('templates.create')
                 )}
               </Button>
             </SheetFooter>

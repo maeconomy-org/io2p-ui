@@ -994,7 +994,7 @@
       "createFirst": "Eerste proces aanmaken"
     }
   },
-  "models": {
+  "templates": {
     "title": "Sjablonen",
     "fields": {
       "type": "Type"
@@ -1005,12 +1005,12 @@
     "tabObjectTemplates": "Objectsjablonen",
     "tabFormulas": "Formules",
     "showDeleted": "Verwijderde items tonen",
-    "defaultName": "Model",
-    "editTitle": "Model bewerken",
-    "createTitle": "Nieuw model maken",
+    "defaultName": "Sjabloon",
+    "editTitle": "Sjabloon bewerken",
+    "createTitle": "Nieuw sjabloon maken",
     "detailsDescription": "Bekijk en bewerk objecteigenschappen, relaties en bestanden",
-    "editDescription": "Werk dit modelsjabloon en de eigenschappen bij.",
-    "createDescription": "Maak een nieuw modelsjabloon dat kan worden gebruikt om objecten te genereren.",
+    "editDescription": "Werk dit sjabloon en de eigenschappen bij.",
+    "createDescription": "Maak een nieuw sjabloon dat kan worden gebruikt om objecten te genereren.",
     "placeholders": {
       "name": "bijv. Schoolgebouw",
       "abbreviation": "bijv. SG (optioneel)",
@@ -1020,12 +1020,12 @@
     "addFirstProperty": "Eerste eigenschap toevoegen",
     "creating": "Bezig met maken...",
     "updating": "Bezig met bijwerken...",
-    "create": "Model maken",
-    "update": "Model bijwerken",
+    "create": "Sjabloon maken",
+    "update": "Sjabloon bijwerken",
     "loading": "Sjablonen laden...",
     "noTemplatesTitle": "Geen sjablonen gevonden",
     "noTemplatesDescription": "Er zijn geen sjablonen om weer te geven",
-    "restoreTitle": "Model herstellen",
+    "restoreTitle": "Sjabloon herstellen",
     "searchResults": "Zoekresultaten voor: \"{query}\"",
     "results": "{count} resultaat{count, plural, one {} other {en}}",
     "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",

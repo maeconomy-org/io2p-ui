@@ -62,9 +62,11 @@ export default function TemplatesPage() {
   const t = useTranslations()
 
   // --- Object Templates state ---
-  const [modelSheetOpen, setModelSheetOpen] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<TemplateDTO | null>(null)
-  const [isEditingModel, setIsEditingModel] = useState(false)
+  const [templateSheetOpen, setTemplateSheetOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateDTO | null>(
+    null
+  )
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [templateToDelete, setTemplateToDelete] = useState<TemplateDTO | null>(
@@ -87,16 +89,16 @@ export default function TemplatesPage() {
     { keepPreviousData: true }
   )
 
-  const handleAddModel = useCallback(() => {
-    setSelectedModel(null)
-    setIsEditingModel(false)
-    setModelSheetOpen(true)
+  const handleAddTemplate = useCallback(() => {
+    setSelectedTemplate(null)
+    setIsEditingTemplate(false)
+    setTemplateSheetOpen(true)
   }, [])
 
-  const handleEditModel = useCallback((template: TemplateDTO) => {
-    setSelectedModel(template)
-    setIsEditingModel(true)
-    setModelSheetOpen(true)
+  const handleEditTemplate = useCallback((template: TemplateDTO) => {
+    setSelectedTemplate(template)
+    setIsEditingTemplate(true)
+    setTemplateSheetOpen(true)
   }, [])
 
   const handlePageSizeChange = useCallback(
@@ -107,14 +109,14 @@ export default function TemplatesPage() {
     [listQuery]
   )
 
-  const confirmDeleteModel = useCallback(async () => {
+  const confirmDeleteTemplate = useCallback(async () => {
     if (!templateToDelete) return
     try {
       await removeMutation.mutateAsync({ id: templateToDelete.id })
-      toast.success(t('models.deleted'))
+      toast.success(t('templates.deleted'))
     } catch (error) {
       logger.error('Error deleting template:', error)
-      toast.error(t('models.deleteFailed'))
+      toast.error(t('templates.deleteFailed'))
     } finally {
       setTemplateToDelete(null)
     }
@@ -124,9 +126,9 @@ export default function TemplatesPage() {
     () =>
       buildTemplateColumns({
         t,
-        actions: { onEdit: handleEditModel, onDelete: setTemplateToDelete },
+        actions: { onEdit: handleEditTemplate, onDelete: setTemplateToDelete },
       }),
-    [t, handleEditModel]
+    [t, handleEditTemplate]
   )
 
   // --- Formulas state ---
@@ -193,13 +195,13 @@ export default function TemplatesPage() {
         <div className="space-y-4">
           <Tabs defaultValue="object-templates">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold">{t('models.title')}</h2>
+              <h2 className="text-2xl font-semibold">{t('templates.title')}</h2>
               <TabsList className="w-fit">
                 <TabsTrigger value="object-templates">
-                  {t('models.tabObjectTemplates')}
+                  {t('templates.tabObjectTemplates')}
                 </TabsTrigger>
                 <TabsTrigger value="formulas">
-                  {t('models.tabFormulas')}
+                  {t('templates.tabFormulas')}
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -210,11 +212,11 @@ export default function TemplatesPage() {
                 <DeletedFilter
                   showDeleted={showDeleted}
                   onShowDeletedChange={setShowDeleted}
-                  label={t('models.showDeleted')}
+                  label={t('templates.showDeleted')}
                 />
-                <Button size="sm" onClick={handleAddModel}>
+                <Button size="sm" onClick={handleAddTemplate}>
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  {t('models.create')}
+                  {t('templates.create')}
                 </Button>
               </div>
 
@@ -238,8 +240,8 @@ export default function TemplatesPage() {
                 emptyIcon={
                   <FileText className="h-10 w-10 text-muted-foreground/50" />
                 }
-                emptyTitle={t('models.noTemplatesTitle')}
-                emptyDescription={t('models.noTemplatesDescription')}
+                emptyTitle={t('templates.noTemplatesTitle')}
+                emptyDescription={t('templates.noTemplatesDescription')}
               />
             </TabsContent>
 
@@ -286,10 +288,10 @@ export default function TemplatesPage() {
       {/* Transitional: this sheet types on the pre-io2p ObjectModel and can't consume a
           TemplateDTO — create/edit is rebuilt as the shared EntitySheet in §13. */}
       <ObjectModelSheet
-        open={modelSheetOpen}
-        onOpenChange={setModelSheetOpen}
-        model={selectedModel as never}
-        isEditing={isEditingModel}
+        open={templateSheetOpen}
+        onOpenChange={setTemplateSheetOpen}
+        model={selectedTemplate as never}
+        isEditing={isEditingTemplate}
       />
 
       {/* Formula Sheet */}
@@ -304,8 +306,8 @@ export default function TemplatesPage() {
       <DeleteConfirmationDialog
         open={!!templateToDelete}
         onOpenChange={(open) => !open && setTemplateToDelete(null)}
-        onDelete={confirmDeleteModel}
-        objectName={templateToDelete?.name || t('models.defaultName')}
+        onDelete={confirmDeleteTemplate}
+        objectName={templateToDelete?.name || t('templates.defaultName')}
       />
 
       {/* Formula Delete Confirmation */}

@@ -34,14 +34,14 @@ export function buildTemplateColumns({
     }),
     textColumn<TemplateDTO>(
       'type',
-      t('models.fields.type'),
+      t('templates.fields.type'),
       (template): ReactNode => (
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="capitalize">
             {template.type}
           </Badge>
           {template.system && (
-            <Badge variant="outline">{t('models.systemBadge')}</Badge>
+            <Badge variant="outline">{t('templates.systemBadge')}</Badge>
           )}
         </div>
       )
