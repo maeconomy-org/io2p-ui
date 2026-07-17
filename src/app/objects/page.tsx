@@ -4,7 +4,8 @@ import { useState, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, FileText } from 'lucide-react'
+import { PlusCircle, FileText, Trash2, RotateCcw, X } from 'lucide-react'
+import type { RowSelectionState } from '@tanstack/react-table'
 import type { ObjectDTO } from 'io2p-client'
 
 import { useBreadcrumbTrail, useViewData, usePreference } from '@/hooks'
@@ -85,6 +86,8 @@ function ObjectsPageContent() {
   const [templateSource, setTemplateSource] = useState<ObjectDTO | null>(null)
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
   const [objectToDelete, setObjectToDelete] = useState<ObjectDTO | null>(null)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
   const { clearTrail } = useBreadcrumbTrail(undefined)
   const {
@@ -123,6 +126,42 @@ function ObjectsPageContent() {
     showDeleted,
     tablePageSize: pageSize,
   })
+
+  const selectedIds = useMemo(
+    () => Object.keys(rowSelection).filter((id) => rowSelection[id]),
+    [rowSelection]
+  )
+  const selectedObjects = useMemo(
+    () => (objectsPage?.data ?? []).filter((o) => rowSelection[o.id]),
+    [objectsPage, rowSelection]
+  )
+  const anySelectedDeleted = selectedObjects.some((o) => o.deleted)
+  const clearSelection = useCallback(() => setRowSelection({}), [])
+
+  const runBulkDelete = useCallback(async () => {
+    try {
+      await Promise.all(
+        selectedIds.map((id) => removeMutation.mutateAsync({ id }))
+      )
+    } catch (error) {
+      logger.error('Bulk delete error:', error)
+    } finally {
+      setConfirmBulkDelete(false)
+      clearSelection()
+    }
+  }, [selectedIds, removeMutation, clearSelection])
+
+  const runBulkRestore = useCallback(async () => {
+    try {
+      await Promise.all(
+        selectedIds.map((id) => restoreMutation.mutateAsync({ id }))
+      )
+    } catch (error) {
+      logger.error('Bulk restore error:', error)
+    } finally {
+      clearSelection()
+    }
+  }, [selectedIds, restoreMutation, clearSelection])
 
   const handlePageSizeChange = useCallback(
     (size: number) => {
@@ -217,6 +256,7 @@ function ObjectsPageContent() {
     () =>
       buildObjectColumns({
         t,
+        enableSelection: true,
         isDeleting: removeMutation.isPending,
         isRestoring: restoreMutation.isPending,
         actions: {
@@ -276,12 +316,59 @@ function ObjectsPageContent() {
           />
         )}
 
+        {viewType === 'table' && selectedIds.length > 0 && (
+          <div className="mb-3 flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+            <span className="text-sm font-medium">
+              {t('objects.bulk.selected', {
+                selected: selectedIds.length,
+                total: objectsPage?.page.totalElements ?? selectedIds.length,
+              })}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              {anySelectedDeleted && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={runBulkRestore}
+                  disabled={restoreMutation.isPending}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  {t('objects.bulk.restoreSelected')}
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                onClick={() => setConfirmBulkDelete(true)}
+                disabled={removeMutation.isPending}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t('objects.bulk.deleteSelected')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={clearSelection}
+                aria-label={t('common.cancel')}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {viewType === 'table' ? (
           <EntityTable
             columns={columns}
             page={objectsPage}
             getRowId={(o) => o.id}
             fetching={isFetching}
+            enableRowSelection
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
             sort={listQuery.query.sort}
             onSortChange={listQuery.setSort}
             onPageChange={listQuery.setPage}
@@ -373,6 +460,15 @@ function ObjectsPageContent() {
           onOpenChange={(open) => !open && setObjectToDelete(null)}
           objectName={objectToDelete.name}
           onDelete={confirmDelete}
+        />
+      )}
+
+      {confirmBulkDelete && (
+        <DeleteConfirmationDialog
+          open={confirmBulkDelete}
+          onOpenChange={(open) => !open && setConfirmBulkDelete(false)}
+          objectName={`${selectedIds.length} ${t('objects.title')}`}
+          onDelete={runBulkDelete}
         />
       )}
     </div>

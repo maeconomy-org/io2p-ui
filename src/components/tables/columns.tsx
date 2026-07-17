@@ -1,7 +1,7 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import type { Column, ColumnDef } from '@tanstack/react-table'
+import { createContext, useContext, type ReactNode } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
 import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown } from 'lucide-react'
 
 import {
@@ -15,33 +15,59 @@ import {
 import { cn } from '@/lib'
 
 import { getSelectColumn } from './data-table'
+import type { EntitySort } from './use-entity-list-query'
 
 interface SortableOpts {
-  /** Make the column header a server-side sort toggle (needs the table's sort wiring). */
+  /** Make the column header a server-side sort toggle (the column `id` must be the sort field). */
   sortable?: boolean
 }
 
-// A clickable header that cycles asc → desc → none via TanStack's toggle handler.
-function SortableHeader<T>({
-  column,
-  label,
+// Server-side sorting is owned by the query, not TanStack — a header cycles the shared sort state.
+const SortContext = createContext<{
+  sort?: EntitySort
+  onChange?: (sort?: EntitySort) => void
+}>({})
+
+export function SortProvider({
+  sort,
+  onChange,
+  children,
 }: {
-  column: Column<T, unknown>
-  label: string
+  sort?: EntitySort
+  onChange?: (sort?: EntitySort) => void
+  children: ReactNode
 }) {
-  const sorted = column.getIsSorted()
+  return (
+    <SortContext.Provider value={{ sort, onChange }}>
+      {children}
+    </SortContext.Provider>
+  )
+}
+
+function SortableHeader({ field, label }: { field: string; label: string }) {
+  const { sort, onChange } = useContext(SortContext)
+  const isAsc = sort === field
+  const isDesc = sort === `-${field}`
+  const cycle = () =>
+    onChange?.(
+      isAsc
+        ? (`-${field}` as EntitySort)
+        : isDesc
+          ? undefined
+          : (field as EntitySort)
+    )
   return (
     <Button
       type="button"
       variant="ghost"
       size="sm"
       className="-ml-3 h-8"
-      onClick={column.getToggleSortingHandler()}
+      onClick={cycle}
     >
       {label}
-      {sorted === 'asc' ? (
+      {isAsc ? (
         <ArrowUp className="ml-1 h-3.5 w-3.5" />
-      ) : sorted === 'desc' ? (
+      ) : isDesc ? (
         <ArrowDown className="ml-1 h-3.5 w-3.5" />
       ) : (
         <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-40" />
@@ -57,8 +83,8 @@ function headerCell<T>(
 ): Pick<ColumnDef<T, unknown>, 'header' | 'enableSorting'> {
   if (!sortable) return { header: () => label, enableSorting: false }
   return {
-    enableSorting: true,
-    header: ({ column }) => <SortableHeader column={column} label={label} />,
+    enableSorting: false,
+    header: () => <SortableHeader field={id} label={label} />,
   }
 }
 

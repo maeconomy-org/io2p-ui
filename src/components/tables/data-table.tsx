@@ -9,7 +9,6 @@ import {
   type Row,
   type RowSelectionState,
   type VisibilityState,
-  type SortingState,
   type OnChangeFn,
 } from '@tanstack/react-table'
 import { ChevronDown } from 'lucide-react'
@@ -72,11 +71,6 @@ export interface DataTableProps<TData> {
   columnVisibility?: VisibilityState
   /** Callback when visibility changes */
   onColumnVisibilityChange?: OnChangeFn<VisibilityState>
-
-  // -- Sorting (server-side / manual) --
-  /** Controlled sorting state; providing `onSortingChange` enables manual sorting. */
-  sorting?: SortingState
-  onSortingChange?: OnChangeFn<SortingState>
 
   // -- Pagination (server-side) --
   /** Pagination info — omit to hide pagination */
@@ -203,8 +197,6 @@ export function DataTable<TData>({
   enableRowSelection = false,
   columnVisibility = {},
   onColumnVisibilityChange,
-  sorting,
-  onSortingChange,
   pagination,
   onPageChange,
   onFirstPage,
@@ -236,17 +228,12 @@ export function DataTable<TData>({
     onRowSelectionChange,
     // Column visibility
     onColumnVisibilityChange,
-    // Sorting — server-side; the query does the ordering
-    manualSorting: !!onSortingChange,
-    onSortingChange,
-    enableSorting: !!onSortingChange,
     // Column resizing
     enableColumnResizing,
     columnResizeMode: enableColumnResizing ? 'onChange' : undefined,
     state: {
       rowSelection,
       columnVisibility,
-      ...(sorting ? { sorting } : {}),
     },
   })
 

@@ -6,27 +6,14 @@ import type {
   OnChangeFn,
   Row,
   RowSelectionState,
-  SortingState,
   VisibilityState,
 } from '@tanstack/react-table'
 import type { Page } from 'io2p-client'
 
 import { DataTable } from './data-table'
 import { pageMeta } from './page-meta'
+import { SortProvider } from './columns'
 import type { EntitySort } from './use-entity-list-query'
-
-// EntitySort ("-name") ↔ TanStack SortingState ([{ id:'name', desc:true }]).
-export function entitySortToState(sort?: EntitySort): SortingState {
-  if (!sort) return []
-  const desc = sort.startsWith('-')
-  return [{ id: desc ? sort.slice(1) : sort, desc }]
-}
-
-export function stateToEntitySort(state: SortingState): EntitySort | undefined {
-  const s = state[0]
-  if (!s) return undefined
-  return `${s.desc ? '-' : ''}${s.id}` as EntitySort
-}
 
 export interface EntityTableProps<T> {
   columns: ColumnDef<T, unknown>[]
@@ -80,34 +67,22 @@ export function EntityTable<T>({
     onPageChange?.(clamped)
   }
 
-  const sortingProps = onSortChange
-    ? {
-        sorting: entitySortToState(sort),
-        onSortingChange: ((updater) => {
-          const next =
-            typeof updater === 'function'
-              ? updater(entitySortToState(sort))
-              : updater
-          onSortChange(stateToEntitySort(next))
-        }) as OnChangeFn<SortingState>,
-      }
-    : {}
-
   return (
-    <DataTable
-      columns={columns}
-      data={data}
-      getRowId={getRowId}
-      fetching={fetching}
-      pagination={meta}
-      {...sortingProps}
-      onPageChange={(zeroBased) => emit(zeroBased + 1)}
-      onFirstPage={() => emit(1)}
-      onPreviousPage={() => emit(meta.currentPage - 1)}
-      onNextPage={() => emit(meta.currentPage + 1)}
-      onLastPage={() => emit(meta.totalPages)}
-      onPageSizeChange={onPageSizeChange}
-      {...rest}
-    />
+    <SortProvider sort={sort} onChange={onSortChange}>
+      <DataTable
+        columns={columns}
+        data={data}
+        getRowId={getRowId}
+        fetching={fetching}
+        pagination={meta}
+        onPageChange={(zeroBased) => emit(zeroBased + 1)}
+        onFirstPage={() => emit(1)}
+        onPreviousPage={() => emit(meta.currentPage - 1)}
+        onNextPage={() => emit(meta.currentPage + 1)}
+        onLastPage={() => emit(meta.totalPages)}
+        onPageSizeChange={onPageSizeChange}
+        {...rest}
+      />
+    </SortProvider>
   )
 }
