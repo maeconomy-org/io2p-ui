@@ -1,38 +1,30 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { PlusCircle } from 'lucide-react'
-import type { RowSelectionState } from '@tanstack/react-table'
-import type { AggregateEntity } from 'iom-sdk'
-import type { GroupCreateDTO } from 'iom-sdk'
+import { PlusCircle, FileText } from 'lucide-react'
+import type { ObjectDTO } from 'io2p-client'
 
-import {
-  useViewData,
-  useBreadcrumbTrail,
-  useBulkSelection,
-  useGroups,
-  useObjects,
-  usePreference,
-} from '@/hooks'
-import { useSearch, useAuth } from '@/contexts'
-import { isObjectDeleted, logger } from '@/lib'
-import { canUserWriteRecords } from '@/components/groups'
+import { useBreadcrumbTrail, useViewData, usePreference } from '@/hooks'
+import { useObjects } from '@/hooks/api/entities'
+import { useSearch } from '@/contexts'
+import { logger } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
 import InitialLoginTour from '@/components/onboarding/initial-login-tour'
 import { Button } from '@/components/ui'
-import { DeletedFilter, GroupFilter } from '@/components/filters'
+import { DeletedFilter } from '@/components/filters'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
 import { ObjectViewContainer } from '@/components/object-view-container'
-import { BulkActionsToolbar, DataTableColumnToggle } from '@/components/tables'
+import { EntityTable, useEntityListQuery } from '@/components/tables'
+import { DeleteConfirmationDialog } from '@/components/modals'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { useObjectDrafts } from '@/components/object-sheets/hooks'
 import { useObjectOperations } from '@/components/object-sheets/hooks/use-object-operations'
 
-// Lazy-load sheet components — only rendered when opened by user interaction
+import { buildObjectColumns } from './components/object-columns'
+
 const ObjectDetailsSheet = dynamic(
   () =>
     import('@/components/object-sheets/object-details-sheet').then(
@@ -71,62 +63,29 @@ const TemplateCreationDialog = dynamic(
   { ssr: false }
 )
 
+// During the table→columns migration the still-old columns view yields rows keyed by `uuid`;
+// the migrated table yields `ObjectDTO.id`. Shared sheets/modals fetch by that id either way.
+const idOf = (o: { id?: string; uuid?: string }) => o.id ?? o.uuid ?? ''
+
 function ObjectsPageContent() {
   const t = useTranslations()
+  const router = useRouter()
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [viewType, setViewType] = usePreference('objectsView')
-  const [showDeleted, setShowDeleted] = useState<boolean>(false)
-  const [selectedObject, setSelectedObject] = useState<AggregateEntity | null>(
-    null
-  )
+  const [showDeleted, setShowDeleted] = useState(false)
+
+  const [selectedObject, setSelectedObject] = useState<ObjectDTO | null>(null)
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
-  const [isObjectEditSheetOpen, setIsObjectEditSheetOpen] = useState(false)
-  const [selectedGroupUUID, setSelectedGroupUUID] = useState<string | null>(
-    null
-  )
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
 
-  // Row selection state (keyed by object UUID)
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  // Copy objects state (for columns view — table handles its own)
+  const [copyTarget, setCopyTarget] = useState<ObjectDTO | null>(null)
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
-  const [copyTarget, setCopyTarget] = useState<AggregateEntity | null>(null)
-
-  // QR / Passport / Template state hoisted from the table so both views share
-  // a single modal instance — see the View Details pattern (handleViewObject).
-  const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false)
-  const [selectedQRObject, setSelectedQRObject] = useState<any>(null)
-  const [isPassportSheetOpen, setIsPassportSheetOpen] = useState(false)
-  const [passportTarget, setPassportTarget] = useState<any>(null)
-  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
-  const [templateSource, setTemplateSource] = useState<any>(null)
+  const [qrTarget, setQrTarget] = useState<ObjectDTO | null>(null)
+  const [passportTarget, setPassportTarget] = useState<ObjectDTO | null>(null)
+  const [templateSource, setTemplateSource] = useState<ObjectDTO | null>(null)
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
+  const [objectToDelete, setObjectToDelete] = useState<ObjectDTO | null>(null)
 
-  const { createObject: createTemplate } = useObjectOperations({
-    isEditing: false,
-    isTemplate: true,
-  })
-
-  const { useRevertObject } = useObjects()
-  const revertObjectMutation = useRevertObject()
-
-  // Draft state — UI-only, surfaced as pinned rows on page 1 when no filters
-  const { drafts, deleteDraft } = useObjectDrafts()
-  const [editingDraftId, setEditingDraftId] = useState<string | null>(null)
-  const [hideDrafts, setHideDrafts] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('iom-objects:hide-drafts') === '1'
-  })
-  const handleHideDraftsChange = useCallback((next: boolean) => {
-    setHideDrafts(next)
-    try {
-      localStorage.setItem('iom-objects:hide-drafts', next ? '1' : '0')
-    } catch {
-      // silent fail
-    }
-  }, [])
-
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const { clearTrail } = useBreadcrumbTrail(undefined)
   const {
     isSearchMode,
@@ -136,159 +95,86 @@ function ObjectsPageContent() {
     clearSearch,
   } = useSearch()
 
-  // Handle groupId query param - preselect group from URL
-  useEffect(() => {
-    const groupId = searchParams.get('groupId')
-    if (groupId && selectedGroupUUID !== groupId) {
-      setSelectedGroupUUID(groupId)
-    }
-  }, [searchParams, selectedGroupUUID])
+  const { createObject: createTemplate } = useObjectOperations({
+    isEditing: false,
+    isTemplate: true,
+  })
 
-  // Clear groupId from URL when group filter changes
-  const handleGroupChange = useCallback(
-    (groupUUID: string | null) => {
-      setSelectedGroupUUID(groupUUID)
-      // Clear groupId from URL if it exists
-      const groupId = searchParams.get('groupId')
-      if (groupId) {
-        router.replace('/objects', { scroll: false })
-      }
+  const listQuery = useEntityListQuery({ scope: 'all' })
+  const { useList, useRemove, useRestore } = useObjects()
+  const removeMutation = useRemove()
+  const restoreMutation = useRestore()
+
+  const { data: objectsPage, isFetching } = useList(
+    {
+      ...listQuery.query,
+      size: pageSize,
+      scope: 'all',
+      q: isSearchMode ? searchQuery : undefined,
+      deleted: showDeleted ? 'include' : undefined,
+      withChildCounts: true,
     },
-    [searchParams, router]
+    { enabled: viewType === 'table', keepPreviousData: true }
   )
 
-  // Determine if user has write permissions for the selected group(s)
-  const { useAllGroups } = useGroups()
-  const { data: allGroups } = useAllGroups()
-  const { userId } = useAuth()
-
-  const groupReadOnly = useMemo(() => {
-    if (!selectedGroupUUID || !allGroups) return false
-    const group = allGroups.find(
-      (g: GroupCreateDTO) => g.groupUUID === selectedGroupUUID
-    )
-    if (!group) return false
-    return !canUserWriteRecords(group, userId)
-  }, [selectedGroupUUID, allGroups, userId])
-
-  // Use the data adapter hook - handles all data fetching internally
+  // Columns (Miller) view still runs on the old adapter until it migrates next.
   const viewData = useViewData({
     viewType,
     showDeleted,
     tablePageSize: pageSize,
-    groupUUIDList: selectedGroupUUID ? [selectedGroupUUID] : undefined,
   })
 
-  // Bulk selection hook - consolidates all bulk selection logic
-  const tableData = viewData.type === 'table' ? viewData.data : []
-  const {
-    selectedCount,
-    allSelectedDeleted,
-    hasNonDeletedSelected,
-    clearSelection,
-    handlers: {
-      handleBulkDelete,
-      handleBulkRestore,
-      handleAddToGroup,
-      handleCreateAndAddToGroup,
-      handleSetParent,
+  const handlePageSizeChange = useCallback(
+    (size: number) => {
+      setPageSize(size)
+      listQuery.setPage(1)
     },
-    mutations: { isDeleting, isRestoring, isAddingToGroup, isSettingParent },
-  } = useBulkSelection({
-    data: tableData,
-    rowSelection,
-    setRowSelection,
-  })
-
-  // Clear selection on view type change or search mode change
-  useEffect(() => {
-    setRowSelection({})
-  }, [viewType, isSearchMode])
-
-  const handleAddObject = () => {
-    setSelectedObject(null)
-    setEditingDraftId(null)
-    setIsObjectEditSheetOpen(true)
-  }
-
-  const handleOpenDraft = useCallback((id: string) => {
-    setSelectedObject(null)
-    setEditingDraftId(id)
-    setIsObjectEditSheetOpen(true)
-  }, [])
-
-  // Drafts pin only when nothing is filtering the live data — otherwise the
-  // visual hierarchy ("here are real matches") would be muddied. Applies to
-  // both views: table pins on page 1 of the data, columns view pins on page 1
-  // of the root column. NOTE pagination indexing differs across views —
-  // table.currentPage is 0-based, columns.rootPagination.currentPage is
-  // 1-based (see use-view-data.ts).
-  const draftRows = useMemo(() => {
-    if (hideDrafts) return undefined
-    if (isSearchMode) return undefined
-    if (selectedGroupUUID) return undefined
-    if (viewData.type === 'table' && viewData.pagination.currentPage !== 0) {
-      return undefined
-    }
-    if (
-      viewData.type === 'columns' &&
-      viewData.rootPagination &&
-      viewData.rootPagination.currentPage > 1
-    ) {
-      return undefined
-    }
-    return drafts.map((d) => ({
-      id: d.id,
-      name: d.name,
-      updatedAt: d.updatedAt,
-    }))
-  }, [drafts, hideDrafts, isSearchMode, selectedGroupUUID, viewData])
-
-  const handleViewObject = (object: AggregateEntity) => {
-    setSelectedObject(object)
-    setIsObjectSheetOpen(true)
-  }
-
-  const handleShowQRCode = useCallback((object: any) => {
-    setSelectedQRObject(object)
-    setIsQRCodeModalOpen(true)
-  }, [])
-
-  const handleViewPassport = useCallback((object: any) => {
-    setPassportTarget(object)
-    setIsPassportSheetOpen(true)
-  }, [])
-
-  const handleCreateTemplate = useCallback((object: any) => {
-    setTemplateSource(object)
-    setIsTemplateDialogOpen(true)
-  }, [])
-
-  const handleRestoreObject = useCallback(
-    async (object: any) => {
-      try {
-        await revertObjectMutation.mutateAsync({
-          uuid: object.uuid,
-          name: object.name,
-          abbreviation: object.abbreviation,
-          version: object.version,
-          description: object.description,
-        })
-      } catch (error) {
-        logger.error('Error reverting object:', error)
-      }
-    },
-    [revertObjectMutation]
+    [listQuery]
   )
 
-  const getInitialTemplateData = (sourceObj: any) => {
-    if (!sourceObj)
+  const openDetails = useCallback((object: ObjectDTO) => {
+    setSelectedObject(object)
+    setIsObjectSheetOpen(true)
+  }, [])
+
+  const handleDoubleClick = useCallback(
+    (object: ObjectDTO) => {
+      clearTrail()
+      router.push(`/objects/${idOf(object)}`)
+    },
+    [clearTrail, router]
+  )
+
+  const confirmDelete = useCallback(async () => {
+    if (!objectToDelete) return
+    try {
+      await removeMutation.mutateAsync({ id: objectToDelete.id })
+    } catch (error) {
+      logger.error('Delete object error:', error)
+    } finally {
+      setObjectToDelete(null)
+    }
+  }, [objectToDelete, removeMutation])
+
+  const handleRestore = useCallback(
+    async (object: ObjectDTO) => {
+      try {
+        await restoreMutation.mutateAsync({ id: object.id })
+      } catch (error) {
+        logger.error('Restore object error:', error)
+      }
+    },
+    [restoreMutation]
+  )
+
+  const getInitialTemplateData = (source: ObjectDTO | null) => {
+    if (!source)
       return { name: '', abbreviation: '', version: '1.0', description: '' }
     return {
-      name: `${sourceObj.name} Template`,
-      abbreviation: sourceObj.abbreviation || '',
+      name: `${source.name} Template`,
+      abbreviation: '',
       version: '1.0',
-      description: `Template created from ${sourceObj.name}`,
+      description: `Template created from ${source.name}`,
     }
   }
 
@@ -301,35 +187,24 @@ function ObjectsPageContent() {
     if (!templateSource) return
     setIsCreatingTemplate(true)
     try {
-      const fullTemplateData = {
-        name: templateData.name,
-        abbreviation: templateData.abbreviation,
-        version: templateData.version,
-        description: templateData.description,
+      await createTemplate({
+        ...templateData,
         properties:
-          templateSource.properties?.map((prop: any) => ({
+          templateSource.properties?.map((prop) => ({
             key: prop.key,
             label: prop.label || prop.key,
-            type: prop.type || 'string',
-            values: prop.values?.map((val: any) => ({
-              value: 'Variable',
-              valueTypeCast: val.valueTypeCast || 'string',
-              files: [],
-            })) || [
-              {
+            type: 'string',
+            values:
+              prop.values?.map(() => ({
                 value: 'Variable',
                 valueTypeCast: 'string',
-                sourceType: 'manual',
                 files: [],
-              },
-            ],
+              })) ?? [],
             files: [],
-          })) || [],
+          })) ?? [],
         files: [],
         parents: [],
-      }
-      await createTemplate(fullTemplateData)
-      setIsTemplateDialogOpen(false)
+      })
       setTemplateSource(null)
     } catch (error) {
       logger.error('Error creating template:', error)
@@ -338,34 +213,43 @@ function ObjectsPageContent() {
     }
   }
 
-  // Handle double-click to navigate to children page
-  const handleObjectDoubleClick = useCallback(
-    (object: AggregateEntity) => {
-      // Clear the trail — navigating from root means no ancestors
-      clearTrail()
-      router.push(`/objects/${object.uuid}`)
-    },
-    [clearTrail, router]
+  const columns = useMemo(
+    () =>
+      buildObjectColumns({
+        t,
+        isDeleting: removeMutation.isPending,
+        isRestoring: restoreMutation.isPending,
+        actions: {
+          onViewDetails: openDetails,
+          onShowQRCode: setQrTarget,
+          onViewPassport: setPassportTarget,
+          onDuplicate: setCopyTarget,
+          onCreateTemplate: setTemplateSource,
+          onDelete: setObjectToDelete,
+          onRestore: handleRestore,
+        },
+      }),
+    [
+      t,
+      removeMutation.isPending,
+      restoreMutation.isPending,
+      openDetails,
+      handleRestore,
+    ]
   )
 
   return (
     <div className="container mx-auto p-4">
       <InitialLoginTour />
       <div className="flex flex-col">
-        <div className="flex items-center justify-between mb-4 gap-2">
-          <h1 className="text-2xl font-bold shrink-0">{t('objects.title')}</h1>
-          <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h1 className="shrink-0 text-2xl font-bold">{t('objects.title')}</h1>
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
             <DeletedFilter
               showDeleted={showDeleted}
               onShowDeletedChange={setShowDeleted}
-              hideDrafts={hideDrafts}
-              onHideDraftsChange={handleHideDraftsChange}
               label={t('objects.showDeleted')}
               data-tour="filters"
-            />
-            <GroupFilter
-              selectedGroupUUID={selectedGroupUUID}
-              onGroupChange={handleGroupChange}
             />
             <ViewSelector
               view={viewType}
@@ -374,7 +258,7 @@ function ObjectsPageContent() {
             />
             <Button
               size="sm"
-              onClick={handleAddObject}
+              onClick={() => setIsAddSheetOpen(true)}
               data-tour="create-object"
             >
               <PlusCircle className="h-4 w-4 sm:mr-2" />
@@ -383,26 +267,6 @@ function ObjectsPageContent() {
           </div>
         </div>
 
-        {/* Bulk Actions Toolbar — sits between header and table (hidden when group is read-only) */}
-        {viewType === 'table' && selectedCount > 0 && !groupReadOnly && (
-          <BulkActionsToolbar
-            selectedCount={selectedCount}
-            allSelectedDeleted={allSelectedDeleted}
-            hasNonDeletedSelected={hasNonDeletedSelected}
-            onBulkDelete={handleBulkDelete}
-            onBulkRestore={handleBulkRestore}
-            onAddToGroup={handleAddToGroup}
-            onCreateAndAddToGroup={handleCreateAndAddToGroup}
-            onSetParent={handleSetParent}
-            onClearSelection={clearSelection}
-            isDeleting={isDeleting}
-            isRestoring={isRestoring}
-            isAddingToGroup={isAddingToGroup}
-            isSettingParent={isSettingParent}
-          />
-        )}
-
-        {/* Search Mode Indicator */}
         {isSearchMode && (
           <SearchResultsBar
             searchQuery={searchQuery}
@@ -412,115 +276,109 @@ function ObjectsPageContent() {
           />
         )}
 
-        {viewData.loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
+        {viewType === 'table' ? (
+          <EntityTable
+            columns={columns}
+            page={objectsPage}
+            getRowId={(o) => o.id}
+            fetching={isFetching}
+            sort={listQuery.query.sort}
+            onSortChange={listQuery.setSort}
+            onPageChange={listQuery.setPage}
+            onPageSizeChange={handlePageSizeChange}
+            onRowDoubleClick={handleDoubleClick}
+            emptyIcon={
+              <FileText className="h-10 w-10 text-muted-foreground/50" />
+            }
+            emptyTitle={t('objects.noObjectsTitle')}
+            emptyDescription={t('objects.noObjectsDescription')}
+          />
         ) : (
           <ObjectViewContainer
             viewType={viewType}
             viewData={viewData}
-            onViewObject={handleViewObject}
-            onObjectDoubleClick={handleObjectDoubleClick}
-            onDuplicate={
-              groupReadOnly
-                ? undefined
-                : (object) => {
-                    setCopyTarget(object)
-                    setIsCopySheetOpen(true)
-                  }
-            }
+            onViewObject={openDetails}
+            onObjectDoubleClick={handleDoubleClick}
+            onDuplicate={setCopyTarget}
             showDeleted={showDeleted}
-            enableRowSelection={viewType === 'table' && !groupReadOnly}
-            rowSelection={rowSelection}
-            onRowSelectionChange={setRowSelection}
-            onPageSizeChange={setPageSize}
-            readOnly={groupReadOnly}
-            draftRows={draftRows}
-            onOpenDraft={handleOpenDraft}
-            onDiscardDraft={deleteDraft}
-            onShowQRCode={handleShowQRCode}
-            onViewPassport={handleViewPassport}
-            onCreateTemplate={handleCreateTemplate}
-            onRestore={handleRestoreObject}
-            isRestoring={revertObjectMutation.isPending}
+            onShowQRCode={setQrTarget}
+            onViewPassport={setPassportTarget}
+            onCreateTemplate={setTemplateSource}
+            onRestore={handleRestore}
+            isRestoring={restoreMutation.isPending}
           />
         )}
       </div>
 
-      {/* Object detail sheet */}
       <ObjectDetailsSheet
         isOpen={isObjectSheetOpen}
         onClose={() => setIsObjectSheetOpen(false)}
         object={selectedObject}
-        uuid={selectedObject?.uuid}
-        isDeleted={isObjectDeleted(selectedObject)}
+        uuid={selectedObject ? idOf(selectedObject) : undefined}
+        isDeleted={selectedObject?.deleted ?? false}
       />
 
-      {/* Object add sheet */}
       <ObjectAddSheet
-        isOpen={isObjectEditSheetOpen}
-        draftId={editingDraftId}
-        onClose={() => {
-          setIsObjectEditSheetOpen(false)
-          setSelectedObject(null)
-          setEditingDraftId(null)
-        }}
+        isOpen={isAddSheetOpen}
+        draftId={null}
+        onClose={() => setIsAddSheetOpen(false)}
       />
 
-      {/* QR Code modal (lazy) — single instance for both views */}
-      {isQRCodeModalOpen && selectedQRObject && (
+      {qrTarget && (
         <QRCodeModal
-          isOpen={isQRCodeModalOpen}
-          onClose={() => setIsQRCodeModalOpen(false)}
-          uuid={selectedQRObject.uuid}
-          objectName={selectedQRObject.name}
+          isOpen={!!qrTarget}
+          onClose={() => setQrTarget(null)}
+          uuid={idOf(qrTarget)}
+          objectName={qrTarget.name}
         />
       )}
 
-      {/* Product Passport sheet (lazy) — single instance for both views */}
-      {isPassportSheetOpen && passportTarget && (
+      {passportTarget && (
         <ProductPassportSheet
-          isOpen={isPassportSheetOpen}
-          onClose={() => setIsPassportSheetOpen(false)}
-          uuid={passportTarget.uuid}
+          isOpen={!!passportTarget}
+          onClose={() => setPassportTarget(null)}
+          uuid={idOf(passportTarget)}
           object={passportTarget}
         />
       )}
 
-      {/* Template creation dialog (lazy) — single instance for both views */}
-      {isTemplateDialogOpen && templateSource && (
+      {templateSource && (
         <TemplateCreationDialog
-          open={isTemplateDialogOpen}
-          onOpenChange={setIsTemplateDialogOpen}
+          open={!!templateSource}
+          onOpenChange={(open) => !open && setTemplateSource(null)}
           initialData={getInitialTemplateData(templateSource)}
           onConfirm={handleConfirmTemplateCreation}
           isCreating={isCreatingTemplate}
         />
       )}
 
-      {/* Copy Objects Sheet (columns view) */}
       {isCopySheetOpen && copyTarget && (
         <CopyObjectsSheet
           open={isCopySheetOpen}
           onOpenChange={setIsCopySheetOpen}
           preselectedObjects={[
             {
-              uuid: copyTarget.uuid ?? '',
+              uuid: idOf(copyTarget),
               name: copyTarget.name ?? '',
-              hasChildren:
-                (copyTarget.children && copyTarget.children.length > 0) ??
-                false,
-              childCount: copyTarget.children?.length ?? 0,
+              hasChildren: (copyTarget.childCount ?? 0) > 0,
+              childCount: copyTarget.childCount ?? 0,
             },
           ]}
+        />
+      )}
+
+      {objectToDelete && (
+        <DeleteConfirmationDialog
+          open={!!objectToDelete}
+          onOpenChange={(open) => !open && setObjectToDelete(null)}
+          objectName={objectToDelete.name}
+          onDelete={confirmDelete}
         />
       )}
     </div>
   )
 }
 
-// Export the wrapped component
 export default function ObjectsPage() {
   return (
     <ProtectedRoute>
