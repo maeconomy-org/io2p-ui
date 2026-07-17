@@ -6,7 +6,6 @@ import { Loader2, Pencil } from 'lucide-react'
 
 import {
   Button,
-  ScrollArea,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -136,30 +135,32 @@ export function EntitySheet({
               defaultValue="properties"
               className="flex min-h-0 flex-1 flex-col"
             >
-              <TabsList className="mx-6 mt-4 grid grid-cols-3">
-                <TabsTrigger value="properties">
-                  {t('objects.fields.properties')}
-                  <DirtyDot show={!!dirtyFields.properties} />
-                </TabsTrigger>
-                <TabsTrigger value="details">
-                  {t('objects.detailsSheet.tabDetails')}
-                  <DirtyDot
-                    show={
-                      !!(
-                        dirtyFields.name ||
-                        dirtyFields.description ||
-                        dirtyFields.address
-                      )
-                    }
-                  />
-                </TabsTrigger>
-                <TabsTrigger value="parents">
-                  {t('objects.detailsSheet.tabParents')}
-                  <DirtyDot show={!!dirtyFields.parentIds} />
-                </TabsTrigger>
-              </TabsList>
+              <div className="px-6 pt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="properties">
+                    {t('objects.fields.properties')}
+                    <DirtyDot show={!!dirtyFields.properties} />
+                  </TabsTrigger>
+                  <TabsTrigger value="details">
+                    {t('objects.detailsSheet.tabDetails')}
+                    <DirtyDot
+                      show={
+                        !!(
+                          dirtyFields.name ||
+                          dirtyFields.description ||
+                          dirtyFields.address
+                        )
+                      }
+                    />
+                  </TabsTrigger>
+                  <TabsTrigger value="parents">
+                    {t('objects.detailsSheet.tabParents')}
+                    <DirtyDot show={!!dirtyFields.parentIds} />
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-              <ScrollArea className="min-h-0 flex-1 px-4 py-4">
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
                 <TabsContent value="properties" className="mt-0">
                   <PropertyFields
                     form={form}
@@ -178,11 +179,11 @@ export function EntitySheet({
                     parentNames={parentNames}
                   />
                 </TabsContent>
-              </ScrollArea>
+              </div>
             </Tabs>
 
             {isDirty && (
-              <div className="flex items-center gap-2 border-t bg-muted/40 px-4 py-2 text-sm">
+              <div className="flex items-center gap-2 border-t bg-muted/40 px-6 py-2 text-sm">
                 <span className="font-medium">
                   {t('objects.detailsSheet.unsavedChanges', {
                     count: dirtyCount,

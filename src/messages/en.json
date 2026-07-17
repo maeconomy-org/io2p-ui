@@ -576,6 +576,7 @@
     },
     "propertyEditor": {
       "key": "Key",
+      "name": "Name",
       "label": "Label",
       "value": "Value",
       "derived": "Derived",

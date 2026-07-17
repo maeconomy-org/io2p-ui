@@ -1,11 +1,15 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Plus, Trash2 } from 'lucide-react'
 import { useFieldArray, type UseFormReturn } from 'react-hook-form'
 
-import { Badge, Button, Input } from '@/components/ui'
+import { Badge, Button, Input, Label } from '@/components/ui'
 import { PropertyNameCombobox } from '@/components/properties'
+import {
+  getValuePlaceholder,
+  type PropertyDictionaryLocale,
+} from '@/constants/property-dictionary'
 import type { EntityDraft } from '@/lib/entity-body'
 
 interface PropertyFieldsProps {
@@ -75,11 +79,12 @@ export function PropertyFields({
           onRemove={() => remove(index)}
         />
       ))}
+      {/* A new property always starts with one (empty) value. */}
       <Button
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => append({ key: '', values: [] })}
+        onClick={() => append({ key: '', label: '', values: [{ data: '' }] })}
       >
         <Plus className="mr-2 h-4 w-4" />
         {t('objects.propertyEditor.addProperty')}
@@ -100,16 +105,24 @@ function PropertyRow({
   onRemove: () => void
 }) {
   const t = useTranslations()
+  const locale = useLocale() as PropertyDictionaryLocale
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: `properties.${index}.values`,
   })
 
+  // Selecting a known property surfaces its expected-format example as the value placeholder.
+  const propKey = form.watch(`properties.${index}.key`)
+  const valuePlaceholder =
+    getValuePlaceholder(propKey, locale) ?? t('objects.propertyEditor.value')
+
   return (
     <div className="space-y-3 rounded-md border p-3">
       <div className="flex items-end gap-2">
-        <div className="flex-1">
+        <div className="flex-1 space-y-1.5">
+          <Label>{t('objects.propertyEditor.name')}</Label>
           <PropertyNameCombobox
+            className="h-10"
             value={form.watch(`properties.${index}.key`) ?? ''}
             onChange={(key, label) => {
               form.setValue(`properties.${index}.key`, key, {
@@ -132,44 +145,51 @@ function PropertyRow({
         </Button>
       </div>
 
-      <div className="space-y-2">
-        {fields.map((field, vIndex) => {
-          const valueId = form.watch(`properties.${index}.values.${vIndex}.id`)
-          const isDerived = !!valueId && derivedValueIds.has(valueId)
-          return (
-            <div key={field.id} className="flex items-center gap-2">
-              <Input
-                placeholder={t('objects.propertyEditor.value')}
-                readOnly={isDerived}
-                {...form.register(`properties.${index}.values.${vIndex}.data`)}
-              />
-              {isDerived ? (
-                <Badge variant="outline" className="shrink-0 text-[10px]">
-                  {t('objects.propertyEditor.derived')}
-                </Badge>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t('common.remove')}
-                  onClick={() => remove(vIndex)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          )
-        })}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => append({ data: '' })}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {t('objects.propertyEditor.addValue')}
-        </Button>
+      <div className="space-y-1.5">
+        <Label>{t('objects.propertyEditor.value')}</Label>
+        <div className="space-y-2">
+          {fields.map((field, vIndex) => {
+            const valueId = form.watch(
+              `properties.${index}.values.${vIndex}.id`
+            )
+            const isDerived = !!valueId && derivedValueIds.has(valueId)
+            return (
+              <div key={field.id} className="flex items-center gap-2">
+                <Input
+                  placeholder={valuePlaceholder}
+                  readOnly={isDerived}
+                  {...form.register(
+                    `properties.${index}.values.${vIndex}.data`
+                  )}
+                />
+                {isDerived ? (
+                  <Badge variant="outline" className="shrink-0 text-[10px]">
+                    {t('objects.propertyEditor.derived')}
+                  </Badge>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t('common.remove')}
+                    onClick={() => remove(vIndex)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            )
+          })}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => append({ data: '' })}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {t('objects.propertyEditor.addValue')}
+          </Button>
+        </div>
       </div>
     </div>
   )
