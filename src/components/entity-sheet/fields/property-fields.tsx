@@ -123,6 +123,7 @@ function PropertyRow({
           <Label>{t('objects.propertyEditor.name')}</Label>
           <PropertyNameCombobox
             className="h-10"
+            placeholder={t('objects.propertyEditor.namePlaceholder')}
             value={form.watch(`properties.${index}.key`) ?? ''}
             onChange={(key, label) => {
               form.setValue(`properties.${index}.key`, key, {

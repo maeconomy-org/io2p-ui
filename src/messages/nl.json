@@ -580,6 +580,7 @@
     "propertyEditor": {
       "key": "Sleutel",
       "name": "Naam",
+      "namePlaceholder": "Selecteer of typ een eigenschapsnaam",
       "label": "Label",
       "value": "Waarde",
       "derived": "Afgeleid",

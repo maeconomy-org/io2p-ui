@@ -577,6 +577,7 @@
     "propertyEditor": {
       "key": "Key",
       "name": "Name",
+      "namePlaceholder": "Select or type a property name",
       "label": "Label",
       "value": "Value",
       "derived": "Derived",
