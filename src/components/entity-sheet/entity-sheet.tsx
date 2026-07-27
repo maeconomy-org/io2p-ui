@@ -2,16 +2,20 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Loader2, Pencil } from 'lucide-react'
+import { Loader2, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import {
+  Badge,
   Button,
   Sheet,
   SheetContent,
+  SheetDropzone,
   SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
+  Label,
   Skeleton,
   Tabs,
   TabsContent,
@@ -19,11 +23,15 @@ import {
   TabsTrigger,
 } from '@/components/ui'
 import { useObjects } from '@/hooks/api/entities'
+import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
+import { logger } from '@/lib'
 
 import { useEntityForm } from './hooks/use-entity-form'
 import { CreateForm } from './create-form'
+import { newUploadDraft } from './files'
 import {
   AddressField,
+  EntityFacts,
   MetadataFields,
   ObjectFilesField,
   ParentsField,
@@ -57,11 +65,39 @@ export function EntitySheet({
 
   const { data: entity, isLoading } = useObjects().useGet(
     entityId ?? undefined,
-    { enrichFiles: true }
+    // Ask for soft-deleted sub-items so they render struck-through with a Restore action, rather
+    // than silently vanishing — nothing is destroyed, so nothing should look destroyed.
+    { enrichFiles: true, includeDeleted: true }
   )
   const loading = !isCreate && (isLoading || !entity)
 
   const [editing, setEditing] = useState(isCreate)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const { useRemove, useRestore } = useObjects()
+  const removeMutation = useRemove()
+  const restoreMutation = useRestore()
+
+  // A soft-deleted object is shown, not hidden — but it can't be edited until it's restored.
+  const isDeleted = !!entity?.deleted
+  const lifecycleBusy = removeMutation.isPending || restoreMutation.isPending
+
+  const runLifecycle = async (
+    action: 'delete' | 'restore',
+    id: string
+  ): Promise<void> => {
+    try {
+      const mutation = action === 'delete' ? removeMutation : restoreMutation
+      await mutation.mutateAsync({ id })
+      setEditing(false)
+    } catch (error) {
+      logger.error(`Object ${action} failed`, {
+        entityId: id,
+        status: iomStatus(error),
+        error: error instanceof Error ? error.message : String(error),
+      })
+      toast.error(t(saveErrorMessage(error).key))
+    }
+  }
 
   const { form, submit, isSubmitting } = useEntityForm(entity, {
     defaultParentIds,
@@ -100,6 +136,18 @@ export function EntitySheet({
     onOpenChange(false)
   }
 
+  // Dropping anywhere in the sheet attaches at OBJECT level — the coarsest, least surprising target
+  // when the pointer wasn't over a particular property or value.
+  const dropFiles = (dropped: File[]) => {
+    if (!editing || dropped.length === 0) return
+    form.setValue(
+      'files',
+      [...(form.getValues('files') ?? []), ...dropped.map(newUploadDraft)],
+      { shouldDirty: true }
+    )
+    toast.success(t('objects.files.addedCount', { count: dropped.length }))
+  }
+
   const cancel = () => {
     form.reset()
     if (isCreate) onOpenChange(false)
@@ -113,12 +161,22 @@ export function EntitySheet({
     >
       <SheetContent className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-xl">
         <SheetHeader className="border-b px-6 py-4 pr-12">
-          <SheetTitle>
-            {isCreate
-              ? t('objects.create')
-              : loading
-                ? t('common.loading')
-                : (entity?.name ?? '')}
+          <SheetTitle className="flex items-center gap-2">
+            <span className="min-w-0 truncate">
+              {isCreate
+                ? t('objects.create')
+                : loading
+                  ? t('common.loading')
+                  : (entity?.name ?? '')}
+            </span>
+            {isDeleted && (
+              <Badge
+                variant="outline"
+                className="shrink-0 border-destructive text-destructive"
+              >
+                {t('common.deleted')}
+              </Badge>
+            )}
           </SheetTitle>
           <SheetDescription className="sr-only">
             {isCreate ? t('objects.create') : (entity?.name ?? '')}
@@ -134,119 +192,165 @@ export function EntitySheet({
         )}
 
         {!loading && (
-          <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-            {isCreate ? (
-              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                <CreateForm form={form} parentNames={parentNames} />
-              </div>
-            ) : (
-              <Tabs
-                defaultValue="properties"
-                className="flex min-h-0 flex-1 flex-col"
-              >
-                <div className="px-6 pt-4">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="properties">
-                      {t('objects.fields.properties')}
-                      <DirtyDot show={!!dirtyFields.properties} />
-                    </TabsTrigger>
-                    <TabsTrigger value="files">
-                      {t('objects.filesTitle')}
-                      <DirtyDot show={!!dirtyFields.files} />
-                    </TabsTrigger>
-                    <TabsTrigger value="details">
-                      {t('objects.detailsSheet.tabDetails')}
-                      <DirtyDot
-                        show={
-                          !!(
-                            dirtyFields.name ||
-                            dirtyFields.description ||
-                            dirtyFields.address
-                          )
-                        }
-                      />
-                    </TabsTrigger>
-                    <TabsTrigger value="parents">
-                      {t('objects.detailsSheet.tabParents')}
-                      <DirtyDot show={!!dirtyFields.parentIds} />
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-
+          <SheetDropzone
+            onFiles={dropFiles}
+            disabled={!editing}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+              {isCreate ? (
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                  <TabsContent value="properties" className="mt-0">
-                    <PropertyFields
-                      form={form}
-                      editing={editing}
-                      derivedValueIds={derivedValueIds}
-                    />
-                  </TabsContent>
-                  <TabsContent value="files" className="mt-0">
-                    <ObjectFilesField
-                      form={form}
-                      editing={editing}
-                      entityId={entity?.id}
-                    />
-                  </TabsContent>
-                  <TabsContent value="details" className="mt-0 space-y-6">
-                    <MetadataFields form={form} editing={editing} />
-                    <AddressField form={form} editing={editing} />
-                  </TabsContent>
-                  <TabsContent value="parents" className="mt-0">
-                    <ParentsField
-                      form={form}
-                      editing={editing}
-                      parentNames={parentNames}
-                    />
-                  </TabsContent>
+                  <CreateForm form={form} parentNames={parentNames} />
                 </div>
-              </Tabs>
-            )}
-
-            {isDirty && (
-              <div className="flex items-center gap-2 border-t bg-muted/40 px-6 py-2 text-sm">
-                <span className="font-medium">
-                  {t('objects.detailsSheet.unsavedChanges', {
-                    count: dirtyCount,
-                  })}
-                </span>
-              </div>
-            )}
-
-            <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
-              {!editing ? (
-                <Button
-                  type="button"
-                  className="flex-1"
-                  onClick={() => setEditing(true)}
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  {t('common.edit')}
-                </Button>
               ) : (
-                <>
+                <Tabs
+                  defaultValue="properties"
+                  className="flex min-h-0 flex-1 flex-col"
+                >
+                  <div className="px-6 pt-4">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="properties">
+                        {t('objects.fields.properties')}
+                        <DirtyDot show={!!dirtyFields.properties} />
+                      </TabsTrigger>
+                      <TabsTrigger value="files">
+                        {t('objects.filesTitle')}
+                        <DirtyDot show={!!dirtyFields.files} />
+                      </TabsTrigger>
+                      <TabsTrigger value="details">
+                        {t('objects.detailsSheet.tabDetails')}
+                        <DirtyDot
+                          show={
+                            !!(
+                              dirtyFields.name ||
+                              dirtyFields.description ||
+                              dirtyFields.address ||
+                              dirtyFields.parentIds
+                            )
+                          }
+                        />
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                    <TabsContent value="properties" className="mt-0">
+                      <PropertyFields
+                        form={form}
+                        editing={editing}
+                        derivedValueIds={derivedValueIds}
+                      />
+                    </TabsContent>
+                    <TabsContent value="files" className="mt-0">
+                      <ObjectFilesField
+                        form={form}
+                        editing={editing}
+                        entityId={entity?.id}
+                      />
+                    </TabsContent>
+                    <TabsContent value="details" className="mt-0 space-y-4">
+                      <MetadataFields form={form} editing={editing} />
+                      <div className="space-y-1.5">
+                        <Label>{t('objects.detailsSheet.tabParents')}</Label>
+                        <ParentsField
+                          form={form}
+                          editing={editing}
+                          parentNames={parentNames}
+                          selfId={entity?.id}
+                        />
+                      </div>
+                      <AddressField form={form} editing={editing} />
+                      {entity && <EntityFacts entity={entity} />}
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              )}
+
+              {isDirty && (
+                <div className="flex items-center gap-2 border-t bg-muted/40 px-6 py-2 text-sm">
+                  <span className="font-medium">
+                    {t('objects.detailsSheet.unsavedChanges', {
+                      count: dirtyCount,
+                    })}
+                  </span>
+                </div>
+              )}
+
+              <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
+                {isDeleted ? (
                   <Button
                     type="button"
                     variant="outline"
                     className="flex-1"
-                    onClick={cancel}
+                    disabled={lifecycleBusy}
+                    onClick={() => entity && runLifecycle('restore', entity.id)}
                   >
-                    {t('common.cancel')}
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={isSubmitting || !isDirty}
-                  >
-                    {isSubmitting && (
+                    {lifecycleBusy ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCcw className="mr-2 h-4 w-4" />
                     )}
-                    {t('common.save')}
+                    {t('common.restore')}
                   </Button>
-                </>
-              )}
-            </SheetFooter>
-          </form>
+                ) : !editing ? (
+                  <>
+                    <Button
+                      type="button"
+                      className="flex-1"
+                      onClick={() => setEditing(true)}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      {t('common.edit')}
+                    </Button>
+                    {!isCreate && entity && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                        disabled={lifecycleBusy}
+                        onBlur={() => setConfirmDelete(false)}
+                        onClick={() => {
+                          if (!confirmDelete) return setConfirmDelete(true)
+                          setConfirmDelete(false)
+                          void runLifecycle('delete', entity.id)
+                        }}
+                      >
+                        {confirmDelete ? (
+                          t('common.confirm')
+                        ) : (
+                          <>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {t('common.delete')}
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={cancel}
+                    >
+                      {t('common.cancel')}
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      disabled={isSubmitting || !isDirty}
+                    >
+                      {isSubmitting && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      {t('common.save')}
+                    </Button>
+                  </>
+                )}
+              </SheetFooter>
+            </form>
+          </SheetDropzone>
         )}
       </SheetContent>
     </Sheet>

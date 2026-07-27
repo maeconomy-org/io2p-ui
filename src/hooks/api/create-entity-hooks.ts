@@ -12,7 +12,7 @@ import {
 } from '@tanstack/react-query'
 import type {
   Io2pClient,
-  GetOptions,
+  EntityGetOptions,
   CreateOptions,
   UpdateOptions,
   WriteOptions,
@@ -31,7 +31,9 @@ export interface EntityResource<
   UpdateBody,
 > {
   list: (query?: ListQuery) => Promise<Page<Dto>>
-  get: (id: string, options?: GetOptions) => Promise<Dto>
+  // EntityGetOptions, not GetOptions: objects and processes carry a soft-deletable authored
+  // tree, so their detail read accepts `includeDeleted`. Templates are hand-written, not from here.
+  get: (id: string, options?: EntityGetOptions) => Promise<Dto>
   create: (body: CreateBody, options?: CreateOptions) => Promise<CreateResp>
   update: (
     id: string,
@@ -90,13 +92,25 @@ export function createEntityHooks<
 
   function useGet(
     id: string | undefined,
-    options?: { enabled?: boolean; enrichFiles?: boolean }
+    options?: {
+      enabled?: boolean
+      enrichFiles?: boolean
+      /** Include soft-deleted properties/values/files, each carrying its own `deleted` flag. */
+      includeDeleted?: boolean
+    }
   ) {
     const client = useIomClient()
     return useQuery({
-      queryKey: keys.detail(id ?? ''),
+      // `includeDeleted` changes the response shape, so it has to be part of the key — otherwise a
+      // read that asked for deleted sub-items would serve one that didn't, or vice versa.
+      queryKey: options?.includeDeleted
+        ? [...keys.detail(id ?? ''), 'withDeleted']
+        : keys.detail(id ?? ''),
       queryFn: () =>
-        select(client).get(id!, { enrichFiles: options?.enrichFiles }),
+        select(client).get(id!, {
+          enrichFiles: options?.enrichFiles,
+          includeDeleted: options?.includeDeleted,
+        }),
       enabled: !!id && options?.enabled !== false,
       staleTime,
     })

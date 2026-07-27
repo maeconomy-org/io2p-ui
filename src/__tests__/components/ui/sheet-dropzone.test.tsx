@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 
-import { SheetDropzone } from '@/components/object-sheets/components/sheet-dropzone'
+import { SheetDropzone } from '@/components/ui/sheet-dropzone'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,

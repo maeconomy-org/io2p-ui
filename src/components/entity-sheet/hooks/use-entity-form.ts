@@ -15,6 +15,7 @@ import { logger } from '@/lib'
 import {
   type EntityDraft,
   dtoToDraft,
+  findEmptyPropertyKey,
   hasPendingUploads,
   resolveUploadTargets,
   buildCreateObjectInput,
@@ -85,20 +86,48 @@ export function useEntityForm(
     const uploads = resolveUploadTargets(committed, draft)
     if (uploads.length === 0) return
     try {
-      await Promise.all(
-        uploads.map((u) =>
-          // Pass an explicit descriptor rather than the raw File: the SDK would otherwise read
+      // One call, per-file targets. `uploadAll` uploads the bytes in parallel and gates the
+      // `complete` calls per TARGET ENTITY — those writes are version-serialized server-side, so
+      // fanning them out at one object only fights over its version. No grouping needed here: a
+      // save spreads files across the entity, its properties and its values, but that's one
+      // contention unit, and the SDK keys the gate on `target.entityId`.
+      const settled = await client.files.uploadAll(
+        uploads.map((u) => ({
+          // An explicit descriptor rather than the raw File: the SDK would otherwise read
           // `File.name`, losing a rename. Renaming by rebuilding the File would copy the bytes.
-          client.files.upload(
-            {
-              data: u.file.blob!,
-              fileName: u.file.fileName ?? u.file.blob!.name,
-              contentType: u.file.contentType || u.file.blob!.type || undefined,
-            },
-            u.target
-          )
-        )
+          file: {
+            data: u.file.blob!,
+            fileName: u.file.fileName ?? u.file.blob!.name,
+            contentType: u.file.contentType || u.file.blob!.type || undefined,
+          },
+          target: u.target,
+        }))
       )
+
+      // Settled per file, so a partial failure keeps the successes — reporting "nothing uploaded"
+      // when four of five landed would be a lie, and would invite a retry that duplicates them.
+      const failed = settled.filter((r) => r.status === 'rejected')
+      if (failed.length > 0) {
+        logger.error('Some files failed to attach after save', {
+          failed: failed.length,
+          total: settled.length,
+          error: failed
+            .map((r) =>
+              r.status === 'rejected'
+                ? r.reason instanceof Error
+                  ? r.reason.message
+                  : String(r.reason)
+                : ''
+            )
+            .join('; '),
+        })
+        toast.error(
+          t('objects.files.uploadPartial', {
+            failed: failed.length,
+            total: settled.length,
+          })
+        )
+      }
     } catch (err) {
       // Log the readable message — an Error serializes to `{}` when wrapped in an object.
       logger.error('File upload failed after save', {
@@ -112,6 +141,18 @@ export function useEntityForm(
 
   const submit = form.handleSubmit(async (draft) => {
     let committed: ObjectDTO
+
+    // A property with content but no key is dropped by the builders, so saving would silently lose
+    // the user's work. Refuse rather than pretend.
+    const nameless = findEmptyPropertyKey(draft)
+    if (nameless >= 0) {
+      form.setError(`properties.${nameless}.key`, {
+        type: 'required',
+        message: 'objects.saveError.propertyKeyRequired',
+      })
+      toast.error(t('objects.saveError.propertyKeyRequired'))
+      return
+    }
 
     try {
       if (entity) {

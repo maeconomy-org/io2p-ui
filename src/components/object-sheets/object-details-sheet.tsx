@@ -46,7 +46,7 @@ import { MetadataTab } from './tabs/metadata-tab'
 import { PropertiesTab } from './tabs/properties-tab'
 import { RelationshipsTab } from './tabs/relationships-tab'
 import { AttachmentModal } from './components/attachment-modal'
-import { SheetDropzone } from './components/sheet-dropzone'
+import { SheetDropzone } from '@/components/ui'
 import { isOversize, resolveFileContentType } from './utils'
 import { toast } from 'sonner'
 

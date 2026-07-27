@@ -116,13 +116,14 @@ export function FilePreview({
   const kind: PreviewKind = detectPreviewKind(mime)
 
   const {
-    data: url,
+    data: signed,
     isLoading,
     error,
   } = useQuery({
     ...signedFileUrlQuery(client, current?.id ?? '', 'preview'),
     enabled: open && !!current?.id && kind !== 'unsupported',
   })
+  const url = signed?.url
 
   useEffect(() => {
     setScale(1)

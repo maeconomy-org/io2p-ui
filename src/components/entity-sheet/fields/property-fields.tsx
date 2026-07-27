@@ -90,7 +90,11 @@ export function PropertyFields({
    * `shouldDirty: false` because there is nothing left to save. One walker rather than a per-path
    * setter keeps the read view and the edit rows on identical behaviour.
    */
-  const patchFile = (localId: string, patch: Partial<DraftFile>) => {
+  const patchFile = (
+    localId: string,
+    patch: Partial<DraftFile>,
+    options?: { dirty?: boolean }
+  ) => {
     const apply = (fs?: DraftFile[]) =>
       fs?.map((f) => (f._localId === localId ? { ...f, ...patch } : f))
     form.setValue(
@@ -100,7 +104,7 @@ export function PropertyFields({
         files: apply(p.files),
         values: p.values.map((v) => ({ ...v, files: apply(v.files) })),
       })),
-      { shouldDirty: false }
+      { shouldDirty: options?.dirty ?? false }
     )
   }
 

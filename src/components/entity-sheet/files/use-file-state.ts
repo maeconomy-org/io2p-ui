@@ -19,15 +19,15 @@ import {
   isResolvableUpload,
 } from './file-helpers'
 
-/** How a file row may be removed — the three kinds have genuinely different semantics. */
+/** How a file row may be removed. Nothing is ever destroyed — the difference is WHEN it applies. */
 export type RemovalMode =
-  /** Never uploaded: dropping it from the draft loses nothing. */
+  /** Never uploaded: dropping it from the draft loses nothing, because nothing was stored. */
   | 'discard'
-  /** No files-collection row exists, so the entity body is the only place it lives. */
-  | 'detach'
-  /** Stored bytes: soft-delete, always restorable, never detached. */
+  /** A stored file: soft-deleted immediately via the files collection, restorable at once. */
   | 'soft-delete'
-  /** Already soft-deleted — the only action left is undo. */
+  /** A reference: marked in the draft and soft-deleted by the body on Save, like any other edit. */
+  | 'mark-deleted'
+  /** Already deleted — the only action left is undo. */
   | 'restore'
 
 export interface FileState {
@@ -62,8 +62,15 @@ export function useFileState(
   file: DraftFile,
   options: {
     entityId?: string
-    /** Write the outcome back into the draft so the row updates without reloading the entity. */
-    onChange?: (localId: string, patch: Partial<DraftFile>) => void
+    /**
+     * Write the outcome back into the draft. `dirty` marks the form changed — true for a reference,
+     * whose delete/restore is only applied by the next save; false for a stored file, already done.
+     */
+    onChange?: (
+      localId: string,
+      patch: Partial<DraftFile>,
+      options?: { dirty?: boolean }
+    ) => void
   } = {}
 ): FileState {
   const { entityId, onChange } = options
@@ -107,7 +114,9 @@ export function useFileState(
   const removalMode: RemovalMode = deleted
     ? 'restore'
     : file.kind === 'reference'
-      ? 'detach'
+      ? file.id
+        ? 'mark-deleted' // saved reference: the body soft-deletes it, and can restore it
+        : 'discard' // never saved, so there is nothing to preserve
       : isStored
         ? 'soft-delete'
         : 'discard'
@@ -134,7 +143,13 @@ export function useFileState(
       downloadMutation.mutate({ id: file.id!, fileName: effective.fileName }),
     removalMode,
     busy: del.isPending || restoreMutation.isPending,
-    softDelete: () =>
+    // A reference lives only in the entity body, so its lifecycle follows the body's save cycle —
+    // exactly like adding one. A stored file has its own record, so it deletes immediately.
+    softDelete: () => {
+      if (file.kind === 'reference') {
+        setSessionDeleted(true)
+        return onChange?.(file._localId, { deleted: true }, { dirty: true })
+      }
       del.mutate(
         { id: file.id!, entityId },
         {
@@ -143,8 +158,13 @@ export function useFileState(
             onChange?.(file._localId, { deleted: true })
           },
         }
-      ),
-    restore: () =>
+      )
+    },
+    restore: () => {
+      if (file.kind === 'reference') {
+        setSessionDeleted(false)
+        return onChange?.(file._localId, { deleted: false }, { dirty: true })
+      }
       restoreMutation.mutate(
         { id: file.id!, entityId },
         {
@@ -153,6 +173,7 @@ export function useFileState(
             onChange?.(file._localId, { deleted: false })
           },
         }
-      ),
+      )
+    },
   }
 }

@@ -42,11 +42,15 @@ export function ObjectFilesField({
 
   // Soft delete / restore already hit the server, so the draft is only catching up — marking it
   // dirty would offer to "save" a change that is already committed.
-  const patchFile = (localId: string, patch: Partial<DraftFile>) => {
+  const patchFile = (
+    localId: string,
+    patch: Partial<DraftFile>,
+    options?: { dirty?: boolean }
+  ) => {
     form.setValue(
       'files',
       files.map((f) => (f._localId === localId ? { ...f, ...patch } : f)),
-      { shouldDirty: false }
+      { shouldDirty: options?.dirty ?? false }
     )
   }
 

@@ -11,8 +11,7 @@ import {
   useSignedUrlPrefetch,
   signedFileUrlQuery,
   triggerBrowserDownload,
-  PRESIGN_GET_TTL_MS,
-  SIGNED_URL_STALE_MS,
+  signedUrlStaleTime,
 } from '@/hooks/api/files'
 import { queryKeys } from '@/lib/query-keys'
 
@@ -97,9 +96,35 @@ describe('signedFileUrlQuery', () => {
     expect(files.preview).toHaveBeenLastCalledWith('f1', undefined)
   })
 
-  it('never caches a url past the server TTL', () => {
-    // The server TTL is invisible to us, so staleTime has to stay strictly under our mirror of it.
-    expect(SIGNED_URL_STALE_MS).toBeLessThan(PRESIGN_GET_TTL_MS)
+  it('derives staleness from the server expiry, with a refresh lead', () => {
+    const now = 1_000_000
+    const stale = signedUrlStaleTime({
+      state: {
+        data: { url: 'u', expiresAt: now + 900_000 },
+        dataUpdatedAt: now,
+      },
+    })
+    // Under the full TTL — a url handed out on the boundary would 403.
+    expect(stale).toBeLessThan(900_000)
+    expect(stale).toBeGreaterThan(0)
+  })
+
+  it('never returns a negative window for an already-expired url', () => {
+    const now = 1_000_000
+    expect(
+      signedUrlStaleTime({
+        state: {
+          data: { url: 'u', expiresAt: now - 5_000 },
+          dataUpdatedAt: now,
+        },
+      })
+    ).toBeGreaterThan(0)
+  })
+
+  it('falls back before any response has reported an expiry', () => {
+    expect(
+      signedUrlStaleTime({ state: { data: undefined, dataUpdatedAt: 0 } })
+    ).toBeGreaterThan(0)
   })
 
   it('keys preview and download separately, and by variant', () => {

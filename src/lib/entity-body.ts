@@ -44,9 +44,9 @@ export interface DraftFile {
   /** 'ready' once the bytes are stored. A soft-deleted or pending file arrives as a BARE ref. */
   status?: string
   /**
-   * Display-only, set when THIS session soft-deletes or restores the file. Never authored into a
-   * write body: deleting a file is a files-collection operation, and the entity keeps its reference
-   * either way (we detach nothing). On a fresh load the truth comes from resolving the bare ref.
+   * Display-only. Comes from the read when it was asked for `includeDeleted`, and is overwritten
+   * when THIS session soft-deletes or restores. Never authored into a write body: deleting a file is
+   * a files-collection operation, and the entity keeps its reference either way (we detach nothing).
    */
   deleted?: boolean
   thumbnailUrl?: string
@@ -111,12 +111,28 @@ function readFileToDraft(f: ReadFile): DraftFile {
     type: f.type,
     size: f.size,
     status: f.status,
+    deleted: f.deleted,
     thumbnailUrl: f.thumbnailUrl,
   }
 }
 
 function readFiles(files: ReadFile[] | undefined): DraftFile[] | undefined {
   return files?.length ? files.map(readFileToDraft) : undefined
+}
+
+/**
+ * The live authored tree. The sheet reads with `includeDeleted` so soft-deleted FILES can render
+ * struck-through with a Restore action — but deleted properties and values have no such UI yet, and
+ * letting them into the draft would show them as live.
+ *
+ * Both the draft AND the diff baseline go through here, which is the important part: filtering only
+ * the draft would leave deleted items visible to `before`, so every save would re-emit a `remove`
+ * for something already deleted.
+ */
+function liveProperties(dto: ObjectDTO): NonNullable<ObjectDTO['properties']> {
+  return (dto.properties ?? [])
+    .filter((p) => !p.deleted)
+    .map((p) => ({ ...p, values: p.values.filter((v) => !v.deleted) }))
 }
 
 // The read half of the round-trip: load an ObjectDTO into an editable draft. Derived values carry
@@ -129,7 +145,7 @@ export function dtoToDraft(dto: ObjectDTO): EntityDraft {
     address: dto.address ?? null,
     parentIds: (dto.parents ?? []).map((p) => p.id),
     files: readFiles(dto.files),
-    properties: (dto.properties ?? []).map((p) => ({
+    properties: liveProperties(dto).map((p) => ({
       id: p.id,
       key: p.key,
       label: p.label,
@@ -257,22 +273,39 @@ function toAddValue(v: DraftValue): ValueAdd {
 
 // Body file diff: new REFERENCES are added; files (either kind) present before but gone from the draft
 // are removed by id. New uploads are NOT here — they attach post-save (resolveUploadTargets).
-type FileSections = { add?: FileInput[]; remove?: string[] }
+type FileSections = {
+  add?: FileInput[]
+  remove?: string[]
+  restore?: string[]
+}
+/**
+ * Body `remove` is a SOFT delete with a `restore` counterpart, so a removed file is marked, never
+ * dropped: the draft keeps it with `deleted: true` and the diff reports the TRANSITION. Dropping a
+ * row outright (a pending pick discarded before it ever uploaded) still reads as a removal, which is
+ * right — there was nothing stored to preserve.
+ */
 function diffFiles(
   before: ReadFile[] | undefined,
   after: DraftFile[] | undefined
 ): FileSections | undefined {
-  const keptIds = new Set(
-    (after ?? []).filter((f) => f.id).map((f) => f.id as string)
+  const afterById = new Map(
+    (after ?? []).filter((f) => f.id).map((f) => [f.id as string, f])
   )
   const add = newReferenceInputs(after)
-  const remove = (before ?? [])
-    .map((f) => f.id)
-    .filter((id) => !keptIds.has(id))
+  const remove: string[] = []
+  const restore: string[] = []
+
+  for (const prev of before ?? []) {
+    const now = afterById.get(prev.id)
+    // Gone from the draft entirely, or newly marked deleted.
+    if (!now || (now.deleted && !prev.deleted)) remove.push(prev.id)
+    else if (prev.deleted && !now.deleted) restore.push(prev.id)
+  }
 
   const sections: FileSections = {}
   if (add.length) sections.add = add
   if (remove.length) sections.remove = remove
+  if (restore.length) sections.restore = restore
   return Object.keys(sections).length ? sections : undefined
 }
 
@@ -393,7 +426,9 @@ export function buildUpdateObjectBody(
     }
   }
 
-  const properties = diffProperties(before.properties, draft.properties)
+  // Same live view the draft was built from — otherwise a soft-deleted item would look absent
+  // and be re-removed on every save.
+  const properties = diffProperties(liveProperties(before), draft.properties)
   if (properties) body.properties = properties
 
   const files = diffFiles(before.files, draft.files)
@@ -445,4 +480,19 @@ export function resolveUploadTargets(
     })
   }
   return out
+}
+
+/**
+ * Index of the first property that has content but no key. io2p requires a key, and a nameless
+ * property is silently dropped by the builders — so the user would "save" work that never persists.
+ * Returns -1 when the draft is clean.
+ */
+export function findEmptyPropertyKey(draft: EntityDraft): number {
+  return draft.properties.findIndex((p) => {
+    if (p.key.trim() !== '') return false
+    const hasValue = p.values.some(
+      (v) => (v.data ?? '').trim() !== '' || v.calc
+    )
+    return hasValue || (p.files?.length ?? 0) > 0
+  })
 }

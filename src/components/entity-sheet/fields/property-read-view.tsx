@@ -33,7 +33,11 @@ function valueSummary(p: DraftProperty, manyLabel: string): string {
 
 // Read-only Properties: a collapsible card per property (list) or a compact grid. Files stay inside
 // their own collapsible disclosures (per §18.3) so a property with many values/files stays compact.
-type FileChange = (localId: string, patch: Partial<DraftFile>) => void
+type FileChange = (
+  localId: string,
+  patch: Partial<DraftFile>,
+  options?: { dirty?: boolean }
+) => void
 
 export function PropertyReadView({
   properties,

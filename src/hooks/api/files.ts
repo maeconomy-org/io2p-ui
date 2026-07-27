@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import type {
   FileTarget,
   Io2pClient,
+  SignedUrlResponse,
   UploadInput,
   UploadProgress,
 } from 'io2p-client'
@@ -23,18 +24,32 @@ import { queryKeys } from '@/lib/query-keys'
 
 export type SignedUrlKind = 'preview' | 'download'
 
+/** Re-mint this far ahead of the server's expiry — covers clock skew and a long-lived media element. */
+export const SIGNED_URL_REFRESH_LEAD_MS = 60_000
+/** Floor, so a url that arrives already near expiry still gets a usable window instead of churning. */
+const SIGNED_URL_MIN_STALE_MS = 30_000
+/** Only until the first response tells us the real expiry. */
+const SIGNED_URL_FALLBACK_STALE_MS = 300_000
+
 /**
- * Mirrors io2p-core's `PRESIGN_GET_TTL` (default 900s). The API does NOT report it —
- * `SignedUrlResponse` is `{ url }` only — so the client has to assume it. If ops lowers the server
- * TTL below this, cached urls start 403ing; lower this to match.
+ * Stale-time derived from the server's own `expiresAt` rather than a constant mirroring
+ * `PRESIGN_GET_TTL` — the API now reports it, so the client no longer has to guess (and no longer
+ * silently breaks if ops changes the TTL). React Query measures staleness from `dataUpdatedAt`, so
+ * subtract it and keep a refresh lead: an interaction right on the boundary would otherwise be handed
+ * a url that 403s.
  */
-export const PRESIGN_GET_TTL_MS = 900_000
-/** Re-mint this far ahead of expiry — covers clock skew and a long-lived media element. */
-export const SIGNED_URL_REFRESH_LEAD_MS = 300_000
-export const SIGNED_URL_STALE_MS =
-  PRESIGN_GET_TTL_MS - SIGNED_URL_REFRESH_LEAD_MS
-/** Evict as soon as it stops being usable rather than lingering for the global 10-minute gcTime. */
-export const SIGNED_URL_GC_MS = SIGNED_URL_STALE_MS
+export function signedUrlStaleTime(query: {
+  state: { data?: SignedUrlResponse; dataUpdatedAt: number }
+}): number {
+  const expiresAt = query.state.data?.expiresAt
+  if (!expiresAt || !Number.isFinite(expiresAt)) {
+    return SIGNED_URL_FALLBACK_STALE_MS
+  }
+  return Math.max(
+    SIGNED_URL_MIN_STALE_MS,
+    expiresAt - SIGNED_URL_REFRESH_LEAD_MS - query.state.dataUpdatedAt
+  )
+}
 
 /**
  * Query options for ONE on-demand signed url. A plain factory rather than a hook so prefetch,
@@ -42,7 +57,7 @@ export const SIGNED_URL_GC_MS = SIGNED_URL_STALE_MS
  * makes a hover-prefetch a cache hit at click time.
  *
  * Every option below is load-bearing: the app-wide defaults are `staleTime: Infinity` with no
- * refetching (query-context.tsx), which would cache a presigned url forever and 403 after 15 minutes.
+ * refetching (query-context.tsx), which would cache a presigned url forever and 403 after it expires.
  */
 export function signedFileUrlQuery(
   client: Io2pClient,
@@ -52,16 +67,14 @@ export function signedFileUrlQuery(
 ) {
   return {
     queryKey: queryKeys.files.url(id, kind, variant),
+    // Returns the WHOLE response, not just the url: staleTime needs `expiresAt` to see it.
     // No AbortSignal — io2p's preview/download take no request options.
-    queryFn: async (): Promise<string> => {
-      const res =
-        kind === 'preview'
-          ? await client.files.preview(id, variant ? { variant } : undefined)
-          : await client.files.download(id)
-      return res.url
-    },
-    staleTime: SIGNED_URL_STALE_MS,
-    gcTime: SIGNED_URL_GC_MS,
+    queryFn: async () =>
+      kind === 'preview'
+        ? await client.files.preview(id, variant ? { variant } : undefined)
+        : await client.files.download(id),
+    staleTime: signedUrlStaleTime,
+    gcTime: SIGNED_URL_FALLBACK_STALE_MS,
     refetchOnMount: true,
     // Refetches only when stale, which is exactly "the url is near expiry and the user came back".
     refetchOnWindowFocus: true,
@@ -130,7 +143,7 @@ export function useFileDownload() {
   return useMutation({
     mutationFn: async (vars: { id: string; fileName?: string }) => {
       // fetchQuery honours staleTime, so a hover-prefetched url returns without a second mint.
-      const url = await qc.fetchQuery(
+      const { url } = await qc.fetchQuery(
         signedFileUrlQuery(client, vars.id, 'download')
       )
       triggerBrowserDownload(url, vars.fileName)

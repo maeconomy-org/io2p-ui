@@ -206,7 +206,9 @@
     "noResults": "Geen resultaten.",
     "apply": "Toepassen",
     "error": "Er is iets misgegaan",
-    "sessionExpired": "Uw sessie is verlopen. Meld u opnieuw aan om op te slaan."
+    "sessionExpired": "Uw sessie is verlopen. Meld u opnieuw aan om op te slaan.",
+    "copy": "Kopiëren",
+    "restore": "Herstellen"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -603,12 +605,10 @@
     },
     "address": {
       "street": "Straat",
-      "number": "Nummer",
-      "city": "Stad",
       "postalCode": "Postcode",
-      "country": "Land",
+      "city": "Plaats",
       "state": "Provincie",
-      "district": "District"
+      "country": "Land"
     },
     "placeholders": {
       "address": "Zoek naar een adres...",
@@ -868,7 +868,9 @@
       "listView": "Lijstweergave",
       "gridView": "Rasterweergave",
       "restore": "Bestand herstellen",
-      "openExternal": "Link openen"
+      "openExternal": "Link openen",
+      "addedCount": "{count} bestanden toegevoegd",
+      "uploadPartial": "{failed} van {total} bestanden konden niet worden toegevoegd — het object is opgeslagen."
     },
     "childrenPage": {
       "loadingParent": "Bovenliggend object laden...",
@@ -950,7 +952,8 @@
     "saveError": {
       "conflict": "Dit object is elders gewijzigd sinds u het opende. Kopieer uw wijzigingen, open het object opnieuw en pas ze opnieuw toe.",
       "invalid": "Opslaan mislukt — {detail}",
-      "notFound": "Dit object bestaat niet meer."
+      "notFound": "Dit object bestaat niet meer.",
+      "propertyKeyRequired": "Geef elke eigenschap een naam voordat u opslaat."
     },
     "templateSelector": {
       "label": "Beginnen met een sjabloon",

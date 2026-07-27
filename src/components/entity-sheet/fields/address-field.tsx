@@ -9,8 +9,13 @@ import type { EntityDraft } from '@/lib/entity-body'
 
 import { ReadOnlyField } from './read-only-field'
 
-// The user sees ONE field (the full address). The autocomplete resolves granular components
-// (street/city/…) which are stored on the draft and sent to the backend, but never shown as fields.
+/** Street and house number read as one line, the way an address is actually written. */
+function joinStreet(address: EntityDraft['address']): string | undefined {
+  return [address?.street, address?.houseNumber].filter(Boolean).join(' ')
+}
+
+// EDITING is one field (the full address) — the autocomplete resolves the granular components, and
+// asking the user to fill them by hand would be worse. READING shows them, since by then they exist.
 export function AddressField({
   form,
   editing,
@@ -22,9 +27,30 @@ export function AddressField({
   const address = form.watch('address')
 
   if (!editing) {
+    // Reading is where the parts earn their keep: the autocomplete resolved them, so show what was
+    // actually stored rather than only the single line the user typed into.
+    const parts: [string, string | undefined][] = [
+      [t('objects.address.street'), joinStreet(address)],
+      [t('objects.address.postalCode'), address?.postalCode],
+      [t('objects.address.city'), address?.city],
+      [t('objects.address.state'), address?.state],
+      [t('objects.address.country'), address?.country],
+    ]
+    const present = parts.filter(([, value]) => !!value?.trim())
+
     return (
       <ReadOnlyField label={t('objects.fields.address')}>
         {address?.fullAddress || '—'}
+        {present.length > 0 && (
+          <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 border-l pl-3 text-xs">
+            {present.map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt className="text-muted-foreground">{label}</dt>
+                <dd className="truncate">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </ReadOnlyField>
     )
   }

@@ -107,9 +107,10 @@ export function FileActions({
 }
 
 /**
- * Soft delete and restore are immediate server operations on the files collection, not draft edits,
- * so they stay available outside edit mode. Discarding a pick or detaching a reference DOES change
- * the draft, so those wait for edit mode.
+ * Nothing here destroys anything — the modes differ in WHEN the deletion applies. A stored file is
+ * soft-deleted immediately on its own record, so it stays available outside edit mode. A reference
+ * lives only in the entity body, so it is marked and applied by the next save; discarding an unsaved
+ * pick is likewise a draft edit. Both of those wait for edit mode.
  */
 function RemoveAction({
   state,
@@ -143,7 +144,10 @@ function RemoveAction({
     )
   }
 
-  if (state.removalMode === 'soft-delete') {
+  if (
+    state.removalMode === 'soft-delete' ||
+    state.removalMode === 'mark-deleted'
+  ) {
     // Two-step confirm, matching the property editor: the icon becomes the word "Confirm?" and only
     // the second click deletes. Blurring backs out, so a mis-click costs nothing.
     return confirming ? (
@@ -172,6 +176,7 @@ function RemoveAction({
     )
   }
 
+  // 'discard' — nothing was ever stored, so this just drops the row.
   if (!editing || !onRemove) return null
 
   return (

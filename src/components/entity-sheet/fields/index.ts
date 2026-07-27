@@ -1,5 +1,6 @@
 export { MetadataFields } from './metadata-fields'
 export { AddressField } from './address-field'
+export { EntityFacts } from './entity-facts'
 export { ObjectFilesField } from './object-files-field'
 export { ParentsField } from './parents-field'
 export { PropertyFields } from './property-fields'

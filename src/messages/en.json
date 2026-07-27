@@ -206,7 +206,9 @@
     "noResults": "No results.",
     "apply": "Apply",
     "error": "Something went wrong",
-    "sessionExpired": "Your session expired. Sign in again to save."
+    "sessionExpired": "Your session expired. Sign in again to save.",
+    "copy": "Copy",
+    "restore": "Restore"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -600,12 +602,10 @@
     },
     "address": {
       "street": "Street",
-      "number": "Number",
+      "postalCode": "Postal code",
       "city": "City",
-      "postalCode": "Postal Code",
-      "country": "Country",
       "state": "State",
-      "district": "District"
+      "country": "Country"
     },
     "placeholders": {
       "address": "Search for an address...",
@@ -665,7 +665,9 @@
       "listView": "List view",
       "gridView": "Grid view",
       "restore": "Restore file",
-      "openExternal": "Open link"
+      "openExternal": "Open link",
+      "addedCount": "{count} files added",
+      "uploadPartial": "{failed} of {total} files could not be attached — the object was saved."
     },
     "propertiesUpdated": "Properties updated successfully",
     "propertiesUpdateFailed": "Failed to update object properties",
@@ -950,7 +952,8 @@
     "saveError": {
       "conflict": "This object changed elsewhere since you opened it. Copy your changes, reopen the object, and apply them again.",
       "invalid": "Could not save — {detail}",
-      "notFound": "This object no longer exists."
+      "notFound": "This object no longer exists.",
+      "propertyKeyRequired": "Give every property a name before saving."
     },
     "templateSelector": {
       "label": "Start from a template",

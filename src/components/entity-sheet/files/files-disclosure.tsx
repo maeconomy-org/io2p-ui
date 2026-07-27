@@ -32,7 +32,11 @@ export function FilesDisclosure({
   entityId?: string
   onAttach?: () => void
   onRemove?: (localId: string) => void
-  onChange?: (localId: string, patch: Partial<DraftFile>) => void
+  onChange?: (
+    localId: string,
+    patch: Partial<DraftFile>,
+    options?: { dirty?: boolean }
+  ) => void
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)

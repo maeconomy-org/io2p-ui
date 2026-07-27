@@ -21,7 +21,11 @@ import { FileActions, primaryAction } from './file-actions'
 import { FilePreview } from './file-preview'
 import { useFileState } from './use-file-state'
 
-type FileChange = (localId: string, patch: Partial<DraftFile>) => void
+type FileChange = (
+  localId: string,
+  patch: Partial<DraftFile>,
+  options?: { dirty?: boolean }
+) => void
 
 interface RowProps {
   file: DraftFile

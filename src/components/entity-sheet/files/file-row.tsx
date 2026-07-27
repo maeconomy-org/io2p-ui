@@ -29,7 +29,11 @@ export function FileRow({
   editing: boolean
   entityId?: string
   onRemove?: (localId: string) => void
-  onChange?: (localId: string, patch: Partial<DraftFile>) => void
+  onChange?: (
+    localId: string,
+    patch: Partial<DraftFile>,
+    options?: { dirty?: boolean }
+  ) => void
   onPreview?: (file: DraftFile) => void
 }) {
   const t = useTranslations()
