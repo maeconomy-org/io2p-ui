@@ -12,7 +12,6 @@ export * from './api/use-uuid'
 export * from './api/use-math-formulas'
 
 // Data Hooks - Complex data operations
-export * from './data/use-view-data'
 export * from './data/use-breadcrumb-trail'
 export * from './data/use-formula-data'
 

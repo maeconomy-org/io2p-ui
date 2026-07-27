@@ -1,5 +1,3 @@
-export { ObjectDetailsSheet } from './object-details-sheet'
-export { ObjectAddSheet } from './object-add-sheet'
 export { CopyObjectsSheet } from './copy-objects-sheet'
 export { ProductPassportSheet } from './passport'
 export type { CopySourceObject, CopyObjectsOptions } from './copy-objects-sheet'
