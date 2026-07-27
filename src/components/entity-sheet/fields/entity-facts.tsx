@@ -2,17 +2,31 @@
 
 import type { ReactNode } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
-import type { ObjectDTO } from 'io2p-client'
 
 import { Badge, CopyButton } from '@/components/ui'
 import { useUserDirectory } from '@/hooks/api/users'
+
+/**
+ * The lifecycle fields every io2p entity carries. Typed structurally rather than as `ObjectDTO` so
+ * objects, templates and processes share one implementation — they genuinely have the same facts.
+ */
+export interface EntityFactsShape {
+  id: string
+  currentVersion: number
+  createdAt: number
+  updatedAt: number
+  createdBy?: string
+  deleted?: boolean
+  deletedAt?: number
+  deletedBy?: string
+}
 
 /**
  * Server-owned facts about a saved entity: identity, authorship, and lifecycle. Read-only by
  * definition — nothing here is authored, so it sits apart from the editable fields rather than
  * among them.
  */
-export function EntityFacts({ entity }: { entity: ObjectDTO }) {
+export function EntityFacts({ entity }: { entity: EntityFactsShape }) {
   const t = useTranslations()
   const format = useFormatter()
   // Only fetch the directory when there is actually an id to put a name to.

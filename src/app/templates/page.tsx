@@ -34,11 +34,8 @@ import { logger } from '@/lib'
 import { buildTemplateColumns } from './components/template-columns'
 
 // Lazy-load sheet components — only rendered when opened by user interaction
-const ObjectModelSheet = dynamic(
-  () =>
-    import('@/components/object-sheets/object-model-sheet').then(
-      (mod) => mod.ObjectModelSheet
-    ),
+const TemplateSheet = dynamic(
+  () => import('@/components/entity-sheet').then((mod) => mod.TemplateSheet),
   { ssr: false }
 )
 
@@ -284,15 +281,13 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      {/* Object Model Sheet */}
-      {/* Transitional: this sheet types on the pre-io2p ObjectModel and can't consume a
-          TemplateDTO — create/edit is rebuilt as the shared EntitySheet in §13. */}
-      <ObjectModelSheet
-        open={templateSheetOpen}
-        onOpenChange={setTemplateSheetOpen}
-        model={selectedTemplate as never}
-        isEditing={isEditingTemplate}
-      />
+      {templateSheetOpen && (
+        <TemplateSheet
+          open={templateSheetOpen}
+          onOpenChange={setTemplateSheetOpen}
+          templateId={isEditingTemplate ? selectedTemplate?.id : undefined}
+        />
+      )}
 
       {/* Formula Sheet */}
       <FormulaSheet

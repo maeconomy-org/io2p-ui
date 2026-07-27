@@ -1108,7 +1108,8 @@
     "searchResults": "Search Results for: \"{query}\"",
     "results": "{count} result{count, plural, one {} other {s}}",
     "resultsPage": "{count} result{count, plural, one {} other {s}} (page {page} of {pages})",
-    "clearSearch": "Clear Search"
+    "clearSearch": "Clear Search",
+    "nameRequired": "A template needs a name"
   },
   "formulas": {
     "title": "Formulas",

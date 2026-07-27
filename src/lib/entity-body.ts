@@ -98,6 +98,15 @@ export interface DraftProperty {
   deleted?: boolean
 }
 
+/**
+ * The form contract every entity sheet edits. Facets that only some entity kinds have are optional
+ * and simply left unset by the others: templates have no hierarchy or address, and objects have no
+ * authored `version` (io2p removed that concept from objects — the sheet shows `currentVersion`,
+ * the server's write counter, which is a different thing and never authored).
+ *
+ * One shape rather than one per kind is what lets the property editor, the file sections and the
+ * metadata fields be written once and reused across objects, templates and processes.
+ */
 export interface EntityDraft {
   name: string
   description?: string | null
@@ -105,6 +114,8 @@ export interface EntityDraft {
   parentIds: string[]
   properties: DraftProperty[]
   files?: DraftFile[]
+  /** Templates only: an authored label like "1.0". */
+  version?: string | null
 }
 
 // A pending upload (blob, no id yet).
@@ -146,7 +157,9 @@ function readFileToDraft(f: ReadFile): DraftFile {
   }
 }
 
-function readFiles(files: ReadFile[] | undefined): DraftFile[] | undefined {
+export function readFiles(
+  files: ReadFile[] | undefined
+): DraftFile[] | undefined {
   return files?.length ? files.map(readFileToDraft) : undefined
 }
 
@@ -201,7 +214,9 @@ function toReferenceInput(f: DraftFile): FileInput | null {
   }
 }
 
-function newReferenceInputs(files: DraftFile[] | undefined): FileInput[] {
+export function newReferenceInputs(
+  files: DraftFile[] | undefined
+): FileInput[] {
   return (files ?? [])
     .filter((f) => !f.id) // only NEW files author; existing ones stay put
     .map(toReferenceInput)
@@ -215,7 +230,7 @@ function toCreateValue(v: DraftValue): ValueInput {
   return { data: v.data ?? '', ref: v.ref, ...filesPart }
 }
 
-function toCreateProperty(p: DraftProperty) {
+export function toCreateProperty(p: DraftProperty) {
   const values = nonEmptyValues(p.values).map(toCreateValue)
   const files = newReferenceInputs(p.files)
   return {

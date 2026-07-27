@@ -1108,7 +1108,8 @@
     "searchResults": "Zoekresultaten voor: \"{query}\"",
     "results": "{count} resultaat{count, plural, one {} other {en}}",
     "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",
-    "clearSearch": "Zoekopdracht wissen"
+    "clearSearch": "Zoekopdracht wissen",
+    "nameRequired": "Een sjabloon heeft een naam nodig"
   },
   "formulas": {
     "title": "Formules",

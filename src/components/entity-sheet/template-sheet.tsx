@@ -1,100 +1,87 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import {
   Badge,
+  Input,
+  Label,
+  Separator,
   Sheet,
   SheetContent,
-  SheetDropzone,
   SheetDescription,
+  SheetDropzone,
   SheetHeader,
   SheetTitle,
-  Label,
   Skeleton,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@/components/ui'
-import { useObjects } from '@/hooks/api/entities'
+import { useTemplates } from '@/hooks/api/entities'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
-import type { ValueProvenance } from '@/lib/entity-body'
 import { logger } from '@/lib'
 
-import { useEntityForm } from './hooks/use-entity-form'
-import { CreateForm } from './create-form'
+import { useTemplateForm } from './hooks/use-template-form'
+import { newUploadDraft } from './files'
+import {
+  EntityFacts,
+  MetadataFields,
+  ObjectFilesField,
+  PropertyFields,
+} from './fields'
 import {
   DirtyDot,
   SheetLifecycleFooter,
   UnsavedBar,
   countDirtyLeaves,
 } from './sheet-lifecycle-footer'
-import { newUploadDraft } from './files'
-import {
-  AddressField,
-  EntityFacts,
-  MetadataFields,
-  ObjectFilesField,
-  ParentsField,
-  PropertyFields,
-} from './fields'
 
-export interface EntitySheetProps {
+// A template is a recipe, not a measured thing: its values are placeholders, so nothing in it is
+// ever server-derived and there is no evaluation trace to show.
+const NO_DERIVED_VALUES = new Map<string, never>()
+
+export interface TemplateSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** Id of the entity to view/edit; omit (or null) to create. The full aggregate is fetched here. */
-  entityId?: string | null
-  /** Parents to preset on a create draft (the "add child" flow). */
-  defaultParentIds?: string[]
-  /**
-   * Names for `defaultParentIds`. A create draft has no fetched entity to read parent names from,
-   * so without these the preset parent renders as a bare UUID.
-   */
-  defaultParentNames?: Record<string, string>
+  /** Id of the template to view/edit; omit (or null) to create. */
+  templateId?: string | null
 }
 
-export function EntitySheet({
+export function TemplateSheet({
   open,
   onOpenChange,
-  entityId,
-  defaultParentIds,
-  defaultParentNames,
-}: EntitySheetProps) {
+  templateId,
+}: TemplateSheetProps) {
   const t = useTranslations()
-  const isCreate = !entityId
+  const isCreate = !templateId
 
-  const { data: entity, isLoading } = useObjects().useGet(
-    entityId ?? undefined,
-    // Ask for soft-deleted sub-items so they render struck-through with a Restore action, rather
-    // than silently vanishing — nothing is destroyed, so nothing should look destroyed.
-    { enrichFiles: true, includeDeleted: true }
-  )
-  const loading = !isCreate && (isLoading || !entity)
+  const { useGet, useRemove, useRestore } = useTemplates()
+  const { data: template, isLoading } = useGet(templateId ?? undefined, {
+    enrichFiles: true,
+  })
+  const loading = !isCreate && (isLoading || !template)
 
   const [editing, setEditing] = useState(isCreate)
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const { useRemove, useRestore } = useObjects()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
-
-  // A soft-deleted object is shown, not hidden — but it can't be edited until it's restored.
-  const isDeleted = !!entity?.deleted
   const lifecycleBusy = removeMutation.isPending || restoreMutation.isPending
 
-  const runLifecycle = async (
-    action: 'delete' | 'restore',
-    id: string
-  ): Promise<void> => {
+  const isDeleted = !!template?.deleted
+  // Built-in templates belong to the node, not the user; editing one would be rejected anyway.
+  const isSystem = !!template?.system
+
+  const runLifecycle = async (action: 'delete' | 'restore', id: string) => {
     try {
       const mutation = action === 'delete' ? removeMutation : restoreMutation
       await mutation.mutateAsync({ id })
       setEditing(false)
     } catch (error) {
-      logger.error(`Object ${action} failed`, {
-        entityId: id,
+      logger.error(`Template ${action} failed`, {
+        templateId: id,
         status: iomStatus(error),
         error: error instanceof Error ? error.message : String(error),
       })
@@ -102,8 +89,7 @@ export function EntitySheet({
     }
   }
 
-  const { form, submit, isSubmitting } = useEntityForm(entity, {
-    defaultParentIds,
+  const { form, submit, isSubmitting } = useTemplateForm(template, {
     onSaved: () => {
       setEditing(false)
       if (isCreate) onOpenChange(false)
@@ -111,29 +97,7 @@ export function EntitySheet({
   })
 
   const { dirtyFields, isDirty } = form.formState
-  // RHF mirrors the value shape, so a top-level key count reports twelve edited properties as one
-  // change. Count the leaves instead.
   const dirtyCount = countDirtyLeaves(dirtyFields)
-
-  // Keyed by value id: presence means the value is derived, the payload is the node's evaluation
-  // trace. A derived value always has a source; `provenance` is what it was computed FROM.
-  const derivedValues = useMemo(() => {
-    const m = new Map<string, ValueProvenance | undefined>()
-    entity?.properties?.forEach((p) =>
-      p.values.forEach((v) => {
-        if (v.source === 'derived') m.set(v.id, v.provenance)
-      })
-    )
-    return m
-  }, [entity])
-
-  const parentNames = useMemo(() => {
-    const m = new Map<string, string>(Object.entries(defaultParentNames ?? {}))
-    entity?.parents?.forEach((p) => {
-      if (p.name) m.set(p.id, p.name)
-    })
-    return m
-  }, [entity, defaultParentNames])
 
   const requestClose = () => {
     if (isDirty && !window.confirm(t('objects.detailsSheet.discardConfirm')))
@@ -141,8 +105,6 @@ export function EntitySheet({
     onOpenChange(false)
   }
 
-  // Dropping anywhere in the sheet attaches at OBJECT level — the coarsest, least surprising target
-  // when the pointer wasn't over a particular property or value.
   const dropFiles = (dropped: File[]) => {
     if (!editing || dropped.length === 0) return
     form.setValue(
@@ -159,6 +121,21 @@ export function EntitySheet({
     else setEditing(false)
   }
 
+  const versionField = (
+    <div className="space-y-1.5">
+      <Label htmlFor="template-version">{t('objects.fields.version')}</Label>
+      {editing ? (
+        <Input
+          id="template-version"
+          placeholder={t('templates.placeholders.version')}
+          {...form.register('version')}
+        />
+      ) : (
+        <p className="text-sm">{form.watch('version') || '—'}</p>
+      )}
+    </div>
+  )
+
   return (
     <Sheet
       open={open}
@@ -169,11 +146,16 @@ export function EntitySheet({
           <SheetTitle className="flex items-center gap-2">
             <span className="min-w-0 truncate">
               {isCreate
-                ? t('objects.create')
+                ? t('templates.createTitle')
                 : loading
                   ? t('common.loading')
-                  : (entity?.name ?? '')}
+                  : (template?.name ?? '')}
             </span>
+            {isSystem && (
+              <Badge variant="secondary" className="shrink-0">
+                {t('templates.systemBadge')}
+              </Badge>
+            )}
             {isDeleted && (
               <Badge
                 variant="outline"
@@ -184,7 +166,7 @@ export function EntitySheet({
             )}
           </SheetTitle>
           <SheetDescription className="sr-only">
-            {isCreate ? t('objects.create') : (entity?.name ?? '')}
+            {isCreate ? t('templates.createTitle') : (template?.name ?? '')}
           </SheetDescription>
         </SheetHeader>
 
@@ -204,8 +186,23 @@ export function EntitySheet({
           >
             <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
               {isCreate ? (
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                  <CreateForm form={form} parentNames={parentNames} />
+                <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+                  <MetadataFields form={form} editing />
+                  {versionField}
+                  <Separator />
+                  <ObjectFilesField
+                    form={form}
+                    editing
+                    allowViewToggle={false}
+                    showEmptyState={false}
+                  />
+                  <Separator />
+                  <PropertyFields
+                    form={form}
+                    editing
+                    derivedValues={NO_DERIVED_VALUES}
+                    label={t('objects.fields.properties')}
+                  />
                 </div>
               ) : (
                 <Tabs
@@ -229,8 +226,7 @@ export function EntitySheet({
                             !!(
                               dirtyFields.name ||
                               dirtyFields.description ||
-                              dirtyFields.address ||
-                              dirtyFields.parentIds
+                              dirtyFields.version
                             )
                           }
                         />
@@ -243,30 +239,20 @@ export function EntitySheet({
                       <PropertyFields
                         form={form}
                         editing={editing}
-                        derivedValues={derivedValues}
+                        derivedValues={NO_DERIVED_VALUES}
                       />
                     </TabsContent>
                     <TabsContent value="files" className="mt-0">
                       <ObjectFilesField
                         form={form}
                         editing={editing}
-                        entityId={entity?.id}
+                        entityId={template?.id}
                       />
                     </TabsContent>
                     <TabsContent value="details" className="mt-0 space-y-4">
-                      {/* Identity first — what this object IS, before what it says about itself. */}
-                      {entity && <EntityFacts entity={entity} />}
+                      {template && <EntityFacts entity={template} />}
                       <MetadataFields form={form} editing={editing} />
-                      <AddressField form={form} editing={editing} />
-                      <div className="space-y-1.5">
-                        <Label>{t('objects.detailsSheet.tabParents')}</Label>
-                        <ParentsField
-                          form={form}
-                          editing={editing}
-                          parentNames={parentNames}
-                          selfId={entity?.id}
-                        />
-                      </div>
+                      {versionField}
                     </TabsContent>
                   </div>
                 </Tabs>
@@ -281,14 +267,14 @@ export function EntitySheet({
                 isDirty={isDirty}
                 isSubmitting={isSubmitting}
                 lifecycleBusy={lifecycleBusy}
-                canDelete={!!entity}
+                canDelete={!!template && !isSystem}
                 onEdit={() => setEditing(true)}
                 onCancel={cancel}
                 onDelete={() =>
-                  entity && void runLifecycle('delete', entity.id)
+                  template && void runLifecycle('delete', template.id)
                 }
                 onRestore={() =>
-                  entity && void runLifecycle('restore', entity.id)
+                  template && void runLifecycle('restore', template.id)
                 }
               />
             </form>
@@ -298,5 +284,3 @@ export function EntitySheet({
     </Sheet>
   )
 }
-
-export { countDirtyLeaves } from './sheet-lifecycle-footer'
