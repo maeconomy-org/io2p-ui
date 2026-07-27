@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import type { ObjectDTO } from 'io2p-client'
@@ -11,7 +10,6 @@ import { useObjects } from '@/hooks/api/entities'
 import { useOptionalUploadQueue } from '@/contexts/upload-queue-context'
 import { useIomClient } from '@/lib/io2p'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
-import { queryKeys } from '@/lib/query-keys'
 import { logger } from '@/lib'
 import {
   type EntityDraft,
@@ -59,7 +57,6 @@ export function useEntityForm(
   const { defaultParentIds, onSaved } = options
   const t = useTranslations()
   const client = useIomClient()
-  const qc = useQueryClient()
   // Optional so the hook still renders outside the provider (tests, isolated usage).
   const uploadQueue = useOptionalUploadQueue()
 

@@ -75,7 +75,6 @@ export function EntitySheet({
   const loading = !isCreate && (isLoading || !entity)
 
   const [editing, setEditing] = useState(isCreate)
-  const [confirmDelete, setConfirmDelete] = useState(false)
   const { useRemove, useRestore } = useObjects()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
