@@ -174,7 +174,11 @@ export function EntitySheet({
                   />
                 </TabsContent>
                 <TabsContent value="files" className="mt-0">
-                  <ObjectFilesField form={form} editing={editing} />
+                  <ObjectFilesField
+                    form={form}
+                    editing={editing}
+                    entityId={entity?.id}
+                  />
                 </TabsContent>
                 <TabsContent value="details" className="mt-0 space-y-6">
                   <MetadataFields form={form} editing={editing} />

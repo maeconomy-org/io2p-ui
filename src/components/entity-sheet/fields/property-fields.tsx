@@ -41,6 +41,7 @@ interface PropertyFieldsProps {
   editing: boolean
   /** Value ids whose source is derived on the loaded entity — read-only (editing is phase 2). */
   derivedValueIds: Set<string>
+  entityId?: string
 }
 
 // A new value carries a client `ref` so a sibling formula can bind to it (calc arg -> ref).
@@ -72,6 +73,7 @@ export function PropertyFields({
   form,
   editing,
   derivedValueIds,
+  entityId,
 }: PropertyFieldsProps) {
   const t = useTranslations()
   const { fields, append, remove } = useFieldArray({
@@ -79,11 +81,33 @@ export function PropertyFields({
     name: 'properties',
   })
 
+  /**
+   * Patch one file anywhere under the properties tree, found by its `_localId` (unique across the
+   * draft). Soft delete / restore already happened server-side, so this only catches the draft up —
+   * `shouldDirty: false` because there is nothing left to save. One walker rather than a per-path
+   * setter keeps the read view and the edit rows on identical behaviour.
+   */
+  const patchFile = (localId: string, patch: Partial<DraftFile>) => {
+    const apply = (fs?: DraftFile[]) =>
+      fs?.map((f) => (f._localId === localId ? { ...f, ...patch } : f))
+    form.setValue(
+      'properties',
+      form.getValues('properties').map((p) => ({
+        ...p,
+        files: apply(p.files),
+        values: p.values.map((v) => ({ ...v, files: apply(v.files) })),
+      })),
+      { shouldDirty: false }
+    )
+  }
+
   if (!editing) {
     return (
       <PropertyReadView
         properties={form.watch('properties')}
         derivedValueIds={derivedValueIds}
+        entityId={entityId}
+        onFileChange={patchFile}
       />
     )
   }
@@ -96,6 +120,8 @@ export function PropertyFields({
           form={form}
           index={index}
           derivedValueIds={derivedValueIds}
+          entityId={entityId}
+          onFileChange={patchFile}
           onRemove={() => remove(index)}
         />
       ))}
@@ -119,11 +145,15 @@ function PropertyRow({
   form,
   index,
   derivedValueIds,
+  entityId,
+  onFileChange,
   onRemove,
 }: {
   form: UseFormReturn<EntityDraft>
   index: number
   derivedValueIds: Set<string>
+  entityId?: string
+  onFileChange: (localId: string, patch: Partial<DraftFile>) => void
   onRemove: () => void
 }) {
   const t = useTranslations()
@@ -273,9 +303,11 @@ function PropertyRow({
           <FilesDisclosure
             files={propFiles}
             editing
+            entityId={entityId}
             onRemove={(localId) =>
               removeFile(`properties.${index}.files`, localId)
             }
+            onChange={onFileChange}
           />
         </div>
 
@@ -301,7 +333,11 @@ function PropertyRow({
                         {t('objects.propertyEditor.derived')}
                       </Badge>
                     </div>
-                    <FilesDisclosure files={valueFiles} editing={false} />
+                    <FilesDisclosure
+                      files={valueFiles}
+                      editing={false}
+                      entityId={entityId}
+                    />
                   </div>
                 )
               }
@@ -393,7 +429,9 @@ function PropertyRow({
                   <FilesDisclosure
                     files={valueFiles}
                     editing
+                    entityId={entityId}
                     onRemove={(localId) => removeFile(`${base}.files`, localId)}
+                    onChange={onFileChange}
                   />
                 </div>
               )

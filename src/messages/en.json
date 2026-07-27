@@ -659,11 +659,13 @@
       "delete": "Delete file",
       "filePreview": "File Preview",
       "deleteTitle": "Delete File",
-      "deleteConfirm": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+      "deleteConfirm": "Delete \"{name}\"? You can restore it at any time.",
       "noFiles": "No files found for this object",
       "unavailable": "This file is no longer available.",
       "listView": "List view",
-      "gridView": "Grid view"
+      "gridView": "Grid view",
+      "restore": "Restore file",
+      "openExternal": "Open link"
     },
     "propertiesUpdated": "Properties updated successfully",
     "propertiesUpdateFailed": "Failed to update object properties",

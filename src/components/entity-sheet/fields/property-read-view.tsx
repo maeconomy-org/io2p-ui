@@ -33,12 +33,18 @@ function valueSummary(p: DraftProperty, manyLabel: string): string {
 
 // Read-only Properties: a collapsible card per property (list) or a compact grid. Files stay inside
 // their own collapsible disclosures (per §18.3) so a property with many values/files stays compact.
+type FileChange = (localId: string, patch: Partial<DraftFile>) => void
+
 export function PropertyReadView({
   properties,
   derivedValueIds,
+  entityId,
+  onFileChange,
 }: {
   properties: DraftProperty[]
   derivedValueIds: Set<string>
+  entityId?: string
+  onFileChange?: FileChange
 }) {
   const t = useTranslations()
   const [view, setView] = usePreference('propertiesView')
@@ -104,6 +110,8 @@ export function PropertyReadView({
               key={p.id ?? i}
               property={p}
               derivedValueIds={derivedValueIds}
+              entityId={entityId}
+              onFileChange={onFileChange}
             />
           ))}
         </div>
@@ -115,9 +123,13 @@ export function PropertyReadView({
 function PropertyCard({
   property,
   derivedValueIds,
+  entityId,
+  onFileChange,
 }: {
   property: DraftProperty
   derivedValueIds: Set<string>
+  entityId?: string
+  onFileChange?: FileChange
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
@@ -158,7 +170,12 @@ function PropertyCard({
 
       <CollapsibleContent className="space-y-2 border-t bg-muted/10 px-3 py-2">
         {/* Property-level files first (under the header), then each value with its own files. */}
-        <FilesDisclosure files={property.files ?? []} editing={false} />
+        <FilesDisclosure
+          files={property.files ?? []}
+          editing={false}
+          entityId={entityId}
+          onChange={onFileChange}
+        />
         {property.values.length === 0 && (
           <span className="text-sm text-muted-foreground">
             {t('objects.detailsSheet.noProperties')}
@@ -169,6 +186,8 @@ function PropertyCard({
             key={v.id ?? vi}
             value={v}
             derivedValueIds={derivedValueIds}
+            entityId={entityId}
+            onFileChange={onFileChange}
           />
         ))}
       </CollapsibleContent>
@@ -179,9 +198,13 @@ function PropertyCard({
 function ValueRow({
   value,
   derivedValueIds,
+  entityId,
+  onFileChange,
 }: {
   value: { id?: string; data?: string; files?: DraftFile[] }
   derivedValueIds: Set<string>
+  entityId?: string
+  onFileChange?: FileChange
 }) {
   const t = useTranslations()
   const files = value.files ?? []
@@ -198,7 +221,12 @@ function ValueRow({
       {/* Indent the value's files so they read as belonging to the value above, not the property. */}
       {files.length > 0 && (
         <div className="border-l pl-3">
-          <FilesDisclosure files={files} editing={false} />
+          <FilesDisclosure
+            files={files}
+            editing={false}
+            entityId={entityId}
+            onChange={onFileChange}
+          />
         </div>
       )}
     </div>

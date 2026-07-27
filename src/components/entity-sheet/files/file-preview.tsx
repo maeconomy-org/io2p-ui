@@ -42,7 +42,7 @@ import { signedFileUrlQuery, useFileDownload } from '@/hooks/api/files'
 import { useIomClient } from '@/lib/io2p'
 import type { DraftFile } from '@/lib/entity-body'
 
-import { fileDisplayName, isResolvableUpload } from './file-helpers'
+import { fileDisplayName, isPreviewable } from './file-helpers'
 
 const MediaViewer = dynamic(
   () =>
@@ -70,14 +70,6 @@ const SIZE_GUARDED_KINDS: ReadonlySet<PreviewKind> = new Set([
   'pdf',
   'text',
 ])
-
-/** Only a stored, ready file has bytes a viewer can render — references point elsewhere. */
-export function isPreviewable(file: DraftFile): boolean {
-  return (
-    isResolvableUpload(file) &&
-    detectPreviewKind(detectMimeType(file)) !== 'unsupported'
-  )
-}
 
 /**
  * Full-screen preview for stored files, with sibling navigation. The url is minted on demand and

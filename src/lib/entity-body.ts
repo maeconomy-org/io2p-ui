@@ -43,6 +43,12 @@ export interface DraftFile {
   size?: number
   /** 'ready' once the bytes are stored. A soft-deleted or pending file arrives as a BARE ref. */
   status?: string
+  /**
+   * Display-only, set when THIS session soft-deletes or restores the file. Never authored into a
+   * write body: deleting a file is a files-collection operation, and the entity keeps its reference
+   * either way (we detach nothing). On a fresh load the truth comes from resolving the bare ref.
+   */
+  deleted?: boolean
   thumbnailUrl?: string
   // NOTE: there is deliberately no `downloadUrl`. io2p declares one on the read model but the
   // enricher never fills it (presigned urls are short-lived; inlining them would make the entity

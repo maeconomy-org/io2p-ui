@@ -862,11 +862,13 @@
       "delete": "Bestand verwijderen",
       "filePreview": "Bestandsvoorbeeld",
       "deleteTitle": "Bestand verwijderen",
-      "deleteConfirm": "Weet u zeker dat u \"{name}\" wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+      "deleteConfirm": "Wilt u \"{name}\" verwijderen? U kunt het op elk moment herstellen.",
       "noFiles": "Geen bestanden gevonden voor dit object",
       "unavailable": "Dit bestand is niet meer beschikbaar.",
       "listView": "Lijstweergave",
-      "gridView": "Rasterweergave"
+      "gridView": "Rasterweergave",
+      "restore": "Bestand herstellen",
+      "openExternal": "Link openen"
     },
     "childrenPage": {
       "loadingParent": "Bovenliggend object laden...",

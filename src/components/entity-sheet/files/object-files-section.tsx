@@ -3,28 +3,34 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
-  Download,
   FileText,
   LayoutGrid,
   Link as LinkIcon,
   List,
   Loader2,
   Paperclip,
-  X,
 } from 'lucide-react'
 
 import { Badge, Button, ViewToggle } from '@/components/ui'
-import { useFileDownload, useSignedUrlPrefetch } from '@/hooks/api/files'
 import { usePreference } from '@/hooks/ui/use-preference'
 import { cn } from '@/lib'
 import type { DraftFile } from '@/lib/entity-body'
 
-import {
-  fileDisplayName,
-  isImageFile,
-  isResolvableUpload,
-} from './file-helpers'
-import { FilePreview, isPreviewable } from './file-preview'
+import { isImageFile, isPreviewable } from './file-helpers'
+import { FileActions, primaryAction } from './file-actions'
+import { FilePreview } from './file-preview'
+import { useFileState } from './use-file-state'
+
+type FileChange = (localId: string, patch: Partial<DraftFile>) => void
+
+interface RowProps {
+  file: DraftFile
+  editing: boolean
+  entityId?: string
+  onRemove?: (localId: string) => void
+  onChange?: FileChange
+  onPreview?: (file: DraftFile) => void
+}
 
 /**
  * Object-level files, as a standalone section so the same component backs both the Files TAB (edit
@@ -36,17 +42,23 @@ import { FilePreview, isPreviewable } from './file-preview'
 export function ObjectFilesSection({
   files,
   editing,
+  entityId,
   onAttach,
   onRemove,
+  onChange,
 }: {
   files: DraftFile[]
   editing: boolean
+  entityId?: string
   onAttach?: () => void
   onRemove?: (localId: string) => void
+  onChange?: FileChange
 }) {
   const t = useTranslations()
   const [view, setView] = usePreference('filesView')
   const [previewFile, setPreviewFile] = useState<DraftFile | null>(null)
+
+  const rowProps = { editing, entityId, onRemove, onChange }
 
   return (
     <div className="space-y-3">
@@ -97,8 +109,7 @@ export function ObjectFilesSection({
             <FileTile
               key={f._localId}
               file={f}
-              editing={editing}
-              onRemove={onRemove}
+              {...rowProps}
               onPreview={setPreviewFile}
             />
           ))}
@@ -109,8 +120,7 @@ export function ObjectFilesSection({
             <FileCard
               key={f._localId}
               file={f}
-              editing={editing}
-              onRemove={onRemove}
+              {...rowProps}
               onPreview={setPreviewFile}
             />
           ))}
@@ -129,93 +139,35 @@ export function ObjectFilesSection({
   )
 }
 
-/** Shared per-file plumbing: what it is, whether its bytes are reachable, and how to fetch them. */
-function useFileActions(
-  file: DraftFile,
-  onPreview?: (file: DraftFile) => void
-) {
-  const download = useFileDownload()
-  const downloadable = isResolvableUpload(file)
-  const previewable = isPreviewable(file)
-  // Warm whichever url the primary action will need, so the click doesn't wait on a round trip.
-  const prefetch = useSignedUrlPrefetch(
-    file.id,
-    previewable ? 'preview' : 'download',
-    { enabled: downloadable }
-  )
-  const startDownload = () =>
-    download.mutate({ id: file.id!, fileName: file.fileName })
-  return {
-    download,
-    downloadable,
-    previewable: previewable && !!onPreview,
-    prefetch: downloadable ? prefetch : {},
-    isRef: file.kind === 'reference',
-    startDownload,
-    // Opening a file means seeing it when we can render it, and saving it when we can't.
-    open: () => (previewable && onPreview ? onPreview(file) : startDownload()),
-  }
-}
-
-function RemoveButton({
-  onRemove,
-  localId,
-  label,
-  className,
-}: {
-  onRemove: (localId: string) => void
-  localId: string
-  label: string
-  className?: string
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={() => onRemove(localId)}
-      className={cn(
-        'shrink-0 rounded-full p-0.5 text-muted-foreground hover:text-destructive',
-        className
-      )}
-    >
-      <X className="h-3.5 w-3.5" />
-    </button>
-  )
-}
-
 function FileCard({
   file,
   editing,
+  entityId,
   onRemove,
+  onChange,
   onPreview,
-}: {
-  file: DraftFile
-  editing: boolean
-  onRemove?: (localId: string) => void
-  onPreview?: (file: DraftFile) => void
-}) {
+}: RowProps) {
   const t = useTranslations()
   const [thumbBroken, setThumbBroken] = useState(false)
-  const {
-    download,
-    downloadable,
-    previewable,
-    prefetch,
-    isRef,
-    open,
-    startDownload,
-  } = useFileActions(file, onPreview)
-  const name = fileDisplayName(file)
+  const state = useFileState(file, { entityId, onChange })
+  const isRef = file.kind === 'reference'
+  const open = primaryAction(state, onPreview)
   const thumb =
-    isImageFile(file) && !thumbBroken ? file.thumbnailUrl : undefined
+    !state.deleted && isImageFile(file) && !thumbBroken
+      ? file.thumbnailUrl
+      : undefined
 
   return (
     <div
-      className="flex items-center gap-2 rounded-md border bg-card px-2 py-1.5 text-sm"
-      {...prefetch}
+      className={cn(
+        'flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm',
+        state.deleted ? 'border-destructive/20 bg-destructive/10' : 'bg-card',
+        open && 'cursor-pointer hover:bg-accent/50'
+      )}
+      onClick={open}
+      {...state.prefetch}
     >
-      {download.isPending ? (
+      {state.resolving ? (
         <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" />
       ) : thumb ? (
         <img
@@ -230,63 +182,39 @@ function FileCard({
         <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
       )}
 
-      <div className="min-w-0 flex-1">
-        {isRef && file.reference?.url ? (
-          <a
-            href={file.reference.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block truncate hover:underline"
-          >
-            {name}
-          </a>
-        ) : downloadable ? (
-          <button
-            type="button"
-            disabled={download.isPending}
-            aria-busy={download.isPending}
-            aria-label={`${previewable ? t('objects.files.preview') : t('common.download')} ${name}`}
-            onClick={open}
-            className="block w-full truncate text-left hover:underline disabled:cursor-progress"
-          >
-            {name}
-          </button>
-        ) : (
-          <span
-            className="block truncate text-muted-foreground"
-            title={file.id ? t('objects.files.unavailable') : undefined}
-          >
-            {name}
-          </span>
+      <span
+        className={cn(
+          'min-w-0 flex-1 truncate',
+          state.deleted && 'text-destructive line-through'
         )}
-      </div>
+        title={state.name}
+      >
+        {state.name}
+      </span>
 
-      {isRef && (
-        <Badge variant="outline" className="shrink-0 text-[10px]">
-          {t('objects.files.external')}
-        </Badge>
-      )}
-      {/* Only when the name opens a preview — otherwise the name IS the download, and a second
-          identical control would just be noise for a screen reader to read twice. */}
-      {previewable && (
-        <button
-          type="button"
-          aria-label={`${t('common.download')} ${name}`}
-          title={t('common.download')}
-          onClick={startDownload}
-          disabled={download.isPending}
-          className="shrink-0 rounded-full p-0.5 text-muted-foreground hover:text-foreground"
+      {state.deleted ? (
+        <Badge
+          variant="outline"
+          className="shrink-0 border-destructive text-[10px] text-destructive"
         >
-          <Download className="h-3.5 w-3.5" />
-        </button>
+          {t('common.deleted')}
+        </Badge>
+      ) : (
+        isRef && (
+          <Badge variant="outline" className="shrink-0 text-[10px]">
+            {t('objects.files.external')}
+          </Badge>
+        )
       )}
-      {editing && onRemove && (
-        <RemoveButton
-          onRemove={onRemove}
-          localId={file._localId}
-          label={t('common.remove')}
-        />
-      )}
+
+      <FileActions
+        file={file}
+        state={state}
+        editing={editing}
+        onPreview={onPreview}
+        onDownload={state.download}
+        onRemove={onRemove}
+      />
     </div>
   )
 }
@@ -294,28 +222,34 @@ function FileCard({
 function FileTile({
   file,
   editing,
+  entityId,
   onRemove,
+  onChange,
   onPreview,
-}: {
-  file: DraftFile
-  editing: boolean
-  onRemove?: (localId: string) => void
-  onPreview?: (file: DraftFile) => void
-}) {
-  const t = useTranslations()
+}: RowProps) {
   const [thumbBroken, setThumbBroken] = useState(false)
-  const { download, downloadable, previewable, prefetch, isRef, open } =
-    useFileActions(file, onPreview)
-  const name = fileDisplayName(file)
+  const state = useFileState(file, { entityId, onChange })
+  const isRef = file.kind === 'reference'
+  const open = primaryAction(state, onPreview)
   // Thumbnails are worker-derived after the upload completes, so a just-added image has none yet —
   // the icon placeholder is the normal state for a moment, not an error.
   const thumb =
-    isImageFile(file) && !thumbBroken ? file.thumbnailUrl : undefined
+    !state.deleted && isImageFile(file) && !thumbBroken
+      ? file.thumbnailUrl
+      : undefined
 
-  const body = (
-    <>
+  return (
+    <div
+      className={cn(
+        'group relative rounded-md border p-1.5',
+        state.deleted && 'border-destructive/20 bg-destructive/10',
+        open && 'cursor-pointer hover:bg-accent/50'
+      )}
+      onClick={open}
+      {...state.prefetch}
+    >
       <div className="flex h-20 items-center justify-center overflow-hidden rounded-sm bg-muted">
-        {download.isPending ? (
+        {state.resolving ? (
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         ) : thumb ? (
           <img
@@ -330,51 +264,26 @@ function FileTile({
           <FileText className="h-6 w-6 text-muted-foreground" />
         )}
       </div>
-      <span className="mt-1 block truncate text-xs" title={name}>
-        {name}
+
+      <span
+        className={cn(
+          'mt-1 block truncate text-xs',
+          state.deleted && 'text-destructive line-through'
+        )}
+        title={state.name}
+      >
+        {state.name}
       </span>
-    </>
-  )
 
-  return (
-    <div className="group relative rounded-md border p-1.5" {...prefetch}>
-      {isRef && file.reference?.url ? (
-        <a
-          href={file.reference.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block"
-        >
-          {body}
-        </a>
-      ) : downloadable ? (
-        <button
-          type="button"
-          disabled={download.isPending}
-          aria-busy={download.isPending}
-          aria-label={`${previewable ? t('objects.files.preview') : t('common.download')} ${name}`}
-          onClick={open}
-          className="block w-full text-left"
-        >
-          {body}
-        </button>
-      ) : (
-        <div
-          className="text-muted-foreground"
-          title={file.id ? t('objects.files.unavailable') : undefined}
-        >
-          {body}
-        </div>
-      )}
-
-      {editing && onRemove && (
-        <RemoveButton
-          onRemove={onRemove}
-          localId={file._localId}
-          label={t('common.remove')}
-          className="absolute right-1 top-1 rounded-full bg-background/90 opacity-0 focus:opacity-100 group-hover:opacity-100"
-        />
-      )}
+      <FileActions
+        file={file}
+        state={state}
+        editing={editing}
+        onPreview={onPreview}
+        onDownload={state.download}
+        onRemove={onRemove}
+        className="absolute right-1 top-1 rounded-md bg-background/90 opacity-0 shadow-sm focus-within:opacity-100 group-hover:opacity-100"
+      />
     </div>
   )
 }

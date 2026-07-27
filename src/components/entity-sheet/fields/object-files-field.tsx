@@ -15,9 +15,11 @@ import { AttachmentModal, ObjectFilesSection } from '../files'
 export function ObjectFilesField({
   form,
   editing,
+  entityId,
 }: {
   form: UseFormReturn<EntityDraft>
   editing: boolean
+  entityId?: string
 }) {
   const [modalOpen, setModalOpen] = useState(false)
   const files = form.watch('files') ?? []
@@ -34,13 +36,25 @@ export function ObjectFilesField({
     )
   }
 
+  // Soft delete / restore already hit the server, so the draft is only catching up — marking it
+  // dirty would offer to "save" a change that is already committed.
+  const patchFile = (localId: string, patch: Partial<DraftFile>) => {
+    form.setValue(
+      'files',
+      files.map((f) => (f._localId === localId ? { ...f, ...patch } : f)),
+      { shouldDirty: false }
+    )
+  }
+
   return (
     <>
       <ObjectFilesSection
         files={files}
         editing={editing}
+        entityId={entityId}
         onAttach={editing ? () => setModalOpen(true) : undefined}
         onRemove={removeFile}
+        onChange={patchFile}
       />
       <AttachmentModal
         open={modalOpen}

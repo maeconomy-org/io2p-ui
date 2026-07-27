@@ -172,18 +172,53 @@ export function useFileUpload() {
   })
 }
 
+/**
+ * One stored file's record. Only worth fetching for a BARE ref: enrichment skips files that aren't
+ * live, leaving `{id, kind}` with no metadata, and this is what says WHY — `deleted: true` versus a
+ * `pending`/`aborted` status. `files.get` deliberately does not filter deleted rows.
+ */
+export function fileRecordQuery(client: Io2pClient, id: string) {
+  return {
+    queryKey: queryKeys.files.detail(id),
+    queryFn: () => client.files.get(id),
+    staleTime: 60_000,
+    retry: false,
+  }
+}
+
+/**
+ * Soft-delete. The blob is never physically removed and the entity keeps its reference, so this is
+ * always reversible via `useFileRestore`. Requires ADMIN on the parent entity, not write.
+ */
 export function useFileDelete() {
   const client = useIomClient()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (vars: { id: string; entityId?: string }) =>
       client.files.delete(vars.id),
-    onSuccess: (_data, vars) => {
-      if (vars.entityId) {
-        qc.invalidateQueries({
-          queryKey: queryKeys.objects.detail(vars.entityId),
-        })
-      }
-    },
+    onSuccess: (_data, vars) => invalidateFile(qc, vars),
   })
+}
+
+/** Undo a soft delete. Same ADMIN authority as the delete. */
+export function useFileRestore() {
+  const client = useIomClient()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; entityId?: string }) =>
+      client.files.restore(vars.id),
+    onSuccess: (_data, vars) => invalidateFile(qc, vars),
+  })
+}
+
+function invalidateFile(
+  qc: ReturnType<typeof useQueryClient>,
+  vars: { id: string; entityId?: string }
+) {
+  qc.invalidateQueries({ queryKey: queryKeys.files.detail(vars.id) })
+  // Any minted url is dead now (preview/download only resolve live files), and stale on restore.
+  qc.removeQueries({ queryKey: [...queryKeys.files.all, 'url'] })
+  if (vars.entityId) {
+    qc.invalidateQueries({ queryKey: queryKeys.objects.detail(vars.entityId) })
+  }
 }

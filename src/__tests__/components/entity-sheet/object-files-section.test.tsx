@@ -6,7 +6,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ObjectFilesSection } from '@/components/entity-sheet/files/object-files-section'
 import type { DraftFile } from '@/lib/entity-body'
 
-const files = { preview: vi.fn(), download: vi.fn() }
+const files = {
+  preview: vi.fn(),
+  download: vi.fn(),
+  get: vi.fn(),
+  delete: vi.fn(),
+  restore: vi.fn(),
+}
 
 vi.mock('@/lib/io2p', () => ({ useIomClient: () => ({ files }) }))
 
@@ -31,6 +37,7 @@ function renderSection(props: {
   editing?: boolean
   onAttach?: () => void
   onRemove?: (localId: string) => void
+  onChange?: (localId: string, patch: Partial<DraftFile>) => void
 }) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -138,12 +145,96 @@ describe('ObjectFilesSection', () => {
     )
   })
 
-  it('removes a file from the draft when editing', () => {
+  it('discards a pending pick from the draft — nothing was uploaded to keep', () => {
     const onRemove = vi.fn()
-    renderSection({ files: [upload()], editing: true, onRemove })
+    renderSection({
+      files: [{ _localId: 'p1', kind: 'upload', fileName: 'draft.txt' }],
+      editing: true,
+      onRemove,
+    })
 
-    fireEvent.click(screen.getByRole('button', { name: 'common.remove' }))
-    expect(onRemove).toHaveBeenCalledWith('f1')
+    fireEvent.click(screen.getByRole('button', { name: /^common.remove/ }))
+    expect(onRemove).toHaveBeenCalledWith('p1')
+  })
+
+  it('detaches a reference — it has no files record to soft-delete', () => {
+    const onRemove = vi.fn()
+    renderSection({
+      files: [
+        {
+          _localId: 'r1',
+          kind: 'reference',
+          reference: { url: 'https://example.com/spec' },
+        },
+      ],
+      editing: true,
+      onRemove,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^common.remove/ }))
+    expect(onRemove).toHaveBeenCalledWith('r1')
+    expect(files.delete).not.toHaveBeenCalled()
+  })
+
+  it('soft-deletes a stored file instead of removing it from the object', async () => {
+    files.delete.mockResolvedValue({ id: 'f1', deleted: true })
+    const onRemove = vi.fn()
+    const onChange = vi.fn()
+    renderSection({ files: [upload()], editing: true, onRemove, onChange })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /^objects.files.delete/ })
+    )
+    expect(files.delete).not.toHaveBeenCalled() // first click only arms it
+    fireEvent.click(screen.getByRole('button', { name: 'common.confirm' }))
+
+    await waitFor(() => expect(files.delete).toHaveBeenCalledWith('f1'))
+    expect(onRemove).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith('f1', { deleted: true })
+    )
+  })
+
+  it('offers only restore for a deleted file — it cannot be opened', async () => {
+    files.restore.mockResolvedValue({ id: 'f1', deleted: false })
+    const onChange = vi.fn()
+    renderSection({
+      files: [upload({ deleted: true })],
+      editing: true,
+      onChange,
+    })
+
+    expect(screen.getByText('common.deleted')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /common.download/ })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /objects.files.preview/ })
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /^objects.files.restore/ })
+    )
+    await waitFor(() => expect(files.restore).toHaveBeenCalledWith('f1'))
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith('f1', { deleted: false })
+    )
+  })
+
+  it('resolves a bare ref to discover it was deleted', async () => {
+    files.get.mockResolvedValue({
+      id: 'f1',
+      fileName: 'gone.pdf',
+      deleted: true,
+    })
+    // Enrichment skips a non-live file, so it arrives with an id and nothing else.
+    renderSection({ files: [{ _localId: 'f1', id: 'f1', kind: 'upload' }] })
+
+    await waitFor(() => expect(files.get).toHaveBeenCalledWith('f1'))
+    await waitFor(() =>
+      expect(screen.getByText('gone.pdf')).toBeInTheDocument()
+    )
+    expect(screen.getByText('common.deleted')).toBeInTheDocument()
   })
 
   it('opens the preview for a renderable file instead of downloading it', async () => {

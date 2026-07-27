@@ -1,3 +1,4 @@
+import { detectMimeType, detectPreviewKind } from '@/lib'
 import type { DraftFile } from '@/lib/entity-body'
 
 // A picked file → a pending upload draft (bytes ride the draft until Save; see plan §18).
@@ -42,6 +43,15 @@ export function isResolvableUpload(f: DraftFile): boolean {
     f.kind === 'upload' &&
     !!f.id &&
     !!f.fileName &&
+    !f.deleted &&
     (f.status ?? 'ready') === 'ready'
+  )
+}
+
+/** Only stored, live bytes can be rendered in-app — a reference points at someone else's server. */
+export function isPreviewable(f: DraftFile): boolean {
+  return (
+    isResolvableUpload(f) &&
+    detectPreviewKind(detectMimeType(f)) !== 'unsupported'
   )
 }
