@@ -162,8 +162,14 @@ export const queryKeys = {
   // set on the hooks to refetch before backend TTL expiry.
   files: {
     all: ['files'] as const,
+    /** @deprecated legacy fileStorage preview url — retires with `use-files-api`. */
     previewUrl: (uuid: string) =>
       [...queryKeys.files.all, 'previewUrl', uuid] as const,
+    // io2p on-demand signed url. `kind` is part of the key on purpose: preview is served
+    // `Content-Disposition: inline`, download as `attachment` — one shared entry would let a
+    // hover-prefetched preview satisfy a download click (the browser would render, not save).
+    url: (id: string, kind: 'preview' | 'download', variant?: string) =>
+      [...queryKeys.files.all, 'url', kind, id, variant ?? null] as const,
     lists: () => [...queryKeys.files.all, 'list'] as const,
     list: (query?: ListFilesQuery) =>
       [...queryKeys.files.lists(), query] as const,

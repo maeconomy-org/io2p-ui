@@ -205,7 +205,8 @@
     "savedSuccessfully": "Changes saved successfully",
     "noResults": "No results.",
     "apply": "Apply",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "sessionExpired": "Your session expired. Sign in again to save."
   },
   "copyButton": {
     "copied": "Copied!",
@@ -649,7 +650,7 @@
       "preview": "Preview in new tab",
       "attach": "Attach",
       "saveToAttach": "Save the object first to attach files",
-      "uploadFailed": "Could not upload one or more files — nothing was saved",
+      "uploadFailed": "The object was saved, but one or more files could not be uploaded.",
       "addFiles": "Add files",
       "addReference": "Add reference",
       "external": "Link",
@@ -659,7 +660,10 @@
       "filePreview": "File Preview",
       "deleteTitle": "Delete File",
       "deleteConfirm": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
-      "noFiles": "No files found for this object"
+      "noFiles": "No files found for this object",
+      "unavailable": "This file is no longer available.",
+      "listView": "List view",
+      "gridView": "Grid view"
     },
     "propertiesUpdated": "Properties updated successfully",
     "propertiesUpdateFailed": "Failed to update object properties",
@@ -940,7 +944,12 @@
       "action": "Duplicate",
       "copyHere": "Copy Objects Here"
     },
-    "itemsCount": "{count} item{count, plural, one {} other {s}}"
+    "itemsCount": "{count} item{count, plural, one {} other {s}}",
+    "saveError": {
+      "conflict": "This object changed elsewhere since you opened it. Copy your changes, reopen the object, and apply them again.",
+      "invalid": "Could not save — {detail}",
+      "notFound": "This object no longer exists."
+    }
   },
   "processes": {
     "title": "I/O Processes",

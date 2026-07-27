@@ -9,6 +9,7 @@ import type { ObjectDTO } from 'io2p-client'
 
 import { useObjects } from '@/hooks/api/entities'
 import { useIomClient } from '@/lib/io2p'
+import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
 import { queryKeys } from '@/lib/query-keys'
 import { logger } from '@/lib'
 import {
@@ -44,6 +45,10 @@ export interface UseEntityFormOptions {
  * once the object is committed we resolve each pending pick's target and `files.upload(blob, target)`.
  * References author inline in the body. A failed upload does NOT roll back the (already-saved) entity —
  * it toasts; the file simply isn't attached (visible on the next reload as absent).
+ *
+ * A failed ENTITY WRITE is different: nothing was committed, so the draft is left untouched and dirty
+ * for the user to retry or copy out of. The two failures are caught separately on purpose — sharing one
+ * handler would skip the post-save reset after a mere upload failure and pretend the save didn't happen.
  */
 export function useEntityForm(
   entity?: ObjectDTO | null,
@@ -97,24 +102,41 @@ export function useEntityForm(
   const submit = form.handleSubmit(async (draft) => {
     let committed: ObjectDTO
 
-    if (entity) {
-      const body = buildUpdateObjectBody(entity, draft)
-      if (Object.keys(body).length > 0) {
-        await updateMutation.mutateAsync({
-          id: entity.id,
-          body,
-          options: { ifMatch: entity.currentVersion },
+    try {
+      if (entity) {
+        const body = buildUpdateObjectBody(entity, draft)
+        if (Object.keys(body).length > 0) {
+          await updateMutation.mutateAsync({
+            id: entity.id,
+            body,
+            options: { ifMatch: entity.currentVersion },
+          })
+        }
+        // Uploads need the committed tree (new value/property ids) to resolve their targets.
+        committed = hasPendingUploads(draft)
+          ? await client.objects.get(entity.id)
+          : entity
+      } else {
+        const res = await createMutation.mutateAsync({
+          body: buildCreateObjectInput(draft),
         })
+        committed = res as unknown as ObjectDTO
       }
-      // Uploads need the committed tree (new value/property ids) to resolve their targets.
-      committed = hasPendingUploads(draft)
-        ? await client.objects.get(entity.id)
-        : entity
-    } else {
-      const res = await createMutation.mutateAsync({
-        body: buildCreateObjectInput(draft),
+    } catch (err) {
+      // The write failed, so nothing was committed. Keep the draft exactly as the user left it:
+      // no reset, no onSaved (which would close a create sheet), and deliberately NO cache
+      // invalidation — on a 412 that would pull server truth and the reload effect would discard
+      // the very edits the user still needs to re-apply. Returning (not rethrowing) is what stops
+      // RHF re-throwing into an unhandled rejection.
+      logger.error('Entity save failed', {
+        entityId: entity?.id,
+        status: iomStatus(err),
+        error: err instanceof Error ? err.message : String(err),
       })
-      committed = res as unknown as ObjectDTO
+      const message = saveErrorMessage(err)
+      toast.error(t(message.key, message.values))
+      form.setError('root.save', { type: 'server', message: message.key })
+      return
     }
 
     await attachUploads(committed, draft)
@@ -129,7 +151,9 @@ export function useEntityForm(
     form,
     submit,
     isEditing: !!entity,
-    isSubmitting: createMutation.isPending || updateMutation.isPending,
+    // RHF holds this true for the WHOLE async handler, so it covers the post-save upload phase too —
+    // the mutation flags alone go false while bytes are still going up.
+    isSubmitting: form.formState.isSubmitting,
     reset: () => form.reset(),
   }
 }

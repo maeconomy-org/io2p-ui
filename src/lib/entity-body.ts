@@ -40,8 +40,12 @@ export interface DraftFile {
   fileName?: string
   contentType?: string
   type?: string
+  /** 'ready' once the bytes are stored. A soft-deleted or pending file arrives as a BARE ref. */
+  status?: string
   thumbnailUrl?: string
-  downloadUrl?: string
+  // NOTE: there is deliberately no `downloadUrl`. io2p declares one on the read model but the
+  // enricher never fills it (presigned urls are short-lived; inlining them would make the entity
+  // response uncacheable). Mint it on demand instead — see `useFileDownload`.
 }
 
 export interface DraftValue {
@@ -98,8 +102,8 @@ function readFileToDraft(f: ReadFile): DraftFile {
     fileName: f.fileName,
     contentType: f.contentType,
     type: f.type,
+    status: f.status,
     thumbnailUrl: f.thumbnailUrl,
-    downloadUrl: f.downloadUrl,
   }
 }
 

@@ -1,9 +1,20 @@
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NotFoundError } from 'io2p-client'
 
-import { useFileUpload, useFileDelete, useFileUrls } from '@/hooks/api/files'
+import {
+  useFileUpload,
+  useFileDelete,
+  useFileDownload,
+  useSignedUrlPrefetch,
+  signedFileUrlQuery,
+  triggerBrowserDownload,
+  PRESIGN_GET_TTL_MS,
+  SIGNED_URL_STALE_MS,
+} from '@/hooks/api/files'
+import { queryKeys } from '@/lib/query-keys'
 
 const files = {
   upload: vi.fn(),
@@ -12,8 +23,22 @@ const files = {
   download: vi.fn(),
 }
 
+const toastError = vi.fn()
+
 vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({ files }),
+}))
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
+}))
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: (...args: unknown[]) => toastError(...args),
+    success: vi.fn(),
+  },
 }))
 
 function makeWrapper() {
@@ -22,6 +47,10 @@ function makeWrapper() {
   })
   return ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children)
+}
+
+function problem(status: number) {
+  return { type: 'about:blank', title: 'Not Found', status }
 }
 
 describe('file hooks', () => {
@@ -52,17 +81,206 @@ describe('file hooks', () => {
     await result.current.mutateAsync({ id: 'f1', entityId: 'o1' })
     expect(files.delete).toHaveBeenCalledWith('f1')
   })
+})
 
-  it('useFileUrls resolves presigned preview/download urls', async () => {
-    files.preview.mockResolvedValue({ url: 'https://s3/preview' })
-    files.download.mockResolvedValue({ url: 'https://s3/download' })
+describe('signedFileUrlQuery', () => {
+  beforeEach(() => vi.clearAllMocks())
 
-    const { result } = renderHook(() => useFileUrls(), {
+  it('passes the variant to preview and omits options when there is none', async () => {
+    files.preview.mockResolvedValue({ url: 'https://s3/thumb' })
+    const client = { files } as never
+
+    await signedFileUrlQuery(client, 'f1', 'preview', 'thumbnail').queryFn()
+    expect(files.preview).toHaveBeenCalledWith('f1', { variant: 'thumbnail' })
+
+    await signedFileUrlQuery(client, 'f1', 'preview').queryFn()
+    expect(files.preview).toHaveBeenLastCalledWith('f1', undefined)
+  })
+
+  it('never caches a url past the server TTL', () => {
+    // The server TTL is invisible to us, so staleTime has to stay strictly under our mirror of it.
+    expect(SIGNED_URL_STALE_MS).toBeLessThan(PRESIGN_GET_TTL_MS)
+  })
+
+  it('keys preview and download separately, and by variant', () => {
+    expect(queryKeys.files.url('f1', 'preview')).not.toEqual(
+      queryKeys.files.url('f1', 'download')
+    )
+    expect(queryKeys.files.url('f1', 'preview', 'thumbnail')).not.toEqual(
+      queryKeys.files.url('f1', 'preview')
+    )
+  })
+})
+
+describe('useFileDownload', () => {
+  let clickSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {})
+  })
+  afterEach(() => clickSpy.mockRestore())
+
+  it('mints a url then navigates an anchor carrying it', async () => {
+    files.download.mockResolvedValue({ url: 'https://s3/download?sig=abc' })
+    let href = ''
+    let downloadAttr = ''
+    clickSpy.mockImplementation(function (this: HTMLAnchorElement) {
+      href = this.href
+      downloadAttr = this.download
+    })
+
+    const { result } = renderHook(() => useFileDownload(), {
       wrapper: makeWrapper(),
     })
-    expect(await result.current.getPreviewUrl('f1')).toBe('https://s3/preview')
-    expect(await result.current.getDownloadUrl('f1')).toBe(
-      'https://s3/download'
+    await act(async () => {
+      await result.current.mutateAsync({ id: 'f1', fileName: 'spec.pdf' })
+    })
+
+    expect(files.download).toHaveBeenCalledWith('f1')
+    expect(href).toBe('https://s3/download?sig=abc')
+    expect(downloadAttr).toBe('spec.pdf')
+  })
+
+  it('never fetches the bytes — the JWT must not reach S3', async () => {
+    files.download.mockResolvedValue({ url: 'https://s3/download' })
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+    const { result } = renderHook(() => useFileDownload(), {
+      wrapper: makeWrapper(),
+    })
+    await act(async () => {
+      await result.current.mutateAsync({ id: 'f1' })
+    })
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    fetchSpy.mockRestore()
+  })
+
+  it('reuses a hover-prefetched url instead of minting a second one', async () => {
+    files.download.mockResolvedValue({ url: 'https://s3/download' })
+    const wrapper = makeWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        prefetch: useSignedUrlPrefetch('f1', 'download'),
+        download: useFileDownload(),
+      }),
+      { wrapper }
     )
+
+    await act(async () => {
+      result.current.prefetch.onMouseEnter()
+    })
+    await act(async () => {
+      await result.current.download.mutateAsync({ id: 'f1' })
+    })
+
+    expect(files.download).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not let a prefetched preview satisfy a download', async () => {
+    files.preview.mockResolvedValue({ url: 'https://s3/preview' })
+    files.download.mockResolvedValue({ url: 'https://s3/download' })
+    const wrapper = makeWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        prefetch: useSignedUrlPrefetch('f1', 'preview'),
+        download: useFileDownload(),
+      }),
+      { wrapper }
+    )
+
+    await act(async () => {
+      result.current.prefetch.onMouseEnter()
+    })
+    await act(async () => {
+      await result.current.download.mutateAsync({ id: 'f1' })
+    })
+
+    expect(files.download).toHaveBeenCalledTimes(1)
+  })
+
+  it('toasts and does not navigate when minting fails', async () => {
+    files.download.mockRejectedValue(new Error('network'))
+
+    const { result } = renderHook(() => useFileDownload(), {
+      wrapper: makeWrapper(),
+    })
+    await act(async () => {
+      await result.current.mutateAsync({ id: 'f1' }).catch(() => undefined)
+    })
+
+    expect(clickSpy).not.toHaveBeenCalled()
+    expect(toastError).toHaveBeenCalledWith('common.downloadFailed')
+  })
+
+  it('reports a deleted or not-ready file distinctly on 404', async () => {
+    files.download.mockRejectedValue(new NotFoundError(problem(404)))
+
+    const { result } = renderHook(() => useFileDownload(), {
+      wrapper: makeWrapper(),
+    })
+    await act(async () => {
+      await result.current.mutateAsync({ id: 'f1' }).catch(() => undefined)
+    })
+
+    expect(toastError).toHaveBeenCalledWith('objects.files.unavailable')
+  })
+})
+
+describe('useSignedUrlPrefetch', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('mints once when the pointer enters nested children', async () => {
+    files.download.mockResolvedValue({ url: 'https://s3/download' })
+    const { result } = renderHook(
+      () => useSignedUrlPrefetch('f1', 'download'),
+      { wrapper: makeWrapper() }
+    )
+
+    await act(async () => {
+      result.current.onMouseEnter()
+      result.current.onFocus()
+      result.current.onMouseEnter()
+    })
+
+    expect(files.download).toHaveBeenCalledTimes(1)
+  })
+
+  it('does nothing without an id or when disabled', async () => {
+    const { result } = renderHook(
+      () => ({
+        noId: useSignedUrlPrefetch(undefined, 'download'),
+        disabled: useSignedUrlPrefetch('f1', 'download', { enabled: false }),
+      }),
+      { wrapper: makeWrapper() }
+    )
+
+    await act(async () => {
+      result.current.noId.onMouseEnter()
+      result.current.disabled.onMouseEnter()
+    })
+
+    expect(files.download).not.toHaveBeenCalled()
+  })
+})
+
+describe('triggerBrowserDownload', () => {
+  it('removes the anchor after clicking it', () => {
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        expect(this.isConnected).toBe(true)
+      })
+
+    triggerBrowserDownload('https://s3/x', 'a.txt')
+
+    expect(clickSpy).toHaveBeenCalled()
+    expect(document.querySelector('a[href="https://s3/x"]')).toBeNull()
+    clickSpy.mockRestore()
   })
 })

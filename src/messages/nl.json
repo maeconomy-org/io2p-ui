@@ -205,7 +205,8 @@
     "savedSuccessfully": "Wijzigingen succesvol opgeslagen",
     "noResults": "Geen resultaten.",
     "apply": "Toepassen",
-    "error": "Er is iets misgegaan"
+    "error": "Er is iets misgegaan",
+    "sessionExpired": "Uw sessie is verlopen. Meld u opnieuw aan om op te slaan."
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -852,7 +853,7 @@
       "preview": "Voorbeeld in nieuw tabblad",
       "attach": "Bijlage",
       "saveToAttach": "Sla het object eerst op om bestanden toe te voegen",
-      "uploadFailed": "Een of meer bestanden konden niet worden geüpload — er is niets opgeslagen",
+      "uploadFailed": "Het object is opgeslagen, maar een of meer bestanden konden niet worden geüpload.",
       "addFiles": "Bestanden toevoegen",
       "addReference": "Referentie toevoegen",
       "external": "Link",
@@ -862,7 +863,10 @@
       "filePreview": "Bestandsvoorbeeld",
       "deleteTitle": "Bestand verwijderen",
       "deleteConfirm": "Weet u zeker dat u \"{name}\" wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
-      "noFiles": "Geen bestanden gevonden voor dit object"
+      "noFiles": "Geen bestanden gevonden voor dit object",
+      "unavailable": "Dit bestand is niet meer beschikbaar.",
+      "listView": "Lijstweergave",
+      "gridView": "Rasterweergave"
     },
     "childrenPage": {
       "loadingParent": "Bovenliggend object laden...",
@@ -940,7 +944,12 @@
       "action": "Kopiëren",
       "copyHere": "Objecten hier kopiëren"
     },
-    "itemsCount": "{count} item{count, plural, one {} other {s}}"
+    "itemsCount": "{count} item{count, plural, one {} other {s}}",
+    "saveError": {
+      "conflict": "Dit object is elders gewijzigd sinds u het opende. Kopieer uw wijzigingen, open het object opnieuw en pas ze opnieuw toe.",
+      "invalid": "Opslaan mislukt — {detail}",
+      "notFound": "Dit object bestaat niet meer."
+    }
   },
   "processes": {
     "title": "I/O-processen",

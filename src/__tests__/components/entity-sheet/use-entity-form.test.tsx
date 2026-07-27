@@ -2,7 +2,14 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ObjectDTO } from 'io2p-client'
+import {
+  ForbiddenError,
+  NotFoundError,
+  PreconditionFailedError,
+  UnauthorizedError,
+  ValidationError,
+  type ObjectDTO,
+} from 'io2p-client'
 
 import { useEntityForm } from '@/components/entity-sheet/hooks/use-entity-form'
 
@@ -48,7 +55,8 @@ const draftWithUpload = () => [
 ]
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
 }))
 
 const toastError = vi.fn()
@@ -195,6 +203,160 @@ describe('useEntityForm', () => {
       { name: 'Wall B' },
       { ifMatch: 3 }
     )
+  })
+
+  it('a failed save keeps the draft, reports nothing saved, and never rejects', async () => {
+    objects.update.mockRejectedValue(
+      new PreconditionFailedError({
+        type: 'about:blank',
+        title: 'Precondition Failed',
+        status: 412,
+      })
+    )
+    const onSaved = vi.fn()
+    const { result } = renderHook(
+      () => {
+        const r = useEntityForm(entity(), { onSaved })
+        // RHF's formState is a proxy that only tracks fields read during render, exactly as
+        // EntitySheet reads them — without this the hook never subscribes to isDirty.
+        void r.form.formState.isDirty
+        return r
+      },
+      { wrapper: makeWrapper() }
+    )
+
+    act(() =>
+      result.current.form.setValue('name', 'Wall B', {
+        shouldDirty: true,
+      })
+    )
+    await act(async () => {
+      // Must resolve: RHF rethrows whatever the handler throws, which would be an unhandled rejection.
+      await expect(result.current.submit()).resolves.toBeUndefined()
+    })
+
+    expect(toastError).toHaveBeenCalledWith('objects.saveError.conflict')
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(result.current.form.formState.isDirty).toBe(true)
+    expect(result.current.form.getValues('name')).toBe('Wall B')
+    expect(files.upload).not.toHaveBeenCalled()
+  })
+
+  it('surfaces the server detail when a save is rejected as invalid', async () => {
+    objects.update.mockRejectedValue(
+      new ValidationError({
+        type: 'about:blank',
+        title: 'Unprocessable Entity',
+        status: 422,
+        detail: 'property key must be unique',
+      })
+    )
+    const { result } = renderHook(() => useEntityForm(entity()), {
+      wrapper: makeWrapper(),
+    })
+
+    act(() => result.current.form.setValue('name', 'Wall B'))
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(toastError).toHaveBeenCalledWith(
+      'objects.saveError.invalid:{"detail":"property key must be unique"}'
+    )
+  })
+
+  it('maps the remaining save failures to their own messages', async () => {
+    const cases: [Error, string][] = [
+      [
+        new ForbiddenError({
+          type: 'about:blank',
+          title: 'Forbidden',
+          status: 403,
+        }),
+        'objects.permissionDenied',
+      ],
+      [
+        new NotFoundError({
+          type: 'about:blank',
+          title: 'Not Found',
+          status: 404,
+        }),
+        'objects.saveError.notFound',
+      ],
+      [
+        new UnauthorizedError({
+          type: 'about:blank',
+          title: 'Unauthorized',
+          status: 401,
+        }),
+        'common.sessionExpired',
+      ],
+      [new Error('Failed to fetch'), 'common.saveFailed'],
+    ]
+
+    for (const [error, key] of cases) {
+      vi.clearAllMocks()
+      objects.update.mockRejectedValue(error)
+      const { result, unmount } = renderHook(() => useEntityForm(entity()), {
+        wrapper: makeWrapper(),
+      })
+      act(() => result.current.form.setValue('name', 'Wall B'))
+      await act(async () => {
+        await result.current.submit()
+      })
+      expect(toastError).toHaveBeenCalledWith(key)
+      unmount()
+    }
+  })
+
+  it('a failed create does not report a save', async () => {
+    objects.create.mockRejectedValue(new Error('boom'))
+    const onSaved = vi.fn()
+    const { result } = renderHook(() => useEntityForm(null, { onSaved }), {
+      wrapper: makeWrapper(),
+    })
+
+    act(() => result.current.form.setValue('name', 'Wall A'))
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(toastError).toHaveBeenCalledWith('common.saveFailed')
+    expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it('stays submitting while the post-save upload is still in flight', async () => {
+    objects.create.mockResolvedValue(committed)
+    let release: () => void = () => {}
+    files.upload.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          release = () => resolve()
+        })
+    )
+    const { result } = renderHook(() => useEntityForm(null), {
+      wrapper: makeWrapper(),
+    })
+
+    act(() => {
+      result.current.form.setValue('name', 'With File')
+      result.current.form.setValue('properties', draftWithUpload())
+    })
+
+    let submitted: Promise<void> = Promise.resolve()
+    act(() => {
+      submitted = result.current.submit()
+    })
+
+    // The entity write has resolved but the bytes have not — Save must still read as busy.
+    await waitFor(() => expect(files.upload).toHaveBeenCalled())
+    expect(result.current.isSubmitting).toBe(true)
+
+    await act(async () => {
+      release()
+      await submitted
+    })
+    expect(result.current.isSubmitting).toBe(false)
   })
 
   it('reloads the form when a different entity arrives', async () => {

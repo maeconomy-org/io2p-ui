@@ -31,3 +31,17 @@ export function fileDisplayName(f: DraftFile): string {
 export function isImageFile(f: DraftFile): boolean {
   return f.type === 'image' || (f.contentType?.startsWith('image/') ?? false)
 }
+
+/**
+ * Can this file's bytes be fetched right now? The enricher skips soft-deleted and not-yet-ready
+ * files, leaving a BARE `{id, kind}` ref with no metadata, and preview/download only resolve `ready`
+ * non-deleted files — so offering a download for anything else just 404s.
+ */
+export function isResolvableUpload(f: DraftFile): boolean {
+  return (
+    f.kind === 'upload' &&
+    !!f.id &&
+    !!f.fileName &&
+    (f.status ?? 'ready') === 'ready'
+  )
+}
