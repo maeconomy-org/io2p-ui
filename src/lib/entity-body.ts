@@ -40,6 +40,7 @@ export interface DraftFile {
   fileName?: string
   contentType?: string
   type?: string
+  size?: number
   /** 'ready' once the bytes are stored. A soft-deleted or pending file arrives as a BARE ref. */
   status?: string
   thumbnailUrl?: string
@@ -102,6 +103,7 @@ function readFileToDraft(f: ReadFile): DraftFile {
     fileName: f.fileName,
     contentType: f.contentType,
     type: f.type,
+    size: f.size,
     status: f.status,
     thumbnailUrl: f.thumbnailUrl,
   }

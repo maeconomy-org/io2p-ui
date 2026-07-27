@@ -4,7 +4,7 @@ import type { FileData } from '@/types'
 import { isExternalFileReference } from '@/components/object-sheets/utils'
 import { usePreviewUrl } from '@/hooks/api/use-files-api'
 
-import { isAllowedExternalFileReference } from './external-file-reference'
+import { isAllowedExternalFileReference } from '@/lib/validations'
 
 export interface UseFilePreviewUrlResult {
   url: string | null

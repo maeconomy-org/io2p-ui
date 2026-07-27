@@ -9,6 +9,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import dynamic from 'next/dynamic'
+import { useQuery } from '@tanstack/react-query'
 import {
   ChevronLeft,
   ChevronRight,
@@ -21,9 +22,7 @@ import {
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
-import { toast } from 'sonner'
 
-import { cn } from '@/lib/utils'
 import {
   Button,
   Dialog,
@@ -31,21 +30,19 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui'
+import { ImageViewer, UnsupportedFallback } from '@/components/file-viewers'
 import {
   detectMimeType,
   detectPreviewKind,
   formatBytes,
-  logger,
   type PreviewKind,
 } from '@/lib'
-import { useIomSdkClient } from '@/contexts'
-import type { FileData } from '@/types'
+import { cn } from '@/lib/utils'
+import { signedFileUrlQuery, useFileDownload } from '@/hooks/api/files'
+import { useIomClient } from '@/lib/io2p'
+import type { DraftFile } from '@/lib/entity-body'
 
-import { downloadFileToClient } from './download-file'
-import { ImageViewer } from '@/components/file-viewers/image-viewer'
-import { UnsupportedFallback } from '@/components/file-viewers/unsupported-fallback'
-import { useFilePreviewUrl } from './use-file-preview-url'
-import { isExternalFileReference } from '@/components/object-sheets/utils'
+import { fileDisplayName, isResolvableUpload } from './file-helpers'
 
 const MediaViewer = dynamic(
   () =>
@@ -62,95 +59,88 @@ const TextViewer = dynamic(
   { ssr: false, loading: () => <LoadingPlaceholder /> }
 )
 
-interface AttachmentPreviewProps {
-  file: FileData | null
-  siblings?: FileData[]
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
 const MIN_SCALE = 0.2
 const MAX_SCALE = 8
 
-// Inline preview cap for byte-buffered renderers (image / PDF / text).
-// Video and audio stream via Range requests, so they're exempt from this guard.
-const INLINE_PREVIEW_MAX_BYTES = 100 * 1024 * 1024 // 100 MB
-
+// Inline preview cap for byte-buffered renderers. Video/audio stream via Range requests, so they're
+// exempt.
+const INLINE_PREVIEW_MAX_BYTES = 100 * 1024 * 1024
 const SIZE_GUARDED_KINDS: ReadonlySet<PreviewKind> = new Set([
   'image',
   'pdf',
   'text',
 ])
 
-function getDisplayName(file: FileData): string {
-  return file.fileName || file.label || 'file'
+/** Only a stored, ready file has bytes a viewer can render — references point elsewhere. */
+export function isPreviewable(file: DraftFile): boolean {
+  return (
+    isResolvableUpload(file) &&
+    detectPreviewKind(detectMimeType(file)) !== 'unsupported'
+  )
 }
 
-function isSupportedKind(kind: PreviewKind): boolean {
-  return kind !== 'unsupported'
-}
-
-export function AttachmentPreview({
+/**
+ * Full-screen preview for stored files, with sibling navigation. The url is minted on demand and
+ * handed to a viewer as a plain `src`, so video/audio stream by Range request instead of being
+ * buffered into memory.
+ */
+export function FilePreview({
   file,
   siblings = [],
   open,
   onOpenChange,
-}: AttachmentPreviewProps) {
+}: {
+  file: DraftFile | null
+  siblings?: DraftFile[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const t = useTranslations()
-  const client = useIomSdkClient()
+  const client = useIomClient()
+  const download = useFileDownload()
 
   const viewable = useMemo(() => {
     const pool = siblings.length > 0 ? siblings : file ? [file] : []
-    return pool.filter((f) => {
-      if (f.softDeleted) return false
-      const mime = detectMimeType(f)
-      const kind = detectPreviewKind(mime)
-      return isSupportedKind(kind)
-    })
+    return pool.filter(isPreviewable)
   }, [siblings, file])
 
-  const [currentUuid, setCurrentUuid] = useState<string | null>(
-    file?.uuid ?? null
+  const [currentId, setCurrentId] = useState<string | null>(
+    file?._localId ?? null
   )
   const [scale, setScale] = useState(1)
   const [rotation, setRotation] = useState(0)
 
-  // Depend on `file?.uuid` (primitive) rather than `file` (object identity).
-  // Parent re-renders frequently hand us a new `file` reference for the same
-  // attachment; without this we'd snap back to the originally-clicked file
-  // whenever the parent rerendered after a Next/Prev navigation.
+  // Key off the id, not the object: a parent re-render hands us a new `file` reference for the same
+  // attachment, which would otherwise snap the dialog back after a Next/Prev navigation.
   useEffect(() => {
-    if (open) setCurrentUuid(file?.uuid ?? null)
-  }, [open, file?.uuid])
+    if (open) setCurrentId(file?._localId ?? null)
+  }, [open, file?._localId])
 
-  const currentIndex = viewable.findIndex((f) => f.uuid === currentUuid)
+  const currentIndex = viewable.findIndex((f) => f._localId === currentId)
   const current =
     currentIndex >= 0 ? viewable[currentIndex] : (file ?? viewable[0] ?? null)
 
   const mime = current ? detectMimeType(current) : 'application/octet-stream'
   const kind: PreviewKind = detectPreviewKind(mime)
-  const isExternal = current
-    ? isExternalFileReference(current.fileReference)
-    : false
 
-  // The hook returns the presigned URL (or external-ref URL) directly — viewers
-  // consume it as a plain `src`, so video can stream + range-fetch instead of
-  // buffering the whole file into memory via createObjectURL.
-  const { url, isLoading, error } = useFilePreviewUrl(
-    current,
-    open && isSupportedKind(kind)
-  )
+  const {
+    data: url,
+    isLoading,
+    error,
+  } = useQuery({
+    ...signedFileUrlQuery(client, current?.id ?? '', 'preview'),
+    enabled: open && !!current?.id && kind !== 'unsupported',
+  })
 
-  // Reset zoom/rotation when the current file changes.
   useEffect(() => {
     setScale(1)
     setRotation(0)
-  }, [currentUuid])
+  }, [currentId])
 
   const hasMultiple = viewable.length > 1
 
-  // Keep latest nav state in a ref so `goTo` stays referentially stable and
-  // the keydown effect below doesn't re-bind on every index change.
+  // Latest nav state in a ref so `goTo` stays referentially stable and the key handler doesn't
+  // re-bind on every index change.
   const navRef = useRef({ viewable, currentIndex })
   navRef.current = { viewable, currentIndex }
 
@@ -158,7 +148,7 @@ export function AttachmentPreview({
     const { viewable: vs, currentIndex: idx } = navRef.current
     if (vs.length <= 1 || idx < 0) return
     const next = (idx + delta + vs.length) % vs.length
-    setCurrentUuid(vs[next].uuid)
+    setCurrentId(vs[next]._localId)
   }, [])
 
   const zoom = useCallback((factor: number) => {
@@ -174,8 +164,8 @@ export function AttachmentPreview({
     setScale((s) => (s === 1 ? 2 : 1))
   }, [])
 
-  // Scoped to the dialog via onKeyDown below — a window-level listener would
-  // hijack +/-/r/0 from inputs elsewhere on the page even while the dialog is open.
+  // Scoped to the dialog: a window-level listener would hijack +/-/r/0 from inputs elsewhere on the
+  // page while the dialog is open.
   const handleDialogKeyDown = useCallback(
     (e: ReactKeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'ArrowRight' && hasMultiple) {
@@ -203,34 +193,12 @@ export function AttachmentPreview({
     [hasMultiple, goTo, kind, zoom, resetView]
   )
 
-  const handleDownload = async () => {
-    if (!current) return
-    if (isExternal && current.fileReference) {
-      window.open(current.fileReference, '_blank', 'noopener,noreferrer')
-      return
-    }
-    if (!current.fileReference) return
-    try {
-      await downloadFileToClient(
-        client,
-        current.fileReference,
-        getDisplayName(current)
-      )
-    } catch (err) {
-      logger.error('Attachment preview download failed', { error: err })
-      toast.error(t('common.downloadFailed'))
-    }
-  }
-
   if (!current) return null
 
-  const displayName = getDisplayName(current)
+  const displayName = fileDisplayName(current)
   const showImageControls = kind === 'image' && !!url
-  const previewBodyTestId = error
-    ? 'attachment-preview-error'
-    : kind === 'unsupported'
-      ? 'attachment-preview-fallback'
-      : `attachment-preview-${kind}`
+  const doDownload = () =>
+    download.mutate({ id: current.id!, fileName: current.fileName })
 
   const isOverSizeCap =
     SIZE_GUARDED_KINDS.has(kind) &&
@@ -244,7 +212,7 @@ export function AttachmentPreview({
           fileName={displayName}
           size={current.size}
           mimeType={current.contentType ?? mime}
-          onDownload={handleDownload}
+          onDownload={doDownload}
         />
       )
     }
@@ -257,23 +225,13 @@ export function AttachmentPreview({
     }
     switch (kind) {
       case 'image':
-        return url ? (
+        return (
           <ImageViewer
-            src={url}
+            src={url ?? ''}
             alt={displayName}
-            scale={scale}
-            rotation={rotation}
-            isLoading={isLoading}
-            onZoom={zoom}
-            onToggleZoom={toggleZoom}
-          />
-        ) : (
-          <ImageViewer
-            src=""
-            alt={displayName}
-            scale={1}
-            rotation={0}
-            isLoading
+            scale={url ? scale : 1}
+            rotation={url ? rotation : 0}
+            isLoading={isLoading || !url}
             onZoom={zoom}
             onToggleZoom={toggleZoom}
           />
@@ -314,7 +272,7 @@ export function AttachmentPreview({
       <DialogContent
         noContainer
         className="flex h-[92vh] max-h-[92vh] w-[92vw] max-w-[92vw] flex-col gap-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-900 p-0 text-white shadow-2xl sm:rounded-xl"
-        data-testid="attachment-preview-dialog"
+        data-testid="file-preview-dialog"
         onKeyDown={handleDialogKeyDown}
       >
         <VisuallyHidden>
@@ -324,7 +282,6 @@ export function AttachmentPreview({
           </DialogDescription>
         </VisuallyHidden>
 
-        {/* Unified top toolbar */}
         <div className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-zinc-900/95 px-4 py-2 backdrop-blur">
           <div className="min-w-0 flex-1">
             <p
@@ -402,8 +359,9 @@ export function AttachmentPreview({
             variant="outline"
             size="sm"
             className="h-8 gap-2 border-white/20 bg-white/5 text-white hover:border-white/30 hover:bg-white/15 hover:text-white"
-            onClick={handleDownload}
-            data-testid="attachment-preview-download"
+            onClick={doDownload}
+            disabled={download.isPending}
+            data-testid="file-preview-download"
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">{t('common.download')}</span>
@@ -420,11 +378,7 @@ export function AttachmentPreview({
           </Button>
         </div>
 
-        {/* Body */}
-        <div
-          data-testid={previewBodyTestId}
-          className="relative flex-1 overflow-hidden"
-        >
+        <div className="relative flex-1 overflow-hidden">
           {body}
 
           {hasMultiple && (
@@ -439,7 +393,7 @@ export function AttachmentPreview({
                 )}
                 onClick={() => goTo(-1)}
                 aria-label={t('attachments.preview.previous')}
-                data-testid="attachment-preview-prev"
+                data-testid="file-preview-prev"
               >
                 <ChevronLeft className="h-6 w-6" />
               </Button>
@@ -453,7 +407,7 @@ export function AttachmentPreview({
                 )}
                 onClick={() => goTo(1)}
                 aria-label={t('attachments.preview.next')}
-                data-testid="attachment-preview-next"
+                data-testid="file-preview-next"
               >
                 <ChevronRight className="h-6 w-6" />
               </Button>
@@ -465,25 +419,23 @@ export function AttachmentPreview({
   )
 }
 
-interface TooLargeFallbackProps {
-  fileName: string
-  size?: number
-  mimeType?: string
-  onDownload: () => void
-}
-
 function TooLargeFallback({
   fileName,
   size,
   mimeType,
   onDownload,
-}: TooLargeFallbackProps) {
+}: {
+  fileName: string
+  size?: number
+  mimeType?: string
+  onDownload: () => void
+}) {
   const t = useTranslations()
   const readable = formatBytes(size)
   return (
     <div
       className="flex h-full w-full items-center justify-center p-6"
-      data-testid="attachment-preview-too-large"
+      data-testid="file-preview-too-large"
     >
       <div className="flex max-w-md flex-col items-center gap-3 rounded-lg border border-white/15 bg-white/5 p-8 text-center text-white/90">
         <Download className="h-12 w-12 text-white/70" />

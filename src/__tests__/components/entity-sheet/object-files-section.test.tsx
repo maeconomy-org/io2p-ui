@@ -146,6 +146,60 @@ describe('ObjectFilesSection', () => {
     expect(onRemove).toHaveBeenCalledWith('f1')
   })
 
+  it('opens the preview for a renderable file instead of downloading it', async () => {
+    files.preview.mockResolvedValue({ url: 'https://s3/preview' })
+    renderSection({
+      files: [upload({ fileName: 'photo.png', contentType: 'image/png' })],
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /objects.files.preview/ })
+    )
+
+    await waitFor(() =>
+      expect(screen.getByTestId('file-preview-dialog')).toBeInTheDocument()
+    )
+    expect(files.download).not.toHaveBeenCalled()
+  })
+
+  it('still offers a separate download control for a renderable file', async () => {
+    files.download.mockResolvedValue({ url: 'https://s3/download' })
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {})
+
+    renderSection({
+      files: [upload({ fileName: 'photo.png', contentType: 'image/png' })],
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /common.download/ }))
+    await waitFor(() => expect(files.download).toHaveBeenCalledWith('f1'))
+    clickSpy.mockRestore()
+  })
+
+  it('downloads directly when the file cannot be rendered', async () => {
+    files.download.mockResolvedValue({ url: 'https://s3/download' })
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {})
+
+    renderSection({
+      files: [
+        upload({
+          fileName: 'archive.zip',
+          contentType: 'application/zip',
+        }),
+      ],
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /common.download archive.zip/ })
+    )
+    await waitFor(() => expect(files.download).toHaveBeenCalledWith('f1'))
+    expect(files.preview).not.toHaveBeenCalled()
+    clickSpy.mockRestore()
+  })
+
   it('leaves a pending pick and a non-live upload inert', () => {
     renderSection({
       files: [

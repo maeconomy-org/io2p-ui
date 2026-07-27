@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isAllowedExternalFileReference } from '@/components/attachments/external-file-reference'
+import { isAllowedExternalFileReference } from '@/lib/validations/external-file-reference'
 
 describe('isAllowedExternalFileReference', () => {
   it('accepts a plain https URL on a public host', () => {

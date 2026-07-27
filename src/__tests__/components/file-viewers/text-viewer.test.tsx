@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 
-import { TextViewer } from '@/components/attachments/text-viewer'
+import { TextViewer } from '@/components/file-viewers/text-viewer'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,

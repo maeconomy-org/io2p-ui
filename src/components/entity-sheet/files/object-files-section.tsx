@@ -24,6 +24,7 @@ import {
   isImageFile,
   isResolvableUpload,
 } from './file-helpers'
+import { FilePreview, isPreviewable } from './file-preview'
 
 /**
  * Object-level files, as a standalone section so the same component backs both the Files TAB (edit
@@ -45,6 +46,7 @@ export function ObjectFilesSection({
 }) {
   const t = useTranslations()
   const [view, setView] = usePreference('filesView')
+  const [previewFile, setPreviewFile] = useState<DraftFile | null>(null)
 
   return (
     <div className="space-y-3">
@@ -97,6 +99,7 @@ export function ObjectFilesSection({
               file={f}
               editing={editing}
               onRemove={onRemove}
+              onPreview={setPreviewFile}
             />
           ))}
         </div>
@@ -108,27 +111,49 @@ export function ObjectFilesSection({
               file={f}
               editing={editing}
               onRemove={onRemove}
+              onPreview={setPreviewFile}
             />
           ))}
         </div>
       )}
+
+      <FilePreview
+        file={previewFile}
+        siblings={files.filter(isPreviewable)}
+        open={previewFile !== null}
+        onOpenChange={(next) => {
+          if (!next) setPreviewFile(null)
+        }}
+      />
     </div>
   )
 }
 
 /** Shared per-file plumbing: what it is, whether its bytes are reachable, and how to fetch them. */
-function useFileActions(file: DraftFile) {
+function useFileActions(
+  file: DraftFile,
+  onPreview?: (file: DraftFile) => void
+) {
   const download = useFileDownload()
   const downloadable = isResolvableUpload(file)
-  const prefetch = useSignedUrlPrefetch(file.id, 'download', {
-    enabled: downloadable,
-  })
+  const previewable = isPreviewable(file)
+  // Warm whichever url the primary action will need, so the click doesn't wait on a round trip.
+  const prefetch = useSignedUrlPrefetch(
+    file.id,
+    previewable ? 'preview' : 'download',
+    { enabled: downloadable }
+  )
+  const startDownload = () =>
+    download.mutate({ id: file.id!, fileName: file.fileName })
   return {
     download,
     downloadable,
+    previewable: previewable && !!onPreview,
     prefetch: downloadable ? prefetch : {},
     isRef: file.kind === 'reference',
-    open: () => download.mutate({ id: file.id!, fileName: file.fileName }),
+    startDownload,
+    // Opening a file means seeing it when we can render it, and saving it when we can't.
+    open: () => (previewable && onPreview ? onPreview(file) : startDownload()),
   }
 }
 
@@ -163,14 +188,24 @@ function FileCard({
   file,
   editing,
   onRemove,
+  onPreview,
 }: {
   file: DraftFile
   editing: boolean
   onRemove?: (localId: string) => void
+  onPreview?: (file: DraftFile) => void
 }) {
   const t = useTranslations()
   const [thumbBroken, setThumbBroken] = useState(false)
-  const { download, downloadable, prefetch, isRef, open } = useFileActions(file)
+  const {
+    download,
+    downloadable,
+    previewable,
+    prefetch,
+    isRef,
+    open,
+    startDownload,
+  } = useFileActions(file, onPreview)
   const name = fileDisplayName(file)
   const thumb =
     isImageFile(file) && !thumbBroken ? file.thumbnailUrl : undefined
@@ -210,7 +245,7 @@ function FileCard({
             type="button"
             disabled={download.isPending}
             aria-busy={download.isPending}
-            aria-label={`${t('common.download')} ${name}`}
+            aria-label={`${previewable ? t('objects.files.preview') : t('common.download')} ${name}`}
             onClick={open}
             className="block w-full truncate text-left hover:underline disabled:cursor-progress"
           >
@@ -231,8 +266,19 @@ function FileCard({
           {t('objects.files.external')}
         </Badge>
       )}
-      {downloadable && (
-        <Download className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      {/* Only when the name opens a preview — otherwise the name IS the download, and a second
+          identical control would just be noise for a screen reader to read twice. */}
+      {previewable && (
+        <button
+          type="button"
+          aria-label={`${t('common.download')} ${name}`}
+          title={t('common.download')}
+          onClick={startDownload}
+          disabled={download.isPending}
+          className="shrink-0 rounded-full p-0.5 text-muted-foreground hover:text-foreground"
+        >
+          <Download className="h-3.5 w-3.5" />
+        </button>
       )}
       {editing && onRemove && (
         <RemoveButton
@@ -249,14 +295,17 @@ function FileTile({
   file,
   editing,
   onRemove,
+  onPreview,
 }: {
   file: DraftFile
   editing: boolean
   onRemove?: (localId: string) => void
+  onPreview?: (file: DraftFile) => void
 }) {
   const t = useTranslations()
   const [thumbBroken, setThumbBroken] = useState(false)
-  const { download, downloadable, prefetch, isRef, open } = useFileActions(file)
+  const { download, downloadable, previewable, prefetch, isRef, open } =
+    useFileActions(file, onPreview)
   const name = fileDisplayName(file)
   // Thumbnails are worker-derived after the upload completes, so a just-added image has none yet —
   // the icon placeholder is the normal state for a moment, not an error.
@@ -303,7 +352,7 @@ function FileTile({
           type="button"
           disabled={download.isPending}
           aria-busy={download.isPending}
-          aria-label={`${t('common.download')} ${name}`}
+          aria-label={`${previewable ? t('objects.files.preview') : t('common.download')} ${name}`}
           onClick={open}
           className="block w-full text-left"
         >

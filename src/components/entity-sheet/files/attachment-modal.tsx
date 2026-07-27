@@ -16,7 +16,7 @@ import {
   Input,
 } from '@/components/ui'
 import { useAppConfig } from '@/contexts'
-import { isAllowedExternalFileReference } from '@/components/attachments'
+import { isAllowedExternalFileReference } from '@/lib/validations'
 import { formatBytes } from '@/lib'
 import { MAX_FILES_PER_DROP } from '@/constants/limits'
 import type { DraftFile } from '@/lib/entity-body'

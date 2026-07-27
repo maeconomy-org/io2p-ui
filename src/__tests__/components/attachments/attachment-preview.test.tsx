@@ -37,17 +37,17 @@ vi.mock('@/components/attachments/use-file-preview-url', () => ({
 
 // Replace the lazy-loaded viewers with cheap stubs so we don't need to wait
 // for Next's dynamic() machinery in a jsdom unit test.
-vi.mock('@/components/attachments/pdf-viewer', () => ({
+vi.mock('@/components/file-viewers/pdf-viewer', () => ({
   PdfViewer: ({ title }: { title: string }) => (
     <div data-testid="pdf-viewer">{title}</div>
   ),
 }))
-vi.mock('@/components/attachments/media-viewer', () => ({
+vi.mock('@/components/file-viewers/media-viewer', () => ({
   MediaViewer: ({ kind }: { kind: string }) => (
     <div data-testid={`media-viewer-${kind}`} />
   ),
 }))
-vi.mock('@/components/attachments/text-viewer', () => ({
+vi.mock('@/components/file-viewers/text-viewer', () => ({
   TextViewer: () => <div data-testid="text-viewer" />,
 }))
 
