@@ -25,6 +25,7 @@ import {
   fileDisplayName,
   newReferenceDraft,
   newUploadDraft,
+  splitFileName,
 } from './file-helpers'
 
 // Deferred pick-or-reference. Picks/refs accumulate locally; "Done" hands the batch to `onAdd` (which
@@ -44,6 +45,17 @@ export function AttachmentModal({
   const [url, setUrl] = useState('')
   const [label, setLabel] = useState('')
   const [error, setError] = useState<string | null>(null)
+
+  // Rename before upload. The extension is kept out of the editable text so it can't be dropped or
+  // mangled — the SDK is given an explicit fileName, so nothing has to rebuild the File.
+  const renamePending = (localId: string, stem: string) =>
+    setPending((current) =>
+      current.map((f) => {
+        if (f._localId !== localId) return f
+        const { ext } = splitFileName(f.fileName ?? f.blob?.name ?? '')
+        return { ...f, fileName: `${stem.trim() || 'file'}${ext}` }
+      })
+    )
 
   const reset = () => {
     setPending([])
@@ -167,9 +179,16 @@ export function AttachmentModal({
                   ) : (
                     <Upload className="h-4 w-4 shrink-0 text-muted-foreground" />
                   )}
-                  <span className="min-w-0 flex-1 truncate">
-                    {fileDisplayName(f)}
-                  </span>
+                  {f.kind === 'upload' ? (
+                    <PendingName
+                      name={f.fileName ?? f.blob?.name ?? ''}
+                      onRename={(next) => renamePending(f._localId, next)}
+                    />
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate">
+                      {fileDisplayName(f)}
+                    </span>
+                  )}
                   {f.kind === 'upload' && f.blob && (
                     <span className="shrink-0 text-xs text-muted-foreground">
                       {formatBytes(f.blob.size)}
@@ -204,5 +223,28 @@ export function AttachmentModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** The stem is editable; the extension rides along as a static suffix. */
+function PendingName({
+  name,
+  onRename,
+}: {
+  name: string
+  onRename: (stem: string) => void
+}) {
+  const t = useTranslations()
+  const { stem, ext } = splitFileName(name)
+  return (
+    <span className="flex min-w-0 flex-1 items-center">
+      <Input
+        value={stem}
+        aria-label={t('objects.attachments.rename')}
+        onChange={(e) => onRename(e.target.value)}
+        className="h-7 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-1"
+      />
+      {ext && <span className="shrink-0 text-muted-foreground">{ext}</span>}
+    </span>
   )
 }

@@ -6,6 +6,7 @@ import {
   newReferenceDraft,
   newUploadDraft,
 } from '@/components/entity-sheet/files'
+import { splitFileName } from '@/components/entity-sheet/files/file-helpers'
 import type { DraftFile } from '@/lib/entity-body'
 
 describe('file-helpers', () => {
@@ -71,5 +72,26 @@ describe('file-helpers', () => {
     expect(isImageFile(img)).toBe(true)
     expect(isImageFile(byMime)).toBe(true)
     expect(isImageFile(doc)).toBe(false)
+  })
+})
+
+describe('splitFileName', () => {
+  it('separates the stem from its extension', () => {
+    expect(splitFileName('spec.pdf')).toEqual({ stem: 'spec', ext: '.pdf' })
+  })
+
+  it('splits on the LAST dot so multi-dot names keep their real extension', () => {
+    expect(splitFileName('Screenshot 2026-07-17 at 20.09.18.png')).toEqual({
+      stem: 'Screenshot 2026-07-17 at 20.09.18',
+      ext: '.png',
+    })
+  })
+
+  it('treats a dotfile as all stem — the leading dot is not an extension', () => {
+    expect(splitFileName('.env')).toEqual({ stem: '.env', ext: '' })
+  })
+
+  it('handles a name with no extension', () => {
+    expect(splitFileName('README')).toEqual({ stem: 'README', ext: '' })
   })
 })

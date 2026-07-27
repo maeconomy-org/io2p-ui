@@ -55,3 +55,13 @@ export function isPreviewable(f: DraftFile): boolean {
     detectPreviewKind(detectMimeType(f)) !== 'unsupported'
   )
 }
+
+/**
+ * Split a filename into the editable stem and its extension, so a rename can't accidentally drop or
+ * mangle the suffix. A dotfile (`.env`) or an extensionless name is all stem.
+ */
+export function splitFileName(name: string): { stem: string; ext: string } {
+  const dot = name.lastIndexOf('.')
+  if (dot <= 0) return { stem: name, ext: '' }
+  return { stem: name.slice(0, dot), ext: name.slice(dot) }
+}

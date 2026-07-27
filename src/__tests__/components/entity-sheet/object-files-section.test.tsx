@@ -77,11 +77,16 @@ describe('ObjectFilesSection', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('counts the files it is showing', () => {
-    renderSection({ files: [upload(), upload({ _localId: 'f2', id: 'f2' })] })
-    expect(
-      screen.getByText('objects.files.filesCount:{"count":2}')
-    ).toBeInTheDocument()
+  it('lists every file it is given', () => {
+    renderSection({
+      files: [
+        upload(),
+        upload({ _localId: 'f2', id: 'f2', fileName: 'plan.pdf' }),
+      ],
+    })
+    expect(screen.getByText('objects.filesTitle')).toBeInTheDocument()
+    expect(screen.getByText('spec.pdf')).toBeInTheDocument()
+    expect(screen.getByText('plan.pdf')).toBeInTheDocument()
   })
 
   it('offers the attach control only while editing', () => {

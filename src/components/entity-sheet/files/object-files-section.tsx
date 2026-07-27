@@ -46,6 +46,8 @@ export function ObjectFilesSection({
   onAttach,
   onRemove,
   onChange,
+  allowViewToggle = true,
+  showEmptyState = true,
 }: {
   files: DraftFile[]
   editing: boolean
@@ -53,9 +55,14 @@ export function ObjectFilesSection({
   onAttach?: () => void
   onRemove?: (localId: string) => void
   onChange?: FileChange
+  /** Off while creating: nothing is uploaded yet, so there are no thumbnails for a grid to show. */
+  allowViewToggle?: boolean
+  /** Off while creating: an empty object is the expected state, not something to report. */
+  showEmptyState?: boolean
 }) {
   const t = useTranslations()
-  const [view, setView] = usePreference('filesView')
+  const [storedView, setView] = usePreference('filesView')
+  const view = allowViewToggle ? storedView : 'list'
   const [previewFile, setPreviewFile] = useState<DraftFile | null>(null)
 
   const rowProps = { editing, entityId, onRemove, onChange }
@@ -63,11 +70,9 @@ export function ObjectFilesSection({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-medium">
-          {t('objects.files.filesCount', { count: files.length })}
-        </h3>
+        <h3 className="text-sm font-medium">{t('objects.filesTitle')}</h3>
         <div className="flex items-center gap-2">
-          {files.length > 0 && (
+          {allowViewToggle && files.length > 0 && (
             <ViewToggle
               value={view}
               onChange={setView}
@@ -100,9 +105,11 @@ export function ObjectFilesSection({
       </div>
 
       {files.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {t('objects.files.noFiles')}
-        </p>
+        showEmptyState ? (
+          <p className="text-sm text-muted-foreground">
+            {t('objects.files.noFiles')}
+          </p>
+        ) : null
       ) : view === 'grid' ? (
         <div className="grid grid-cols-3 gap-2">
           {files.map((f) => (

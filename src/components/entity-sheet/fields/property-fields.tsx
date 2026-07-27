@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import {
   ChevronRight,
@@ -42,6 +42,8 @@ interface PropertyFieldsProps {
   /** Value ids whose source is derived on the loaded entity — read-only (editing is phase 2). */
   derivedValueIds: Set<string>
   entityId?: string
+  /** Renders a header row (label + Add) instead of a trailing Add button — used by the create shell. */
+  label?: string
 }
 
 // A new value carries a client `ref` so a sibling formula can bind to it (calc arg -> ref).
@@ -74,6 +76,7 @@ export function PropertyFields({
   editing,
   derivedValueIds,
   entityId,
+  label,
 }: PropertyFieldsProps) {
   const t = useTranslations()
   const { fields, append, remove } = useFieldArray({
@@ -112,8 +115,25 @@ export function PropertyFields({
     )
   }
 
+  const addProperty = () =>
+    // RHF focuses the last registered input of the appended item — the value field — but a new
+    // property wants its NAME first. Suppress that and let the row focus its own name input.
+    append({ key: '', label: '', values: [newValue()] }, { shouldFocus: false })
+  const addButton = (
+    <Button type="button" variant="outline" size="sm" onClick={addProperty}>
+      <Plus className="mr-2 h-4 w-4" />
+      {t('objects.propertyEditor.addProperty')}
+    </Button>
+  )
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      {label && (
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-medium">{label}</h3>
+          {addButton}
+        </div>
+      )}
       {fields.map((field, index) => (
         <PropertyRow
           key={field.id}
@@ -125,15 +145,7 @@ export function PropertyFields({
           onRemove={() => remove(index)}
         />
       ))}
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => append({ key: '', label: '', values: [newValue()] })}
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        {t('objects.propertyEditor.addProperty')}
-      </Button>
+      {!label && addButton}
     </div>
   )
 }
@@ -165,9 +177,13 @@ function PropertyRow({
   const [modalTarget, setModalTarget] = useState<ModalTarget | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   // New properties (no key yet) open expanded to edit; loaded ones start collapsed to stay compact.
-  const [open, setOpen] = useState(
-    () => !form.getValues(`properties.${index}.key`)
-  )
+  const [isNew] = useState(() => !form.getValues(`properties.${index}.key`))
+  const [open, setOpen] = useState(isNew)
+  const nameRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isNew) nameRef.current?.focus()
+  }, [isNew])
 
   const propKey = form.watch(`properties.${index}.key`)
   const propLabel = form.watch(`properties.${index}.label`)
@@ -277,6 +293,7 @@ function PropertyRow({
             {/* One field, attach button inside (same pattern as the value field). */}
             <div className="flex flex-1 items-center rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
               <PropertyNameCombobox
+                ref={nameRef}
                 className="h-8 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 placeholder={t('objects.propertyEditor.namePlaceholder')}
                 value={propKey ?? ''}

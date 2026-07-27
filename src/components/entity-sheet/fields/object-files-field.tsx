@@ -16,10 +16,14 @@ export function ObjectFilesField({
   form,
   editing,
   entityId,
+  allowViewToggle,
+  showEmptyState,
 }: {
   form: UseFormReturn<EntityDraft>
   editing: boolean
   entityId?: string
+  allowViewToggle?: boolean
+  showEmptyState?: boolean
 }) {
   const [modalOpen, setModalOpen] = useState(false)
   const files = form.watch('files') ?? []
@@ -52,6 +56,8 @@ export function ObjectFilesField({
         files={files}
         editing={editing}
         entityId={entityId}
+        allowViewToggle={allowViewToggle}
+        showEmptyState={showEmptyState}
         onAttach={editing ? () => setModalOpen(true) : undefined}
         onRemove={removeFile}
         onChange={patchFile}

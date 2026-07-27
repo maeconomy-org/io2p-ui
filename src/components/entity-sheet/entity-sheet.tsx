@@ -21,6 +21,7 @@ import {
 import { useObjects } from '@/hooks/api/entities'
 
 import { useEntityForm } from './hooks/use-entity-form'
+import { CreateForm } from './create-form'
 import {
   AddressField,
   MetadataFields,
@@ -71,7 +72,9 @@ export function EntitySheet({
   })
 
   const { dirtyFields, isDirty } = form.formState
-  const dirtyCount = Object.keys(dirtyFields).length
+  // RHF mirrors the value shape, so a top-level key count reports twelve edited properties as one
+  // change. Count the leaves instead.
+  const dirtyCount = countDirtyLeaves(dirtyFields)
 
   const derivedValueIds = useMemo(() => {
     const s = new Set<string>()
@@ -132,67 +135,73 @@ export function EntitySheet({
 
         {!loading && (
           <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-            <Tabs
-              defaultValue="properties"
-              className="flex min-h-0 flex-1 flex-col"
-            >
-              <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="properties">
-                    {t('objects.fields.properties')}
-                    <DirtyDot show={!!dirtyFields.properties} />
-                  </TabsTrigger>
-                  <TabsTrigger value="files">
-                    {t('objects.filesTitle')}
-                    <DirtyDot show={!!dirtyFields.files} />
-                  </TabsTrigger>
-                  <TabsTrigger value="details">
-                    {t('objects.detailsSheet.tabDetails')}
-                    <DirtyDot
-                      show={
-                        !!(
-                          dirtyFields.name ||
-                          dirtyFields.description ||
-                          dirtyFields.address
-                        )
-                      }
-                    />
-                  </TabsTrigger>
-                  <TabsTrigger value="parents">
-                    {t('objects.detailsSheet.tabParents')}
-                    <DirtyDot show={!!dirtyFields.parentIds} />
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
+            {isCreate ? (
               <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                <TabsContent value="properties" className="mt-0">
-                  <PropertyFields
-                    form={form}
-                    editing={editing}
-                    derivedValueIds={derivedValueIds}
-                  />
-                </TabsContent>
-                <TabsContent value="files" className="mt-0">
-                  <ObjectFilesField
-                    form={form}
-                    editing={editing}
-                    entityId={entity?.id}
-                  />
-                </TabsContent>
-                <TabsContent value="details" className="mt-0 space-y-6">
-                  <MetadataFields form={form} editing={editing} />
-                  <AddressField form={form} editing={editing} />
-                </TabsContent>
-                <TabsContent value="parents" className="mt-0">
-                  <ParentsField
-                    form={form}
-                    editing={editing}
-                    parentNames={parentNames}
-                  />
-                </TabsContent>
+                <CreateForm form={form} parentNames={parentNames} />
               </div>
-            </Tabs>
+            ) : (
+              <Tabs
+                defaultValue="properties"
+                className="flex min-h-0 flex-1 flex-col"
+              >
+                <div className="px-6 pt-4">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="properties">
+                      {t('objects.fields.properties')}
+                      <DirtyDot show={!!dirtyFields.properties} />
+                    </TabsTrigger>
+                    <TabsTrigger value="files">
+                      {t('objects.filesTitle')}
+                      <DirtyDot show={!!dirtyFields.files} />
+                    </TabsTrigger>
+                    <TabsTrigger value="details">
+                      {t('objects.detailsSheet.tabDetails')}
+                      <DirtyDot
+                        show={
+                          !!(
+                            dirtyFields.name ||
+                            dirtyFields.description ||
+                            dirtyFields.address
+                          )
+                        }
+                      />
+                    </TabsTrigger>
+                    <TabsTrigger value="parents">
+                      {t('objects.detailsSheet.tabParents')}
+                      <DirtyDot show={!!dirtyFields.parentIds} />
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                  <TabsContent value="properties" className="mt-0">
+                    <PropertyFields
+                      form={form}
+                      editing={editing}
+                      derivedValueIds={derivedValueIds}
+                    />
+                  </TabsContent>
+                  <TabsContent value="files" className="mt-0">
+                    <ObjectFilesField
+                      form={form}
+                      editing={editing}
+                      entityId={entity?.id}
+                    />
+                  </TabsContent>
+                  <TabsContent value="details" className="mt-0 space-y-6">
+                    <MetadataFields form={form} editing={editing} />
+                    <AddressField form={form} editing={editing} />
+                  </TabsContent>
+                  <TabsContent value="parents" className="mt-0">
+                    <ParentsField
+                      form={form}
+                      editing={editing}
+                      parentNames={parentNames}
+                    />
+                  </TabsContent>
+                </div>
+              </Tabs>
+            )}
 
             {isDirty && (
               <div className="flex items-center gap-2 border-t bg-muted/40 px-6 py-2 text-sm">
@@ -242,4 +251,23 @@ export function EntitySheet({
       </SheetContent>
     </Sheet>
   )
+}
+
+/**
+ * How many individual fields the user has actually changed. `dirtyFields` mirrors the value shape,
+ * so arrays and objects nest — counting its top-level keys would call twelve edited properties
+ * "1 unsaved change".
+ */
+export function countDirtyLeaves(node: unknown): number {
+  if (node === true) return 1
+  if (Array.isArray(node)) {
+    return node.reduce<number>((n, child) => n + countDirtyLeaves(child), 0)
+  }
+  if (node && typeof node === 'object') {
+    return Object.values(node).reduce<number>(
+      (n, child) => n + countDirtyLeaves(child),
+      0
+    )
+  }
+  return 0
 }

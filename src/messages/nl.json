@@ -951,6 +951,17 @@
       "conflict": "Dit object is elders gewijzigd sinds u het opende. Kopieer uw wijzigingen, open het object opnieuw en pas ze opnieuw toe.",
       "invalid": "Opslaan mislukt — {detail}",
       "notFound": "Dit object bestaat niet meer."
+    },
+    "templateSelector": {
+      "label": "Beginnen met een sjabloon",
+      "placeholder": "Selecteer een sjabloon",
+      "search": "Sjablonen zoeken...",
+      "noResults": "Geen sjablonen gevonden",
+      "propertyCount": "{count} eigenschappen"
+    },
+    "parentPicker": {
+      "search": "Zoek bovenliggende objecten...",
+      "noResults": "Geen objecten gevonden"
     }
   },
   "processes": {

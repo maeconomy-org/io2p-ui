@@ -359,6 +359,46 @@ describe('useEntityForm', () => {
     expect(result.current.isSubmitting).toBe(false)
   })
 
+  it('uploads under the renamed filename, not the original File name', async () => {
+    objects.create.mockResolvedValue(committed)
+    files.upload.mockResolvedValue({ file: { id: 'file-1' } })
+    const { result } = renderHook(() => useEntityForm(null), {
+      wrapper: makeWrapper(),
+    })
+
+    act(() => {
+      result.current.form.setValue('name', 'With File')
+      result.current.form.setValue('properties', [
+        {
+          key: 'spec',
+          values: [
+            {
+              data: 'v',
+              files: [
+                {
+                  _localId: 'l1',
+                  kind: 'upload' as const,
+                  blob: new File(['x'], 'IMG_4821.pdf'),
+                  fileName: 'Floor plan.pdf',
+                  contentType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        },
+      ])
+    })
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    // A raw File would upload as IMG_4821.pdf — the SDK reads File.name unless given a descriptor.
+    expect(files.upload.mock.calls[0][0]).toMatchObject({
+      fileName: 'Floor plan.pdf',
+      contentType: 'application/pdf',
+    })
+  })
+
   it('reloads the form when a different entity arrives', async () => {
     const { result, rerender } = renderHook(
       ({ e }: { e: ObjectDTO }) => useEntityForm(e),

@@ -951,6 +951,17 @@
       "conflict": "This object changed elsewhere since you opened it. Copy your changes, reopen the object, and apply them again.",
       "invalid": "Could not save — {detail}",
       "notFound": "This object no longer exists."
+    },
+    "templateSelector": {
+      "label": "Start from a template",
+      "placeholder": "Select a template",
+      "search": "Search templates...",
+      "noResults": "No templates found",
+      "propertyCount": "{count} properties"
+    },
+    "parentPicker": {
+      "search": "Search for parent objects...",
+      "noResults": "No objects found"
     }
   },
   "processes": {

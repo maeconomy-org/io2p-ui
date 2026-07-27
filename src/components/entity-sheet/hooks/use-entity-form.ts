@@ -86,7 +86,18 @@ export function useEntityForm(
     if (uploads.length === 0) return
     try {
       await Promise.all(
-        uploads.map((u) => client.files.upload(u.file.blob!, u.target))
+        uploads.map((u) =>
+          // Pass an explicit descriptor rather than the raw File: the SDK would otherwise read
+          // `File.name`, losing a rename. Renaming by rebuilding the File would copy the bytes.
+          client.files.upload(
+            {
+              data: u.file.blob!,
+              fileName: u.file.fileName ?? u.file.blob!.name,
+              contentType: u.file.contentType || u.file.blob!.type || undefined,
+            },
+            u.target
+          )
+        )
       )
     } catch (err) {
       // Log the readable message — an Error serializes to `{}` when wrapped in an object.
