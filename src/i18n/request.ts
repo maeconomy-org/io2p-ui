@@ -1,7 +1,7 @@
 import { cookies, headers } from 'next/headers'
 import { getRequestConfig } from 'next-intl/server'
 
-import { routing } from './routing'
+import { DEFAULT_TIME_ZONE, routing } from './routing'
 
 type Locale = (typeof routing.locales)[number]
 
@@ -34,5 +34,12 @@ export default getRequestConfig(async () => {
   return {
     locale,
     messages: (await import(`../messages/${locale}.json`)).default,
+    /**
+     * The server has no way to know the reader's zone, so without a default it falls back to the
+     * machine's — which differs between the server render and the browser, producing a hydration
+     * mismatch on any formatted date. UTC is the honest choice for timestamps the server minted;
+     * it's the same instant everywhere, and it renders identically on both sides.
+     */
+    timeZone: DEFAULT_TIME_ZONE,
   }
 })

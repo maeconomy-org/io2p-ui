@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import type { ObjectDTO } from 'io2p-client'
 
 import { useObjects } from '@/hooks/api/entities'
+import { useOptionalUploadQueue } from '@/contexts/upload-queue-context'
 import { useIomClient } from '@/lib/io2p'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
 import { queryKeys } from '@/lib/query-keys'
@@ -59,6 +60,8 @@ export function useEntityForm(
   const t = useTranslations()
   const client = useIomClient()
   const qc = useQueryClient()
+  // Optional so the hook still renders outside the provider (tests, isolated usage).
+  const uploadQueue = useOptionalUploadQueue()
 
   const initial: EntityDraft = entity
     ? dtoToDraft(entity)
@@ -80,63 +83,34 @@ export function useEntityForm(
     )
   }, [loadedKey])
 
-  // Attach pending picks against the committed object (upload → target). Best-effort: the entity is
-  // already saved, so a failure toasts but doesn't roll back.
-  const attachUploads = async (committed: ObjectDTO, draft: EntityDraft) => {
+  /**
+   * Hand pending picks to the background queue, targeted against the committed object.
+   *
+   * Enqueued, NOT awaited: bytes can take minutes and the user shouldn't be held in a modal for
+   * them. Save means "the object is stored"; the files follow, visible in the upload center, and
+   * each one refetches the entity as it lands. That does mean Save can succeed while an upload
+   * later fails — which is why the queue surfaces per-file status and retry rather than a toast
+   * that vanishes.
+   */
+  const attachUploads = (committed: ObjectDTO, draft: EntityDraft) => {
     const uploads = resolveUploadTargets(committed, draft)
     if (uploads.length === 0) return
-    try {
-      // One call, per-file targets. `uploadAll` uploads the bytes in parallel and gates the
-      // `complete` calls per TARGET ENTITY — those writes are version-serialized server-side, so
-      // fanning them out at one object only fights over its version. No grouping needed here: a
-      // save spreads files across the entity, its properties and its values, but that's one
-      // contention unit, and the SDK keys the gate on `target.entityId`.
-      const settled = await client.files.uploadAll(
-        uploads.map((u) => ({
-          // An explicit descriptor rather than the raw File: the SDK would otherwise read
-          // `File.name`, losing a rename. Renaming by rebuilding the File would copy the bytes.
-          file: {
-            data: u.file.blob!,
-            fileName: u.file.fileName ?? u.file.blob!.name,
-            contentType: u.file.contentType || u.file.blob!.type || undefined,
-          },
-          target: u.target,
-        }))
-      )
-
-      // Settled per file, so a partial failure keeps the successes — reporting "nothing uploaded"
-      // when four of five landed would be a lie, and would invite a retry that duplicates them.
-      const failed = settled.filter((r) => r.status === 'rejected')
-      if (failed.length > 0) {
-        logger.error('Some files failed to attach after save', {
-          failed: failed.length,
-          total: settled.length,
-          error: failed
-            .map((r) =>
-              r.status === 'rejected'
-                ? r.reason instanceof Error
-                  ? r.reason.message
-                  : String(r.reason)
-                : ''
-            )
-            .join('; '),
-        })
-        toast.error(
-          t('objects.files.uploadPartial', {
-            failed: failed.length,
-            total: settled.length,
-          })
-        )
-      }
-    } catch (err) {
-      // Log the readable message — an Error serializes to `{}` when wrapped in an object.
-      logger.error('File upload failed after save', {
-        error: err instanceof Error ? err.message : String(err),
-      })
-      toast.error(t('objects.files.uploadFailed'))
-    } finally {
-      qc.invalidateQueries({ queryKey: queryKeys.objects.detail(committed.id) })
-    }
+    uploadQueue?.enqueue(
+      uploads.map((u) => ({
+        id: crypto.randomUUID(),
+        fileName: u.file.fileName ?? u.file.blob!.name,
+        size: u.file.blob!.size,
+        contentType: u.file.contentType || u.file.blob!.type || undefined,
+        // An explicit descriptor rather than the raw File: the SDK would otherwise read
+        // `File.name`, losing a rename. Renaming by rebuilding the File would copy the bytes.
+        file: {
+          data: u.file.blob!,
+          fileName: u.file.fileName ?? u.file.blob!.name,
+          contentType: u.file.contentType || u.file.blob!.type || undefined,
+        },
+        target: u.target,
+      }))
+    )
   }
 
   const submit = form.handleSubmit(async (draft) => {
@@ -191,7 +165,7 @@ export function useEntityForm(
       return
     }
 
-    await attachUploads(committed, draft)
+    attachUploads(committed, draft)
     // Clear the dirty baseline so the tab dot / unsaved bar reset immediately. A body change bumps the
     // version → the load effect re-syncs to the server truth (file ids/thumbnails); a file-only save
     // (no version bump) has no reload, so this reset is what clears the dot.

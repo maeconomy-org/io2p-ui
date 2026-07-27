@@ -24,7 +24,7 @@ const mockUpload = {
 }
 let uploadReturnValue: typeof mockUpload | null = mockUpload
 
-vi.mock('@/contexts', () => ({
+vi.mock('@/contexts/upload-queue-context', () => ({
   useOptionalUploadQueue: () => uploadReturnValue,
 }))
 

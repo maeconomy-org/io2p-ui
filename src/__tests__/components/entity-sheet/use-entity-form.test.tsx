@@ -29,6 +29,11 @@ vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({ objects, files }),
 }))
 
+const enqueue = vi.fn()
+vi.mock('@/contexts/upload-queue-context', () => ({
+  useOptionalUploadQueue: () => ({ enqueue }),
+}))
+
 // A committed object (create/get response) with the property + value ids uploads resolve against.
 const committed = {
   id: 'new-3',
@@ -83,6 +88,28 @@ function entity(over: Partial<ObjectDTO> = {}): ObjectDTO {
 
 describe('useEntityForm', () => {
   beforeEach(() => vi.clearAllMocks())
+
+  // Uploads are handed to the background queue, so Save no longer waits on bytes — the queue owns
+  // per-file progress, failure and retry from here.
+  it('does not block the save on the upload finishing', async () => {
+    objects.create.mockResolvedValue(committed)
+    const onSaved = vi.fn()
+    const { result } = renderHook(() => useEntityForm(null, { onSaved }), {
+      wrapper: makeWrapper(),
+    })
+
+    act(() => {
+      result.current.form.setValue('name', 'With File')
+      result.current.form.setValue('properties', draftWithUpload())
+    })
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(files.uploadAll).not.toHaveBeenCalled()
+    expect(onSaved).toHaveBeenCalledWith('new-3')
+  })
 
   it('create: submits buildCreateObjectInput and reports the new id', async () => {
     objects.create.mockResolvedValue({ id: 'new-1', operationId: 'op' })
@@ -146,40 +173,13 @@ describe('useEntityForm', () => {
     )
     // The upload attaches AFTER the save, targeting the committed value. uploadAll (not
     // Promise.all(map(upload))) so the per-entity `complete` calls don't fight over the version.
-    expect(files.uploadAll).toHaveBeenCalledTimes(1)
     // One call, per-item targets — the SDK gates completes per entityId, so no grouping here.
-    expect(files.uploadAll.mock.calls[0][0][0].target).toEqual({
+    expect(enqueue.mock.calls[0][0][0].target).toEqual({
       entityId: 'new-3',
       propertyId: 'cp1',
       valueId: 'cv1',
     })
     expect(onSaved).toHaveBeenCalledWith('new-3')
-  })
-
-  it('a failed upload toasts but does NOT roll back the saved entity', async () => {
-    objects.create.mockResolvedValue(committed)
-    files.uploadAll.mockResolvedValue([
-      { status: 'rejected', reason: new Error('boom') },
-    ])
-    const onSaved = vi.fn()
-    const { result } = renderHook(() => useEntityForm(null, { onSaved }), {
-      wrapper: makeWrapper(),
-    })
-
-    act(() => {
-      result.current.form.setValue('name', 'With File')
-      result.current.form.setValue('properties', draftWithUpload())
-    })
-    await act(async () => {
-      await result.current.submit()
-    })
-
-    expect(objects.create).toHaveBeenCalledTimes(1) // entity was saved
-    // Reported per file: claiming nothing uploaded would be a lie when some landed.
-    expect(toastError).toHaveBeenCalledWith(
-      'objects.files.uploadPartial:{"failed":1,"total":1}'
-    )
-    expect(onSaved).toHaveBeenCalledWith('new-3') // save still reported
   })
 
   it('edit with no changes: no update call (empty diff), still reports saved', async () => {
@@ -248,7 +248,7 @@ describe('useEntityForm', () => {
     expect(onSaved).not.toHaveBeenCalled()
     expect(result.current.form.formState.isDirty).toBe(true)
     expect(result.current.form.getValues('name')).toBe('Wall B')
-    expect(files.uploadAll).not.toHaveBeenCalled()
+    expect(enqueue).not.toHaveBeenCalled()
   })
 
   it('surfaces the server detail when a save is rejected as invalid', async () => {
@@ -334,40 +334,6 @@ describe('useEntityForm', () => {
     expect(onSaved).not.toHaveBeenCalled()
   })
 
-  it('stays submitting while the post-save upload is still in flight', async () => {
-    objects.create.mockResolvedValue(committed)
-    let release: () => void = () => {}
-    files.uploadAll.mockImplementation(
-      () =>
-        new Promise<unknown[]>((resolve) => {
-          release = () => resolve([{ status: 'fulfilled', value: {} }])
-        })
-    )
-    const { result } = renderHook(() => useEntityForm(null), {
-      wrapper: makeWrapper(),
-    })
-
-    act(() => {
-      result.current.form.setValue('name', 'With File')
-      result.current.form.setValue('properties', draftWithUpload())
-    })
-
-    let submitted: Promise<void> = Promise.resolve()
-    act(() => {
-      submitted = result.current.submit()
-    })
-
-    // The entity write has resolved but the bytes have not — Save must still read as busy.
-    await waitFor(() => expect(files.uploadAll).toHaveBeenCalled())
-    expect(result.current.isSubmitting).toBe(true)
-
-    await act(async () => {
-      release()
-      await submitted
-    })
-    expect(result.current.isSubmitting).toBe(false)
-  })
-
   it('uploads under the renamed filename, not the original File name', async () => {
     objects.create.mockResolvedValue(committed)
     files.uploadAll.mockResolvedValue([
@@ -404,7 +370,7 @@ describe('useEntityForm', () => {
     })
 
     // A raw File would upload as IMG_4821.pdf — the SDK reads File.name unless given a descriptor.
-    expect(files.uploadAll.mock.calls[0][0][0].file).toMatchObject({
+    expect(enqueue.mock.calls[0][0][0].file).toMatchObject({
       fileName: 'Floor plan.pdf',
       contentType: 'application/pdf',
     })

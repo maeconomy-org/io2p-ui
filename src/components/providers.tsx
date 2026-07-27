@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { NextIntlClientProvider } from 'next-intl'
 
+import { DEFAULT_TIME_ZONE } from '@/i18n/routing'
+
 import { Toaster } from '@/components/ui/sonner'
 import {
   QueryProvider,
@@ -12,6 +14,7 @@ import {
   UploadProvider,
 } from '@/contexts'
 import { UploadCenter } from '@/components/upload-center'
+import { UploadQueueProvider } from '@/contexts/upload-queue-context'
 
 interface ProvidersProps {
   children: ReactNode
@@ -40,7 +43,11 @@ export function Providers({ children, messages, locale }: ProvidersProps) {
       enableSystem
       disableTransitionOnChange
     >
-      <NextIntlClientProvider locale={locale} messages={messages}>
+      <NextIntlClientProvider
+        locale={locale}
+        messages={messages}
+        timeZone={DEFAULT_TIME_ZONE}
+      >
         <QueryProvider>
           <InnerProviders>{children}</InnerProviders>
         </QueryProvider>
@@ -59,8 +66,10 @@ function InnerProviders({ children }: { children: ReactNode }) {
     <>
       <AuthEffects />
       <UploadProvider>
-        <SearchProvider>{children}</SearchProvider>
-        <UploadCenter />
+        <UploadQueueProvider>
+          <SearchProvider>{children}</SearchProvider>
+          <UploadCenter />
+        </UploadQueueProvider>
       </UploadProvider>
     </>
   )

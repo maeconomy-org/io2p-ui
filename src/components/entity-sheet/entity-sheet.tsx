@@ -249,7 +249,10 @@ export function EntitySheet({
                       />
                     </TabsContent>
                     <TabsContent value="details" className="mt-0 space-y-4">
+                      {/* Identity first — what this object IS, before what it says about itself. */}
+                      {entity && <EntityFacts entity={entity} />}
                       <MetadataFields form={form} editing={editing} />
+                      <AddressField form={form} editing={editing} />
                       <div className="space-y-1.5">
                         <Label>{t('objects.detailsSheet.tabParents')}</Label>
                         <ParentsField
@@ -259,8 +262,6 @@ export function EntitySheet({
                           selfId={entity?.id}
                         />
                       </div>
-                      <AddressField form={form} editing={editing} />
-                      {entity && <EntityFacts entity={entity} />}
                     </TabsContent>
                   </div>
                 </Tabs>
