@@ -18,7 +18,7 @@ import {
 } from './fields'
 
 // A brand-new object has no derived values — nothing has been computed server-side yet.
-const EMPTY_DERIVED_IDS = new Set<string>()
+const NO_DERIVED_VALUES = new Map<string, never>()
 
 /**
  * The CREATE shell: one scrolling column, in the order the work actually happens.
@@ -95,7 +95,7 @@ export function CreateForm({
       <PropertyFields
         form={form}
         editing
-        derivedValueIds={EMPTY_DERIVED_IDS}
+        derivedValues={NO_DERIVED_VALUES}
         label={t('objects.fields.properties')}
       />
     </div>

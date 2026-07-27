@@ -208,7 +208,9 @@
     "error": "Er is iets misgegaan",
     "sessionExpired": "Uw sessie is verlopen. Meld u opnieuw aan om op te slaan.",
     "copy": "Kopiëren",
-    "restore": "Herstellen"
+    "restore": "Herstellen",
+    "showMore": "Meer tonen",
+    "showLess": "Minder tonen"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -582,7 +584,10 @@
       "expressionPlaceholder": "bijv. b * h",
       "bindVariables": "Variabelen koppelen",
       "selectValue": "Kies een waarde",
-      "result": "Resultaat"
+      "result": "Resultaat",
+      "editFormula": "Formule bewerken",
+      "inlineExpression": "Deze waarde gebruikt een eenmalige expressie die alleen via de API kan worden gewijzigd",
+      "unknownConstant": "Een constante die deze formule gebruikt kon niet worden gevonden"
     },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",
@@ -918,7 +923,14 @@
       "formulaPreview": "Live voorbeeld",
       "formulaResolved": "Opgelost",
       "formulaResult": "Resultaat",
-      "formulaMapAllVariables": "Wijs alle variabelen toe om het resultaat te zien"
+      "formulaMapAllVariables": "Wijs alle variabelen toe om het resultaat te zien",
+      "formulaError": "Kon niet worden berekend",
+      "showFormula": "Formuledetails tonen",
+      "hideFormula": "Formuledetails verbergen",
+      "unknownUnit": "Onbekende eenheid",
+      "noNumber": "Geen getal gevonden",
+      "canonicalValue": "Canonieke waarde",
+      "excludedFromFormulas": "uitgesloten van de formules die deze gebruiken"
     },
     "duplicate": {
       "title": "Objecten kopiëren",

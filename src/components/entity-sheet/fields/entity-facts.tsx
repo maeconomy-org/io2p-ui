@@ -1,91 +1,87 @@
 'use client'
 
-import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { Check, Copy } from 'lucide-react'
 import type { ObjectDTO } from 'io2p-client'
 
-import { Button } from '@/components/ui'
-import { logger } from '@/lib'
+import { Badge, CopyButton } from '@/components/ui'
+import { useUserDirectory } from '@/hooks/api/users'
 
 /**
- * Server-owned facts about a saved entity: its id and timestamps. Read-only by definition — nothing
- * here is authored, so it sits apart from the editable fields rather than among them.
+ * Server-owned facts about a saved entity: identity, authorship, and lifecycle. Read-only by
+ * definition — nothing here is authored, so it sits apart from the editable fields rather than
+ * among them.
  */
 export function EntityFacts({ entity }: { entity: ObjectDTO }) {
   const t = useTranslations()
   const format = useFormatter()
+  // Only fetch the directory when there is actually an id to put a name to.
+  const { nameOf } = useUserDirectory({
+    enabled: !!(entity.createdBy || entity.deletedBy),
+  })
 
-  const stamps: [string, number | undefined][] = [
-    [t('objects.fields.created'), entity.createdAt],
-    [t('objects.fields.updated'), entity.updatedAt],
-  ]
+  const at = (epochMs: number) =>
+    format.dateTime(new Date(epochMs), {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    })
 
   return (
     <dl className="space-y-3 rounded-md border bg-muted/20 p-3">
-      <div className="space-y-1">
-        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {t('objects.fields.uuid')}
-        </dt>
-        <dd className="flex items-center gap-1">
+      <Fact label={t('objects.fields.uuid')}>
+        <span className="flex items-center gap-1">
           <code className="min-w-0 flex-1 truncate font-mono text-xs">
             {entity.id}
           </code>
-          <CopyButton value={entity.id} />
-        </dd>
-      </div>
+          <CopyButton
+            text={entity.id}
+            label={t('objects.fields.uuid')}
+            className="shrink-0"
+          />
+        </span>
+      </Fact>
 
-      {stamps.map(([label, at]) =>
-        at ? (
-          <div key={label} className="space-y-1">
-            <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {label}
-            </dt>
-            <dd className="text-sm">
-              {format.dateTime(new Date(at), {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              })}
-            </dd>
-          </div>
-        ) : null
+      {/* The write counter, not an authored label — it's also the if-match token every save uses,
+          so a jump means someone else wrote in between. */}
+      <Fact label={t('objects.fields.version')}>{entity.currentVersion}</Fact>
+
+      <Fact label={t('objects.fields.created')}>
+        {at(entity.createdAt)}
+        {entity.createdBy && (
+          <span className="text-muted-foreground">
+            {' · '}
+            {nameOf(entity.createdBy)}
+          </span>
+        )}
+      </Fact>
+
+      <Fact label={t('objects.fields.updated')}>{at(entity.updatedAt)}</Fact>
+
+      {entity.deleted && (
+        <Fact label={t('common.deleted')}>
+          <span className="flex flex-wrap items-center gap-1.5 text-destructive">
+            <Badge
+              variant="outline"
+              className="border-destructive text-[10px] text-destructive"
+            >
+              {t('common.deleted')}
+            </Badge>
+            {entity.deletedAt && at(entity.deletedAt)}
+            {entity.deletedBy && `· ${nameOf(entity.deletedBy)}`}
+          </span>
+        </Fact>
       )}
     </dl>
   )
 }
 
-function CopyButton({ value }: { value: string }) {
-  const t = useTranslations()
-  const [copied, setCopied] = useState(false)
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch (error) {
-      // Clipboard access can be denied (insecure context, permissions) — the id is still selectable.
-      logger.error('Copy to clipboard failed', {
-        error: error instanceof Error ? error.message : String(error),
-      })
-    }
-  }
-
+function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className="h-6 w-6 shrink-0"
-      aria-label={t('common.copy')}
-      title={t('common.copy')}
-      onClick={copy}
-    >
-      {copied ? (
-        <Check className="h-3.5 w-3.5 text-primary" />
-      ) : (
-        <Copy className="h-3.5 w-3.5" />
-      )}
-    </Button>
+    <div className="space-y-1">
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="text-sm">{children}</dd>
+    </div>
   )
 }

@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui'
 import { cn } from '@/lib'
+import type { ValueProvenance } from '@/lib/entity-body'
 import { useFormulas } from '@/hooks/api/leaves'
 import { safeEvaluate } from '@/components/properties/utils/formula-evaluation'
 
@@ -22,6 +23,41 @@ export interface FormulaSibling {
   key: string
   label: string
   num: number
+}
+
+export type CalcHydration =
+  | { ok: true; calc: CalcInput }
+  | { ok: false; reason: 'inlineExpression' | 'unknownConstant' }
+
+/**
+ * Turn a read-only evaluation trace back into an EDITABLE recipe, so a derived value's formula and
+ * bindings can be changed instead of being frozen at whatever it was first saved as.
+ *
+ * The two sides are not symmetric: a trace names its inputs by resolved id, an editable `calc` binds
+ * by `ref` (a value id — the node seeds every existing id as its own ref) or by constant NAME, which
+ * the trace does not carry. Rather than drop a binding it can't express — the node would then 422 on
+ * the missing variable, or worse, silently rebind — this reports WHY it can't and the caller keeps
+ * the value read-only.
+ */
+export function calcFromProvenance(
+  provenance: ValueProvenance,
+  constantNames: ReadonlyMap<string, string>
+): CalcHydration {
+  // An inline ad-hoc expression has no formula to select, and this editor picks formulas rather
+  // than typing them — offering it would show an empty picker and lose the expression on save.
+  if (!provenance.formulaId) return { ok: false, reason: 'inlineExpression' }
+
+  const args: CalcInput['args'] = []
+  for (const arg of provenance.args) {
+    if (arg.source.kind === 'property') {
+      args.push({ var: arg.var, ref: arg.source.valueId })
+      continue
+    }
+    const name = constantNames.get(arg.source.constantId)
+    if (!name) return { ok: false, reason: 'unknownConstant' }
+    args.push({ var: arg.var, constant: name })
+  }
+  return { ok: true, calc: { formulaId: provenance.formulaId, args } }
 }
 
 // The formula chooser — sits inline in the value row (replaces the text input in formula mode).
@@ -70,8 +106,8 @@ export function FormulaBindings({
   const t = useTranslations()
   const { data: formula } = useFormulas().useGet(calc.formulaId)
 
-  const bindingFor = (variable: string) =>
-    calc.args.find((a) => a.var === variable)?.ref ?? ''
+  const argFor = (variable: string) => calc.args.find((a) => a.var === variable)
+  const bindingFor = (variable: string) => argFor(variable)?.ref ?? ''
 
   const bindVariable = (variable: string, siblingKey: string) => {
     const others = calc.args.filter((a) => a.var !== variable)
@@ -117,31 +153,49 @@ export function FormulaBindings({
               <code className="w-16 shrink-0 text-sm font-medium">
                 {variable}
               </code>
-              <Select
-                value={bindingFor(variable)}
-                onValueChange={(val) => bindVariable(variable, val)}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue
-                    placeholder={t('objects.formulaEditor.selectValue')}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {siblings.length === 0 && (
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                      {t('objects.formulaEditor.noNumericValues')}
-                    </div>
-                  )}
-                  {siblings.map((s) => (
-                    <SelectItem key={s.key} value={s.key}>
-                      {s.label}
-                      <span className="ml-1 text-muted-foreground">
-                        ({s.num})
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* A constant binding has no `ref`, so the sibling picker would render it as EMPTY —
+                  reading as unbound when it is in fact bound. Show what it is instead; rebinding it
+                  to a sibling means clearing it first, which is an explicit choice. */}
+              {argFor(variable)?.constant ? (
+                <div className="flex h-8 flex-1 items-center gap-2 rounded-md border bg-background px-3 text-sm">
+                  <span className="min-w-0 flex-1 truncate">
+                    {argFor(variable)?.constant}
+                  </span>
+                  <button
+                    type="button"
+                    className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
+                    onClick={() => bindVariable(variable, '')}
+                  >
+                    {t('common.clear')}
+                  </button>
+                </div>
+              ) : (
+                <Select
+                  value={bindingFor(variable)}
+                  onValueChange={(val) => bindVariable(variable, val)}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue
+                      placeholder={t('objects.formulaEditor.selectValue')}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {siblings.length === 0 && (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        {t('objects.formulaEditor.noNumericValues')}
+                      </div>
+                    )}
+                    {siblings.map((s) => (
+                      <SelectItem key={s.key} value={s.key}>
+                        {s.label}
+                        <span className="ml-1 text-muted-foreground">
+                          ({s.num})
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           ))}
         </>

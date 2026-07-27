@@ -24,6 +24,7 @@ import {
 } from '@/components/ui'
 import { useObjects } from '@/hooks/api/entities'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
+import type { ValueProvenance } from '@/lib/entity-body'
 import { logger } from '@/lib'
 
 import { useEntityForm } from './hooks/use-entity-form'
@@ -118,14 +119,16 @@ export function EntitySheet({
   // change. Count the leaves instead.
   const dirtyCount = countDirtyLeaves(dirtyFields)
 
-  const derivedValueIds = useMemo(() => {
-    const s = new Set<string>()
+  // Keyed by value id: presence means the value is derived, the payload is the node's evaluation
+  // trace. A derived value always has a source; `provenance` is what it was computed FROM.
+  const derivedValues = useMemo(() => {
+    const m = new Map<string, ValueProvenance | undefined>()
     entity?.properties?.forEach((p) =>
       p.values.forEach((v) => {
-        if (v.source === 'derived') s.add(v.id)
+        if (v.source === 'derived') m.set(v.id, v.provenance)
       })
     )
-    return s
+    return m
   }, [entity])
 
   const parentNames = useMemo(() => {
@@ -244,7 +247,7 @@ export function EntitySheet({
                       <PropertyFields
                         form={form}
                         editing={editing}
-                        derivedValueIds={derivedValueIds}
+                        derivedValues={derivedValues}
                       />
                     </TabsContent>
                     <TabsContent value="files" className="mt-0">

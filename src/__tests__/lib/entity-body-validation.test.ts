@@ -155,14 +155,64 @@ describe('soft-deleted sub-items from an includeDeleted read', () => {
     ],
   } as unknown as ObjectDTO
 
-  it('keeps deleted properties and values out of the draft', () => {
+  // Nothing is hidden: a deleted property/value arrives MARKED so it can render struck-through with
+  // a Restore action. Dropping it would make restore impossible and the deletion look permanent.
+  it('carries deleted properties and values into the draft, marked', () => {
     const draft = dtoToDraft(withDeleted)
-    expect(draft.properties.map((p) => p.key)).toEqual(['height', 'width'])
-    expect(draft.properties[1].values.map((v) => v.id)).toEqual(['v2'])
+
+    expect(draft.properties.map((p) => p.key)).toEqual([
+      'height',
+      'gone',
+      'width',
+    ])
+    expect(draft.properties[1].deleted).toBe(true)
+    expect(draft.properties[2].values.map((v) => v.deleted)).toEqual([
+      undefined,
+      true,
+    ])
   })
 
   it('does not re-remove them on an otherwise untouched save', () => {
     const body = buildUpdateObjectBody(withDeleted, dtoToDraft(withDeleted))
+    expect(body.properties).toBeUndefined()
+  })
+
+  it('removes a property the draft newly marked deleted', () => {
+    const draft = dtoToDraft(withDeleted)
+    draft.properties[0].deleted = true
+
+    const body = buildUpdateObjectBody(withDeleted, draft)
+    expect(body.properties?.remove).toEqual(['p1'])
+    expect(body.properties?.restore).toBeUndefined()
+  })
+
+  it('restores a property the draft un-marked', () => {
+    const draft = dtoToDraft(withDeleted)
+    draft.properties[1].deleted = false
+
+    const body = buildUpdateObjectBody(withDeleted, draft)
+    expect(body.properties?.restore).toEqual(['p2'])
+    expect(body.properties?.remove).toBeUndefined()
+  })
+
+  it('removes and restores values through the property update', () => {
+    const draft = dtoToDraft(withDeleted)
+    draft.properties[2].values[0].deleted = true // v2 live -> deleted
+    draft.properties[2].values[1].deleted = false // v3 deleted -> live
+
+    const body = buildUpdateObjectBody(withDeleted, draft)
+    const update = body.properties?.update?.find((p) => p.id === 'p3')
+    expect(update?.values?.remove).toEqual(['v2'])
+    expect(update?.values?.restore).toEqual(['v3'])
+  })
+
+  // A deleted row is not an editable row: pushing its data would resurrect content on the server
+  // while the UI still shows it struck through.
+  it('sends no edits for a value that is deleted in the draft', () => {
+    const draft = dtoToDraft(withDeleted)
+    draft.properties[2].values[1].data = 'typed while deleted'
+
+    const body = buildUpdateObjectBody(withDeleted, draft)
     expect(body.properties).toBeUndefined()
   })
 })

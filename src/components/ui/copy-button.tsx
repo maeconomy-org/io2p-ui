@@ -84,6 +84,8 @@ export function CopyButton({
       <Tooltip>
         <TooltipTrigger asChild tabIndex={-1}>
           <Button
+            // Without this it defaults to submit, so copying an id inside a sheet saves the form.
+            type="button"
             variant={variant}
             size={size}
             onClick={copyToClipboard}

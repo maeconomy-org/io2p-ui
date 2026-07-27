@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { ChevronRight, LayoutGrid, List, Paperclip } from 'lucide-react'
 
@@ -13,21 +13,38 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib'
 import { usePreference } from '@/hooks/ui/use-preference'
-import type { DraftProperty, DraftFile } from '@/lib/entity-body'
+import type { DraftProperty, DraftFile, DraftValue } from '@/lib/entity-body'
 
 import { FilesDisclosure } from '../files'
+import { DeletedRow } from './deleted-row'
+import { ValueNormalization, formulaBoundValueIds } from './value-normalization'
+import {
+  ValueProvenanceDisplay,
+  labelForValueId,
+  type DerivedValues,
+} from './value-provenance'
+
+/** Resolves a value id named in a formula trace to the label of the property holding it. */
+type LabelForValue = (valueId: string) => string | undefined
+
+// Deleted values still render (struck through), but they don't count toward a summary or a badge —
+// "3 values" should mean three live ones.
+function liveValues(p: DraftProperty) {
+  return p.values.filter((v) => !v.deleted)
+}
 
 // Total files attached anywhere under a property (its own + its values') — drives the paperclip badge.
 function fileCount(p: DraftProperty): number {
   return (
     (p.files?.length ?? 0) +
-    p.values.reduce((n, v) => n + (v.files?.length ?? 0), 0)
+    liveValues(p).reduce((n, v) => n + (v.files?.length ?? 0), 0)
   )
 }
 
 function valueSummary(p: DraftProperty, manyLabel: string): string {
-  if (p.values.length === 0) return '—'
-  if (p.values.length === 1) return p.values[0].data || '—'
+  const values = liveValues(p)
+  if (values.length === 0) return '—'
+  if (values.length === 1) return values[0].data || '—'
   return manyLabel
 }
 
@@ -41,17 +58,21 @@ type FileChange = (
 
 export function PropertyReadView({
   properties,
-  derivedValueIds,
+  derivedValues,
   entityId,
   onFileChange,
 }: {
   properties: DraftProperty[]
-  derivedValueIds: Set<string>
+  derivedValues: DerivedValues
   entityId?: string
   onFileChange?: FileChange
 }) {
   const t = useTranslations()
   const [view, setView] = usePreference('propertiesView')
+  const boundValueIds = useMemo(
+    () => formulaBoundValueIds(derivedValues),
+    [derivedValues]
+  )
 
   if (properties.length === 0) {
     return (
@@ -84,28 +105,32 @@ export function PropertyReadView({
 
       {view === 'grid' ? (
         <div className="grid grid-cols-2 gap-2">
-          {properties.map((p, i) => (
-            <div key={p.id ?? i} className="rounded-md border p-2.5">
-              <div className="flex items-center gap-1.5 text-sm font-medium">
-                <span className="truncate">{p.label || p.key}</span>
-                {fileCount(p) > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="h-4 shrink-0 gap-0.5 px-1 text-[10px]"
-                  >
-                    <Paperclip className="h-2.5 w-2.5" />
-                    {fileCount(p)}
-                  </Badge>
-                )}
+          {properties.map((p, i) =>
+            p.deleted ? (
+              <DeletedRow key={p.id ?? i} label={p.label || p.key} />
+            ) : (
+              <div key={p.id ?? i} className="rounded-md border p-2.5">
+                <div className="flex items-center gap-1.5 text-sm font-medium">
+                  <span className="truncate">{p.label || p.key}</span>
+                  {fileCount(p) > 0 && (
+                    <Badge
+                      variant="secondary"
+                      className="h-4 shrink-0 gap-0.5 px-1 text-[10px]"
+                    >
+                      <Paperclip className="h-2.5 w-2.5" />
+                      {fileCount(p)}
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-0.5 truncate text-sm text-muted-foreground">
+                  {valueSummary(
+                    p,
+                    t('objects.values', { count: liveValues(p).length })
+                  )}
+                </div>
               </div>
-              <div className="mt-0.5 truncate text-sm text-muted-foreground">
-                {valueSummary(
-                  p,
-                  t('objects.values', { count: p.values.length })
-                )}
-              </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -113,7 +138,9 @@ export function PropertyReadView({
             <PropertyCard
               key={p.id ?? i}
               property={p}
-              derivedValueIds={derivedValueIds}
+              derivedValues={derivedValues}
+              boundValueIds={boundValueIds}
+              labelForValue={(id) => labelForValueId(properties, id)}
               entityId={entityId}
               onFileChange={onFileChange}
             />
@@ -126,18 +153,26 @@ export function PropertyReadView({
 
 function PropertyCard({
   property,
-  derivedValueIds,
+  derivedValues,
+  boundValueIds,
+  labelForValue,
   entityId,
   onFileChange,
 }: {
   property: DraftProperty
-  derivedValueIds: Set<string>
+  derivedValues: DerivedValues
+  boundValueIds: ReadonlySet<string>
+  labelForValue: LabelForValue
   entityId?: string
   onFileChange?: FileChange
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const count = fileCount(property)
+
+  if (property.deleted) {
+    return <DeletedRow label={property.label || property.key} />
+  }
 
   return (
     <Collapsible
@@ -158,7 +193,7 @@ function PropertyCard({
         <span className="ml-2 min-w-0 flex-1 truncate text-sm text-muted-foreground">
           {valueSummary(
             property,
-            t('objects.values', { count: property.values.length })
+            t('objects.values', { count: liveValues(property).length })
           )}
         </span>
         {count > 0 && (
@@ -180,7 +215,7 @@ function PropertyCard({
           entityId={entityId}
           onChange={onFileChange}
         />
-        {property.values.length === 0 && (
+        {liveValues(property).length === 0 && (
           <span className="text-sm text-muted-foreground">
             {t('objects.detailsSheet.noProperties')}
           </span>
@@ -189,7 +224,9 @@ function PropertyCard({
           <ValueRow
             key={v.id ?? vi}
             value={v}
-            derivedValueIds={derivedValueIds}
+            derivedValues={derivedValues}
+            boundValueIds={boundValueIds}
+            labelForValue={labelForValue}
             entityId={entityId}
             onFileChange={onFileChange}
           />
@@ -201,25 +238,47 @@ function PropertyCard({
 
 function ValueRow({
   value,
-  derivedValueIds,
+  derivedValues,
+  boundValueIds,
+  labelForValue,
   entityId,
   onFileChange,
 }: {
-  value: { id?: string; data?: string; files?: DraftFile[] }
-  derivedValueIds: Set<string>
+  value: DraftValue
+  derivedValues: DerivedValues
+  boundValueIds: ReadonlySet<string>
+  labelForValue: LabelForValue
   entityId?: string
   onFileChange?: FileChange
 }) {
   const t = useTranslations()
   const files = value.files ?? []
+
+  if (value.deleted) {
+    return <DeletedRow label={value.data || '—'} />
+  }
+
+  const isDerived = !!value.id && derivedValues.has(value.id)
+  const provenance = value.id ? derivedValues.get(value.id) : undefined
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <span>{value.data || '—'}</span>
-        {value.id && derivedValueIds.has(value.id) && (
-          <Badge variant="outline" className="text-[10px]">
-            {t('objects.propertyEditor.derived')}
-          </Badge>
+        <ValueNormalization
+          value={value}
+          usedInFormula={!!value.id && boundValueIds.has(value.id)}
+        />
+        {provenance ? (
+          <ValueProvenanceDisplay
+            provenance={provenance}
+            labelForValue={labelForValue}
+          />
+        ) : (
+          isDerived && (
+            <Badge variant="outline" className="text-[10px]">
+              {t('objects.propertyEditor.derived')}
+            </Badge>
+          )
         )}
       </div>
       {/* Indent the value's files so they read as belonging to the value above, not the property. */}

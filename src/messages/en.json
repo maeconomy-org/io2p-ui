@@ -208,7 +208,9 @@
     "error": "Something went wrong",
     "sessionExpired": "Your session expired. Sign in again to save.",
     "copy": "Copy",
-    "restore": "Restore"
+    "restore": "Restore",
+    "showMore": "Show more",
+    "showLess": "Show less"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -579,7 +581,10 @@
       "expressionPlaceholder": "e.g. w * h",
       "bindVariables": "Bind variables",
       "selectValue": "Select a value",
-      "result": "Result"
+      "result": "Result",
+      "editFormula": "Edit formula",
+      "inlineExpression": "This value uses a one-off expression, which can only be changed through the API",
+      "unknownConstant": "A constant this formula uses could not be found"
     },
     "detailsSheet": {
       "noParents": "No parents",
@@ -918,7 +923,14 @@
       "formulaPreview": "Live Preview",
       "formulaResolved": "Resolved",
       "formulaResult": "Result",
-      "formulaMapAllVariables": "Map all variables to see result"
+      "formulaMapAllVariables": "Map all variables to see result",
+      "formulaError": "Could not be calculated",
+      "showFormula": "Show formula details",
+      "hideFormula": "Hide formula details",
+      "unknownUnit": "Unknown unit",
+      "noNumber": "No number found",
+      "canonicalValue": "Canonical value",
+      "excludedFromFormulas": "excluded from the formulas that use it"
     },
     "duplicate": {
       "title": "Copy Objects",

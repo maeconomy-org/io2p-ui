@@ -24,6 +24,16 @@ type ReadValue = NonNullable<ObjectDTO['properties']>[number]['values'][number]
 type ReadFile = NonNullable<ReadValue['files']>[number]
 
 /**
+ * A derived value's calc recipe plus its evaluation trace — the frozen expression, what each variable
+ * was bound to, the number it contributed, and any error. Projection-only: the node computes it, we
+ * never author it. It is deliberately NOT on `DraftValue`, which is the editable contract.
+ */
+export type ValueProvenance = NonNullable<ReadValue['provenance']>
+
+/** The normalizer's verdict on a value: whether it found a number, and why not if it didn't. */
+export type ValueParse = NonNullable<ReadValue['parse']>
+
+/**
  * A file on the draft. A `reference` carries just its url (+ label) and authors in the body. An
  * `upload` pick arrives as a pending `blob` with NO `id`; it uploads (with a target) after the entity
  * is saved. Existing files (from the read model) carry `id` + display metadata.
@@ -61,6 +71,20 @@ export interface DraftValue {
   data?: string
   calc?: CalcInput | null
   files?: DraftFile[]
+  /**
+   * Normalizer output — DISPLAY ONLY, never authored. `num`/`unit` are the canonical form the node
+   * actually computes over ("2 t" -> 2000 kg); `parse` says whether it managed, and `parse.ok:false`
+   * is the reason a value is silently excluded from formulas and totals.
+   */
+  num?: number
+  unit?: string
+  parse?: ValueParse
+  /**
+   * Soft-deleted. Arrives from a read asked for `includeDeleted`, and is set when THIS session
+   * removes it. Removing an existing value MARKS it — nothing is dropped from the draft, so the
+   * diff can tell "deleted just now" from "was already deleted" and Restore stays available.
+   */
+  deleted?: boolean
 }
 
 export interface DraftProperty {
@@ -70,6 +94,8 @@ export interface DraftProperty {
   description?: string
   values: DraftValue[]
   files?: DraftFile[]
+  /** Soft-deleted — see DraftValue.deleted. */
+  deleted?: boolean
 }
 
 export interface EntityDraft {
@@ -89,10 +115,14 @@ function isPendingUpload(f: DraftFile): boolean {
 // True if the draft carries any pending upload (so submit knows to run the post-save attach step).
 export function hasPendingUploads(draft: EntityDraft): boolean {
   const any = (fs?: DraftFile[]) => (fs ?? []).some(isPendingUpload)
+  // A deleted branch attaches nothing (resolveUploadTargets skips it), so counting it here would
+  // only buy a pointless re-fetch of the committed tree.
   return (
     any(draft.files) ||
     draft.properties.some(
-      (p) => any(p.files) || p.values.some((v) => any(v.files))
+      (p) =>
+        !p.deleted &&
+        (any(p.files) || p.values.some((v) => !v.deleted && any(v.files)))
     )
   )
 }
@@ -120,24 +150,13 @@ function readFiles(files: ReadFile[] | undefined): DraftFile[] | undefined {
   return files?.length ? files.map(readFileToDraft) : undefined
 }
 
-/**
- * The live authored tree. The sheet reads with `includeDeleted` so soft-deleted FILES can render
- * struck-through with a Restore action — but deleted properties and values have no such UI yet, and
- * letting them into the draft would show them as live.
- *
- * Both the draft AND the diff baseline go through here, which is the important part: filtering only
- * the draft would leave deleted items visible to `before`, so every save would re-emit a `remove`
- * for something already deleted.
- */
-function liveProperties(dto: ObjectDTO): NonNullable<ObjectDTO['properties']> {
-  return (dto.properties ?? [])
-    .filter((p) => !p.deleted)
-    .map((p) => ({ ...p, values: p.values.filter((v) => !v.deleted) }))
-}
-
 // The read half of the round-trip: load an ObjectDTO into an editable draft. Derived values carry
 // their computed `data` and keep `calc` unset — so an untouched save is a no-op (diffValues sees no
 // data/calc change) and derivation is preserved. Files load at value/property/object level (18.3).
+//
+// The sheet reads with `includeDeleted`, so soft-deleted properties and values come through MARKED
+// rather than filtered — they render struck-through with a Restore action, and the diff compares the
+// deleted flag on both sides. Filtering either side alone would make every save re-remove them.
 export function dtoToDraft(dto: ObjectDTO): EntityDraft {
   return {
     name: dto.name,
@@ -145,15 +164,20 @@ export function dtoToDraft(dto: ObjectDTO): EntityDraft {
     address: dto.address ?? null,
     parentIds: (dto.parents ?? []).map((p) => p.id),
     files: readFiles(dto.files),
-    properties: liveProperties(dto).map((p) => ({
+    properties: (dto.properties ?? []).map((p) => ({
       id: p.id,
       key: p.key,
       label: p.label,
       description: p.description,
+      deleted: p.deleted,
       files: readFiles(p.files),
       values: p.values.map((v) => ({
         id: v.id,
         data: v.data,
+        deleted: v.deleted,
+        num: v.num,
+        unit: v.unit,
+        parse: v.parse,
         files: readFiles(v.files),
       })),
     })),
@@ -203,10 +227,10 @@ function toCreateProperty(p: DraftProperty) {
   }
 }
 
-// Blank authored values and half-formed calcs aren't real values.
+// Blank authored values, half-formed calcs and deleted rows aren't real values.
 function nonEmptyValues(values: DraftValue[]): DraftValue[] {
   return values.filter(
-    (v) => isRealCalc(v.calc) || (v.data ?? '').trim() !== ''
+    (v) => !v.deleted && (isRealCalc(v.calc) || (v.data ?? '').trim() !== '')
   )
 }
 
@@ -217,7 +241,7 @@ export function buildCreateObjectInput(draft: EntityDraft): CreateObjectInput {
   if (draft.parentIds.length) body.parents = [...draft.parentIds]
 
   const properties = draft.properties
-    .filter((p) => p.key.trim() !== '')
+    .filter((p) => !p.deleted && p.key.trim() !== '')
     .map(toCreateProperty)
   if (properties.length) body.properties = properties
 
@@ -309,19 +333,42 @@ function diffFiles(
   return Object.keys(sections).length ? sections : undefined
 }
 
+/**
+ * Which ids moved into or out of the soft-deleted state. `remove` covers both "marked deleted this
+ * session" and "dropped from the draft entirely" — a row that never had an id was never stored, so
+ * dropping it is the only way it can disappear.
+ */
+function diffDeleted<T extends { id?: string; deleted?: boolean }>(
+  before: { id: string; deleted?: boolean }[],
+  after: T[]
+): { remove: string[]; restore: string[] } {
+  const afterById = new Map(
+    after.filter((x) => x.id).map((x) => [x.id as string, x])
+  )
+  const remove: string[] = []
+  const restore: string[] = []
+  for (const prev of before) {
+    const now = afterById.get(prev.id)
+    if (!now || (now.deleted && !prev.deleted)) remove.push(prev.id)
+    else if (prev.deleted && !now.deleted) restore.push(prev.id)
+  }
+  return { remove, restore }
+}
+
 function diffValues(
   before: NonNullable<ObjectDTO['properties']>[number]['values'],
   after: DraftValue[]
 ): ValueSections | undefined {
   const beforeById = new Map(before.map((v) => [v.id, v]))
-  const keptIds = new Set(after.filter((v) => v.id).map((v) => v.id as string))
 
-  const add = nonEmptyValues(after.filter((v) => !v.id)).map(toAddValue)
-  const remove = [...beforeById.keys()].filter((id) => !keptIds.has(id))
+  const add = nonEmptyValues(after.filter((v) => !v.id && !v.deleted)).map(
+    toAddValue
+  )
+  const { remove, restore } = diffDeleted(before, after)
 
   const update: NonNullable<ValueSections['update']> = []
   for (const v of after) {
-    if (!v.id) continue
+    if (!v.id || v.deleted) continue // a deleted value takes no edits
     const prev = beforeById.get(v.id)
     if (!prev) continue
     const dataChanged = v.data !== undefined && v.data !== prev.data
@@ -350,6 +397,7 @@ function diffValues(
   if (add.length) sections.add = add
   if (update.length) sections.update = update
   if (remove.length) sections.remove = remove
+  if (restore.length) sections.restore = restore
   return Object.keys(sections).length ? sections : undefined
 }
 
@@ -358,17 +406,16 @@ function diffProperties(
   after: DraftProperty[]
 ): UpdateProperties | undefined {
   const beforeById = new Map((before ?? []).map((p) => [p.id, p]))
-  const keptIds = new Set(after.filter((p) => p.id).map((p) => p.id as string))
 
   const add = after
-    .filter((p) => !p.id && p.key.trim() !== '')
+    .filter((p) => !p.id && !p.deleted && p.key.trim() !== '')
     .map(toCreateProperty)
 
-  const remove = [...beforeById.keys()].filter((id) => !keptIds.has(id))
+  const { remove, restore } = diffDeleted(before ?? [], after)
 
   const update: NonNullable<UpdateProperties['update']> = []
   for (const p of after) {
-    if (!p.id) continue
+    if (!p.id || p.deleted) continue // a deleted property takes no edits
     const prev = beforeById.get(p.id)
     if (!prev) continue
     const labelChange = scalarChange(prev.label, p.label)
@@ -395,6 +442,7 @@ function diffProperties(
   if (add.length) sections.add = add
   if (update.length) sections.update = update
   if (remove.length) sections.remove = remove
+  if (restore.length) sections.restore = restore
   return Object.keys(sections).length ? sections : undefined
 }
 
@@ -426,9 +474,10 @@ export function buildUpdateObjectBody(
     }
   }
 
-  // Same live view the draft was built from — otherwise a soft-deleted item would look absent
-  // and be re-removed on every save.
-  const properties = diffProperties(liveProperties(before), draft.properties)
+  // The full tree, deleted items included — both sides carry the flag, so the diff reports the
+  // transition. Filtering either side would make an already-deleted item look absent and be removed
+  // again on every save.
+  const properties = diffProperties(before.properties, draft.properties)
   if (properties) body.properties = properties
 
   const files = diffFiles(before.files, draft.files)
@@ -460,7 +509,7 @@ export function resolveUploadTargets(
 
   const committedProps = committed.properties ?? []
   for (const p of draft.properties) {
-    if (p.key.trim() === '') continue
+    if (p.deleted || p.key.trim() === '') continue
     const cp = p.id
       ? committedProps.find((x) => x.id === p.id)
       : committedProps.find((x) => x.key === p.key)
@@ -489,7 +538,7 @@ export function resolveUploadTargets(
  */
 export function findEmptyPropertyKey(draft: EntityDraft): number {
   return draft.properties.findIndex((p) => {
-    if (p.key.trim() !== '') return false
+    if (p.deleted || p.key.trim() !== '') return false
     const hasValue = p.values.some(
       (v) => (v.data ?? '').trim() !== '' || v.calc
     )

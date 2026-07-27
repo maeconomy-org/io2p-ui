@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import {
   ChevronRight,
   FunctionSquare,
   Paperclip,
+  Pencil,
   Plus,
   Trash2,
   TextInitial,
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib'
 import { PropertyNameCombobox } from '@/components/properties'
+import { useConstants } from '@/hooks/api/leaves'
 import {
   getValuePlaceholder,
   type PropertyDictionaryLocale,
@@ -31,16 +33,27 @@ import type { EntityDraft, DraftValue, DraftFile } from '@/lib/entity-body'
 import {
   FormulaSelect,
   FormulaBindings,
+  calcFromProvenance,
   type FormulaSibling,
 } from './formula-value-editor'
 import { AttachmentModal, FilesDisclosure } from '../files'
+import { DeletedRow } from './deleted-row'
 import { PropertyReadView } from './property-read-view'
+import { ValueNormalization, formulaBoundValueIds } from './value-normalization'
+import {
+  ValueProvenanceDisplay,
+  labelForValueId,
+  type DerivedValues,
+} from './value-provenance'
 
 interface PropertyFieldsProps {
   form: UseFormReturn<EntityDraft>
   editing: boolean
-  /** Value ids whose source is derived on the loaded entity — read-only (editing is phase 2). */
-  derivedValueIds: Set<string>
+  /**
+   * Derived values on the loaded entity, keyed by value id — read-only (editing is phase 2).
+   * Presence means "derived"; the payload is the node's evaluation trace, absent on older writes.
+   */
+  derivedValues: DerivedValues
   entityId?: string
   /** Renders a header row (label + Add) instead of a trailing Add button — used by the create shell. */
   label?: string
@@ -74,7 +87,7 @@ function collectSiblings(
 export function PropertyFields({
   form,
   editing,
-  derivedValueIds,
+  derivedValues,
   entityId,
   label,
 }: PropertyFieldsProps) {
@@ -83,6 +96,24 @@ export function PropertyFields({
     control: form.control,
     name: 'properties',
   })
+
+  // A trace names constants by id, but an editable recipe binds them by name. Only objects that
+  // actually use one pay for the lookup — most formulas bind sibling values only.
+  const usesConstants = useMemo(
+    () =>
+      [...derivedValues.values()].some((p) =>
+        p?.args.some((a) => a.source.kind === 'constant')
+      ),
+    [derivedValues]
+  )
+  const { data: constants } = useConstants().useList(
+    { page: 1, size: 200 },
+    { enabled: editing && usesConstants }
+  )
+  const constantNames = useMemo(
+    () => new Map((constants?.data ?? []).map((c) => [c.id, c.name])),
+    [constants]
+  )
 
   /**
    * Patch one file anywhere under the properties tree, found by its `_localId` (unique across the
@@ -108,11 +139,27 @@ export function PropertyFields({
     )
   }
 
+  /**
+   * Removing a STORED property marks it instead of dropping it, so Save sends a soft delete the
+   * server can reverse and the row stays on screen struck-through with a Restore action. A row that
+   * was never stored has nothing to preserve, so it just goes.
+   */
+  const removeProperty = (index: number) => {
+    if (form.getValues(`properties.${index}.id`)) {
+      form.setValue(`properties.${index}.deleted`, true, { shouldDirty: true })
+    } else {
+      remove(index)
+    }
+  }
+
+  const restoreProperty = (index: number) =>
+    form.setValue(`properties.${index}.deleted`, false, { shouldDirty: true })
+
   if (!editing) {
     return (
       <PropertyReadView
         properties={form.watch('properties')}
-        derivedValueIds={derivedValueIds}
+        derivedValues={derivedValues}
         entityId={entityId}
         onFileChange={patchFile}
       />
@@ -143,10 +190,12 @@ export function PropertyFields({
           key={field.id}
           form={form}
           index={index}
-          derivedValueIds={derivedValueIds}
+          derivedValues={derivedValues}
+          constantNames={constantNames}
           entityId={entityId}
           onFileChange={patchFile}
-          onRemove={() => remove(index)}
+          onRemove={() => removeProperty(index)}
+          onRestore={() => restoreProperty(index)}
         />
       ))}
       {!label && addButton}
@@ -160,17 +209,21 @@ type ModalTarget = { kind: 'property' } | { kind: 'value'; vIndex: number }
 function PropertyRow({
   form,
   index,
-  derivedValueIds,
+  derivedValues,
+  constantNames,
   entityId,
   onFileChange,
   onRemove,
+  onRestore,
 }: {
   form: UseFormReturn<EntityDraft>
   index: number
-  derivedValueIds: Set<string>
+  derivedValues: DerivedValues
+  constantNames: ReadonlyMap<string, string>
   entityId?: string
   onFileChange: (localId: string, patch: Partial<DraftFile>) => void
   onRemove: () => void
+  onRestore: () => void
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
@@ -189,8 +242,22 @@ function PropertyRow({
     if (isNew) nameRef.current?.focus()
   }, [isNew])
 
+  /**
+   * Leaving formula mode. For a value the server DERIVED, an explicit `null` is what reverts it to
+   * authored — `undefined` means "no calc change", which would leave the server recomputing it. For
+   * a value that was only ever a draft recipe there is nothing to revert, so undefined is right.
+   */
+  const clearedCalc = (valueId?: string) =>
+    valueId && derivedValues.has(valueId) ? null : undefined
+
+  const boundValueIds = useMemo(
+    () => formulaBoundValueIds(derivedValues),
+    [derivedValues]
+  )
+
   const propKey = form.watch(`properties.${index}.key`)
   const propLabel = form.watch(`properties.${index}.label`)
+  const propDeleted = form.watch(`properties.${index}.deleted`) ?? false
   const valuePlaceholder =
     getValuePlaceholder(propKey, locale) ?? t('objects.propertyEditor.value')
   const allProperties = form.watch('properties')
@@ -228,6 +295,17 @@ function PropertyRow({
       path,
       current.filter((f) => f._localId !== localId),
       { shouldDirty: true }
+    )
+  }
+
+  // A deleted property is shown, never hidden — but it can't be edited until it's restored, so the
+  // whole editor collapses to the name plus a way back.
+  if (propDeleted) {
+    return (
+      <DeletedRow
+        label={propLabel || propKey || t('objects.propertyEditor.name')}
+        onRestore={onRestore}
+      />
     )
   }
 
@@ -338,21 +416,92 @@ function PropertyRow({
             {fields.map((field, vIndex) => {
               const base = `properties.${index}.values.${vIndex}` as const
               const value = form.watch(base)
+
+              // Same rule as properties: a stored value is marked, a never-stored one just goes.
+              if (value?.deleted) {
+                return (
+                  <DeletedRow
+                    key={field.id}
+                    label={value.data || t('objects.propertyEditor.value')}
+                    onRestore={() =>
+                      form.setValue(`${base}.deleted`, false, {
+                        shouldDirty: true,
+                      })
+                    }
+                  />
+                )
+              }
+
               const existingDerived =
-                !!value?.id && derivedValueIds.has(value.id) && !value.calc
+                !!value?.id && derivedValues.has(value.id) && !value.calc
               const isFormula = !!value?.calc
               const selfKey = value?.id ?? value?.ref
               const valueFiles = value?.files ?? []
 
-              // Loaded derived values render read-only until the provenance editor lands (phase 2).
+              /**
+               * A derived value shows its result until you ask to change it. Editing hydrates the
+               * recipe from the trace ON DEMAND rather than at load: putting `calc` into every
+               * derived value up front would mark them all dirty and rebind on save, so an untouched
+               * object would rewrite formulas it never touched.
+               */
               if (existingDerived) {
+                const provenance = derivedValues.get(value.id as string)
+                const hydration = provenance
+                  ? calcFromProvenance(provenance, constantNames)
+                  : null
                 return (
                   <div key={field.id} className="space-y-1">
                     <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                      <span>{value?.data || '—'}</span>
-                      <Badge variant="outline" className="text-[10px]">
-                        {t('objects.propertyEditor.derived')}
-                      </Badge>
+                      <span className="min-w-0 flex-1 truncate">
+                        {value?.data || '—'}
+                      </span>
+                      {provenance ? (
+                        <ValueProvenanceDisplay
+                          provenance={provenance}
+                          labelForValue={(id) =>
+                            labelForValueId(allProperties, id)
+                          }
+                        />
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">
+                          {t('objects.propertyEditor.derived')}
+                        </Badge>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        disabled={!hydration?.ok}
+                        aria-label={t('objects.formulaEditor.editFormula')}
+                        title={
+                          hydration?.ok || !hydration
+                            ? t('objects.formulaEditor.editFormula')
+                            : t(`objects.formulaEditor.${hydration.reason}`)
+                        }
+                        onClick={() =>
+                          hydration?.ok &&
+                          form.setValue(`${base}.calc`, hydration.calc, {
+                            shouldDirty: true,
+                          })
+                        }
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        aria-label={t('common.remove')}
+                        onClick={() =>
+                          form.setValue(`${base}.deleted`, true, {
+                            shouldDirty: true,
+                          })
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                     <FilesDisclosure
                       files={valueFiles}
@@ -407,7 +556,7 @@ function PropertyRow({
                         onClick={() =>
                           form.setValue(
                             `${base}.calc`,
-                            isFormula ? undefined : { args: [] },
+                            isFormula ? clearedCalc(value?.id) : { args: [] },
                             { shouldDirty: true }
                           )
                         }
@@ -425,13 +574,27 @@ function PropertyRow({
                         )}
                       </button>
                     </div>
+                    {value && !isFormula && (
+                      <ValueNormalization
+                        value={value}
+                        usedInFormula={
+                          !!value.id && boundValueIds.has(value.id)
+                        }
+                      />
+                    )}
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 shrink-0"
                       aria-label={t('common.remove')}
-                      onClick={() => remove(vIndex)}
+                      onClick={() =>
+                        value?.id
+                          ? form.setValue(`${base}.deleted`, true, {
+                              shouldDirty: true,
+                            })
+                          : remove(vIndex)
+                      }
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

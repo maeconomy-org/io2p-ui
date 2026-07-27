@@ -14,6 +14,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CopyButton,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -86,7 +87,7 @@ export function ParentsField({
           {parentIds.map((id) => (
             <Badge key={id} variant="secondary" className="gap-1">
               {nameOf(id)}
-              {editing && (
+              {editing ? (
                 <Button
                   type="button"
                   variant="ghost"
@@ -97,6 +98,14 @@ export function ParentsField({
                 >
                   <X className="h-3 w-3" />
                 </Button>
+              ) : (
+                // The badge shows a name; the id is what you need to paste elsewhere.
+                <CopyButton
+                  text={id}
+                  label={nameOf(id)}
+                  className="h-4 w-4"
+                  iconSize="sm"
+                />
               )}
             </Badge>
           ))}
