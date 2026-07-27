@@ -9,6 +9,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
+  ViewToggle,
 } from '@/components/ui'
 import { cn } from '@/lib'
 import { usePreference } from '@/hooks/ui/use-preference'
@@ -53,34 +54,22 @@ export function PropertyReadView({
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <div className="flex items-center overflow-hidden rounded-md border">
-          <button
-            type="button"
-            aria-label={t('objects.properties.detailedView')}
-            onClick={() => setView('detailed')}
-            className={cn(
-              'p-1 transition-colors',
-              view === 'detailed'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted'
-            )}
-          >
-            <List className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            aria-label={t('objects.properties.passportView')}
-            onClick={() => setView('grid')}
-            className={cn(
-              'p-1 transition-colors',
-              view === 'grid'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted'
-            )}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        <ViewToggle
+          value={view}
+          onChange={setView}
+          options={[
+            {
+              value: 'detailed',
+              icon: List,
+              label: t('objects.properties.detailedView'),
+            },
+            {
+              value: 'grid',
+              icon: LayoutGrid,
+              label: t('objects.properties.passportView'),
+            },
+          ]}
+        />
       </div>
 
       {view === 'grid' ? (

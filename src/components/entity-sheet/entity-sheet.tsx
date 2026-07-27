@@ -24,6 +24,7 @@ import { useEntityForm } from './hooks/use-entity-form'
 import {
   AddressField,
   MetadataFields,
+  ObjectFilesField,
   ParentsField,
   PropertyFields,
 } from './fields'
@@ -136,10 +137,14 @@ export function EntitySheet({
               className="flex min-h-0 flex-1 flex-col"
             >
               <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="properties">
                     {t('objects.fields.properties')}
                     <DirtyDot show={!!dirtyFields.properties} />
+                  </TabsTrigger>
+                  <TabsTrigger value="files">
+                    {t('objects.filesTitle')}
+                    <DirtyDot show={!!dirtyFields.files} />
                   </TabsTrigger>
                   <TabsTrigger value="details">
                     {t('objects.detailsSheet.tabDetails')}
@@ -167,6 +172,9 @@ export function EntitySheet({
                     editing={editing}
                     derivedValueIds={derivedValueIds}
                   />
+                </TabsContent>
+                <TabsContent value="files" className="mt-0">
+                  <ObjectFilesField form={form} editing={editing} />
                 </TabsContent>
                 <TabsContent value="details" className="mt-0 space-y-6">
                   <MetadataFields form={form} editing={editing} />
