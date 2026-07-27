@@ -23,18 +23,8 @@ import { useObjectOperations } from '@/components/object-sheets/hooks/use-object
 
 import { buildObjectColumns } from '../components/object-columns'
 
-const ObjectDetailsSheet = dynamic(
-  () =>
-    import('@/components/object-sheets/object-details-sheet').then(
-      (mod) => mod.ObjectDetailsSheet
-    ),
-  { ssr: false }
-)
-const ObjectAddSheet = dynamic(
-  () =>
-    import('@/components/object-sheets/object-add-sheet').then(
-      (mod) => mod.ObjectAddSheet
-    ),
+const EntitySheet = dynamic(
+  () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
   { ssr: false }
 )
 const CopyObjectsSheet = dynamic(
@@ -382,20 +372,24 @@ function ObjectChildrenPageContent() {
         />
       </div>
 
-      <ObjectDetailsSheet
-        isOpen={isObjectSheetOpen}
-        onClose={() => setIsObjectSheetOpen(false)}
-        object={selectedObject}
-        uuid={selectedObject?.id}
-        isDeleted={selectedObject?.deleted ?? false}
-      />
+      {isObjectSheetOpen && (
+        <EntitySheet
+          open={isObjectSheetOpen}
+          onOpenChange={setIsObjectSheetOpen}
+          entityId={selectedObject?.id}
+        />
+      )}
 
-      <ObjectAddSheet
-        isOpen={isAddSheetOpen}
-        draftId={null}
-        onClose={() => setIsAddSheetOpen(false)}
-        defaultParentUuids={[parentUuid]}
-      />
+      {/* "Add child" creates the CHILD with this page's object as its parent — io2p hangs the
+          edge off the child, so there is nothing to PATCH on the parent. */}
+      {isAddSheetOpen && (
+        <EntitySheet
+          open={isAddSheetOpen}
+          onOpenChange={setIsAddSheetOpen}
+          defaultParentIds={[parentUuid]}
+          defaultParentNames={{ [parentUuid]: parentObject.name }}
+        />
+      )}
 
       {qrTarget && (
         <QRCodeModal

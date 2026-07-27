@@ -45,6 +45,11 @@ export interface EntitySheetProps {
   entityId?: string | null
   /** Parents to preset on a create draft (the "add child" flow). */
   defaultParentIds?: string[]
+  /**
+   * Names for `defaultParentIds`. A create draft has no fetched entity to read parent names from,
+   * so without these the preset parent renders as a bare UUID.
+   */
+  defaultParentNames?: Record<string, string>
 }
 
 function DirtyDot({ show }: { show: boolean }) {
@@ -59,6 +64,7 @@ export function EntitySheet({
   onOpenChange,
   entityId,
   defaultParentIds,
+  defaultParentNames,
 }: EntitySheetProps) {
   const t = useTranslations()
   const isCreate = !entityId
@@ -123,12 +129,12 @@ export function EntitySheet({
   }, [entity])
 
   const parentNames = useMemo(() => {
-    const m = new Map<string, string>()
+    const m = new Map<string, string>(Object.entries(defaultParentNames ?? {}))
     entity?.parents?.forEach((p) => {
       if (p.name) m.set(p.id, p.name)
     })
     return m
-  }, [entity])
+  }, [entity, defaultParentNames])
 
   const requestClose = () => {
     if (isDirty && !window.confirm(t('objects.detailsSheet.discardConfirm')))

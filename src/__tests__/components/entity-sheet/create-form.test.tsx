@@ -46,22 +46,27 @@ const EMPTY: EntityDraft = {
   properties: [],
 }
 
-function useDraft() {
-  return useForm<EntityDraft>({ defaultValues: EMPTY })
+function useDraft(defaults: EntityDraft) {
+  return useForm<EntityDraft>({ defaultValues: defaults })
 }
 
-function renderCreateForm() {
+function renderCreateForm(
+  options: {
+    draft?: Partial<EntityDraft>
+    parentNames?: Map<string, string>
+  } = {}
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  const { result } = renderHook(() => useDraft())
+  const { result } = renderHook(() => useDraft({ ...EMPTY, ...options.draft }))
   const view = render(
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
       React.createElement(CreateForm, {
         form: result.current,
-        parentNames: new Map(),
+        parentNames: options.parentNames ?? new Map(),
       })
     )
   )
@@ -175,5 +180,23 @@ describe('CreateForm parent picker', () => {
     await waitFor(() => expect(form.getValues('parentIds')).toEqual(['obj-9']))
     // Shared objects must be reachable — the node scopes lists to 'mine' by default.
     expect(objects.list.mock.calls[0][0]).toMatchObject({ scope: 'all' })
+  })
+
+  // The "add child" flow presets a parent the draft never fetched, so the only source for its name
+  // is the caller. Without it the badge falls back to the raw UUID.
+  it('renders a preset parent by name when the caller supplies one', () => {
+    renderCreateForm({
+      draft: { parentIds: ['obj-9'] },
+      parentNames: new Map([['obj-9', 'Building A']]),
+    })
+
+    expect(screen.getByText('Building A')).toBeInTheDocument()
+    expect(screen.queryByText('obj-9')).not.toBeInTheDocument()
+  })
+
+  it('falls back to the id when no name is known', () => {
+    renderCreateForm({ draft: { parentIds: ['obj-9'] } })
+
+    expect(screen.getByText('obj-9')).toBeInTheDocument()
   })
 })
