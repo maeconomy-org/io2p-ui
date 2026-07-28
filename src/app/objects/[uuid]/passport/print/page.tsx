@@ -1,61 +1,20 @@
-'use client'
-
-import { useEffect, use } from 'react'
-import { Loader2 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
-
-import ProtectedRoute from '@/components/protected-route'
-import { useObjectData } from '@/components/object-sheets/hooks'
-import { PassportView } from '@/components/object-sheets/passport'
+import { PassportPrintContent } from './passport-print-content'
 
 interface PrintPageProps {
   params: Promise<{ uuid: string }>
 }
 
-function PassportPrintContent({ uuid }: { uuid: string }) {
-  const t = useTranslations()
-  const { object, properties, files, addressInfo, isLoading } = useObjectData({
-    uuid,
-    isOpen: true,
-  })
-
-  useEffect(() => {
-    if (isLoading || !object) return
-    // Defer until layout/paint settles so the QR canvas + fonts are present
-    // in the print output.
-    const id = window.setTimeout(() => window.print(), 350)
-    return () => window.clearTimeout(id)
-  }, [isLoading, object])
-
-  if (isLoading || !object) {
-    return (
-      <div className="flex justify-center items-center py-16">
-        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-        <span className="sr-only">{t('common.loading')}</span>
-      </div>
-    )
-  }
-
-  return (
-    <div className="mx-auto max-w-4xl px-2 py-2 print:px-0 print:py-0">
-      <PassportView
-        object={object}
-        properties={properties}
-        files={files}
-        addressInfo={addressInfo}
-      />
-    </div>
-  )
-}
-
-export default function PassportPrintPage({ params }: PrintPageProps) {
-  const { uuid } = use(params)
+/**
+ * A Server Component: awaiting `params` is all this route does, so none of it needs to ship to the
+ * client. Auth is handled by `proxy.ts` before this renders at all — see the note there on why the
+ * gate lives at the request layer rather than in a wrapper component.
+ */
+export default async function PassportPrintPage({ params }: PrintPageProps) {
+  const { uuid } = await params
 
   return (
     <div data-print-page="true">
-      <ProtectedRoute>
-        <PassportPrintContent uuid={uuid} />
-      </ProtectedRoute>
+      <PassportPrintContent uuid={uuid} />
     </div>
   )
 }

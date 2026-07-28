@@ -16,7 +16,6 @@ import { DeletedFilter } from '@/components/filters'
 import { ObjectBreadcrumb } from '@/components/object-breadcrumb'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
-import ProtectedRoute from '@/components/protected-route'
 import { ContentSkeleton } from '@/components/skeletons'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
@@ -426,9 +425,5 @@ function ObjectChildrenPageContent() {
 }
 
 export default function ObjectChildrenPage() {
-  return (
-    <ProtectedRoute>
-      <ObjectChildrenPageContent />
-    </ProtectedRoute>
-  )
+  return <ObjectChildrenPageContent />
 }

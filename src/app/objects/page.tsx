@@ -12,7 +12,6 @@ import { useBreadcrumbTrail, usePreference } from '@/hooks'
 import { useObjects } from '@/hooks/api/entities'
 import { useSearch } from '@/contexts'
 import { logger } from '@/lib'
-import ProtectedRoute from '@/components/protected-route'
 import { Button } from '@/components/ui'
 import { DeletedFilter } from '@/components/filters'
 import { SearchResultsBar } from '@/components/search-results-bar'
@@ -409,9 +408,5 @@ function ObjectsPageContent() {
 }
 
 export default function ObjectsPage() {
-  return (
-    <ProtectedRoute>
-      <ObjectsPageContent />
-    </ProtectedRoute>
-  )
+  return <ObjectsPageContent />
 }
