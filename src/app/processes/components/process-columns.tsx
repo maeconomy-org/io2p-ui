@@ -56,11 +56,6 @@ export function buildProcessColumns({
         </span>
       )
     ),
-    textColumn<ProcessDTO>(
-      'description',
-      t('objects.fields.description'),
-      (p) => p.description ?? '—'
-    ),
     idColumn<ProcessDTO>((p) => p.id, t('objects.fields.uuid')),
     timestampColumn<ProcessDTO>(
       'createdAt',

@@ -8,6 +8,7 @@ import {
   findFlowWithoutRef,
   EMPTY_PROCESS_DRAFT,
   QUANTITY_KEY,
+  resolveProcessUploadTargets,
 } from '@/lib/process-body'
 import type { EntityDraft } from '@/lib/entity-body'
 
@@ -235,5 +236,128 @@ describe('findFlowWithoutRef', () => {
         })
       )
     ).toEqual({ bag: 'outputs', index: 0 })
+  })
+})
+
+// ── flow-scoped upload targets ──────────────────────────────────────────────
+//
+// io2p narrows a file's attach target with `flow: {direction, flowId}`. Getting that wrong does not
+// error — the file simply lands on the PROCESS instead of the flow, which nothing on screen would
+// reveal until someone went looking for it.
+describe('resolveProcessUploadTargets', () => {
+  const pick = (localId: string) => ({
+    _localId: localId,
+    kind: 'upload' as const,
+    fileName: `${localId}.pdf`,
+    blob: new File(['x'], `${localId}.pdf`),
+  })
+
+  it('scopes a flow-level file to its flow and direction', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.inputs![0].files = [pick('a')]
+
+    expect(resolveProcessUploadTargets(before, d)).toEqual([
+      {
+        file: expect.objectContaining({ _localId: 'a' }),
+        target: {
+          entityId: 'proc-1',
+          flow: { direction: 'input', flowId: 'f1' },
+        },
+      },
+    ])
+  })
+
+  it('scopes a file on a flow PROPERTY and on a flow VALUE', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.inputs![0].properties[0].files = [pick('p')]
+    d.inputs![0].properties[0].values[0].files = [pick('v')]
+
+    const targets = resolveProcessUploadTargets(before, d).map((u) => u.target)
+    expect(targets).toEqual([
+      {
+        entityId: 'proc-1',
+        flow: { direction: 'input', flowId: 'f1' },
+        propertyId: 'fp1',
+      },
+      {
+        entityId: 'proc-1',
+        flow: { direction: 'input', flowId: 'f1' },
+        propertyId: 'fp1',
+        valueId: 'fv1',
+      },
+    ])
+  })
+
+  it('marks an output flow as an output', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.outputs![0].files = [pick('o')]
+
+    expect(resolveProcessUploadTargets(before, d)[0].target).toEqual({
+      entityId: 'proc-1',
+      flow: { direction: 'output', flowId: 'f2' },
+    })
+  })
+
+  it("still resolves the process's own entity and property files", () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.files = [pick('e')]
+
+    expect(resolveProcessUploadTargets(before, d)[0].target).toEqual({
+      entityId: 'proc-1',
+    })
+  })
+
+  // A flow added in this session has no id until the save comes back, so it borrows one by ref.
+  it('resolves a brand-new flow by its ref', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.inputs!.push({ ref: 'obj-new', properties: [], files: [pick('n')] })
+
+    const committed = {
+      ...before,
+      inputs: [...before.inputs, { id: 'f9', ref: 'obj-new' }],
+    } as unknown as ProcessDTO
+
+    expect(resolveProcessUploadTargets(committed, d)[0].target).toEqual({
+      entityId: 'proc-1',
+      flow: { direction: 'input', flowId: 'f9' },
+    })
+  })
+
+  // Two flows may point at the SAME object (io2p allows it — rework, recirculation). Matching purely
+  // by ref would send both flows' files to whichever matched first.
+  it('claims each committed flow at most once when refs repeat', () => {
+    const before = loaded({ inputs: [] } as unknown as Partial<ProcessDTO>)
+    const d = processToDraft(before)
+    d.inputs = [
+      { ref: 'obj-same', properties: [], files: [pick('one')] },
+      { ref: 'obj-same', properties: [], files: [pick('two')] },
+    ]
+
+    const committed = {
+      ...before,
+      inputs: [
+        { id: 'fa', ref: 'obj-same' },
+        { id: 'fb', ref: 'obj-same' },
+      ],
+    } as unknown as ProcessDTO
+
+    const flowIds = resolveProcessUploadTargets(committed, d).map(
+      (u) => u.target.flow?.flowId
+    )
+    expect(flowIds).toEqual(['fa', 'fb'])
+  })
+
+  it('skips a flow it cannot resolve rather than mis-targeting the file', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.inputs!.push({ ref: 'obj-unknown', properties: [], files: [pick('x')] })
+
+    // `committed` never got that flow, so there is no id to attach against.
+    expect(resolveProcessUploadTargets(before, d)).toEqual([])
   })
 })

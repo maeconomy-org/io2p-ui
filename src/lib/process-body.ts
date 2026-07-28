@@ -15,6 +15,8 @@ import {
   type DraftFlow,
   type EntityDraft,
   type DraftProperty,
+  type ResolvedUpload,
+  containerUploads,
   diffFiles,
   diffProperties,
   newReferenceInputs,
@@ -203,6 +205,61 @@ export function buildUpdateProcessBody(
   if (outputs) body.outputs = outputs
 
   return body
+}
+
+/**
+ * Pair every pending pick on a saved process with its attach target, flows included.
+ *
+ * io2p addresses a flow's files by narrowing the target with `flow: {direction, flowId}` — the same
+ * shape as an entity's, one level in — so each flow reuses the shared container walk rather than
+ * getting its own resolver.
+ *
+ * A flow the user just added has no id yet, so it borrows one from the committed process by `ref`.
+ * Two flows may legitimately point at the SAME object, so each committed flow is claimed at most once
+ * — matching purely by ref would otherwise send both flows' files to whichever matched first.
+ */
+export function resolveProcessUploadTargets(
+  committed: ProcessDTO,
+  draft: EntityDraft
+): ResolvedUpload[] {
+  const entityId = committed.id
+  const out = containerUploads(
+    { entityId },
+    committed.properties,
+    draft.properties,
+    draft.files
+  )
+
+  const bags = [
+    { direction: 'input' as const, key: 'inputs' as const },
+    { direction: 'output' as const, key: 'outputs' as const },
+  ]
+
+  for (const { direction, key } of bags) {
+    const committedFlows = committed[key] ?? []
+    const claimed = new Set<string>()
+
+    for (const flow of draft[key] ?? []) {
+      if (!hasRef(flow)) continue
+      const match = flow.id
+        ? committedFlows.find((f) => f.id === flow.id)
+        : committedFlows.find((f) => f.ref === flow.ref && !claimed.has(f.id))
+      const flowId = flow.id ?? match?.id
+      if (!flowId) continue // unresolvable — the pick stays local, visible again on reload
+      claimed.add(flowId)
+
+      out.push(
+        ...containerUploads(
+          { entityId, flow: { direction, flowId } },
+          match?.properties ?? [],
+          flow.properties,
+          flow.files
+        )
+      )
+    }
+  }
+
+  return out
 }
 
 /**

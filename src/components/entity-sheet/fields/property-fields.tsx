@@ -74,6 +74,11 @@ interface PropertyFieldsProps {
    */
   basePath?: PropertiesPath
   /**
+   * False inside a process flow: the list/grid switch is a per-TAB preference, and one toggle per
+   * flow row is the same control repeated down the page.
+   */
+  allowViewToggle?: boolean
+  /**
    * Values a formula in this bag may bind to. Defaults to the bag itself. A process overrides it:
    * D76 makes calc siblings span the process's own properties AND every flow, so a flow's formula
    * can read a value from another flow.
@@ -132,6 +137,7 @@ export function PropertyFields({
   entityId,
   label,
   allowFiles = true,
+  allowViewToggle = true,
   basePath = 'properties',
   siblingSource,
 }: PropertyFieldsProps) {
@@ -207,6 +213,7 @@ export function PropertyFields({
         entityId={entityId}
         onFileChange={patchFile}
         allowFiles={allowFiles}
+        allowViewToggle={allowViewToggle}
       />
     )
   }

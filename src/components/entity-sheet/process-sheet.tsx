@@ -165,6 +165,8 @@ export function ProcessSheet({
           bag="inputs"
           editing={editing}
           siblingSource={allProperties}
+          derivedValues={derivedValues}
+          entityId={process?.id}
         />
       ),
     },
@@ -178,6 +180,8 @@ export function ProcessSheet({
           bag="outputs"
           editing={editing}
           siblingSource={allProperties}
+          derivedValues={derivedValues}
+          entityId={process?.id}
         />
       ),
     },

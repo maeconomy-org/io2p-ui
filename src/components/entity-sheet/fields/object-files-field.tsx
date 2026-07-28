@@ -12,29 +12,41 @@ import { AttachmentModal, ObjectFilesSection } from '../files'
  * needs an existing target), so this is the same deferred flow as property/value files — only the
  * attach level differs.
  */
+/** Every place a file bag can live on the draft — spelled out so the paths stay type-checked. */
+export type FilesPath =
+  | 'files'
+  | `inputs.${number}.files`
+  | `outputs.${number}.files`
+
 export function ObjectFilesField({
   form,
   editing,
   entityId,
   allowViewToggle,
   showEmptyState,
+  basePath = 'files',
 }: {
   form: UseFormReturn<EntityDraft>
   editing: boolean
   entityId?: string
   allowViewToggle?: boolean
   showEmptyState?: boolean
+  /**
+   * Which file bag this edits. Defaults to the entity's own; a process FLOW passes its own path, so
+   * the same section serves both instead of a near-copy per container.
+   */
+  basePath?: FilesPath
 }) {
   const [modalOpen, setModalOpen] = useState(false)
-  const files = form.watch('files') ?? []
+  const files = form.watch(basePath) ?? []
 
   const addFiles = (added: DraftFile[]) => {
-    form.setValue('files', [...files, ...added], { shouldDirty: true })
+    form.setValue(basePath, [...files, ...added], { shouldDirty: true })
   }
 
   const removeFile = (localId: string) => {
     form.setValue(
-      'files',
+      basePath,
       files.filter((f) => f._localId !== localId),
       { shouldDirty: true }
     )
@@ -48,7 +60,7 @@ export function ObjectFilesField({
     options?: { dirty?: boolean }
   ) => {
     form.setValue(
-      'files',
+      basePath,
       files.map((f) => (f._localId === localId ? { ...f, ...patch } : f)),
       { shouldDirty: options?.dirty ?? false }
     )

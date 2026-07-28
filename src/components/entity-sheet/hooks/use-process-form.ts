@@ -13,9 +13,9 @@ import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib'
 import {
   type EntityDraft,
-  buildUploadTasks,
   findEmptyPropertyKey,
   hasPendingUploads,
+  uploadTasksFrom,
 } from '@/lib/entity-body'
 import {
   EMPTY_PROCESS_DRAFT,
@@ -23,6 +23,7 @@ import {
   buildCreateProcessInput,
   buildUpdateProcessBody,
   findFlowWithoutRef,
+  resolveProcessUploadTargets,
 } from '@/lib/process-body'
 
 export interface UseProcessFormOptions {
@@ -118,10 +119,9 @@ export function useProcessForm(
       return
     }
 
-    const tasks = buildUploadTasks(
-      committed as unknown as Parameters<typeof buildUploadTasks>[0],
-      draft
-    )
+    // Flow-scoped, so a file picked inside an input attaches to THAT flow rather than to the
+    // process — io2p narrows the target with `flow: {direction, flowId}`.
+    const tasks = uploadTasksFrom(resolveProcessUploadTargets(committed, draft))
     if (tasks.length > 0) uploadQueue?.enqueue(tasks)
 
     form.reset(form.getValues())

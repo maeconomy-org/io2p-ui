@@ -10,6 +10,9 @@ import { cn } from '@/lib'
 import type { EntityDraft } from '@/lib/entity-body'
 import { QUANTITY_KEY } from '@/lib/process-body'
 
+import type { DerivedValues } from './value-provenance'
+
+import { ObjectFilesField } from './object-files-field'
 import { ObjectPicker } from './object-picker'
 import { PropertyFields } from './property-fields'
 
@@ -30,12 +33,17 @@ export function FlowsField({
   bag,
   editing,
   siblingSource,
+  derivedValues,
+  entityId,
 }: {
   form: UseFormReturn<EntityDraft>
   bag: Bag
   editing: boolean
   /** All property bags on the process — a flow formula may bind across flows (D76). */
   siblingSource?: EntityDraft['properties']
+  /** Traces for the whole process aggregate; a flow value can be derived too. */
+  derivedValues: DerivedValues
+  entityId?: string
 }) {
   const t = useTranslations()
   const { fields, append, remove } = useFieldArray({
@@ -64,6 +72,8 @@ export function FlowsField({
           index={index}
           editing={editing}
           siblingSource={siblingSource}
+          derivedValues={derivedValues}
+          entityId={entityId}
           onRemove={() => remove(index)}
         />
       ))}
@@ -84,6 +94,8 @@ function FlowRow({
   index,
   editing,
   siblingSource,
+  derivedValues,
+  entityId,
   onRemove,
 }: {
   form: UseFormReturn<EntityDraft>
@@ -91,6 +103,8 @@ function FlowRow({
   index: number
   editing: boolean
   siblingSource?: EntityDraft['properties']
+  derivedValues: DerivedValues
+  entityId?: string
   onRemove: () => void
 }) {
   const t = useTranslations()
@@ -222,21 +236,30 @@ function FlowRow({
         )}
       </div>
 
-      <CollapsibleContent className="border-t bg-muted/10 px-3 py-2">
+      <CollapsibleContent className="space-y-3 border-t bg-muted/10 px-3 py-2">
         <PropertyFields
           form={form}
           editing={editing}
-          derivedValues={NO_DERIVED_VALUES}
+          derivedValues={derivedValues}
           basePath={`${base}.properties`}
           siblingSource={siblingSource}
           label={t('objects.fields.properties')}
-          allowFiles={false}
+          allowViewToggle={false}
         />
+        {/* Flow-level files. io2p scopes an attach target with `flow: {direction, flowId}`, so these
+            belong to the FLOW, not to the process. Hidden entirely when a saved flow has none —
+            a bare "Files" heading over nothing is noise repeated on every row. */}
+        {(editing || (flow?.files?.length ?? 0) > 0) && (
+          <ObjectFilesField
+            form={form}
+            editing={editing}
+            entityId={entityId}
+            basePath={`${base}.files`}
+            allowViewToggle={false}
+            showEmptyState={false}
+          />
+        )}
       </CollapsibleContent>
     </Collapsible>
   )
 }
-
-// Flow-level derived values are read from the process aggregate, which the sheet passes down; until
-// the trace is threaded per flow there is nothing flow-specific to show.
-const NO_DERIVED_VALUES = new Map<string, never>()

@@ -155,13 +155,22 @@ export function hasPendingUploads(draft: EntityDraft): boolean {
   const any = (fs?: DraftFile[]) => (fs ?? []).some(isPendingUpload)
   // A deleted branch attaches nothing (resolveUploadTargets skips it), so counting it here would
   // only buy a pointless re-fetch of the committed tree.
-  return (
-    any(draft.files) ||
-    draft.properties.some(
+  const inProperties = (properties: DraftProperty[]) =>
+    properties.some(
       (p) =>
         !p.deleted &&
         (any(p.files) || p.values.some((v) => !v.deleted && any(v.files)))
     )
+  // Flows are containers too: a file picked inside an input needs the committed tree to resolve its
+  // flow id, so missing them here would skip the refetch and silently drop the upload.
+  const inFlows = (flows?: DraftFlow[]) =>
+    (flows ?? []).some((f) => any(f.files) || inProperties(f.properties ?? []))
+
+  return (
+    any(draft.files) ||
+    inProperties(draft.properties) ||
+    inFlows(draft.inputs) ||
+    inFlows(draft.outputs)
   )
 }
 
@@ -533,44 +542,65 @@ export interface ResolvedUpload {
   target: FileTarget
 }
 
-// After a save, pair each pending upload (a draft file with a blob and no id) with its attach target,
-// resolved against the COMMITTED object — io2p requires an upload to name an existing target. A draft
-// id is used directly; a new property/value borrows its id from `committed` (property by key, value by
-// authored position). A value whose id can't be resolved falls back to its property target so the file
-// still attaches (surfaced at the property level).
-export function resolveUploadTargets(
-  committed: ObjectDTO,
-  draft: EntityDraft
+const pendingFiles = (files?: DraftFile[]) =>
+  (files ?? []).filter(isPendingUpload)
+
+/**
+ * Pair every pending pick in ONE property container with its attach target.
+ *
+ * A container is an entity or a process FLOW — both hold `files` + `properties[].values[].files`, and
+ * io2p addresses them with the same target shape, narrowed by an optional `flow` scope. `base` is
+ * that scope, so this is written once instead of once per container kind.
+ *
+ * Ids resolve against the COMMITTED tree because io2p requires an upload to name an existing target:
+ * a draft id is used directly, a new property borrows its id by key, a new value by authored
+ * position. A value whose id can't be resolved falls back to its property target so the file still
+ * attaches rather than vanishing.
+ */
+export function containerUploads(
+  base: FileTarget,
+  committedProps: ObjectDTO['properties'],
+  draftProps: DraftProperty[],
+  draftFiles?: DraftFile[]
 ): ResolvedUpload[] {
   const out: ResolvedUpload[] = []
-  const entityId = committed.id
-  const pending = (files?: DraftFile[]) => (files ?? []).filter(isPendingUpload)
 
-  for (const f of pending(draft.files))
-    out.push({ file: f, target: { entityId } })
+  for (const f of pendingFiles(draftFiles)) out.push({ file: f, target: base })
 
-  const committedProps = committed.properties ?? []
-  for (const p of draft.properties) {
+  const committed = committedProps ?? []
+  for (const p of draftProps) {
     if (p.deleted || p.key.trim() === '') continue
     const cp = p.id
-      ? committedProps.find((x) => x.id === p.id)
-      : committedProps.find((x) => x.key === p.key)
+      ? committed.find((x) => x.id === p.id)
+      : committed.find((x) => x.key === p.key)
     const propertyId = p.id ?? cp?.id
     if (!propertyId) continue // couldn't resolve — the file stays pending, surfaced on reload
 
-    for (const f of pending(p.files)) {
-      out.push({ file: f, target: { entityId, propertyId } })
+    for (const f of pendingFiles(p.files)) {
+      out.push({ file: f, target: { ...base, propertyId } })
     }
 
     nonEmptyValues(p.values).forEach((v, i) => {
       const valueId = v.id ?? cp?.values?.[i]?.id
       const target: FileTarget = valueId
-        ? { entityId, propertyId, valueId }
-        : { entityId, propertyId }
-      for (const f of pending(v.files)) out.push({ file: f, target })
+        ? { ...base, propertyId, valueId }
+        : { ...base, propertyId }
+      for (const f of pendingFiles(v.files)) out.push({ file: f, target })
     })
   }
   return out
+}
+
+export function resolveUploadTargets(
+  committed: ObjectDTO,
+  draft: EntityDraft
+): ResolvedUpload[] {
+  return containerUploads(
+    { entityId: committed.id },
+    committed.properties,
+    draft.properties,
+    draft.files
+  )
 }
 
 export type CalcHydration =
@@ -625,7 +655,14 @@ export function buildUploadTasks(
   committed: ObjectDTO,
   draft: EntityDraft
 ): PendingUploadTask[] {
-  return resolveUploadTargets(committed, draft).map(({ file, target }) => {
+  return uploadTasksFrom(resolveUploadTargets(committed, draft))
+}
+
+/** The mapping half of `buildUploadTasks`, so a caller that resolved its own targets can reuse it. */
+export function uploadTasksFrom(
+  uploads: ResolvedUpload[]
+): PendingUploadTask[] {
+  return uploads.map(({ file, target }) => {
     const blob = file.blob!
     const fileName = file.fileName ?? blob.name
     const contentType = file.contentType || blob.type || undefined

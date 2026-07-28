@@ -63,6 +63,7 @@ export function PropertyReadView({
   entityId,
   onFileChange,
   allowFiles = true,
+  allowViewToggle = true,
 }: {
   properties: DraftProperty[]
   derivedValues: DerivedValues
@@ -70,6 +71,8 @@ export function PropertyReadView({
   onFileChange?: FileChange
   /** False for entities io2p cannot attach files to (templates) — hides every file affordance. */
   allowFiles?: boolean
+  /** False inside a flow row, where one toggle per row would repeat the same control. */
+  allowViewToggle?: boolean
 }) {
   const t = useTranslations()
   const [view, setView] = usePreference('propertiesView')
@@ -88,24 +91,26 @@ export function PropertyReadView({
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <ViewToggle
-          value={view}
-          onChange={setView}
-          options={[
-            {
-              value: 'detailed',
-              icon: List,
-              label: t('objects.properties.detailedView'),
-            },
-            {
-              value: 'grid',
-              icon: LayoutGrid,
-              label: t('objects.properties.passportView'),
-            },
-          ]}
-        />
-      </div>
+      {allowViewToggle && (
+        <div className="flex justify-end">
+          <ViewToggle
+            value={view}
+            onChange={setView}
+            options={[
+              {
+                value: 'detailed',
+                icon: List,
+                label: t('objects.properties.detailedView'),
+              },
+              {
+                value: 'grid',
+                icon: LayoutGrid,
+                label: t('objects.properties.passportView'),
+              },
+            ]}
+          />
+        </div>
+      )}
 
       {view === 'grid' ? (
         <div className="grid grid-cols-2 gap-2">
