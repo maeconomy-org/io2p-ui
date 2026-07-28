@@ -55,9 +55,11 @@ export function EntityFacts({ entity }: { entity: EntityFactsShape }) {
         </span>
       </Fact>
 
-      {/* The write counter, not an authored label — it's also the if-match token every save uses,
-          so a jump means someone else wrote in between. */}
-      <Fact label={t('objects.fields.version')}>{entity.currentVersion}</Fact>
+      {/* Labelled "revision", not "version", on purpose: this is the server's write counter and the
+          if-match token every save uses (a jump means someone else wrote in between). A template
+          also carries an AUTHORED `version` label right below these facts, and calling both
+          "Version" made one field look like two readings of the same thing. */}
+      <Fact label={t('objects.fields.revision')}>{entity.currentVersion}</Fact>
 
       <Fact label={t('objects.fields.created')}>
         {at(entity.createdAt)}

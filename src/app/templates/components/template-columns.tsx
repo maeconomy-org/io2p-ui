@@ -3,20 +3,22 @@
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { TemplateDTO } from 'io2p-client'
-import { Pencil, Trash2 } from 'lucide-react'
 
-import { Badge, Button } from '@/components/ui'
+import { Badge } from '@/components/ui'
 import {
   actionsColumn,
   idColumn,
   nameColumn,
   textColumn,
+  timestampColumn,
 } from '@/components/tables'
 
-export interface TemplateColumnActions {
-  onEdit: (template: TemplateDTO) => void
-  onDelete: (template: TemplateDTO) => void
-}
+import {
+  TemplateActionsCell,
+  type TemplateRowActions,
+} from './template-actions-cell'
+
+export type TemplateColumnActions = TemplateRowActions
 
 interface BuildTemplateColumnsOptions {
   t: (key: string) => string
@@ -36,14 +38,22 @@ export function buildTemplateColumns({
       'type',
       t('templates.fields.type'),
       (template): ReactNode => (
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="capitalize">
-            {template.type}
-          </Badge>
-          {template.system && (
-            <Badge variant="outline">{t('templates.systemBadge')}</Badge>
-          )}
-        </div>
+        <Badge variant="secondary" className="capitalize">
+          {template.type}
+        </Badge>
+      )
+    ),
+    // Who owns the template decides what can be done to it, so it earns its own column rather than
+    // riding along as a badge that only appears for one of the two cases.
+    textColumn<TemplateDTO>(
+      'owner',
+      t('templates.fields.owner'),
+      (template): ReactNode => (
+        <Badge variant={template.system ? 'secondary' : 'outline'}>
+          {template.system
+            ? t('templates.systemBadge')
+            : t('templates.userBadge')}
+        </Badge>
       )
     ),
     textColumn<TemplateDTO>(
@@ -52,30 +62,16 @@ export function buildTemplateColumns({
       (template) => template.version ?? '—'
     ),
     idColumn<TemplateDTO>((template) => template.id, t('objects.fields.uuid')),
+    // Sortable because the node sorts on createdAt server-side, like it does for objects.
+    timestampColumn<TemplateDTO>(
+      'createdAt',
+      t('objects.fields.created'),
+      (template) => template.createdAt,
+      { sortable: true }
+    ),
     actionsColumn<TemplateDTO>(
       (template): ReactNode => (
-        <div className="flex items-center justify-end gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={t('common.edit')}
-            onClick={() => actions.onEdit(template)}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          {!template.system && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label={t('common.delete')}
-              onClick={() => actions.onDelete(template)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        <TemplateActionsCell template={template} actions={actions} />
       ),
       t('common.actions')
     ),

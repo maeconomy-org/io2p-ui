@@ -22,9 +22,9 @@ import { ObjectColumnsView } from '@/components/object-columns-view'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { useObjectOperations } from '@/components/object-sheets/hooks/use-object-operations'
 
 import { buildObjectColumns } from './components/object-columns'
+import { useCreateTemplateFromObject } from './components/use-create-template-from-object'
 
 const EntitySheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
@@ -71,8 +71,6 @@ function ObjectsPageContent() {
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
   const [qrTarget, setQrTarget] = useState<ObjectDTO | null>(null)
   const [passportTarget, setPassportTarget] = useState<ObjectDTO | null>(null)
-  const [templateSource, setTemplateSource] = useState<ObjectDTO | null>(null)
-  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
   const [objectToDelete, setObjectToDelete] = useState<ObjectDTO | null>(null)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
@@ -86,10 +84,9 @@ function ObjectsPageContent() {
     clearSearch,
   } = useSearch()
 
-  const { createObject: createTemplate } = useObjectOperations({
-    isEditing: false,
-    isTemplate: true,
-  })
+  const templateFromObject = useCreateTemplateFromObject()
+  const templateSource = templateFromObject.source
+  const setTemplateSource = templateFromObject.setSource
 
   const listQuery = useEntityListQuery({ scope: 'all' })
   const { useList, useRemove, useRestore } = useObjects()
@@ -186,52 +183,6 @@ function ObjectsPageContent() {
     },
     [restoreMutation]
   )
-
-  const getInitialTemplateData = (source: ObjectDTO | null) => {
-    if (!source)
-      return { name: '', abbreviation: '', version: '1.0', description: '' }
-    return {
-      name: `${source.name} Template`,
-      abbreviation: '',
-      version: '1.0',
-      description: `Template created from ${source.name}`,
-    }
-  }
-
-  const handleConfirmTemplateCreation = async (templateData: {
-    name: string
-    abbreviation: string
-    version: string
-    description: string
-  }) => {
-    if (!templateSource) return
-    setIsCreatingTemplate(true)
-    try {
-      await createTemplate({
-        ...templateData,
-        properties:
-          templateSource.properties?.map((prop) => ({
-            key: prop.key,
-            label: prop.label || prop.key,
-            type: 'string',
-            values:
-              prop.values?.map(() => ({
-                value: 'Variable',
-                valueTypeCast: 'string',
-                files: [],
-              })) ?? [],
-            files: [],
-          })) ?? [],
-        files: [],
-        parents: [],
-      })
-      setTemplateSource(null)
-    } catch (error) {
-      logger.error('Error creating template:', error)
-    } finally {
-      setIsCreatingTemplate(false)
-    }
-  }
 
   const columns = useMemo(
     () =>
@@ -410,9 +361,9 @@ function ObjectsPageContent() {
         <TemplateCreationDialog
           open={!!templateSource}
           onOpenChange={(open) => !open && setTemplateSource(null)}
-          initialData={getInitialTemplateData(templateSource)}
-          onConfirm={handleConfirmTemplateCreation}
-          isCreating={isCreatingTemplate}
+          initialData={templateFromObject.initialData}
+          onConfirm={templateFromObject.confirm}
+          isCreating={templateFromObject.isCreating}
         />
       )}
 

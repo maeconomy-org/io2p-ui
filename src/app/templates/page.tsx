@@ -32,6 +32,10 @@ import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { logger } from '@/lib'
 
 import { buildTemplateColumns } from './components/template-columns'
+import {
+  TemplateOwnerFilter,
+  type TemplateOwnerFilterValue,
+} from './components/template-owner-filter'
 
 // Lazy-load sheet components — only rendered when opened by user interaction
 const TemplateSheet = dynamic(
@@ -63,8 +67,9 @@ export default function TemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateDTO | null>(
     null
   )
-  const [isEditingTemplate, setIsEditingTemplate] = useState(false)
+  const [openInEditMode, setOpenInEditMode] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
+  const [owner, setOwner] = useState<TemplateOwnerFilterValue>(undefined)
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [templateToDelete, setTemplateToDelete] = useState<TemplateDTO | null>(
     null
@@ -73,8 +78,9 @@ export default function TemplatesPage() {
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
 
   const listQuery = useEntityListQuery()
-  const { useList, useRemove } = useTemplates()
+  const { useList, useRemove, useRestore } = useTemplates()
   const removeMutation = useRemove()
+  const restoreMutation = useRestore()
   const { data: templatesPage, isFetching } = useList(
     {
       ...listQuery.query,
@@ -82,21 +88,35 @@ export default function TemplatesPage() {
       scope: 'all',
       q: isSearchMode ? searchQuery : undefined,
       deleted: showDeleted ? 'include' : undefined,
+      system: owner,
     },
     { keepPreviousData: true }
   )
 
   const handleAddTemplate = useCallback(() => {
     setSelectedTemplate(null)
-    setIsEditingTemplate(false)
+    setOpenInEditMode(false)
     setTemplateSheetOpen(true)
   }, [])
 
-  const handleEditTemplate = useCallback((template: TemplateDTO) => {
+  const openTemplate = useCallback((template: TemplateDTO, edit: boolean) => {
     setSelectedTemplate(template)
-    setIsEditingTemplate(true)
+    setOpenInEditMode(edit)
     setTemplateSheetOpen(true)
   }, [])
+
+  const handleRestoreTemplate = useCallback(
+    async (template: TemplateDTO) => {
+      try {
+        await restoreMutation.mutateAsync({ id: template.id })
+        toast.success(t('templates.restored'))
+      } catch (error) {
+        logger.error('Error restoring template:', error)
+        toast.error(t('templates.restoreFailed'))
+      }
+    },
+    [restoreMutation, t]
+  )
 
   const handlePageSizeChange = useCallback(
     (size: number) => {
@@ -123,9 +143,14 @@ export default function TemplatesPage() {
     () =>
       buildTemplateColumns({
         t,
-        actions: { onEdit: handleEditTemplate, onDelete: setTemplateToDelete },
+        actions: {
+          onViewDetails: (template) => openTemplate(template, false),
+          onEdit: (template) => openTemplate(template, true),
+          onDelete: setTemplateToDelete,
+          onRestore: handleRestoreTemplate,
+        },
       }),
-    [t, handleEditTemplate]
+    [t, openTemplate, handleRestoreTemplate]
   )
 
   // --- Formulas state ---
@@ -206,6 +231,7 @@ export default function TemplatesPage() {
             {/* Object Templates Tab */}
             <TabsContent value="object-templates" className="space-y-4">
               <div className="flex items-center justify-end gap-2">
+                <TemplateOwnerFilter value={owner} onChange={setOwner} />
                 <DeletedFilter
                   showDeleted={showDeleted}
                   onShowDeletedChange={setShowDeleted}
@@ -285,7 +311,8 @@ export default function TemplatesPage() {
         <TemplateSheet
           open={templateSheetOpen}
           onOpenChange={setTemplateSheetOpen}
-          templateId={isEditingTemplate ? selectedTemplate?.id : undefined}
+          templateId={selectedTemplate?.id}
+          initialEditing={openInEditMode}
         />
       )}
 

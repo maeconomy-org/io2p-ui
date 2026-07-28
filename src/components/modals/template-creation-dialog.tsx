@@ -18,9 +18,9 @@ import {
   Label,
 } from '@/components/ui'
 
+// io2p has no `abbreviation` — it was a legacy object field and is an ordinary property now.
 interface TemplateData {
   name: string
-  abbreviation: string
   version: string
   description: string
 }
@@ -43,7 +43,6 @@ export function TemplateCreationDialog({
   const t = useTranslations()
   const [templateData, setTemplateData] = useState<TemplateData>({
     name: '',
-    abbreviation: '',
     version: '',
     description: '',
   })
@@ -101,21 +100,6 @@ export function TemplateCreationDialog({
               value={templateData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder={t('objects.templateNamePlaceholder')}
-              disabled={isCreating}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="template-abbreviation">
-              {t('objects.templateAbbreviationLabel')}
-            </Label>
-            <Input
-              id="template-abbreviation"
-              value={templateData.abbreviation}
-              onChange={(e) =>
-                handleInputChange('abbreviation', e.target.value)
-              }
-              placeholder={t('objects.templateAbbreviationPlaceholder')}
               disabled={isCreating}
             />
           </div>
