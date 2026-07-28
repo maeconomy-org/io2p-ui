@@ -1,621 +1,176 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import {
-  PlusCircle,
-  Loader2,
-  Filter,
-  Layers,
-  Focus,
-  X,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react'
+import { useState, useCallback, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import type { UUID } from 'iom-sdk'
+import { PlusCircle, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
+import type { ProcessDTO } from 'io2p-client'
 
-import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
-import { usePreference } from '@/hooks'
-import { useAppConfig } from '@/contexts'
-import { useProcesses } from '@/hooks/api/use-processes'
-import { useSeedProcesses } from '@/components/processes/dev/use-seed-processes'
-import type { ProcessModelInput } from '@/components/processes/sheets/process-create-sheet'
-import { Card, CardContent, Button, Badge } from '@/components/ui'
-import {
-  LoadingState,
-  ProcessViewSelector,
-  ProcessCreateSheet,
-  RelationshipDetailsSheet,
-  DashboardView,
-  MaterialSelector,
-  ProcessTableView,
-  useSankeyDiagramData,
-} from '@/components/processes'
-
+import { Button } from '@/components/ui'
+import { DeletedFilter } from '@/components/filters'
+import { EntityTable, useEntityListQuery } from '@/components/tables'
+import { SearchResultsBar } from '@/components/search-results-bar'
+import { DeleteConfirmationDialog } from '@/components/modals'
+import { useProcesses } from '@/hooks/api/entities'
+import { useSearch } from '@/contexts'
+import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { logger } from '@/lib'
 
-// How many topological levels a single depth slice shows.
-const DEPTH_WINDOW_SIZE = 3
+import { buildProcessColumns } from './components/process-columns'
 
-// The pager advances by size − 1, so consecutive slices OVERLAP by one level. That
-// shared level is the handoff: it's the right edge of one slice and the left edge
-// of the next, so a flow crossing the border stays traceable (Concrete→Wall on one
-// page, Wall→Floor on the next). Stepping by the full size would drop those edges
-// into the gap between pages.
-const DEPTH_WINDOW_STEP = DEPTH_WINDOW_SIZE - 1
-
-// Simple loading placeholder for dynamic imports
-const DiagramLoader = () => (
-  <div className="flex items-center justify-center h-96">
-    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-  </div>
+const ProcessSheet = dynamic(
+  () => import('@/components/entity-sheet').then((mod) => mod.ProcessSheet),
+  { ssr: false }
 )
 
-// Lazy load heavy diagram components (echarts ~300KB)
-const SankeyDiagram = dynamic(
-  () =>
-    import('@/components/processes/views/sankey-view').then(
-      (mod) => mod.SankeyDiagram
-    ),
-  { loading: () => <DiagramLoader />, ssr: false }
-)
-
-const NetworkDiagram = dynamic(
-  () =>
-    import('@/components/processes/views/network-view').then(
-      (mod) => mod.NetworkDiagram
-    ),
-  { loading: () => <DiagramLoader />, ssr: false }
-)
-
-const MaterialFlowPage = () => {
+export default function ProcessesPage() {
   const t = useTranslations()
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const objectUuid = searchParams.get('objectUuid')
 
-  // Hidden helper: /processes?seedProcesses=1 reveals a minimal footer link to seed
-  // demo processes from templates (available in all environments, but undiscoverable
-  // without the query param).
-  const showSeed = searchParams.get('seedProcesses') === '1'
-  const { seed, isSeeding } = useSeedProcesses()
-  const handleSeed = useCallback(async () => {
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [selected, setSelected] = useState<ProcessDTO | null>(null)
+  const [openInEditMode, setOpenInEditMode] = useState(false)
+  const [showDeleted, setShowDeleted] = useState(false)
+  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
+  const [toDelete, setToDelete] = useState<ProcessDTO | null>(null)
+
+  const { isSearchMode, searchQuery, clearSearch } = useSearch()
+
+  const listQuery = useEntityListQuery()
+  const { useList, useRemove, useRestore } = useProcesses()
+  const removeMutation = useRemove()
+  const restoreMutation = useRestore()
+  const { data: processesPage, isFetching } = useList(
+    {
+      ...listQuery.query,
+      size: pageSize,
+      scope: 'all',
+      q: isSearchMode ? searchQuery : undefined,
+      deleted: showDeleted ? 'include' : undefined,
+    },
+    { keepPreviousData: true }
+  )
+
+  const openProcess = useCallback((process: ProcessDTO, edit: boolean) => {
+    setSelected(process)
+    setOpenInEditMode(edit)
+    setSheetOpen(true)
+  }, [])
+
+  const handleCreate = useCallback(() => {
+    setSelected(null)
+    setOpenInEditMode(false)
+    setSheetOpen(true)
+  }, [])
+
+  const handlePageSizeChange = useCallback(
+    (size: number) => {
+      setPageSize(size)
+      listQuery.setPage(1)
+    },
+    [listQuery]
+  )
+
+  const confirmDelete = useCallback(async () => {
+    if (!toDelete) return
     try {
-      const { created, skipped, unresolved } = await seed()
-      const extra = [
-        skipped ? `${skipped} skipped` : '',
-        unresolved.length ? `unresolved: ${unresolved.join(', ')}` : '',
-      ]
-        .filter(Boolean)
-        .join(' · ')
-      toast.success(`Seeded ${created} processes${extra ? ` (${extra})` : ''}`)
+      await removeMutation.mutateAsync({ id: toDelete.id })
+      toast.success(t('processes.deleted'))
     } catch (error) {
-      logger.error('Seed failed', { error })
-      toast.error('Seed failed — see console')
+      logger.error('Delete process failed', error)
+      toast.error(t('processes.deleteFailed'))
+    } finally {
+      setToDelete(null)
     }
-  }, [seed])
+  }, [toDelete, removeMutation, t])
 
-  const [selectedRelationship, setSelectedRelationship] =
-    useState<EnhancedMaterialRelationship | null>(null)
-  const [isProcessFormOpen, setIsProcessFormOpen] = useState(false)
-  const [isRelationshipSheetOpen, setIsRelationshipSheetOpen] = useState(false)
-  const [storedView, setActiveView] = usePreference('processView')
-  // Dashboard can be hidden via PROCESS_DASHBOARD_ENABLED. If it's off but the
-  // user's saved preference is 'dashboard', fall back to sankey for rendering
-  // without clobbering their stored choice (it returns if the flag is re-enabled).
-  const dashboardEnabled = useAppConfig().processDashboardEnabled === 'true'
-  const activeView =
-    storedView === 'dashboard' && !dashboardEnabled ? 'sankey' : storedView
-  const [selectedMaterialUuids, setSelectedMaterialUuids] = useState<string[]>(
-    []
-  )
-  const [isDepthLimited, setIsDepthLimited] = useState(true)
-
-  // Depth pager: which slice of topological levels is visible. 0 = levels 1–3,
-  // DEPTH_WINDOW_SIZE = levels 4–6, etc. Lets users walk a huge chain a slice at a
-  // time instead of "first 3 levels or all of it".
-  const [depthWindowStart, setDepthWindowStart] = useState(0)
-
-  // The object filter changes which graph we're looking at, so its level count can
-  // change too — snap back to the first slice to avoid landing past the new end.
-  useEffect(() => {
-    setDepthWindowStart(0)
-  }, [objectUuid])
-
-  // Node focus state: click a node to show its direct inputs & outputs (1 hop each
-  // way, via the hook's bidirectional fetch).
-  const [focusedNode, setFocusedNode] = useState<{
-    uuid: string
-    name: string
-  } | null>(null)
-
-  const clearFilter = useCallback(() => {
-    router.push('/processes')
-  }, [router])
-
-  // Data fetching with depth limiting at the fetch level. When windowed, the hook
-  // only fetches objects within the current slice, avoiding API calls for deep nodes
-  // in large graphs.
-  // The depth window is a Sankey-only concept: it's a left-to-right topological
-  // slice, which only makes sense in the layered Sankey layout. Network is
-  // force-directed and shows the WHOLE graph (cycles included) — that's its job, so
-  // it never windows. Focus still takes over on either view (its own bidirectional
-  // fetch), and Full mode shows everything.
-  const isWindowed = activeView === 'sankey' && isDepthLimited && !focusedNode
-
-  const {
-    materials: allMaterials,
-    relationships: allRelationships,
-    isLoading,
-    totalNodeCount,
-    totalLevels,
-  } = useSankeyDiagramData(objectUuid as UUID | undefined, {
-    maxDepth: isWindowed ? DEPTH_WINDOW_SIZE : undefined,
-    minDepth: isWindowed ? depthWindowStart : undefined,
-    focusNodeBidirectional: focusedNode?.uuid,
-  })
-
-  // Guard against a stale window: if the graph becomes shallower (e.g. a refetch or
-  // a different object), a previously-deep start could point past the new end, which
-  // would render an empty slice with both pager arrows disabled — a dead end. Clamp
-  // it back to the last valid slice start.
-  useEffect(() => {
-    const maxStart = Math.max(0, totalLevels - DEPTH_WINDOW_SIZE)
-    setDepthWindowStart((s) => Math.min(s, maxStart))
-  }, [totalLevels])
-
-  // "+N" badge: how many of the graph's nodes aren't rendered in the current slice.
-  // (Every node is an edge endpoint, so there are no truly-isolated nodes to skew it.)
-  const truncatedCount = isDepthLimited
-    ? Math.max(0, totalNodeCount - allMaterials.length)
-    : 0
-
-  // Depth pager bounds. Next is available while deeper levels remain unshown; the
-  // last slice simply runs to the final level (it may be shorter than a full slice).
-  // Stepping by DEPTH_WINDOW_STEP keeps a one-level overlap between adjacent slices.
-  const showDepthPager = isWindowed && totalLevels > DEPTH_WINDOW_SIZE
-  const canDepthPrev = showDepthPager && depthWindowStart > 0
-  const canDepthNext =
-    showDepthPager && depthWindowStart + DEPTH_WINDOW_SIZE < totalLevels
-  const windowFrom = depthWindowStart + 1
-  const windowTo = Math.min(depthWindowStart + DEPTH_WINDOW_SIZE, totalLevels)
-
-  // Center-button label doubles as the slice readout: the level range when there's
-  // something to page through, otherwise the plain Limited/Full state.
-  const depthCenterLabel = !isDepthLimited
-    ? t('processes.depthFull')
-    : showDepthPager
-      ? t('processes.depthWindow.label', {
-          from: windowFrom,
-          to: windowTo,
-          total: totalLevels,
-        })
-      : t('processes.depthLimited')
-
-  const handleDepthPrev = useCallback(() => {
-    setDepthWindowStart((s) => Math.max(0, s - DEPTH_WINDOW_STEP))
-  }, [])
-  const handleDepthNext = useCallback(() => {
-    setDepthWindowStart((s) => s + DEPTH_WINDOW_STEP)
-  }, [])
-
-  // Filter data based on selected materials
-  const { materials, relationships } = useMemo(() => {
-    if (selectedMaterialUuids.length === 0) {
-      return { materials: allMaterials, relationships: allRelationships }
-    }
-
-    const filteredRels = allRelationships.filter(
-      (rel) =>
-        selectedMaterialUuids.includes(rel.subject.uuid) ||
-        selectedMaterialUuids.includes(rel.object.uuid)
-    )
-
-    const involvedMaterialUuids = new Set<string>()
-    filteredRels.forEach((rel) => {
-      involvedMaterialUuids.add(rel.subject.uuid)
-      involvedMaterialUuids.add(rel.object.uuid)
-    })
-
-    return {
-      materials: allMaterials.filter((m) => involvedMaterialUuids.has(m.uuid)),
-      relationships: filteredRels,
-    }
-  }, [allMaterials, allRelationships, selectedMaterialUuids])
-
-  // Process create via the codec-backed adapter hook
-  const { useCreateProcess } = useProcesses()
-  const createProcessMutation = useCreateProcess()
-
-  const handleProcessSave = useCallback(
-    async (model: ProcessModelInput) => {
+  const handleRestore = useCallback(
+    async (process: ProcessDTO) => {
       try {
-        toast.loading(t('processes.form.createTitle'), {
-          id: 'create-process-flow',
-        })
-        await createProcessMutation.mutateAsync(model)
-        toast.success(t('processes.create'), {
-          id: 'create-process-flow',
-        })
-        setIsProcessFormOpen(false)
+        await restoreMutation.mutateAsync({ id: process.id })
+        toast.success(t('processes.restored'))
       } catch (error) {
-        logger.error('Failed to save process flow:', { error })
-        toast.error(t('processes.create'), {
-          id: 'create-process-flow',
-        })
+        logger.error('Restore process failed', error)
+        toast.error(t('processes.restoreFailed'))
       }
     },
-    [createProcessMutation, t]
+    [restoreMutation, t]
   )
 
-  const handleRelationshipSelect = useCallback(
-    (relationship: EnhancedMaterialRelationship) => {
-      // Don't set selectedRelationship to avoid diagram re-render/flicker
-      // Just open the sheet with the relationship data
-      setIsRelationshipSheetOpen(true)
-      // Set the relationship after a brief delay to avoid affecting the diagram
-      setTimeout(() => {
-        setSelectedRelationship(relationship)
-      }, 0)
-    },
-    []
+  const columns = useMemo(
+    () =>
+      buildProcessColumns({
+        t,
+        actions: {
+          onViewDetails: (p) => openProcess(p, false),
+          onEdit: (p) => openProcess(p, true),
+          onDelete: setToDelete,
+          onRestore: handleRestore,
+        },
+      }),
+    [t, openProcess, handleRestore]
   )
-
-  const handleCloseRelationshipSheet = useCallback(() => {
-    setIsRelationshipSheetOpen(false)
-    setSelectedRelationship(null)
-  }, [])
-
-  const handleCloseProcessForm = useCallback(() => {
-    setIsProcessFormOpen(false)
-  }, [])
-
-  const handleOpenProcessForm = useCallback(() => {
-    setIsProcessFormOpen(true)
-  }, [])
-
-  // Node focus: click a node to show its inputs & outputs (bidirectional 3-level fetch)
-  const handleNodeFocus = useCallback(
-    (nodeUuid: string, nodeName: string) => {
-      // If already focused on this node, clear focus
-      if (focusedNode?.uuid === nodeUuid) {
-        setFocusedNode(null)
-        return
-      }
-      setFocusedNode({ uuid: nodeUuid, name: nodeName })
-    },
-    [focusedNode]
-  )
-
-  const handleClearNodeFocus = useCallback(() => {
-    setFocusedNode(null)
-  }, [])
-
-  // Memoize diagram components to prevent unnecessary re-renders
-  // Remove selectedRelationship from dependencies to prevent flicker on selection
-  const diagramContent = useMemo(() => {
-    if (isLoading || materials.length === 0 || relationships.length === 0) {
-      return (
-        <LoadingState
-          isLoading={isLoading}
-          hasNoData={materials.length === 0 || relationships.length === 0}
-          objectUuid={objectUuid}
-          setIsProcessFormOpen={setIsProcessFormOpen}
-          variant="inline"
-        />
-      )
-    }
-
-    return activeView === 'network' ? (
-      <NetworkDiagram
-        materials={materials}
-        relationships={relationships}
-        selectedRelationship={null} // Always null to prevent visual selection
-        onLinkSelect={handleRelationshipSelect}
-        className="bg-card"
-      />
-    ) : (
-      <SankeyDiagram
-        materials={materials}
-        relationships={relationships}
-        selectedRelationship={null} // Always null to prevent visual selection
-        onLinkSelect={handleRelationshipSelect}
-        onNodeClick={handleNodeFocus}
-        className="bg-card"
-      />
-    )
-  }, [
-    materials,
-    relationships,
-    isLoading,
-    activeView,
-    objectUuid,
-    handleRelationshipSelect,
-    handleNodeFocus,
-  ])
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-6 flex flex-wrap gap-6 justify-between items-center">
-        <h1 className="text-2xl font-bold">{t('processes.title')}</h1>
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Material Filter Selector */}
-          <MaterialSelector
-            materials={allMaterials}
-            selectedMaterialUuids={selectedMaterialUuids}
-            onMaterialsChange={setSelectedMaterialUuids}
-            placeholder={t('processes.filterObjects')}
-            maxSelections={10}
-          />
-          {/* Depth control: one segmented button. The center toggles Limited(3)/Full
-              and doubles as the slice readout; the flanking arrows page through the
-              depth slices and only light up while limited and more slices exist.
-              Sankey-only — Network always shows the full graph. */}
-          {activeView === 'sankey' && (
-            <div
-              role="group"
-              aria-label={t('processes.depthWindow.groupLabel')}
-              className="inline-flex flex-shrink-0 items-center overflow-hidden rounded-md border"
-            >
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-none"
-                onClick={handleDepthPrev}
-                disabled={!canDepthPrev}
-                aria-label={t('processes.depthWindow.prev')}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant={isDepthLimited ? 'default' : 'ghost'}
-                size="sm"
-                aria-pressed={isDepthLimited}
-                onClick={() => {
-                  setIsDepthLimited((prev) => !prev)
-                  setDepthWindowStart(0)
-                }}
-                className="h-8 min-w-[8.5rem] justify-center gap-1.5 rounded-none border-x tabular-nums"
-              >
-                <Layers className="h-4 w-4" />
-                {depthCenterLabel}
-                {isDepthLimited && truncatedCount > 0 && (
-                  <Badge
-                    variant="secondary"
-                    aria-label={t('processes.depthWindow.hiddenCount', {
-                      count: truncatedCount,
-                    })}
-                    className="ml-1 h-5 px-1.5 text-[10px]"
-                  >
-                    +{truncatedCount}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-none"
-                onClick={handleDepthNext}
-                disabled={!canDepthNext}
-                aria-label={t('processes.depthWindow.next')}
-              >
-                <ChevronRight className="h-4 w-4" />
+    <>
+      <div className="container mx-auto flex-1 p-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">{t('processes.title')}</h2>
+            <div className="flex items-center gap-2">
+              <DeletedFilter
+                showDeleted={showDeleted}
+                onShowDeletedChange={setShowDeleted}
+              />
+              <Button size="sm" onClick={handleCreate}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {t('processes.create')}
               </Button>
             </div>
+          </div>
+
+          {isSearchMode && (
+            <SearchResultsBar
+              searchQuery={searchQuery}
+              resultsCount={processesPage?.page.totalElements ?? 0}
+              onClearSearch={clearSearch}
+            />
           )}
-          <ProcessViewSelector
-            view={activeView}
-            onChange={setActiveView}
-            excludedViews={dashboardEnabled ? undefined : ['dashboard']}
+
+          <EntityTable
+            columns={columns}
+            page={processesPage}
+            getRowId={(process) => process.id}
+            fetching={isFetching}
+            sort={listQuery.query.sort}
+            onSortChange={listQuery.setSort}
+            onPageChange={listQuery.setPage}
+            onPageSizeChange={handlePageSizeChange}
+            onRowClick={(process) => openProcess(process, false)}
+            emptyIcon={
+              <Workflow className="h-10 w-10 text-muted-foreground/50" />
+            }
+            emptyTitle={t('processes.empty.title')}
+            emptyDescription={t('processes.empty.description')}
           />
-          <Button
-            size="sm"
-            className="flex-shrink-0"
-            onClick={handleOpenProcessForm}
-            disabled={createProcessMutation.isPending}
-          >
-            {createProcessMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <PlusCircle className="mr-2 h-4 w-4" />
-            )}
-            {t('processes.create')}
-          </Button>
         </div>
       </div>
 
-      {/* Filter Mode Indicator */}
-      {(objectUuid || selectedMaterialUuids.length > 0) && (
-        <div className="mb-4">
-          <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/50 rounded-lg">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex flex-col gap-2 flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                  <span className="text-sm font-medium text-orange-900 dark:text-orange-200">
-                    {t('processes.filters')}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {objectUuid && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-mono text-xs"
-                    >
-                      {t('processes.object')}: {objectUuid.slice(0, 8)}...
-                    </Badge>
-                  )}
-                  {selectedMaterialUuids.map((uuid) => {
-                    const material = allMaterials.find((m) => m.uuid === uuid)
-                    return (
-                      <Badge
-                        key={uuid}
-                        variant="secondary"
-                        className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-xs"
-                      >
-                        {material?.name || `${uuid.slice(0, 8)}...`}
-                      </Badge>
-                    )
-                  })}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {selectedMaterialUuids.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedMaterialUuids([])}
-                    className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 flex-shrink-0 text-xs"
-                  >
-                    {t('processes.clearMaterials')}
-                  </Button>
-                )}
-                {objectUuid && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFilter}
-                    className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 flex-shrink-0 text-xs"
-                  >
-                    {t('processes.clearObject')}
-                  </Button>
-                )}
-                {objectUuid && selectedMaterialUuids.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedMaterialUuids([])
-                      clearFilter()
-                    }}
-                    className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 flex-shrink-0 text-xs"
-                  >
-                    {t('processes.clearAll')}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+      {sheetOpen && (
+        <ProcessSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          processId={selected?.id}
+          initialEditing={openInEditMode}
+        />
       )}
 
-      {/* Dashboard View */}
-      {activeView === 'dashboard' && (
-        <>
-          {isLoading || materials.length === 0 || relationships.length === 0 ? (
-            <LoadingState
-              isLoading={isLoading}
-              hasNoData={materials.length === 0 || relationships.length === 0}
-              objectUuid={objectUuid}
-              setIsProcessFormOpen={setIsProcessFormOpen}
-              variant="card"
-            />
-          ) : (
-            <DashboardView
-              materials={materials} // Use filtered materials
-              relationships={relationships} // Use filtered relationships for analytics
-              onCreateProcess={handleOpenProcessForm}
-            />
-          )}
-        </>
-      )}
-
-      {/* Node Focus Indicator */}
-      {focusedNode && (activeView === 'sankey' || activeView === 'network') && (
-        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Focus className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-              <span className="text-blue-900 dark:text-blue-200">
-                {t('processes.nodeFocus.viewing')}
-              </span>
-              <Badge
-                variant="secondary"
-                className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
-              >
-                {focusedNode.name}
-              </Badge>
-              <span className="text-blue-700 dark:text-blue-300 text-xs">
-                {t('processes.nodeFocus.description')}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearNodeFocus}
-              className="shrink-0 gap-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-            >
-              <X className="h-3.5 w-3.5" />
-              {t('processes.nodeFocus.clear')}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Diagram Views */}
-      {(activeView === 'sankey' || activeView === 'network') && (
-        <Card>
-          <CardContent>{diagramContent}</CardContent>
-        </Card>
-      )}
-
-      {/* Table View */}
-      {activeView === 'table' && (
-        <div className="space-y-6">
-          <LoadingState
-            isLoading={isLoading}
-            hasNoData={relationships.length === 0}
-            objectUuid={objectUuid}
-            setIsProcessFormOpen={setIsProcessFormOpen}
-            variant="card"
-          />
-          {!isLoading && relationships.length > 0 && (
-            <ProcessTableView
-              relationships={relationships}
-              selectedRelationship={null} // Remove selection highlighting from table too
-              onRelationshipSelect={handleRelationshipSelect}
-              pageSize={15}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Process Form Sheet */}
-      <ProcessCreateSheet
-        isOpen={isProcessFormOpen}
-        onClose={handleCloseProcessForm}
-        onSave={handleProcessSave}
-        isSaving={createProcessMutation.isPending}
+      <DeleteConfirmationDialog
+        open={!!toDelete}
+        onOpenChange={(open) => !open && setToDelete(null)}
+        onDelete={confirmDelete}
+        objectName={toDelete?.name ?? ''}
       />
-
-      {/* Relationship Details Sheet */}
-      <RelationshipDetailsSheet
-        relationship={selectedRelationship}
-        isOpen={isRelationshipSheetOpen}
-        onClose={handleCloseRelationshipSheet}
-      />
-
-      {/* Hidden seed helper — only when ?seedProcesses=1 (any env). Minimal footer text. */}
-      {showSeed && (
-        <div className="mt-8 border-t pt-3 text-center">
-          <button
-            type="button"
-            onClick={handleSeed}
-            disabled={isSeeding}
-            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
-          >
-            {isSeeding ? 'Seeding…' : 'Seed demo data'}
-          </button>
-        </div>
-      )}
-    </div>
+    </>
   )
 }
-
-export default MaterialFlowPage

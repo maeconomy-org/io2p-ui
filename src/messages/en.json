@@ -1097,6 +1097,17 @@
     "saveError": {
       "flowNeedsObject": "Every input and output must point at an object",
       "needsInputAndOutput": "A process needs at least one input and one output"
+    },
+    "deleted": "Process deleted",
+    "deleteFailed": "Failed to delete process",
+    "restored": "Process restored",
+    "restoreFailed": "Failed to restore process",
+    "fields": {
+      "flows": "In / Out"
+    },
+    "empty": {
+      "title": "No processes yet",
+      "description": "A process turns input objects into output objects."
     }
   },
   "templates": {

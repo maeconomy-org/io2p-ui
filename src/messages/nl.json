@@ -1097,6 +1097,17 @@
     "saveError": {
       "flowNeedsObject": "Elke invoer en uitvoer moet naar een object verwijzen",
       "needsInputAndOutput": "Een proces heeft minstens één invoer en één uitvoer nodig"
+    },
+    "deleted": "Proces verwijderd",
+    "deleteFailed": "Verwijderen van proces mislukt",
+    "restored": "Proces hersteld",
+    "restoreFailed": "Herstellen van proces mislukt",
+    "fields": {
+      "flows": "In / Uit"
+    },
+    "empty": {
+      "title": "Nog geen processen",
+      "description": "Een proces zet invoerobjecten om in uitvoerobjecten."
     }
   },
   "templates": {
