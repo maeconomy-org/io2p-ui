@@ -10,9 +10,8 @@ import {
   validateImportPayload,
   checkImportRateLimit,
   getClientIdentifier,
-  logSecurityEvent,
 } from '@/lib/security-utils'
-import { logger } from '@/lib/logger'
+import { logger, logSecurityEvent } from '@/lib/logger'
 import { processImportJob } from '@/lib/import-processor'
 import { getUserUUIDFromJWT } from '@/lib/jwt-utils'
 

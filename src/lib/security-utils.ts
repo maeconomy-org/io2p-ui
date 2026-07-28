@@ -42,19 +42,9 @@ export interface PayloadValidationResult {
   objectCount?: number
 }
 
-/**
- * Log security events using the unified logger
- */
-import { logger } from './logger'
-
-export function logSecurityEvent(
-  event: string,
-  details: Record<string, any>,
-  level: 'info' | 'warn' | 'error' = 'warn'
-) {
-  // Use unified logger instead of direct Sentry calls
-  logger.security(event, details, level)
-}
+// `logSecurityEvent` lives with the logger, not here — this file used to carry a byte-identical copy
+// that also just delegated to `logger.security`.
+import { logSecurityEvent } from './logger'
 
 /**
  * Validate import payload size and object count
