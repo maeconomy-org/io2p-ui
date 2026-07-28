@@ -101,10 +101,32 @@ export interface DraftProperty {
 }
 
 /**
+ * A process input or output: a directed edge to an existing object that carries its OWN authored
+ * data. Quantity is not a field here and never will be — io2p keeps domain semantics above the
+ * protocol (D67), so a quantity is an ordinary property on the flow, keyed by `QUANTITY_KEY`.
+ *
+ * There is deliberately NO `deleted` flag, unlike properties/values/files. Removing a flow emits
+ * `unlink`, which HARD-splices it and its whole data subtree out of the projection — there is no
+ * restore section for flows. Marking one deleted would imply a reversibility the backend does not
+ * offer, so a removed flow simply leaves the draft and the UI confirms first.
+ */
+export interface DraftFlow {
+  /** Server-minted; absent on a flow the user just added. */
+  id?: string
+  /** The object this flow points at. Retargeting keeps the flow's own data. */
+  ref: string
+  /** Resolved display name from the read model — never written back. */
+  refName?: string
+  properties: DraftProperty[]
+  files?: DraftFile[]
+}
+
+/**
  * The form contract every entity sheet edits. Facets that only some entity kinds have are optional
- * and simply left unset by the others: templates have no hierarchy or address, and objects have no
+ * and simply left unset by the others: templates have no hierarchy or address, objects have no
  * authored `version` (io2p removed that concept from objects — the sheet shows `currentVersion`,
- * the server's write counter, which is a different thing and never authored).
+ * the server's write counter, which is a different thing and never authored), and only processes
+ * have flows.
  *
  * One shape rather than one per kind is what lets the property editor, the file sections and the
  * metadata fields be written once and reused across objects, templates and processes.
@@ -118,6 +140,9 @@ export interface EntityDraft {
   files?: DraftFile[]
   /** Templates only: an authored label like "1.0". */
   version?: string | null
+  /** Processes only. A process requires at least one of each — the node rejects an empty bag. */
+  inputs?: DraftFlow[]
+  outputs?: DraftFlow[]
 }
 
 // A pending upload (blob, no id yet).
@@ -269,7 +294,7 @@ export function buildCreateObjectInput(draft: EntityDraft): CreateObjectInput {
 }
 
 // Returns `undefined` (omit — unchanged), `null` (clear), or the new value. Empty string clears.
-function scalarChange(
+export function scalarChange(
   before: string | null | undefined,
   after: string | null | undefined
 ): string | null | undefined {
@@ -325,7 +350,7 @@ type FileSections = {
  * row outright (a pending pick discarded before it ever uploaded) still reads as a removal, which is
  * right — there was nothing stored to preserve.
  */
-function diffFiles(
+export function diffFiles(
   before: ReadFile[] | undefined,
   after: DraftFile[] | undefined
 ): FileSections | undefined {
@@ -418,7 +443,7 @@ function diffValues(
   return Object.keys(sections).length ? sections : undefined
 }
 
-function diffProperties(
+export function diffProperties(
   before: ObjectDTO['properties'],
   after: DraftProperty[]
 ): UpdateProperties | undefined {

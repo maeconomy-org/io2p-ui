@@ -1076,6 +1076,27 @@
       "noProcessesForObject": "Geen I/O-processen gevonden voor het geselecteerde object.",
       "noProcessesYet": "Er zijn nog geen I/O-processen aangemaakt.",
       "createFirst": "Eerste proces aanmaken"
+    },
+    "flows": {
+      "inputs": "Invoer",
+      "outputs": "Uitvoer",
+      "quantity": "Hoeveelheid",
+      "selectObject": "Object selecteren",
+      "searchObjects": "Objecten zoeken…",
+      "noObjects": "Geen objecten gevonden",
+      "toggleDetails": "Stroomdetails tonen",
+      "add": {
+        "inputs": "Invoer toevoegen",
+        "outputs": "Uitvoer toevoegen"
+      },
+      "empty": {
+        "inputs": "Nog geen invoer",
+        "outputs": "Nog geen uitvoer"
+      }
+    },
+    "saveError": {
+      "flowNeedsObject": "Elke invoer en uitvoer moet naar een object verwijzen",
+      "needsInputAndOutput": "Een proces heeft minstens één invoer en één uitvoer nodig"
     }
   },
   "templates": {

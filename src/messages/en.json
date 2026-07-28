@@ -1076,6 +1076,27 @@
       "noProcessesForObject": "No I/O processes found for the selected object.",
       "noProcessesYet": "No I/O processes have been created yet.",
       "createFirst": "Create First Process"
+    },
+    "flows": {
+      "inputs": "Inputs",
+      "outputs": "Outputs",
+      "quantity": "Quantity",
+      "selectObject": "Select object",
+      "searchObjects": "Search objects…",
+      "noObjects": "No objects found",
+      "toggleDetails": "Toggle flow details",
+      "add": {
+        "inputs": "Add input",
+        "outputs": "Add output"
+      },
+      "empty": {
+        "inputs": "No inputs yet",
+        "outputs": "No outputs yet"
+      }
+    },
+    "saveError": {
+      "flowNeedsObject": "Every input and output must point at an object",
+      "needsInputAndOutput": "A process needs at least one input and one output"
     }
   },
   "templates": {

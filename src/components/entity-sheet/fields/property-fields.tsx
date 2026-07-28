@@ -67,7 +67,28 @@ interface PropertyFieldsProps {
    * than offering one that silently drops what it is given.
    */
   allowFiles?: boolean
+  /**
+   * Where this property bag lives on the draft. Defaults to the entity's own `properties`; a process
+   * FLOW passes its own path, which is how one editor serves objects, templates and flows instead of
+   * a near-copy per container.
+   */
+  basePath?: PropertiesPath
+  /**
+   * Values a formula in this bag may bind to. Defaults to the bag itself. A process overrides it:
+   * D76 makes calc siblings span the process's own properties AND every flow, so a flow's formula
+   * can read a value from another flow.
+   */
+  siblingSource?: EntityDraft['properties']
 }
+
+/**
+ * Every place a property bag can live on the draft. Written out rather than widened to `string` so
+ * the nested `${basePath}.${index}.key` paths stay checked.
+ */
+export type PropertiesPath =
+  | 'properties'
+  | `inputs.${number}.properties`
+  | `outputs.${number}.properties`
 
 // A new value carries a client `ref` so a sibling formula can bind to it (calc arg -> ref).
 function newValue(): DraftValue {
@@ -111,11 +132,13 @@ export function PropertyFields({
   entityId,
   label,
   allowFiles = true,
+  basePath = 'properties',
+  siblingSource,
 }: PropertyFieldsProps) {
   const t = useTranslations()
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: 'properties',
+    name: basePath,
   })
 
   // A trace names constants by id, but an editable recipe binds them by name. Only objects that
@@ -150,8 +173,8 @@ export function PropertyFields({
     const apply = (fs?: DraftFile[]) =>
       fs?.map((f) => (f._localId === localId ? { ...f, ...patch } : f))
     form.setValue(
-      'properties',
-      form.getValues('properties').map((p) => ({
+      basePath,
+      (form.getValues(basePath) ?? []).map((p) => ({
         ...p,
         files: apply(p.files),
         values: p.values.map((v) => ({ ...v, files: apply(v.files) })),
@@ -166,20 +189,20 @@ export function PropertyFields({
    * was never stored has nothing to preserve, so it just goes.
    */
   const removeProperty = (index: number) => {
-    if (form.getValues(`properties.${index}.id`)) {
-      form.setValue(`properties.${index}.deleted`, true, { shouldDirty: true })
+    if (form.getValues(`${basePath}.${index}.id`)) {
+      form.setValue(`${basePath}.${index}.deleted`, true, { shouldDirty: true })
     } else {
       remove(index)
     }
   }
 
   const restoreProperty = (index: number) =>
-    form.setValue(`properties.${index}.deleted`, false, { shouldDirty: true })
+    form.setValue(`${basePath}.${index}.deleted`, false, { shouldDirty: true })
 
   if (!editing) {
     return (
       <PropertyReadView
-        properties={form.watch('properties')}
+        properties={form.watch(basePath) ?? []}
         derivedValues={derivedValues}
         entityId={entityId}
         onFileChange={patchFile}
@@ -219,6 +242,8 @@ export function PropertyFields({
           onRemove={() => removeProperty(index)}
           onRestore={() => restoreProperty(index)}
           allowFiles={allowFiles}
+          basePath={basePath}
+          siblingSource={siblingSource}
         />
       ))}
       {!label && addButton}
@@ -239,6 +264,8 @@ function PropertyRow({
   onRemove,
   onRestore,
   allowFiles,
+  basePath,
+  siblingSource,
 }: {
   form: UseFormReturn<EntityDraft>
   index: number
@@ -249,17 +276,19 @@ function PropertyRow({
   onRemove: () => void
   onRestore: () => void
   allowFiles: boolean
+  basePath: PropertiesPath
+  siblingSource?: EntityDraft['properties']
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: `properties.${index}.values`,
+    name: `${basePath}.${index}.values`,
   })
   const [modalTarget, setModalTarget] = useState<ModalTarget | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   // New properties (no key yet) open expanded to edit; loaded ones start collapsed to stay compact.
-  const [isNew] = useState(() => !form.getValues(`properties.${index}.key`))
+  const [isNew] = useState(() => !form.getValues(`${basePath}.${index}.key`))
   const [open, setOpen] = useState(isNew)
   const nameRef = useRef<HTMLInputElement>(null)
 
@@ -280,14 +309,14 @@ function PropertyRow({
     [derivedValues]
   )
 
-  const propKey = form.watch(`properties.${index}.key`)
-  const propLabel = form.watch(`properties.${index}.label`)
-  const propDeleted = form.watch(`properties.${index}.deleted`) ?? false
+  const propKey = form.watch(`${basePath}.${index}.key`)
+  const propLabel = form.watch(`${basePath}.${index}.label`)
+  const propDeleted = form.watch(`${basePath}.${index}.deleted`) ?? false
   const valuePlaceholder =
     getValuePlaceholder(propKey, locale) ?? t('objects.propertyEditor.value')
-  const allProperties = form.watch('properties')
-  const propFiles = form.watch(`properties.${index}.files`) ?? []
-  const rowValues = allProperties[index]?.values ?? []
+  const ownProperties = form.watch(basePath) ?? []
+  const propFiles = form.watch(`${basePath}.${index}.files`) ?? []
+  const rowValues = ownProperties[index]?.values ?? []
   const fileTotal = allowFiles
     ? propFiles.length +
       rowValues.reduce((n, v) => n + (v.files?.length ?? 0), 0)
@@ -305,16 +334,16 @@ function PropertyRow({
     if (!modalTarget) return
     const path =
       modalTarget.kind === 'property'
-        ? (`properties.${index}.files` as const)
-        : (`properties.${index}.values.${modalTarget.vIndex}.files` as const)
+        ? (`${basePath}.${index}.files` as const)
+        : (`${basePath}.${index}.values.${modalTarget.vIndex}.files` as const)
     const current = form.getValues(path) ?? []
     form.setValue(path, [...current, ...files], { shouldDirty: true })
   }
 
   const removeFile = (
     path:
-      | `properties.${number}.files`
-      | `properties.${number}.values.${number}.files`,
+      | `${PropertiesPath}.${number}.files`
+      | `${PropertiesPath}.${number}.values.${number}.files`,
     localId: string
   ) => {
     const current = form.getValues(path) ?? []
@@ -407,10 +436,10 @@ function PropertyRow({
                 placeholder={t('objects.propertyEditor.namePlaceholder')}
                 value={propKey ?? ''}
                 onChange={(key, label) => {
-                  form.setValue(`properties.${index}.key`, key, {
+                  form.setValue(`${basePath}.${index}.key`, key, {
                     shouldDirty: true,
                   })
-                  form.setValue(`properties.${index}.label`, label, {
+                  form.setValue(`${basePath}.${index}.label`, label, {
                     shouldDirty: true,
                   })
                 }}
@@ -434,7 +463,7 @@ function PropertyRow({
               editing
               entityId={entityId}
               onRemove={(localId) =>
-                removeFile(`properties.${index}.files`, localId)
+                removeFile(`${basePath}.${index}.files`, localId)
               }
               onChange={onFileChange}
             />
@@ -445,7 +474,7 @@ function PropertyRow({
           <Label>{t('objects.propertyEditor.value')}</Label>
           <div className="space-y-2">
             {fields.map((field, vIndex) => {
-              const base = `properties.${index}.values.${vIndex}` as const
+              const base = `${basePath}.${index}.values.${vIndex}` as const
               const value = form.watch(base)
 
               // Same rule as properties: a stored value is marked, a never-stored one just goes.
@@ -490,7 +519,7 @@ function PropertyRow({
                         <ValueProvenanceDisplay
                           provenance={provenance}
                           labelForValue={(id) =>
-                            labelForValueId(allProperties, id)
+                            labelForValueId(siblingSource ?? ownProperties, id)
                           }
                         />
                       ) : (
@@ -637,7 +666,10 @@ function PropertyRow({
                   {isFormula && value?.calc?.formulaId && (
                     <FormulaBindings
                       calc={value.calc}
-                      siblings={collectSiblings(allProperties, selfKey)}
+                      siblings={collectSiblings(
+                        siblingSource ?? ownProperties,
+                        selfKey
+                      )}
                       onChange={(calc) =>
                         form.setValue(`${base}.calc`, calc, {
                           shouldDirty: true,

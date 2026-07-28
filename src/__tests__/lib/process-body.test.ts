@@ -1,0 +1,239 @@
+import { describe, it, expect } from 'vitest'
+import type { ProcessDTO } from 'io2p-client'
+
+import {
+  processToDraft,
+  buildCreateProcessInput,
+  buildUpdateProcessBody,
+  findFlowWithoutRef,
+  EMPTY_PROCESS_DRAFT,
+  QUANTITY_KEY,
+} from '@/lib/process-body'
+import type { EntityDraft } from '@/lib/entity-body'
+
+function flow(over: Record<string, unknown> = {}) {
+  return {
+    id: 'f1',
+    ref: 'obj-in',
+    refName: 'Scrap steel',
+    properties: [
+      {
+        id: 'fp1',
+        key: QUANTITY_KEY,
+        values: [{ id: 'fv1', data: '1000 kg', source: 'authored' }],
+      },
+    ],
+    ...over,
+  }
+}
+
+function loaded(over: Partial<ProcessDTO> = {}): ProcessDTO {
+  return {
+    id: 'proc-1',
+    name: 'Recycle batch 12',
+    currentVersion: 2,
+    properties: [],
+    inputs: [flow()],
+    outputs: [flow({ id: 'f2', ref: 'obj-out', refName: 'Billet' })],
+    ...over,
+  } as unknown as ProcessDTO
+}
+
+function draft(over: Partial<EntityDraft> = {}): EntityDraft {
+  return { ...EMPTY_PROCESS_DRAFT, name: 'Recycle batch 12', ...over }
+}
+
+describe('processToDraft', () => {
+  it('maps both flow bags, keeping ids and the resolved names', () => {
+    const d = processToDraft(loaded())
+    expect(d.inputs).toHaveLength(1)
+    expect(d.outputs).toHaveLength(1)
+    expect(d.inputs![0]).toMatchObject({
+      id: 'f1',
+      ref: 'obj-in',
+      refName: 'Scrap steel',
+    })
+  })
+
+  it("carries a flow's own properties, so quantity survives the round-trip", () => {
+    const d = processToDraft(loaded())
+    expect(d.inputs![0].properties[0]).toMatchObject({
+      id: 'fp1',
+      key: QUANTITY_KEY,
+    })
+    expect(d.inputs![0].properties[0].values[0].data).toBe('1000 kg')
+  })
+
+  // A process has neither, and leaving them unset is what keeps one draft shape usable everywhere.
+  it('leaves the object-only facets unset', () => {
+    const d = processToDraft(loaded())
+    expect(d.address).toBeNull()
+    expect(d.parentIds).toEqual([])
+  })
+})
+
+describe('buildCreateProcessInput', () => {
+  it('sends both bags even when empty, so the node reports the real validation error', () => {
+    const body = buildCreateProcessInput(draft())
+    expect(body.inputs).toEqual([])
+    expect(body.outputs).toEqual([])
+  })
+
+  it('reduces a flow with no data to just its ref', () => {
+    const body = buildCreateProcessInput(
+      draft({ inputs: [{ ref: 'obj-in', properties: [] }] })
+    )
+    expect(body.inputs).toEqual([{ ref: 'obj-in' }])
+  })
+
+  it('carries a flow quantity as an ordinary property', () => {
+    const body = buildCreateProcessInput(
+      draft({
+        inputs: [
+          {
+            ref: 'obj-in',
+            properties: [{ key: QUANTITY_KEY, values: [{ data: '1000 kg' }] }],
+          },
+        ],
+      })
+    )
+    expect(body.inputs![0].properties).toEqual([
+      { key: QUANTITY_KEY, values: [{ data: '1000 kg', ref: undefined }] },
+    ])
+  })
+
+  // A half-filled row (the user clicked Add and stopped) must not become a ref-less flow the node
+  // rejects — it just isn't a flow yet.
+  it('drops a row whose target was never picked', () => {
+    const body = buildCreateProcessInput(
+      draft({
+        inputs: [
+          { ref: '', properties: [] },
+          { ref: 'ok', properties: [] },
+        ],
+      })
+    )
+    expect(body.inputs).toEqual([{ ref: 'ok' }])
+  })
+})
+
+describe('buildUpdateProcessBody', () => {
+  it('an unchanged draft is a no-op', () => {
+    const before = loaded()
+    expect(buildUpdateProcessBody(before, processToDraft(before))).toEqual({})
+  })
+
+  it('adds a new flow', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.outputs!.push({ ref: 'obj-waste', properties: [] })
+
+    expect(buildUpdateProcessBody(before, d).outputs).toEqual({
+      add: [{ ref: 'obj-waste' }],
+    })
+  })
+
+  // Removal is an unlink — irreversible server-side, so "missing from the draft" is the only signal
+  // there is. There is no `restore` section to emit.
+  it('removes a flow dropped from the draft, and never emits restore', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.inputs = []
+
+    const body = buildUpdateProcessBody(before, d)
+    expect(body.inputs).toEqual({ remove: ['f1'] })
+    expect(body.inputs).not.toHaveProperty('restore')
+  })
+
+  it('retargets in place by sending only the changed ref', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.inputs![0].ref = 'obj-other'
+
+    expect(buildUpdateProcessBody(before, d).inputs).toEqual({
+      update: [{ flowId: 'f1', ref: 'obj-other' }],
+    })
+  })
+
+  // Re-emitting an unchanged ref would be a pointless write, and `refName` is display-only.
+  it('does not send the ref when only the flow data changed', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.inputs![0].properties[0].values[0].data = '900 kg'
+
+    const update = buildUpdateProcessBody(before, d).inputs?.update
+    expect(update?.[0]).not.toHaveProperty('ref')
+    expect(update?.[0].properties?.update?.[0].values?.update).toEqual([
+      { id: 'fv1', data: '900 kg' },
+    ])
+  })
+
+  it('adds a property to an existing flow', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.inputs![0].properties.push({
+      key: 'grade',
+      values: [{ data: 'A' }],
+    })
+
+    const update = buildUpdateProcessBody(before, d).inputs?.update
+    expect(update?.[0].properties?.add).toEqual([
+      { key: 'grade', values: [{ data: 'A', ref: undefined }] },
+    ])
+  })
+
+  it('diffs the two bags independently', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.inputs![0].ref = 'obj-other'
+
+    const body = buildUpdateProcessBody(before, d)
+    expect(body.inputs).toBeDefined()
+    expect(body.outputs).toBeUndefined()
+  })
+
+  it("still diffs the process's own properties like an object", () => {
+    const before = loaded({
+      properties: [
+        {
+          id: 'p1',
+          key: 'processType',
+          values: [{ id: 'v1', data: 'recycle', source: 'authored' }],
+        },
+      ],
+    } as unknown as Partial<ProcessDTO>)
+    const d = processToDraft(before)
+    d.properties[0].values[0].data = 'downcycle'
+
+    expect(
+      buildUpdateProcessBody(before, d).properties?.update?.[0].values?.update
+    ).toEqual([{ id: 'v1', data: 'downcycle' }])
+  })
+
+  it('renames without touching the flows', () => {
+    const before = loaded()
+    const d = processToDraft(before)
+    d.name = 'Recycle batch 13'
+
+    expect(buildUpdateProcessBody(before, d)).toEqual({
+      name: 'Recycle batch 13',
+    })
+  })
+})
+
+describe('findFlowWithoutRef', () => {
+  it('returns null when every flow has a target', () => {
+    expect(findFlowWithoutRef(processToDraft(loaded()))).toBeNull()
+  })
+
+  it('points at the offending bag and row', () => {
+    expect(
+      findFlowWithoutRef(
+        draft({
+          inputs: [{ ref: 'ok', properties: [] }],
+          outputs: [{ ref: '  ', properties: [] }],
+        })
+      )
+    ).toEqual({ bag: 'outputs', index: 0 })
+  })
+})
