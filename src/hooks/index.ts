@@ -22,7 +22,6 @@ export * from './import/use-file-processor'
 export * from './import/use-import-manager'
 
 // Process Hooks - Business logic
-export * from './process/use-object-processes'
 
 // UI Hooks - User interface state
 export * from './ui/use-debounce'
@@ -32,13 +31,3 @@ export * from './ui/use-unified-delete'
 
 // Utility Hooks - General utilities
 export * from './use-theme-shortcut'
-
-// Re-export property hooks from their consolidated location
-export {
-  usePropertyEditor,
-  usePropertyManagement,
-} from '@/components/properties'
-export type {
-  UsePropertyEditorProps,
-  UsePropertyEditorReturn,
-} from '@/components/properties'

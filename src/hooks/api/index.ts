@@ -1,7 +1,6 @@
 // Export all API hooks
 export { useObjects } from './use-objects'
 export { useProperties } from './use-properties'
-export { useStatements } from './use-statements'
 export { useUuid } from './use-uuid'
 export { useCommonApi } from './use-common-api'
 export { useAggregate } from './use-aggregate'

@@ -1,6 +1,3 @@
 export * from './use-object-data'
-export { usePropertyEditor } from '@/components/properties'
-export type { UsePropertyEditorProps } from '@/components/properties'
-export * from './use-object-operations'
 export * from './use-form-draft-persistence'
 export * from './use-object-drafts'
