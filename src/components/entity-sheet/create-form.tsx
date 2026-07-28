@@ -6,6 +6,7 @@ import type { UseFormReturn } from 'react-hook-form'
 
 import { Label, Separator } from '@/components/ui'
 import type { EntityDraft } from '@/lib/entity-body'
+import { templatePresetToDraftProperties } from '@/lib/template-body'
 
 import {
   AddressField,
@@ -50,15 +51,10 @@ export function CreateForm({
     if (choice.description) {
       form.setValue('description', choice.description, { shouldDirty: true })
     }
+    // Carries preset data, formula recipes and the refs those recipes bind to — not just the keys.
     form.setValue(
       'properties',
-      (choice.properties ?? []).map((p) => ({
-        key: p.key,
-        label: p.label,
-        description: p.description,
-        // A template supplies the shape; the values are for this object to fill in.
-        values: [{ data: '', ref: crypto.randomUUID() }],
-      })),
+      templatePresetToDraftProperties(choice.properties),
       { shouldDirty: true }
     )
   }

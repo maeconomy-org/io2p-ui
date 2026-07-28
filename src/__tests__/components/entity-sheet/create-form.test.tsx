@@ -105,7 +105,7 @@ describe('CreateForm', () => {
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
   })
 
-  it('prefills name, description and property shape from a chosen template', async () => {
+  it('prefills name, description and the full property preset from a chosen template', async () => {
     templates.list.mockResolvedValue({
       data: [
         {
@@ -130,8 +130,40 @@ describe('CreateForm', () => {
     const properties = form.getValues('properties')
     expect(properties).toHaveLength(1)
     expect(properties[0].key).toBe('height')
-    // The template gives the shape; the value belongs to this object.
-    expect(properties[0].values[0].data).toBe('')
+    // A template is a PRESET, so its values arrive as defaults the user can overwrite. Blanking them
+    // also threw away formula recipes, which is what made a templated formula show as a text box.
+    expect(properties[0].values[0].data).toBe('3')
+  })
+
+  it('carries a template formula, with its binding intact, onto the new object', async () => {
+    const calc = { formulaId: 'f-area', args: [{ var: 'h', ref: 'tmp-h' }] }
+    templates.list.mockResolvedValue({
+      data: [
+        {
+          id: 'tpl-1',
+          name: 'Wall',
+          properties: [
+            { key: 'height', values: [{ data: '', ref: 'tmp-h' }] },
+            { key: 'area', values: [{ data: '', ref: 'tmp-a', calc }] },
+          ],
+        },
+      ],
+      page: {},
+    })
+
+    const { form } = renderCreateForm()
+    fireEvent.click(screen.getAllByRole('combobox')[0])
+    await waitFor(() => expect(templates.list).toHaveBeenCalled())
+    fireEvent.click(await screen.findByText('Wall'))
+
+    await waitFor(() => expect(form.getValues('properties')).toHaveLength(2))
+    const properties = form.getValues('properties')
+    expect(properties[1].values[0].calc).toEqual(calc)
+
+    // The node resolves calc args by ref within one request, so the arg must name a ref this draft
+    // actually declares — otherwise the create 422s, or binds to nothing.
+    const declared = properties.flatMap((p) => p.values.map((v) => v.ref))
+    expect(declared).toContain(calc.args[0].ref)
   })
 
   it('does not overwrite a name the user already typed', async () => {

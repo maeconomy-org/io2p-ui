@@ -17,6 +17,7 @@ import type { DraftProperty, DraftFile, DraftValue } from '@/lib/entity-body'
 
 import { FilesDisclosure } from '../files'
 import { DeletedRow } from './deleted-row'
+import { FormulaSummary } from './formula-value-editor'
 import { ValueNormalization, formulaBoundValueIds } from './value-normalization'
 import {
   ValueProvenanceDisplay,
@@ -61,11 +62,14 @@ export function PropertyReadView({
   derivedValues,
   entityId,
   onFileChange,
+  allowFiles = true,
 }: {
   properties: DraftProperty[]
   derivedValues: DerivedValues
   entityId?: string
   onFileChange?: FileChange
+  /** False for entities io2p cannot attach files to (templates) — hides every file affordance. */
+  allowFiles?: boolean
 }) {
   const t = useTranslations()
   const [view, setView] = usePreference('propertiesView')
@@ -112,7 +116,7 @@ export function PropertyReadView({
               <div key={p.id ?? i} className="rounded-md border p-2.5">
                 <div className="flex items-center gap-1.5 text-sm font-medium">
                   <span className="truncate">{p.label || p.key}</span>
-                  {fileCount(p) > 0 && (
+                  {allowFiles && fileCount(p) > 0 && (
                     <Badge
                       variant="secondary"
                       className="h-4 shrink-0 gap-0.5 px-1 text-[10px]"
@@ -143,6 +147,7 @@ export function PropertyReadView({
               labelForValue={(id) => labelForValueId(properties, id)}
               entityId={entityId}
               onFileChange={onFileChange}
+              allowFiles={allowFiles}
             />
           ))}
         </div>
@@ -158,6 +163,7 @@ function PropertyCard({
   labelForValue,
   entityId,
   onFileChange,
+  allowFiles,
 }: {
   property: DraftProperty
   derivedValues: DerivedValues
@@ -165,10 +171,11 @@ function PropertyCard({
   labelForValue: LabelForValue
   entityId?: string
   onFileChange?: FileChange
+  allowFiles: boolean
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
-  const count = fileCount(property)
+  const count = allowFiles ? fileCount(property) : 0
 
   if (property.deleted) {
     return <DeletedRow label={property.label || property.key} />
@@ -209,12 +216,14 @@ function PropertyCard({
 
       <CollapsibleContent className="space-y-2 border-t bg-muted/10 px-3 py-2">
         {/* Property-level files first (under the header), then each value with its own files. */}
-        <FilesDisclosure
-          files={property.files ?? []}
-          editing={false}
-          entityId={entityId}
-          onChange={onFileChange}
-        />
+        {allowFiles && (
+          <FilesDisclosure
+            files={property.files ?? []}
+            editing={false}
+            entityId={entityId}
+            onChange={onFileChange}
+          />
+        )}
         {liveValues(property).length === 0 && (
           <span className="text-sm text-muted-foreground">
             {t('objects.detailsSheet.noProperties')}
@@ -229,6 +238,7 @@ function PropertyCard({
             labelForValue={labelForValue}
             entityId={entityId}
             onFileChange={onFileChange}
+            allowFiles={allowFiles}
           />
         ))}
       </CollapsibleContent>
@@ -243,6 +253,7 @@ function ValueRow({
   labelForValue,
   entityId,
   onFileChange,
+  allowFiles,
 }: {
   value: DraftValue
   derivedValues: DerivedValues
@@ -250,9 +261,10 @@ function ValueRow({
   labelForValue: LabelForValue
   entityId?: string
   onFileChange?: FileChange
+  allowFiles: boolean
 }) {
   const t = useTranslations()
-  const files = value.files ?? []
+  const files = allowFiles ? (value.files ?? []) : []
 
   if (value.deleted) {
     return <DeletedRow label={value.data || '—'} />
@@ -260,6 +272,30 @@ function ValueRow({
 
   const isDerived = !!value.id && derivedValues.has(value.id)
   const provenance = value.id ? derivedValues.get(value.id) : undefined
+
+  /**
+   * A recipe held on the value itself, with no evaluation trace beside it — that is a TEMPLATE
+   * formula, stored inert until the template is applied. It has no `data`, so without the summary
+   * the row would read "—" and look unconfigured.
+   */
+  if (value.calc?.formulaId && !provenance) {
+    return (
+      <div className="space-y-1">
+        <FormulaSummary calc={value.calc} labelForValue={labelForValue} />
+        {files.length > 0 && (
+          <div className="border-l pl-3">
+            <FilesDisclosure
+              files={files}
+              editing={false}
+              entityId={entityId}
+              onChange={onFileChange}
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-2 text-sm">

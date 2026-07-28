@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { calcFromProvenance } from '@/components/entity-sheet/fields/formula-value-editor'
+import { calcFromProvenance } from '@/lib/entity-body'
 import type { ValueProvenance } from '@/lib/entity-body'
 
 const NO_CONSTANTS = new Map<string, string>()

@@ -14,50 +14,20 @@ import {
   SelectValue,
 } from '@/components/ui'
 import { cn } from '@/lib'
-import type { ValueProvenance } from '@/lib/entity-body'
 import { useFormulas } from '@/hooks/api/leaves'
 import { safeEvaluate } from '@/components/properties/utils/formula-evaluation'
 
-/** A numeric sibling value a formula variable can bind to. `key` = existing id ?? new ref. */
+/**
+ * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
+ *
+ * `num` is OPTIONAL because a bindable value is not always filled in yet — a template preset arrives
+ * blank but already bound. Such a sibling can be selected and displayed; it just can't contribute to
+ * the live preview until it holds a number.
+ */
 export interface FormulaSibling {
   key: string
   label: string
-  num: number
-}
-
-export type CalcHydration =
-  | { ok: true; calc: CalcInput }
-  | { ok: false; reason: 'inlineExpression' | 'unknownConstant' }
-
-/**
- * Turn a read-only evaluation trace back into an EDITABLE recipe, so a derived value's formula and
- * bindings can be changed instead of being frozen at whatever it was first saved as.
- *
- * The two sides are not symmetric: a trace names its inputs by resolved id, an editable `calc` binds
- * by `ref` (a value id — the node seeds every existing id as its own ref) or by constant NAME, which
- * the trace does not carry. Rather than drop a binding it can't express — the node would then 422 on
- * the missing variable, or worse, silently rebind — this reports WHY it can't and the caller keeps
- * the value read-only.
- */
-export function calcFromProvenance(
-  provenance: ValueProvenance,
-  constantNames: ReadonlyMap<string, string>
-): CalcHydration {
-  // An inline ad-hoc expression has no formula to select, and this editor picks formulas rather
-  // than typing them — offering it would show an empty picker and lose the expression on save.
-  if (!provenance.formulaId) return { ok: false, reason: 'inlineExpression' }
-
-  const args: CalcInput['args'] = []
-  for (const arg of provenance.args) {
-    if (arg.source.kind === 'property') {
-      args.push({ var: arg.var, ref: arg.source.valueId })
-      continue
-    }
-    const name = constantNames.get(arg.source.constantId)
-    if (!name) return { ok: false, reason: 'unknownConstant' }
-    args.push({ var: arg.var, constant: name })
-  }
-  return { ok: true, calc: { formulaId: provenance.formulaId, args } }
+  num?: number
 }
 
 // The formula chooser — sits inline in the value row (replaces the text input in formula mode).
@@ -125,7 +95,9 @@ export function FormulaBindings({
     for (const v of formula.variables) {
       const ref = calc.args.find((a) => a.var === v)?.ref
       const num = siblings.find((s) => s.key === ref)?.num
-      if (num === undefined) return null // not all bound yet
+      // Unbound, or bound to a value the user hasn't filled in yet — either way there is nothing
+      // honest to preview.
+      if (num === undefined || !Number.isFinite(num)) return null
       scope[v] = num
     }
     try {
@@ -188,9 +160,11 @@ export function FormulaBindings({
                     {siblings.map((s) => (
                       <SelectItem key={s.key} value={s.key}>
                         {s.label}
-                        <span className="ml-1 text-muted-foreground">
-                          ({s.num})
-                        </span>
+                        {s.num !== undefined && (
+                          <span className="ml-1 text-muted-foreground">
+                            ({s.num})
+                          </span>
+                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -223,6 +197,68 @@ export function FormulaBindings({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * A bound recipe, read-only: which formula, and what each variable is bound to.
+ *
+ * This is what a TEMPLATE formula looks like. A template stores its recipe INERT — `source:'derived'`
+ * plus `calc`, with no `num` and no `provenance`, because it computes only when the template is
+ * applied to a real entity (E-2). So there is no trace to render and no result to show; without this
+ * the value reads as an empty string, which looks like nothing was ever configured.
+ */
+export function FormulaSummary({
+  calc,
+  labelForValue,
+}: {
+  calc: CalcInput
+  labelForValue?: (ref: string) => string | undefined
+}) {
+  const t = useTranslations()
+  const { data: formula } = useFormulas().useGet(calc.formulaId)
+
+  const bindingLabel = (variable: string): string => {
+    const arg = calc.args.find((a) => a.var === variable)
+    if (arg?.constant) return arg.constant
+    if (arg?.ref) return labelForValue?.(arg.ref) ?? t('common.unknown')
+    return t('objects.formulaEditor.unbound')
+  }
+
+  // Variables come from the formula record, so until it loads there is nothing truthful to list —
+  // showing the recipe's args instead would omit any variable the user has not bound yet.
+  const variables = formula?.variables ?? []
+
+  return (
+    <div className="space-y-1 rounded-md border bg-muted/30 px-3 py-2">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="text-sm font-medium">
+          {formula?.name ?? t('objects.propertyEditor.derived')}
+        </span>
+        {formula?.expression && (
+          <code className="font-mono text-xs text-muted-foreground">
+            {formula.expression}
+          </code>
+        )}
+      </div>
+      {variables.length > 0 && (
+        <dl className="space-y-0.5">
+          {variables.map((variable) => (
+            <div key={variable} className="flex items-baseline gap-2 text-xs">
+              <dt className="w-10 shrink-0 font-mono font-medium">
+                {variable}
+              </dt>
+              <dd className="min-w-0 truncate text-muted-foreground">
+                {bindingLabel(variable)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        {t('templates.formulaInert')}
+      </p>
     </div>
   )
 }

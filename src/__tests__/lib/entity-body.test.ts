@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   buildCreateObjectInput,
   buildUpdateObjectBody,
+  buildUploadTasks,
   dtoToDraft,
   hasPendingUploads,
   resolveUploadTargets,
@@ -691,5 +692,125 @@ describe('dtoToDraft', () => {
     } as unknown as Partial<ObjectDTO>)
 
     expect(buildUpdateObjectBody(dto, dtoToDraft(dto))).toEqual({})
+  })
+})
+
+// ── buildUploadTasks ────────────────────────────────────────────────────────
+
+describe('buildUploadTasks', () => {
+  // UploadInput is `File | {data, fileName, contentType}`; we always build the descriptor form, so
+  // narrow to it rather than widening the assertion.
+  const descriptor = (task: ReturnType<typeof buildUploadTasks>[number]) =>
+    task.file as Exclude<typeof task.file, File>
+
+  const committed = () =>
+    loaded({
+      id: 'obj-1',
+      properties: [
+        {
+          id: 'cp1',
+          key: 'spec',
+          values: [{ id: 'cv1', data: 'v', source: 'authored' }],
+        },
+      ],
+    } as unknown as Partial<ObjectDTO>)
+
+  it('returns nothing when there is nothing pending', () => {
+    expect(buildUploadTasks(committed(), draft())).toEqual([])
+  })
+
+  it('carries the blob, size and target through to the queue item', () => {
+    const blob = new File(['hello'], 'raw.pdf', { type: 'application/pdf' })
+    const tasks = buildUploadTasks(
+      committed(),
+      draft({ files: [{ _localId: 'l1', kind: 'upload', blob }] })
+    )
+
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0]).toMatchObject({
+      fileName: 'raw.pdf',
+      size: blob.size,
+      contentType: 'application/pdf',
+      file: { data: blob, fileName: 'raw.pdf' },
+      target: { entityId: 'obj-1' },
+    })
+  })
+
+  // The rename is the whole reason the task carries an explicit descriptor: the SDK would otherwise
+  // read File.name and quietly upload under the original name.
+  it('prefers the draft fileName over the blob name', () => {
+    const blob = new File(['hello'], 'DSC_0001.jpg', { type: 'image/jpeg' })
+    const [task] = buildUploadTasks(
+      committed(),
+      draft({
+        files: [
+          { _localId: 'l1', kind: 'upload', fileName: 'facade.jpg', blob },
+        ],
+      })
+    )
+
+    expect(task.fileName).toBe('facade.jpg')
+    expect(descriptor(task)).toMatchObject({
+      fileName: 'facade.jpg',
+      data: blob,
+    })
+  })
+
+  it('falls back to the blob type when the draft has no contentType', () => {
+    const blob = new File(['x'], 'a.png', { type: 'image/png' })
+    const [task] = buildUploadTasks(
+      committed(),
+      draft({ files: [{ _localId: 'l1', kind: 'upload', blob }] })
+    )
+    expect(task.contentType).toBe('image/png')
+  })
+
+  it('leaves contentType undefined rather than empty when neither side knows it', () => {
+    const blob = new File(['x'], 'a.bin', { type: '' })
+    const [task] = buildUploadTasks(
+      committed(),
+      draft({ files: [{ _localId: 'l1', kind: 'upload', blob }] })
+    )
+    expect(task.contentType).toBeUndefined()
+  })
+
+  it('gives every task a distinct id so the queue can address them', () => {
+    const mk = (n: string) => ({
+      _localId: n,
+      kind: 'upload' as const,
+      blob: new File(['x'], `${n}.pdf`),
+    })
+    const tasks = buildUploadTasks(
+      committed(),
+      draft({ files: [mk('a'), mk('b')] })
+    )
+    expect(new Set(tasks.map((t) => t.id)).size).toBe(2)
+  })
+
+  it('resolves nested targets the same way resolveUploadTargets does', () => {
+    const d = draft({
+      properties: [
+        {
+          key: 'spec',
+          values: [
+            {
+              data: 'v',
+              files: [
+                {
+                  _localId: 'l1',
+                  kind: 'upload' as const,
+                  blob: new File(['x'], 'v.pdf'),
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+    expect(buildUploadTasks(committed(), d)[0].target).toEqual({
+      entityId: 'obj-1',
+      propertyId: 'cp1',
+      valueId: 'cv1',
+    })
   })
 })

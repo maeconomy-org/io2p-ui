@@ -28,12 +28,16 @@ import {
   getValuePlaceholder,
   type PropertyDictionaryLocale,
 } from '@/constants/property-dictionary'
-import type { EntityDraft, DraftValue, DraftFile } from '@/lib/entity-body'
+import {
+  calcFromProvenance,
+  type EntityDraft,
+  type DraftValue,
+  type DraftFile,
+} from '@/lib/entity-body'
 
 import {
   FormulaSelect,
   FormulaBindings,
-  calcFromProvenance,
   type FormulaSibling,
 } from './formula-value-editor'
 import { AttachmentModal, FilesDisclosure } from '../files'
@@ -57,6 +61,12 @@ interface PropertyFieldsProps {
   entityId?: string
   /** Renders a header row (label + Add) instead of a trailing Add button — used by the create shell. */
   label?: string
+  /**
+   * False for entities io2p cannot attach files to (templates: the attach port routes through the
+   * engine registry, which holds only objects and processes). Hides every file affordance rather
+   * than offering one that silently drops what it is given.
+   */
+  allowFiles?: boolean
 }
 
 // A new value carries a client `ref` so a sibling formula can bind to it (calc arg -> ref).
@@ -64,8 +74,14 @@ function newValue(): DraftValue {
   return { data: '', ref: crypto.randomUUID() }
 }
 
-// Numeric draft values a formula can bind to: key = existing id ?? new ref. Non-numeric values
-// (pure text) are excluded — a formula can only compute over numbers.
+/**
+ * Draft values a formula can bind to: key = existing id ?? client ref.
+ *
+ * Numeric values qualify, and so do EMPTY ones — a template preset applies with its values blank but
+ * its formula already bound, and a binding whose target is absent from this list renders as unbound.
+ * That made a correctly-applied template look like it had lost its mapping. Values holding actual
+ * text stay excluded: a formula computes over numbers, and offering one would only produce NaN.
+ */
 function collectSiblings(
   properties: EntityDraft['properties'],
   selfKey: string | undefined
@@ -74,11 +90,15 @@ function collectSiblings(
   properties.forEach((p) => {
     p.values.forEach((v) => {
       const key = v.id ?? v.ref
-      if (!key || key === selfKey || v.calc) return // skip self + other formulas
-      const num = Number.parseFloat(v.data ?? '')
-      if (Number.isFinite(num)) {
-        out.push({ key, label: p.label || p.key || '—', num })
-      }
+      if (!key || key === selfKey || v.calc || v.deleted) return // skip self + other formulas
+      const text = (v.data ?? '').trim()
+      const num = Number.parseFloat(text)
+      if (text !== '' && !Number.isFinite(num)) return
+      out.push({
+        key,
+        label: p.label || p.key || '—',
+        num: Number.isFinite(num) ? num : undefined,
+      })
     })
   })
   return out
@@ -90,6 +110,7 @@ export function PropertyFields({
   derivedValues,
   entityId,
   label,
+  allowFiles = true,
 }: PropertyFieldsProps) {
   const t = useTranslations()
   const { fields, append, remove } = useFieldArray({
@@ -162,6 +183,7 @@ export function PropertyFields({
         derivedValues={derivedValues}
         entityId={entityId}
         onFileChange={patchFile}
+        allowFiles={allowFiles}
       />
     )
   }
@@ -196,6 +218,7 @@ export function PropertyFields({
           onFileChange={patchFile}
           onRemove={() => removeProperty(index)}
           onRestore={() => restoreProperty(index)}
+          allowFiles={allowFiles}
         />
       ))}
       {!label && addButton}
@@ -215,6 +238,7 @@ function PropertyRow({
   onFileChange,
   onRemove,
   onRestore,
+  allowFiles,
 }: {
   form: UseFormReturn<EntityDraft>
   index: number
@@ -224,6 +248,7 @@ function PropertyRow({
   onFileChange: (localId: string, patch: Partial<DraftFile>) => void
   onRemove: () => void
   onRestore: () => void
+  allowFiles: boolean
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
@@ -263,8 +288,10 @@ function PropertyRow({
   const allProperties = form.watch('properties')
   const propFiles = form.watch(`properties.${index}.files`) ?? []
   const rowValues = allProperties[index]?.values ?? []
-  const fileTotal =
-    propFiles.length + rowValues.reduce((n, v) => n + (v.files?.length ?? 0), 0)
+  const fileTotal = allowFiles
+    ? propFiles.length +
+      rowValues.reduce((n, v) => n + (v.files?.length ?? 0), 0)
+    : 0
   // A property worth confirming before delete: it has a name, files, or any non-empty value.
   const hasContent =
     !!propKey ||
@@ -388,26 +415,30 @@ function PropertyRow({
                   })
                 }}
               />
-              <button
-                type="button"
-                onClick={() => setModalTarget({ kind: 'property' })}
-                title={t('objects.files.attach')}
-                aria-label={t('objects.files.attach')}
-                className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <Paperclip className="h-4 w-4" />
-              </button>
+              {allowFiles && (
+                <button
+                  type="button"
+                  onClick={() => setModalTarget({ kind: 'property' })}
+                  title={t('objects.files.attach')}
+                  aria-label={t('objects.files.attach')}
+                  className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
-          <FilesDisclosure
-            files={propFiles}
-            editing
-            entityId={entityId}
-            onRemove={(localId) =>
-              removeFile(`properties.${index}.files`, localId)
-            }
-            onChange={onFileChange}
-          />
+          {allowFiles && (
+            <FilesDisclosure
+              files={propFiles}
+              editing
+              entityId={entityId}
+              onRemove={(localId) =>
+                removeFile(`properties.${index}.files`, localId)
+              }
+              onChange={onFileChange}
+            />
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -503,11 +534,13 @@ function PropertyRow({
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <FilesDisclosure
-                      files={valueFiles}
-                      editing={false}
-                      entityId={entityId}
-                    />
+                    {allowFiles && (
+                      <FilesDisclosure
+                        files={valueFiles}
+                        editing={false}
+                        entityId={entityId}
+                      />
+                    )}
                   </div>
                 )
               }
@@ -540,17 +573,19 @@ function PropertyRow({
                           {...form.register(`${base}.data`)}
                         />
                       )}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setModalTarget({ kind: 'value', vIndex })
-                        }
-                        title={t('objects.files.attach')}
-                        aria-label={t('objects.files.attach')}
-                        className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                      </button>
+                      {allowFiles && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setModalTarget({ kind: 'value', vIndex })
+                          }
+                          title={t('objects.files.attach')}
+                          aria-label={t('objects.files.attach')}
+                          className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <Paperclip className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() =>
@@ -610,13 +645,17 @@ function PropertyRow({
                       }
                     />
                   )}
-                  <FilesDisclosure
-                    files={valueFiles}
-                    editing
-                    entityId={entityId}
-                    onRemove={(localId) => removeFile(`${base}.files`, localId)}
-                    onChange={onFileChange}
-                  />
+                  {allowFiles && (
+                    <FilesDisclosure
+                      files={valueFiles}
+                      editing
+                      entityId={entityId}
+                      onRemove={(localId) =>
+                        removeFile(`${base}.files`, localId)
+                      }
+                      onChange={onFileChange}
+                    />
+                  )}
                 </div>
               )
             })}
@@ -633,11 +672,13 @@ function PropertyRow({
         </div>
       </CollapsibleContent>
 
-      <AttachmentModal
-        open={modalTarget !== null}
-        onOpenChange={(next) => !next && setModalTarget(null)}
-        onAdd={addFiles}
-      />
+      {allowFiles && (
+        <AttachmentModal
+          open={modalTarget !== null}
+          onOpenChange={(next) => !next && setModalTarget(null)}
+          onAdd={addFiles}
+        />
+      )}
     </Collapsible>
   )
 }

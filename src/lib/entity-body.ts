@@ -17,6 +17,8 @@ import type {
   FileTarget,
 } from 'io2p-client'
 
+import type { UploadTask } from '@/lib/upload-queue'
+
 export type DraftAddress = NonNullable<ObjectDTO['address']>
 
 // The enriched file shape the read model embeds on a value/property/object (presigned urls inline).
@@ -544,6 +546,75 @@ export function resolveUploadTargets(
     })
   }
   return out
+}
+
+export type CalcHydration =
+  | { ok: true; calc: CalcInput }
+  | { ok: false; reason: 'inlineExpression' | 'unknownConstant' }
+
+/**
+ * Turn a read-only evaluation trace back into an EDITABLE recipe — so a derived value's formula and
+ * bindings can be changed instead of being frozen at whatever they were first saved as, and so a
+ * template built from an object can carry that object's formulas.
+ *
+ * The two sides are not symmetric: a trace names its inputs by resolved id, an editable `calc` binds
+ * by `ref` (a value id — the node seeds every existing id as its own ref) or by constant NAME, which
+ * the trace does not carry. Rather than drop a binding it can't express — the node would then 422 on
+ * the missing variable, or worse, silently rebind — this reports WHY it can't and the caller decides.
+ */
+export function calcFromProvenance(
+  provenance: ValueProvenance,
+  constantNames: ReadonlyMap<string, string>
+): CalcHydration {
+  // An inline ad-hoc expression has no formula to select, and the editor picks formulas rather than
+  // typing them — offering it would show an empty picker and lose the expression on save.
+  if (!provenance.formulaId) return { ok: false, reason: 'inlineExpression' }
+
+  const args: CalcInput['args'] = []
+  for (const arg of provenance.args) {
+    if (arg.source.kind === 'property') {
+      args.push({ var: arg.var, ref: arg.source.valueId })
+      continue
+    }
+    const name = constantNames.get(arg.source.constantId)
+    if (!name) return { ok: false, reason: 'unknownConstant' }
+    args.push({ var: arg.var, constant: name })
+  }
+  return { ok: true, calc: { formulaId: provenance.formulaId, args } }
+}
+
+/** An upload-queue item before the queue stamps its runtime state onto it. */
+export type PendingUploadTask = Omit<
+  UploadTask,
+  'status' | 'progress' | 'retries' | 'abortController'
+>
+
+/**
+ * Turn a saved entity plus its draft into the queue items for every pending pick.
+ *
+ * Kept here, next to `resolveUploadTargets`, because every entity sheet needs exactly this and the
+ * mapping is easy to get subtly wrong — see the descriptor below. Building the tasks is pure; the
+ * enqueue is the caller's single impure line.
+ */
+export function buildUploadTasks(
+  committed: ObjectDTO,
+  draft: EntityDraft
+): PendingUploadTask[] {
+  return resolveUploadTargets(committed, draft).map(({ file, target }) => {
+    const blob = file.blob!
+    const fileName = file.fileName ?? blob.name
+    const contentType = file.contentType || blob.type || undefined
+    return {
+      id: crypto.randomUUID(),
+      fileName,
+      size: blob.size,
+      contentType,
+      // An explicit descriptor rather than the raw File: the SDK would otherwise read `File.name`,
+      // losing a rename. Renaming by rebuilding the File would copy the bytes.
+      file: { data: blob, fileName, contentType },
+      target,
+    }
+  })
 }
 
 /**

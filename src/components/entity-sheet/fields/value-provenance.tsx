@@ -131,7 +131,11 @@ export function labelForValueId(
   valueId: string
 ): string | undefined {
   for (const p of properties) {
-    if (p.values.some((v) => v.id === valueId)) return p.label || p.key
+    // Match `ref` as well as `id`: a not-yet-saved value has only a client ref, and a TEMPLATE value
+    // has its ref preserved as the thing sibling calcs bind to. Matching ids alone would leave those
+    // bindings labelled as unknown.
+    if (p.values.some((v) => v.id === valueId || v.ref === valueId))
+      return p.label || p.key
   }
   return undefined
 }

@@ -210,7 +210,8 @@
     "copy": "Kopiëren",
     "restore": "Herstellen",
     "showMore": "Meer tonen",
-    "showLess": "Minder tonen"
+    "showLess": "Minder tonen",
+    "unknown": "Onbekend"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -566,6 +567,7 @@
       "name": "Naam",
       "abbreviation": "Afkorting",
       "version": "Versie",
+      "revision": "Revisie",
       "description": "Beschrijving",
       "created": "Aangemaakt",
       "updated": "Bijgewerkt",
@@ -587,7 +589,8 @@
       "result": "Resultaat",
       "editFormula": "Formule bewerken",
       "inlineExpression": "Deze waarde gebruikt een eenmalige expressie die alleen via de API kan worden gewijzigd",
-      "unknownConstant": "Een constante die deze formule gebruikt kon niet worden gevonden"
+      "unknownConstant": "Een constante die deze formule gebruikt kon niet worden gevonden",
+      "unbound": "Niet gekoppeld"
     },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",
@@ -806,8 +809,6 @@
     "templateDialogDescription": "Configureer de sjabloondetails voordat u deze aanmaakt vanuit dit object.",
     "templateNameLabel": "Naam",
     "templateNamePlaceholder": "Voer sjabloonnaam in",
-    "templateAbbreviationLabel": "Afkorting",
-    "templateAbbreviationPlaceholder": "Voer afkorting in (optioneel)",
     "templateVersionLabel": "Versie",
     "templateVersionPlaceholder": "Voer versie in",
     "templateDescriptionLabel": "Beschrijving",
@@ -977,7 +978,11 @@
     "parentPicker": {
       "search": "Zoek bovenliggende objecten...",
       "noResults": "Geen objecten gevonden"
-    }
+    },
+    "templateNameFrom": "{name} Sjabloon",
+    "templateCreatedSuccess": "Sjabloon aangemaakt",
+    "templateAbbreviationLabel": "Afkorting",
+    "templateAbbreviationPlaceholder": "bijv. MUUR"
   },
   "processes": {
     "title": "I/O-processen",
@@ -1076,7 +1081,8 @@
   "templates": {
     "title": "Sjablonen",
     "fields": {
-      "type": "Type"
+      "type": "Type",
+      "owner": "Eigenaar"
     },
     "systemBadge": "Ingebouwd",
     "deleted": "Sjabloon verwijderd",
@@ -1109,7 +1115,12 @@
     "results": "{count} resultaat{count, plural, one {} other {en}}",
     "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",
     "clearSearch": "Zoekopdracht wissen",
-    "nameRequired": "Een sjabloon heeft een naam nodig"
+    "nameRequired": "Een sjabloon heeft een naam nodig",
+    "userBadge": "Gebruiker",
+    "systemReadOnly": "Ingebouwd sjabloon — alleen-lezen",
+    "restored": "Sjabloon hersteld",
+    "restoreFailed": "Herstellen van sjabloon mislukt",
+    "formulaInert": "Berekend wanneer dit sjabloon wordt toegepast"
   },
   "formulas": {
     "title": "Formules",

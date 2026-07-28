@@ -16,7 +16,7 @@ import {
   dtoToDraft,
   findEmptyPropertyKey,
   hasPendingUploads,
-  resolveUploadTargets,
+  buildUploadTasks,
   buildCreateObjectInput,
   buildUpdateObjectBody,
 } from '@/lib/entity-body'
@@ -90,24 +90,8 @@ export function useEntityForm(
    * that vanishes.
    */
   const attachUploads = (committed: ObjectDTO, draft: EntityDraft) => {
-    const uploads = resolveUploadTargets(committed, draft)
-    if (uploads.length === 0) return
-    uploadQueue?.enqueue(
-      uploads.map((u) => ({
-        id: crypto.randomUUID(),
-        fileName: u.file.fileName ?? u.file.blob!.name,
-        size: u.file.blob!.size,
-        contentType: u.file.contentType || u.file.blob!.type || undefined,
-        // An explicit descriptor rather than the raw File: the SDK would otherwise read
-        // `File.name`, losing a rename. Renaming by rebuilding the File would copy the bytes.
-        file: {
-          data: u.file.blob!,
-          fileName: u.file.fileName ?? u.file.blob!.name,
-          contentType: u.file.contentType || u.file.blob!.type || undefined,
-        },
-        target: u.target,
-      }))
-    )
+    const tasks = buildUploadTasks(committed, draft)
+    if (tasks.length > 0) uploadQueue?.enqueue(tasks)
   }
 
   const submit = form.handleSubmit(async (draft) => {

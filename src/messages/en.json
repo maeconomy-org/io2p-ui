@@ -210,7 +210,8 @@
     "copy": "Copy",
     "restore": "Restore",
     "showMore": "Show more",
-    "showLess": "Show less"
+    "showLess": "Show less",
+    "unknown": "Unknown"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -563,6 +564,7 @@
       "name": "Name",
       "abbreviation": "Abbreviation",
       "version": "Version",
+      "revision": "Revision",
       "description": "Description",
       "created": "Created",
       "updated": "Updated",
@@ -584,7 +586,8 @@
       "result": "Result",
       "editFormula": "Edit formula",
       "inlineExpression": "This value uses a one-off expression, which can only be changed through the API",
-      "unknownConstant": "A constant this formula uses could not be found"
+      "unknownConstant": "A constant this formula uses could not be found",
+      "unbound": "Not bound"
     },
     "detailsSheet": {
       "noParents": "No parents",
@@ -847,8 +850,6 @@
     "templateDialogDescription": "Configure the template details before creating it from this object.",
     "templateNameLabel": "Name",
     "templateNamePlaceholder": "Enter template name",
-    "templateAbbreviationLabel": "Abbreviation",
-    "templateAbbreviationPlaceholder": "Enter abbreviation (optional)",
     "templateVersionLabel": "Version",
     "templateVersionPlaceholder": "Enter version",
     "templateDescriptionLabel": "Description",
@@ -977,7 +978,11 @@
     "parentPicker": {
       "search": "Search for parent objects...",
       "noResults": "No objects found"
-    }
+    },
+    "templateNameFrom": "{name} Template",
+    "templateCreatedSuccess": "Template created",
+    "templateAbbreviationLabel": "Abbreviation",
+    "templateAbbreviationPlaceholder": "e.g. WALL"
   },
   "processes": {
     "title": "I/O Processes",
@@ -1076,7 +1081,8 @@
   "templates": {
     "title": "Templates",
     "fields": {
-      "type": "Type"
+      "type": "Type",
+      "owner": "Owner"
     },
     "systemBadge": "Built-in",
     "deleted": "Template deleted",
@@ -1109,7 +1115,12 @@
     "results": "{count} result{count, plural, one {} other {s}}",
     "resultsPage": "{count} result{count, plural, one {} other {s}} (page {page} of {pages})",
     "clearSearch": "Clear Search",
-    "nameRequired": "A template needs a name"
+    "nameRequired": "A template needs a name",
+    "userBadge": "User",
+    "systemReadOnly": "Built-in template — read only",
+    "restored": "Template restored",
+    "restoreFailed": "Failed to restore template",
+    "formulaInert": "Calculated when this template is applied"
   },
   "formulas": {
     "title": "Formulas",

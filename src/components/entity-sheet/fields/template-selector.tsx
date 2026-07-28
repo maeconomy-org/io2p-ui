@@ -17,6 +17,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { useTemplates } from '@/hooks/api/entities'
+import type { TemplatePresetProperty } from '@/lib/template-body'
 import { cn } from '@/lib'
 
 const SEARCH_SIZE = 8
@@ -25,12 +26,12 @@ export interface TemplateChoice {
   id: string
   name: string
   description?: string
-  properties?: {
-    key: string
-    label?: string
-    description?: string
-    values: { data?: string }[]
-  }[]
+  /**
+   * The full preset, not just the keys. A template value carries `ref` and `calc` as well as `data` —
+   * its formula recipe, and the ref that recipe binds to. Typing these as `{data}` alone is what made
+   * the create form silently drop every formula a template held.
+   */
+  properties?: TemplatePresetProperty[]
 }
 
 /**
