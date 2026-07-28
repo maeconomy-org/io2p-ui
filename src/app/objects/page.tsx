@@ -13,7 +13,6 @@ import { useObjects } from '@/hooks/api/entities'
 import { useSearch } from '@/contexts'
 import { logger } from '@/lib'
 import ProtectedRoute from '@/components/protected-route'
-import InitialLoginTour from '@/components/onboarding/initial-login-tour'
 import { Button } from '@/components/ui'
 import { DeletedFilter } from '@/components/filters'
 import { SearchResultsBar } from '@/components/search-results-bar'
@@ -49,6 +48,12 @@ const QRCodeModal = dynamic(
     import('@/components/modals/qr-code-modal').then((mod) => mod.QRCodeModal),
   { ssr: false }
 )
+// Also driver.js — only ever runs once, on a first login.
+const InitialLoginTour = dynamic(
+  () => import('@/components/onboarding/initial-login-tour'),
+  { ssr: false }
+)
+
 const TemplateCreationDialog = dynamic(
   () => import('@/components/modals').then((mod) => mod.TemplateCreationDialog),
   { ssr: false }

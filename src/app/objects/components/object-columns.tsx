@@ -5,13 +5,14 @@ import type { ColumnDef } from '@tanstack/react-table'
 import type { ObjectDTO } from 'io2p-client'
 
 import {
-  ObjectActionsCell,
   actionsColumn,
   idColumn,
   nameColumn,
   selectColumn,
   timestampColumn,
 } from '@/components/tables'
+
+import { ObjectActionsCell } from './object-actions-cell'
 
 export interface ObjectColumnActions {
   onViewDetails: (object: ObjectDTO) => void
@@ -64,14 +65,7 @@ export function buildObjectColumns({
       (o): ReactNode => (
         <ObjectActionsCell
           object={o}
-          isDeleted={o.deleted}
-          onViewDetails={actions.onViewDetails}
-          onShowQRCode={actions.onShowQRCode}
-          onViewPassport={actions.onViewPassport}
-          onDuplicate={actions.onDuplicate}
-          onCreateTemplate={actions.onCreateTemplate}
-          onDelete={actions.onDelete}
-          onRestore={actions.onRestore}
+          actions={actions}
           isDeleting={isDeleting}
           isRestoring={isRestoring}
           readOnly={readOnly}

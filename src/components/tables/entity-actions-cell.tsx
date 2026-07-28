@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui'
+import { cn } from '@/lib'
 
 export interface EntityRowAction {
   /** Stable key; also the `data-testid` suffix. */
@@ -59,6 +60,10 @@ export const EntityActionsCell = memo(function EntityActionsCell({
     fn()
   }
 
+  // Nothing to put in the menu and nothing to say about why — drop the trigger rather than open an
+  // empty dropdown. This is the read-only case (a viewer, a system-owned row).
+  const hasMenu = actions.length > 0 || !!emptyMenuLabel
+
   return (
     <div className="flex justify-end">
       <div className="inline-flex items-center rounded-md border">
@@ -66,40 +71,45 @@ export const EntityActionsCell = memo(function EntityActionsCell({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 rounded-r-none border-r px-2.5 text-xs"
+          className={cn(
+            'h-7 px-2.5 text-xs',
+            hasMenu && 'rounded-r-none border-r'
+          )}
           onClick={stop(onViewDetails)}
           data-testid={`${testIdPrefix}-details-button`}
         >
           {detailsLabel ?? t('objects.viewDetails')}
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-l-none"
-              aria-label={t('common.actions')}
-              onClick={(e) => e.stopPropagation()}
-              data-testid={`${testIdPrefix}-actions-dropdown`}
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {actions.length === 0 && emptyMenuLabel && (
-              <DropdownMenuItem disabled>{emptyMenuLabel}</DropdownMenuItem>
-            )}
-            {actions.map((action) => (
-              <ActionItem
-                key={action.key}
-                action={action}
-                testIdPrefix={testIdPrefix}
-                onSelect={stop(action.onSelect)}
-              />
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {hasMenu && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-l-none"
+                aria-label={t('common.actions')}
+                onClick={(e) => e.stopPropagation()}
+                data-testid={`${testIdPrefix}-actions-dropdown`}
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {actions.length === 0 && emptyMenuLabel && (
+                <DropdownMenuItem disabled>{emptyMenuLabel}</DropdownMenuItem>
+              )}
+              {actions.map((action) => (
+                <ActionItem
+                  key={action.key}
+                  action={action}
+                  testIdPrefix={testIdPrefix}
+                  onSelect={stop(action.onSelect)}
+                />
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </div>
   )
