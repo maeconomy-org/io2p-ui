@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   CopyButton,
+  Skeleton,
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
 import {
@@ -34,7 +35,7 @@ import { ThemeDropdownItem } from '@/components/ui/theme-toggle'
 
 export function UserProfileDropdown() {
   const t = useTranslations()
-  const { userInfo, logout, userId } = useAuth()
+  const { userInfo, logout, userId, authLoading } = useAuth()
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
@@ -72,9 +73,17 @@ export function UserProfileDropdown() {
         >
           <User className="h-4 w-4 text-primary" />
           <div className="flex flex-col items-start text-left">
-            <span className="text-sm font-medium max-w-32 truncate leading-tight">
-              {displayIdentity}
-            </span>
+            {/* While the session is resolving there is no identity yet, and the
+                `t('nav.user')` fallback would render a plausible-but-wrong name
+                that swaps once /me lands. A skeleton says "not known yet"
+                instead of asserting something false. */}
+            {authLoading && !userInfo ? (
+              <Skeleton className="h-4 w-24" />
+            ) : (
+              <span className="text-sm font-medium max-w-32 truncate leading-tight">
+                {displayIdentity}
+              </span>
+            )}
           </div>
           <ChevronDown className="h-3 w-3 text-muted-foreground ml-1" />
         </Button>

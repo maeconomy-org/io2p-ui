@@ -48,9 +48,16 @@ function jwtExpMs(token: string): number {
   }
 }
 
+// The mint currently in flight, if any. Without this, two callers that both miss
+// the cache each fire their own request: the result cache is only written AFTER
+// the fetch resolves, so it can't dedupe concurrent callers. Running /me in
+// parallel with the first list query made that race routine rather than rare.
+let inFlight: Promise<string> | null = null
+
 /** Drop the cached core token (call on logout / identity switch). */
 export function clearCoreToken(): void {
   cachedToken = null
+  inFlight = null
 }
 
 /**
@@ -67,6 +74,28 @@ export async function getCoreToken(opts?: {
     return cachedToken.token
   }
 
+  // Join the mint already running rather than starting a second one. `force`
+  // (the client's one-shot 401 retry) deliberately bypasses this — it is asking
+  // for a NEW token precisely because the in-flight/cached one was rejected.
+  if (!opts?.force && inFlight) {
+    return inFlight
+  }
+
+  const promise = mintCoreToken(now)
+  if (!opts?.force) {
+    inFlight = promise
+    // Clear on settle either way: a failed mint must not pin every later caller
+    // to the same rejection. Two handlers rather than `.finally()` — that would
+    // derive a NEW promise which rejects unobserved when the mint fails.
+    const clear = () => {
+      if (inFlight === promise) inFlight = null
+    }
+    promise.then(clear, clear)
+  }
+  return promise
+}
+
+async function mintCoreToken(now: number): Promise<string> {
   const base = getCachedConfig()?.authBaseUrl ?? ''
   // Config is read at call time from the inline __IOM_CONFIG__ script. If that
   // script is ever deferred, moved out of <head>, or CSP-blocked, `base` is ''

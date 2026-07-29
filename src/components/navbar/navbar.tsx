@@ -87,8 +87,13 @@ export default function Navbar() {
                     : t('common.search') + '...'}
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0">
+                  {/* Fixed width: the server snapshot renders 'Ctrl' and the
+                      client may swap to '⌘'. suppressHydrationWarning silences
+                      the warning but not the reflow — 4 glyphs to 1 visibly
+                      shifts the hint. Reserving the wider box makes the swap
+                      invisible. */}
                   <kbd
-                    className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm"
+                    className="min-w-[1.9rem] px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm text-center"
                     suppressHydrationWarning
                   >
                     {isMac ? '⌘' : 'Ctrl'}

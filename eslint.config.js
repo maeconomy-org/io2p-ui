@@ -140,6 +140,11 @@ export default [
       '**/*.d.ts',
       'coverage/**',
       '.turbo/**',
+      // Gitignored working directories — scratch scripts and notes, not code we
+      // ship. `lint` widened from src/** to the whole repo, which otherwise
+      // starts reporting on files git doesn't track.
+      'docs/**',
+      'internal-docs/**',
     ],
   },
 ]

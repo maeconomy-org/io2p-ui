@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
   CopyButton,
+  Skeleton,
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
 import { cn } from '@/lib'
@@ -79,7 +80,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export function AccountDetails() {
   const t = useTranslations('settings.account')
   const locale = useLocale()
-  const { userInfo, userId } = useAuth()
+  const { userInfo, userId, authLoading } = useAuth()
 
   const isEmailAuth = userInfo?.identifierType === 'UserAuthUP'
   const cert = userInfo?.certificateInfo
@@ -97,82 +98,106 @@ export function AccountDetails() {
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="divide-y">
-        {userId && (
-          <Row label={t('userId')}>
-            <span className="flex items-center gap-2">
-              <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs">
-                {userId}
-              </code>
-              <CopyButton text={userId} className="h-6 w-6 p-0" />
-            </span>
-          </Row>
-        )}
-
-        <Row label={t('authType')}>
-          <span className="inline-flex items-center gap-1.5">
-            {isEmailAuth ? (
-              <>
-                <Mail className="h-3.5 w-3.5 text-blue-600" aria-hidden />
-                {t('email')}
-              </>
-            ) : (
-              <>
-                <Shield className="h-3.5 w-3.5 text-green-600" aria-hidden />
-                {t('certificate')}
-              </>
+        {/* Until the session resolves, `userInfo` is null — which makes
+            `isEmailAuth` false and renders the CERTIFICATE branch as though it
+            were known, then flips to Email. Rows also appear one by one as
+            their data arrives, growing the card. Hold the whole body until the
+            identity is known: one honest wait instead of a wrong answer plus
+            three layout shifts. */}
+        {authLoading && !userInfo ? (
+          <div className="space-y-4 py-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between gap-4">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-44" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {userId && (
+              <Row label={t('userId')}>
+                <span className="flex items-center gap-2">
+                  <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs">
+                    {userId}
+                  </code>
+                  <CopyButton text={userId} className="h-6 w-6 p-0" />
+                </span>
+              </Row>
             )}
-          </span>
-        </Row>
 
-        {userInfo?.email && (
-          <Row label={t('emailAddress')}>
-            <span className="flex items-center gap-2">
-              {userInfo.email}
-              <Badge
-                variant="outline"
-                className={cn(
-                  'text-[10px]',
-                  userInfo.emailVerified
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-amber-600 dark:text-amber-400'
+            <Row label={t('authType')}>
+              <span className="inline-flex items-center gap-1.5">
+                {isEmailAuth ? (
+                  <>
+                    <Mail className="h-3.5 w-3.5 text-blue-600" aria-hidden />
+                    {t('email')}
+                  </>
+                ) : (
+                  <>
+                    <Shield
+                      className="h-3.5 w-3.5 text-green-600"
+                      aria-hidden
+                    />
+                    {t('certificate')}
+                  </>
                 )}
-              >
-                {userInfo.emailVerified ? t('verified') : t('unverified')}
-              </Badge>
-            </span>
-          </Row>
-        )}
+              </span>
+            </Row>
 
-        {userInfo?.username && (
-          <Row label={t('username')}>{userInfo.username}</Row>
-        )}
+            {userInfo?.email && (
+              <Row label={t('emailAddress')}>
+                <span className="flex items-center gap-2">
+                  {userInfo.email}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px]',
+                      userInfo.emailVerified
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-amber-600 dark:text-amber-400'
+                    )}
+                  >
+                    {userInfo.emailVerified ? t('verified') : t('unverified')}
+                  </Badge>
+                </span>
+              </Row>
+            )}
 
-        <Row label={t('createdAt')}>{createdAt ?? t('notAvailable')}</Row>
+            {userInfo?.username && (
+              <Row label={t('username')}>{userInfo.username}</Row>
+            )}
 
-        {!isEmailAuth && certName && (
-          <Row label={t('certificateName')}>{certName}</Row>
-        )}
-        {!isEmailAuth && issuer && <Row label={t('issuer')}>{issuer}</Row>}
-        {!isEmailAuth && validFrom && (
-          <Row label={t('validFrom')}>{validFrom}</Row>
-        )}
-        {!isEmailAuth && validTo && <Row label={t('validTo')}>{validTo}</Row>}
-        {!isEmailAuth && expiry && (
-          <Row label={t('expiresIn')}>
-            <span
-              className={cn(
-                'inline-flex items-center gap-1.5 font-semibold',
-                EXPIRY_CLASS[expiry.severity]
-              )}
-            >
-              {expiry.severity === 'ok' ? (
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-              ) : (
-                <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-              )}
-              {expiry.text}
-            </span>
-          </Row>
+            <Row label={t('createdAt')}>{createdAt ?? t('notAvailable')}</Row>
+
+            {!isEmailAuth && certName && (
+              <Row label={t('certificateName')}>{certName}</Row>
+            )}
+            {!isEmailAuth && issuer && <Row label={t('issuer')}>{issuer}</Row>}
+            {!isEmailAuth && validFrom && (
+              <Row label={t('validFrom')}>{validFrom}</Row>
+            )}
+            {!isEmailAuth && validTo && (
+              <Row label={t('validTo')}>{validTo}</Row>
+            )}
+            {!isEmailAuth && expiry && (
+              <Row label={t('expiresIn')}>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 font-semibold',
+                    EXPIRY_CLASS[expiry.severity]
+                  )}
+                >
+                  {expiry.severity === 'ok' ? (
+                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                  ) : (
+                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+                  )}
+                  {expiry.text}
+                </span>
+              </Row>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

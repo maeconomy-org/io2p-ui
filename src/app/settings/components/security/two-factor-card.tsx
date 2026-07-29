@@ -234,11 +234,11 @@ export function TwoFactorCard() {
               )}
             </div>
           )}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label htmlFor="tfa-code" className="block">
               {t('twoFactor.codeLabel')}
             </Label>
-            <div className="flex justify-center">
+            <div className="flex justify-center pb-1">
               <InputOTP
                 id="tfa-code"
                 maxLength={6}

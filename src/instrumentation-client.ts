@@ -8,12 +8,17 @@ import {
   beforeSend,
   tracesSampler,
 } from '@/lib/sentry-config'
+import { getCachedConfig } from '@/constants/client'
 
-// Fetch Sentry DSN from runtime config and initialize
-async function initSentry() {
+// Read the DSN from the inline __IOM_CONFIG__ script rather than fetching
+// /api/config. The script runs in <head> before this module, so the config is
+// already present — the fetch was a round trip for data sitting in the page,
+// and it delayed Sentry init past the errors most worth catching (those thrown
+// during hydration).
+function initSentry() {
   try {
-    const res = await fetch('/api/config')
-    const config = await res.json()
+    const config = getCachedConfig()
+    if (!config) return
 
     // Only initialize in production or when explicitly enabled for testing
     const shouldInit =
