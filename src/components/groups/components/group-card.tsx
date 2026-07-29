@@ -16,14 +16,13 @@ import {
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import type { GroupCreateDTO, GroupPermission } from 'iom-sdk'
+import type { GroupCreateDTO } from 'iom-sdk'
 
 import {
   Button,
   Badge,
   Input,
   Card,
-  CardContent,
   CardHeader,
   HoverCard,
   HoverCardContent,
@@ -66,11 +65,8 @@ export const GroupCard = memo(function GroupCard({
   const sharedUsersCount = usersShare.length
 
   // Resolve effective permissions (user-specific > public group-level > none)
-  const {
-    permissions: currentUserPermissions,
-    isOwner,
-    source: permSource,
-  } = getEffectivePermissions(group, userId)
+  const { permissions: currentUserPermissions, isOwner } =
+    getEffectivePermissions(group, userId)
 
   // Can edit group if owner or has GROUP_WRITE permission
   const canWrite = isOwner || canEditGroup(currentUserPermissions)

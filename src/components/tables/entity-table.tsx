@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import type {
   ColumnDef,
   OnChangeFn,
@@ -56,7 +56,10 @@ export function EntityTable<T>({
   onSortChange,
   ...rest
 }: EntityTableProps<T>) {
-  const data = page?.data ?? []
+  // TanStack Table rebuilds its row model whenever `data` changes identity, and
+  // `?? []` minted a fresh array on every render while `page` was undefined —
+  // i.e. throughout loading, when the table is already doing the most work.
+  const data = useMemo(() => page?.data ?? [], [page])
   const meta = pageMeta(page)
 
   const emit = (page1Based: number) => {

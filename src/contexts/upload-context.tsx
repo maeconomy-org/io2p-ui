@@ -13,11 +13,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
-import {
-  FileUploadService,
-  FileUploadTask,
-  useUploadService,
-} from '@/lib/upload-service'
+import { FileUploadTask, useUploadService } from '@/lib/upload-service'
 import { installTestHooks } from '@/lib/test-hooks'
 import { queryKeys } from '@/lib/query-keys'
 import { logger } from '@/lib'

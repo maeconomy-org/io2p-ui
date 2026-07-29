@@ -1,6 +1,5 @@
 'use client'
 
-import { useMemo } from 'react'
 import { createClient, type Io2pClient } from 'io2p-client'
 
 import { getCachedConfig } from '@/constants/client'
@@ -23,12 +22,24 @@ export function createIo2pClient(baseUrl: string): Io2pClient {
   })
 }
 
+// One client PER ORIGIN, not per component. `useMemo` is per component
+// instance, so the previous version built a fresh Io2pClient in every hook that
+// called this — and createEntityHooks calls it in all six of
+// useList/useGet/useCreate/useUpdate/useRemove/useRestore, so a single list page
+// stood up four or more. Keyed by baseUrl, this still honours "one client per
+// node" (the old SDK's module-singleton trap was a single client for ALL nodes).
+const clientsByOrigin = new Map<string, Io2pClient>()
+
 /**
  * The io2p-client seam every migrated data hook consumes — distinct from the
  * dormant `useIomSdkClient` (old iom-sdk) that un-migrated hooks still use.
- * Memoized on the core origin from runtime config.
  */
 export function useIomClient(): Io2pClient {
   const baseUrl = getCachedConfig()?.coreBaseUrl ?? ''
-  return useMemo(() => createIo2pClient(baseUrl), [baseUrl])
+  let client = clientsByOrigin.get(baseUrl)
+  if (!client) {
+    client = createIo2pClient(baseUrl)
+    clientsByOrigin.set(baseUrl, client)
+  }
+  return client
 }

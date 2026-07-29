@@ -6,6 +6,7 @@ import { NextIntlClientProvider } from 'next-intl'
 
 import { DEFAULT_TIME_ZONE } from '@/i18n/routing'
 
+import type { ClientConfig } from '@/constants'
 import { Toaster } from '@/components/ui/sonner'
 import {
   QueryProvider,
@@ -20,6 +21,7 @@ interface ProvidersProps {
   children: ReactNode
   messages: Record<string, unknown>
   locale: string
+  config: ClientConfig
 }
 
 /**
@@ -35,7 +37,12 @@ interface ProvidersProps {
  *
  * Auth state itself has no provider — better-auth's useSession is global.
  */
-export function Providers({ children, messages, locale }: ProvidersProps) {
+export function Providers({
+  children,
+  messages,
+  locale,
+  config,
+}: ProvidersProps) {
   return (
     <NextThemesProvider
       attribute="class"
@@ -48,7 +55,7 @@ export function Providers({ children, messages, locale }: ProvidersProps) {
         messages={messages}
         timeZone={DEFAULT_TIME_ZONE}
       >
-        <QueryProvider>
+        <QueryProvider config={config}>
           <InnerProviders>{children}</InnerProviders>
         </QueryProvider>
         <Toaster />

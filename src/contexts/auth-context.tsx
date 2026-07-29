@@ -73,6 +73,7 @@ function mapAccount(user: SessionUser): AuthResponse {
  */
 export function useAuth() {
   const router = useRouter()
+  const pathname = usePathname()
   const queryClient = useQueryClient()
   const iom = useIomClient()
 
@@ -80,11 +81,17 @@ export function useAuth() {
   const sessionUser = (session?.user as SessionUser | undefined) ?? null
   const isAuthenticated = !!sessionUser
 
-  // Primary post-login query — fires as soon as a session exists.
+  // Strictly ADDITIVE to the old `enabled: isAuthenticated`: it never removes a
+  // fetch, it only starts one earlier. `users.me()` needs a core token, which
+  // needs the session *cookie* — not the resolved session *object*. On a
+  // protected route the proxy already guaranteed that cookie exists, so firing
+  // while the session is still pending runs /me in PARALLEL with it instead of
+  // after it, removing a serial round trip from every protected page load.
+  const onProtectedRoute = !PUBLIC_PAGES_SET.has(pathname)
   const { data: coreUser, isPending: mePending } = useQuery({
     queryKey: queryKeys.users.current,
     queryFn: () => iom.users.me(),
-    enabled: isAuthenticated,
+    enabled: isAuthenticated || (isPending && onProtectedRoute),
     staleTime: Infinity,
   })
 
@@ -135,6 +142,12 @@ export function useAuth() {
     }
   }
 
+  // Deliberately NOT memoized. Every consumer destructures a primitive
+  // (`userId`, `userInfo`, `authLoading`) or calls a handler from an event —
+  // none put the bag or the handlers in a dependency array. Memoizing would buy
+  // nothing and cost a hand-maintained dep list, which is a stale-closure risk
+  // while `react-hooks/exhaustive-deps` is off. The React Compiler does this
+  // correctly and automatically once it's enabled.
   return {
     isAuthenticated,
     // Auth is "ready" only once BOTH the session and the core identity resolve,

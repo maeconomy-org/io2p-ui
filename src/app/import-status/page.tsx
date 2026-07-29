@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Loader2,
@@ -59,7 +59,7 @@ function formatJobStatus(job: any): string {
   )
 }
 
-export default function ImportStatusPage() {
+function ImportStatusContent() {
   const t = useTranslations()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -497,5 +497,18 @@ export default function ImportStatusPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * `useSearchParams` opts the whole route out of prerendering unless it sits
+ * under a Suspense boundary — Next bails the segment to client-side rendering
+ * instead. Mirrors the boundary reset-password already uses.
+ */
+export default function ImportStatusPage() {
+  return (
+    <Suspense fallback={<ContentSkeleton />}>
+      <ImportStatusContent />
+    </Suspense>
   )
 }

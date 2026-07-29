@@ -5,7 +5,7 @@ import { getMessages, getLocale } from 'next-intl/server'
 
 import { Providers } from '@/components/providers'
 import ClientLayout from '@/components/client-layout'
-import { buildInlineConfigScript } from '@/constants/client'
+import { buildInlineConfigScript, buildRuntimeConfig } from '@/constants/client'
 
 export const metadata: Metadata = {
   title: process.env.APP_NAME || 'Internet of Materials',
@@ -21,6 +21,10 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale()
   const messages = await getMessages()
+  // Built once per request: handed to Providers so the client tree knows its
+  // config on the FIRST render, and serialized into the inline script for the
+  // module-scope readers (auth-client, upload-service) that run before React.
+  const config = buildRuntimeConfig()
 
   return (
     <html
@@ -31,7 +35,7 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: buildInlineConfigScript(),
+            __html: buildInlineConfigScript(config),
           }}
         />
       </head>
@@ -39,6 +43,7 @@ export default async function RootLayout({
         <Providers
           locale={locale}
           messages={messages as Record<string, unknown>}
+          config={config}
         >
           <ClientLayout>{children}</ClientLayout>
         </Providers>

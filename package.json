@@ -15,7 +15,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\"",
+    "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx}\"",
     "test": "vitest",
@@ -26,7 +26,7 @@
     "test:e2e:ui": "playwright test --ui",
     "analyze": "ANALYZE=true next build",
     "typecheck": "tsc --noEmit",
-    "fullcheck": "pnpm run format && pnpm run lint && pnpm run typecheck",
+    "fullcheck": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test:run && pnpm run build",
     "prepare": "husky"
   },
   "dependencies": {

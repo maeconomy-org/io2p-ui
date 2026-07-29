@@ -65,9 +65,12 @@ const nextConfig = {
         ? { properties: ['^data-testid$'] }
         : false,
   },
+  typedRoutes: true,
   experimental: {
+    // lucide-react is optimized by default in Next 16 — listing it is a no-op.
+    // The Radix entries are near-noise (each package is one small module, not a
+    // barrel) but kept until someone measures them.
     optimizePackageImports: [
-      'lucide-react',
       'echarts-for-react',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
@@ -76,44 +79,9 @@ const nextConfig = {
       '@radix-ui/react-tabs',
       '@radix-ui/react-tooltip',
     ],
-    webpackBuildWorker: true,
-    parallelServerBuildTraces: true,
-    parallelServerCompiles: true,
     serverActions: {
       bodySizeLimit: '100mb',
     },
-  },
-
-  webpack: (config, { isServer, dev }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      }
-    }
-
-    // Suppress specific warnings during development
-    if (dev) {
-      config.ignoreWarnings = [
-        { message: /the request of a dependency is an expression/ },
-        {
-          message:
-            /Critical dependency: the request of a dependency is an expression/,
-        },
-        {
-          message:
-            /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
-        },
-      ]
-
-      // Suppress cache-layer warnings (e.g. next-intl's dynamic import parsing)
-      config.infrastructureLogging = {
-        ...config.infrastructureLogging,
-        level: 'error',
-      }
-    }
-
-    return config
   },
 }
 

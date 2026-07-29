@@ -24,10 +24,8 @@ const PARENTS_SELECTOR = '[data-tour="object-parents"]'
 const METADATA_CONTAINER_SELECTOR = '[data-tour="object-metadata"]'
 const ADDRESS_SELECTOR = '[data-tour="object-address"]'
 const FILES_SELECTOR = '[data-tour="object-files"]'
-const PROPERTIES_SELECTOR = '[data-tour="object-properties"]'
 const ADD_PROPERTY_SELECTOR = '[data-tour="add-property-button"]'
 const PROPERTY_NAME_UPLOAD_SELECTOR = '[data-tour="property-name-upload"]'
-const PROPERTY_VALUE_UPLOAD_SELECTOR = '[data-tour="property-value-upload"]'
 const SUBMIT_SELECTOR = '[data-tour="object-create-submit"]'
 
 export default function DemoTour() {

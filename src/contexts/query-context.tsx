@@ -1,25 +1,25 @@
 'use client'
 
-import {
-  createContext,
-  useContext,
-  PropsWithChildren,
-  useState,
-  useEffect,
-  useMemo,
-} from 'react'
-import { usePathname } from 'next/navigation'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import dynamic from 'next/dynamic'
 import type { Client } from 'iom-sdk'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import {
-  fetchClientConfig,
-  getCachedConfig,
-  ClientConfig,
-  PUBLIC_PAGES_SET,
-} from '@/constants'
+
+import type { ClientConfig } from '@/constants'
 import { getSdkClient } from '@/lib/sdk-client'
-import { NavbarSkeleton, ContentSkeleton } from '@/components/skeletons'
+
+// Dev-only, and lazy so the devtools bundle never enters the module graph of
+// the provider that wraps every route.
+const ReactQueryDevtools =
+  process.env.NODE_ENV === 'production'
+    ? () => null
+    : dynamic(
+        () =>
+          import('@tanstack/react-query-devtools').then(
+            (m) => m.ReactQueryDevtools
+          ),
+        { ssr: false }
+      )
 
 const IomSdkClientContext = createContext<Client | null>(null)
 const ConfigContext = createContext<ClientConfig | null>(null)
@@ -42,109 +42,40 @@ export function useAppConfig(): ClientConfig {
   return context
 }
 
-export function QueryProvider({ children }: PropsWithChildren) {
-  const pathname = usePathname()
-  const [initState, setInitState] = useState<{
-    config: ClientConfig | null
-    client: Client | null
-    error: Error | null
-  }>({
-    config: null,
-    client: null,
-    error: null,
-  })
-  const { config, client, error } = initState
+interface QueryProviderProps {
+  children: ReactNode
+  /**
+   * Built on the server from `process.env` and handed down, so config is known
+   * before the first render on BOTH sides. Previously this provider awaited
+   * `/api/config` in an effect and rendered a skeleton until it resolved, which
+   * blocked every route's first paint on a client round trip.
+   */
+  config: ClientConfig
+}
 
+export function QueryProvider({ children, config }: QueryProviderProps) {
   const queryClient = useMemo(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: Infinity,
+            // Deliberately conservative: these apply to every hook that does NOT
+            // set its own staleTime. The previous `Infinity` default meant any
+            // such query was cached for the session and never refetched — safe
+            // for the hooks that opted in explicitly, silently stale for the
+            // ones that never thought about it.
+            staleTime: 30_000,
             gcTime: 1000 * 60 * 10,
             refetchOnMount: false,
             refetchOnWindowFocus: false,
-            retry: false,
+            retry: 1,
           },
         },
       }),
     []
   )
 
-  useEffect(() => {
-    let mounted = true
-
-    // Optimistic init from cache
-    const cached = getCachedConfig()
-    if (cached) {
-      setInitState({
-        config: cached,
-        client: getSdkClient(cached),
-        error: null,
-      })
-    }
-
-    async function init() {
-      try {
-        // fetchClientConfig handles background refresh/cache logic
-        const fetchedConfig = await fetchClientConfig()
-        const sdk = getSdkClient(fetchedConfig)
-
-        if (mounted) {
-          setInitState({ config: fetchedConfig, client: sdk, error: null })
-        }
-      } catch (err) {
-        if (mounted) {
-          setInitState((prev) => ({
-            ...prev,
-            error:
-              err instanceof Error
-                ? err
-                : new Error('Failed to initialize SDK client'),
-          }))
-        }
-      }
-    }
-
-    init()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  if (error) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4">
-        <p className="text-xl font-bold text-red-500">API Connection Error</p>
-        <p>{error.message}</p>
-        <button
-          onClick={() => {
-            window.location.reload()
-          }}
-          className="px-4 py-2 bg-primary text-white rounded-md"
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
-
-  if (!client || !config) {
-    if (PUBLIC_PAGES_SET.has(pathname)) {
-      return (
-        <div className="flex flex-1 items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
-      )
-    }
-    return (
-      <div className="flex-1 flex flex-col min-h-screen">
-        <NavbarSkeleton />
-        <ContentSkeleton />
-      </div>
-    )
-  }
+  const client = useMemo(() => getSdkClient(config), [config])
 
   return (
     <ConfigContext.Provider value={config}>

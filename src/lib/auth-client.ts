@@ -68,6 +68,16 @@ export async function getCoreToken(opts?: {
   }
 
   const base = getCachedConfig()?.authBaseUrl ?? ''
+  // Config is read at call time from the inline __IOM_CONFIG__ script. If that
+  // script is ever deferred, moved out of <head>, or CSP-blocked, `base` is ''
+  // and every mint silently posts to a same-origin path that doesn't exist —
+  // a 404 storm with no obvious cause. Name it instead.
+  if (!base) {
+    throw new Error(
+      'authBaseUrl missing from runtime config: the inline __IOM_CONFIG__ ' +
+        'script must execute before any core token is minted.'
+    )
+  }
   const res = await fetch(`${base}/api/auth/token`, { credentials: 'include' })
   if (!res.ok) {
     throw new Error(`Failed to mint core token: ${res.status}`)

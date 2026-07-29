@@ -142,8 +142,7 @@ function sanitizeForInlineScript(json: string): string {
  * Build a safe inline script that sets window.__IOM_CONFIG__.
  * Sanitizes the output to prevent script-tag breakout from env vars.
  */
-export function buildInlineConfigScript(): string {
-  const config = buildRuntimeConfig()
+export function buildInlineConfigScript(config = buildRuntimeConfig()): string {
   const safeJson = sanitizeForInlineScript(JSON.stringify(config))
   return `window.__IOM_CONFIG__=${safeJson};`
 }

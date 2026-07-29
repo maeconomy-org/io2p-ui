@@ -70,7 +70,6 @@ export function ParentSelector({
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
-  const [totalResultsCount, setTotalResultsCount] = useState<number>(0)
   const [isSearching, setIsSearching] = useState(false)
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
   const [selectedParents, setSelectedParents] = useState<ParentObject[]>([])
@@ -114,13 +113,9 @@ export function ParentSelector({
           )
 
           setSearchResults(allFilteredResults)
-          setTotalResultsCount(
-            results.totalElements || allFilteredResults.length
-          )
           setHasInitiallyLoaded(true)
         } else {
           setSearchResults([])
-          setTotalResultsCount(0)
           setHasInitiallyLoaded(true)
         }
       } catch (error) {

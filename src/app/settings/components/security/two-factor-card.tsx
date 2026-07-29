@@ -10,8 +10,6 @@ import {
   ArrowRight,
   Check,
 } from 'lucide-react'
-import QRCodeStyling from 'qr-code-styling'
-
 import { logger } from '@/lib'
 import { authClient, useSession } from '@/lib/auth-client'
 import { buildQrCodeConfig } from '@/components/modals/qr-code-config'
@@ -42,13 +40,20 @@ function TotpQr({ uri }: { uri: string }) {
   useEffect(() => {
     const node = ref.current
     if (!node) return
-    const instance = new QRCodeStyling(
-      buildQrCodeConfig({ data: uri, size: 220, withLogo: false })
-    )
-    node.innerHTML = ''
-    instance.append(node)
+    let cancelled = false
+    // Dynamic: qr-code-styling is ~50 KB and only 2FA enrolment needs it, so a
+    // static import would put it in the /settings bundle for every visitor.
+    void import('qr-code-styling').then(({ default: QRCodeStyling }) => {
+      if (cancelled) return
+      const instance = new QRCodeStyling(
+        buildQrCodeConfig({ data: uri, size: 220, withLogo: false })
+      )
+      node.innerHTML = ''
+      instance.append(node)
+    })
     return () => {
-      if (node) node.innerHTML = ''
+      cancelled = true
+      node.innerHTML = ''
     }
   }, [uri])
   return <div ref={ref} className="flex justify-center" />

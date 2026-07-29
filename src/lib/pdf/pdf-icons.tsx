@@ -7,7 +7,7 @@
  * strokeWidth={2}, strokeLinecap="round", strokeLinejoin="round".
  */
 
-import { Circle, Line, Path, Polyline, Rect, Svg } from '@react-pdf/renderer'
+import { Circle, Path, Polyline, Rect, Svg } from '@react-pdf/renderer'
 
 interface PdfIconProps {
   size?: number

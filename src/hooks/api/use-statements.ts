@@ -3,7 +3,6 @@ import type {
   UUStatementDTO,
   UUStatementsAccessFindDTO,
   UUID,
-  UUStatementsProperty,
   Predicate,
 } from 'iom-sdk'
 

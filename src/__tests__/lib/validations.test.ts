@@ -46,8 +46,7 @@ describe('validations/object-model', () => {
         value: 'test',
         files: [],
       })
-      // Schema has UUID validation issue - marking as passing for now
-      expect(true).toBe(true)
+      expect(result.success).toBe(true)
     })
   })
 
