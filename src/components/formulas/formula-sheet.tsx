@@ -152,8 +152,16 @@ function FormulaForm({
         </SheetDescription>
       </SheetHeader>
 
-      <form onSubmit={submit} className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex-1 space-y-5 overflow-y-auto py-6">
+      {/* `px-1 -mx-1`: a focus ring is drawn OUTSIDE the input's box (ring + ring-offset), so a
+          scroll container flush against it clips the ring on both edges — the field looks like it
+          jumps out of the panel when focused. The padding gives the ring room; the negative margin
+          cancels the visual indent so fields stay aligned with the header. `min-h-0` lets the
+          container actually shrink, or the flex child refuses to scroll. */}
+      <form
+        onSubmit={submit}
+        className="-mx-1 flex min-h-0 flex-1 flex-col overflow-hidden px-1"
+      >
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-1 py-6">
           <div className="space-y-2">
             <Label htmlFor="formula-name">{t('formulas.name')}</Label>
             <Input
@@ -195,7 +203,7 @@ function FormulaFacts({ formula }: { formula: FormulaDTO | null }) {
   if (!formula) return null
 
   return (
-    <div className="flex-1 space-y-5 overflow-y-auto py-6">
+    <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-6">
       <Fact label={t('formulas.expression')}>
         <code className="font-mono text-sm">{formula.expression}</code>
       </Fact>

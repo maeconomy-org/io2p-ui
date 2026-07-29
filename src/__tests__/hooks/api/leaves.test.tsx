@@ -18,6 +18,7 @@ const constants = {
   create: vi.fn(),
   appendVersion: vi.fn(),
   delete: vi.fn(),
+  restore: vi.fn(),
 }
 
 vi.mock('@/lib/io2p', () => ({
@@ -70,11 +71,29 @@ describe('leaf hooks', () => {
     expect(formulas.delete).toHaveBeenCalledWith('f1', undefined)
   })
 
-  it('useConstants exposes list/get/create/appendVersion/remove', () => {
+  it('useConstants exposes list/get/create/appendVersion/remove/restore', () => {
     const api = useConstants()
     expect(Object.keys(api).sort()).toEqual(
-      ['useAppendVersion', 'useCreate', 'useGet', 'useList', 'useRemove'].sort()
+      [
+        'useAppendVersion',
+        'useCreate',
+        'useGet',
+        'useList',
+        'useRemove',
+        'useRestore',
+      ].sort()
     )
+  })
+
+  it('useConstants().useRestore brings a deleted constant back', async () => {
+    // The API had `restore` all along; the bundle simply never exposed it, so a deleted constant
+    // could not come back — against the never-delete-data rule.
+    constants.restore.mockResolvedValue({ id: 'c1' })
+    const { result } = renderHook(() => useConstants().useRestore(), {
+      wrapper: makeWrapper(),
+    })
+    await result.current.mutateAsync({ id: 'c1' })
+    expect(constants.restore).toHaveBeenCalledWith('c1', undefined)
   })
 
   it('useConstants().useAppendVersion appends a version', async () => {

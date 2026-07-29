@@ -1,0 +1,265 @@
+'use client'
+
+import { useState } from 'react'
+import { useTranslations, useFormatter } from 'next-intl'
+import { toast } from 'sonner'
+import { AlertCircle, Loader2 } from 'lucide-react'
+import type { ConstantDTO } from 'io2p-client'
+
+import {
+  Badge,
+  Button,
+  Input,
+  Label,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui'
+import { OwnerCell } from '@/components/tables'
+import { useConstants } from '@/hooks/api/leaves'
+import { saveErrorMessage } from '@/lib/io2p-errors'
+import { logger } from '@/lib'
+
+export type ConstantSheetMode = 'create' | 'edit'
+
+interface ConstantSheetProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  mode: ConstantSheetMode
+  /** The subject for `edit`. */
+  constant?: ConstantDTO | null
+}
+
+export function ConstantSheet({
+  open,
+  onOpenChange,
+  mode,
+  constant = null,
+}: ConstantSheetProps) {
+  const t = useTranslations()
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="flex w-full flex-col sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>
+            {mode === 'edit'
+              ? (constant?.name ?? t('constants.title'))
+              : t('constants.createTitle')}
+          </SheetTitle>
+          <SheetDescription>
+            {mode === 'edit'
+              ? t('constants.pinnedNote')
+              : t('constants.createDescription')}
+          </SheetDescription>
+        </SheetHeader>
+
+        {/* Mounts fresh per open, so the fields seed from props at mount rather than being
+            re-synced by an effect — opening a second constant cannot show the first one's edits. */}
+        {open && (
+          <ConstantForm
+            mode={mode}
+            constant={constant}
+            onDone={() => onOpenChange(false)}
+          />
+        )}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+function ConstantForm({
+  mode,
+  constant,
+  onDone,
+}: {
+  mode: ConstantSheetMode
+  constant: ConstantDTO | null
+  onDone: () => void
+}) {
+  const t = useTranslations()
+  const { useCreate, useAppendVersion } = useConstants()
+  const createMutation = useCreate()
+  const appendMutation = useAppendVersion()
+
+  const isEdit = mode === 'edit' && !!constant
+  // Built-ins belong to the node: seeded, shared, and rejected on write anyway.
+  const readOnly = !!constant?.system
+
+  const current = constant?.versions.at(-1)
+  const [name, setName] = useState(constant?.name ?? '')
+  const [data, setData] = useState(current?.data ?? '')
+
+  const isPending = createMutation.isPending || appendMutation.isPending
+  const changed = isEdit ? data.trim() !== (current?.data ?? '') : true
+  const canSave =
+    !readOnly &&
+    name.trim() !== '' &&
+    data.trim() !== '' &&
+    changed &&
+    !isPending
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!canSave) return
+    try {
+      if (isEdit) {
+        // APPEND, never update: earlier versions are immutable, and a calc that pinned one keeps
+        // resolving to it. That is the whole point of the type.
+        await appendMutation.mutateAsync({
+          id: constant.id,
+          body: { data: data.trim() },
+        })
+        toast.success(t('constants.versionAdded'))
+      } else {
+        await createMutation.mutateAsync({
+          body: { name: name.trim(), data: data.trim() },
+        })
+        toast.success(t('constants.created'))
+      }
+      onDone()
+    } catch (error) {
+      logger.error('Save constant failed', error)
+      const { key, values } = saveErrorMessage(error)
+      toast.error(t(key, values))
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="-mx-1 flex min-h-0 flex-1 flex-col overflow-hidden px-1"
+    >
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-1 py-6">
+        <div className="space-y-2">
+          <Label htmlFor="constant-name">{t('constants.name')}</Label>
+          <Input
+            id="constant-name"
+            value={name}
+            // The name is what a binding records, so renaming would orphan every calc using it.
+            disabled={isEdit || readOnly}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('constants.placeholders.name')}
+          />
+          {isEdit && (
+            <p className="text-xs text-muted-foreground">
+              {t('constants.nameImmutable')}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="constant-data">
+            {isEdit ? t('constants.newValue') : t('constants.value')}
+          </Label>
+          <Input
+            id="constant-data"
+            value={data}
+            disabled={readOnly}
+            onChange={(e) => setData(e.target.value)}
+            placeholder={t('constants.placeholders.value')}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t('constants.valueHint')}
+          </p>
+        </div>
+
+        {constant && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">
+              {t('common.owner')}
+            </p>
+            <OwnerCell
+              system={constant.system}
+              ownerUserId={constant.ownerUserId}
+            />
+          </div>
+        )}
+
+        {constant && <VersionHistory constant={constant} />}
+      </div>
+
+      <SheetFooter className="mt-auto flex gap-2 border-t pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={onDone}
+          disabled={isPending}
+        >
+          {readOnly ? t('common.close') : t('common.cancel')}
+        </Button>
+        {!readOnly && (
+          <Button type="submit" className="w-full" disabled={!canSave}>
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEdit ? t('constants.addVersion') : t('constants.create')}
+          </Button>
+        )}
+      </SheetFooter>
+    </form>
+  )
+}
+
+/**
+ * Every version, newest first.
+ *
+ * This is the sheet's real job. A calc pins `{constantId, version}` at bind time, so appending a new
+ * value does NOT move formulas already bound to an older one — behaviour that reads as "my edit did
+ * nothing" unless the history is on screen to explain it.
+ */
+function VersionHistory({ constant }: { constant: ConstantDTO }) {
+  const t = useTranslations()
+  const format = useFormatter()
+  const latest = constant.versions.at(-1)?.version
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('constants.history')}
+      </p>
+      <ul className="divide-y rounded-md border">
+        {[...constant.versions].reverse().map((version) => (
+          <li
+            key={version.version}
+            className="flex items-baseline justify-between gap-3 px-3 py-2"
+          >
+            <span className="flex min-w-0 items-baseline gap-2">
+              <Badge
+                variant={version.version === latest ? 'default' : 'secondary'}
+                className="h-5 shrink-0 px-1.5 text-[10px] tabular-nums"
+              >
+                v{version.version}
+              </Badge>
+              <span className="truncate font-medium">{version.data}</span>
+              {/* A value that did not normalize can never feed a calc. Silence here would be a
+                  constant that looks usable and quietly never computes. */}
+              {version.parse?.ok === false && (
+                <span className="flex shrink-0 items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" aria-hidden="true" />
+                  {t('constants.notNumeric')}
+                </span>
+              )}
+            </span>
+            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+              {version.num !== undefined && (
+                <span className="mr-2">
+                  {version.num}
+                  {version.unit ? ` ${version.unit}` : ''}
+                </span>
+              )}
+              {format.dateTime(new Date(version.ts), {
+                dateStyle: 'medium',
+              })}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-muted-foreground">
+        {t('constants.pinnedNote')}
+      </p>
+    </div>
+  )
+}

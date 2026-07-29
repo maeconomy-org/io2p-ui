@@ -1773,5 +1773,36 @@
     "CEILING": "Plafond systemen en afwerking",
     "MIXED_WASTE": "Gemengd bouwafval",
     "HAZARDOUS_WASTE": "Gevaarlijke materialen en afval"
+  },
+  "constants": {
+    "title": "Constanten",
+    "name": "Naam",
+    "value": "Waarde",
+    "newValue": "Nieuwe waarde",
+    "currentValue": "Huidige waarde",
+    "versions": "Versies",
+    "history": "Geschiedenis",
+    "create": "Constante aanmaken",
+    "createTitle": "Constante aanmaken",
+    "createDescription": "Een benoemd getal waaraan formules kunnen koppelen — een CO₂-factor, een dichtheid, een tarief.",
+    "addVersion": "Versie toevoegen",
+    "versionAdded": "Nieuwe versie toegevoegd",
+    "created": "Constante aangemaakt",
+    "deleted": "Constante verwijderd",
+    "deleteFailed": "Verwijderen van constante mislukt",
+    "restored": "Constante hersteld",
+    "restoreFailed": "Herstellen van constante mislukt",
+    "notNumeric": "geen getal",
+    "nameImmutable": "Een koppeling legt de naam vast, dus die kan niet meer wijzigen zodra formules hem gebruiken.",
+    "pinnedNote": "Een versie toevoegen verandert bestaande formules niet — elke formule houdt de versie waaraan hij gekoppeld is.",
+    "valueHint": "Moet een getal zijn, met optioneel een eenheid: 0,42, 10 kg, 3,5 m",
+    "placeholders": {
+      "name": "bijv. co2_factor",
+      "value": "bijv. 0,42"
+    },
+    "empty": {
+      "title": "Nog geen constanten",
+      "description": "Een constante is een gedeeld, geversioneerd getal waaraan formules kunnen koppelen."
+    }
   }
 }

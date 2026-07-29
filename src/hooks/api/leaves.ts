@@ -168,12 +168,26 @@ function useConstantRemove() {
   })
 }
 
+function useConstantRestore() {
+  const client = useIomClient()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; options?: WriteOptions }) =>
+      client.constants.restore(vars.id, vars.options),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.constants.detail(vars.id) })
+      qc.invalidateQueries({ queryKey: queryKeys.constants.lists() })
+    },
+  })
+}
+
 const constantBundle = {
   useList: useConstantList,
   useGet: useConstantGet,
   useCreate: useConstantCreate,
   useAppendVersion: useConstantAppendVersion,
   useRemove: useConstantRemove,
+  useRestore: useConstantRestore,
 }
 
 export function useConstants() {

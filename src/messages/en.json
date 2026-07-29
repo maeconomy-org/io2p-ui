@@ -1772,5 +1772,36 @@
     "CEILING": "Ceiling systems and finishes",
     "MIXED_WASTE": "Mixed construction waste",
     "HAZARDOUS_WASTE": "Hazardous materials and waste"
+  },
+  "constants": {
+    "title": "Constants",
+    "name": "Name",
+    "value": "Value",
+    "newValue": "New value",
+    "currentValue": "Current value",
+    "versions": "Versions",
+    "history": "History",
+    "create": "Create constant",
+    "createTitle": "Create constant",
+    "createDescription": "A named number that formulas can bind to — a CO₂ factor, a density, a rate.",
+    "addVersion": "Add version",
+    "versionAdded": "New version added",
+    "created": "Constant created",
+    "deleted": "Constant deleted",
+    "deleteFailed": "Failed to delete constant",
+    "restored": "Constant restored",
+    "restoreFailed": "Failed to restore constant",
+    "notNumeric": "not a number",
+    "nameImmutable": "A binding records the name, so it cannot change once formulas may be using it.",
+    "pinnedNote": "Adding a version does not change existing formulas — each one keeps the version it was bound to.",
+    "valueHint": "Must be a number, with an optional unit: 0.42, 10 kg, 3.5 m",
+    "placeholders": {
+      "name": "e.g. co2_factor",
+      "value": "e.g. 0.42"
+    },
+    "empty": {
+      "title": "No constants yet",
+      "description": "A constant is a shared, versioned number that formulas can bind to."
+    }
   }
 }
