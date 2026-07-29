@@ -464,11 +464,17 @@ let singletonClient: ApiClient | null = null
 let singletonIdentity: string | null = null
 let singletonService: FileUploadService | null = null
 
-export function useUploadService(): FileUploadService {
-  const client = useIomSdkClient()
-  const { userId } = useAuth()
-  const identity = userId ?? null
-
+/**
+ * Get-or-create, kept OUT of the hook body. Reassigning module bindings inside a
+ * component or hook is what `react-hooks/globals` flags: a render may be
+ * discarded or replayed, so it can run more than once per committed render.
+ * Hoisting it here makes it an ordinary idempotent cache lookup. Logic and keying
+ * are unchanged — see the note above on why this keys on userId, not the JWT.
+ */
+function getSingletonService(
+  client: ApiClient,
+  identity: string | null
+): FileUploadService {
   if (
     !singletonService ||
     singletonClient !== client ||
@@ -481,8 +487,13 @@ export function useUploadService(): FileUploadService {
     singletonClient = client
     singletonIdentity = identity
   }
-
   return singletonService
+}
+
+export function useUploadService(): FileUploadService {
+  const client = useIomSdkClient()
+  const { userId } = useAuth()
+  return getSingletonService(client, userId ?? null)
 }
 
 export function getUploadService() {

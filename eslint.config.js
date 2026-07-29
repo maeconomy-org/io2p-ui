@@ -65,14 +65,13 @@ export default [
       // so it can never regress. Promote — never demote — and delete the entry
       // once it is at 'error'.
       //
-      // Clean and enforced: rules-of-hooks, purity, set-state-in-render,
-      // error-boundaries, use-memo, preserve-manual-memoization, config, gating.
+      // Clean and enforced: rules-of-hooks, purity, globals, static-components,
+      // set-state-in-render, error-boundaries, use-memo,
+      // preserve-manual-memoization, config, gating.
       'react-hooks/set-state-in-effect': 'warn', // 22 left
       'react-hooks/exhaustive-deps': 'warn', // 15 left
       'react-hooks/refs': 'warn', // 11 left
       'react-hooks/immutability': 'warn', // 7 left
-      'react-hooks/globals': 'warn', // 3 left
-      'react-hooks/static-components': 'warn', // 1 left
       // Informational, not a defect: flags libraries whose APIs return
       // functions the compiler cannot memoize (react-hook-form, TanStack
       // Table). Nothing to fix on our side — it reports skipped compilation.

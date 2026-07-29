@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { createElement, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   AlertTriangle,
@@ -68,6 +68,13 @@ export function UploadCenter() {
       }
     }
     previousStatuses.current = next
+    // This detects a TRANSITION (a task crossing into completed/failed) by
+    // comparing against the previous render's statuses. That is not derivable
+    // from current state, so "you might not need an effect" does not apply:
+    // no render-time expression yields "this just changed". Revisit with the
+    // rest of the set-state-in-effect pass — the honest fix is a task-level
+    // event from UploadQueue rather than diffing here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (message) setAnnouncement(message)
   }, [upload, t])
 
@@ -218,7 +225,6 @@ function UploadTaskRow({
   const t = useTranslations()
   const name = task.fileName || task.id
   const isCancelled = task.status === 'failed' && task.error === 'Cancelled'
-  const Icon = mimeIcon(task.contentType)
   const sizeLabel = formatBytes(task.size)
 
   return (
@@ -233,7 +239,15 @@ function UploadTaskRow({
         {task.progress}
       </span>
       <div className="relative shrink-0 pt-0.5">
-        <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+        {/* createElement, not a capitalised local: `mimeIcon` picks one of five
+            module-level lucide icons, but assigning it to `const Icon` and
+            rendering <Icon/> reads to react-hooks/static-components as a
+            component built during render (which would reset state on every
+            render). Nothing is constructed here — this makes that explicit. */}
+        {createElement(mimeIcon(task.contentType), {
+          className: 'h-5 w-5 text-muted-foreground',
+          'aria-hidden': true,
+        })}
         <span className="absolute -bottom-0.5 -right-0.5 inline-flex items-center justify-center rounded-full bg-background">
           <StatusIcon status={task.status} />
         </span>
