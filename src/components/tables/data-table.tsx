@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode } from 'react'
+import { ReactNode, useEffect, useRef } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -36,6 +36,16 @@ import { cn } from '@/lib'
 
 /** Placeholder rows shown on FIRST load, before any data exists. */
 const LOADING_ROWS = 8
+
+/**
+ * How long the pointer must REST on a row before its detail is prefetched.
+ *
+ * Without this, sweeping the mouse across a list fires one request per row it
+ * crosses — 9 requests just to move from the toolbar to a row further down.
+ * A short dwell separates "heading somewhere" from "looking at this one", which
+ * is the only case worth spending a request on.
+ */
+const HOVER_INTENT_MS = 120
 
 // ---------------------------------------------------------------------------
 // Types
@@ -251,6 +261,25 @@ export function DataTable<TData>({
 
   const colCount = table.getVisibleFlatColumns().length
 
+  // Hover intent. The timer is only ever touched from pointer handlers and the
+  // unmount cleanup, both of which run after commit, so this never reads a ref
+  // during render.
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelHover = () => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current)
+      hoverTimer.current = null
+    }
+  }
+  const scheduleHover = (row: TData) => {
+    if (!onRowHover) return
+    cancelHover()
+    hoverTimer.current = setTimeout(() => onRowHover(row), HOVER_INTENT_MS)
+  }
+  // Leaving the table entirely (or unmounting mid-dwell) must not fire a
+  // prefetch for a row the pointer has already left.
+  useEffect(() => cancelHover, [])
+
   return (
     <div className="flex flex-col">
       <div className="overflow-hidden rounded-md border">
@@ -327,7 +356,8 @@ export function DataTable<TData>({
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   onClick={() => onRowClick?.(row.original)}
-                  onPointerEnter={() => onRowHover?.(row.original)}
+                  onPointerEnter={() => scheduleHover(row.original)}
+                  onPointerLeave={cancelHover}
                   onDoubleClick={() => onRowDoubleClick?.(row.original)}
                   className={cn(
                     onRowClick || onRowDoubleClick
