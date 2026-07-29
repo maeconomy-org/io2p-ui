@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link as LinkIcon, Upload } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -41,7 +41,12 @@ export function AttachmentSection({
   // synchronous handlers (handleAddReference) that run concurrently don't
   // overwrite each other via stale closures over the `attachments` prop.
   const attachmentsRef = useRef(attachments)
-  attachmentsRef.current = attachments
+  // Written in an effect, not during render: a render can be discarded or
+  // replayed, so mutating a ref before commit is unsound. Only async and event
+  // handlers read this, and those run after commit — so there is no lag.
+  useEffect(() => {
+    attachmentsRef.current = attachments
+  }, [attachments])
 
   const handleAddReference = () => {
     if (!referenceUrl.trim()) return

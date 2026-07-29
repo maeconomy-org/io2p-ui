@@ -101,7 +101,11 @@ export function CopyObjectsSheet({
   const { useSearch } = useCommonApi()
   const searchMutation = useSearch()
   const searchMutationRef = useRef(searchMutation)
-  searchMutationRef.current = searchMutation
+  // See attachment-section: ref writes belong in an effect, and every reader
+  // here is an event handler that runs after commit.
+  useEffect(() => {
+    searchMutationRef.current = searchMutation
+  }, [searchMutation])
 
   // Reset form when sheet opens
   const resetForm = useCallback(() => {

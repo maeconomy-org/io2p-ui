@@ -44,11 +44,14 @@ export function HereAddressAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const prevValueRef = useRef<string>(undefined)
-
-  // Sync query with value prop only when value changes externally
-  if (value !== prevValueRef.current) {
-    prevValueRef.current = value
+  // React's documented "adjust state when a prop changes" pattern: hold the
+  // previous prop in STATE, not a ref, and compare during render. A ref written
+  // during render is unsound (the render may be discarded), which is what
+  // react-hooks/refs flags; state set during render is the sanctioned form and
+  // React re-runs the component immediately without committing the first pass.
+  const [prevValue, setPrevValue] = useState(value)
+  if (value !== prevValue) {
+    setPrevValue(value)
     if (query !== value) {
       setQuery(value)
     }

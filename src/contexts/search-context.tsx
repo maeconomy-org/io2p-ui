@@ -75,7 +75,11 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   const { useSearch: useSearchMutation } = useCommonApi()
   const searchMutation = useSearchMutation()
   const searchMutationRef = useRef(searchMutation)
-  searchMutationRef.current = searchMutation
+  // Ref writes belong in an effect — a discarded render must not mutate it.
+  // Readers are all event handlers, which run after commit.
+  useEffect(() => {
+    searchMutationRef.current = searchMutation
+  }, [searchMutation])
 
   // Determine the isTemplate value based on the current page and parsed filters
   const getIsTemplateForSearch = (
