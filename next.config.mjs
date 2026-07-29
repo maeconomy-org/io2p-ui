@@ -66,6 +66,16 @@ const nextConfig = {
         : false,
   },
   typedRoutes: true,
+  // Auto-memoizes components and hooks at build time — the work you would
+  // otherwise do by hand with useMemo/useCallback/memo(). Only 3 of ~450 files
+  // used memo() before this, so there was a lot of headroom.
+  //
+  // The compiler SKIPS any component that breaks the Rules of React rather than
+  // risk miscompiling it, which is why the react-hooks rules were enabled first
+  // (see eslint.config.js). Anything still warning there is simply not
+  // optimised — no worse than before, but the warning list doubles as the
+  // to-do list for widening coverage.
+  reactCompiler: true,
   experimental: {
     // lucide-react is optimized by default in Next 16 — listing it is a no-op.
     // The Radix entries are near-noise (each package is one small module, not a
