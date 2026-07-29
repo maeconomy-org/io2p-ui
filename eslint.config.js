@@ -52,8 +52,31 @@ export default [
       // REACT
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
-      'react-hooks/rules-of-hooks': 'off',
-      'react-hooks/exhaustive-deps': 'off',
+      // eslint-plugin-react-hooks v7's `recommended` is no longer just
+      // rules-of-hooks + exhaustive-deps: it carries the React Compiler's
+      // correctness rules (purity, immutability, refs, set-state-in-effect,
+      // preserve-manual-memoization, …). Those are a prerequisite for enabling
+      // the compiler, which silently skips any component that breaks them.
+      ...reactHooks.configs.recommended.rules,
+
+      // ── Adoption ratchet ───────────────────────────────────────────────
+      // Turning the whole set on at once left 72 findings across 40 files. A
+      // category sits at 'warn' until it reaches zero, then moves up to 'error'
+      // so it can never regress. Promote — never demote — and delete the entry
+      // once it is at 'error'.
+      //
+      // Clean and enforced: rules-of-hooks, purity, set-state-in-render,
+      // error-boundaries, use-memo, preserve-manual-memoization, config, gating.
+      'react-hooks/set-state-in-effect': 'warn', // 22 left
+      'react-hooks/exhaustive-deps': 'warn', // 15 left
+      'react-hooks/refs': 'warn', // 11 left
+      'react-hooks/immutability': 'warn', // 7 left
+      'react-hooks/globals': 'warn', // 3 left
+      'react-hooks/static-components': 'warn', // 1 left
+      // Informational, not a defect: flags libraries whose APIs return
+      // functions the compiler cannot memoize (react-hook-form, TanStack
+      // Table). Nothing to fix on our side — it reports skipped compilation.
+      'react-hooks/incompatible-library': 'warn',
 
       // NEXT.JS
       '@next/next/no-html-link-for-pages': 'error',

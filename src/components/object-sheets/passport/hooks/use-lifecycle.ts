@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
 
+import { useNow } from '@/hooks/ui/use-now'
+
 import {
   computeDateProgress,
   findValueByKey,
@@ -31,6 +33,7 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24
  * day-precision math.
  */
 export function useLifecycle(properties: NormalizedProperty[]): LifecycleData {
+  const now = useNow()
   return useMemo(() => {
     const productionDate = parseDateValue(
       findValueByKey(properties, 'production-date')
@@ -54,7 +57,7 @@ export function useLifecycle(properties: NormalizedProperty[]): LifecycleData {
 
     const ageAnchor = installationDate ?? productionDate
     const ageDays = ageAnchor
-      ? Math.max(0, Math.round((Date.now() - ageAnchor.getTime()) / MS_PER_DAY))
+      ? Math.max(0, Math.round((now - ageAnchor.getTime()) / MS_PER_DAY))
       : null
 
     const hasAny = Boolean(
@@ -76,5 +79,5 @@ export function useLifecycle(properties: NormalizedProperty[]): LifecycleData {
       lifespanYears,
       hasAny,
     }
-  }, [properties])
+  }, [properties, now])
 }

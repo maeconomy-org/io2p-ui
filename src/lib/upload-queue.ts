@@ -60,6 +60,7 @@ const CANCELLED = 'Cancelled'
 export class UploadQueue {
   private queued: UploadTask[] = []
   private tasks: UploadTask[] = []
+  private snapshot: UploadTask[] = []
   private listeners = new Set<() => void>()
   private inFlight = new Set<Promise<void>>()
   private watchdogs = new Map<string, ReturnType<typeof setTimeout>>()
@@ -79,8 +80,14 @@ export class UploadQueue {
     return () => this.listeners.delete(listener)
   }
 
+  /**
+   * A snapshot with a STABLE identity between notifications. `useSyncExternalStore`
+   * re-renders whenever the snapshot's reference changes, so returning a fresh
+   * `slice()` on every call would loop forever. `notify()` recomputes it exactly
+   * when the task list actually changed.
+   */
   getTasks(): UploadTask[] {
-    return this.tasks.slice()
+    return this.snapshot
   }
 
   setMaxConcurrent(n: number): void {
@@ -175,6 +182,7 @@ export class UploadQueue {
   }
 
   private notify() {
+    this.snapshot = this.tasks.slice()
     this.listeners.forEach((l) => l())
   }
 

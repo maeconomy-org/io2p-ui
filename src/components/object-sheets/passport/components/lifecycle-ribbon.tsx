@@ -10,6 +10,7 @@ import {
   Wrench,
 } from 'lucide-react'
 
+import { useNow } from '@/hooks/ui/use-now'
 import { cn } from '@/lib/utils'
 import { Badge, Card, CardContent, Progress } from '@/components/ui'
 
@@ -40,10 +41,11 @@ export function LifecycleRibbon({ properties }: LifecycleRibbonProps) {
     lifespanYears,
     hasAny,
   } = useLifecycle(properties)
+  const now = useNow()
 
   if (!hasAny) return null
 
-  const today = Date.now()
+  const today = now
   const isMaintenanceOverdue =
     !!nextMaintenance && nextMaintenance.getTime() < today
 

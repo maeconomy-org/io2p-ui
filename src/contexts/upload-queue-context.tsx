@@ -5,14 +5,15 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { useAuth } from '@/contexts/auth-context'
 import { getCachedConfig } from '@/constants/client'
+import type { Io2pClient } from 'io2p-client'
+
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
 import { UploadQueue, type UploadTask } from '@/lib/upload-queue'
@@ -46,6 +47,17 @@ export interface UploadQueueValue {
 const UploadQueueContext = createContext<UploadQueueValue | null>(null)
 
 /**
+ * Where the settle handler lives. The queue is a module singleton that outlives
+ * every render, so it cannot hold a callback closing over React state — but it
+ * still needs to invalidate the right query. `onQueueSettled` is a stable
+ * reference handed to the queue once; the provider swaps the body from an effect.
+ */
+let settleHandler: (entityId: string) => void = () => {}
+function onQueueSettled(task: UploadTask): void {
+  settleHandler(task.target.entityId)
+}
+
+/**
  * Module-level singleton, keyed on the client AND the user id.
  *
  * NOT on the JWT: the token rotates every few minutes while the user stays the same, and keying on
@@ -57,24 +69,19 @@ let singletonClient: unknown = null
 let singletonIdentity: string | null = null
 let singletonQueue: UploadQueue | null = null
 
-export function UploadQueueProvider({ children }: { children: ReactNode }) {
-  const client = useIomClient()
-  const { userId } = useAuth()
-  const queryClient = useQueryClient()
-  const identity = userId ?? null
-
-  // A ref so the settle handler can invalidate without the queue depending on React state.
-  const invalidate = useRef((entityId: string) => {
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.objects.detail(entityId),
-    })
-  })
-  invalidate.current = (entityId: string) => {
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.objects.detail(entityId),
-    })
-  }
-
+/**
+ * Get-or-create, kept OUT of the component body. Reassigning module bindings
+ * inside a component is what `react-hooks/globals` flags — a render is allowed
+ * to be discarded or replayed, so a render that mutates module state can run
+ * more than once per committed render. The logic is unchanged; hoisting it into
+ * a plain function makes it an ordinary idempotent cache lookup instead of a
+ * render side effect.
+ */
+function getSingletonQueue(
+  client: Io2pClient,
+  identity: string | null,
+  onSettled: (task: UploadTask) => void
+): UploadQueue {
   if (
     !singletonQueue ||
     singletonClient !== client ||
@@ -84,19 +91,55 @@ export function UploadQueueProvider({ children }: { children: ReactNode }) {
       maxConcurrent: getCachedConfig()?.fileUploadConcurrency,
       // The upload IS the attach, so a finished file changes the entity — refetch it so the sheet
       // and any list showing it pick the file up without a manual reload.
-      onSettled: (task) => invalidate.current(task.target.entityId),
+      onSettled,
     })
     singletonClient = client
     singletonIdentity = identity
   }
-  const queue = singletonQueue
+  return singletonQueue
+}
 
-  const [tasks, setTasks] = useState<UploadTask[]>(() => queue.getTasks())
+export function UploadQueueProvider({ children }: { children: ReactNode }) {
+  const client = useIomClient()
+  const { userId } = useAuth()
+  const queryClient = useQueryClient()
+  const identity = userId ?? null
 
+  // The queue outlives any single render, so its settle handler cannot close
+  // over React state. This used to be a ref mutated during render; a module
+  // holder set from an effect does the same job without a ref read in render,
+  // and keeps `onQueueSettled` a stable reference for the queue's lifetime.
   useEffect(() => {
-    setTasks(queue.getTasks())
-    return queue.subscribe(() => setTasks(queue.getTasks()))
-  }, [queue])
+    settleHandler = (entityId: string) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.objects.detail(entityId),
+      })
+    }
+  }, [queryClient])
+
+  const queue = getSingletonQueue(client, identity, onQueueSettled)
+
+  // useSyncExternalStore rather than useState + a resync effect: the queue IS an
+  // external store, and this removes the synchronous setState the effect needed
+  // to catch up whenever `queue` changed identity.
+  //
+  // Memoized on `queue` because useSyncExternalStore resubscribes whenever
+  // `subscribe` changes identity — inline or `.bind()`ed functions would tear
+  // down and re-establish the subscription on every single render.
+  const store = useMemo(
+    () => ({
+      subscribe: (onChange: () => void) => queue.subscribe(onChange),
+      // Server snapshot is the same getter: the queue is empty during SSR, and
+      // `getTasks` returns a stable reference until the next notify().
+      getSnapshot: () => queue.getTasks(),
+    }),
+    [queue]
+  )
+  const tasks = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot
+  )
 
   const summary = useMemo(() => {
     const s: UploadQueueSummary = {

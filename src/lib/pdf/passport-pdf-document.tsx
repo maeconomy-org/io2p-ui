@@ -7,6 +7,15 @@
  * if the design palette changes.
  */
 
+/* eslint-disable react-hooks/purity --
+ * `react-hooks/purity` forbids reading the clock during render because a
+ * re-render would produce different output. There are no re-renders here: this
+ * tree is handed to @react-pdf's `renderToBuffer` once, in a route handler, and
+ * the buffer is returned. Nothing hydrates and nothing holds state, so
+ * `Date.now()` is the correct way to stamp "age at time of generation".
+ * A hook-based timestamp would be wrong — this is not a React DOM component.
+ */
+
 import fs from 'node:fs'
 import path from 'node:path'
 import React from 'react'

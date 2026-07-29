@@ -26,6 +26,7 @@ export * from './import/use-import-manager'
 // UI Hooks - User interface state
 export * from './ui/use-debounce'
 export * from './ui/use-mounted'
+export * from './ui/use-now'
 export * from './ui/use-pagination'
 export * from './ui/use-preference'
 export * from './ui/use-unified-delete'
