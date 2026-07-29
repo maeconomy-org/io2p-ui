@@ -4,6 +4,7 @@
 // delete/restore with narrow per-entity invalidation. Network-agnostic — driven by `select(client)`
 // + a key namespace, so it unit-tests against a fake resource.
 
+import { useCallback } from 'react'
 import {
   useQuery,
   useMutation,
@@ -175,5 +176,39 @@ export function createEntityHooks<
     })
   }
 
-  return { useList, useGet, useCreate, useUpdate, useRemove, useRestore }
+  /**
+   * Warm the detail cache before it is asked for — on row hover, so the sheet
+   * opens populated instead of mounting into a spinner.
+   *
+   * The key and queryFn match `useGet`'s DEFAULT shape (no `includeDeleted`, no
+   * `thinFiles`); a caller using those options gets its own key and simply
+   * misses this cache rather than being served the wrong shape. `prefetchQuery`
+   * is a no-op while the entry is still fresh, so repeated pointer-enters cost
+   * nothing.
+   */
+  function usePrefetchDetail() {
+    const client = useIomClient()
+    const qc = useQueryClient()
+    return useCallback(
+      (id: string) => {
+        if (!id) return
+        void qc.prefetchQuery({
+          queryKey: keys.detail(id),
+          queryFn: () => select(client).get(id),
+          staleTime,
+        })
+      },
+      [client, qc]
+    )
+  }
+
+  return {
+    useList,
+    useGet,
+    useCreate,
+    useUpdate,
+    useRemove,
+    useRestore,
+    usePrefetchDetail,
+  }
 }

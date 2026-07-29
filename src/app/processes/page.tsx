@@ -49,7 +49,9 @@ export default function ProcessesPage() {
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
 
   const listQuery = useEntityListQuery()
-  const { useList, useRemove, useRestore } = useProcesses()
+  const { useList, useRemove, useRestore, usePrefetchDetail } = useProcesses()
+  // Warm the detail cache on hover so the sheet opens populated.
+  const prefetchDetail = usePrefetchDetail()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
   const { data: processesPage, isFetching } = useList(
@@ -166,6 +168,7 @@ export default function ProcessesPage() {
           {viewResolved &&
             (isTable ? (
               <EntityTable
+                onRowHover={(row) => prefetchDetail(row.id)}
                 columns={columns}
                 page={processesPage}
                 getRowId={(process) => process.id}

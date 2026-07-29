@@ -84,6 +84,8 @@ export interface DataTableProps<TData> {
 
   // -- Row interactions --
   onRowClick?: (row: TData) => void
+  /** Fired on pointer-enter — used to prefetch the row's detail. */
+  onRowHover?: (row: TData) => void
   onRowDoubleClick?: (row: TData) => void
   /** Return additional className(s) per row */
   rowClassName?: (row: TData) => string | undefined
@@ -205,6 +207,7 @@ export function DataTable<TData>({
   onLastPage,
   onPageSizeChange,
   onRowClick,
+  onRowHover,
   onRowDoubleClick,
   rowClassName,
   enableColumnResizing = false,
@@ -215,6 +218,11 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const t = useTranslations()
 
+  // Informational, not a defect: TanStack Table returns functions the React
+  // Compiler cannot memoize safely, so it skips compiling this component.
+  // Nothing to change short of replacing the library, and leaving it live would
+  // block every future commit that touches this file.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
@@ -306,6 +314,7 @@ export function DataTable<TData>({
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   onClick={() => onRowClick?.(row.original)}
+                  onPointerEnter={() => onRowHover?.(row.original)}
                   onDoubleClick={() => onRowDoubleClick?.(row.original)}
                   className={cn(
                     onRowClick || onRowDoubleClick

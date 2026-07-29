@@ -37,6 +37,8 @@ export interface EntityTableProps<T> {
   onColumnVisibilityChange?: OnChangeFn<VisibilityState>
 
   onRowClick?: (row: T) => void
+  /** Fired on pointer-enter — used to prefetch the row's detail. */
+  onRowHover?: (row: T) => void
   onRowDoubleClick?: (row: T) => void
   rowClassName?: (row: T) => string | undefined
 

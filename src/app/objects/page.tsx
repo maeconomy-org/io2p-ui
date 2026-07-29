@@ -93,7 +93,9 @@ function ObjectsPageContent() {
   const setTemplateSource = templateFromObject.setSource
 
   const listQuery = useEntityListQuery({ scope: 'all' })
-  const { useList, useRemove, useRestore } = useObjects()
+  const { useList, useRemove, useRestore, usePrefetchDetail } = useObjects()
+  // Warm the detail cache on hover so the sheet opens populated.
+  const prefetchDetail = usePrefetchDetail()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
 
@@ -207,6 +209,7 @@ function ObjectsPageContent() {
       }),
     [
       t,
+      setTemplateSource,
       removeMutation.isPending,
       restoreMutation.isPending,
       openDetails,
@@ -298,6 +301,7 @@ function ObjectsPageContent() {
 
         {viewType === 'table' ? (
           <EntityTable
+            onRowHover={(row) => prefetchDetail(row.id)}
             columns={columns}
             page={objectsPage}
             getRowId={(o) => o.id}

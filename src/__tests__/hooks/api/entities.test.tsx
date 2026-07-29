@@ -49,6 +49,7 @@ describe('entities hooks', () => {
         'useCreate',
         'useGet',
         'useList',
+        'usePrefetchDetail',
         'useRemove',
         'useRestore',
         'useSubtree',
