@@ -70,6 +70,7 @@
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.6",
     "exceljs": "^4.4.0",
+    "expr-eval": "2.0.2",
     "input-otp": "^1.4.2",
     "io2p-client": "file:../iom-v2/io2p-client",
     "iom-sdk": "0.2.7",

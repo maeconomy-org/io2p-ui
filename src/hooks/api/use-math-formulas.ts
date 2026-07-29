@@ -18,6 +18,18 @@ interface PageParams {
   size?: number
 }
 
+// This hook reads the LEGACY node, while `hooks/api/leaves.ts` reads io2p — and both were writing to
+// `queryKeys.formulas.*`. A legacy DTO served under the shared detail key has `expression` but no
+// `variables`, so `FormulaBindings` would render a formula with nothing to bind; a legacy delete
+// invalidated `formulas.all` and dropped the io2p cache with it. Its own root keeps the two apart
+// until this file is deleted.
+const LEGACY_ROOT = ['legacy-formulas'] as const
+const legacyKeys = {
+  all: LEGACY_ROOT,
+  list: (params?: unknown) => [...LEGACY_ROOT, 'list', params] as const,
+  detail: (uuid: string) => [...LEGACY_ROOT, 'detail', uuid] as const,
+}
+
 export function useMathFormulas() {
   const client = useIomSdkClient()
   const queryClient = useQueryClient()
@@ -30,7 +42,7 @@ export function useMathFormulas() {
     options?: { enabled?: boolean }
   ) => {
     return useQuery({
-      queryKey: queryKeys.formulas.list({ ...params, ...pagination }),
+      queryKey: legacyKeys.list({ ...params, ...pagination }),
       queryFn: async ({ signal }) => {
         return client.node.searchMathFormulas(params ?? {}, pagination, {
           signal,
@@ -45,7 +57,7 @@ export function useMathFormulas() {
 
   const useFormulaByUUID = (uuid: string, options?: { enabled?: boolean }) => {
     return useQuery({
-      queryKey: queryKeys.formulas.detail(uuid),
+      queryKey: legacyKeys.detail(uuid),
       queryFn: async ({ signal }) => {
         if (!uuid) return null
         const page = await client.node.searchMathFormulas(
@@ -70,7 +82,7 @@ export function useMathFormulas() {
       },
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.formulas.all,
+          queryKey: legacyKeys.all,
         })
         queryClient.invalidateQueries({
           queryKey: queryKeys.aggregates.all,
@@ -87,10 +99,10 @@ export function useMathFormulas() {
       },
       onSuccess: (deletedUuid) => {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.formulas.all,
+          queryKey: legacyKeys.all,
         })
         queryClient.removeQueries({
-          queryKey: queryKeys.formulas.detail(deletedUuid),
+          queryKey: legacyKeys.detail(deletedUuid),
         })
         queryClient.invalidateQueries({
           queryKey: queryKeys.aggregates.all,
@@ -108,7 +120,7 @@ export function useMathFormulas() {
       },
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.formulas.all,
+          queryKey: legacyKeys.all,
         })
         queryClient.invalidateQueries({
           queryKey: queryKeys.aggregates.all,
@@ -122,7 +134,7 @@ export function useMathFormulas() {
     options?: { enabled?: boolean }
   ) => {
     return useQuery({
-      queryKey: [...queryKeys.formulas.all, 'calcs', params] as const,
+      queryKey: [...legacyKeys.all, 'calcs', params] as const,
       queryFn: async ({ signal }) => {
         return client.node.searchMathFormulaCalcs(params ?? {}, {
           signal,
@@ -142,7 +154,7 @@ export function useMathFormulas() {
       },
       onSuccess: () => {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.formulas.all,
+          queryKey: legacyKeys.all,
         })
         queryClient.invalidateQueries({
           queryKey: queryKeys.aggregates.all,

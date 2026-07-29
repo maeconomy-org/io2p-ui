@@ -15,7 +15,7 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib'
 import { useFormulas } from '@/hooks/api/leaves'
-import { safeEvaluate } from '@/components/properties/utils/formula-evaluation'
+import { evaluateExpression } from '@/lib/formula-expression'
 
 /**
  * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
@@ -101,7 +101,12 @@ export function FormulaBindings({
       scope[v] = num
     }
     try {
-      return { result: safeEvaluate(formula.expression, scope), error: null }
+      // Same parser, options and rounding the server uses, so the preview is the number that will
+      // be stored — not an approximation of it.
+      return {
+        result: evaluateExpression(formula.expression, scope),
+        error: null,
+      }
     } catch (e) {
       return { result: null, error: (e as Error).message }
     }

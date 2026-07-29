@@ -4,6 +4,15 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { useMathFormulas } from '@/hooks/api/use-math-formulas'
+
+// The legacy stack reads a DIFFERENT backend than io2p's `useFormulas`, so it owns a separate cache
+// root — sharing `queryKeys.formulas.*` let each serve the other's records. Mirrored here rather
+// than exported, because nothing outside that file should reach for these.
+const LEGACY_ROOT = ['legacy-formulas'] as const
+const legacyKeys = {
+  all: LEGACY_ROOT,
+  detail: (uuid: string) => [...LEGACY_ROOT, 'detail', uuid] as const,
+}
 import { queryKeys } from '@/lib/query-keys'
 
 // Mock SDK client injected via useIomSdkClient
@@ -168,7 +177,7 @@ describe('useMathFormulas', () => {
         expression: 'a+b',
       })
       const invalidated = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey)
-      expect(invalidated).toContainEqual(queryKeys.formulas.all)
+      expect(invalidated).toContainEqual(legacyKeys.all)
       expect(invalidated).toContainEqual(queryKeys.aggregates.all)
     })
   })
@@ -191,10 +200,10 @@ describe('useMathFormulas', () => {
 
       expect(softDeleteMathFormula).toHaveBeenCalledWith('uuid-1')
       const invalidated = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey)
-      expect(invalidated).toContainEqual(queryKeys.formulas.all)
+      expect(invalidated).toContainEqual(legacyKeys.all)
       expect(invalidated).toContainEqual(queryKeys.aggregates.all)
       expect(removeSpy).toHaveBeenCalledWith({
-        queryKey: queryKeys.formulas.detail('uuid-1'),
+        queryKey: legacyKeys.detail('uuid-1'),
       })
     })
   })
@@ -215,7 +224,7 @@ describe('useMathFormulas', () => {
 
       expect(createOrUpdateMathFormulaCalc).toHaveBeenCalled()
       const invalidated = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey)
-      expect(invalidated).toContainEqual(queryKeys.formulas.all)
+      expect(invalidated).toContainEqual(legacyKeys.all)
       expect(invalidated).toContainEqual(queryKeys.aggregates.all)
     })
 
@@ -234,7 +243,7 @@ describe('useMathFormulas', () => {
 
       expect(softDeleteMathFormulaCalc).toHaveBeenCalledWith('calc-1')
       const invalidated = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey)
-      expect(invalidated).toContainEqual(queryKeys.formulas.all)
+      expect(invalidated).toContainEqual(legacyKeys.all)
       expect(invalidated).toContainEqual(queryKeys.aggregates.all)
     })
 
