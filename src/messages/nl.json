@@ -1108,6 +1108,32 @@
     "empty": {
       "title": "Nog geen processen",
       "description": "Een proces zet invoerobjecten om in uitvoerobjecten."
+    },
+    "flowView": {
+      "depthLimited": "{size} niveaus",
+      "openDetails": "Details openen",
+      "resolvingNames": "Objectnamen ophalen…",
+      "cyclesRemoved": "{count, plural, one {# circulaire stroom wordt niet getekend} other {# circulaire stromen worden niet getekend}} — een Sankey moet acyclisch zijn.",
+      "truncated": "Alleen de eerste processen worden getoond — de stroomgrafiek is groter dan één ophaalronde.",
+      "error": "De stroomgrafiek kon niet worden geladen.",
+      "legendHint": "Klik op een knooppunt om te focussen · klik op een stroom om het proces te openen",
+      "noQuantity": "Geen hoeveelheid vastgelegd",
+      "kind": {
+        "object": "Object",
+        "process": "Proces"
+      },
+      "unit": {
+        "label": "Eenheid",
+        "unitless": "Geen eenheid"
+      },
+      "filter": {
+        "selected": "{count} geselecteerd",
+        "search": "Objecten zoeken…"
+      },
+      "empty": {
+        "title": "Nog niets te tekenen",
+        "description": "Een proces met minstens één input en één output verschijnt hier."
+      }
     }
   },
   "templates": {

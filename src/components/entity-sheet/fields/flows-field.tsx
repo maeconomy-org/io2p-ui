@@ -3,9 +3,15 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useFieldArray, type UseFormReturn } from 'react-hook-form'
-import { ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { ChevronRight, Package, Plus, Trash2 } from 'lucide-react'
 
-import { Badge, Button, Collapsible, CollapsibleContent } from '@/components/ui'
+import {
+  Badge,
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui'
 import { cn } from '@/lib'
 import type { EntityDraft } from '@/lib/entity-body'
 import { QUANTITY_KEY } from '@/lib/process-body'
@@ -159,49 +165,59 @@ function FlowRow({
       className={cn('rounded-md border', open && 'shadow-sm')}
     >
       <div className="flex items-center gap-1.5 px-2 py-1.5">
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
+        {/* Reading mode has nothing else interactive on the row, so the WHOLE row toggles — the same
+            affordance a property has. Editing puts a picker and an input in the row, and a control
+            cannot be nested inside a trigger, so there the chevron keeps the job. */}
+        <CollapsibleTrigger
           aria-label={t('processes.flows.toggleDetails')}
-          aria-expanded={open}
-          className="shrink-0 text-muted-foreground hover:text-foreground"
+          className={cn(
+            'flex min-w-0 items-center gap-1.5 text-left',
+            editing ? 'shrink-0' : 'flex-1'
+          )}
         >
           <ChevronRight
             className={cn(
-              'h-3.5 w-3.5 transition-transform',
+              'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
               open && 'rotate-90'
             )}
           />
-        </button>
+          {!editing && (
+            <>
+              {/* A flow names an OBJECT, not a property — the icon and the weight say so, because
+                  the row otherwise looks exactly like the property rows above it. */}
+              <Package
+                className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                {flow?.refName || flow?.ref || '—'}
+              </span>
+              <span className="shrink-0 text-sm text-muted-foreground">
+                {quantity || '—'}
+              </span>
+            </>
+          )}
+        </CollapsibleTrigger>
 
-        {editing ? (
-          <ObjectPicker
-            className="min-w-0 flex-1"
-            value={flow?.ref ?? ''}
-            displayName={flow?.refName}
-            onSelect={(id, name) => {
-              form.setValue(`${base}.ref`, id, { shouldDirty: true })
-              form.setValue(`${base}.refName`, name, { shouldDirty: false })
-            }}
-          />
-        ) : (
-          <span className="min-w-0 flex-1 truncate text-sm">
-            {flow?.refName || flow?.ref || '—'}
-          </span>
-        )}
-
-        {editing ? (
-          <input
-            className="h-8 w-28 shrink-0 rounded-md border border-input bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            placeholder={t('processes.flows.quantity')}
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            aria-label={t('processes.flows.quantity')}
-          />
-        ) : (
-          <span className="shrink-0 text-sm text-muted-foreground">
-            {quantity || '—'}
-          </span>
+        {editing && (
+          <>
+            <ObjectPicker
+              className="min-w-0 flex-1"
+              value={flow?.ref ?? ''}
+              displayName={flow?.refName}
+              onSelect={(id, name) => {
+                form.setValue(`${base}.ref`, id, { shouldDirty: true })
+                form.setValue(`${base}.refName`, name, { shouldDirty: false })
+              }}
+            />
+            <input
+              className="h-8 w-28 shrink-0 rounded-md border border-input bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              placeholder={t('processes.flows.quantity')}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              aria-label={t('processes.flows.quantity')}
+            />
+          </>
         )}
 
         {otherCount > 0 && (

@@ -1108,6 +1108,32 @@
     "empty": {
       "title": "No processes yet",
       "description": "A process turns input objects into output objects."
+    },
+    "flowView": {
+      "depthLimited": "{size} levels",
+      "openDetails": "Open details",
+      "resolvingNames": "Resolving object names…",
+      "cyclesRemoved": "{count, plural, one {# circular flow is not drawn} other {# circular flows are not drawn}} — a Sankey has to be acyclic.",
+      "truncated": "Showing the first processes only — the flow graph is larger than one sweep.",
+      "error": "The flow graph could not be loaded.",
+      "legendHint": "Click a node to focus it · click a flow to open its process",
+      "noQuantity": "No quantity recorded",
+      "kind": {
+        "object": "Object",
+        "process": "Process"
+      },
+      "unit": {
+        "label": "Unit",
+        "unitless": "No unit"
+      },
+      "filter": {
+        "selected": "{count} selected",
+        "search": "Search objects…"
+      },
+      "empty": {
+        "title": "Nothing to chart yet",
+        "description": "A process with at least one input and one output will appear here."
+      }
     }
   },
   "templates": {

@@ -12,12 +12,18 @@ import { DeletedFilter } from '@/components/filters'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
+import { ViewSelector } from '@/components/view-selector'
 import { useProcesses } from '@/hooks/api/entities'
 import { useSearch } from '@/contexts'
-import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
+import { usePreference } from '@/hooks'
+import {
+  DEFAULT_TABLE_PAGE_SIZE,
+  ENABLED_PROCESS_VIEW_TYPES,
+} from '@/constants'
 import { logger } from '@/lib'
 
 import { buildProcessColumns } from './components/process-columns'
+import { ProcessFlowView } from './components/process-flow-view'
 
 const ProcessSheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.ProcessSheet),
@@ -28,12 +34,14 @@ export default function ProcessesPage() {
   const t = useTranslations()
 
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [selected, setSelected] = useState<ProcessDTO | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openInEditMode, setOpenInEditMode] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [toDelete, setToDelete] = useState<ProcessDTO | null>(null)
 
+  const [view, setView] = usePreference('processView')
+  const isTable = view !== 'sankey'
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
 
   const listQuery = useEntityListQuery()
@@ -48,17 +56,18 @@ export default function ProcessesPage() {
       q: isSearchMode ? searchQuery : undefined,
       deleted: showDeleted ? 'include' : undefined,
     },
-    { keepPreviousData: true }
+    // The flow view sweeps its own pages; a paginated list would be a second, unused request.
+    { keepPreviousData: true, enabled: isTable }
   )
 
-  const openProcess = useCallback((process: ProcessDTO, edit: boolean) => {
-    setSelected(process)
+  const openProcess = useCallback((id: string, edit = false) => {
+    setSelectedId(id)
     setOpenInEditMode(edit)
     setSheetOpen(true)
   }, [])
 
   const handleCreate = useCallback(() => {
-    setSelected(null)
+    setSelectedId(null)
     setOpenInEditMode(false)
     setSheetOpen(true)
   }, [])
@@ -102,8 +111,8 @@ export default function ProcessesPage() {
       buildProcessColumns({
         t,
         actions: {
-          onViewDetails: (p) => openProcess(p, false),
-          onEdit: (p) => openProcess(p, true),
+          onViewDetails: (p) => openProcess(p.id),
+          onEdit: (p) => openProcess(p.id, true),
           onDelete: setToDelete,
           onRestore: handleRestore,
         },
@@ -115,12 +124,21 @@ export default function ProcessesPage() {
     <>
       <div className="container mx-auto flex-1 p-4">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-2xl font-semibold">{t('processes.title')}</h2>
             <div className="flex items-center gap-2">
-              <DeletedFilter
-                showDeleted={showDeleted}
-                onShowDeletedChange={setShowDeleted}
+              {/* Deleted processes are a list concern: the flow graph is about what connects to
+                  what, and a soft-deleted process has no place in a chain. */}
+              {isTable && (
+                <DeletedFilter
+                  showDeleted={showDeleted}
+                  onShowDeletedChange={setShowDeleted}
+                />
+              )}
+              <ViewSelector
+                view={view}
+                onChange={setView}
+                options={ENABLED_PROCESS_VIEW_TYPES}
               />
               <Button size="sm" onClick={handleCreate}>
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -129,7 +147,7 @@ export default function ProcessesPage() {
             </div>
           </div>
 
-          {isSearchMode && (
+          {isTable && isSearchMode && (
             <SearchResultsBar
               searchQuery={searchQuery}
               resultsCount={processesPage?.page.totalElements ?? 0}
@@ -137,22 +155,26 @@ export default function ProcessesPage() {
             />
           )}
 
-          <EntityTable
-            columns={columns}
-            page={processesPage}
-            getRowId={(process) => process.id}
-            fetching={isFetching}
-            sort={listQuery.query.sort}
-            onSortChange={listQuery.setSort}
-            onPageChange={listQuery.setPage}
-            onPageSizeChange={handlePageSizeChange}
-            onRowClick={(process) => openProcess(process, false)}
-            emptyIcon={
-              <Workflow className="h-10 w-10 text-muted-foreground/50" />
-            }
-            emptyTitle={t('processes.empty.title')}
-            emptyDescription={t('processes.empty.description')}
-          />
+          {isTable ? (
+            <EntityTable
+              columns={columns}
+              page={processesPage}
+              getRowId={(process) => process.id}
+              fetching={isFetching}
+              sort={listQuery.query.sort}
+              onSortChange={listQuery.setSort}
+              onPageChange={listQuery.setPage}
+              onPageSizeChange={handlePageSizeChange}
+              onRowClick={(process) => openProcess(process.id)}
+              emptyIcon={
+                <Workflow className="h-10 w-10 text-muted-foreground/50" />
+              }
+              emptyTitle={t('processes.empty.title')}
+              emptyDescription={t('processes.empty.description')}
+            />
+          ) : (
+            <ProcessFlowView onOpenProcess={openProcess} />
+          )}
         </div>
       </div>
 
@@ -160,7 +182,7 @@ export default function ProcessesPage() {
         <ProcessSheet
           open={sheetOpen}
           onOpenChange={setSheetOpen}
-          processId={selected?.id}
+          processId={selectedId ?? undefined}
           initialEditing={openInEditMode}
         />
       )}

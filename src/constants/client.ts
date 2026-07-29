@@ -37,9 +37,6 @@ export interface ClientConfig {
   nodeEnv: string
   emailLoginEnabled: string
 
-  // Feature flags
-  processDashboardEnabled: string
-
   // App information
   appName: string
   appDescription: string
@@ -65,7 +62,6 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   sentryRelease: '',
   nodeEnv: 'development',
   emailLoginEnabled: 'false',
-  processDashboardEnabled: 'false',
   appName: 'Internet of Materials',
   appDescription: 'Material Management System',
   appAcronym: 'IoM',
@@ -120,7 +116,6 @@ export function buildRuntimeConfig(): ClientConfig {
     sentryRelease: process.env.SENTRY_RELEASE || process.env.APP_VERSION || '',
     nodeEnv: process.env.NODE_ENV || 'development',
     emailLoginEnabled: process.env.EMAIL_LOGIN_ENABLED || 'false',
-    processDashboardEnabled: process.env.PROCESS_DASHBOARD_ENABLED || 'false',
     appName: process.env.APP_NAME || 'Internet of Materials',
     appDescription: process.env.APP_DESCRIPTION || 'Material Management System',
     appAcronym: process.env.APP_ACRONYM || 'IoM',

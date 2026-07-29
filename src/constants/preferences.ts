@@ -49,7 +49,7 @@ export const VIEW_PREFERENCES: {
     allowed: ENABLED_OBJECT_VIEW_TYPES.map((t) => t.value),
   },
   processView: {
-    default: 'dashboard',
+    default: 'table',
     allowed: ENABLED_PROCESS_VIEW_TYPES.map((t) => t.value),
   },
   propertiesView: {

@@ -64,7 +64,7 @@ describe('usePreference', () => {
   it('falls back to the default when the blob is unparseable', () => {
     localStorage.setItem(keyFor(USER_A), '{not-json')
     const { result } = renderHook(() => usePreference('processView'))
-    expect(result.current[0]).toBe('dashboard')
+    expect(result.current[0]).toBe('table')
   })
 
   it('isolates preferences per account', () => {

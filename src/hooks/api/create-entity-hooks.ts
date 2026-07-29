@@ -100,11 +100,16 @@ export function createEntityHooks<
     }
   ) {
     const client = useIomClient()
+    // BOTH options change the response SHAPE, so both belong in the key — otherwise a read that
+    // asked for deleted sub-items (or enriched files) would be served one that didn't, with no
+    // error to notice. Only non-default values contribute, so existing keys are unchanged.
+    const shape: string[] = []
+    if (options?.includeDeleted) shape.push('withDeleted')
+    if (options?.enrichFiles === false) shape.push('thinFiles')
+
     return useQuery({
-      // `includeDeleted` changes the response shape, so it has to be part of the key — otherwise a
-      // read that asked for deleted sub-items would serve one that didn't, or vice versa.
-      queryKey: options?.includeDeleted
-        ? [...keys.detail(id ?? ''), 'withDeleted']
+      queryKey: shape.length
+        ? [...keys.detail(id ?? ''), ...shape]
         : keys.detail(id ?? ''),
       queryFn: () =>
         select(client).get(id!, {

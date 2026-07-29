@@ -287,7 +287,7 @@ To add a new variable: update `buildRuntimeConfig()`, `ClientConfig`, and `DEFAU
 
 **Required**: `AUTH_API_URL`, `AUTH_REFRESH_API_URL`, `REGISTRY_API_URL`, `NODE_API_URL`, `REDIS_URL`, `REDIS_PASSWORD`.
 
-**Optional**: `UP_API_URL`, `HERE_API_KEY` (address lookups), `EMAIL_LOGIN_ENABLED`, Sentry (`SENTRY_DSN`/`SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_ENABLED`), branding (`APP_NAME`/`APP_DESCRIPTION`/`APP_ACRONYM`), import limits (`MAX_IMPORT_FILE_SIZE_MB`/`MAX_IMPORT_PAYLOAD_MB`/`MAX_OBJECTS_PER_IMPORT`), attachment cap (`MAX_ATTACHMENT_SIZE_MB` — S3-streamed upload, default 1024 = 1 GB hard ceiling at 8 MB × 128 parts), `LOG_LEVEL`, `ENCRYPTION_KEY` (AES-256-GCM for Redis-stored JWTs, auto-generated if missing), `CONTACT_URL`, `SUPPORT_EMAIL`, `PROCESS_DASHBOARD_ENABLED` (default `false`; set `true` to show the processes Dashboard view).
+**Optional**: `UP_API_URL`, `HERE_API_KEY` (address lookups), `EMAIL_LOGIN_ENABLED`, Sentry (`SENTRY_DSN`/`SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_ENABLED`), branding (`APP_NAME`/`APP_DESCRIPTION`/`APP_ACRONYM`), import limits (`MAX_IMPORT_FILE_SIZE_MB`/`MAX_IMPORT_PAYLOAD_MB`/`MAX_OBJECTS_PER_IMPORT`), attachment cap (`MAX_ATTACHMENT_SIZE_MB` — S3-streamed upload, default 1024 = 1 GB hard ceiling at 8 MB × 128 parts), `LOG_LEVEL`, `ENCRYPTION_KEY` (AES-256-GCM for Redis-stored JWTs, auto-generated if missing), `CONTACT_URL`, `SUPPORT_EMAIL`.
 
 ## SDK (`iom-sdk`)
 

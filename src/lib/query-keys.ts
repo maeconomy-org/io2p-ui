@@ -133,6 +133,9 @@ export const queryKeys = {
     list: (query?: unknown) => [...queryKeys.processes.lists(), query] as const,
     details: () => [...queryKeys.processes.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.processes.details(), id] as const,
+    // The flow graph sweeps every page to get whole-graph topology, so it is not one of the
+    // paginated lists — but it must still be invalidated by a write, hence living under `lists()`.
+    graph: () => [...queryKeys.processes.lists(), 'graph'] as const,
   },
 
   // ─── Addresses ───────────────────────────────────────────

@@ -14,15 +14,9 @@ vi.mock('@/contexts/auth-context', () => ({
   useAuth: () => ({ userId: USER }),
 }))
 
-const cfg = vi.hoisted(() => ({ processDashboardEnabled: 'true' }))
-vi.mock('@/contexts', () => ({
-  useAppConfig: () => cfg,
-}))
-
 describe('PreferencesSettings', () => {
   beforeEach(() => {
     localStorage.clear()
-    cfg.processDashboardEnabled = 'true'
   })
 
   it('reflects the default properties view (detailed) on first render', () => {
@@ -72,18 +66,31 @@ describe('PreferencesSettings', () => {
     expect(screen.getByTestId('pref-properties')).toBeInTheDocument()
   })
 
-  it('shows the dashboard process option when the flag is enabled', () => {
+  it('offers only process views that exist', () => {
+    // A stored preference for a retired view is what makes this matter: the option list is the
+    // single source of what the page can actually render.
     render(<PreferencesSettings />)
-    expect(screen.getByTestId('pref-processes-dashboard')).toBeInTheDocument()
-  })
-
-  it('hides the dashboard process option when PROCESS_DASHBOARD_ENABLED is off', () => {
-    cfg.processDashboardEnabled = 'false'
-    render(<PreferencesSettings />)
+    expect(screen.getByTestId('pref-processes-table')).toBeInTheDocument()
+    expect(screen.getByTestId('pref-processes-sankey')).toBeInTheDocument()
     expect(
       screen.queryByTestId('pref-processes-dashboard')
     ).not.toBeInTheDocument()
-    // the other process views remain available
-    expect(screen.getByTestId('pref-processes-sankey')).toBeInTheDocument()
+    expect(
+      screen.queryByTestId('pref-processes-network')
+    ).not.toBeInTheDocument()
+  })
+
+  it('falls back to a real option when the stored view was retired', () => {
+    // Without the fallback the control renders with nothing selected, which reads as "no default".
+    localStorage.setItem(
+      keyFor(USER),
+      JSON.stringify({ processView: 'dashboard' })
+    )
+    render(<PreferencesSettings />)
+
+    expect(screen.getByTestId('pref-processes-table')).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
   })
 })
