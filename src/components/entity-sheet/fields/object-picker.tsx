@@ -35,6 +35,7 @@ export function ObjectPicker({
   onSelect,
   disabled,
   className,
+  placeholder,
 }: {
   value: string
   /** Resolved name for `value`, when the caller knows one. */
@@ -42,6 +43,8 @@ export function ObjectPicker({
   onSelect: (id: string, name: string) => void
   disabled?: boolean
   className?: string
+  /** Empty-state label. A template flow's target is optional, so "select" would overstate it. */
+  placeholder?: string
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
@@ -74,7 +77,7 @@ export function ObjectPicker({
           )}
         >
           <span className="truncate">
-            {value ? label : t('processes.flows.selectObject')}
+            {value ? label : (placeholder ?? t('processes.flows.selectObject'))}
           </span>
           <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>

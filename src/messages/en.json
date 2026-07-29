@@ -1197,7 +1197,13 @@
     "systemReadOnly": "Built-in template — read only",
     "restored": "Template restored",
     "restoreFailed": "Failed to restore template",
-    "formulaInert": "Calculated when this template is applied"
+    "formulaInert": "Calculated when this template is applied",
+    "typeObject": "Object",
+    "typeProcess": "Process",
+    "createObject": "Object template",
+    "createProcess": "Process template",
+    "flowSlot": "Any object",
+    "flowSlotPlaceholder": "Any object (optional default)"
   },
   "formulas": {
     "title": "Formulas",

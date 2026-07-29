@@ -1197,7 +1197,13 @@
     "systemReadOnly": "Ingebouwd sjabloon — alleen-lezen",
     "restored": "Sjabloon hersteld",
     "restoreFailed": "Herstellen van sjabloon mislukt",
-    "formulaInert": "Berekend wanneer dit sjabloon wordt toegepast"
+    "formulaInert": "Berekend wanneer dit sjabloon wordt toegepast",
+    "typeObject": "Object",
+    "typeProcess": "Proces",
+    "createObject": "Objectsjabloon",
+    "createProcess": "Processjabloon",
+    "flowSlot": "Elk object",
+    "flowSlotPlaceholder": "Elk object (optionele standaard)"
   },
   "formulas": {
     "title": "Formules",

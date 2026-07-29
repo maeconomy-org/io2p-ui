@@ -41,6 +41,7 @@ export function FlowsField({
   siblingSource,
   derivedValues,
   entityId,
+  optionalRef = false,
 }: {
   form: UseFormReturn<EntityDraft>
   bag: Bag
@@ -50,6 +51,12 @@ export function FlowsField({
   /** Traces for the whole process aggregate; a flow value can be derived too. */
   derivedValues: DerivedValues
   entityId?: string
+  /**
+   * A TEMPLATE flow's target is a suggestion, not a requirement — the user picks the real object on
+   * apply. So an empty row is a legitimate slot ("one input goes here") rather than an unfinished
+   * one, and the picker says so instead of reading as a missing value.
+   */
+  optionalRef?: boolean
 }) {
   const t = useTranslations()
   const { fields, append, remove } = useFieldArray({
@@ -80,6 +87,7 @@ export function FlowsField({
           siblingSource={siblingSource}
           derivedValues={derivedValues}
           entityId={entityId}
+          optionalRef={optionalRef}
           onRemove={() => remove(index)}
         />
       ))}
@@ -102,6 +110,7 @@ function FlowRow({
   siblingSource,
   derivedValues,
   entityId,
+  optionalRef,
   onRemove,
 }: {
   form: UseFormReturn<EntityDraft>
@@ -111,6 +120,7 @@ function FlowRow({
   siblingSource?: EntityDraft['properties']
   derivedValues: DerivedValues
   entityId?: string
+  optionalRef?: boolean
   onRemove: () => void
 }) {
   const t = useTranslations()
@@ -190,7 +200,15 @@ function FlowRow({
                 aria-hidden="true"
               />
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                {flow?.refName || flow?.ref || '—'}
+                {flow?.refName ||
+                  flow?.ref ||
+                  (optionalRef ? (
+                    <span className="font-normal italic text-muted-foreground">
+                      {t('templates.flowSlot')}
+                    </span>
+                  ) : (
+                    '—'
+                  ))}
               </span>
               <span className="shrink-0 text-sm text-muted-foreground">
                 {quantity || '—'}
@@ -205,6 +223,9 @@ function FlowRow({
               className="min-w-0 flex-1"
               value={flow?.ref ?? ''}
               displayName={flow?.refName}
+              placeholder={
+                optionalRef ? t('templates.flowSlotPlaceholder') : undefined
+              }
               onSelect={(id, name) => {
                 form.setValue(`${base}.ref`, id, { shouldDirty: true })
                 form.setValue(`${base}.refName`, name, { shouldDirty: false })

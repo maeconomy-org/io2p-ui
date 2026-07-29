@@ -41,6 +41,13 @@ export const EMPTY_TEMPLATE_DRAFT: TemplateDraft = {
   properties: [],
 }
 
+/** A process template starts with one slot on each side — the minimum a process needs. */
+export const EMPTY_PROCESS_TEMPLATE_DRAFT: TemplateDraft = {
+  ...EMPTY_TEMPLATE_DRAFT,
+  inputs: [{ ref: '', properties: [] }],
+  outputs: [{ ref: '', properties: [] }],
+}
+
 /**
  * Load a template into an editable draft.
  *
@@ -62,25 +69,54 @@ export const EMPTY_TEMPLATE_DRAFT: TemplateDraft = {
  * suggest it happened.
  */
 export function templateToDraft(dto: TemplateDTO): TemplateDraft {
-  return {
+  const draft: TemplateDraft = {
     name: dto.name,
     description: dto.description ?? null,
     version: dto.version ?? null,
     address: null,
     parentIds: [],
     files: readFiles(dto.files),
-    properties: (dto.properties ?? []).map((p) => ({
-      key: p.key,
-      label: p.label,
-      description: p.description,
-      files: readFiles(p.files),
-      values: p.values.map((v) => ({
-        ref: v.ref ?? v.id,
-        data: v.data,
-        calc: v.calc,
-        files: readFiles(v.files),
-      })),
+    properties: (dto.properties ?? []).map(propertyToDraft),
+  }
+
+  // Only for a process template. Loading empty bags onto an object template would compare as
+  // "flows removed" and send `inputs: []` — harmless today, but it is the replace model's classic
+  // way of destroying something the editor never showed.
+  if (dto.type === 'process') {
+    draft.inputs = (dto.inputs ?? []).map(flowToDraft)
+    draft.outputs = (dto.outputs ?? []).map(flowToDraft)
+  }
+
+  return draft
+}
+
+type TemplateProperty = NonNullable<TemplateDTO['properties']>[number]
+type TemplateFlow = NonNullable<TemplateDTO['inputs']>[number]
+
+function propertyToDraft(p: TemplateProperty) {
+  return {
+    key: p.key,
+    label: p.label,
+    description: p.description,
+    files: readFiles(p.files),
+    values: p.values.map((v) => ({
+      ref: v.ref ?? v.id,
+      data: v.data,
+      calc: v.calc,
+      files: readFiles(v.files),
     })),
+  }
+}
+
+/**
+ * A template flow's `ref` is OPTIONAL — it is a suggested default, not a target. The user picks the
+ * real object when the template is applied, so an empty ref is a legitimate slot rather than an
+ * unfinished row, and must survive the round trip as one.
+ */
+function flowToDraft(flow: TemplateFlow) {
+  return {
+    ref: flow.ref ?? '',
+    properties: (flow.properties ?? []).map(propertyToDraft),
   }
 }
 
@@ -216,6 +252,25 @@ function files(draft: TemplateDraft): FileInput[] {
   return newReferenceInputs(draft.files)
 }
 
+type TemplateFlowInput = NonNullable<CreateTemplateInput['inputs']>[number]
+
+/**
+ * A flow preset, for a process template.
+ *
+ * `ref` is sent only when the author chose a default object — the field is optional here (unlike a
+ * process, where it must point at something that exists), because a template's job is to describe
+ * the SHAPE of a process. An empty slot says "one input goes here" and is filled on apply.
+ */
+function flowInputs(flows: TemplateDraft['inputs']): TemplateFlowInput[] {
+  return (flows ?? []).map((flow) => {
+    const props = properties({ ...EMPTY_TEMPLATE_DRAFT, ...flow })
+    return {
+      ...(flow.ref ? { ref: flow.ref } : {}),
+      ...(props.length ? { properties: props } : {}),
+    }
+  })
+}
+
 export function buildCreateTemplateInput(
   draft: TemplateDraft,
   type: NonNullable<CreateTemplateInput['type']> = 'object'
@@ -229,6 +284,13 @@ export function buildCreateTemplateInput(
 
   const fs = files(draft)
   if (fs.length) body.files = fs
+
+  if (type === 'process') {
+    const inputs = flowInputs(draft.inputs)
+    const outputs = flowInputs(draft.outputs)
+    if (inputs.length) body.inputs = inputs
+    if (outputs.length) body.outputs = outputs
+  }
 
   return body
 }
@@ -265,6 +327,17 @@ export function buildUpdateTemplateBody(
     (f) => !(draft.files ?? []).some((d) => d.id === f.id)
   )
   if (removedFile || !sameShape(fs, files(baseline))) body.files = fs
+
+  // Only for a process template. An object template has no flows to compare, and sending empty bags
+  // would be a replace-model write of nothing over nothing.
+  if (before.type === 'process') {
+    const inputs = flowInputs(draft.inputs)
+    if (!sameShape(inputs, flowInputs(baseline.inputs))) body.inputs = inputs
+
+    const outputs = flowInputs(draft.outputs)
+    if (!sameShape(outputs, flowInputs(baseline.outputs)))
+      body.outputs = outputs
+  }
 
   return body
 }

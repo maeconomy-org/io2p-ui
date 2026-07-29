@@ -572,3 +572,114 @@ describe('objectToTemplateInput', () => {
     })
   })
 })
+
+// ── process templates ─────────────────────────────────────────────────────────
+
+const PROCESS_TEMPLATE = {
+  ...TEMPLATE,
+  id: 'tpl-2',
+  type: 'process',
+  name: 'Smelt run',
+  inputs: [
+    {
+      id: 'f1',
+      ref: 'obj-scrap',
+      properties: [
+        {
+          id: 'fp1',
+          key: 'quantity',
+          values: [{ id: 'fv1', data: '800 kg', source: 'authored' }],
+        },
+      ],
+    },
+    // No ref: a SLOT, filled when the template is applied.
+    { id: 'f2', properties: [] },
+  ],
+  outputs: [{ id: 'f3', ref: 'obj-billet', properties: [] }],
+} as unknown as TemplateDTO
+
+describe('process templates', () => {
+  it('carries flows into the draft', () => {
+    const draft = templateToDraft(PROCESS_TEMPLATE)
+
+    expect(draft.inputs).toHaveLength(2)
+    expect(draft.outputs).toHaveLength(1)
+    expect(draft.inputs?.[0].ref).toBe('obj-scrap')
+  })
+
+  it('keeps a ref-less flow as an empty slot rather than dropping it', () => {
+    // A template flow's ref is a SUGGESTION — "one input goes here" is the shape being described.
+    // Dropping it would quietly reduce the template's arity on the next save.
+    const draft = templateToDraft(PROCESS_TEMPLATE)
+
+    expect(draft.inputs?.[1].ref).toBe('')
+  })
+
+  it('carries a flow property through the round trip', () => {
+    const draft = templateToDraft(PROCESS_TEMPLATE)
+    const body = buildCreateTemplateInput(draft, 'process')
+
+    expect(body.inputs?.[0].properties?.[0].key).toBe('quantity')
+  })
+
+  it('does not load flow bags onto an object template', () => {
+    // The replace model writes what the draft holds, so empty bags on an object template would be a
+    // write of nothing over nothing — and would misrepresent the type.
+    const draft = templateToDraft(TEMPLATE)
+
+    expect(draft.inputs).toBeUndefined()
+    expect(draft.outputs).toBeUndefined()
+  })
+
+  it('sends the type on create', () => {
+    const draft = templateToDraft(PROCESS_TEMPLATE)
+
+    expect(buildCreateTemplateInput(draft, 'process').type).toBe('process')
+    expect(buildCreateTemplateInput(draft).type).toBe('object')
+  })
+
+  it('omits ref for a slot rather than sending an empty string', () => {
+    // '' is not an id. The field is optional, so absent is the honest encoding.
+    const body = buildCreateTemplateInput(
+      templateToDraft(PROCESS_TEMPLATE),
+      'process'
+    )
+
+    expect(body.inputs?.[1]).not.toHaveProperty('ref')
+    expect(body.inputs?.[0].ref).toBe('obj-scrap')
+  })
+
+  it('never sends flows for an object template', () => {
+    const body = buildCreateTemplateInput(templateToDraft(TEMPLATE), 'object')
+
+    expect(body).not.toHaveProperty('inputs')
+    expect(body).not.toHaveProperty('outputs')
+  })
+
+  it('omits flows from the update body when nothing changed', () => {
+    const draft = templateToDraft(PROCESS_TEMPLATE)
+    const body = buildUpdateTemplateBody(PROCESS_TEMPLATE, draft)
+
+    expect(body).not.toHaveProperty('inputs')
+    expect(body).not.toHaveProperty('outputs')
+  })
+
+  it('sends the whole bag when one flow changed', () => {
+    // Replacement, not diff: a changed bag is re-sent entire.
+    const draft = templateToDraft(PROCESS_TEMPLATE)
+    draft.inputs = [...(draft.inputs ?? []), { ref: 'obj-ore', properties: [] }]
+
+    const body = buildUpdateTemplateBody(PROCESS_TEMPLATE, draft)
+    expect(body.inputs).toHaveLength(3)
+    expect(body).not.toHaveProperty('outputs')
+  })
+
+  it('does not touch flows when updating an object template', () => {
+    const draft = templateToDraft(TEMPLATE)
+    draft.name = 'Renamed'
+
+    const body = buildUpdateTemplateBody(TEMPLATE, draft)
+    expect(body.name).toBe('Renamed')
+    expect(body).not.toHaveProperty('inputs')
+  })
+})

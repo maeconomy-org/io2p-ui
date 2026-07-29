@@ -2,12 +2,18 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, FileText } from 'lucide-react'
+import { PlusCircle, FileText, Package, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
-import type { TemplateDTO } from 'io2p-client'
+import type { CreateTemplateInput, TemplateDTO } from 'io2p-client'
 
-import { Button } from '@/components/ui'
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui'
 import {
   DeletedFilter,
   OwnerFilter,
@@ -22,6 +28,10 @@ import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { logger } from '@/lib'
 
 import { buildTemplateColumns } from './components/template-columns'
+import {
+  TemplateTypeFilter,
+  type TemplateTypeFilterValue,
+} from './components/template-type-filter'
 
 // Lazy-load sheet components — only rendered when opened by user interaction
 const TemplateSheet = dynamic(
@@ -39,6 +49,10 @@ export default function TemplatesPage() {
   const [openInEditMode, setOpenInEditMode] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
+  const [typeFilter, setTypeFilter] = useState<TemplateTypeFilterValue>()
+  // Which kind a CREATE will be. An edit takes the loaded template's own type.
+  const [createType, setCreateType] =
+    useState<NonNullable<CreateTemplateInput['type']>>('object')
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [templateToDelete, setTemplateToDelete] = useState<TemplateDTO | null>(
     null
@@ -58,15 +72,20 @@ export default function TemplatesPage() {
       q: isSearchMode ? searchQuery : undefined,
       deleted: showDeleted ? 'include' : undefined,
       system: owner,
+      type: typeFilter,
     },
     { keepPreviousData: true }
   )
 
-  const handleAddTemplate = useCallback(() => {
-    setSelectedTemplate(null)
-    setOpenInEditMode(false)
-    setTemplateSheetOpen(true)
-  }, [])
+  const handleAddTemplate = useCallback(
+    (type: NonNullable<CreateTemplateInput['type']>) => {
+      setCreateType(type)
+      setSelectedTemplate(null)
+      setOpenInEditMode(false)
+      setTemplateSheetOpen(true)
+    },
+    []
+  )
 
   const openTemplate = useCallback((template: TemplateDTO, edit: boolean) => {
     setSelectedTemplate(template)
@@ -129,16 +148,37 @@ export default function TemplatesPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-2xl font-semibold">{t('templates.title')}</h2>
             <div className="flex items-center gap-2">
+              <TemplateTypeFilter value={typeFilter} onChange={setTypeFilter} />
               <OwnerFilter value={owner} onChange={setOwner} />
               <DeletedFilter
                 showDeleted={showDeleted}
                 onShowDeletedChange={setShowDeleted}
                 label={t('templates.showDeleted')}
               />
-              <Button size="sm" onClick={handleAddTemplate}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                {t('templates.create')}
-              </Button>
+              {/* One list holds both kinds, so the button has to ask which — the page no longer
+                  implies one. */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    {t('templates.create')}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onSelect={() => handleAddTemplate('object')}
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    {t('templates.createObject')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => handleAddTemplate('process')}
+                  >
+                    <Workflow className="mr-2 h-4 w-4" />
+                    {t('templates.createProcess')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -174,6 +214,7 @@ export default function TemplatesPage() {
           onOpenChange={setTemplateSheetOpen}
           templateId={selectedTemplate?.id}
           initialEditing={openInEditMode}
+          type={createType}
         />
       )}
 

@@ -9,6 +9,7 @@ import {
   actionsColumn,
   idColumn,
   nameColumn,
+  OwnerCell,
   textColumn,
   timestampColumn,
 } from '@/components/tables'
@@ -47,13 +48,12 @@ export function buildTemplateColumns({
     // riding along as a badge that only appears for one of the two cases.
     textColumn<TemplateDTO>(
       'owner',
-      t('templates.fields.owner'),
+      t('common.owner'),
       (template): ReactNode => (
-        <Badge variant={template.system ? 'secondary' : 'outline'}>
-          {template.system
-            ? t('templates.systemBadge')
-            : t('templates.userBadge')}
-        </Badge>
+        <OwnerCell
+          system={template.system}
+          ownerUserId={template.ownerUserId}
+        />
       )
     ),
     textColumn<TemplateDTO>(

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import type { CreateTemplateInput } from 'io2p-client'
 
 import { Badge, Input, Label, Separator } from '@/components/ui'
 import { useTemplates } from '@/hooks/api/entities'
@@ -9,7 +10,12 @@ import { useTemplates } from '@/hooks/api/entities'
 import { useTemplateForm } from './hooks/use-template-form'
 import { useEntityLifecycle } from './hooks/use-entity-lifecycle'
 import { EntitySheetShell, type SheetTab } from './entity-sheet-shell'
-import { EntityFacts, MetadataFields, PropertyFields } from './fields'
+import {
+  EntityFacts,
+  FlowsField,
+  MetadataFields,
+  PropertyFields,
+} from './fields'
 import {
   SheetLifecycleFooter,
   countDirtyLeaves,
@@ -26,6 +32,11 @@ export interface TemplateSheetProps {
   templateId?: string | null
   /** Open straight into edit mode — for an "Edit" row action, which otherwise lands on the read view. */
   initialEditing?: boolean
+  /**
+   * Which kind to CREATE. Ignored when editing — the loaded template's own type wins, since changing
+   * it would reinterpret every property the author already wrote.
+   */
+  type?: NonNullable<CreateTemplateInput['type']>
 }
 
 export function TemplateSheet({
@@ -33,6 +44,7 @@ export function TemplateSheet({
   onOpenChange,
   templateId,
   initialEditing = false,
+  type = 'object',
 }: TemplateSheetProps) {
   const t = useTranslations()
   const isCreate = !templateId
@@ -53,7 +65,12 @@ export function TemplateSheet({
   // Built-in templates belong to the node, not the user; editing one would be rejected anyway.
   const isSystem = !!template?.system
 
+  // The loaded template's own type is authoritative; `type` only decides what a CREATE will be.
+  const templateType = template?.type ?? type
+  const isProcess = templateType === 'process'
+
   const { form, submit, isSubmitting } = useTemplateForm(template, {
+    type: templateType,
     onSaved: () => {
       setEditing(false)
       if (isCreate) onOpenChange(false)
@@ -97,6 +114,22 @@ export function TemplateSheet({
         />
       ),
     },
+    ...(isProcess
+      ? (['inputs', 'outputs'] as const).map((bag) => ({
+          value: bag,
+          label: t(`processes.flows.${bag}`),
+          dirty: !!dirtyFields[bag],
+          content: (
+            <FlowsField
+              form={form}
+              bag={bag}
+              editing={editing}
+              derivedValues={NO_DERIVED_VALUES}
+              optionalRef
+            />
+          ),
+        }))
+      : []),
     {
       value: 'details',
       label: t('objects.detailsSheet.tabDetails'),
@@ -178,6 +211,20 @@ export function TemplateSheet({
           label={t('objects.fields.properties')}
           allowFiles={false}
         />
+        {isProcess &&
+          (['inputs', 'outputs'] as const).map((bag) => (
+            <div key={bag} className="space-y-2">
+              <Separator />
+              <Label>{t(`processes.flows.${bag}`)}</Label>
+              <FlowsField
+                form={form}
+                bag={bag}
+                editing
+                derivedValues={NO_DERIVED_VALUES}
+                optionalRef
+              />
+            </div>
+          ))}
       </div>
     </EntitySheetShell>
   )
