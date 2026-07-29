@@ -56,13 +56,13 @@ export function UploadCenter() {
       if (prev === task.status) continue
       const fileName = task.fileName || task.id
       if (task.status === 'completed') {
-        message = t('objects.uploadCenterAnnounceCompleted', { fileName })
+        message = t('uploads.centerAnnounceCompleted', { fileName })
       } else if (task.status === 'failed') {
         const isCancelled = task.error === 'Cancelled'
         message = t(
           isCancelled
-            ? 'objects.uploadCenterAnnounceCancelled'
-            : 'objects.uploadCenterAnnounceFailed',
+            ? 'uploads.centerAnnounceCancelled'
+            : 'uploads.centerAnnounceFailed',
           { fileName }
         )
       }
@@ -136,15 +136,15 @@ export function UploadCenter() {
               )}
               <span className="text-sm font-medium truncate">
                 {isProcessing
-                  ? t('objects.uploadCenterInProgress', {
+                  ? t('uploads.centerInProgress', {
                       done,
                       total: summary.total,
                     })
                   : summary.failed > 0
-                    ? t('objects.uploadCenterFailed', {
+                    ? t('uploads.centerFailed', {
                         count: summary.failed,
                       })
-                    : t('objects.uploadCenterIdle')}
+                    : t('uploads.centerIdle')}
               </span>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -158,7 +158,7 @@ export function UploadCenter() {
                     e.stopPropagation()
                     clearCompleted()
                   }}
-                  aria-label={t('objects.uploadCenterClear')}
+                  aria-label={t('uploads.centerClear')}
                   data-testid="upload-center-clear"
                 >
                   <X className="h-3 w-3" />
@@ -287,7 +287,7 @@ function UploadTaskRow({
           size="sm"
           className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           onClick={() => onCancel(task.id)}
-          aria-label={t('objects.uploadCenterCancel')}
+          aria-label={t('uploads.centerCancel')}
           data-testid={`upload-task-cancel-${task.id}`}
         >
           <X className="h-3 w-3" />
@@ -300,7 +300,7 @@ function UploadTaskRow({
           size="sm"
           className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           onClick={() => onRetry(task.id)}
-          aria-label={t('objects.uploadCenterRetry')}
+          aria-label={t('uploads.centerRetry')}
           data-testid={`upload-task-retry-${task.id}`}
         >
           <RotateCw className="h-3 w-3" />
@@ -313,7 +313,7 @@ function UploadTaskRow({
           size="sm"
           className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           onClick={() => onRemove(task.id)}
-          aria-label={t('objects.uploadCenterRemove')}
+          aria-label={t('uploads.centerRemove')}
           data-testid={`upload-task-remove-${task.id}`}
         >
           <X className="h-3 w-3" />
@@ -328,27 +328,27 @@ function StatusBadge({ task }: { task: UploadTask }) {
   const isCancelled = task.status === 'failed' && task.error === 'Cancelled'
   switch (task.status) {
     case 'pending':
-      return <span>{t('objects.uploadCenterStatusPending')}</span>
+      return <span>{t('uploads.centerStatusPending')}</span>
     case 'uploading':
       return (
         <span className="text-blue-600 dark:text-blue-400">
-          {t('objects.uploadCenterStatusUploading')}
+          {t('uploads.centerStatusUploading')}
         </span>
       )
     case 'cancelling':
-      return <span>{t('objects.uploadCenterCancelling')}</span>
+      return <span>{t('uploads.centerCancelling')}</span>
     case 'completed':
       return (
         <span className="text-green-600 dark:text-green-400">
-          {t('objects.uploadCenterStatusDone')}
+          {t('uploads.centerStatusDone')}
         </span>
       )
     case 'failed':
       return (
         <span className="text-red-600 dark:text-red-400">
           {isCancelled
-            ? t('objects.uploadCenterStatusCancelled')
-            : t('objects.uploadCenterStatusFailed')}
+            ? t('uploads.centerStatusCancelled')
+            : t('uploads.centerStatusFailed')}
         </span>
       )
     default:
@@ -367,7 +367,7 @@ function StatusIcon({ status }: { status: UploadTask['status'] }) {
       return (
         <Loader2
           className={cn('h-3 w-3 animate-spin text-muted-foreground shrink-0')}
-          aria-label={t('objects.uploadCenterCancelling')}
+          aria-label={t('uploads.centerCancelling')}
         />
       )
     case 'uploading':

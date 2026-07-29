@@ -70,6 +70,14 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     // change), the previous instance's last snapshot is still in React state —
     // without this the UI would stay frozen on those stale tasks (e.g. a
     // permanent "uploading 0%" that keeps the beforeunload guard armed).
+    //
+    // The right shape is useSyncExternalStore, which is exactly what the
+    // REPLACEMENT for this file (upload-queue-context, on io2p-client) already
+    // does. This is the legacy iom-sdk path and retires with the old SDK, and
+    // its subscribe callback does more than setState — it also reconciles
+    // settled ids and fires invalidations — so restructuring it now would be
+    // rework on code scheduled for deletion.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTasks(service.getAllTasks())
 
     const unsubscribe = service.subscribe(() => {
@@ -157,22 +165,20 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
     async (fileContexts) => {
       if (fileContexts.length === 0) return
 
-      toast.loading(
-        t('objects.uploadingFiles', { count: fileContexts.length }),
-        { id: 'upload-center' }
-      )
+      toast.loading(t('uploads.inProgress', { count: fileContexts.length }), {
+        id: 'upload-center',
+      })
 
       try {
         await service.queueFileUploadsWithContext(fileContexts)
         const post = service.getUploadSummary()
         if (post.failed.length > 0) {
-          toast.error(
-            t('objects.filesUploadFailed', { count: post.failed.length }),
-            { id: 'upload-center' }
-          )
+          toast.error(t('uploads.filesFailed', { count: post.failed.length }), {
+            id: 'upload-center',
+          })
         } else {
           toast.success(
-            t('objects.filesUploadedSuccess', {
+            t('uploads.filesSucceeded', {
               count: post.completed.length,
             }),
             { id: 'upload-center' }
@@ -180,7 +186,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         logger.error('Upload batch failed', err)
-        toast.error(t('objects.filesUploadFailed', { count: 1 }), {
+        toast.error(t('uploads.filesFailed', { count: 1 }), {
           id: 'upload-center',
         })
       }
