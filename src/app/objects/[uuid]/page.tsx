@@ -12,7 +12,7 @@ import { useBreadcrumbTrail } from '@/hooks'
 import { useObjects } from '@/hooks/api/entities'
 import { logger } from '@/lib'
 import { Button } from '@/components/ui'
-import { DeletedFilter } from '@/components/filters'
+import { FilterMenu, deletedSection } from '@/components/filters'
 import { ObjectBreadcrumb } from '@/components/object-breadcrumb'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
@@ -201,6 +201,7 @@ function ObjectChildrenPageContent() {
       restoreMutation.isPending,
       openDetails,
       handleRestore,
+      setTemplateSource,
     ]
   )
 
@@ -246,10 +247,8 @@ function ObjectChildrenPageContent() {
           </div>
 
           <div className="flex items-center gap-2">
-            <DeletedFilter
-              showDeleted={showDeleted}
-              onShowDeletedChange={setShowDeleted}
-              label={t('objects.showDeleted')}
+            <FilterMenu
+              sections={[deletedSection(t, showDeleted, setShowDeleted)]}
               data-tour="filters"
             />
             <Button

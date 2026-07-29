@@ -218,7 +218,8 @@
     "owner": "Owner",
     "builtIn": "Built-in",
     "userCreated": "User-created",
-    "me": "Me"
+    "me": "Me",
+    "status": "Status"
   },
   "copyButton": {
     "copied": "Copied!",

@@ -13,7 +13,7 @@ import { useObjects } from '@/hooks/api/entities'
 import { useSearch } from '@/contexts'
 import { logger } from '@/lib'
 import { Button } from '@/components/ui'
-import { DeletedFilter } from '@/components/filters'
+import { FilterMenu, deletedSection } from '@/components/filters'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
 import { ObjectColumnsView } from '@/components/object-columns-view'
@@ -224,10 +224,8 @@ function ObjectsPageContent() {
         <div className="mb-4 flex items-center justify-between gap-2">
           <h1 className="shrink-0 text-2xl font-bold">{t('objects.title')}</h1>
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
-            <DeletedFilter
-              showDeleted={showDeleted}
-              onShowDeletedChange={setShowDeleted}
-              label={t('objects.showDeleted')}
+            <FilterMenu
+              sections={[deletedSection(t, showDeleted, setShowDeleted)]}
               data-tour="filters"
             />
             <ViewSelector

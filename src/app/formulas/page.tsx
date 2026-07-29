@@ -9,8 +9,9 @@ import type { FormulaDTO } from 'io2p-client'
 
 import { Button } from '@/components/ui'
 import {
-  DeletedFilter,
-  OwnerFilter,
+  FilterMenu,
+  deletedSection,
+  ownerSection,
   type OwnerFilterValue,
 } from '@/components/filters'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
@@ -130,10 +131,11 @@ export default function FormulasPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-2xl font-semibold">{t('formulas.title')}</h2>
             <div className="flex items-center gap-2">
-              <OwnerFilter value={owner} onChange={setOwner} />
-              <DeletedFilter
-                showDeleted={showDeleted}
-                onShowDeletedChange={setShowDeleted}
+              <FilterMenu
+                sections={[
+                  ownerSection(t, owner, setOwner),
+                  deletedSection(t, showDeleted, setShowDeleted),
+                ]}
               />
               <Button
                 type="button"

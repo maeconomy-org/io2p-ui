@@ -218,7 +218,8 @@
     "owner": "Eigenaar",
     "builtIn": "Ingebouwd",
     "userCreated": "Door gebruiker",
-    "me": "Ik"
+    "me": "Ik",
+    "status": "Status"
   },
   "copyButton": {
     "copied": "Gekopieerd!",

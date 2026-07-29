@@ -15,8 +15,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui'
 import {
-  DeletedFilter,
-  OwnerFilter,
+  FilterMenu,
+  deletedSection,
+  ownerSection,
   type OwnerFilterValue,
 } from '@/components/filters'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
@@ -29,7 +30,7 @@ import { logger } from '@/lib'
 
 import { buildTemplateColumns } from './components/template-columns'
 import {
-  TemplateTypeFilter,
+  templateTypeSection,
   type TemplateTypeFilterValue,
 } from './components/template-type-filter'
 
@@ -148,12 +149,12 @@ export default function TemplatesPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-2xl font-semibold">{t('templates.title')}</h2>
             <div className="flex items-center gap-2">
-              <TemplateTypeFilter value={typeFilter} onChange={setTypeFilter} />
-              <OwnerFilter value={owner} onChange={setOwner} />
-              <DeletedFilter
-                showDeleted={showDeleted}
-                onShowDeletedChange={setShowDeleted}
-                label={t('templates.showDeleted')}
+              <FilterMenu
+                sections={[
+                  templateTypeSection(t, typeFilter, setTypeFilter),
+                  ownerSection(t, owner, setOwner),
+                  deletedSection(t, showDeleted, setShowDeleted),
+                ]}
               />
               {/* One list holds both kinds, so the button has to ask which — the page no longer
                   implies one. */}

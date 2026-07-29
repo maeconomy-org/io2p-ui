@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import type { ProcessDTO } from 'io2p-client'
 
 import { Button } from '@/components/ui'
-import { DeletedFilter } from '@/components/filters'
+import { FilterMenu, deletedSection } from '@/components/filters'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
@@ -138,9 +138,8 @@ export default function ProcessesPage() {
               {/* Deleted processes are a list concern: the flow graph is about what connects to
                   what, and a soft-deleted process has no place in a chain. */}
               {isTable && (
-                <DeletedFilter
-                  showDeleted={showDeleted}
-                  onShowDeletedChange={setShowDeleted}
+                <FilterMenu
+                  sections={[deletedSection(t, showDeleted, setShowDeleted)]}
                 />
               )}
               <ViewSelector
