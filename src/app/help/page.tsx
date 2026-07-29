@@ -1,10 +1,8 @@
-'use client'
-
 import Link from 'next/link'
 import { Download, HelpCircle, ArrowLeft } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 
-import { useAppConfig } from '@/contexts'
+import { buildRuntimeConfig } from '@/constants/client'
 import {
   Card,
   CardContent,
@@ -18,9 +16,13 @@ import {
   Button,
 } from '@/components/ui'
 
-export default function HelpPage() {
-  const t = useTranslations()
-  const config = useAppConfig()
+export default async function HelpPage() {
+  const t = await getTranslations()
+  // Read config on the server rather than through useAppConfig: the whole page
+  // is static markup, and the context read was the only thing forcing it to be
+  // a client component. buildRuntimeConfig is the same source the provider is
+  // fed from, so the value is identical.
+  const config = buildRuntimeConfig()
   const supportEmail = config.supportEmail
 
   return (

@@ -1,6 +1,4 @@
-'use client'
-
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui'
 import {
@@ -13,8 +11,15 @@ import {
 const TAB_TRIGGER =
   'w-full justify-start rounded-md px-3 py-2 text-sm font-medium data-[state=active]:bg-muted data-[state=active]:shadow-none'
 
-export default function SettingsPage() {
-  const t = useTranslations('settings')
+/**
+ * Server Component. It was 'use client' only to reach `useTranslations`, which
+ * meant the whole tab shell — headings, labels, static markup — shipped as
+ * client JS and rendered twice. The interactive parts (Tabs, and the four
+ * settings panels) are client components in their own right and stay that way;
+ * a Server Component renders them perfectly well.
+ */
+export default async function SettingsPage() {
+  const t = await getTranslations('settings')
 
   return (
     <div className="container mx-auto px-4 py-8" data-testid="settings-page">
