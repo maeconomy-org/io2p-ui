@@ -26,6 +26,7 @@ import {
   Skeleton,
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
+import { useMounted } from '@/hooks'
 import {
   DEMO_TOUR_START_EVENT,
   USER_MENU_TOGGLE_EVENT,
@@ -36,6 +37,10 @@ import { ThemeDropdownItem } from '@/components/ui/theme-toggle'
 export function UserProfileDropdown() {
   const t = useTranslations()
   const { userInfo, logout, userId, authLoading } = useAuth()
+  const mounted = useMounted()
+  // See account-details: branching on session state without `mounted` mismatches
+  // between the server render and the client's first one.
+  const identityUnknown = !mounted || (authLoading && !userInfo)
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
@@ -77,8 +82,8 @@ export function UserProfileDropdown() {
                 `t('nav.user')` fallback would render a plausible-but-wrong name
                 that swaps once /me lands. A skeleton says "not known yet"
                 instead of asserting something false. */}
-            {authLoading && !userInfo ? (
-              <Skeleton className="h-4 w-24" />
+            {identityUnknown ? (
+              <Skeleton className="h-4 w-16" />
             ) : (
               <span className="text-sm font-medium max-w-32 truncate leading-tight">
                 {displayIdentity}

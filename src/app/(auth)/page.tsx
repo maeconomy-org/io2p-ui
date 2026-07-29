@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Shield, AlertTriangle, Mail, Loader2 } from 'lucide-react'
+import { ArrowRight, Shield, AlertTriangle, Mail } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -60,13 +60,14 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, authLoading, router])
 
-  if (authLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
+  // No auth gate here on purpose. This page used to render a full-page spinner
+  // until the session resolved, so EVERY visitor waited a round trip to be told
+  // what they came for. The only case it protected was an already-signed-in
+  // user landing on `/`, who now sees the form for one tick before the effect
+  // above redirects them — a rare, self-correcting flash traded for an instant
+  // form in the common case. It also removes a hydration branch: the session
+  // resolves only on the client, so gating render on it made the server and the
+  // client's first render disagree.
 
   const mapError = (errorMessage: string): string => {
     if (errorMessage.includes('credentials')) {

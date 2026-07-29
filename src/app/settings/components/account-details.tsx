@@ -15,6 +15,7 @@ import {
   Skeleton,
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
+import { useMounted } from '@/hooks'
 import { cn } from '@/lib'
 
 /** Locale-aware date format; returns null for missing/invalid input. */
@@ -81,6 +82,15 @@ export function AccountDetails() {
   const t = useTranslations('settings.account')
   const locale = useLocale()
   const { userInfo, userId, authLoading } = useAuth()
+  const mounted = useMounted()
+
+  // `!mounted` is load-bearing, not belt-and-braces: better-auth resolves the
+  // session on the client but never on the server, so a branch on `authLoading`
+  // alone renders the skeleton server-side and the real rows on the client's
+  // first render — a hydration mismatch that throws away the whole subtree.
+  // Gating on `mounted` makes the server and the first client render agree on
+  // the skeleton; the real content arrives on the render after.
+  const identityUnknown = !mounted || (authLoading && !userInfo)
 
   const isEmailAuth = userInfo?.identifierType === 'UserAuthUP'
   const cert = userInfo?.certificateInfo
@@ -104,7 +114,7 @@ export function AccountDetails() {
             their data arrives, growing the card. Hold the whole body until the
             identity is known: one honest wait instead of a wrong answer plus
             three layout shifts. */}
-        {authLoading && !userInfo ? (
+        {identityUnknown ? (
           <div className="space-y-4 py-2">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="flex items-center justify-between gap-4">
