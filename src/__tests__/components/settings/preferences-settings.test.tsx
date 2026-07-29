@@ -72,11 +72,10 @@ describe('PreferencesSettings', () => {
     render(<PreferencesSettings />)
     expect(screen.getByTestId('pref-processes-table')).toBeInTheDocument()
     expect(screen.getByTestId('pref-processes-sankey')).toBeInTheDocument()
+    expect(screen.getByTestId('pref-processes-network')).toBeInTheDocument()
+    // Dashboard was retired with the statement-era analytics it computed.
     expect(
       screen.queryByTestId('pref-processes-dashboard')
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByTestId('pref-processes-network')
     ).not.toBeInTheDocument()
   })
 

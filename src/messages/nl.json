@@ -1112,7 +1112,6 @@
     "flowView": {
       "depthLimited": "{size} niveaus",
       "openDetails": "Details openen",
-      "resolvingNames": "Objectnamen ophalen…",
       "cyclesRemoved": "{count, plural, one {# circulaire stroom wordt niet getekend} other {# circulaire stromen worden niet getekend}} — een Sankey moet acyclisch zijn.",
       "truncated": "Alleen de eerste processen worden getoond — de stroomgrafiek is groter dan één ophaalronde.",
       "error": "De stroomgrafiek kon niet worden geladen.",
@@ -1134,6 +1133,15 @@
         "title": "Nog niets te tekenen",
         "description": "Een proces met minstens één input en één output verschijnt hier."
       }
+    },
+    "networkView": {
+      "networks": "{count, plural, one {# stroomnetwerk} other {# afzonderlijke stroomnetwerken}}",
+      "bridges": "{count, plural, one {# koppeling verbindt twee netwerken} other {# koppelingen verbinden anders gescheiden netwerken}}",
+      "bridgeLegend": "Netwerkkoppeling",
+      "bridgeHint": "De enige koppeling tussen deze twee netwerken — verwijder hem en ze vallen uiteen.",
+      "flowCount": "{count, plural, one {# stroom} other {# stromen}}",
+      "legendHint": "Sleep om te herschikken · scroll om te zoomen · klik op een knooppunt om te focussen",
+      "seeOverview": "Het overzicht tekent ze wel."
     }
   },
   "templates": {

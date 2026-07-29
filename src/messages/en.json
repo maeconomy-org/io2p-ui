@@ -1112,7 +1112,6 @@
     "flowView": {
       "depthLimited": "{size} levels",
       "openDetails": "Open details",
-      "resolvingNames": "Resolving object names…",
       "cyclesRemoved": "{count, plural, one {# circular flow is not drawn} other {# circular flows are not drawn}} — a Sankey has to be acyclic.",
       "truncated": "Showing the first processes only — the flow graph is larger than one sweep.",
       "error": "The flow graph could not be loaded.",
@@ -1134,6 +1133,15 @@
         "title": "Nothing to chart yet",
         "description": "A process with at least one input and one output will appear here."
       }
+    },
+    "networkView": {
+      "networks": "{count, plural, one {# flow network} other {# separate flow networks}}",
+      "bridges": "{count, plural, one {# link joins two networks} other {# links join otherwise-separate networks}}",
+      "bridgeLegend": "Cross-network link",
+      "bridgeHint": "The only link between these two networks — remove it and they come apart.",
+      "flowCount": "{count, plural, one {# flow} other {# flows}}",
+      "legendHint": "Drag to rearrange · scroll to zoom · click a node to focus it",
+      "seeOverview": "The overview view draws them."
     }
   },
   "templates": {

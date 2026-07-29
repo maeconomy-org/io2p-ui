@@ -111,15 +111,28 @@ function getServerSnapshot(): string {
 }
 
 /**
- * Read + write one account-scoped view preference. Returns `[value, setValue]`
- * like `useState`. `value` is the validated stored value or the hardcoded
- * default. Until `userId` resolves (auth init / logged out) it returns the
- * default and `setValue` is a no-op — we never persist without an account.
+ * Read + write one account-scoped view preference. Returns
+ * `[value, setValue, resolved]` — `useState` plus a readiness flag.
+ *
+ * `value` is the validated stored value or the hardcoded default. Until
+ * `userId` resolves (auth init / logged out) it returns the default and
+ * `setValue` is a no-op — we never persist without an account.
+ *
+ * `resolved` matters because the blob is keyed by account, so nothing can be
+ * read until `/me` comes back. A caller that renders the default meanwhile
+ * shows the WRONG view and then swaps — a visible flip on every cold load.
+ * Wait on `resolved` and you get one loading state instead. It follows
+ * `authLoading`, not `userId`, so a logged-out or failed auth still resolves
+ * (to the defaults) rather than waiting forever.
  */
 export function usePreference<K extends ViewPreferenceKey>(
   key: K
-): [ViewPreferenceValues[K], (value: ViewPreferenceValues[K]) => void] {
-  const { userId } = useAuth()
+): [
+  ViewPreferenceValues[K],
+  (value: ViewPreferenceValues[K]) => void,
+  boolean,
+] {
+  const { userId, authLoading } = useAuth()
 
   // Recreate subscribe/getSnapshot only when the account changes — the raw
   // snapshot must keep a stable string identity (parsing happens below).
@@ -148,7 +161,7 @@ export function usePreference<K extends ViewPreferenceKey>(
     [userId, key]
   )
 
-  return [value, setValue]
+  return [value, setValue, !authLoading]
 }
 
 // Test surface + non-hook escape hatch for callers without a React context.

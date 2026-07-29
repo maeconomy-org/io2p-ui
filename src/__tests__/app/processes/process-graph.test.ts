@@ -4,8 +4,11 @@ import type { ProcessDTO } from 'io2p-client'
 import {
   buildProcessGraph,
   computeDepths,
+  connectedComponents,
   countLevels,
+  findBridges,
   flowQuantity,
+  graphDegrees,
   limitDepth,
   limitDepthAround,
   removeCycles,
@@ -613,5 +616,129 @@ describe('withDepths', () => {
     const pinned = withDepths(graph, new Map([['scrap', 0]]))
 
     expect(pinned.nodes.find((n) => n.id === 'rebar')?.depth).toBeUndefined()
+  })
+})
+
+// ── overview: degrees, networks, bridges ──────────────────────────────────────
+
+const edge = (source: string, target: string, flowId?: string): GraphLink => ({
+  source,
+  target,
+  flowId: flowId ?? `${source}-${target}`,
+  processId: 'p',
+  processName: 'P',
+  direction: 'input',
+})
+
+describe('graphDegrees', () => {
+  it('counts every flow touching a node, in either direction', () => {
+    const degrees = graphDegrees([
+      edge('a', 'hub'),
+      edge('b', 'hub'),
+      edge('hub', 'c'),
+    ])
+
+    expect(degrees.get('hub')).toBe(3)
+    expect(degrees.get('a')).toBe(1)
+  })
+
+  it('counts parallel flows between the same pair separately', () => {
+    // Two flows can legitimately point at the same object; the node really is busier.
+    const degrees = graphDegrees([edge('a', 'b', 'f1'), edge('a', 'b', 'f2')])
+
+    expect(degrees.get('a')).toBe(2)
+  })
+
+  it('is empty for a graph with no links', () => {
+    expect(graphDegrees([]).size).toBe(0)
+  })
+})
+
+describe('connectedComponents', () => {
+  it('separates chains with no path between them', () => {
+    const components = connectedComponents([
+      edge('a', 'b'),
+      edge('b', 'c'),
+      edge('x', 'y'),
+    ])
+
+    expect(components.get('a')).toBe(components.get('c'))
+    expect(components.get('a')).not.toBe(components.get('x'))
+    expect(new Set(components.values()).size).toBe(2)
+  })
+
+  it('treats direction as irrelevant — a shared sink still joins two chains', () => {
+    const components = connectedComponents([edge('a', 'z'), edge('b', 'z')])
+
+    expect(new Set(components.values()).size).toBe(1)
+  })
+
+  it('is empty for a graph with no links', () => {
+    expect(connectedComponents([]).size).toBe(0)
+  })
+})
+
+describe('findBridges', () => {
+  it('finds the single link joining two otherwise-separate chains', () => {
+    // The overview's whole purpose: material leaving one building and entering another.
+    const bridges = findBridges([
+      edge('a1', 'a2'),
+      edge('a2', 'a3'),
+      edge('a3', 'a1'), // building A: a cycle, internally redundant
+      edge('a3', 'b1', 'reuse'), // the handover
+      edge('b1', 'b2'),
+      edge('b2', 'b3'),
+      edge('b3', 'b1'), // building B: also a cycle
+    ])
+
+    expect(bridges.has('reuse')).toBe(true)
+  })
+
+  it('calls no link in a cycle a bridge', () => {
+    const bridges = findBridges([
+      edge('a', 'b'),
+      edge('b', 'c'),
+      edge('c', 'a'),
+    ])
+
+    expect(bridges.size).toBe(0)
+  })
+
+  it('calls every link in a plain chain a bridge', () => {
+    const bridges = findBridges([edge('a', 'b'), edge('b', 'c')])
+
+    expect(bridges.size).toBe(2)
+  })
+
+  it('does not count either of two parallel links between the same pair', () => {
+    // Multigraph-safe: descent is tracked by EDGE, not by parent node. Tracking the parent node
+    // would make the second link look like a way back and mark both as bridges.
+    const bridges = findBridges([edge('a', 'b', 'f1'), edge('a', 'b', 'f2')])
+
+    expect(bridges.size).toBe(0)
+  })
+
+  it('reports the flow id, so the chart can style that exact flow', () => {
+    const bridges = findBridges([edge('a', 'b', 'the-flow')])
+
+    expect([...bridges]).toEqual(['the-flow'])
+  })
+
+  it('handles several independent networks in one pass', () => {
+    const bridges = findBridges([edge('a', 'b', 'a-b'), edge('x', 'y', 'x-y')])
+
+    expect(bridges).toEqual(new Set(['a-b', 'x-y']))
+  })
+
+  it('handles a long chain without recursing', () => {
+    const links = Array.from({ length: 5000 }, (_, i) =>
+      edge(`n${i}`, `n${i + 1}`, `f${i}`)
+    )
+
+    expect(findBridges(links).size).toBe(5000)
+  })
+
+  it('is empty for a graph with no links', () => {
+    expect(findBridges([]).size).toBe(0)
   })
 })

@@ -4,14 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
-import {
-  AlertTriangle,
-  ExternalLink,
-  Focus,
-  Loader2,
-  Workflow,
-  X,
-} from 'lucide-react'
+import { AlertTriangle, ExternalLink, Focus, Workflow, X } from 'lucide-react'
 
 import {
   Button,
@@ -22,9 +15,14 @@ import {
   FloatingActionBarSeparator,
 } from '@/components/ui'
 import { ContentSkeleton } from '@/components/skeletons'
+import { cn } from '@/lib'
 
 import { useProcessGraph } from '../hooks/use-process-graph'
-import type { GraphLink } from '../utils/process-graph'
+import {
+  connectedComponents,
+  findBridges,
+  type GraphLink,
+} from '../utils/process-graph'
 
 import { ProcessFlowToolbar } from './process-flow-toolbar'
 
@@ -55,9 +53,27 @@ const ProcessFlowChart = dynamic(
   { loading: () => <ContentSkeleton />, ssr: false }
 )
 
+const ProcessNetworkChart = dynamic(
+  () => import('./process-network-chart').then((m) => m.ProcessNetworkChart),
+  { loading: () => <ContentSkeleton />, ssr: false }
+)
+
+/**
+ * The two graph views share everything except the chart and the depth window: same data, same focus
+ * behaviour, same object filter, same way into an entity. They differ in the QUESTION they answer.
+ *
+ * - `sankey` — depth. A layered acyclic layout, so it windows levels and cuts recirculation, and in
+ *   return it can show how much flows through a chain and where mass is lost.
+ * - `network` — breadth. The whole graph force-directed, cycles kept, so it shows which chains are
+ *   actually separate and the few links that join them.
+ */
+export type ProcessGraphVariant = 'sankey' | 'network'
+
 export function ProcessFlowView({
+  variant,
   onOpenProcess,
 }: {
+  variant: ProcessGraphVariant
   onOpenProcess: (processId: string) => void
 }) {
   const t = useTranslations()
@@ -69,10 +85,14 @@ export function ProcessFlowView({
   const [unitOverride, setUnitOverride] = useState<string | null>(null)
   const [selectedObjects, setSelectedObjects] = useState<string[]>([])
 
+  const layered = variant === 'sankey'
+
   // Focus and the object filter each ask a whole-graph question ("what touches this?"), so neither
   // is answered inside a depth slice. Keeping the window would silently return nothing whenever the
   // chosen object happened to sit outside the current levels — an empty chart with no explanation.
-  const windowed = depthLimited && !focusId && selectedObjects.length === 0
+  // The overview never windows at all: seeing the whole graph IS its job.
+  const windowed =
+    layered && depthLimited && !focusId && selectedObjects.length === 0
 
   const {
     graph,
@@ -82,13 +102,13 @@ export function ProcessFlowView({
     units,
     truncated,
     isLoading,
-    isResolvingNames,
     error,
   } = useProcessGraph({
     window: windowed ? { from: windowStart, size: DEPTH_WINDOW_SIZE } : null,
     focus: focusId,
     focusHops: FOCUS_HOPS,
     highlightObjects: selectedObjects,
+    acyclic: layered,
   })
 
   // A shallower graph (a refetch, or a filter applied) could leave the start past the new end,
@@ -108,10 +128,25 @@ export function ProcessFlowView({
     [graph.nodes, focusId]
   )
 
+  // The bar follows the user's INTENT, not whether the focused node happens to be in the graph as
+  // currently fetched. Focusing re-slices and re-reads, and `graph.nodes` briefly does not contain
+  // the node mid-transition — driving visibility off `focusNode` made the bar exit and re-enter
+  // each time that happened, which is the flicker. `focusId` only changes when the user acts.
+  const focusOpen = focusId !== null
+  const focusLabel = focusNode?.name || focusId?.slice(0, 8) || ''
+
   const objectNodes = useMemo(
     () => graph.nodes.filter((n) => n.kind === 'object'),
     [graph.nodes]
   )
+
+  // "Three separate networks joined by two links" says more about a graph than a node count does,
+  // and it is the sentence the overview exists to make true.
+  const shape = useMemo(() => {
+    if (layered) return null
+    const networks = new Set(connectedComponents(graph.links).values()).size
+    return { networks, bridges: findBridges(graph.links).size }
+  }, [layered, graph.links])
 
   const handleNodeClick = useCallback((nodeId: string) => {
     setFocusId((current) => (current === nodeId ? null : nodeId))
@@ -159,6 +194,7 @@ export function ProcessFlowView({
         onNext={() => setWindowStart((s) => s + DEPTH_WINDOW_STEP)}
         hiddenNodeCount={Math.max(0, totalNodes - graph.nodes.length)}
         depthDisabled={!!focusId || selectedObjects.length > 0}
+        layered={layered}
         units={units}
         activeUnit={activeUnit}
         onActiveUnitChange={setUnitOverride}
@@ -177,13 +213,21 @@ export function ProcessFlowView({
             />
           ) : (
             <>
-              <ProcessFlowChart
-                graph={graph}
-                activeUnit={activeUnit}
-                onNodeClick={handleNodeClick}
-                onLinkClick={handleLinkClick}
-              />
-              <Legend />
+              {layered ? (
+                <ProcessFlowChart
+                  graph={graph}
+                  activeUnit={activeUnit}
+                  onNodeClick={handleNodeClick}
+                  onLinkClick={handleLinkClick}
+                />
+              ) : (
+                <ProcessNetworkChart
+                  graph={graph}
+                  onNodeClick={handleNodeClick}
+                  onLinkClick={handleLinkClick}
+                />
+              )}
+              <Legend variant={variant} />
             </>
           )}
         </CardContent>
@@ -192,13 +236,13 @@ export function ProcessFlowView({
       {/* Floats rather than sitting in the flow: focusing a node must not shove the chart down,
           which would move the very node the user just clicked. */}
       <FloatingActionBar
-        open={!!focusNode}
+        open={focusOpen}
         label={t('processes.nodeFocus.viewing')}
       >
         <span className="flex min-w-0 items-center gap-2 px-2 text-sm">
           <Focus className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
           <span className="max-w-[14rem] truncate font-medium">
-            {focusNode?.name || focusNode?.id.slice(0, 8)}
+            {focusLabel}
           </span>
           <span className="hidden whitespace-nowrap text-xs text-muted-foreground md:inline">
             {t('processes.nodeFocus.description')}
@@ -210,6 +254,9 @@ export function ProcessFlowView({
           variant="ghost"
           size="sm"
           className="whitespace-nowrap rounded-full"
+          // Only resolvable once the node is in the fetched graph — that is what tells us whether it
+          // is a process or an object, and so where "details" even goes.
+          disabled={!focusNode}
           onClick={openFocused}
         >
           <ExternalLink className="h-3.5 w-3.5 sm:mr-1.5" />
@@ -233,17 +280,21 @@ export function ProcessFlowView({
       </FloatingActionBar>
 
       <div className="space-y-1.5 text-xs text-muted-foreground">
-        {isResolvingNames && (
-          <p className="flex items-center gap-1.5">
-            <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-            {t('processes.flowView.resolvingNames')}
-          </p>
-        )}
         {/* Cut flows are real data. Saying so is the difference between a drawing decision and a
-            silent omission — and the overview view is where they will be visible. */}
+            silent omission — and it names the overview as the place to see them. */}
         {cutLinks.length > 0 && (
           <p>
-            {t('processes.flowView.cyclesRemoved', { count: cutLinks.length })}
+            {t('processes.flowView.cyclesRemoved', { count: cutLinks.length })}{' '}
+            {t('processes.networkView.seeOverview')}
+          </p>
+        )}
+        {shape && (
+          <p>
+            {t('processes.networkView.networks', { count: shape.networks })}
+            {shape.bridges > 0 &&
+              ` · ${t('processes.networkView.bridges', {
+                count: shape.bridges,
+              })}`}
           </p>
         )}
         {truncated && (
@@ -258,26 +309,51 @@ export function ProcessFlowView({
 }
 
 /**
- * Two categories, so a legend is mandatory: node kind must never rest on hue alone. The border on
- * the process swatch is the same secondary cue the chart draws.
+ * Two categories, so a legend is mandatory: node kind must never rest on hue alone. Each swatch is
+ * the same secondary cue its chart draws — a dashed wash in the Sankey, a diamond in the overview.
  */
-function Legend() {
+function Legend({ variant }: { variant: ProcessGraphVariant }) {
   const t = useTranslations()
+  const network = variant === 'network'
+
   return (
     <div className="mt-3 flex flex-wrap items-center gap-4 border-t pt-3 text-xs text-muted-foreground">
       <span className="inline-flex items-center gap-1.5">
-        <span className="h-3 w-3 rounded-sm bg-[#0d9488]" aria-hidden="true" />
+        <span
+          className={cn(
+            'h-3 w-3 bg-[#0d9488]',
+            network ? 'rounded-full' : 'rounded-sm'
+          )}
+          aria-hidden="true"
+        />
         {t('processes.flowView.kind.object')}
       </span>
       <span className="inline-flex items-center gap-1.5">
-        {/* Mirrors the chart: dashed outline over a wash, not a solid block. */}
         <span
-          className="h-3 w-3 rounded border-2 border-dashed border-[#2563eb] bg-[#2563eb]/20 dark:border-[#3b82f6] dark:bg-[#3b82f6]/25"
+          className={cn(
+            'h-3 w-3 bg-[#2563eb] dark:bg-[#3b82f6]',
+            network
+              ? 'rotate-45'
+              : 'rounded border-2 border-dashed border-[#2563eb] bg-[#2563eb]/20 dark:border-[#3b82f6] dark:bg-[#3b82f6]/25'
+          )}
           aria-hidden="true"
         />
         <span className="italic">{t('processes.flowView.kind.process')}</span>
       </span>
-      <span>{t('processes.flowView.legendHint')}</span>
+      {network && (
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="h-0.5 w-5 rounded-full bg-[#c2410c] dark:bg-[#ea580c]"
+            aria-hidden="true"
+          />
+          {t('processes.networkView.bridgeLegend')}
+        </span>
+      )}
+      <span>
+        {network
+          ? t('processes.networkView.legendHint')
+          : t('processes.flowView.legendHint')}
+      </span>
     </div>
   )
 }

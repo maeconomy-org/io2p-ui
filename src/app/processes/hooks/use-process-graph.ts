@@ -1,21 +1,20 @@
 'use client'
 
-// Fetches the process flow graph in TWO phases, because of one asymmetry in the API:
+// Fetches the whole process flow graph from the processes list alone.
 //
-//   `refName` — the object's name on a flow — is populated ONLY on the detail read
-//   (`processes.service.ts` calls `enrichRefNames()` in `get(id)`, not in `list()`).
+// A list row carries everything the chart needs: the flows (so the topology), their properties (so
+// the quantities), and each flow's `refName` — the referenced object's name, resolved on read via
+// one batched lookup per page. That last part is recent; before it, a name could only be had from
+// the DETAIL read, so this hook had a second phase that fetched one process per visible node just to
+// turn uuids into labels. The list flag removed the reason for it.
 //
-// You cannot resolve those names yourself: there is no `ids` filter on the objects list, and
-// `refName` is deliberately name-only — a viewer with a shared process sees its input names WITHOUT
-// read access to the objects (D75/C2), so `objects.get` would 404 exactly where it matters.
-//
-// So: phase 1 lists every process for TOPOLOGY and quantities (flows and their properties DO come on
-// list rows), and phase 2 reads details only for the processes actually on screen, purely for names.
-// This is the old hook's own principle — compute depth from edges first, fetch only the window —
-// and it is cheaper now that the edges arrive with the list.
+// Names cannot be resolved client-side, which is why the flag mattered: there is no `ids` filter on
+// the objects list, and `refName` is deliberately name-only — a viewer with a shared process sees
+// its input names WITHOUT read access to those objects (D75/C2), so `objects.get` would 404 exactly
+// where it counts.
 
 import { useMemo } from 'react'
-import { useQuery, useQueries } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import type { Io2pClient, ProcessDTO } from 'io2p-client'
 
 import { useIomClient } from '@/lib/io2p'
@@ -48,30 +47,48 @@ const GRAPH_MAX_PAGES = 5
 
 const STALE_TIME = 30_000
 
+/**
+ * Sweep every page of processes.
+ *
+ * The first page is what tells us how many there are, so it has to come back before the rest can be
+ * asked for — but the rest go out TOGETHER. Chaining them made a cold load N round trips of dead
+ * time behind a skeleton; this is two, whatever N is.
+ */
 async function fetchGraphProcesses(
   client: Io2pClient
 ): Promise<{ processes: ProcessDTO[]; truncated: boolean }> {
-  const processes: ProcessDTO[] = []
-
-  for (let page = 1; page <= GRAPH_MAX_PAGES; page++) {
-    // `enrichFiles: false` — the chart draws no thumbnails, and this is the heaviest part of a row.
-    const result = await client.processes.list({
-      page,
-      size: GRAPH_PAGE_SIZE,
-      scope: 'all',
-      enrichFiles: false,
-    })
-    processes.push(...result.data)
-    if (page >= result.page.totalPages) {
-      return { processes, truncated: false }
-    }
+  // `enrichFiles: false` — the chart draws no thumbnails, and this is the heaviest part of a row.
+  // `refNames: true` is the server default, but stated anyway: the whole chart is labelled from it,
+  // and if the default ever flipped the graph would quietly render uuids rather than fail.
+  const query = {
+    size: GRAPH_PAGE_SIZE,
+    scope: 'all' as const,
+    enrichFiles: false,
+    refNames: true,
   }
 
-  logger.warn('Process graph truncated', {
-    fetched: processes.length,
-    maxPages: GRAPH_MAX_PAGES,
-  })
-  return { processes, truncated: true }
+  const first = await client.processes.list({ page: 1, ...query })
+  const wanted = first.page.totalPages
+  const fetching = Math.min(wanted, GRAPH_MAX_PAGES)
+
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, fetching - 1) }, (_, i) =>
+      client.processes.list({ page: i + 2, ...query })
+    )
+  )
+
+  const processes = [...first.data, ...rest.flatMap((page) => page.data)]
+  const truncated = wanted > GRAPH_MAX_PAGES
+
+  if (truncated) {
+    logger.warn('Process graph truncated', {
+      fetched: processes.length,
+      totalPages: wanted,
+      maxPages: GRAPH_MAX_PAGES,
+    })
+  }
+
+  return { processes, truncated }
 }
 
 export interface ProcessGraphWindow {
@@ -89,6 +106,11 @@ export interface UseProcessGraphOptions {
   focusHops?: number
   /** Object ids to narrow to; a link survives if either end is selected. Empty means no filter. */
   highlightObjects?: string[]
+  /**
+   * Cut back edges so the graph can be laid out in layers. Required by the Sankey; the overview is
+   * force-directed and KEEPS recirculation, which is one of the things it exists to show.
+   */
+  acyclic?: boolean
 }
 
 export interface UseProcessGraphResult {
@@ -105,8 +127,6 @@ export interface UseProcessGraphResult {
   /** True when the process sweep hit its page cap and the graph is incomplete. */
   truncated: boolean
   isLoading: boolean
-  /** True while names for the current slice are still arriving. */
-  isResolvingNames: boolean
   error: Error | null
 }
 
@@ -117,6 +137,7 @@ export function useProcessGraph({
   focus = null,
   focusHops = 2,
   highlightObjects = [],
+  acyclic = true,
 }: UseProcessGraphOptions): UseProcessGraphResult {
   const client = useIomClient()
 
@@ -152,44 +173,6 @@ export function useProcessGraph({
     return null
   }, [topology, focus, focusHops, window])
 
-  // Phase 2: names, for the processes actually on screen. `enrichFiles: false` keeps the payload to
-  // what this needs and gives it a cache entry of its own, so it can never serve thin files to the
-  // sheet (which asks for enriched ones).
-  const visibleProcessIds = useMemo(() => {
-    const ids = topology.full.nodes
-      .filter((n) => n.kind === 'process')
-      .filter((n) => !visible || visible.has(n.id))
-      .map((n) => n.id)
-    return ids
-  }, [topology, visible])
-
-  const detailQueries = useQueries({
-    queries: visibleProcessIds.map((id) => ({
-      queryKey: [...queryKeys.processes.detail(id), 'thinFiles'],
-      queryFn: () => client.processes.get(id, { enrichFiles: false }),
-      staleTime: STALE_TIME,
-    })),
-  })
-
-  // `useQueries` returns a fresh array every render, so keying the map on it would mint a new Map
-  // each time and rebuild the whole graph below. Which reads have RESOLVED is what actually changes
-  // the names, so that is what the memo depends on.
-  const resolvedSignature = detailQueries
-    .map((q) => ((q.data as ProcessDTO | undefined)?.id ? '1' : '0'))
-    .join('')
-
-  const names = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const query of detailQueries) {
-      const dto = query.data as ProcessDTO | undefined
-      if (!dto) continue
-      for (const flow of [...(dto.inputs ?? []), ...(dto.outputs ?? [])]) {
-        if (flow.refName) map.set(flow.ref, flow.refName)
-      }
-    }
-    return map
-  }, [resolvedSignature])
-
   const result = useMemo(() => {
     if (topology.full.links.length === 0) {
       return { graph: EMPTY_GRAPH, cutLinks: [] as GraphLink[] }
@@ -208,16 +191,15 @@ export function useProcessGraph({
 
     // Cut cycles last, so what gets reported as "not drawn" reflects the visible slice rather than
     // flows the window had already excluded.
-    const { acyclic, removed } = removeCycles(graph.links)
-    const named = {
-      nodes: graph.nodes.map((node) =>
-        node.name ? node : { ...node, name: names.get(node.id) ?? '' }
-      ),
-      links: acyclic,
-    }
+    const cut = acyclic
+      ? removeCycles(graph.links)
+      : { acyclic: graph.links, removed: [] as GraphLink[] }
 
-    return { graph: withDepths(named, topology.depths), cutLinks: removed }
-  }, [topology, visible, highlightObjects, names])
+    return {
+      graph: withDepths({ ...graph, links: cut.acyclic }, topology.depths),
+      cutLinks: cut.removed,
+    }
+  }, [topology, visible, highlightObjects, acyclic])
 
   return {
     graph: result.graph,
@@ -230,7 +212,6 @@ export function useProcessGraph({
     ),
     truncated: listQuery.data?.truncated ?? false,
     isLoading: listQuery.isLoading,
-    isResolvingNames: detailQueries.some((q) => q.isLoading),
     error: (listQuery.error as Error | null) ?? null,
   }
 }

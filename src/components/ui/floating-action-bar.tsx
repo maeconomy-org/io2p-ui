@@ -25,6 +25,10 @@ interface FloatingActionBarProps {
  *
  * `pointer-events-none` on the wrapper keeps the empty gutter click-through; the pill itself takes
  * pointer events back.
+ *
+ * Entrance only, no exit animation. An exit needs the bar to outlive the state that removed it, and
+ * that extra mounted lifetime produced a flicker on the processes flow view that was never traced to
+ * a cause. Leaving instantly is not as nice, but it is right every time.
  */
 export function FloatingActionBar({
   open,

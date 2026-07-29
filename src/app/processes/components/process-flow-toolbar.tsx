@@ -40,6 +40,8 @@ export interface ProcessFlowToolbarProps {
   hiddenNodeCount: number
   /** Disabled while a focus is active — focus is its own slice, not a depth window. */
   depthDisabled: boolean
+  /** Depth slicing and unit scaling are layered-layout concepts; the overview has neither. */
+  layered: boolean
 
   units: Array<{ unit: string; count: number }>
   activeUnit: string | null
@@ -63,6 +65,7 @@ export function ProcessFlowToolbar({
   onNext,
   hiddenNodeCount,
   depthDisabled,
+  layered,
   units,
   activeUnit,
   onActiveUnitChange,
@@ -91,8 +94,9 @@ export function ProcessFlowToolbar({
         onChange={onSelectedObjectsChange}
       />
 
-      {/* Only worth a control when the data is actually mixed; one dimension needs no choice. */}
-      {units.length > 1 && (
+      {/* Only worth a control when the data is actually mixed; one dimension needs no choice. And
+          only in the layered view, where link WIDTH carries the magnitude. */}
+      {layered && units.length > 1 && (
         <Select value={activeUnit ?? ''} onValueChange={onActiveUnitChange}>
           <SelectTrigger
             className="h-8 w-[9.5rem]"
@@ -113,57 +117,59 @@ export function ProcessFlowToolbar({
       {/* One segmented control: the centre toggles limited/full AND reads out the slice, the arrows
           page through it. Sankey-only — a depth window is a left-to-right topological slice, which
           only means anything in a layered layout. */}
-      <div
-        role="group"
-        aria-label={t('processes.depthWindow.groupLabel')}
-        className="inline-flex shrink-0 items-center overflow-hidden rounded-md border"
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-none"
-          onClick={onPrev}
-          disabled={depthDisabled || !canPrev}
-          aria-label={t('processes.depthWindow.prev')}
+      {layered && (
+        <div
+          role="group"
+          aria-label={t('processes.depthWindow.groupLabel')}
+          className="inline-flex shrink-0 items-center overflow-hidden rounded-md border"
         >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant={depthLimited ? 'default' : 'ghost'}
-          size="sm"
-          aria-pressed={depthLimited}
-          disabled={depthDisabled}
-          onClick={() => onDepthLimitedChange(!depthLimited)}
-          className="h-8 min-w-[9rem] justify-center gap-1.5 rounded-none border-x tabular-nums"
-        >
-          <Layers className="h-4 w-4" />
-          {depthLabel}
-          {depthLimited && hiddenNodeCount > 0 && (
-            <Badge
-              variant="secondary"
-              aria-label={t('processes.depthWindow.hiddenCount', {
-                count: hiddenNodeCount,
-              })}
-              className="ml-1 h-5 px-1.5 text-[10px]"
-            >
-              +{hiddenNodeCount}
-            </Badge>
-          )}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-none"
-          onClick={onNext}
-          disabled={depthDisabled || !canNext}
-          aria-label={t('processes.depthWindow.next')}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-none"
+            onClick={onPrev}
+            disabled={depthDisabled || !canPrev}
+            aria-label={t('processes.depthWindow.prev')}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant={depthLimited ? 'default' : 'ghost'}
+            size="sm"
+            aria-pressed={depthLimited}
+            disabled={depthDisabled}
+            onClick={() => onDepthLimitedChange(!depthLimited)}
+            className="h-8 min-w-[9rem] justify-center gap-1.5 rounded-none border-x tabular-nums"
+          >
+            <Layers className="h-4 w-4" />
+            {depthLabel}
+            {depthLimited && hiddenNodeCount > 0 && (
+              <Badge
+                variant="secondary"
+                aria-label={t('processes.depthWindow.hiddenCount', {
+                  count: hiddenNodeCount,
+                })}
+                className="ml-1 h-5 px-1.5 text-[10px]"
+              >
+                +{hiddenNodeCount}
+              </Badge>
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-none"
+            onClick={onNext}
+            disabled={depthDisabled || !canNext}
+            aria-label={t('processes.depthWindow.next')}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

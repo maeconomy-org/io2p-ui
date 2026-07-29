@@ -401,6 +401,128 @@ export function removeCycles(links: GraphLink[]): {
   }
 }
 
+/** How many flows touch each node. Drives node size in the overview: hubs should read as hubs. */
+export function graphDegrees(links: GraphLink[]): Map<string, number> {
+  const degrees = new Map<string, number>()
+  for (const link of links) {
+    degrees.set(link.source, (degrees.get(link.source) ?? 0) + 1)
+    degrees.set(link.target, (degrees.get(link.target) ?? 0) + 1)
+  }
+  return degrees
+}
+
+/** Undirected adjacency with edge identity, so a multigraph's parallel edges stay distinguishable. */
+function undirectedAdjacency(
+  links: GraphLink[]
+): Map<string, Array<{ to: string; edge: number }>> {
+  const adjacency = new Map<string, Array<{ to: string; edge: number }>>()
+  const push = (from: string, to: string, edge: number) => {
+    const list = adjacency.get(from)
+    if (list) list.push({ to, edge })
+    else adjacency.set(from, [{ to, edge }])
+  }
+  links.forEach((link, edge) => {
+    push(link.source, link.target, edge)
+    push(link.target, link.source, edge)
+  })
+  return adjacency
+}
+
+/**
+ * Independent flow networks — sets of nodes with no path between them, ignoring direction.
+ *
+ * "Three separate networks" is a more useful thing to say about a graph than "twelve nodes": it tells
+ * you whether the material chains you are looking at are actually related.
+ */
+export function connectedComponents(links: GraphLink[]): Map<string, number> {
+  const adjacency = undirectedAdjacency(links)
+  const component = new Map<string, number>()
+  let index = 0
+
+  for (const start of adjacency.keys()) {
+    if (component.has(start)) continue
+    const stack = [start]
+    component.set(start, index)
+    while (stack.length > 0) {
+      const node = stack.pop()!
+      for (const { to } of adjacency.get(node) ?? []) {
+        if (component.has(to)) continue
+        component.set(to, index)
+        stack.push(to)
+      }
+    }
+    index++
+  }
+
+  return component
+}
+
+/**
+ * The flow ids whose removal would split the graph into more networks — bridges, via Tarjan.
+ *
+ * This is the overview's whole point. A bridge is the single link joining two otherwise-separate
+ * chains: material leaving one building and entering another, the one place a recycled output
+ * re-enters production. Everything else in a dense cluster is internal traffic. Cut a bridge and two
+ * networks fall apart, which is exactly the dependency worth seeing.
+ *
+ * Iterative, because the recursive form dies on a long chain. Undirected and multigraph-safe: descent
+ * is tracked by EDGE, not by parent node, so two parallel links between the same pair correctly
+ * count as neither being a bridge.
+ */
+export function findBridges(links: GraphLink[]): Set<string> {
+  const adjacency = undirectedAdjacency(links)
+  const discovered = new Map<string, number>()
+  const low = new Map<string, number>()
+  const bridges = new Set<string>()
+  let timer = 0
+
+  for (const start of adjacency.keys()) {
+    if (discovered.has(start)) continue
+    discovered.set(start, timer)
+    low.set(start, timer)
+    timer++
+
+    const stack: Array<{ node: string; viaEdge: number; next: number }> = [
+      { node: start, viaEdge: -1, next: 0 },
+    ]
+
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1]
+      const edges = adjacency.get(frame.node) ?? []
+
+      if (frame.next < edges.length) {
+        const { to, edge } = edges[frame.next++]
+        if (edge === frame.viaEdge) continue
+        if (discovered.has(to)) {
+          low.set(
+            frame.node,
+            Math.min(low.get(frame.node)!, discovered.get(to)!)
+          )
+          continue
+        }
+        discovered.set(to, timer)
+        low.set(to, timer)
+        timer++
+        stack.push({ node: to, viaEdge: edge, next: 0 })
+        continue
+      }
+
+      stack.pop()
+      const parent = stack[stack.length - 1]
+      if (!parent) continue
+      low.set(
+        parent.node,
+        Math.min(low.get(parent.node)!, low.get(frame.node)!)
+      )
+      if (low.get(frame.node)! > discovered.get(parent.node)!) {
+        bridges.add(links[frame.viaEdge].flowId)
+      }
+    }
+  }
+
+  return bridges
+}
+
 /**
  * Which units the graph's quantities are expressed in, most common first.
  *
