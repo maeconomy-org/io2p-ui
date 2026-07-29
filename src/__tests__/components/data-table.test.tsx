@@ -159,7 +159,7 @@ describe('DataTable', () => {
     expect(screen.queryByText(/Showing/)).not.toBeInTheDocument()
   })
 
-  it('should show loading spinner when fetching is true', () => {
+  it('renders skeleton rows on first load, not a single spinner row', () => {
     const { container } = render(
       <DataTable
         columns={TEST_COLUMNS}
@@ -169,8 +169,29 @@ describe('DataTable', () => {
       />
     )
 
-    // When fetching, a spinner with animate-spin is rendered
-    const spinnerElements = container.querySelectorAll('.animate-spin')
-    expect(spinnerElements.length).toBeGreaterThan(0)
+    // Several placeholder rows, so the table keeps its height instead of
+    // collapsing to one line and shifting everything below it.
+    const rows = container.querySelectorAll('tbody tr')
+    expect(rows.length).toBeGreaterThan(1)
+    expect(
+      container.querySelectorAll('tbody tr[aria-hidden="true"]').length
+    ).toBe(rows.length)
+  })
+
+  it('keeps existing rows visible while refetching', () => {
+    // The list queries use placeholderData: keepPreviousData so paging does not
+    // flash. Replacing the rows with a loading state would defeat that, so a
+    // refetch WITH data must still render the data.
+    const { container } = render(
+      <DataTable
+        columns={TEST_COLUMNS}
+        data={TEST_DATA}
+        getRowId={(row) => row.id}
+        fetching={true}
+      />
+    )
+
+    expect(container.querySelectorAll('tbody tr').length).toBe(TEST_DATA.length)
+    expect(screen.getByText(TEST_DATA[0].name)).toBeInTheDocument()
   })
 })

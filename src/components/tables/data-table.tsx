@@ -30,8 +30,12 @@ import {
   DropdownMenuGroup,
   DropdownMenuTrigger,
   EmptyState,
+  Skeleton,
 } from '@/components/ui'
 import { cn } from '@/lib'
+
+/** Placeholder rows shown on FIRST load, before any data exists. */
+const LOADING_ROWS = 8
 
 // ---------------------------------------------------------------------------
 // Types
@@ -288,15 +292,24 @@ export function DataTable<TData>({
             ))}
           </TableHeader>
           <TableBody>
-            {fetching ? (
-              <TableRow>
-                <TableCell colSpan={colCount} className="text-center py-4">
-                  <div className="flex items-center justify-center">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
-                    {t('common.updating')}
-                  </div>
-                </TableCell>
-              </TableRow>
+            {/* Loading has two distinct shapes.
+                First load (no rows yet): skeleton rows, so the table keeps its
+                height and column widths instead of collapsing to one line and
+                pushing the pagination bar up the page.
+                Refetch (rows already present): keep them, dimmed. This is the
+                whole point of `placeholderData: keepPreviousData` on the list
+                queries — replacing the rows with a spinner threw the previous
+                page away and made paging flash, defeating it. */}
+            {fetching && table.getRowModel().rows.length === 0 ? (
+              Array.from({ length: LOADING_ROWS }).map((_, i) => (
+                <TableRow key={`loading-${i}`} aria-hidden="true">
+                  {Array.from({ length: colCount }).map((__, c) => (
+                    <TableCell key={c}>
+                      <Skeleton className="h-4 w-full max-w-[12rem]" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
             ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={colCount} className="text-center">
@@ -320,6 +333,9 @@ export function DataTable<TData>({
                     onRowClick || onRowDoubleClick
                       ? 'cursor-pointer'
                       : undefined,
+                    // Refetching with rows still on screen: dim rather than
+                    // replace, so paging reads as an update instead of a flash.
+                    fetching && 'opacity-50 transition-opacity',
                     rowClassName?.(row.original)
                   )}
                 >
