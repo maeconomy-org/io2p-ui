@@ -21,6 +21,7 @@ import type { DerivedValues } from './value-provenance'
 import { ObjectFilesField } from './object-files-field'
 import { ObjectPicker } from './object-picker'
 import { PropertyFields } from './property-fields'
+import { useRefName } from './use-ref-name'
 
 type Bag = 'inputs' | 'outputs'
 
@@ -131,6 +132,10 @@ function FlowRow({
   const flow = form.watch(base)
   const properties = flow?.properties ?? []
 
+  // A process flow arrives with `refName`; a TEMPLATE flow has no such field, so the id is resolved
+  // here rather than printed.
+  const refLabel = useRefName(flow?.ref, flow?.refName)
+
   const quantityIndex = properties.findIndex(
     (p) => p.key === QUANTITY_KEY && !p.deleted
   )
@@ -200,8 +205,7 @@ function FlowRow({
                 aria-hidden="true"
               />
               <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                {flow?.refName ||
-                  flow?.ref ||
+                {refLabel ||
                   (optionalRef ? (
                     <span className="font-normal italic text-muted-foreground">
                       {t('templates.flowSlot')}
@@ -222,7 +226,7 @@ function FlowRow({
             <ObjectPicker
               className="min-w-0 flex-1"
               value={flow?.ref ?? ''}
-              displayName={flow?.refName}
+              displayName={refLabel}
               placeholder={
                 optionalRef ? t('templates.flowSlotPlaceholder') : undefined
               }

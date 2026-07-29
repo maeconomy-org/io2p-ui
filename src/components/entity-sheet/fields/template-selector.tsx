@@ -20,6 +20,12 @@ import { useTemplates } from '@/hooks/api/entities'
 import type { TemplatePresetProperty } from '@/lib/template-body'
 import { cn } from '@/lib'
 
+/** A flow preset on a process template. `ref` is a SUGGESTED default — often absent. */
+export interface TemplatePresetFlow {
+  ref?: string
+  properties?: TemplatePresetProperty[]
+}
+
 const SEARCH_SIZE = 8
 
 export interface TemplateChoice {
@@ -32,6 +38,9 @@ export interface TemplateChoice {
    * the create form silently drop every formula a template held.
    */
   properties?: TemplatePresetProperty[]
+  /** Process templates only — the flow shape to scaffold. */
+  inputs?: TemplatePresetFlow[]
+  outputs?: TemplatePresetFlow[]
 }
 
 /**
@@ -44,16 +53,22 @@ export interface TemplateChoice {
 export function TemplateSelector({
   onSelect,
   selected,
+  type = 'object',
 }: {
   onSelect: (template: TemplateChoice | null) => void
   selected: TemplateChoice | null
+  /**
+   * Which kind to offer. Filtered server-side — without it an object create would list process
+   * templates, whose properties would apply while their flows silently would not.
+   */
+  type?: 'object' | 'process'
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
 
   const { data, isFetching } = useTemplates().useList(
-    { q: query.trim() || undefined, size: SEARCH_SIZE, page: 1 },
+    { q: query.trim() || undefined, size: SEARCH_SIZE, page: 1, type },
     { enabled: open, keepPreviousData: true }
   )
   const templates = data?.data ?? []

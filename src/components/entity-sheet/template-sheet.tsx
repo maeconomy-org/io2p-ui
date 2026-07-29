@@ -100,7 +100,25 @@ export function TemplateSheet({
     </div>
   )
 
+  // Details first, then flows — the same order the process sheet uses, so a process template reads
+  // like the thing it scaffolds rather than like its own kind of screen.
   const tabs: SheetTab[] = [
+    {
+      value: 'details',
+      label: t('objects.detailsSheet.tabDetails'),
+      dirty: !!(
+        dirtyFields.name ||
+        dirtyFields.description ||
+        dirtyFields.version
+      ),
+      content: (
+        <div className="space-y-4">
+          {template && <EntityFacts entity={template} />}
+          <MetadataFields form={form} editing={editing} />
+          {versionField}
+        </div>
+      ),
+    },
     {
       value: 'properties',
       label: t('objects.fields.properties'),
@@ -130,22 +148,6 @@ export function TemplateSheet({
           ),
         }))
       : []),
-    {
-      value: 'details',
-      label: t('objects.detailsSheet.tabDetails'),
-      dirty: !!(
-        dirtyFields.name ||
-        dirtyFields.description ||
-        dirtyFields.version
-      ),
-      content: (
-        <div className="space-y-4">
-          {template && <EntityFacts entity={template} />}
-          <MetadataFields form={form} editing={editing} />
-          {versionField}
-        </div>
-      ),
-    },
   ]
 
   return (
