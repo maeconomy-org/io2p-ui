@@ -42,7 +42,10 @@
     "settings": "Instellingen",
     "mobile": {
       "uuid": "UUID"
-    }
+    },
+    "library": "Bibliotheek",
+    "formulas": "Formules",
+    "constants": "Constanten"
   },
   "theme": {
     "toggle": "Thema",
@@ -211,7 +214,10 @@
     "restore": "Herstellen",
     "showMore": "Meer tonen",
     "showLess": "Minder tonen",
-    "unknown": "Onbekend"
+    "unknown": "Onbekend",
+    "owner": "Eigenaar",
+    "builtIn": "Ingebouwd",
+    "userCreated": "Door gebruiker"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -768,8 +774,6 @@
     "objectCreatedSuccess": "Object succesvol aangemaakt!",
     "objectCreatedWithFiles": "Object aangemaakt met {count} bestand{count, plural, one {} other {en}}",
     "objectCreateFailed": "Object aanmaken mislukt",
-    "filesUploadedSuccess": "{count} bestand{count, plural, one {} other {en}} succesvol geüpload",
-    "filesUploadFailed": "{count} bestand{count, plural, one {} other {en}} uploaden mislukt",
     "revertingObject": "Object herstellen...",
     "revertingTemplate": "Sjabloon herstellen...",
     "objectRestoredSuccess": "Object succesvol hersteld",
@@ -778,28 +782,7 @@
     "templateRestoreFailed": "Sjabloon herstellen mislukt",
     "propertyRemoved": "Eigenschap verwijderd",
     "propertyMarkedForDeletion": "Eigenschap gemarkeerd voor verwijdering",
-    "uploadingFiles": "{count} bestand{count, plural, one {} other {en}} uploaden...",
     "doNotReload": "⚠️ Herlaad de pagina niet tijdens het uploaden",
-    "uploadCenterTitle": "Uploads",
-    "uploadCenterInProgress": "{done} van {total} uploaden",
-    "uploadCenterIdle": "Alle uploads voltooid",
-    "uploadCenterFailed": "{count} mislukt",
-    "uploadCenterClear": "Wissen",
-    "uploadCenterPending": "In behandeling:",
-    "uploadCenterCompleted": "Voltooid:",
-    "uploadCenterFailedLabel": "Mislukt:",
-    "uploadCenterCancel": "Upload annuleren",
-    "uploadCenterRetry": "Upload opnieuw proberen",
-    "uploadCenterCancelling": "Annuleren…",
-    "uploadCenterStatusUploading": "Uploaden…",
-    "uploadCenterStatusPending": "Wachten…",
-    "uploadCenterStatusDone": "Gereed",
-    "uploadCenterStatusFailed": "Mislukt",
-    "uploadCenterStatusCancelled": "Geannuleerd",
-    "uploadCenterRemove": "Verwijderen uit lijst",
-    "uploadCenterAnnounceCompleted": "Upload van {fileName} voltooid",
-    "uploadCenterAnnounceFailed": "Upload van {fileName} mislukt",
-    "uploadCenterAnnounceCancelled": "Upload van {fileName} geannuleerd",
     "qrCodeTitle": "QR-code voor {name}",
     "qrCodeDescription": "Scan deze code om de objectdetails te openen",
     "qrCodeDownloadPng": "Download PNG",
@@ -983,6 +966,31 @@
     "templateCreatedSuccess": "Sjabloon aangemaakt",
     "templateAbbreviationLabel": "Afkorting",
     "templateAbbreviationPlaceholder": "bijv. MUUR"
+  },
+  "uploads": {
+    "centerAnnounceCancelled": "Upload van {fileName} geannuleerd",
+    "centerAnnounceCompleted": "Upload van {fileName} voltooid",
+    "centerAnnounceFailed": "Upload van {fileName} mislukt",
+    "centerCancel": "Upload annuleren",
+    "centerCancelling": "Annuleren…",
+    "centerClear": "Wissen",
+    "centerFailed": "{count} mislukt",
+    "centerIdle": "Alle uploads voltooid",
+    "centerInProgress": "{done} van {total} uploaden",
+    "centerRemove": "Verwijderen uit lijst",
+    "centerRetry": "Upload opnieuw proberen",
+    "centerStatusCancelled": "Geannuleerd",
+    "centerStatusDone": "Gereed",
+    "centerStatusFailed": "Mislukt",
+    "centerStatusPending": "Wachten…",
+    "centerStatusUploading": "Uploaden…",
+    "filesFailed": "{count} bestand{count, plural, one {} other {en}} uploaden mislukt",
+    "filesSucceeded": "{count} bestand{count, plural, one {} other {en}} succesvol geüpload",
+    "inProgress": "{count} bestand{count, plural, one {} other {en}} uploaden...",
+    "centerTitle": "Uploads",
+    "centerPending": "In behandeling:",
+    "centerCompleted": "Voltooid:",
+    "centerFailedLabel": "Mislukt:"
   },
   "processes": {
     "title": "I/O-processen",
@@ -1275,6 +1283,24 @@
         "ternary": "Geen ternaire expressies: conditie ? a : b",
         "implicitMul": "Geen impliciete vermenigvuldiging — schrijf 2*x, niet 2x"
       }
+    },
+    "variables": "Variabelen",
+    "variablesDerived": "Variabelen die deze formule je laat koppelen:",
+    "matchesConstant": "Er bestaat al een constante met deze naam — koppelen kost één klik.",
+    "constantShort": "constante",
+    "insertHint": "Klik om in te voegen:",
+    "expressionHint": "Een rekenkundige expressie over vrije variabelen, bijv. volume * co2_factor",
+    "duplicate": "Dupliceren",
+    "duplicateTitle": "Formule dupliceren",
+    "duplicateOf": "Een nieuwe formule gekopieerd van “{name}”. Het origineel blijft ongewijzigd, en alles dat het al gebruikt houdt het origineel.",
+    "copyName": "{name} (kopie)",
+    "copiedFrom": "Gekopieerd van",
+    "immutableNote": "Formules kunnen niet worden bewerkt — dupliceer er een om een variant te maken. Waarden die al aan deze formule gekoppeld zijn blijven hem gebruiken.",
+    "restored": "Formule hersteld",
+    "restoreFailed": "Herstellen van formule mislukt",
+    "empty": {
+      "title": "Nog geen formules",
+      "description": "Een formule is een herbruikbare expressie die je aan een waarde kunt koppelen."
     }
   },
   "groups": {

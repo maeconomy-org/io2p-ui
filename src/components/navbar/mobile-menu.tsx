@@ -31,7 +31,7 @@ import {
 } from '@/components/ui'
 import { useTheme } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
-import { NAV_ITEMS } from '@/constants'
+import { NAV_ITEMS, type NavItem } from '@/constants'
 import { useAuth, useAppConfig } from '@/contexts'
 
 const LOCALES = [
@@ -110,23 +110,33 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
           {/* Navigation */}
           <div className="flex-1 overflow-y-auto">
             <nav className="flex flex-col py-2">
-              {NAV_ITEMS.map((item) => (
-                <SheetClose asChild key={item.path}>
-                  <Link
-                    href={item.path}
-                    data-tour={item.dataTour}
-                    className={cn(
-                      'flex items-center justify-between py-3 px-4 hover:bg-muted transition-colors',
-                      pathname === item.path || pathname.startsWith(item.path)
-                        ? 'bg-muted text-primary font-medium'
-                        : 'text-foreground'
-                    )}
-                  >
-                    <span>{t(`nav.${item.key}`)}</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-                </SheetClose>
-              ))}
+              {/* A group renders as a labelled section rather than a dropdown: there is room to
+                  list the children outright, and a menu inside a menu is worse on touch. */}
+              {NAV_ITEMS.map((item) =>
+                item.children ? (
+                  <div key={item.key} className="py-1">
+                    <p className="px-4 pb-1 pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {t(`nav.${item.key}`)}
+                    </p>
+                    {item.children.map((child) => (
+                      <NavLink
+                        key={child.path}
+                        item={child}
+                        pathname={pathname}
+                        label={t(`nav.${child.key}`)}
+                        indented
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <NavLink
+                    key={item.path}
+                    item={item}
+                    pathname={pathname}
+                    label={t(`nav.${item.key}`)}
+                  />
+                )
+              )}
             </nav>
           </div>
 
@@ -247,5 +257,36 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
         </SheetContent>
       </Sheet>
     </>
+  )
+}
+
+/** One navigation row. Closes the sheet on tap, since navigating away is always the intent. */
+function NavLink({
+  item,
+  pathname,
+  label,
+  indented,
+}: {
+  item: NavItem
+  pathname: string
+  label: string
+  indented?: boolean
+}) {
+  const active = pathname === item.path || pathname.startsWith(item.path)
+  return (
+    <SheetClose asChild>
+      <Link
+        href={item.path}
+        data-tour={item.dataTour}
+        className={cn(
+          'flex items-center justify-between py-3 px-4 hover:bg-muted transition-colors',
+          indented && 'pl-8',
+          active ? 'bg-muted text-primary font-medium' : 'text-foreground'
+        )}
+      >
+        <span>{label}</span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </Link>
+    </SheetClose>
   )
 }

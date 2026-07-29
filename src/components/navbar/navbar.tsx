@@ -4,9 +4,15 @@ import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { Building2, Search } from 'lucide-react'
+import { Building2, ChevronDown, Search } from 'lucide-react'
 
 import { CommandCenter, useCommandCenter } from '@/components/global-search'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { useSearch, useAppConfig } from '@/contexts'
 import { NAV_ITEMS } from '@/constants'
@@ -48,22 +54,53 @@ export default function Navbar() {
                 className="hidden md:flex items-center gap-6"
                 data-tour="top-nav"
               >
-                {NAV_ITEMS.map((item) => (
-                  <Link
-                    key={item.key}
-                    href={item.path}
-                    data-tour={item.dataTour}
-                    className={cn(
-                      'text-sm font-medium transition-colors',
-                      'hover:cursor-pointer hover:text-primary',
-                      pathname === item.path || pathname.startsWith(item.path)
-                        ? 'text-primary'
-                        : 'text-muted-foreground'
-                    )}
-                  >
-                    {t(`nav.${item.key}`)}
-                  </Link>
-                ))}
+                {NAV_ITEMS.map((item) => {
+                  // A group is active when ANY child route is, so the parent still reads as "where
+                  // you are" while the child owns the URL.
+                  const active = item.children
+                    ? item.children.some((c) => pathname.startsWith(c.path))
+                    : pathname === item.path || pathname.startsWith(item.path)
+
+                  const className = cn(
+                    'text-sm font-medium transition-colors',
+                    'hover:cursor-pointer hover:text-primary',
+                    active ? 'text-primary' : 'text-muted-foreground'
+                  )
+
+                  if (!item.children) {
+                    return (
+                      <Link
+                        key={item.key}
+                        href={item.path}
+                        data-tour={item.dataTour}
+                        className={className}
+                      >
+                        {t(`nav.${item.key}`)}
+                      </Link>
+                    )
+                  }
+
+                  return (
+                    <DropdownMenu key={item.key}>
+                      <DropdownMenuTrigger
+                        data-tour={item.dataTour}
+                        className={cn(className, 'flex items-center gap-1')}
+                      >
+                        {t(`nav.${item.key}`)}
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {item.children.map((child) => (
+                          <DropdownMenuItem key={child.key} asChild>
+                            <Link href={child.path}>
+                              {t(`nav.${child.key}`)}
+                            </Link>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )
+                })}
               </nav>
             </div>
 

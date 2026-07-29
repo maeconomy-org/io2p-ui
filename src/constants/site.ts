@@ -2,14 +2,37 @@
  * Site configuration and navigation
  */
 
-// Navigation
-export const NAV_ITEMS = [
+export interface NavItem {
+  readonly key: string
+  readonly path: string
+  readonly dataTour?: string
+  /** A grouped entry: the parent is a menu, not a destination. */
+  readonly children?: readonly NavItem[]
+}
+
+/**
+ * Top-level navigation.
+ *
+ * "Library" groups the reusable definitions — templates, formulas, constants — as against the data
+ * itself. They belong together, and flattening them would put Constants at the same weight as
+ * Objects in a bar that is already five items wide.
+ */
+export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'objects', path: '/objects', dataTour: 'nav-objects' },
   { key: 'processes', path: '/processes', dataTour: 'nav-processes' },
   { key: 'groups', path: '/groups', dataTour: 'nav-groups' },
-  { key: 'models', path: '/templates', dataTour: 'nav-models' },
+  {
+    key: 'library',
+    path: '/templates',
+    dataTour: 'nav-models',
+    children: [
+      { key: 'models', path: '/templates' },
+      { key: 'formulas', path: '/formulas' },
+      { key: 'constants', path: '/constants' },
+    ],
+  },
   { key: 'import', path: '/import', dataTour: 'nav-import' },
-] as const
+]
 
 // Footer links
 export const FOOTER_LINKS = [

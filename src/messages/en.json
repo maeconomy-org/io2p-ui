@@ -42,7 +42,10 @@
     "settings": "Settings",
     "mobile": {
       "uuid": "UUID"
-    }
+    },
+    "library": "Library",
+    "formulas": "Formulas",
+    "constants": "Constants"
   },
   "theme": {
     "toggle": "Theme",
@@ -211,7 +214,10 @@
     "restore": "Restore",
     "showMore": "Show more",
     "showLess": "Show less",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "owner": "Owner",
+    "builtIn": "Built-in",
+    "userCreated": "User-created"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -809,8 +815,6 @@
     "objectCreatedSuccess": "Object created successfully!",
     "objectCreatedWithFiles": "Object created with {count} file{count, plural, one {} other {s}}",
     "objectCreateFailed": "Failed to create object",
-    "filesUploadedSuccess": "{count} files uploaded successfully",
-    "filesUploadFailed": "{count} files failed to upload",
     "revertingObject": "Reverting object...",
     "revertingTemplate": "Reverting template...",
     "objectRestoredSuccess": "Object restored successfully",
@@ -819,28 +823,7 @@
     "templateRestoreFailed": "Failed to restore template",
     "propertyRemoved": "Property removed",
     "propertyMarkedForDeletion": "Property marked for deletion",
-    "uploadingFiles": "Uploading {count} files...",
     "doNotReload": "⚠️ Do not reload the page while uploading",
-    "uploadCenterTitle": "Uploads",
-    "uploadCenterInProgress": "Uploading {done} of {total}",
-    "uploadCenterIdle": "All uploads complete",
-    "uploadCenterFailed": "{count} failed",
-    "uploadCenterClear": "Clear",
-    "uploadCenterPending": "Pending:",
-    "uploadCenterCompleted": "Completed:",
-    "uploadCenterFailedLabel": "Failed:",
-    "uploadCenterCancel": "Cancel upload",
-    "uploadCenterRetry": "Retry upload",
-    "uploadCenterCancelling": "Cancelling…",
-    "uploadCenterStatusUploading": "Uploading…",
-    "uploadCenterStatusPending": "Waiting…",
-    "uploadCenterStatusDone": "Done",
-    "uploadCenterStatusFailed": "Failed",
-    "uploadCenterStatusCancelled": "Cancelled",
-    "uploadCenterRemove": "Remove from list",
-    "uploadCenterAnnounceCompleted": "Upload of {fileName} complete",
-    "uploadCenterAnnounceFailed": "Upload of {fileName} failed",
-    "uploadCenterAnnounceCancelled": "Upload of {fileName} cancelled",
     "qrCodeTitle": "QR Code for {name}",
     "qrCodeDescription": "Scan this code to access the object details",
     "qrCodeDownloadPng": "Download PNG",
@@ -983,6 +966,31 @@
     "templateCreatedSuccess": "Template created",
     "templateAbbreviationLabel": "Abbreviation",
     "templateAbbreviationPlaceholder": "e.g. WALL"
+  },
+  "uploads": {
+    "centerAnnounceCancelled": "Upload of {fileName} cancelled",
+    "centerAnnounceCompleted": "Upload of {fileName} complete",
+    "centerAnnounceFailed": "Upload of {fileName} failed",
+    "centerCancel": "Cancel upload",
+    "centerCancelling": "Cancelling…",
+    "centerClear": "Clear",
+    "centerFailed": "{count} failed",
+    "centerIdle": "All uploads complete",
+    "centerInProgress": "Uploading {done} of {total}",
+    "centerRemove": "Remove from list",
+    "centerRetry": "Retry upload",
+    "centerStatusCancelled": "Cancelled",
+    "centerStatusDone": "Done",
+    "centerStatusFailed": "Failed",
+    "centerStatusPending": "Waiting…",
+    "centerStatusUploading": "Uploading…",
+    "filesFailed": "{count} files failed to upload",
+    "filesSucceeded": "{count} files uploaded successfully",
+    "inProgress": "Uploading {count} files...",
+    "centerTitle": "Uploads",
+    "centerPending": "Pending:",
+    "centerCompleted": "Completed:",
+    "centerFailedLabel": "Failed:"
   },
   "processes": {
     "title": "I/O Processes",
@@ -1275,6 +1283,24 @@
         "ternary": "No ternary expressions: condition ? a : b",
         "implicitMul": "No implicit multiplication — write 2*x, not 2x"
       }
+    },
+    "variables": "Variables",
+    "variablesDerived": "Variables this formula will ask you to bind:",
+    "matchesConstant": "A constant with this name already exists — binding it is one click.",
+    "constantShort": "constant",
+    "insertHint": "Click to insert:",
+    "expressionHint": "A math expression over free variables, e.g. volume * co2_factor",
+    "duplicate": "Duplicate",
+    "duplicateTitle": "Duplicate formula",
+    "duplicateOf": "A new formula copied from “{name}”. The original is unchanged, and anything already using it keeps the original.",
+    "copyName": "{name} (copy)",
+    "copiedFrom": "Copied from",
+    "immutableNote": "Formulas cannot be edited — duplicate one to make a variant. Values already bound to this formula keep using it.",
+    "restored": "Formula restored",
+    "restoreFailed": "Failed to restore formula",
+    "empty": {
+      "title": "No formulas yet",
+      "description": "A formula is a reusable expression you can bind to a value."
     }
   },
   "groups": {
