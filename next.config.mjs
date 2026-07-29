@@ -70,12 +70,23 @@ const nextConfig = {
   // otherwise do by hand with useMemo/useCallback/memo(). Only 3 of ~450 files
   // used memo() before this, so there was a lot of headroom.
   //
+  // PRODUCTION ONLY, on purpose. The compiler is a Babel pass, and everything
+  // else here is Rust (SWC/Turbopack), so it is the most expensive thing in the
+  // pipeline: ~8s per route on first compile in dev. Dev gets none of the
+  // benefit in return, because reactStrictMode defaults to true and
+  // deliberately double-invokes renders — the very thing the compiler reduces.
+  // So dev would pay the whole cost for none of the win.
+  //
+  // The trade: compiler-specific behaviour differences (a component that was
+  // relying on an accidental re-render) will NOT show up in `next dev`. Verify
+  // against `pnpm build && pnpm start` before a release, not just dev.
+  //
   // The compiler SKIPS any component that breaks the Rules of React rather than
   // risk miscompiling it, which is why the react-hooks rules were enabled first
   // (see eslint.config.js). Anything still warning there is simply not
   // optimised — no worse than before, but the warning list doubles as the
   // to-do list for widening coverage.
-  reactCompiler: true,
+  reactCompiler: process.env.NODE_ENV === 'production',
   experimental: {
     // lucide-react is optimized by default in Next 16 — listing it is a no-op.
     // The Radix entries are near-noise (each package is one small module, not a
