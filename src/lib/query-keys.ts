@@ -19,6 +19,7 @@ import type {
 import type {
   ListTemplatesQuery,
   ListConstantsQuery,
+  ListFormulasQuery,
   ListSharesQuery,
   ListFilesQuery,
   ListUsersQuery,
@@ -180,13 +181,14 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.files.details(), id] as const,
   },
 
-  // ─── Formulas ────────────────────────────────────────────
+  // ─── Formulas (io2p-client leaf resource) ────────────────
   formulas: {
     all: ['formulas'] as const,
     lists: () => [...queryKeys.formulas.all, 'list'] as const,
-    list: (params?: any) => [...queryKeys.formulas.lists(), params] as const,
+    list: (query?: ListFormulasQuery) =>
+      [...queryKeys.formulas.lists(), query] as const,
     details: () => [...queryKeys.formulas.all, 'detail'] as const,
-    detail: (uuid: string) => [...queryKeys.formulas.details(), uuid] as const,
+    detail: (id: string) => [...queryKeys.formulas.details(), id] as const,
   },
 
   // ─── Templates (io2p-client entity resource) ─────────────

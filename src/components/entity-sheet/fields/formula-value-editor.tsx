@@ -3,18 +3,20 @@
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
-import type { CalcInput } from 'io2p-client'
+import type { CalcArgInput, CalcInput } from 'io2p-client'
 
 import { Label } from '@/components/ui'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui'
 import { cn } from '@/lib'
-import { useFormulas } from '@/hooks/api/leaves'
+import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { evaluateExpression } from '@/lib/formula-expression'
 
 /**
@@ -63,6 +65,39 @@ export function FormulaSelect({
   )
 }
 
+/**
+ * One control, two kinds of binding.
+ *
+ * A calc arg binds a variable to a sibling value (`ref`) XOR a constant (`constant`, by NAME) —
+ * never both, never neither. So the picker prefixes each option with its kind instead of putting a
+ * mode switch beside it: choosing is one gesture, and the exclusivity is structural rather than
+ * something the UI has to remember to enforce.
+ *
+ * A name may contain `:`, so only the FIRST separator is a delimiter.
+ */
+export function choiceOf(arg?: CalcArgInput): string {
+  if (arg?.constant) return `constant:${arg.constant}`
+  if (arg?.ref) return `sibling:${arg.ref}`
+  return ''
+}
+
+export function argFromChoice(
+  variable: string,
+  choice: string
+): CalcArgInput | null {
+  if (!choice) return null
+  const separator = choice.indexOf(':')
+  if (separator === -1) return null
+
+  const kind = choice.slice(0, separator)
+  const value = choice.slice(separator + 1)
+  if (!value) return null
+
+  return kind === 'constant'
+    ? { var: variable, constant: value }
+    : { var: variable, ref: value }
+}
+
 // Variable binding + live preview for the chosen formula. Rendered below the value row.
 export function FormulaBindings({
   calc,
@@ -75,26 +110,29 @@ export function FormulaBindings({
 }) {
   const t = useTranslations()
   const { data: formula } = useFormulas().useGet(calc.formulaId)
+  const { data: constantsPage } = useConstants().useList({ page: 1, size: 200 })
+  // `?? []` inline would mint a new array each render and re-run the preview memo every time.
+  const constants = useMemo(() => constantsPage?.data ?? [], [constantsPage])
 
-  const argFor = (variable: string) => calc.args.find((a) => a.var === variable)
-  const bindingFor = (variable: string) => argFor(variable)?.ref ?? ''
+  const bindingFor = (variable: string) =>
+    choiceOf(calc.args.find((a) => a.var === variable))
 
-  const bindVariable = (variable: string, siblingKey: string) => {
+  const bindVariable = (variable: string, choice: string) => {
     const others = calc.args.filter((a) => a.var !== variable)
-    onChange({
-      ...calc,
-      args: siblingKey
-        ? [...others, { var: variable, ref: siblingKey }]
-        : others,
-    })
+    const arg = argFromChoice(variable, choice)
+    onChange({ ...calc, args: arg ? [...others, arg] : others })
   }
 
   const preview = useMemo(() => {
     if (!formula) return null
     const scope: Record<string, number> = {}
     for (const v of formula.variables) {
-      const ref = calc.args.find((a) => a.var === v)?.ref
-      const num = siblings.find((s) => s.key === ref)?.num
+      const arg = calc.args.find((a) => a.var === v)
+      // A constant resolves to its CURRENT version here. The server pins the version at bind time,
+      // so once saved this value is fixed — the preview shows what binding now would produce.
+      const num = arg?.constant
+        ? constants.find((c) => c.name === arg.constant)?.versions.at(-1)?.num
+        : siblings.find((s) => s.key === arg?.ref)?.num
       // Unbound, or bound to a value the user hasn't filled in yet — either way there is nothing
       // honest to preview.
       if (num === undefined || !Number.isFinite(num)) return null
@@ -110,7 +148,7 @@ export function FormulaBindings({
     } catch (e) {
       return { result: null, error: (e as Error).message }
     }
-  }, [formula, calc.args, siblings])
+  }, [formula, calc.args, siblings, constants])
 
   if (!formula) return null
 
@@ -130,51 +168,65 @@ export function FormulaBindings({
               <code className="w-16 shrink-0 text-sm font-medium">
                 {variable}
               </code>
-              {/* A constant binding has no `ref`, so the sibling picker would render it as EMPTY —
-                  reading as unbound when it is in fact bound. Show what it is instead; rebinding it
-                  to a sibling means clearing it first, which is an explicit choice. */}
-              {argFor(variable)?.constant ? (
-                <div className="flex h-8 flex-1 items-center gap-2 rounded-md border bg-background px-3 text-sm">
-                  <span className="min-w-0 flex-1 truncate">
-                    {argFor(variable)?.constant}
-                  </span>
-                  <button
-                    type="button"
-                    className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
-                    onClick={() => bindVariable(variable, '')}
-                  >
-                    {t('common.clear')}
-                  </button>
-                </div>
-              ) : (
-                <Select
-                  value={bindingFor(variable)}
-                  onValueChange={(val) => bindVariable(variable, val)}
-                >
-                  <SelectTrigger className="h-8">
-                    <SelectValue
-                      placeholder={t('objects.formulaEditor.selectValue')}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {siblings.length === 0 && (
-                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                        {t('objects.formulaEditor.noNumericValues')}
-                      </div>
-                    )}
-                    {siblings.map((s) => (
-                      <SelectItem key={s.key} value={s.key}>
-                        {s.label}
-                        {s.num !== undefined && (
-                          <span className="ml-1 text-muted-foreground">
-                            ({s.num})
-                          </span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select
+                value={bindingFor(variable)}
+                onValueChange={(val) => bindVariable(variable, val)}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue
+                    placeholder={t('objects.formulaEditor.selectValue')}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {siblings.length === 0 && constants.length === 0 && (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                      {t('objects.formulaEditor.noNumericValues')}
+                    </div>
+                  )}
+
+                  {siblings.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>
+                        {t('objects.formulaEditor.siblingValues')}
+                      </SelectLabel>
+                      {siblings.map((s) => (
+                        <SelectItem key={s.key} value={`sibling:${s.key}`}>
+                          {s.label}
+                          {s.num !== undefined && (
+                            <span className="ml-1 text-muted-foreground">
+                              ({s.num})
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+
+                  {/* Constants are shared, versioned numbers — a CO2 factor rather than something
+                      on this entity. The server pins the version at bind time, so the value shown
+                      is what this binding will freeze. */}
+                  {constants.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>
+                        {t('objects.formulaEditor.constants')}
+                      </SelectLabel>
+                      {constants.map((c) => {
+                        const current = c.versions.at(-1)
+                        return (
+                          <SelectItem key={c.id} value={`constant:${c.name}`}>
+                            {c.name}
+                            {current?.data && (
+                              <span className="ml-1 text-muted-foreground">
+                                ({current.data})
+                              </span>
+                            )}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           ))}
         </>

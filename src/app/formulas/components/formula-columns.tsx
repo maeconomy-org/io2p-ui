@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui'
 import {
   EntityActionsCell,
   type EntityRowAction,
+  OwnerCell,
   actionsColumn,
   idColumn,
   nameColumn,
@@ -72,9 +73,7 @@ export function buildFormulaColumns({
       'owner',
       t('common.owner'),
       (f): ReactNode => (
-        <Badge variant={f.system ? 'outline' : 'secondary'} className="h-5">
-          {f.system ? t('common.builtIn') : t('common.userCreated')}
-        </Badge>
+        <OwnerCell system={f.system} ownerUserId={f.ownerUserId} />
       )
     ),
     idColumn<FormulaDTO>((f) => f.id, t('objects.fields.uuid')),
