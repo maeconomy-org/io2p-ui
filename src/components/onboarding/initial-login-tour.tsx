@@ -4,9 +4,10 @@ import { useEffect, useRef } from 'react'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import '@/styles/driver-custom.css'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 
 import { useAuth } from '@/contexts'
+import { loadTourMessages, tourText, type TourMessages } from './tour-messages'
 import { USER_MENU_TOGGLE_EVENT } from '@/components/onboarding/constants'
 
 const ONBOARDING_KEY = 'onboarding:initial-login:v1'
@@ -32,40 +33,40 @@ const READY_SELECTORS = [
 type DriverApi = ReturnType<typeof driver>
 type DriverHookOptions = { driver?: DriverApi }
 
-const getSteps = (t: ReturnType<typeof useTranslations>) => [
+const getSteps = (m: TourMessages) => [
   {
     element: NAV_OBJECTS_SELECTOR,
     popover: {
-      title: t('onboarding.initialLogin.welcome'),
-      description: t('onboarding.initialLogin.welcomeDescription'),
+      title: tourText(m, 'initialLogin', 'welcome'),
+      description: tourText(m, 'initialLogin', 'welcomeDescription'),
     },
   },
   {
     element: NAV_PROCESSES_SELECTOR,
     popover: {
-      title: t('onboarding.initialLogin.processes'),
-      description: t('onboarding.initialLogin.processesDescription'),
+      title: tourText(m, 'initialLogin', 'processes'),
+      description: tourText(m, 'initialLogin', 'processesDescription'),
     },
   },
   {
     element: NAV_GROUPS_SELECTOR,
     popover: {
-      title: t('onboarding.initialLogin.groups'),
-      description: t('onboarding.initialLogin.groupsDescription'),
+      title: tourText(m, 'initialLogin', 'groups'),
+      description: tourText(m, 'initialLogin', 'groupsDescription'),
     },
   },
   {
     element: NAV_MODELS_SELECTOR,
     popover: {
-      title: t('onboarding.initialLogin.models'),
-      description: t('onboarding.initialLogin.modelsDescription'),
+      title: tourText(m, 'initialLogin', 'models'),
+      description: tourText(m, 'initialLogin', 'modelsDescription'),
     },
   },
   {
     element: NAV_IMPORT_SELECTOR,
     popover: {
-      title: t('onboarding.initialLogin.import'),
-      description: t('onboarding.initialLogin.importDescription'),
+      title: tourText(m, 'initialLogin', 'import'),
+      description: tourText(m, 'initialLogin', 'importDescription'),
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,
@@ -82,8 +83,8 @@ const getSteps = (t: ReturnType<typeof useTranslations>) => [
   {
     element: SEARCH_BUTTON_SELECTOR,
     popover: {
-      title: t('onboarding.initialLogin.search'),
-      description: t('onboarding.initialLogin.searchDescription'),
+      title: tourText(m, 'initialLogin', 'search'),
+      description: tourText(m, 'initialLogin', 'searchDescription'),
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,
@@ -130,8 +131,8 @@ const getSteps = (t: ReturnType<typeof useTranslations>) => [
       )
     },
     popover: {
-      title: t('onboarding.initialLogin.demoTour'),
-      description: t('onboarding.initialLogin.demoTourDescription'),
+      title: tourText(m, 'initialLogin', 'demoTour'),
+      description: tourText(m, 'initialLogin', 'demoTourDescription'),
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,
@@ -150,6 +151,7 @@ const getSteps = (t: ReturnType<typeof useTranslations>) => [
 export default function InitialLoginTour() {
   const { isAuthenticated, authLoading } = useAuth()
   const t = useTranslations()
+  const locale = useLocale()
   const driverRef = useRef<ReturnType<typeof driver> | null>(null)
   const hasStartedRef = useRef(false)
 
@@ -170,7 +172,7 @@ export default function InitialLoginTour() {
     const allTargetsReady = () =>
       READY_SELECTORS.every((selector) => document.querySelector(selector))
 
-    const startTour = () => {
+    const startTour = async () => {
       if (cancelled) {
         return
       }
@@ -178,13 +180,16 @@ export default function InitialLoginTour() {
       if (!allTargetsReady()) {
         attempts += 1
         if (attempts < MAX_ATTEMPTS) {
-          startTimeout = setTimeout(startTour, ATTEMPT_DELAY_MS)
+          startTimeout = setTimeout(() => void startTour(), ATTEMPT_DELAY_MS)
         }
         return
       }
 
       hasStartedRef.current = true
-      const steps = getSteps(t)
+      // Tour copy is fetched here rather than bundled with the page — see
+      // tour-messages. One await before driver() starts; nothing is on screen yet.
+      const steps = getSteps(await loadTourMessages(locale))
+      if (cancelled) return
       const onboardingDriver = driver({
         nextBtnText: t('common.next'),
         prevBtnText: t('common.previous'),
@@ -214,7 +219,7 @@ export default function InitialLoginTour() {
       onboardingDriver.drive()
     }
 
-    startTimeout = setTimeout(startTour, 0)
+    startTimeout = setTimeout(() => void startTour(), 0)
 
     return () => {
       cancelled = true
@@ -226,6 +231,11 @@ export default function InitialLoginTour() {
         driverRef.current = null
       }
     }
+    // `locale` and `t` are deliberately omitted. The tour runs at most once per
+    // account (guarded by hasStartedRef and the ONBOARDING_KEY), and restarting
+    // it because the user switched language mid-tour would be worse than
+    // finishing in the language it began in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated])
 
   return null

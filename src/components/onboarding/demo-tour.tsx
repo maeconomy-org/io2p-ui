@@ -5,13 +5,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import '@/styles/driver-custom.css'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 
 import { useAuth } from '@/contexts'
 import {
   DEMO_TOUR_START_EVENT,
   USER_MENU_TOGGLE_EVENT,
 } from '@/components/onboarding/constants'
+import { loadTourMessages, tourText } from './tour-messages'
 
 const MAX_ATTEMPTS = 20
 const ATTEMPT_DELAY_MS = 300
@@ -31,6 +32,7 @@ const SUBMIT_SELECTOR = '[data-tour="object-create-submit"]'
 export default function DemoTour() {
   const { isAuthenticated, authLoading } = useAuth()
   const t = useTranslations()
+  const locale = useLocale()
   const pathname = usePathname()
   const router = useRouter()
   const driverRef = useRef<ReturnType<typeof driver> | null>(null)
@@ -40,6 +42,10 @@ export default function DemoTour() {
     if (authLoading) {
       return
     }
+
+    // Guards the await in startTour: if the effect tears down while the tour
+    // copy is still loading, do not open a tour over a page that has moved on.
+    let cancelled = false
 
     const waitForElement = (
       selector: string,
@@ -58,7 +64,12 @@ export default function DemoTour() {
       }
     }
 
-    const startTour = () => {
+    const startTour = async () => {
+      // Tour copy fetched on launch rather than bundled into every page — see
+      // tour-messages.
+      const m = await loadTourMessages(locale)
+      if (cancelled) return
+
       if (!isAuthenticated || isStartingRef.current) {
         return
       }
@@ -87,22 +98,22 @@ export default function DemoTour() {
             {
               element: FILTERS_SELECTOR,
               popover: {
-                title: t('onboarding.demo.filters'),
-                description: t('onboarding.demo.filtersDescription'),
+                title: tourText(m, 'demo', 'filters'),
+                description: tourText(m, 'demo', 'filtersDescription'),
               },
             },
             {
               element: VIEW_SELECTOR_SELECTOR,
               popover: {
-                title: t('onboarding.demo.viewOptions'),
-                description: t('onboarding.demo.viewOptionsDescription'),
+                title: tourText(m, 'demo', 'viewOptions'),
+                description: tourText(m, 'demo', 'viewOptionsDescription'),
               },
             },
             {
               element: CREATE_OBJECT_SELECTOR,
               popover: {
-                title: t('onboarding.demo.createObjects'),
-                description: t('onboarding.demo.createObjectsDescription'),
+                title: tourText(m, 'demo', 'createObjects'),
+                description: tourText(m, 'demo', 'createObjectsDescription'),
                 onNextClick: () => {
                   const trigger = document.querySelector(
                     CREATE_OBJECT_SELECTOR
@@ -118,45 +129,47 @@ export default function DemoTour() {
             {
               element: MODEL_SELECTOR,
               popover: {
-                title: t('onboarding.demo.modelTemplates'),
-                description: t('onboarding.demo.modelTemplatesDescription'),
+                title: tourText(m, 'demo', 'modelTemplates'),
+                description: tourText(m, 'demo', 'modelTemplatesDescription'),
               },
             },
             {
               element: PARENTS_SELECTOR,
               popover: {
-                title: t('onboarding.demo.parentRelationships'),
-                description: t(
-                  'onboarding.demo.parentRelationshipsDescription'
+                title: tourText(m, 'demo', 'parentRelationships'),
+                description: tourText(
+                  m,
+                  'demo',
+                  'parentRelationshipsDescription'
                 ),
               },
             },
             {
               element: METADATA_CONTAINER_SELECTOR,
               popover: {
-                title: t('onboarding.demo.objectMetadata'),
-                description: t('onboarding.demo.objectMetadataDescription'),
+                title: tourText(m, 'demo', 'objectMetadata'),
+                description: tourText(m, 'demo', 'objectMetadataDescription'),
               },
             },
             {
               element: ADDRESS_SELECTOR,
               popover: {
-                title: t('onboarding.demo.locationInfo'),
-                description: t('onboarding.demo.locationInfoDescription'),
+                title: tourText(m, 'demo', 'locationInfo'),
+                description: tourText(m, 'demo', 'locationInfoDescription'),
               },
             },
             {
               element: FILES_SELECTOR,
               popover: {
-                title: t('onboarding.demo.fileAttachments'),
-                description: t('onboarding.demo.fileAttachmentsDescription'),
+                title: tourText(m, 'demo', 'fileAttachments'),
+                description: tourText(m, 'demo', 'fileAttachmentsDescription'),
               },
             },
             {
               element: ADD_PROPERTY_SELECTOR,
               popover: {
-                title: t('onboarding.demo.customProperties'),
-                description: t('onboarding.demo.customPropertiesDescription'),
+                title: tourText(m, 'demo', 'customProperties'),
+                description: tourText(m, 'demo', 'customPropertiesDescription'),
                 onNextClick: () => {
                   const addButton = document.querySelector(
                     ADD_PROPERTY_SELECTOR
@@ -173,16 +186,16 @@ export default function DemoTour() {
             {
               element: PROPERTY_NAME_UPLOAD_SELECTOR,
               popover: {
-                title: t('onboarding.demo.propertyFiles'),
-                description: t('onboarding.demo.propertyFilesDescription'),
+                title: tourText(m, 'demo', 'propertyFiles'),
+                description: tourText(m, 'demo', 'propertyFilesDescription'),
               },
             },
             {
               element: SUBMIT_SELECTOR,
               disableActiveInteraction: true,
               popover: {
-                title: t('onboarding.demo.completeCreation'),
-                description: t('onboarding.demo.completeCreationDescription'),
+                title: tourText(m, 'demo', 'completeCreation'),
+                description: tourText(m, 'demo', 'completeCreationDescription'),
               },
             },
           ],
@@ -197,14 +210,19 @@ export default function DemoTour() {
       if (driverRef.current) {
         driverRef.current.destroy()
       }
-      startTour()
+      void startTour()
     }
 
     window.addEventListener(DEMO_TOUR_START_EVENT, handleStart)
 
     return () => {
+      cancelled = true
       window.removeEventListener(DEMO_TOUR_START_EVENT, handleStart)
     }
+    // `locale` and `t` omitted deliberately: both are read only inside
+    // startTour, which runs on an explicit user action, and re-registering the
+    // listener on a language change would tear down a tour mid-flight.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, pathname, router])
 
   return null
