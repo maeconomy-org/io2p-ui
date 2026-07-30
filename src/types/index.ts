@@ -3,5 +3,4 @@
 export type UUID = string
 
 export * from './files'
-export * from './sankey'
 export * from './object'
