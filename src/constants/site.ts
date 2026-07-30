@@ -20,7 +20,9 @@ export interface NavItem {
 export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'objects', path: '/objects', dataTour: 'nav-objects' },
   { key: 'processes', path: '/processes', dataTour: 'nav-processes' },
-  { key: 'groups', path: '/groups', dataTour: 'nav-groups' },
+  // `/groups` is intentionally absent: it still talks to the retired node through `iom-sdk`, and
+  // io2p has no groups API to migrate it to — a Share is the successor. The route stays on disk
+  // until `/shares` replaces it; it is only unreachable from the nav.
   {
     key: 'library',
     path: '/templates',

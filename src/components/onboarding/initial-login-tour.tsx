@@ -16,7 +16,6 @@ const ATTEMPT_DELAY_MS = 300
 
 const NAV_OBJECTS_SELECTOR = '[data-tour="nav-objects"]'
 const NAV_PROCESSES_SELECTOR = '[data-tour="nav-processes"]'
-const NAV_GROUPS_SELECTOR = '[data-tour="nav-groups"]'
 const NAV_MODELS_SELECTOR = '[data-tour="nav-models"]'
 const NAV_IMPORT_SELECTOR = '[data-tour="nav-import"]'
 const SEARCH_BUTTON_SELECTOR = '[data-tour="search-button"]'
@@ -24,7 +23,6 @@ const DEMO_TOUR_SELECTOR = '[data-tour="demo-tour"]'
 const READY_SELECTORS = [
   NAV_OBJECTS_SELECTOR,
   NAV_PROCESSES_SELECTOR,
-  NAV_GROUPS_SELECTOR,
   NAV_MODELS_SELECTOR,
   NAV_IMPORT_SELECTOR,
   SEARCH_BUTTON_SELECTOR,
@@ -46,13 +44,6 @@ const getSteps = (m: TourMessages) => [
     popover: {
       title: tourText(m, 'initialLogin', 'processes'),
       description: tourText(m, 'initialLogin', 'processesDescription'),
-    },
-  },
-  {
-    element: NAV_GROUPS_SELECTOR,
-    popover: {
-      title: tourText(m, 'initialLogin', 'groups'),
-      description: tourText(m, 'initialLogin', 'groupsDescription'),
     },
   },
   {

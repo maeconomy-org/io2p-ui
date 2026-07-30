@@ -4,8 +4,6 @@
     "welcomeDescription": "Dit is uw hoofdwerkruimte waar u alle objecten in uw systeem kunt bekijken, beheren en organiseren. Objecten zijn de kernentiteiten die echte items, documenten of concepten vertegenwoordigen die u wilt volgen en beheren.",
     "processes": "I/O-processen",
     "processesDescription": "Hier kunt u processen volgen en monitoren die uw objecten transformeren of verplaatsen. Deze sectie helpt u te begrijpen hoe objecten door verschillende fasen stromen, van input naar output, waardoor u volledig inzicht krijgt in uw operationele workflows.",
-    "groups": "Groepen & projecten",
-    "groupsDescription": "Organiseer uw objecten in groepen en projecten. Groepen stellen u in staat om collecties objecten te delen met andere gebruikers, toegangsrechten te beheren en effectief samen te werken binnen uw organisatie.",
     "models": "Modellen & sjablonen",
     "modelsDescription": "Maak herbruikbare modellen en sjablonen die de structuur en eigenschappen van uw objecten definiëren. Modellen fungeren als blauwdrukken, zorgen voor consistentie bij het maken van nieuwe objecten en helpen uw gegevens te standaardiseren over het hele platform.",
     "import": "Gegevensimport",
