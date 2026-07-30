@@ -29,8 +29,7 @@ export default function Navbar() {
     () => navigator.platform.toUpperCase().indexOf('MAC') >= 0,
     () => false
   )
-  const { searchQuery, isSearching, isSearchMode, executeSearchFromParsed } =
-    useSearch()
+  const { searchQuery, isSearchMode, executeSearchFromParsed } = useSearch()
   const config = useAppConfig()
 
   const { open: commandCenterOpen, setOpen: setCommandCenterOpen } =
@@ -139,9 +138,6 @@ export default function Navbar() {
                     K
                   </kbd>
                 </div>
-                {isSearching && (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent shrink-0"></div>
-                )}
               </button>
 
               <UserProfileDropdown />

@@ -91,13 +91,7 @@ function ObjectsPageContent() {
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
   const { clearTrail } = useBreadcrumbTrail(undefined)
-  const {
-    isSearchMode,
-    searchQuery,
-    searchViewResults,
-    searchPagination,
-    clearSearch,
-  } = useSearch()
+  const { isSearchMode, searchQuery, clearSearch } = useSearch()
   const { userId } = useAuth()
 
   const templateFromObject = useCreateTemplateFromObject()
@@ -263,8 +257,9 @@ function ObjectsPageContent() {
         {isSearchMode && (
           <SearchResultsBar
             searchQuery={searchQuery}
-            resultsCount={searchViewResults.length}
-            pagination={searchPagination ?? undefined}
+            // The count now comes from the SAME io2p response the table below renders, so the bar
+            // and the rows can no longer disagree. The table paginates itself.
+            resultsCount={objectsPage?.page.totalElements ?? 0}
             onClearSearch={clearSearch}
           />
         )}
