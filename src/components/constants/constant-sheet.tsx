@@ -14,6 +14,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetBody,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -43,8 +44,8 @@ export function ConstantSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col sm:max-w-xl">
-        <SheetHeader>
+      <SheetContent className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-xl">
+        <SheetHeader className="border-b px-6 py-4 pr-12">
           <SheetTitle>
             {mode === 'edit'
               ? (constant?.name ?? t('constants.title'))
@@ -133,7 +134,7 @@ function ConstantForm({
       onSubmit={submit}
       className="-mx-1 flex min-h-0 flex-1 flex-col overflow-hidden px-1"
     >
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-1 py-6">
+      <SheetBody className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="constant-name">{t('constants.name')}</Label>
           <Input
@@ -180,9 +181,9 @@ function ConstantForm({
         )}
 
         {constant && <VersionHistory constant={constant} />}
-      </div>
+      </SheetBody>
 
-      <SheetFooter className="mt-auto flex gap-2 border-t pt-4">
+      <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
         <Button
           type="button"
           variant="outline"

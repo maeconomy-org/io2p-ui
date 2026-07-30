@@ -1829,8 +1829,6 @@
     "publicHint": "Iedereen die is aangemeld bij deze node kan het bekijken",
     "includeDescendantsHint": "Ook alles onder dit object — inclusief later toegevoegde objecten",
     "ownerOnly": "Alleen de eigenaar kan zien met wie dit is gedeeld.",
-    "granted": "Toegang bijgewerkt",
-    "revoked": "Toegang ingetrokken",
     "permissionFor": "Rechten voor {name}",
     "revokeFor": "Toegang intrekken voor {name}",
     "share": "Delen",
@@ -1845,6 +1843,8 @@
       "write": "Bekijken en bewerken",
       "share": "Bewerken en opnieuw delen",
       "admin": "Volledige controle, inclusief verwijderen"
-    }
+    },
+    "saved": "Delen bijgewerkt",
+    "redundantRead": "Zij hebben al leestoegang via algemene toegang. Deze toekenning werkt pas als algemene toegang wordt uitgezet."
   }
 }

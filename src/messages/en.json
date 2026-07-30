@@ -1828,8 +1828,6 @@
     "publicHint": "Anyone signed in to this node can view it",
     "includeDescendantsHint": "Also everything under this object — including objects added later",
     "ownerOnly": "Only the owner can see who this is shared with.",
-    "granted": "Access updated",
-    "revoked": "Access removed",
     "permissionFor": "Permission for {name}",
     "revokeFor": "Remove access for {name}",
     "share": "Share",
@@ -1844,6 +1842,8 @@
       "write": "See and edit it",
       "share": "Edit and re-share it",
       "admin": "Full control, including delete"
-    }
+    },
+    "saved": "Sharing updated",
+    "redundantRead": "They already have read access through general access. This grant only takes effect if general access is turned off."
   }
 }

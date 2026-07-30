@@ -7,8 +7,8 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui'
+import { cn } from '@/lib/utils'
 
 /** The permission ladder, weakest first. Each level contains the ones below it. */
 export const PERMISSIONS = ['read', 'write', 'share', 'admin'] as const
@@ -23,11 +23,13 @@ export function PermissionSelect({
   value,
   onChange,
   disabled,
+  className,
   'aria-label': ariaLabel,
 }: {
   value: Permission
   onChange: (next: Permission) => void
   disabled?: boolean
+  className?: string
   'aria-label'?: string
 }) {
   const t = useTranslations()
@@ -38,8 +40,12 @@ export function PermissionSelect({
       onValueChange={(v) => onChange(v as Permission)}
       disabled={disabled}
     >
-      <SelectTrigger className="h-8 w-[7.5rem]" aria-label={ariaLabel}>
-        <SelectValue />
+      {/* The trigger renders the label ITSELF rather than `<SelectValue />`. Radix mirrors the
+          selected item's children into the trigger, and these items are two lines — label over
+          hint — which a one-line trigger squashes. The hint belongs where you are choosing, not
+          where you are reading back what you chose. */}
+      <SelectTrigger className={cn('h-9', className)} aria-label={ariaLabel}>
+        <span className="truncate">{t(`access.permission.${value}`)}</span>
       </SelectTrigger>
       <SelectContent>
         {PERMISSIONS.map((permission) => (

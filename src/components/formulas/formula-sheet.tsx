@@ -14,6 +14,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetBody,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -53,20 +54,20 @@ export function FormulaSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col sm:max-w-xl">
+      <SheetContent className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-xl">
         {/* The body mounts fresh on every open, so its fields seed from props at mount rather than
             being re-synced by an effect — a second Duplicate cannot inherit the first one's edits. */}
         {open &&
           (mode === 'view' ? (
             <>
-              <SheetHeader>
+              <SheetHeader className="border-b px-6 py-4 pr-12">
                 <SheetTitle>{formula?.name ?? t('formulas.title')}</SheetTitle>
                 <SheetDescription>
                   {t('formulas.immutableNote')}
                 </SheetDescription>
               </SheetHeader>
               <FormulaFacts formula={formula} />
-              <SheetFooter className="mt-auto border-t pt-4">
+              <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -139,7 +140,7 @@ function FormulaForm({
 
   return (
     <>
-      <SheetHeader>
+      <SheetHeader className="border-b px-6 py-4 pr-12">
         <SheetTitle>
           {mode === 'duplicate'
             ? t('formulas.duplicateTitle')
@@ -161,7 +162,7 @@ function FormulaForm({
         onSubmit={submit}
         className="-mx-1 flex min-h-0 flex-1 flex-col overflow-hidden px-1"
       >
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-1 py-6">
+        <SheetBody className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="formula-name">{t('formulas.name')}</Label>
             <Input
@@ -173,9 +174,9 @@ function FormulaForm({
           </div>
 
           <FormulaExpressionField value={expression} onChange={setExpression} />
-        </div>
+        </SheetBody>
 
-        <SheetFooter className="mt-auto flex gap-2 border-t pt-4">
+        <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
           <Button
             type="button"
             variant="outline"
@@ -203,7 +204,7 @@ function FormulaFacts({ formula }: { formula: FormulaDTO | null }) {
   if (!formula) return null
 
   return (
-    <div className="min-h-0 flex-1 space-y-5 overflow-y-auto py-6">
+    <SheetBody className="space-y-5">
       <Fact label={t('formulas.expression')}>
         <code className="font-mono text-sm">{formula.expression}</code>
       </Fact>
@@ -241,7 +242,7 @@ function FormulaFacts({ formula }: { formula: FormulaDTO | null }) {
           </code>
         </Fact>
       )}
-    </div>
+    </SheetBody>
   )
 }
 

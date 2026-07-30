@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 
 import {
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
   SheetDropzone,
@@ -140,7 +141,7 @@ export function EntitySheetShell({
                     </TabsList>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                  <SheetBody>
                     {tabs.map((tab) => (
                       <TabsContent
                         key={tab.value}
@@ -150,12 +151,10 @@ export function EntitySheetShell({
                         {tab.content}
                       </TabsContent>
                     ))}
-                  </div>
+                  </SheetBody>
                 </Tabs>
               ) : (
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                  {children}
-                </div>
+                <SheetBody>{children}</SheetBody>
               )}
 
               {isDirty && <UnsavedBar count={dirtyCount} />}

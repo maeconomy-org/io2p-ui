@@ -81,16 +81,9 @@ function useGrant() {
   return useMutation({
     mutationFn: (vars: { body: GrantBody; options?: WriteOptions }) =>
       client.access.grants.grant(vars.body, vars.options),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({
-        queryKey: queryKeys.access.grants.forResource(
-          vars.body.resource.type,
-          vars.body.resource.id
-        ),
-      })
-      // The resource may now appear in (or vanish from) a scoped list.
-      qc.invalidateQueries({ queryKey: queryKeys.access.all })
-    },
+    // ONE invalidation. `access.all` is `['access']` — a PREFIX of the per-resource key — so
+    // invalidating both marks the same query twice and refetches it twice.
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.access.all }),
   })
 }
 
@@ -101,15 +94,7 @@ function useRevoke() {
   return useMutation({
     mutationFn: (vars: { body: RevokeBody; options?: WriteOptions }) =>
       client.access.grants.revoke(vars.body, vars.options),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({
-        queryKey: queryKeys.access.grants.forResource(
-          vars.body.resource.type,
-          vars.body.resource.id
-        ),
-      })
-      qc.invalidateQueries({ queryKey: queryKeys.access.all })
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.access.all }),
   })
 }
 
