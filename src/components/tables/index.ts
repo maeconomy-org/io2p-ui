@@ -1,3 +1,4 @@
+export * from './bulk-action-bar'
 export * from './data-table'
 export * from './entity-table'
 export * from './page-meta'

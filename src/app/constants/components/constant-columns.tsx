@@ -13,6 +13,7 @@ import {
   actionsColumn,
   idColumn,
   nameColumn,
+  selectColumn,
   textColumn,
   timestampColumn,
 } from '@/components/tables'
@@ -33,6 +34,7 @@ export function buildConstantColumns({
   actions,
 }: BuildConstantColumnsOptions): ColumnDef<ConstantDTO, unknown>[] {
   return [
+    selectColumn<ConstantDTO>(),
     nameColumn<ConstantDTO>((c) => c.name, {
       header: t('constants.name'),
       sortable: true,

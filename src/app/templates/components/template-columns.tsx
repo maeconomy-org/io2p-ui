@@ -9,6 +9,7 @@ import {
   actionsColumn,
   idColumn,
   nameColumn,
+  selectColumn,
   OwnerCell,
   textColumn,
   timestampColumn,
@@ -31,6 +32,7 @@ export function buildTemplateColumns({
   actions,
 }: BuildTemplateColumnsOptions): ColumnDef<TemplateDTO, unknown>[] {
   return [
+    selectColumn<TemplateDTO>(),
     nameColumn<TemplateDTO>((template) => template.name, {
       header: t('objects.fields.name'),
       sortable: true,

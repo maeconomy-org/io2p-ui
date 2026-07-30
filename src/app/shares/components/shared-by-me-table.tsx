@@ -3,10 +3,11 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Share2 } from 'lucide-react'
+import { Ban, Share2 } from 'lucide-react'
+import type { RowSelectionState } from '@tanstack/react-table'
 import type { SharedByMeItem } from 'io2p-client'
 
-import { EntityTable } from '@/components/tables'
+import { BulkActionBar, EntityTable } from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useGrants } from '@/hooks/api/access'
 import { useUserDirectory } from '@/hooks/api/users'
@@ -14,6 +15,7 @@ import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
+import { useResourceDirectory } from '../hooks/use-resource-directory'
 import { buildSharedByMeColumns } from './shared-by-me-columns'
 import { ManageAccessSheet } from './manage-access-sheet'
 
@@ -30,6 +32,8 @@ export function SharedByMeTable() {
 
   const [managing, setManaging] = useState<SharedByMeItem | null>(null)
   const [revoking, setRevoking] = useState<SharedByMeItem | null>(null)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [confirmBulk, setConfirmBulk] = useState(false)
 
   const { useSharedByMe, useRevoke } = useGrants()
   const { data, isFetching } = useSharedByMe(
@@ -38,9 +42,13 @@ export function SharedByMeTable() {
   )
   const revokeMutation = useRevoke()
 
-  const items = data?.data ?? []
+  // Memoised because `?? []` is a fresh array each render, which would make every dependent memo
+  // recompute on every render.
+  const items = useMemo(() => data?.data ?? [], [data])
   // Only pay for the directory once there is a name to resolve.
   const { nameOf } = useUserDirectory({ enabled: items.length > 0 })
+  const { nameOf: resourceNameOf, isDeleted: resourceDeleted } =
+    useResourceDirectory(items.length > 0)
 
   const handlePageSizeChange = useCallback((size: number) => {
     setPageSize(size)
@@ -65,15 +73,43 @@ export function SharedByMeTable() {
     }
   }, [revoking, revokeMutation, t])
 
+  const selected = useMemo(
+    () => items.filter((item) => rowSelection[item.resource.id]),
+    [items, rowSelection]
+  )
+  const clearSelection = useCallback(() => setRowSelection({}), [])
+
+  const runBulkRevoke = useCallback(async () => {
+    // Sequential — a partial failure should stop rather than leave an unknown subset revoked.
+    try {
+      for (const item of selected) {
+        for (const grant of item.grants) {
+          await revokeMutation.mutateAsync({
+            body: { resource: item.resource, subject: grant.subject },
+          })
+        }
+      }
+      toast.success(t('shares.revokedAll'))
+    } catch (error) {
+      logger.error('Bulk revoke failed', error)
+      const { key, values } = saveErrorMessage(error)
+      toast.error(t(key, values))
+    } finally {
+      clearSelection()
+    }
+  }, [selected, revokeMutation, clearSelection, t])
+
   const columns = useMemo(
     () =>
       buildSharedByMeColumns({
         t,
         nameOf,
+        resourceNameOf,
+        resourceDeleted,
         onManage: setManaging,
         onRevokeAll: setRevoking,
       }),
-    [t, nameOf]
+    [t, nameOf, resourceNameOf, resourceDeleted]
   )
 
   return (
@@ -85,9 +121,35 @@ export function SharedByMeTable() {
         fetching={isFetching}
         onPageChange={setPage}
         onPageSizeChange={handlePageSizeChange}
+        enableRowSelection
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
         emptyIcon={<Share2 className="h-10 w-10 text-muted-foreground/50" />}
         emptyTitle={t('shares.sharedByMeEmpty.title')}
         emptyDescription={t('shares.sharedByMeEmpty.description')}
+      />
+
+      {/* `deleteLabel` is the revoke wording — the destructive slot is the same, the verb is not. */}
+      <BulkActionBar
+        count={selected.length}
+        onClear={clearSelection}
+        busy={revokeMutation.isPending}
+        deleteLabel={t('shares.revokeAll')}
+        deleteIcon={Ban}
+        onDelete={() => setConfirmBulk(true)}
+      />
+
+      <DeleteConfirmationDialog
+        open={confirmBulk}
+        onOpenChange={setConfirmBulk}
+        objectName=""
+        title={t('shares.revokeAllTitle')}
+        description={`${t('shares.bulk.revokeDescription', {
+          count: selected.length,
+        })} ${t('shares.revokeAllBundleWarning')}`}
+        confirmLabel={t('shares.revokeAll')}
+        disabled={revokeMutation.isPending}
+        onDelete={runBulkRevoke}
       />
 
       {managing && (

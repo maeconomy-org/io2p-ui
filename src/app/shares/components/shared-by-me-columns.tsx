@@ -15,10 +15,20 @@ import {
 import {
   EntityActionsCell,
   actionsColumn,
+  selectColumn,
   textColumn,
 } from '@/components/tables'
 
 type Grant = SharedByMeItem['grants'][number]
+
+function ResourceLabel({ name, id }: { name: string | null; id: string }) {
+  if (name) return <span className="truncate">{name}</span>
+  return (
+    <span className="font-mono text-xs text-muted-foreground">
+      {id.split('-')[0]}
+    </span>
+  )
+}
 
 /** Only object and process can be managed here — `GET /v1/access` refuses the library types. */
 function isManageable(type: SharedByMeItem['resource']['type']) {
@@ -36,11 +46,16 @@ function isManageable(type: SharedByMeItem['resource']['type']) {
 export function buildSharedByMeColumns({
   t,
   nameOf,
+  resourceNameOf,
+  resourceDeleted,
   onManage,
   onRevokeAll,
 }: {
   t: (key: string, values?: Record<string, string | number>) => string
   nameOf: (userId: string) => string
+  /** Null when the cached directory page did not hold this resource. */
+  resourceNameOf: (type: string, id: string) => string | null
+  resourceDeleted: (type: string, id: string) => boolean
   onManage: (item: SharedByMeItem) => void
   onRevokeAll: (item: SharedByMeItem) => void
 }): ColumnDef<SharedByMeItem, unknown>[] {
@@ -50,6 +65,7 @@ export function buildSharedByMeColumns({
       : nameOf(grant.subject.userId)
 
   return [
+    selectColumn<SharedByMeItem>(),
     textColumn<SharedByMeItem>(
       'resource',
       t('shares.fields.resource'),
@@ -58,13 +74,20 @@ export function buildSharedByMeColumns({
           <Badge variant="outline" className="h-5 shrink-0">
             {t(`shares.resourceType.${item.resource.type}`)}
           </Badge>
-          {/* The rollup returns `{type, id}` with no name — see the backend ask. A full uuid per
-              row drowns the type badge beside it and still cannot be read at a glance, so this
-              shows the leading segment: enough to tell two rows apart, and the sheet resolves the
-              real name when you open it. */}
-          <span className="font-mono text-xs text-muted-foreground">
-            {item.resource.id.split('-')[0]}
-          </span>
+          {/* The rollup returns `{type, id}` with no name, so the label comes from the cached
+              object/process directory — two list reads for the page, never one per row. Beyond that
+              page it falls back to the id's leading segment: enough to tell two rows apart. */}
+          <ResourceLabel
+            name={resourceNameOf(item.resource.type, item.resource.id)}
+            id={item.resource.id}
+          />
+          {/* A share outlives the thing it points at — the grants stay active on a soft-deleted
+              resource — so the row has to say so or it reads as live access to a live object. */}
+          {resourceDeleted(item.resource.type, item.resource.id) && (
+            <Badge variant="outline" className="h-5 shrink-0">
+              {t('objects.deletedBadge')}
+            </Badge>
+          )}
         </span>
       )
     ),

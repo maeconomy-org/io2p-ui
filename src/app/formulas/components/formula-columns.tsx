@@ -13,6 +13,7 @@ import {
   actionsColumn,
   idColumn,
   nameColumn,
+  selectColumn,
   textColumn,
   timestampColumn,
 } from '@/components/tables'
@@ -34,6 +35,7 @@ export function buildFormulaColumns({
   actions,
 }: BuildFormulaColumnsOptions): ColumnDef<FormulaDTO, unknown>[] {
   return [
+    selectColumn<FormulaDTO>(),
     nameColumn<FormulaDTO>((f) => f.name, {
       header: t('objects.fields.name'),
       sortable: true,

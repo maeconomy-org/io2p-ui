@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import type { RowSelectionState } from '@tanstack/react-table'
 import { useTranslations } from 'next-intl'
 import { PlusCircle, Ruler } from 'lucide-react'
 import dynamic from 'next/dynamic'
@@ -14,7 +15,11 @@ import {
   ownerSection,
   type OwnerFilterValue,
 } from '@/components/filters'
-import { EntityTable, useEntityListQuery } from '@/components/tables'
+import {
+  BulkActionBar,
+  EntityTable,
+  useEntityListQuery,
+} from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useConstants } from '@/hooks/api/leaves'
@@ -44,6 +49,8 @@ export default function ConstantsPage() {
   const [showDeleted, setShowDeleted] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [confirmBulk, setConfirmBulk] = useState(false)
   const [toDelete, setToDelete] = useState<ConstantDTO | null>(null)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
@@ -109,6 +116,44 @@ export default function ConstantsPage() {
     [handleRestore]
   )
 
+  const selectedRows = useMemo(
+    () => (constantsPage?.data ?? []).filter((row) => rowSelection[row.id]),
+    [constantsPage, rowSelection]
+  )
+  const clearSelection = useCallback(() => setRowSelection({}), [])
+  const anyDeleted = selectedRows.some((row) => row.deleted)
+  const anyLive = selectedRows.some((row) => !row.deleted)
+
+  // Sequential — a partial failure should stop rather than leave an unknown subset changed.
+  const runBulk = useCallback(
+    async (action: 'delete' | 'restore') => {
+      const mutation = action === 'delete' ? removeMutation : restoreMutation
+      const targets = selectedRows.filter((row) =>
+        action === 'delete' ? !row.deleted : row.deleted
+      )
+      try {
+        for (const row of targets) {
+          await mutation.mutateAsync({ id: row.id })
+        }
+        toast.success(
+          t(action === 'delete' ? 'constants.deleted' : 'constants.restored')
+        )
+      } catch (error) {
+        logger.error('Bulk constants failed', error)
+        toast.error(
+          t(
+            action === 'delete'
+              ? 'constants.deleteFailed'
+              : 'constants.restoreFailed'
+          )
+        )
+      } finally {
+        clearSelection()
+      }
+    },
+    [selectedRows, removeMutation, restoreMutation, clearSelection, t]
+  )
+
   const columns = useMemo(
     () => buildConstantColumns({ t, actions }),
     [t, actions]
@@ -149,6 +194,9 @@ export default function ConstantsPage() {
             fetching={isFetching}
             sort={listQuery.query.sort}
             onSortChange={listQuery.setSort}
+            enableRowSelection
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
             onPageChange={listQuery.setPage}
             onPageSizeChange={handlePageSizeChange}
             onRowClick={(constant) => setSheet({ mode: 'edit', constant })}
@@ -167,6 +215,27 @@ export default function ConstantsPage() {
           constant={sheet.mode === 'create' ? null : sheet.constant}
         />
       )}
+
+      <BulkActionBar
+        count={selectedRows.length}
+        onClear={clearSelection}
+        canDelete={anyLive}
+        canRestore={anyDeleted}
+        busy={removeMutation.isPending || restoreMutation.isPending}
+        onDelete={() => setConfirmBulk(true)}
+        onRestore={() => runBulk('restore')}
+      />
+
+      <DeleteConfirmationDialog
+        open={confirmBulk}
+        onOpenChange={setConfirmBulk}
+        objectName=""
+        title={t('common.bulk.deleteTitle')}
+        description={t('common.bulk.deleteDescription', {
+          count: selectedRows.filter((row) => !row.deleted).length,
+        })}
+        onDelete={() => runBulk('delete')}
+      />
 
       <DeleteConfirmationDialog
         open={!!toDelete}

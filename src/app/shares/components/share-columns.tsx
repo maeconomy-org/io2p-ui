@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ShareDTO } from 'io2p-client'
-import { Boxes, Pencil, Trash2, Users } from 'lucide-react'
+import { Boxes, Copy, Pencil, Trash2, Users } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
 import {
@@ -11,12 +11,15 @@ import {
   type EntityRowAction,
   actionsColumn,
   nameColumn,
+  selectColumn,
   textColumn,
   timestampColumn,
 } from '@/components/tables'
 
 export interface ShareColumnActions {
+  onView: (share: ShareDTO) => void
   onEdit: (share: ShareDTO) => void
+  onDuplicate: (share: ShareDTO) => void
   onDelete: (share: ShareDTO) => void
 }
 
@@ -28,6 +31,7 @@ export function buildShareColumns({
   actions: ShareColumnActions
 }): ColumnDef<ShareDTO, unknown>[] {
   return [
+    selectColumn<ShareDTO>(),
     nameColumn<ShareDTO>((s) => s.name, {
       header: t('shares.fields.name'),
       sortable: true,
@@ -78,9 +82,13 @@ export function buildShareColumns({
       (s): ReactNode => (
         <EntityActionsCell
           testIdPrefix="share"
-          onViewDetails={() => !s.deleted && actions.onEdit(s)}
+          onViewDetails={() =>
+            s.deleted ? actions.onDuplicate(s) : actions.onView(s)
+          }
           actions={rowActions(s, t, actions)}
-          emptyMenuLabel={s.deleted ? t('shares.deletedNoRestore') : undefined}
+          detailsLabel={
+            s.deleted ? t('shares.duplicate') : t('objects.viewDetails')
+          }
         />
       ),
       t('common.actions')
@@ -93,10 +101,19 @@ function rowActions(
   t: (key: string) => string,
   actions: ShareColumnActions
 ): EntityRowAction[] {
-  // A deleted share offers nothing. Every other entity would offer Restore here, but `SharesApi`
-  // has no restore — the bundle is soft-deleted (the DELETE returns a `deleted: true` DTO) and
-  // then unreachable. Editing or re-deleting it would be rejected anyway.
-  if (share.deleted) return []
+  // A deleted share cannot be restored — `SharesApi` has no such endpoint — so Duplicate is the way
+  // back: it runs the normal create path, which re-validates every resource still exists and is
+  // still shareable, instead of resurrecting grants against a world that moved on.
+  if (share.deleted) {
+    return [
+      {
+        key: 'duplicate',
+        label: t('shares.duplicate'),
+        icon: Copy,
+        onSelect: () => actions.onDuplicate(share),
+      },
+    ]
+  }
 
   return [
     {
@@ -104,6 +121,12 @@ function rowActions(
       label: t('common.edit'),
       icon: Pencil,
       onSelect: () => actions.onEdit(share),
+    },
+    {
+      key: 'duplicate',
+      label: t('shares.duplicate'),
+      icon: Copy,
+      onSelect: () => actions.onDuplicate(share),
     },
     {
       key: 'delete',

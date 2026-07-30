@@ -223,7 +223,15 @@
     "access": "Access",
     "scopeMine": "Mine",
     "scopeShared": "Shared with me",
-    "scopePublic": "Public"
+    "scopePublic": "Public",
+    "clearSelection": "Clear selection",
+    "bulk": {
+      "label": "Selection actions",
+      "selected": "{count} selected",
+      "deleteTitle": "Delete the selected items?",
+      "deleteDescription": "This deletes {count} items. They can be restored afterwards."
+    },
+    "no": "No"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -1850,7 +1858,7 @@
     "title": "Shares",
     "create": "New share",
     "tabShares": "Shares",
-    "tabSharedByMe": "Shared by me",
+    "tabSharedByMe": "Shared items",
     "deleteAction": "Delete share",
     "deleted": "Share deleted",
     "deleteFailed": "Could not delete the share",
@@ -1863,7 +1871,9 @@
       "updated": "Updated",
       "resource": "Item",
       "sharedWith": "Shared with",
-      "permission": "Permission"
+      "permission": "Permission",
+      "resources": "What is shared",
+      "members": "Who it is shared with"
     },
     "resourceType": {
       "object": "Object",
@@ -1878,7 +1888,7 @@
     },
     "sharedByMeEmpty": {
       "title": "You haven't shared anything",
-      "description": "Access you grant from an item's Share action shows up here, so you can see and withdraw it in one place."
+      "description": "Every object and process you give someone access to shows up here — whether through a share or on its own — so you can see and withdraw it in one place."
     },
     "mixedPermissions": "Mixed",
     "manageAccess": "Manage access",
@@ -1888,6 +1898,31 @@
     "revokeAllDescription": "This removes the access you granted directly on this item — {count} listed.",
     "revokeAllBundleWarning": "Anyone who also has access through a share keeps it: shares are revoked separately, from the Shares tab.",
     "revokedAll": "Access revoked",
-    "deletedNoRestore": "This share was deleted. Its access has been revoked and it cannot be brought back."
+    "duplicate": "Duplicate",
+    "duplicateTitle": "Duplicate share",
+    "copyOf": "Copy of {name}",
+    "created": "Share created",
+    "saved": "Share updated",
+    "editorDescription": "Name the share, choose what it covers and who it is for.",
+    "namePlaceholder": "e.g. Q3 recycling audit",
+    "addResources": "Add objects or processes",
+    "searchResources": "Search objects and processes...",
+    "noResources": "Nothing left to add.",
+    "noResourcesYet": "Nothing in this share yet.",
+    "noMembersYet": "No one has been added yet.",
+    "removeResource": "Remove {name}",
+    "removeMember": "Remove {name}",
+    "cascadeLabel": "Include everything under these objects",
+    "cascadeHint": "Objects added under them later are shared automatically.",
+    "cascadeBlockedByProcess": "Not available while a process is included — processes have no contents to cascade to.",
+    "incompleteHint": "A share needs a name, at least one object or process, and at least one person.",
+    "bulk": {
+      "label": "Selection actions",
+      "selected": "{count} selected",
+      "deleteTitle": "Delete these shares?",
+      "deleteDescription": "This deletes {count} shares and revokes every grant they own.",
+      "revokeDescription": "This removes the access you granted directly on {count} items."
+    },
+    "tabOverview": "Overview"
   }
 }

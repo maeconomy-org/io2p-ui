@@ -223,7 +223,15 @@
     "access": "Toegang",
     "scopeMine": "Van mij",
     "scopeShared": "Met mij gedeeld",
-    "scopePublic": "Openbaar"
+    "scopePublic": "Openbaar",
+    "clearSelection": "Selectie wissen",
+    "bulk": {
+      "label": "Selectieacties",
+      "selected": "{count} geselecteerd",
+      "deleteTitle": "Geselecteerde items verwijderen?",
+      "deleteDescription": "Dit verwijdert {count} items. Ze kunnen daarna worden hersteld."
+    },
+    "no": "Nee"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -1851,7 +1859,7 @@
     "title": "Delen",
     "create": "Nieuwe deling",
     "tabShares": "Delingen",
-    "tabSharedByMe": "Door mij gedeeld",
+    "tabSharedByMe": "Gedeelde items",
     "deleteAction": "Deling verwijderen",
     "deleted": "Deling verwijderd",
     "deleteFailed": "Kon de deling niet verwijderen",
@@ -1864,7 +1872,9 @@
       "updated": "Bijgewerkt",
       "resource": "Item",
       "sharedWith": "Gedeeld met",
-      "permission": "Rechten"
+      "permission": "Rechten",
+      "resources": "Wat wordt gedeeld",
+      "members": "Met wie het wordt gedeeld"
     },
     "resourceType": {
       "object": "Object",
@@ -1879,7 +1889,7 @@
     },
     "sharedByMeEmpty": {
       "title": "U hebt nog niets gedeeld",
-      "description": "Toegang die u geeft via de actie Delen van een item verschijnt hier, zodat u die op één plek kunt zien en intrekken."
+      "description": "Elk object en proces waartoe u iemand toegang geeft verschijnt hier — via een deling of los — zodat u het op één plek kunt zien en intrekken."
     },
     "mixedPermissions": "Gemengd",
     "manageAccess": "Toegang beheren",
@@ -1889,6 +1899,31 @@
     "revokeAllDescription": "Dit trekt de toegang in die u rechtstreeks op dit item hebt gegeven — {count} vermeld.",
     "revokeAllBundleWarning": "Wie ook via een deling toegang heeft, behoudt die: delingen worden apart ingetrokken, via het tabblad Delingen.",
     "revokedAll": "Toegang ingetrokken",
-    "deletedNoRestore": "Deze deling is verwijderd. De toegang is ingetrokken en kan niet worden hersteld."
+    "duplicate": "Dupliceren",
+    "duplicateTitle": "Deling dupliceren",
+    "copyOf": "Kopie van {name}",
+    "created": "Deling aangemaakt",
+    "saved": "Deling bijgewerkt",
+    "editorDescription": "Geef de deling een naam, kies wat erin zit en voor wie.",
+    "namePlaceholder": "bijv. Q3 recyclingaudit",
+    "addResources": "Objecten of processen toevoegen",
+    "searchResources": "Objecten en processen zoeken...",
+    "noResources": "Niets meer om toe te voegen.",
+    "noResourcesYet": "Nog niets in deze deling.",
+    "noMembersYet": "Nog niemand toegevoegd.",
+    "removeResource": "{name} verwijderen",
+    "removeMember": "{name} verwijderen",
+    "cascadeLabel": "Alles onder deze objecten meenemen",
+    "cascadeHint": "Objecten die er later onder komen worden automatisch gedeeld.",
+    "cascadeBlockedByProcess": "Niet beschikbaar zolang er een proces in zit — processen hebben geen inhoud om door te geven.",
+    "incompleteHint": "Een deling heeft een naam nodig, minstens één object of proces, en minstens één persoon.",
+    "bulk": {
+      "label": "Selectieacties",
+      "selected": "{count} geselecteerd",
+      "deleteTitle": "Deze delingen verwijderen?",
+      "deleteDescription": "Dit verwijdert {count} delingen en trekt alle toegekende toegang in.",
+      "revokeDescription": "Dit trekt de toegang in die u rechtstreeks op {count} items hebt gegeven."
+    },
+    "tabOverview": "Overzicht"
   }
 }
