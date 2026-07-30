@@ -905,8 +905,8 @@
     "columnsView": {
       "noObjects": "Geen objecten gevonden",
       "loadData": "Laad gegevens om de objecthiërarchie te verkennen",
-      "rootObjects": "Hoofdobjecten",
-      "level": "Niveau {level}"
+      "level": "Niveau {level}",
+      "allObjects": "Alle objecten"
     },
     "properties": {
       "noProperties": "Geen eigenschappen gedefinieerd",
@@ -1762,7 +1762,8 @@
       "admin": "Volledige controle, inclusief verwijderen"
     },
     "saved": "Delen bijgewerkt",
-    "redundantRead": "Zij hebben al leestoegang via algemene toegang. Deze toekenning werkt pas als algemene toegang wordt uitgezet."
+    "redundantRead": "Zij hebben al leestoegang via algemene toegang. Deze toekenning werkt pas als algemene toegang wordt uitgezet.",
+    "readShareOnly": "Dit kan alleen ter inzage worden gedeeld — de eigenaar behoudt bewerkrechten."
   },
   "shares": {
     "title": "Delen",

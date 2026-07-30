@@ -28,7 +28,7 @@ import {
 } from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { useTemplates } from '@/hooks/api/entities'
-import { useSearch } from '@/contexts'
+import { useAuth, useSearch } from '@/contexts'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { logger } from '@/lib'
@@ -40,6 +40,10 @@ import {
 } from './components/template-type-filter'
 
 // Lazy-load sheet components — only rendered when opened by user interaction
+const ShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.ShareSheet),
+  { ssr: false }
+)
 const TemplateSheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.TemplateSheet),
   { ssr: false }
@@ -61,10 +65,12 @@ export default function TemplatesPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmBulk, setConfirmBulk] = useState(false)
+  const [shareTarget, setShareTarget] = useState<TemplateListItem | null>(null)
   const [templateToDelete, setTemplateToDelete] =
     useState<TemplateListItem | null>(null)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
   const { useList, useRemove, useRestore } = useTemplates()
@@ -181,6 +187,7 @@ export default function TemplatesPage() {
         actions: {
           onViewDetails: (template) => openTemplate(template, false),
           onEdit: (template) => openTemplate(template, true),
+          onShare: setShareTarget,
           onDelete: setTemplateToDelete,
           onRestore: handleRestoreTemplate,
         },
@@ -265,6 +272,19 @@ export default function TemplatesPage() {
           templateId={selectedTemplate?.id}
           initialEditing={openInEditMode}
           type={createType}
+        />
+      )}
+
+      {shareTarget && (
+        <ShareSheet
+          open
+          onOpenChange={(open) => !open && setShareTarget(null)}
+          target={{
+            type: 'template',
+            id: shareTarget.id,
+            name: shareTarget.name,
+          }}
+          isOwner={shareTarget.ownerUserId === userId}
         />
       )}
 

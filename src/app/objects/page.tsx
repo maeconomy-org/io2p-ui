@@ -314,6 +314,7 @@ function ObjectsPageContent() {
         ) : (
           <ObjectColumnsView
             showDeleted={showDeleted}
+            scope={scope}
             isRestoring={restoreMutation.isPending}
             onViewObject={openDetails}
             onDelete={setObjectToDelete}

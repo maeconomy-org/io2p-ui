@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ConstantDTO } from 'io2p-client'
-import { AlertCircle, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { AlertCircle, Pencil, RotateCcw, Share2, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
 import {
@@ -20,6 +20,8 @@ import {
 
 export interface ConstantColumnActions {
   onViewDetails: (constant: ConstantDTO) => void
+  /** Read-share only for library items — the node rejects any other permission. */
+  onShare: (constant: ConstantDTO) => void
   onDelete: (constant: ConstantDTO) => void
   onRestore: (constant: ConstantDTO) => void
 }
@@ -128,6 +130,12 @@ function rowActions(
       label: t('constants.addVersion'),
       icon: Pencil,
       onSelect: () => actions.onViewDetails(constant),
+    },
+    {
+      key: 'share',
+      label: t('access.share'),
+      icon: Share2,
+      onSelect: () => actions.onShare(constant),
     },
     {
       key: 'delete',

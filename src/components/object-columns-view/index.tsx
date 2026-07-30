@@ -11,18 +11,25 @@ function columnTitle(
   t: (key: string, values?: Record<string, string | number>) => string
 ): string {
   return index === 0
-    ? t('objects.columnsView.rootObjects')
+    ? t('objects.columnsView.allObjects')
     : t('objects.columnsView.level', { level: index + 1 })
 }
 
 interface ObjectColumnsViewProps extends MillerColumnActions {
   showDeleted?: boolean
   isRestoring?: boolean
+  /**
+   * The access slice, threaded from the page. WITHOUT it the node defaults to `mine`, so switching
+   * from the table to this view silently dropped every shared and public object — the same objects,
+   * two different answers, with nothing on screen to explain the gap.
+   */
+  scope?: 'mine' | 'shared' | 'public' | 'all'
 }
 
 export function ObjectColumnsView({
   showDeleted = false,
   isRestoring = false,
+  scope = 'all',
   ...actions
 }: ObjectColumnsViewProps) {
   const t = useTranslations()
@@ -56,6 +63,7 @@ export function ObjectColumnsView({
               selectedId={selected[index] ?? null}
               showDeleted={showDeleted}
               isRestoring={isRestoring}
+              scope={scope}
               onSelect={(item) => handleSelect(index, item)}
               {...actions}
             />

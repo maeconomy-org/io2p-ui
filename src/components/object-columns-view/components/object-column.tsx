@@ -42,12 +42,25 @@ export interface MillerColumnActions {
 }
 
 interface MillerColumnProps extends MillerColumnActions {
-  /** Parent object id; `''` fetches the roots. */
+  /**
+   * Parent object id. `''` is the FIRST column, which lists everything rather than only roots.
+   *
+   * `?parent=` (empty) would return roots only, and that made the two views of /objects disagree:
+   * the table showed 25 objects, this showed the 5 with no parent, and nothing on screen explained
+   * the gap. Users reasonably expect the same data either way — the column view exists to make
+   * drilling down easier, not to show a different set.
+   *
+   * The trade: an object with a parent appears in column 1 AND again under that parent. Accepted
+   * deliberately (user, 2026-07-30) — column 1 is "everything", each later column is "what is
+   * inside the row you opened".
+   */
   parentId: string
   title: string
   selectedId: string | null
   showDeleted?: boolean
   isRestoring?: boolean
+  /** Same access slice as the table, or the node quietly narrows to `mine`. */
+  scope?: 'mine' | 'shared' | 'public' | 'all'
   onSelect: (item: ObjectListItem) => void
 }
 
@@ -56,6 +69,7 @@ export function MillerColumn({
   title,
   selectedId,
   showDeleted = false,
+  scope = 'all',
   isRestoring = false,
   onSelect,
   onViewObject,
@@ -84,7 +98,9 @@ export function MillerColumn({
 
   const { data, isLoading, isError } = useObjects().useList(
     {
-      parent: parentId,
+      // `undefined`, not `''` — an empty string means "roots only" to the node.
+      parent: parentId || undefined,
+      scope,
       page,
       size: COLUMN_SIZE,
       q: search || undefined,

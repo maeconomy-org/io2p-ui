@@ -23,7 +23,7 @@ import {
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useFormulas } from '@/hooks/api/leaves'
-import { useSearch } from '@/contexts'
+import { useAuth, useSearch } from '@/contexts'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { logger } from '@/lib'
 
@@ -32,6 +32,10 @@ import {
   type FormulaColumnActions,
 } from './components/formula-columns'
 
+const ShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.ShareSheet),
+  { ssr: false }
+)
 const FormulaSheet = dynamic(
   () =>
     import('@/components/formulas/formula-sheet').then((m) => m.FormulaSheet),
@@ -60,9 +64,11 @@ export default function FormulasPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmBulk, setConfirmBulk] = useState(false)
+  const [shareTarget, setShareTarget] = useState<FormulaDTO | null>(null)
   const [toDelete, setToDelete] = useState<FormulaDTO | null>(null)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
   const { useList, useRemove, useRestore } = useFormulas()
@@ -120,6 +126,7 @@ export default function FormulasPage() {
     () => ({
       onViewDetails: (formula) => setSheet({ mode: 'view', formula }),
       onDuplicate: (formula) => setSheet({ mode: 'duplicate', formula }),
+      onShare: setShareTarget,
       onDelete: setToDelete,
       onRestore: handleRestore,
     }),
@@ -241,6 +248,19 @@ export default function FormulasPage() {
         open={referenceOpen}
         onOpenChange={setReferenceOpen}
       />
+
+      {shareTarget && (
+        <ShareSheet
+          open
+          onOpenChange={(open) => !open && setShareTarget(null)}
+          target={{
+            type: 'formula',
+            id: shareTarget.id,
+            name: shareTarget.name,
+          }}
+          isOwner={shareTarget.ownerUserId === userId}
+        />
+      )}
 
       <BulkActionBar
         count={selectedRows.length}

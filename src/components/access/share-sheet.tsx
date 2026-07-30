@@ -38,16 +38,22 @@ import { logger } from '@/lib'
 
 import { PermissionSelect, type Permission } from './permission-select'
 
+/** What a Share sheet can be opened on — all five, since who-can-access widened to match grant. */
+export type ShareResourceType =
+  | 'object'
+  | 'process'
+  | 'formula'
+  | 'constant'
+  | 'template'
+
 /**
- * What a Share sheet can be opened on.
- *
- * Objects and processes ONLY, and the limit comes from the READ side rather than the write one:
- * `grant`/`revoke` accept formulas, constants and templates too (read-share, C3), but
- * `GET /v1/access` — who-can-access — is typed `object | process`. Offering the sheet on a formula
- * would let someone grant access they could then neither see nor revoke from that formula. Widen
- * this the day the who-can-access query widens.
+ * Formulas, constants and templates are READ-SHARE ONLY (C3): `READ_SHARE_ONLY` is enforced in the
+ * node's rules layer, so any other permission 400s. Offering the ladder would render choices the
+ * node refuses.
  */
-export type ShareResourceType = 'object' | 'process'
+function isReadOnlyResource(type: ShareResourceType) {
+  return type === 'formula' || type === 'constant' || type === 'template'
+}
 
 export interface ShareTarget {
   type: ShareResourceType
@@ -209,6 +215,7 @@ function ShareForm({
   })
 
   const cascade = canCascade(target.type)
+  const readOnly = isReadOnlyResource(target.type)
   const publicMember = draft[PUBLIC_KEY]
 
   const setMember = (key: string, patch: Partial<DraftMember>) =>
@@ -272,6 +279,13 @@ function ShareForm({
           {t('access.shareDescription')}
         </p>
 
+        {readOnly && (
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{t('access.readShareOnly')}</span>
+          </p>
+        )}
+
         <div className="space-y-2">
           <Label>{t('access.peopleWithAccess')}</Label>
 
@@ -303,6 +317,7 @@ function ShareForm({
               <PermissionSelect
                 className="w-full"
                 value={draft[id].permission}
+                disabled={readOnly}
                 aria-label={t('access.permissionFor', { name: nameOf(id) })}
                 onChange={(permission) => setMember(id, { permission })}
               />

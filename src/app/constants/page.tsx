@@ -23,7 +23,7 @@ import {
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useConstants } from '@/hooks/api/leaves'
-import { useSearch } from '@/contexts'
+import { useAuth, useSearch } from '@/contexts'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { logger } from '@/lib'
 
@@ -32,6 +32,10 @@ import {
   type ConstantColumnActions,
 } from './components/constant-columns'
 
+const ShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.ShareSheet),
+  { ssr: false }
+)
 const ConstantSheet = dynamic(
   () =>
     import('@/components/constants/constant-sheet').then(
@@ -51,9 +55,11 @@ export default function ConstantsPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmBulk, setConfirmBulk] = useState(false)
+  const [shareTarget, setShareTarget] = useState<ConstantDTO | null>(null)
   const [toDelete, setToDelete] = useState<ConstantDTO | null>(null)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
   const { useList, useRemove, useRestore } = useConstants()
@@ -110,6 +116,7 @@ export default function ConstantsPage() {
   const actions: ConstantColumnActions = useMemo(
     () => ({
       onViewDetails: (constant) => setSheet({ mode: 'edit', constant }),
+      onShare: setShareTarget,
       onDelete: setToDelete,
       onRestore: handleRestore,
     }),
@@ -213,6 +220,19 @@ export default function ConstantsPage() {
           onOpenChange={(open) => !open && setSheet(null)}
           mode={sheet.mode}
           constant={sheet.mode === 'create' ? null : sheet.constant}
+        />
+      )}
+
+      {shareTarget && (
+        <ShareSheet
+          open
+          onOpenChange={(open) => !open && setShareTarget(null)}
+          target={{
+            type: 'constant',
+            id: shareTarget.id,
+            name: shareTarget.name,
+          }}
+          isOwner={shareTarget.ownerUserId === userId}
         />
       )}
 

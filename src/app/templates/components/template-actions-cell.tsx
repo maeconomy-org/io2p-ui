@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { Pencil, RotateCcw, Trash2, Share2 } from 'lucide-react'
 import type { TemplateListItem } from 'io2p-client'
 
 import { EntityActionsCell, type EntityRowAction } from '@/components/tables'
@@ -9,6 +9,8 @@ import { EntityActionsCell, type EntityRowAction } from '@/components/tables'
 export interface TemplateRowActions {
   onViewDetails: (template: TemplateListItem) => void
   onEdit: (template: TemplateListItem) => void
+  /** Read-share only — the node rejects any other permission on a template. */
+  onShare: (template: TemplateListItem) => void
   onDelete: (template: TemplateListItem) => void
   onRestore: (template: TemplateListItem) => void
 }
@@ -45,6 +47,12 @@ export function TemplateActionsCell({
         label: t('common.edit'),
         icon: Pencil,
         onSelect: () => actions.onEdit(template),
+      },
+      {
+        key: 'share',
+        label: t('access.share'),
+        icon: Share2,
+        onSelect: () => actions.onShare(template),
       },
       {
         key: 'delete',

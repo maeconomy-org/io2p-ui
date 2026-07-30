@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { FormulaDTO } from 'io2p-client'
-import { Copy, RotateCcw, Trash2 } from 'lucide-react'
+import { Copy, RotateCcw, Trash2, Share2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
 import {
@@ -21,6 +21,8 @@ import {
 export interface FormulaColumnActions {
   onViewDetails: (formula: FormulaDTO) => void
   onDuplicate: (formula: FormulaDTO) => void
+  /** Read-share only for library items — the node rejects any other permission. */
+  onShare: (formula: FormulaDTO) => void
   onDelete: (formula: FormulaDTO) => void
   onRestore: (formula: FormulaDTO) => void
 }
@@ -134,6 +136,12 @@ function rowActions(
   ]
 
   if (!formula.system) {
+    rows.push({
+      key: 'share',
+      label: t('access.share'),
+      icon: Share2,
+      onSelect: () => actions.onShare(formula),
+    })
     rows.push({
       key: 'delete',
       label: t('common.delete'),

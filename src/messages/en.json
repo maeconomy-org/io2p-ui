@@ -905,8 +905,8 @@
     "columnsView": {
       "noObjects": "No Objects Found",
       "loadData": "Load some data to start exploring the object hierarchy",
-      "rootObjects": "Root Objects",
-      "level": "Level {level}"
+      "level": "Level {level}",
+      "allObjects": "All objects"
     },
     "properties": {
       "noProperties": "No properties defined",
@@ -1761,7 +1761,8 @@
       "admin": "Full control, including delete"
     },
     "saved": "Sharing updated",
-    "redundantRead": "They already have read access through general access. This grant only takes effect if general access is turned off."
+    "redundantRead": "They already have read access through general access. This grant only takes effect if general access is turned off.",
+    "readShareOnly": "This can only be shared for reading — the owner keeps editing rights."
   },
   "shares": {
     "title": "Shares",
