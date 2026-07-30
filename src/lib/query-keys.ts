@@ -215,9 +215,13 @@ export const queryKeys = {
   access: {
     all: ['access'] as const,
     grants: {
-      forResource: (resourceId: string) =>
-        [...queryKeys.access.all, 'grants', resourceId] as const,
-      sharedByMe: () => [...queryKeys.access.all, 'sharedByMe'] as const,
+      // Keyed by type AND id because the request carries both — `WhoCanAccessInput` is
+      // `{resourceType, resourceId}`, and a key that drops a request parameter can serve one
+      // resource's grants for another.
+      forResource: (resourceType: string, resourceId: string) =>
+        [...queryKeys.access.all, 'grants', resourceType, resourceId] as const,
+      sharedByMe: (query?: { page?: number; size?: number }) =>
+        [...queryKeys.access.all, 'sharedByMe', query] as const,
     },
     shares: {
       all: ['access', 'shares'] as const,

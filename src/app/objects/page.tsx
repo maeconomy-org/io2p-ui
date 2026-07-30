@@ -10,10 +10,15 @@ import type { ObjectDTO } from 'io2p-client'
 
 import { useBreadcrumbTrail, usePreference } from '@/hooks'
 import { useObjects } from '@/hooks/api/entities'
-import { useSearch } from '@/contexts'
+import { useAuth, useSearch } from '@/contexts'
 import { logger } from '@/lib'
 import { Button } from '@/components/ui'
-import { FilterMenu, deletedSection } from '@/components/filters'
+import {
+  FilterMenu,
+  deletedSection,
+  scopeSection,
+  type ScopeFilterValue,
+} from '@/components/filters'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
 import { ObjectColumnsView } from '@/components/object-columns-view'
@@ -47,6 +52,10 @@ const QRCodeModal = dynamic(
     import('@/components/modals/qr-code-modal').then((mod) => mod.QRCodeModal),
   { ssr: false }
 )
+const ShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.ShareSheet),
+  { ssr: false }
+)
 // Also driver.js — only ever runs once, on a first login.
 const InitialLoginTour = dynamic(
   () => import('@/components/onboarding/initial-login-tour'),
@@ -66,6 +75,7 @@ function ObjectsPageContent() {
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [viewType, setViewType] = usePreference('objectsView')
   const [showDeleted, setShowDeleted] = useState(false)
+  const [scope, setScope] = useState<ScopeFilterValue>('all')
 
   const [selectedObject, setSelectedObject] = useState<ObjectDTO | null>(null)
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
@@ -76,6 +86,7 @@ function ObjectsPageContent() {
   const [qrTarget, setQrTarget] = useState<ObjectDTO | null>(null)
   const [passportTarget, setPassportTarget] = useState<ObjectDTO | null>(null)
   const [objectToDelete, setObjectToDelete] = useState<ObjectDTO | null>(null)
+  const [shareTarget, setShareTarget] = useState<ObjectDTO | null>(null)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
@@ -87,12 +98,13 @@ function ObjectsPageContent() {
     searchPagination,
     clearSearch,
   } = useSearch()
+  const { userId } = useAuth()
 
   const templateFromObject = useCreateTemplateFromObject()
   const templateSource = templateFromObject.source
   const setTemplateSource = templateFromObject.setSource
 
-  const listQuery = useEntityListQuery({ scope: 'all' })
+  const listQuery = useEntityListQuery({ scope })
   const { useList, useRemove, useRestore, usePrefetchDetail } = useObjects()
   // Warm the detail cache on hover so the sheet opens populated.
   const prefetchDetail = usePrefetchDetail()
@@ -103,7 +115,7 @@ function ObjectsPageContent() {
     {
       ...listQuery.query,
       size: pageSize,
-      scope: 'all',
+      scope,
       q: isSearchMode ? searchQuery : undefined,
       deleted: showDeleted ? 'include' : undefined,
       withChildCounts: true,
@@ -203,6 +215,7 @@ function ObjectsPageContent() {
           onViewPassport: setPassportTarget,
           onDuplicate: setCopyTarget,
           onCreateTemplate: setTemplateSource,
+          onShare: setShareTarget,
           onDelete: setObjectToDelete,
           onRestore: handleRestore,
         },
@@ -225,7 +238,10 @@ function ObjectsPageContent() {
           <h1 className="shrink-0 text-2xl font-bold">{t('objects.title')}</h1>
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
             <FilterMenu
-              sections={[deletedSection(t, showDeleted, setShowDeleted)]}
+              sections={[
+                scopeSection(t, scope, setScope),
+                deletedSection(t, showDeleted, setShowDeleted),
+              ]}
               data-tour="filters"
             />
             <ViewSelector
@@ -332,6 +348,19 @@ function ObjectsPageContent() {
           />
         )}
       </div>
+
+      {shareTarget && (
+        <ShareSheet
+          open
+          onOpenChange={(open) => !open && setShareTarget(null)}
+          target={{
+            type: 'object',
+            id: shareTarget.id,
+            name: shareTarget.name,
+          }}
+          isOwner={shareTarget.createdBy === userId}
+        />
+      )}
 
       {isObjectSheetOpen && (
         <EntitySheet

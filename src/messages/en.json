@@ -219,7 +219,11 @@
     "builtIn": "Built-in",
     "userCreated": "User-created",
     "me": "Me",
-    "status": "Status"
+    "status": "Status",
+    "access": "Access",
+    "scopeMine": "Mine",
+    "scopeShared": "Shared with me",
+    "scopePublic": "Public"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -1809,6 +1813,37 @@
     "empty": {
       "title": "No constants yet",
       "description": "A constant is a shared, versioned number that formulas can bind to."
+    }
+  },
+  "access": {
+    "shareTitle": "Share \"{name}\"",
+    "shareDescription": "Choose who can see this and what they can do with it.",
+    "peopleWithAccess": "People with access",
+    "owner": "Owner",
+    "notShared": "Not shared with anyone yet.",
+    "addPeople": "Add people",
+    "searchPeople": "Search people...",
+    "noPeople": "No one left to add.",
+    "publicLabel": "General access",
+    "publicHint": "Anyone signed in to this node can view it",
+    "includeDescendantsHint": "Also everything under this object — including objects added later",
+    "ownerOnly": "Only the owner can see who this is shared with.",
+    "granted": "Access updated",
+    "revoked": "Access removed",
+    "permissionFor": "Permission for {name}",
+    "revokeFor": "Remove access for {name}",
+    "share": "Share",
+    "permission": {
+      "read": "Read",
+      "write": "Write",
+      "share": "Share",
+      "admin": "Admin"
+    },
+    "permissionHint": {
+      "read": "See it",
+      "write": "See and edit it",
+      "share": "Edit and re-share it",
+      "admin": "Full control, including delete"
     }
   }
 }

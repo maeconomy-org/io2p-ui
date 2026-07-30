@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ProcessDTO } from 'io2p-client'
-import { ArrowRight, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { ArrowRight, Pencil, RotateCcw, Share2, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
 import {
@@ -19,6 +19,7 @@ import {
 export interface ProcessColumnActions {
   onViewDetails: (process: ProcessDTO) => void
   onEdit: (process: ProcessDTO) => void
+  onShare: (process: ProcessDTO) => void
   onDelete: (process: ProcessDTO) => void
   onRestore: (process: ProcessDTO) => void
 }
@@ -26,11 +27,14 @@ export interface ProcessColumnActions {
 interface BuildProcessColumnsOptions {
   t: (key: string) => string
   actions: ProcessColumnActions
+  /** Sharing is owner-only — the node 403s a non-owner reading the grant list. */
+  currentUserId?: string
 }
 
 export function buildProcessColumns({
   t,
   actions,
+  currentUserId,
 }: BuildProcessColumnsOptions): ColumnDef<ProcessDTO, unknown>[] {
   return [
     nameColumn<ProcessDTO>((p) => p.name, {
@@ -68,7 +72,7 @@ export function buildProcessColumns({
         <EntityActionsCell
           testIdPrefix="process"
           onViewDetails={() => actions.onViewDetails(p)}
-          actions={rowActions(p, t, actions)}
+          actions={rowActions(p, t, actions, currentUserId)}
         />
       ),
       t('common.actions')
@@ -80,7 +84,8 @@ export function buildProcessColumns({
 function rowActions(
   process: ProcessDTO,
   t: (key: string) => string,
-  actions: ProcessColumnActions
+  actions: ProcessColumnActions,
+  currentUserId?: string
 ): EntityRowAction[] {
   if (process.deleted) {
     return [
@@ -99,6 +104,16 @@ function rowActions(
       icon: Pencil,
       onSelect: () => actions.onEdit(process),
     },
+    ...(process.createdBy === currentUserId
+      ? [
+          {
+            key: 'share',
+            label: t('access.share'),
+            icon: Share2,
+            onSelect: () => actions.onShare(process),
+          },
+        ]
+      : []),
     {
       key: 'delete',
       label: t('common.delete'),

@@ -193,6 +193,38 @@ export function deletedSection(
   }
 }
 
+/** The access slice a list asks for. `all` is what every page sends today. */
+export type ScopeFilterValue = 'mine' | 'shared' | 'public' | 'all'
+
+/**
+ * Whose items the list shows — the access scope.
+ *
+ * This one is not new behaviour, it is *disclosure*: every list already sends `scope: 'all'`, so
+ * anything shared with you is already in the table, distinguishable only by the Owner column. The
+ * filter lets you separate the slices you could not previously name.
+ *
+ * `all` is modelled as no selection rather than a fourth option — it IS the unfiltered state, and
+ * showing it selected would put a permanent `1` on the trigger's count badge.
+ */
+export function scopeSection(
+  t: Translate,
+  value: ScopeFilterValue,
+  onChange: (next: ScopeFilterValue) => void
+): FilterSection {
+  return {
+    key: 'scope',
+    label: t('common.access'),
+    options: [
+      { value: 'mine', label: t('common.scopeMine') },
+      { value: 'shared', label: t('common.scopeShared') },
+      { value: 'public', label: t('common.scopePublic') },
+    ],
+    selected: value === 'all' ? [] : [value],
+    onChange: (values) => onChange((values[0] as ScopeFilterValue) ?? 'all'),
+    single: true,
+  }
+}
+
 /**
  * Built-in vs user-created, for the library resources that carry a `system` flag.
  *

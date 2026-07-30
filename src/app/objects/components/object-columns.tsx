@@ -20,6 +20,7 @@ export interface ObjectColumnActions {
   onViewPassport: (object: ObjectDTO) => void
   onDuplicate: (object: ObjectDTO) => void
   onCreateTemplate: (object: ObjectDTO) => void
+  onShare?: (object: ObjectDTO) => void
   onDelete: (object: ObjectDTO) => void
   onRestore: (object: ObjectDTO) => void
 }

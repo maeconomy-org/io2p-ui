@@ -1,10 +1,19 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { Copy, FileText, IdCard, QrCode, RotateCcw, Trash2 } from 'lucide-react'
+import {
+  Copy,
+  FileText,
+  IdCard,
+  QrCode,
+  RotateCcw,
+  Share2,
+  Trash2,
+} from 'lucide-react'
 import type { ObjectDTO } from 'io2p-client'
 
 import { EntityActionsCell, type EntityRowAction } from '@/components/tables'
+import { useAuth } from '@/contexts'
 
 export interface ObjectRowActions {
   onViewDetails: (object: ObjectDTO) => void
@@ -12,6 +21,8 @@ export interface ObjectRowActions {
   onViewPassport?: (object: ObjectDTO) => void
   onDuplicate: (object: ObjectDTO) => void
   onCreateTemplate: (object: ObjectDTO) => void
+  /** Omitted where sharing has nowhere to open, e.g. an embedded picker. */
+  onShare?: (object: ObjectDTO) => void
   onDelete: (object: ObjectDTO) => void
   onRestore: (object: ObjectDTO) => void
 }
@@ -37,7 +48,11 @@ export function ObjectActionsCell({
   readOnly?: boolean
 }) {
   const t = useTranslations()
+  const { userId } = useAuth()
   const isDeleted = !!object.deleted
+  // Only the owner may read a resource's grant list — the node 403s anyone else — so offering the
+  // action to a sharee would open a sheet that can only fail.
+  const canShare = !!actions.onShare && object.createdBy === userId
 
   const rowActions: EntityRowAction[] = []
 
@@ -72,6 +87,14 @@ export function ObjectActionsCell({
           onSelect: () => actions.onCreateTemplate(object),
         }
       )
+      if (canShare) {
+        rowActions.push({
+          key: 'share',
+          label: t('access.share'),
+          icon: Share2,
+          onSelect: () => actions.onShare?.(object),
+        })
+      }
     }
 
     rowActions.push(

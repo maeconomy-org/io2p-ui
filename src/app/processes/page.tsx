@@ -8,14 +8,19 @@ import { toast } from 'sonner'
 import type { ProcessDTO } from 'io2p-client'
 
 import { Button } from '@/components/ui'
-import { FilterMenu, deletedSection } from '@/components/filters'
+import {
+  FilterMenu,
+  deletedSection,
+  scopeSection,
+  type ScopeFilterValue,
+} from '@/components/filters'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { ViewSelector } from '@/components/view-selector'
 import { ContentSkeleton } from '@/components/skeletons'
 import { useProcesses } from '@/hooks/api/entities'
-import { useSearch } from '@/contexts'
+import { useAuth, useSearch } from '@/contexts'
 import { usePreference } from '@/hooks'
 import {
   DEFAULT_TABLE_PAGE_SIZE,
@@ -25,6 +30,11 @@ import { logger } from '@/lib'
 
 import { buildProcessColumns } from './components/process-columns'
 import { ProcessFlowView } from './components/process-flow-view'
+
+const ShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.ShareSheet),
+  { ssr: false }
+)
 
 const ProcessSheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.ProcessSheet),
@@ -38,8 +48,10 @@ export default function ProcessesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openInEditMode, setOpenInEditMode] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
+  const [scope, setScope] = useState<ScopeFilterValue>('all')
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [toDelete, setToDelete] = useState<ProcessDTO | null>(null)
+  const [toShare, setToShare] = useState<ProcessDTO | null>(null)
 
   // The stored view is account-keyed, so it cannot be read until `/me` resolves. Rendering the
   // default meanwhile means showing the table and then swapping to a chart on every cold load —
@@ -47,6 +59,7 @@ export default function ProcessesPage() {
   const [view, setView, viewResolved] = usePreference('processView')
   const isTable = view === 'table'
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
   const { useList, useRemove, useRestore, usePrefetchDetail } = useProcesses()
@@ -58,7 +71,7 @@ export default function ProcessesPage() {
     {
       ...listQuery.query,
       size: pageSize,
-      scope: 'all',
+      scope,
       q: isSearchMode ? searchQuery : undefined,
       deleted: showDeleted ? 'include' : undefined,
     },
@@ -118,14 +131,16 @@ export default function ProcessesPage() {
     () =>
       buildProcessColumns({
         t,
+        currentUserId: userId,
         actions: {
           onViewDetails: (p) => openProcess(p.id),
           onEdit: (p) => openProcess(p.id, true),
+          onShare: setToShare,
           onDelete: setToDelete,
           onRestore: handleRestore,
         },
       }),
-    [t, openProcess, handleRestore]
+    [t, openProcess, handleRestore, userId]
   )
 
   return (
@@ -139,7 +154,10 @@ export default function ProcessesPage() {
                   what, and a soft-deleted process has no place in a chain. */}
               {isTable && (
                 <FilterMenu
-                  sections={[deletedSection(t, showDeleted, setShowDeleted)]}
+                  sections={[
+                    scopeSection(t, scope, setScope),
+                    deletedSection(t, showDeleted, setShowDeleted),
+                  ]}
                 />
               )}
               <ViewSelector
@@ -195,6 +213,15 @@ export default function ProcessesPage() {
           onOpenChange={setSheetOpen}
           processId={selectedId ?? undefined}
           initialEditing={openInEditMode}
+        />
+      )}
+
+      {toShare && (
+        <ShareSheet
+          open
+          onOpenChange={(open) => !open && setToShare(null)}
+          target={{ type: 'process', id: toShare.id, name: toShare.name }}
+          isOwner={toShare.createdBy === userId}
         />
       )}
 

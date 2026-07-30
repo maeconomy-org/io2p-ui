@@ -31,6 +31,8 @@ export function useUserDirectory(options: { enabled?: boolean } = {}) {
 
   return {
     isLoading,
+    /** The page itself, for pickers that need to offer users rather than just name one. */
+    users: data?.data ?? [],
     /** Display name, else email, else the raw id. Never empty. */
     nameOf: (userId: string) => {
       const user = byId.get(userId)

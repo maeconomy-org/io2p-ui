@@ -219,7 +219,11 @@
     "builtIn": "Ingebouwd",
     "userCreated": "Door gebruiker",
     "me": "Ik",
-    "status": "Status"
+    "status": "Status",
+    "access": "Toegang",
+    "scopeMine": "Van mij",
+    "scopeShared": "Met mij gedeeld",
+    "scopePublic": "Openbaar"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -1810,6 +1814,37 @@
     "empty": {
       "title": "Nog geen constanten",
       "description": "Een constante is een gedeeld, geversioneerd getal waaraan formules kunnen koppelen."
+    }
+  },
+  "access": {
+    "shareTitle": "\"{name}\" delen",
+    "shareDescription": "Kies wie dit kan zien en wat zij ermee kunnen doen.",
+    "peopleWithAccess": "Personen met toegang",
+    "owner": "Eigenaar",
+    "notShared": "Nog met niemand gedeeld.",
+    "addPeople": "Personen toevoegen",
+    "searchPeople": "Personen zoeken...",
+    "noPeople": "Niemand meer om toe te voegen.",
+    "publicLabel": "Algemene toegang",
+    "publicHint": "Iedereen die is aangemeld bij deze node kan het bekijken",
+    "includeDescendantsHint": "Ook alles onder dit object — inclusief later toegevoegde objecten",
+    "ownerOnly": "Alleen de eigenaar kan zien met wie dit is gedeeld.",
+    "granted": "Toegang bijgewerkt",
+    "revoked": "Toegang ingetrokken",
+    "permissionFor": "Rechten voor {name}",
+    "revokeFor": "Toegang intrekken voor {name}",
+    "share": "Delen",
+    "permission": {
+      "read": "Lezen",
+      "write": "Schrijven",
+      "share": "Delen",
+      "admin": "Beheer"
+    },
+    "permissionHint": {
+      "read": "Bekijken",
+      "write": "Bekijken en bewerken",
+      "share": "Bewerken en opnieuw delen",
+      "admin": "Volledige controle, inclusief verwijderen"
     }
   }
 }
