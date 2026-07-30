@@ -3,9 +3,9 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import type { ObjectDTO } from 'io2p-client'
+import type { ObjectListItem } from 'io2p-client'
 
-import { useTemplates } from '@/hooks/api/entities'
+import { useObjects, useTemplates } from '@/hooks/api/entities'
 import { useConstants } from '@/hooks/api/leaves'
 import { objectToTemplateInput } from '@/lib/template-body'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
@@ -30,21 +30,26 @@ export interface TemplateCreationData {
  */
 export function useCreateTemplateFromObject() {
   const t = useTranslations()
-  const [source, setSource] = useState<ObjectDTO | null>(null)
+  // The TRIGGER is a list row, which is lean — it has an id and a name and no properties. The
+  // template is built from the authored tree, so the full object is fetched when the dialog opens.
+  // Reading `properties` off the row instead would silently build a template with none: no error,
+  // no missing field, just an empty recipe.
+  const [source, setSource] = useState<ObjectListItem | null>(null)
+  const { data: full } = useObjects().useGet(source?.id)
   const createMutation = useTemplates().useCreate()
 
   const usesConstants = useMemo(
     () =>
-      (source?.properties ?? []).some((p) =>
+      (full?.properties ?? []).some((p) =>
         p.values.some((v) =>
           v.provenance?.args.some((a) => a.source.kind === 'constant')
         )
       ),
-    [source]
+    [full]
   )
   const { data: constants } = useConstants().useList(
     { page: 1, size: 200 },
-    { enabled: !!source && usesConstants }
+    { enabled: !!full && usesConstants }
   )
   const constantNames = useMemo(
     () => new Map((constants?.data ?? []).map((c) => [c.id, c.name])),
@@ -62,13 +67,14 @@ export function useCreateTemplateFromObject() {
 
   const confirm = useCallback(
     async (data: TemplateCreationData) => {
-      if (!source) return
+      // `full`, never `source` — the row cannot build a template.
+      if (!full) return
       try {
         await createMutation.mutateAsync({
           body: objectToTemplateInput(
-            source,
+            full,
             {
-              name: data.name.trim() || source.name,
+              name: data.name.trim() || full.name,
               description: data.description.trim() || undefined,
               version: data.version.trim() || undefined,
             },
@@ -79,14 +85,14 @@ export function useCreateTemplateFromObject() {
         setSource(null)
       } catch (error) {
         logger.error('Create template from object failed', {
-          objectId: source.id,
+          objectId: full.id,
           status: iomStatus(error),
           error: error instanceof Error ? error.message : String(error),
         })
         toast.error(t(saveErrorMessage(error).key))
       }
     },
-    [source, createMutation, constantNames, t]
+    [full, createMutation, constantNames, t]
   )
 
   return {

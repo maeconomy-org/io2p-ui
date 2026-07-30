@@ -591,7 +591,8 @@
       "address": "Address",
       "properties": "Properties",
       "files": "Files",
-      "group": "Group"
+      "group": "Group",
+      "parent": "Parent"
     },
     "formulaEditor": {
       "expression": "Expression",
@@ -773,7 +774,7 @@
       "deleteSelected": "Delete",
       "restoreSelected": "Restore",
       "addToGroup": "Add to Group",
-      "setParent": "Set Parent",
+      "setParent": "Set parent",
       "createNewGroup": "Create New Group",
       "groupNamePlaceholder": "Enter group name...",
       "confirmBulkDelete": "Delete {count} objects?",
@@ -785,7 +786,7 @@
       "bulkRestoreFailed": "Failed to restore some objects",
       "addedToGroup": "{count} object(s) added to group",
       "addedToGroupFailed": "Failed to add objects to group",
-      "parentSet": "Parent set for {count} object(s)",
+      "parentSet": "{count} items moved",
       "parentSetFailed": "Failed to set parent for some objects",
       "selectAll": "Select all",
       "deselectAll": "Deselect all",
@@ -796,7 +797,10 @@
       "deleting": "Deleting objects...",
       "restoring": "Restoring objects...",
       "settingParent": "Setting parent...",
-      "addingToGroup": "Adding to group..."
+      "addingToGroup": "Adding to group...",
+      "setParentTitle": "Set a parent",
+      "setParentDescription": "Move {count} selected items under one parent. Each keeps any parents it already has.",
+      "parentSkipsSelf": "The selected parent is also in your selection — it will be skipped."
     },
     "groupFilter": {
       "title": "Groups",

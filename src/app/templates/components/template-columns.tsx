@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import type { TemplateDTO } from 'io2p-client'
+import type { TemplateListItem } from 'io2p-client'
 
 import { Badge } from '@/components/ui'
 import {
@@ -30,14 +30,14 @@ interface BuildTemplateColumnsOptions {
 export function buildTemplateColumns({
   t,
   actions,
-}: BuildTemplateColumnsOptions): ColumnDef<TemplateDTO, unknown>[] {
+}: BuildTemplateColumnsOptions): ColumnDef<TemplateListItem, unknown>[] {
   return [
-    selectColumn<TemplateDTO>(),
-    nameColumn<TemplateDTO>((template) => template.name, {
+    selectColumn<TemplateListItem>(),
+    nameColumn<TemplateListItem>((template) => template.name, {
       header: t('objects.fields.name'),
       sortable: true,
     }),
-    textColumn<TemplateDTO>(
+    textColumn<TemplateListItem>(
       'type',
       t('templates.fields.type'),
       (template): ReactNode => (
@@ -48,7 +48,7 @@ export function buildTemplateColumns({
     ),
     // Who owns the template decides what can be done to it, so it earns its own column rather than
     // riding along as a badge that only appears for one of the two cases.
-    textColumn<TemplateDTO>(
+    textColumn<TemplateListItem>(
       'owner',
       t('common.owner'),
       (template): ReactNode => (
@@ -58,20 +58,23 @@ export function buildTemplateColumns({
         />
       )
     ),
-    textColumn<TemplateDTO>(
+    textColumn<TemplateListItem>(
       'version',
       t('objects.fields.version'),
       (template) => template.version ?? '—'
     ),
-    idColumn<TemplateDTO>((template) => template.id, t('objects.fields.uuid')),
+    idColumn<TemplateListItem>(
+      (template) => template.id,
+      t('objects.fields.uuid')
+    ),
     // Sortable because the node sorts on createdAt server-side, like it does for objects.
-    timestampColumn<TemplateDTO>(
+    timestampColumn<TemplateListItem>(
       'createdAt',
       t('objects.fields.created'),
       (template) => template.createdAt,
       { sortable: true }
     ),
-    actionsColumn<TemplateDTO>(
+    actionsColumn<TemplateListItem>(
       (template): ReactNode => (
         <TemplateActionsCell template={template} actions={actions} />
       ),

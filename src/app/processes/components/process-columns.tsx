@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import type { ProcessDTO } from 'io2p-client'
+import type { ProcessListItem } from 'io2p-client'
 import { ArrowRight, Pencil, RotateCcw, Share2, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
@@ -12,16 +12,17 @@ import {
   actionsColumn,
   idColumn,
   nameColumn,
+  selectColumn,
   textColumn,
   timestampColumn,
 } from '@/components/tables'
 
 export interface ProcessColumnActions {
-  onViewDetails: (process: ProcessDTO) => void
-  onEdit: (process: ProcessDTO) => void
-  onShare: (process: ProcessDTO) => void
-  onDelete: (process: ProcessDTO) => void
-  onRestore: (process: ProcessDTO) => void
+  onViewDetails: (process: ProcessListItem) => void
+  onEdit: (process: ProcessListItem) => void
+  onShare: (process: ProcessListItem) => void
+  onDelete: (process: ProcessListItem) => void
+  onRestore: (process: ProcessListItem) => void
 }
 
 interface BuildProcessColumnsOptions {
@@ -35,9 +36,10 @@ export function buildProcessColumns({
   t,
   actions,
   currentUserId,
-}: BuildProcessColumnsOptions): ColumnDef<ProcessDTO, unknown>[] {
+}: BuildProcessColumnsOptions): ColumnDef<ProcessListItem, unknown>[] {
   return [
-    nameColumn<ProcessDTO>((p) => p.name, {
+    selectColumn<ProcessListItem>(),
+    nameColumn<ProcessListItem>((p) => p.name, {
       header: t('objects.fields.name'),
       sortable: true,
       getDeleted: (p) => p.deleted,
@@ -45,7 +47,7 @@ export function buildProcessColumns({
     }),
     // The in→out shape is what distinguishes one process from another at a glance, and it is the
     // only thing the list can show about flows without fetching each aggregate.
-    textColumn<ProcessDTO>(
+    textColumn<ProcessListItem>(
       'flows',
       t('processes.fields.flows'),
       (p): ReactNode => (
@@ -60,14 +62,14 @@ export function buildProcessColumns({
         </span>
       )
     ),
-    idColumn<ProcessDTO>((p) => p.id, t('objects.fields.uuid')),
-    timestampColumn<ProcessDTO>(
+    idColumn<ProcessListItem>((p) => p.id, t('objects.fields.uuid')),
+    timestampColumn<ProcessListItem>(
       'createdAt',
       t('objects.fields.created'),
       (p) => p.createdAt,
       { sortable: true }
     ),
-    actionsColumn<ProcessDTO>(
+    actionsColumn<ProcessListItem>(
       (p): ReactNode => (
         <EntityActionsCell
           testIdPrefix="process"
@@ -82,7 +84,7 @@ export function buildProcessColumns({
 
 // A deleted process can only be restored — editing or re-deleting it would be rejected anyway.
 function rowActions(
-  process: ProcessDTO,
+  process: ProcessListItem,
   t: (key: string) => string,
   actions: ProcessColumnActions,
   currentUserId?: string

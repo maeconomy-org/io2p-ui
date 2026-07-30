@@ -15,7 +15,7 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import type { Io2pClient, ProcessDTO } from 'io2p-client'
+import type { Io2pClient, ProcessListItem } from 'io2p-client'
 
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
@@ -56,15 +56,18 @@ const STALE_TIME = 30_000
  */
 async function fetchGraphProcesses(
   client: Io2pClient
-): Promise<{ processes: ProcessDTO[]; truncated: boolean }> {
+): Promise<{ processes: ProcessListItem[]; truncated: boolean }> {
   // `enrichFiles: false` — the chart draws no thumbnails, and this is the heaviest part of a row.
   // `refNames: true` is the server default, but stated anyway: the whole chart is labelled from it,
   // and if the default ever flipped the graph would quietly render uuids rather than fail.
+  // `full: true` because a LEAN flow is a thin ref — `{id, ref, refName}` — and every link width
+  // comes from the flow's own `quantity` property. Without it the Sankey draws, and draws wrong.
   const query = {
     size: GRAPH_PAGE_SIZE,
     scope: 'all' as const,
     enrichFiles: false,
     refNames: true,
+    full: true,
   }
 
   const first = await client.processes.list({ page: 1, ...query })

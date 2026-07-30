@@ -30,9 +30,12 @@ const keys = {
 }
 
 type Dto = { id: string; name: string }
+// The node's lists are lean, so a row is NOT the full entity — the factory takes both types.
+type ListDto = { id: string; name: string }
 
 const things = createEntityHooks<
   Dto,
+  ListDto,
   { q?: string },
   { name: string },
   Dto,

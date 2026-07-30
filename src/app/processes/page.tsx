@@ -2,10 +2,11 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, Workflow } from 'lucide-react'
+import { PlusCircle, Share2, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
-import type { ProcessDTO } from 'io2p-client'
+import type { RowSelectionState } from '@tanstack/react-table'
+import type { ProcessListItem } from 'io2p-client'
 
 import { Button } from '@/components/ui'
 import {
@@ -14,7 +15,11 @@ import {
   scopeSection,
   type ScopeFilterValue,
 } from '@/components/filters'
-import { EntityTable, useEntityListQuery } from '@/components/tables'
+import {
+  BulkActionBar,
+  EntityTable,
+  useEntityListQuery,
+} from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { ViewSelector } from '@/components/view-selector'
@@ -31,6 +36,13 @@ import { logger } from '@/lib'
 import { buildProcessColumns } from './components/process-columns'
 import { ProcessFlowView } from './components/process-flow-view'
 
+const ShareEditorSheet = dynamic(
+  () =>
+    import('@/app/shares/components/share-editor-sheet').then(
+      (mod) => mod.ShareEditorSheet
+    ),
+  { ssr: false }
+)
 const ShareSheet = dynamic(
   () => import('@/components/access').then((mod) => mod.ShareSheet),
   { ssr: false }
@@ -50,8 +62,11 @@ export default function ProcessesPage() {
   const [showDeleted, setShowDeleted] = useState(false)
   const [scope, setScope] = useState<ScopeFilterValue>('all')
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
-  const [toDelete, setToDelete] = useState<ProcessDTO | null>(null)
-  const [toShare, setToShare] = useState<ProcessDTO | null>(null)
+  const [toDelete, setToDelete] = useState<ProcessListItem | null>(null)
+  const [toShare, setToShare] = useState<ProcessListItem | null>(null)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
   // The stored view is account-keyed, so it cannot be read until `/me` resolves. Rendering the
   // default meanwhile means showing the table and then swapping to a chart on every cold load —
@@ -115,7 +130,7 @@ export default function ProcessesPage() {
   }, [toDelete, removeMutation, t])
 
   const handleRestore = useCallback(
-    async (process: ProcessDTO) => {
+    async (process: ProcessListItem) => {
       try {
         await restoreMutation.mutateAsync({ id: process.id })
         toast.success(t('processes.restored'))
@@ -125,6 +140,42 @@ export default function ProcessesPage() {
       }
     },
     [restoreMutation, t]
+  )
+
+  const selectedProcesses = useMemo(
+    () => (processesPage?.data ?? []).filter((p) => rowSelection[p.id]),
+    [processesPage, rowSelection]
+  )
+  const clearSelection = useCallback(() => setRowSelection({}), [])
+
+  // Sequential — a partial failure should stop rather than leave an unknown subset changed.
+  const runBulk = useCallback(
+    async (action: 'delete' | 'restore') => {
+      const mutation = action === 'delete' ? removeMutation : restoreMutation
+      const targets = selectedProcesses.filter((p) =>
+        action === 'delete' ? !p.deleted : p.deleted
+      )
+      try {
+        for (const process of targets) {
+          await mutation.mutateAsync({ id: process.id })
+        }
+        toast.success(
+          t(action === 'delete' ? 'processes.deleted' : 'processes.restored')
+        )
+      } catch (error) {
+        logger.error('Bulk process action failed', error)
+        toast.error(
+          t(
+            action === 'delete'
+              ? 'processes.deleteFailed'
+              : 'processes.restoreFailed'
+          )
+        )
+      } finally {
+        clearSelection()
+      }
+    },
+    [selectedProcesses, removeMutation, restoreMutation, clearSelection, t]
   )
 
   const columns = useMemo(
@@ -192,6 +243,9 @@ export default function ProcessesPage() {
                 fetching={isFetching}
                 sort={listQuery.query.sort}
                 onSortChange={listQuery.setSort}
+                enableRowSelection
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
                 onPageChange={listQuery.setPage}
                 onPageSizeChange={handlePageSizeChange}
                 onRowClick={(process) => openProcess(process.id)}
@@ -215,6 +269,48 @@ export default function ProcessesPage() {
           initialEditing={openInEditMode}
         />
       )}
+
+      <BulkActionBar
+        count={isTable ? selectedProcesses.length : 0}
+        onClear={clearSelection}
+        canDelete={selectedProcesses.some((p) => !p.deleted)}
+        canRestore={selectedProcesses.some((p) => p.deleted)}
+        busy={removeMutation.isPending || restoreMutation.isPending}
+        onDelete={() => setConfirmBulkDelete(true)}
+        onRestore={() => runBulk('restore')}
+        actions={[
+          {
+            key: 'share',
+            label: t('access.share'),
+            icon: Share2,
+            onSelect: () => setBulkShareOpen(true),
+          },
+        ]}
+      />
+
+      {bulkShareOpen && (
+        <ShareEditorSheet
+          open
+          onOpenChange={(open) => !open && setBulkShareOpen(false)}
+          mode="create"
+          seedResources={selectedProcesses.map((p) => ({
+            type: 'process' as const,
+            id: p.id,
+            name: p.name,
+          }))}
+        />
+      )}
+
+      <DeleteConfirmationDialog
+        open={confirmBulkDelete}
+        onOpenChange={setConfirmBulkDelete}
+        objectName=""
+        title={t('common.bulk.deleteTitle')}
+        description={t('common.bulk.deleteDescription', {
+          count: selectedProcesses.filter((p) => !p.deleted).length,
+        })}
+        onDelete={() => runBulk('delete')}
+      />
 
       {toShare && (
         <ShareSheet

@@ -25,8 +25,6 @@ import { OwnerCell, formatTimestamp } from '@/components/tables'
 import { SheetLifecycleFooter } from '@/components/entity-sheet/sheet-lifecycle-footer'
 import { useUserDirectory } from '@/hooks/api/users'
 
-import { useResourceDirectory } from '../hooks/use-resource-directory'
-
 /** Small enough that a page fits the sheet without scrolling far, and bounds the name lookups. */
 const PAGE_SIZE = 10
 
@@ -37,9 +35,8 @@ const PAGE_SIZE = 10
  * change something they have not read yet. Overview answers "what is this", the two tabs page
  * through the contents, and Edit is a deliberate second step.
  *
- * Paging matters for more than scroll length: a `ShareDTO` carries `{type, id}` with no names, and
- * there is no bulk id lookup, so each visible row resolves its own. Ten rows is ten requests; the
- * whole bundle would be hundreds.
+ * Names arrive WITH the row — the node resolves `name`/`deleted` on the share read — so this needs
+ * no lookup of its own. Paging is purely about scroll length.
  */
 export function ShareDetailSheet({
   open,
@@ -63,8 +60,6 @@ export function ShareDetailSheet({
   const resources = share.resources ?? []
   const members = share.members ?? []
   const { nameOf } = useUserDirectory({ enabled: open && members.length > 0 })
-  const { nameOf: resourceNameOf, isDeleted: resourceDeleted } =
-    useResourceDirectory(open && resources.length > 0)
 
   const pageOf = <T,>(rows: T[], page: number) =>
     rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -137,11 +132,8 @@ export function ShareDetailSheet({
                   <Badge variant="outline" className="h-5 shrink-0">
                     {t(`shares.resourceType.${resource.type}`)}
                   </Badge>
-                  <ResourceLabel
-                    name={resourceNameOf(resource.type, resource.id)}
-                    id={resource.id}
-                  />
-                  {resourceDeleted(resource.type, resource.id) && (
+                  <ResourceLabel name={resource.name} id={resource.id} />
+                  {resource.deleted && (
                     <Badge variant="outline" className="h-5 shrink-0">
                       {t('objects.deletedBadge')}
                     </Badge>
@@ -227,7 +219,7 @@ export function ShareDetailSheet({
 }
 
 /** Falls back to the id: an unresolved ref should look unresolved, not absent. */
-function ResourceLabel({ name, id }: { name: string | null; id: string }) {
+function ResourceLabel({ name, id }: { name?: string; id: string }) {
   if (name) return <span className="truncate">{name}</span>
   return (
     <span className="truncate font-mono text-xs text-muted-foreground">

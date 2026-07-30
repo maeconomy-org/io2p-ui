@@ -10,21 +10,21 @@ import {
   Share2,
   Trash2,
 } from 'lucide-react'
-import type { ObjectDTO } from 'io2p-client'
+import type { ObjectListItem } from 'io2p-client'
 
 import { EntityActionsCell, type EntityRowAction } from '@/components/tables'
 import { useAuth } from '@/contexts'
 
 export interface ObjectRowActions {
-  onViewDetails: (object: ObjectDTO) => void
-  onShowQRCode: (object: ObjectDTO) => void
-  onViewPassport?: (object: ObjectDTO) => void
-  onDuplicate: (object: ObjectDTO) => void
-  onCreateTemplate: (object: ObjectDTO) => void
+  onViewDetails: (object: ObjectListItem) => void
+  onShowQRCode: (object: ObjectListItem) => void
+  onViewPassport?: (object: ObjectListItem) => void
+  onDuplicate: (object: ObjectListItem) => void
+  onCreateTemplate: (object: ObjectListItem) => void
   /** Omitted where sharing has nowhere to open, e.g. an embedded picker. */
-  onShare?: (object: ObjectDTO) => void
-  onDelete: (object: ObjectDTO) => void
-  onRestore: (object: ObjectDTO) => void
+  onShare?: (object: ObjectListItem) => void
+  onDelete: (object: ObjectListItem) => void
+  onRestore: (object: ObjectListItem) => void
 }
 
 /**
@@ -41,7 +41,7 @@ export function ObjectActionsCell({
   isRestoring,
   readOnly,
 }: {
-  object: ObjectDTO
+  object: ObjectListItem
   actions: ObjectRowActions
   isDeleting?: boolean
   isRestoring?: boolean

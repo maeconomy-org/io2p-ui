@@ -2,15 +2,15 @@
 
 import { useTranslations } from 'next-intl'
 import { Pencil, RotateCcw, Trash2 } from 'lucide-react'
-import type { TemplateDTO } from 'io2p-client'
+import type { TemplateListItem } from 'io2p-client'
 
 import { EntityActionsCell, type EntityRowAction } from '@/components/tables'
 
 export interface TemplateRowActions {
-  onViewDetails: (template: TemplateDTO) => void
-  onEdit: (template: TemplateDTO) => void
-  onDelete: (template: TemplateDTO) => void
-  onRestore: (template: TemplateDTO) => void
+  onViewDetails: (template: TemplateListItem) => void
+  onEdit: (template: TemplateListItem) => void
+  onDelete: (template: TemplateListItem) => void
+  onRestore: (template: TemplateListItem) => void
 }
 
 /**
@@ -23,7 +23,7 @@ export function TemplateActionsCell({
   template,
   actions,
 }: {
-  template: TemplateDTO
+  template: TemplateListItem
   actions: TemplateRowActions
 }) {
   const t = useTranslations()

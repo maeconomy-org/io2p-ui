@@ -4,13 +4,10 @@ import type { SharedByMeItem } from 'io2p-client'
 
 import { ShareSheet, type ShareResourceType } from '@/components/access'
 
-import { useResourceDirectory } from '../hooks/use-resource-directory'
-
 /**
  * Opens the entity Share sheet from a shared-by-me row.
  *
- * The rollup gives `{type, id}` with no name, so the label comes from the same cached
- * object/process directory the table behind it already loaded — no extra request at all.
+ * The rollup resolves `name` on read, so the title comes straight off the row.
  *
  * The caller has already established the resource is an object or a process; the library types
  * cannot be managed because `GET /v1/access` refuses them.
@@ -22,8 +19,7 @@ export function ManageAccessSheet({
   resource: SharedByMeItem['resource']
   onClose: () => void
 }) {
-  const { nameOf } = useResourceDirectory(true)
-  const name = nameOf(resource.type, resource.id) ?? resource.id
+  const name = resource.name ?? resource.id
 
   return (
     <ShareSheet

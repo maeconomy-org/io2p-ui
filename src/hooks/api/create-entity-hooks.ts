@@ -24,14 +24,23 @@ import { useIomClient } from '@/lib/io2p'
 
 const DEFAULT_STALE_TIME = 30_000
 
+/**
+ * `ListDto` is SEPARATE from `Dto` because the node's lists are LEAN by default: a row carries
+ * identity, attributes and thin refs, while `properties` — and a process flow's own data — arrive
+ * only with `?full=true` or from `GET /{id}`.
+ *
+ * Keeping one generic for both would let a table read `properties` off a list row and render
+ * nothing, with no error anywhere. Two generics turn that into a compile failure.
+ */
 export interface EntityResource<
   Dto,
+  ListDto,
   ListQuery,
   CreateBody,
   CreateResp,
   UpdateBody,
 > {
-  list: (query?: ListQuery) => Promise<Page<Dto>>
+  list: (query?: ListQuery) => Promise<Page<ListDto>>
   // EntityGetOptions, not GetOptions: objects and processes carry a soft-deletable authored
   // tree, so their detail read accepts `includeDeleted`. Templates are hand-written, not from here.
   get: (id: string, options?: EntityGetOptions) => Promise<Dto>
@@ -54,6 +63,7 @@ export interface EntityKeys<ListQuery> {
 
 export interface EntityHooksConfig<
   Dto,
+  ListDto,
   ListQuery,
   CreateBody,
   CreateResp,
@@ -61,19 +71,34 @@ export interface EntityHooksConfig<
 > {
   select: (
     client: Io2pClient
-  ) => EntityResource<Dto, ListQuery, CreateBody, CreateResp, UpdateBody>
+  ) => EntityResource<
+    Dto,
+    ListDto,
+    ListQuery,
+    CreateBody,
+    CreateResp,
+    UpdateBody
+  >
   keys: EntityKeys<ListQuery>
   staleTime?: number
 }
 
 export function createEntityHooks<
   Dto,
+  ListDto,
   ListQuery,
   CreateBody,
   CreateResp,
   UpdateBody,
 >(
-  config: EntityHooksConfig<Dto, ListQuery, CreateBody, CreateResp, UpdateBody>
+  config: EntityHooksConfig<
+    Dto,
+    ListDto,
+    ListQuery,
+    CreateBody,
+    CreateResp,
+    UpdateBody
+  >
 ) {
   const { select, keys, staleTime = DEFAULT_STALE_TIME } = config
 

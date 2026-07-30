@@ -1,4 +1,6 @@
-// The process flow graph: ProcessDTO[] -> nodes + links, plus the layout maths the Sankey needs.
+// The process flow graph: process list rows -> nodes + links, plus the layout maths the Sankey
+// needs. Rows must be fetched with `?full=true` — a lean flow has no `properties`, so every link
+// would be unweighted.
 //
 // Pure and DTO-shaped on the way in, chart-agnostic on the way out — the ECharts option is built in
 // the view, so everything here is testable without a canvas.
@@ -12,11 +14,11 @@
 // A consequence used throughout: the graph is BIPARTITE. A flow always joins an object to a process,
 // so node kinds strictly alternate and every depth has a fixed parity.
 
-import type { ProcessDTO } from 'io2p-client'
+import type { ProcessListItem } from 'io2p-client'
 
 import { QUANTITY_KEY } from '@/lib/process-body'
 
-type ReadFlow = ProcessDTO['inputs'][number]
+type ReadFlow = ProcessListItem['inputs'][number]
 
 export type NodeKind = 'object' | 'process'
 
@@ -95,7 +97,7 @@ export function flowQuantity(flow: ReadFlow): {
  * Pass a mix of list rows and detail rows freely: a name found on any flow wins, so an object named by
  * one process's detail read is named everywhere it appears.
  */
-export function buildProcessGraph(processes: ProcessDTO[]): ProcessGraph {
+export function buildProcessGraph(processes: ProcessListItem[]): ProcessGraph {
   const nodes = new Map<string, GraphNode>()
   const links: GraphLink[] = []
 

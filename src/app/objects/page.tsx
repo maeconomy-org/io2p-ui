@@ -4,9 +4,9 @@ import { useState, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, FileText, Trash2, RotateCcw, X } from 'lucide-react'
+import { PlusCircle, FileText, FolderTree, Share2 } from 'lucide-react'
 import type { RowSelectionState } from '@tanstack/react-table'
-import type { ObjectDTO } from 'io2p-client'
+import type { ObjectListItem } from 'io2p-client'
 
 import { useBreadcrumbTrail, usePreference } from '@/hooks'
 import { useObjects } from '@/hooks/api/entities'
@@ -22,7 +22,11 @@ import {
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
 import { ObjectColumnsView } from '@/components/object-columns-view'
-import { EntityTable, useEntityListQuery } from '@/components/tables'
+import {
+  BulkActionBar,
+  EntityTable,
+  useEntityListQuery,
+} from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
@@ -52,6 +56,20 @@ const QRCodeModal = dynamic(
     import('@/components/modals/qr-code-modal').then((mod) => mod.QRCodeModal),
   { ssr: false }
 )
+const ShareEditorSheet = dynamic(
+  () =>
+    import('@/app/shares/components/share-editor-sheet').then(
+      (mod) => mod.ShareEditorSheet
+    ),
+  { ssr: false }
+)
+const BulkParentDialog = dynamic(
+  () =>
+    import('./components/bulk-parent-dialog').then(
+      (mod) => mod.BulkParentDialog
+    ),
+  { ssr: false }
+)
 const ShareSheet = dynamic(
   () => import('@/components/access').then((mod) => mod.ShareSheet),
   { ssr: false }
@@ -67,7 +85,7 @@ const TemplateCreationDialog = dynamic(
   { ssr: false }
 )
 
-const idOf = (o: ObjectDTO) => o.id
+const idOf = (o: ObjectListItem) => o.id
 
 function ObjectsPageContent() {
   const t = useTranslations()
@@ -77,18 +95,26 @@ function ObjectsPageContent() {
   const [showDeleted, setShowDeleted] = useState(false)
   const [scope, setScope] = useState<ScopeFilterValue>('all')
 
-  const [selectedObject, setSelectedObject] = useState<ObjectDTO | null>(null)
+  const [selectedObject, setSelectedObject] = useState<ObjectListItem | null>(
+    null
+  )
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
 
-  const [copyTarget, setCopyTarget] = useState<ObjectDTO | null>(null)
+  const [copyTarget, setCopyTarget] = useState<ObjectListItem | null>(null)
   const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
-  const [qrTarget, setQrTarget] = useState<ObjectDTO | null>(null)
-  const [passportTarget, setPassportTarget] = useState<ObjectDTO | null>(null)
-  const [objectToDelete, setObjectToDelete] = useState<ObjectDTO | null>(null)
-  const [shareTarget, setShareTarget] = useState<ObjectDTO | null>(null)
+  const [qrTarget, setQrTarget] = useState<ObjectListItem | null>(null)
+  const [passportTarget, setPassportTarget] = useState<ObjectListItem | null>(
+    null
+  )
+  const [objectToDelete, setObjectToDelete] = useState<ObjectListItem | null>(
+    null
+  )
+  const [shareTarget, setShareTarget] = useState<ObjectListItem | null>(null)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [bulkParentOpen, setBulkParentOpen] = useState(false)
+  const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
   const { clearTrail } = useBreadcrumbTrail(undefined)
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
@@ -161,13 +187,13 @@ function ObjectsPageContent() {
     [listQuery]
   )
 
-  const openDetails = useCallback((object: ObjectDTO) => {
+  const openDetails = useCallback((object: ObjectListItem) => {
     setSelectedObject(object)
     setIsObjectSheetOpen(true)
   }, [])
 
   const handleDoubleClick = useCallback(
-    (object: ObjectDTO) => {
+    (object: ObjectListItem) => {
       clearTrail()
       router.push(`/objects/${idOf(object)}`)
     },
@@ -186,7 +212,7 @@ function ObjectsPageContent() {
   }, [objectToDelete, removeMutation])
 
   const handleRestore = useCallback(
-    async (object: ObjectDTO) => {
+    async (object: ObjectListItem) => {
       try {
         await restoreMutation.mutateAsync({ id: object.id })
       } catch (error) {
@@ -264,50 +290,6 @@ function ObjectsPageContent() {
           />
         )}
 
-        {viewType === 'table' && selectedIds.length > 0 && (
-          <div className="mb-3 flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
-            <span className="text-sm font-medium">
-              {t('objects.bulk.selected', {
-                selected: selectedIds.length,
-                total: objectsPage?.page.totalElements ?? selectedIds.length,
-              })}
-            </span>
-            <div className="ml-auto flex items-center gap-2">
-              {anySelectedDeleted && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={runBulkRestore}
-                  disabled={restoreMutation.isPending}
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  {t('objects.bulk.restoreSelected')}
-                </Button>
-              )}
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                onClick={() => setConfirmBulkDelete(true)}
-                disabled={removeMutation.isPending}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {t('objects.bulk.deleteSelected')}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={clearSelection}
-                aria-label={t('common.cancel')}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
         {viewType === 'table' ? (
           <EntityTable
             onRowHover={(row) => prefetchDetail(row.id)}
@@ -343,6 +325,54 @@ function ObjectsPageContent() {
           />
         )}
       </div>
+
+      {/* Floating, not inline: a bar in the flow pushes the rows down at the moment the user is
+          clicking their checkboxes. */}
+      <BulkActionBar
+        count={viewType === 'table' ? selectedObjects.length : 0}
+        onClear={clearSelection}
+        canDelete={selectedObjects.some((o) => !o.deleted)}
+        canRestore={anySelectedDeleted}
+        busy={removeMutation.isPending || restoreMutation.isPending}
+        onDelete={() => setConfirmBulkDelete(true)}
+        onRestore={runBulkRestore}
+        actions={[
+          {
+            key: 'share',
+            label: t('access.share'),
+            icon: Share2,
+            onSelect: () => setBulkShareOpen(true),
+          },
+          {
+            key: 'set-parent',
+            label: t('objects.bulk.setParent'),
+            icon: FolderTree,
+            onSelect: () => setBulkParentOpen(true),
+          },
+        ]}
+      />
+
+      <BulkParentDialog
+        open={bulkParentOpen}
+        onOpenChange={setBulkParentOpen}
+        objects={selectedObjects}
+        onDone={clearSelection}
+      />
+
+      {/* Bundling a selection is exactly what a Share IS, so the editor opens seeded with it and
+          the user can add more before saving. */}
+      {bulkShareOpen && (
+        <ShareEditorSheet
+          open
+          onOpenChange={(open) => !open && setBulkShareOpen(false)}
+          mode="create"
+          seedResources={selectedObjects.map((o) => ({
+            type: 'object' as const,
+            id: o.id,
+            name: o.name,
+          }))}
+        />
+      )}
 
       {shareTarget && (
         <ShareSheet

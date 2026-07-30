@@ -15,7 +15,6 @@ import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
-import { useResourceDirectory } from '../hooks/use-resource-directory'
 import { buildSharedByMeColumns } from './shared-by-me-columns'
 import { ManageAccessSheet } from './manage-access-sheet'
 
@@ -47,8 +46,6 @@ export function SharedByMeTable() {
   const items = useMemo(() => data?.data ?? [], [data])
   // Only pay for the directory once there is a name to resolve.
   const { nameOf } = useUserDirectory({ enabled: items.length > 0 })
-  const { nameOf: resourceNameOf, isDeleted: resourceDeleted } =
-    useResourceDirectory(items.length > 0)
 
   const handlePageSizeChange = useCallback((size: number) => {
     setPageSize(size)
@@ -104,12 +101,10 @@ export function SharedByMeTable() {
       buildSharedByMeColumns({
         t,
         nameOf,
-        resourceNameOf,
-        resourceDeleted,
         onManage: setManaging,
         onRevokeAll: setRevoking,
       }),
-    [t, nameOf, resourceNameOf, resourceDeleted]
+    [t, nameOf]
   )
 
   return (

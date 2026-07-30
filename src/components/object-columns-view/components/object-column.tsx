@@ -13,7 +13,7 @@ import {
   RotateCcw,
   Trash2,
 } from 'lucide-react'
-import type { ObjectDTO } from 'io2p-client'
+import type { ObjectListItem } from 'io2p-client'
 
 import {
   Button,
@@ -32,13 +32,13 @@ import { ColumnHeader } from './column-header'
 const COLUMN_SIZE = 20
 
 export interface MillerColumnActions {
-  onViewObject?: (o: ObjectDTO) => void
-  onDelete?: (o: ObjectDTO) => void
-  onDuplicate?: (o: ObjectDTO) => void
-  onShowQRCode?: (o: ObjectDTO) => void
-  onViewPassport?: (o: ObjectDTO) => void
-  onCreateTemplate?: (o: ObjectDTO) => void
-  onRestore?: (o: ObjectDTO) => void
+  onViewObject?: (o: ObjectListItem) => void
+  onDelete?: (o: ObjectListItem) => void
+  onDuplicate?: (o: ObjectListItem) => void
+  onShowQRCode?: (o: ObjectListItem) => void
+  onViewPassport?: (o: ObjectListItem) => void
+  onCreateTemplate?: (o: ObjectListItem) => void
+  onRestore?: (o: ObjectListItem) => void
 }
 
 interface MillerColumnProps extends MillerColumnActions {
@@ -48,7 +48,7 @@ interface MillerColumnProps extends MillerColumnActions {
   selectedId: string | null
   showDeleted?: boolean
   isRestoring?: boolean
-  onSelect: (item: ObjectDTO) => void
+  onSelect: (item: ObjectListItem) => void
 }
 
 export function MillerColumn({
@@ -71,11 +71,16 @@ export function MillerColumn({
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
 
+  // The page resets INSIDE the debounce, with the search it belongs to. As its own effect on
+  // `search` it was state syncing state — a render where page 3 was already paired with the new
+  // term, and the compiler lint rejects setState in an effect body. A timer callback is fine.
   useEffect(() => {
-    const id = setTimeout(() => setSearch(searchInput), 300)
+    const id = setTimeout(() => {
+      setSearch(searchInput)
+      setPage(1)
+    }, 300)
     return () => clearTimeout(id)
   }, [searchInput])
-  useEffect(() => setPage(1), [search])
 
   const { data, isLoading, isError } = useObjects().useList(
     {

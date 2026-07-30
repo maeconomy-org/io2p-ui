@@ -3,6 +3,14 @@
 import { useTranslations } from 'next-intl'
 import { RotateCcw, Trash2, X, type LucideIcon } from 'lucide-react'
 
+export interface BulkAction {
+  key: string
+  label: string
+  icon: LucideIcon
+  onSelect: () => void
+  disabled?: boolean
+}
+
 import {
   Button,
   FloatingActionBar,
@@ -30,6 +38,7 @@ export function BulkActionBar({
   busy,
   deleteLabel,
   deleteIcon: DeleteIcon = Trash2,
+  actions = [],
 }: {
   count: number
   onClear: () => void
@@ -43,6 +52,8 @@ export function BulkActionBar({
   /** Override where the destructive slot is the same but the verb is not — e.g. "Revoke all". */
   deleteLabel?: string
   deleteIcon?: LucideIcon
+  /** Non-destructive actions, rendered before Restore/Delete. */
+  actions?: BulkAction[]
 }) {
   const t = useTranslations()
 
@@ -52,6 +63,21 @@ export function BulkActionBar({
         {t('common.bulk.selected', { count })}
       </span>
       <FloatingActionBarSeparator />
+
+      {actions.map((action) => (
+        <Button
+          key={action.key}
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="whitespace-nowrap rounded-full"
+          disabled={busy || action.disabled}
+          onClick={action.onSelect}
+        >
+          <action.icon className="h-3.5 w-3.5 sm:mr-1.5" />
+          <span className="hidden sm:inline">{action.label}</span>
+        </Button>
+      ))}
 
       {onRestore && canRestore && (
         <Button

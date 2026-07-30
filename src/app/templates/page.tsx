@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { PlusCircle, FileText, Package, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { toast } from 'sonner'
-import type { CreateTemplateInput, TemplateDTO } from 'io2p-client'
+import type { CreateTemplateInput, TemplateListItem } from 'io2p-client'
 
 import {
   Button,
@@ -49,9 +49,8 @@ export default function TemplatesPage() {
   const t = useTranslations()
 
   const [templateSheetOpen, setTemplateSheetOpen] = useState(false)
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateDTO | null>(
-    null
-  )
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<TemplateListItem | null>(null)
   const [openInEditMode, setOpenInEditMode] = useState(false)
   const [showDeleted, setShowDeleted] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
@@ -62,9 +61,8 @@ export default function TemplatesPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmBulk, setConfirmBulk] = useState(false)
-  const [templateToDelete, setTemplateToDelete] = useState<TemplateDTO | null>(
-    null
-  )
+  const [templateToDelete, setTemplateToDelete] =
+    useState<TemplateListItem | null>(null)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
 
@@ -95,14 +93,17 @@ export default function TemplatesPage() {
     []
   )
 
-  const openTemplate = useCallback((template: TemplateDTO, edit: boolean) => {
-    setSelectedTemplate(template)
-    setOpenInEditMode(edit)
-    setTemplateSheetOpen(true)
-  }, [])
+  const openTemplate = useCallback(
+    (template: TemplateListItem, edit: boolean) => {
+      setSelectedTemplate(template)
+      setOpenInEditMode(edit)
+      setTemplateSheetOpen(true)
+    },
+    []
+  )
 
   const handleRestoreTemplate = useCallback(
-    async (template: TemplateDTO) => {
+    async (template: TemplateListItem) => {
       try {
         await restoreMutation.mutateAsync({ id: template.id })
         toast.success(t('templates.restored'))

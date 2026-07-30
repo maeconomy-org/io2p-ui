@@ -594,7 +594,8 @@
       "address": "Adres",
       "properties": "Eigenschappen",
       "files": "Bestanden",
-      "group": "Groep"
+      "group": "Groep",
+      "parent": "Bovenliggend"
     },
     "formulaEditor": {
       "expression": "Formule",
@@ -744,7 +745,7 @@
       "bulkRestoreFailed": "Sommige objecten konden niet worden hersteld",
       "addedToGroup": "{count} object(en) toegevoegd aan groep",
       "addedToGroupFailed": "Objecten konden niet aan groep worden toegevoegd",
-      "parentSet": "Bovenliggend ingesteld voor {count} object(en)",
+      "parentSet": "{count} items verplaatst",
       "parentSetFailed": "Bovenliggend kon niet worden ingesteld voor sommige objecten",
       "selectAll": "Alles selecteren",
       "deselectAll": "Alles deselecteren",
@@ -755,7 +756,10 @@
       "deleting": "Objecten verwijderen...",
       "restoring": "Objecten herstellen...",
       "settingParent": "Bovenliggend instellen...",
-      "addingToGroup": "Toevoegen aan groep..."
+      "addingToGroup": "Toevoegen aan groep...",
+      "setParentTitle": "Bovenliggend object kiezen",
+      "setParentDescription": "Verplaats {count} geselecteerde items onder één bovenliggend object. Bestaande bovenliggende objecten blijven behouden.",
+      "parentSkipsSelf": "Het gekozen bovenliggende object staat ook in uw selectie — het wordt overgeslagen."
     },
     "groupFilter": {
       "title": "Groepen",

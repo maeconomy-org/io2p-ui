@@ -66,7 +66,12 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
             // ones that never thought about it.
             staleTime: 30_000,
             gcTime: 1000 * 60 * 10,
-            refetchOnMount: false,
+            // `true` means "refetch on mount IF STALE", not "always refetch" — fresh data still
+            // comes from cache with no request. `false` broke invalidation across pages:
+            // `invalidateQueries` marks an INACTIVE query stale but cannot refetch it, so creating
+            // a template from /objects left /templates serving its cached list until a hard reload.
+            // Every create or delete performed from another page had the same hole.
+            refetchOnMount: true,
             refetchOnWindowFocus: false,
             retry: 1,
           },

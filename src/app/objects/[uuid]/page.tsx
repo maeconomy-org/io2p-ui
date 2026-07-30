@@ -4,9 +4,9 @@ import { useState, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, Copy, FileText, Trash2, RotateCcw, X } from 'lucide-react'
+import { PlusCircle, Copy, FileText, FolderTree, Share2 } from 'lucide-react'
 import type { RowSelectionState } from '@tanstack/react-table'
-import type { ObjectDTO } from 'io2p-client'
+import type { ObjectListItem } from 'io2p-client'
 
 import { useBreadcrumbTrail } from '@/hooks'
 import { useObjects } from '@/hooks/api/entities'
@@ -14,7 +14,11 @@ import { logger } from '@/lib'
 import { Button } from '@/components/ui'
 import { FilterMenu, deletedSection } from '@/components/filters'
 import { ObjectBreadcrumb } from '@/components/object-breadcrumb'
-import { EntityTable, useEntityListQuery } from '@/components/tables'
+import {
+  BulkActionBar,
+  EntityTable,
+  useEntityListQuery,
+} from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { ContentSkeleton } from '@/components/skeletons'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
@@ -22,6 +26,20 @@ import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { buildObjectColumns } from '../components/object-columns'
 import { useCreateTemplateFromObject } from '../components/use-create-template-from-object'
 
+const ShareEditorSheet = dynamic(
+  () =>
+    import('@/app/shares/components/share-editor-sheet').then(
+      (mod) => mod.ShareEditorSheet
+    ),
+  { ssr: false }
+)
+const BulkParentDialog = dynamic(
+  () =>
+    import('../components/bulk-parent-dialog').then(
+      (mod) => mod.BulkParentDialog
+    ),
+  { ssr: false }
+)
 const EntitySheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
   { ssr: false }
@@ -59,15 +77,23 @@ function ObjectChildrenPageContent() {
   const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [showDeleted, setShowDeleted] = useState(false)
 
-  const [selectedObject, setSelectedObject] = useState<ObjectDTO | null>(null)
+  const [selectedObject, setSelectedObject] = useState<ObjectListItem | null>(
+    null
+  )
   const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
-  const [copyTarget, setCopyTarget] = useState<ObjectDTO | null>(null)
+  const [copyTarget, setCopyTarget] = useState<ObjectListItem | null>(null)
   const [isCopyHereOpen, setIsCopyHereOpen] = useState(false)
-  const [qrTarget, setQrTarget] = useState<ObjectDTO | null>(null)
-  const [passportTarget, setPassportTarget] = useState<ObjectDTO | null>(null)
-  const [objectToDelete, setObjectToDelete] = useState<ObjectDTO | null>(null)
+  const [qrTarget, setQrTarget] = useState<ObjectListItem | null>(null)
+  const [passportTarget, setPassportTarget] = useState<ObjectListItem | null>(
+    null
+  )
+  const [objectToDelete, setObjectToDelete] = useState<ObjectListItem | null>(
+    null
+  )
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [bulkParentOpen, setBulkParentOpen] = useState(false)
+  const [bulkShareOpen, setBulkShareOpen] = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
   const { ancestors, pushAncestor, navigateToAncestor, clearTrail } =
@@ -141,13 +167,13 @@ function ObjectChildrenPageContent() {
     [listQuery]
   )
 
-  const openDetails = useCallback((object: ObjectDTO) => {
+  const openDetails = useCallback((object: ObjectListItem) => {
     setSelectedObject(object)
     setIsObjectSheetOpen(true)
   }, [])
 
   const handleDoubleClick = useCallback(
-    (object: ObjectDTO) => {
+    (object: ObjectListItem) => {
       if (parentObject) {
         pushAncestor({ uuid: parentUuid, name: parentObject.name })
       }
@@ -168,7 +194,7 @@ function ObjectChildrenPageContent() {
   }, [objectToDelete, removeMutation])
 
   const handleRestore = useCallback(
-    async (object: ObjectDTO) => {
+    async (object: ObjectListItem) => {
       try {
         await restoreMutation.mutateAsync({ id: object.id })
       } catch (error) {
@@ -267,50 +293,6 @@ function ObjectChildrenPageContent() {
           </div>
         </div>
 
-        {selectedIds.length > 0 && (
-          <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
-            <span className="text-sm font-medium">
-              {t('objects.bulk.selected', {
-                selected: selectedIds.length,
-                total: totalElements || selectedIds.length,
-              })}
-            </span>
-            <div className="ml-auto flex items-center gap-2">
-              {anySelectedDeleted && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={runBulkRestore}
-                  disabled={restoreMutation.isPending}
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  {t('objects.bulk.restoreSelected')}
-                </Button>
-              )}
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                onClick={() => setConfirmBulkDelete(true)}
-                disabled={removeMutation.isPending}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {t('objects.bulk.deleteSelected')}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={clearSelection}
-                aria-label={t('common.cancel')}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
         <EntityTable
           columns={columns}
           page={childrenPage}
@@ -399,6 +381,52 @@ function ObjectChildrenPageContent() {
               childCount: copyTarget.childCount ?? 0,
             },
           ]}
+        />
+      )}
+
+      {/* Same floating bar as /objects. Set parent is offered here too — the hierarchy is a DAG, so
+          a child can gain another parent without leaving this one. */}
+      <BulkActionBar
+        count={selectedObjects.length}
+        onClear={clearSelection}
+        canDelete={selectedObjects.some((o) => !o.deleted)}
+        canRestore={anySelectedDeleted}
+        busy={removeMutation.isPending || restoreMutation.isPending}
+        onDelete={() => setConfirmBulkDelete(true)}
+        onRestore={runBulkRestore}
+        actions={[
+          {
+            key: 'share',
+            label: t('access.share'),
+            icon: Share2,
+            onSelect: () => setBulkShareOpen(true),
+          },
+          {
+            key: 'set-parent',
+            label: t('objects.bulk.setParent'),
+            icon: FolderTree,
+            onSelect: () => setBulkParentOpen(true),
+          },
+        ]}
+      />
+
+      <BulkParentDialog
+        open={bulkParentOpen}
+        onOpenChange={setBulkParentOpen}
+        objects={selectedObjects}
+        onDone={clearSelection}
+      />
+
+      {bulkShareOpen && (
+        <ShareEditorSheet
+          open
+          onOpenChange={(open) => !open && setBulkShareOpen(false)}
+          mode="create"
+          seedResources={selectedObjects.map((o) => ({
+            type: 'object' as const,
+            id: o.id,
+            name: o.name,
+          }))}
         />
       )}
 

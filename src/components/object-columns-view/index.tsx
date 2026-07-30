@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import type { ObjectDTO } from 'io2p-client'
+import type { ObjectListItem } from 'io2p-client'
 
 import { MillerColumn, type MillerColumnActions } from './components'
 
@@ -34,7 +34,7 @@ export function ObjectColumnsView({
 
   const parentIds = ['', ...openPath]
 
-  const handleSelect = (columnIndex: number, item: ObjectDTO) => {
+  const handleSelect = (columnIndex: number, item: ObjectListItem) => {
     setSelected((prev) => [...prev.slice(0, columnIndex), item.id])
     const hasChildren = (item.childCount ?? 0) > 0
     setOpenPath((prev) =>

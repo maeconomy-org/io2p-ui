@@ -38,7 +38,6 @@ import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib'
 
 import { ResourcePicker, type ShareResource } from './resource-picker'
-import { useResourceDirectory } from '../hooks/use-resource-directory'
 
 export type ShareEditorMode = 'create' | 'edit' | 'duplicate'
 
@@ -63,12 +62,15 @@ export function ShareEditorSheet({
   onOpenChange,
   mode,
   share,
+  seedResources,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   mode: ShareEditorMode
   /** The subject for `edit` and `duplicate`. */
   share?: ShareDTO | null
+  /** Pre-filled contents — a bulk selection becoming a bundle, which is what a Share IS. */
+  seedResources?: ShareResource[]
 }) {
   const t = useTranslations()
 
@@ -95,6 +97,7 @@ export function ShareEditorSheet({
           <ShareForm
             mode={mode}
             share={share ?? null}
+            seedResources={seedResources}
             onDone={() => onOpenChange(false)}
           />
         )}
@@ -106,10 +109,12 @@ export function ShareEditorSheet({
 function ShareForm({
   mode,
   share,
+  seedResources,
   onDone,
 }: {
   mode: ShareEditorMode
   share: ShareDTO | null
+  seedResources?: ShareResource[]
   onDone: () => void
 }) {
   const t = useTranslations()
@@ -128,14 +133,13 @@ function ShareForm({
       : ''
   )
   const [resources, setResources] = useState<ShareResource[]>(
-    (seed?.resources ?? []).map((r) => ({
-      type: r.type,
-      id: r.id,
-      // A saved bundle stores refs with NO names, so a loaded row has none to seed. `ResourceName`
-      // resolves it on render; this only feeds the picker's already-selected check and the write,
-      // neither of which uses the name.
-      name: '',
-    }))
+    seedResources?.length
+      ? seedResources
+      : (seed?.resources ?? []).map((r) => ({
+          type: r.type,
+          id: r.id,
+          name: r.name ?? '',
+        }))
   )
   const [members, setMembers] = useState<Member[]>(
     (seed?.members ?? []).map((m) => ({
@@ -153,8 +157,6 @@ function ShareForm({
   const updateMutation = useUpdate()
 
   const { nameOf } = useUserDirectory({ enabled: members.length > 0 })
-  // Two cached list reads for every label, not one `get` per row.
-  const { nameOf: resourceNameOf } = useResourceDirectory(resources.length > 0)
   const { users, isFetching: searching } = useUserSearch(peopleQuery, {
     enabled: pickerOpen,
   })
@@ -250,12 +252,11 @@ function ShareForm({
                 {t(`shares.resourceType.${resource.type}`)}
               </Badge>
               <span className="min-w-0 flex-1 truncate text-sm">
-                {resource.name ||
-                  resourceNameOf(resource.type, resource.id) || (
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {resource.id}
-                    </span>
-                  )}
+                {resource.name || (
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {resource.id}
+                  </span>
+                )}
               </span>
               <Button
                 type="button"

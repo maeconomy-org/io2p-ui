@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import type { ObjectDTO } from 'io2p-client'
+import type { ObjectListItem } from 'io2p-client'
 
 import {
   actionsColumn,
@@ -15,14 +15,14 @@ import {
 import { ObjectActionsCell } from './object-actions-cell'
 
 export interface ObjectColumnActions {
-  onViewDetails: (object: ObjectDTO) => void
-  onShowQRCode: (object: ObjectDTO) => void
-  onViewPassport: (object: ObjectDTO) => void
-  onDuplicate: (object: ObjectDTO) => void
-  onCreateTemplate: (object: ObjectDTO) => void
-  onShare?: (object: ObjectDTO) => void
-  onDelete: (object: ObjectDTO) => void
-  onRestore: (object: ObjectDTO) => void
+  onViewDetails: (object: ObjectListItem) => void
+  onShowQRCode: (object: ObjectListItem) => void
+  onViewPassport: (object: ObjectListItem) => void
+  onDuplicate: (object: ObjectListItem) => void
+  onCreateTemplate: (object: ObjectListItem) => void
+  onShare?: (object: ObjectListItem) => void
+  onDelete: (object: ObjectListItem) => void
+  onRestore: (object: ObjectListItem) => void
 }
 
 interface BuildObjectColumnsOptions {
@@ -41,13 +41,13 @@ export function buildObjectColumns({
   readOnly = false,
   isDeleting = false,
   isRestoring = false,
-}: BuildObjectColumnsOptions): ColumnDef<ObjectDTO, unknown>[] {
-  const cols: ColumnDef<ObjectDTO, unknown>[] = []
+}: BuildObjectColumnsOptions): ColumnDef<ObjectListItem, unknown>[] {
+  const cols: ColumnDef<ObjectListItem, unknown>[] = []
 
-  if (enableSelection) cols.push(selectColumn<ObjectDTO>())
+  if (enableSelection) cols.push(selectColumn<ObjectListItem>())
 
   cols.push(
-    nameColumn<ObjectDTO>((o) => o.name, {
+    nameColumn<ObjectListItem>((o) => o.name, {
       header: t('objects.fields.name'),
       sortable: true,
       getChildCount: (o) => o.childCount,
@@ -55,14 +55,14 @@ export function buildObjectColumns({
       deletedLabel: t('objects.deletedBadge'),
       childrenTooltip: (count) => t('objects.childrenTooltip', { count }),
     }),
-    idColumn<ObjectDTO>((o) => o.id, t('objects.fields.uuid')),
-    timestampColumn<ObjectDTO>(
+    idColumn<ObjectListItem>((o) => o.id, t('objects.fields.uuid')),
+    timestampColumn<ObjectListItem>(
       'createdAt',
       t('objects.fields.created'),
       (o) => o.createdAt,
       { sortable: true }
     ),
-    actionsColumn<ObjectDTO>(
+    actionsColumn<ObjectListItem>(
       (o): ReactNode => (
         <ObjectActionsCell
           object={o}

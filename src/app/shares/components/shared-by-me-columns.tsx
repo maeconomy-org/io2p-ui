@@ -21,7 +21,8 @@ import {
 
 type Grant = SharedByMeItem['grants'][number]
 
-function ResourceLabel({ name, id }: { name: string | null; id: string }) {
+/** `name` is absent only when the resource no longer exists, so the id is the honest label. */
+function ResourceLabel({ name, id }: { name?: string; id: string }) {
   if (name) return <span className="truncate">{name}</span>
   return (
     <span className="font-mono text-xs text-muted-foreground">
@@ -46,16 +47,11 @@ function isManageable(type: SharedByMeItem['resource']['type']) {
 export function buildSharedByMeColumns({
   t,
   nameOf,
-  resourceNameOf,
-  resourceDeleted,
   onManage,
   onRevokeAll,
 }: {
   t: (key: string, values?: Record<string, string | number>) => string
   nameOf: (userId: string) => string
-  /** Null when the cached directory page did not hold this resource. */
-  resourceNameOf: (type: string, id: string) => string | null
-  resourceDeleted: (type: string, id: string) => boolean
   onManage: (item: SharedByMeItem) => void
   onRevokeAll: (item: SharedByMeItem) => void
 }): ColumnDef<SharedByMeItem, unknown>[] {
@@ -77,13 +73,10 @@ export function buildSharedByMeColumns({
           {/* The rollup returns `{type, id}` with no name, so the label comes from the cached
               object/process directory — two list reads for the page, never one per row. Beyond that
               page it falls back to the id's leading segment: enough to tell two rows apart. */}
-          <ResourceLabel
-            name={resourceNameOf(item.resource.type, item.resource.id)}
-            id={item.resource.id}
-          />
+          <ResourceLabel name={item.resource.name} id={item.resource.id} />
           {/* A share outlives the thing it points at — the grants stay active on a soft-deleted
               resource — so the row has to say so or it reads as live access to a live object. */}
-          {resourceDeleted(item.resource.type, item.resource.id) && (
+          {item.resource.deleted && (
             <Badge variant="outline" className="h-5 shrink-0">
               {t('objects.deletedBadge')}
             </Badge>

@@ -15,7 +15,9 @@ import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
 import type {
   ObjectDTO,
+  ObjectListItem,
   ProcessDTO,
+  ProcessListItem,
   CreateObjectInput,
   CreateObjectResponse,
   UpdateObjectBody,
@@ -35,6 +37,7 @@ const OBJECT_STALE_TIME = 30_000
 
 const objectBase = createEntityHooks<
   ObjectDTO,
+  ObjectListItem,
   ListObjectsQuery,
   CreateObjectInput,
   CreateObjectResponse,
@@ -84,6 +87,7 @@ export function useObjects() {
 
 const processBundle = createEntityHooks<
   ProcessDTO,
+  ProcessListItem,
   ListProcessesQuery,
   CreateProcessInput,
   CreateProcessResponse,
