@@ -27,7 +27,6 @@
     "importStatus": "Importstatus",
     "help": "Help",
     "signOut": "Afmelden",
-    "groups": "Groepen",
     "user": "Gebruiker",
     "certificateAuthenticated": "Certificaat geverifieerd",
     "emailAuthenticated": "E-mail geverifieerd",
@@ -45,7 +44,8 @@
     },
     "library": "Bibliotheek",
     "formulas": "Formules",
-    "constants": "Constanten"
+    "constants": "Constanten",
+    "shares": "Delen"
   },
   "theme": {
     "toggle": "Thema",
@@ -1846,5 +1846,49 @@
     },
     "saved": "Delen bijgewerkt",
     "redundantRead": "Zij hebben al leestoegang via algemene toegang. Deze toekenning werkt pas als algemene toegang wordt uitgezet."
+  },
+  "shares": {
+    "title": "Delen",
+    "create": "Nieuwe deling",
+    "tabShares": "Delingen",
+    "tabSharedByMe": "Door mij gedeeld",
+    "deleteAction": "Deling verwijderen",
+    "deleted": "Deling verwijderd",
+    "deleteFailed": "Kon de deling niet verwijderen",
+    "everyone": "Iedereen op deze node",
+    "cascadeOn": "Inclusief inhoud",
+    "fields": {
+      "name": "Naam",
+      "contents": "Inhoud",
+      "cascade": "Doorwerking",
+      "updated": "Bijgewerkt",
+      "resource": "Item",
+      "sharedWith": "Gedeeld met",
+      "permission": "Rechten"
+    },
+    "resourceType": {
+      "object": "Object",
+      "process": "Proces",
+      "formula": "Formule",
+      "constant": "Constante",
+      "template": "Sjabloon"
+    },
+    "empty": {
+      "title": "Nog geen delingen",
+      "description": "Een deling bundelt objecten en processen en geeft een groep mensen in één keer toegang tot alles."
+    },
+    "sharedByMeEmpty": {
+      "title": "U hebt nog niets gedeeld",
+      "description": "Toegang die u geeft via de actie Delen van een item verschijnt hier, zodat u die op één plek kunt zien en intrekken."
+    },
+    "mixedPermissions": "Gemengd",
+    "manageAccess": "Toegang beheren",
+    "notManageable": "Toegang hiertoe kan alleen bij het item zelf worden gewijzigd.",
+    "revokeAll": "Alle toegang intrekken",
+    "revokeAllTitle": "Alle toegang intrekken?",
+    "revokeAllDescription": "Dit trekt de toegang in die u rechtstreeks op dit item hebt gegeven — {count} vermeld.",
+    "revokeAllBundleWarning": "Wie ook via een deling toegang heeft, behoudt die: delingen worden apart ingetrokken, via het tabblad Delingen.",
+    "revokedAll": "Toegang ingetrokken",
+    "deletedNoRestore": "Deze deling is verwijderd. De toegang is ingetrokken en kan niet worden hersteld."
   }
 }

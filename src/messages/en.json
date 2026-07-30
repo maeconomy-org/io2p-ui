@@ -27,7 +27,6 @@
     "importStatus": "Import Status",
     "help": "Help",
     "signOut": "Sign out",
-    "groups": "Groups",
     "user": "User",
     "certificateAuthenticated": "Certificate Authenticated",
     "emailAuthenticated": "Email Authenticated",
@@ -45,7 +44,8 @@
     },
     "library": "Library",
     "formulas": "Formulas",
-    "constants": "Constants"
+    "constants": "Constants",
+    "shares": "Shares"
   },
   "theme": {
     "toggle": "Theme",
@@ -1845,5 +1845,49 @@
     },
     "saved": "Sharing updated",
     "redundantRead": "They already have read access through general access. This grant only takes effect if general access is turned off."
+  },
+  "shares": {
+    "title": "Shares",
+    "create": "New share",
+    "tabShares": "Shares",
+    "tabSharedByMe": "Shared by me",
+    "deleteAction": "Delete share",
+    "deleted": "Share deleted",
+    "deleteFailed": "Could not delete the share",
+    "everyone": "Everyone on this node",
+    "cascadeOn": "Includes contents",
+    "fields": {
+      "name": "Name",
+      "contents": "Contents",
+      "cascade": "Cascade",
+      "updated": "Updated",
+      "resource": "Item",
+      "sharedWith": "Shared with",
+      "permission": "Permission"
+    },
+    "resourceType": {
+      "object": "Object",
+      "process": "Process",
+      "formula": "Formula",
+      "constant": "Constant",
+      "template": "Template"
+    },
+    "empty": {
+      "title": "No shares yet",
+      "description": "A share bundles objects and processes, and gives a group of people access to all of them at once."
+    },
+    "sharedByMeEmpty": {
+      "title": "You haven't shared anything",
+      "description": "Access you grant from an item's Share action shows up here, so you can see and withdraw it in one place."
+    },
+    "mixedPermissions": "Mixed",
+    "manageAccess": "Manage access",
+    "notManageable": "Access to this can only be changed from the item itself.",
+    "revokeAll": "Revoke all access",
+    "revokeAllTitle": "Revoke all access?",
+    "revokeAllDescription": "This removes the access you granted directly on this item — {count} listed.",
+    "revokeAllBundleWarning": "Anyone who also has access through a share keeps it: shares are revoked separately, from the Shares tab.",
+    "revokedAll": "Access revoked",
+    "deletedNoRestore": "This share was deleted. Its access has been revoked and it cannot be brought back."
   }
 }
