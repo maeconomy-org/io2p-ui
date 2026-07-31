@@ -2,10 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import type { ObjectListItem, Page } from 'io2p-client'
 
-import {
-  useObjectListFilters,
-  useObjectListPage,
-} from '@/app/objects/components/use-object-list-page'
+import { useEntityListFilters } from '@/components/tables/use-entity-list-filters'
+import { useObjectListPage } from '@/app/objects/components/use-object-list-page'
 
 const remove = vi.fn().mockResolvedValue({})
 const restore = vi.fn().mockResolvedValue({})
@@ -43,10 +41,10 @@ const pageOf = (...rows: ObjectListItem[]) =>
     page: { totalElements: rows.length },
   }) as unknown as Page<ObjectListItem>
 
-describe('useObjectListFilters', () => {
+describe('useEntityListFilters', () => {
   it('sends the query back to page 1 when the page size changes', () => {
     const onPageReset = vi.fn()
-    const { result } = renderHook(() => useObjectListFilters(onPageReset))
+    const { result } = renderHook(() => useEntityListFilters(onPageReset))
 
     act(() => result.current.handlePageSizeChange(50))
 
@@ -73,10 +71,9 @@ describe('useObjectListPage', () => {
       act(() => result.current.setRowSelection({ a: true, c: true }))
 
       expect(result.current.selectedIds).toEqual(['a', 'c'])
-      expect(result.current.selectedObjects.map((o) => o.id)).toEqual([
-        'a',
-        'c',
-      ])
+      expect(
+        result.current.selectedObjects.map((o: ObjectListItem) => o.id)
+      ).toEqual(['a', 'c'])
     })
 
     it('ignores ids that are not on this page', () => {
@@ -86,7 +83,9 @@ describe('useObjectListPage', () => {
 
       act(() => result.current.setRowSelection({ a: true, gone: true }))
 
-      expect(result.current.selectedObjects.map((o) => o.id)).toEqual(['a'])
+      expect(
+        result.current.selectedObjects.map((o: ObjectListItem) => o.id)
+      ).toEqual(['a'])
     })
 
     it('reports both halves of a mixed selection', () => {

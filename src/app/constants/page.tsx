@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import type { RowSelectionState } from '@tanstack/react-table'
 import { useTranslations } from 'next-intl'
 import { PlusCircle, Ruler } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { toast } from 'sonner'
 import type { ConstantDTO } from 'io2p-client'
 
 import { Button } from '@/components/ui'
@@ -18,14 +16,14 @@ import {
 import {
   BulkActionBar,
   EntityTable,
+  useEntityListActions,
+  useEntityListFilters,
   useEntityListQuery,
 } from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useConstants } from '@/hooks/api/leaves'
 import { useAuth, useSearch } from '@/contexts'
-import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { logger } from '@/lib/logger'
 
 import {
   buildConstantColumns,
@@ -46,17 +44,19 @@ const ConstantSheet = dynamic(
 
 type SheetState = { mode: 'create' } | { mode: 'edit'; constant: ConstantDTO }
 
+const CONSTANT_MESSAGES = {
+  deleted: 'constants.deleted',
+  deleteFailed: 'constants.deleteFailed',
+  restored: 'constants.restored',
+  restoreFailed: 'constants.restoreFailed',
+}
+
 export default function ConstantsPage() {
   const t = useTranslations()
 
   const [sheet, setSheet] = useState<SheetState | null>(null)
-  const [showDeleted, setShowDeleted] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
-  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [confirmBulk, setConfirmBulk] = useState(false)
   const [shareTarget, setShareTarget] = useState<ConstantDTO | null>(null)
-  const [toDelete, setToDelete] = useState<ConstantDTO | null>(null)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
   const { userId } = useAuth()
@@ -66,99 +66,38 @@ export default function ConstantsPage() {
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
 
+  const setPage = listQuery.setPage
+  const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
+
   const { data: constantsPage, isFetching } = useList(
     {
       ...listQuery.query,
-      size: pageSize,
+      size: filters.pageSize,
       // `all`: built-ins are shared, so `mine` would hide most of the library.
       scope: 'all',
       q: isSearchMode ? searchQuery : undefined,
-      deleted: showDeleted ? 'include' : undefined,
+      deleted: filters.showDeleted ? 'include' : undefined,
       system: owner,
     },
     { keepPreviousData: true }
   )
 
-  const handlePageSizeChange = useCallback(
-    (size: number) => {
-      setPageSize(size)
-      listQuery.setPage(1)
-    },
-    [listQuery]
-  )
-
-  const confirmDelete = useCallback(async () => {
-    if (!toDelete) return
-    try {
-      await removeMutation.mutateAsync({ id: toDelete.id })
-      toast.success(t('constants.deleted'))
-    } catch (error) {
-      logger.error('Delete constant failed', error)
-      toast.error(t('constants.deleteFailed'))
-    } finally {
-      setToDelete(null)
-    }
-  }, [toDelete, removeMutation, t])
-
-  const handleRestore = useCallback(
-    async (constant: ConstantDTO) => {
-      try {
-        await restoreMutation.mutateAsync({ id: constant.id })
-        toast.success(t('constants.restored'))
-      } catch (error) {
-        logger.error('Restore constant failed', error)
-        toast.error(t('constants.restoreFailed'))
-      }
-    },
-    [restoreMutation, t]
-  )
+  const list = useEntityListActions({
+    page: constantsPage,
+    remove: removeMutation,
+    restore: restoreMutation,
+    entityName: 'constant',
+    messages: CONSTANT_MESSAGES,
+  })
 
   const actions: ConstantColumnActions = useMemo(
     () => ({
       onViewDetails: (constant) => setSheet({ mode: 'edit', constant }),
       onShare: setShareTarget,
-      onDelete: setToDelete,
-      onRestore: handleRestore,
+      onDelete: list.setToDelete,
+      onRestore: list.handleRestore,
     }),
-    [handleRestore]
-  )
-
-  const selectedRows = useMemo(
-    () => (constantsPage?.data ?? []).filter((row) => rowSelection[row.id]),
-    [constantsPage, rowSelection]
-  )
-  const clearSelection = useCallback(() => setRowSelection({}), [])
-  const anyDeleted = selectedRows.some((row) => row.deleted)
-  const anyLive = selectedRows.some((row) => !row.deleted)
-
-  // Sequential — a partial failure should stop rather than leave an unknown subset changed.
-  const runBulk = useCallback(
-    async (action: 'delete' | 'restore') => {
-      const mutation = action === 'delete' ? removeMutation : restoreMutation
-      const targets = selectedRows.filter((row) =>
-        action === 'delete' ? !row.deleted : row.deleted
-      )
-      try {
-        for (const row of targets) {
-          await mutation.mutateAsync({ id: row.id })
-        }
-        toast.success(
-          t(action === 'delete' ? 'constants.deleted' : 'constants.restored')
-        )
-      } catch (error) {
-        logger.error('Bulk constants failed', error)
-        toast.error(
-          t(
-            action === 'delete'
-              ? 'constants.deleteFailed'
-              : 'constants.restoreFailed'
-          )
-        )
-      } finally {
-        clearSelection()
-      }
-    },
-    [selectedRows, removeMutation, restoreMutation, clearSelection, t]
+    [list.setToDelete, list.handleRestore]
   )
 
   const columns = useMemo(
@@ -176,7 +115,11 @@ export default function ConstantsPage() {
               <FilterMenu
                 sections={[
                   ownerSection(t, owner, setOwner),
-                  deletedSection(t, showDeleted, setShowDeleted),
+                  deletedSection(
+                    t,
+                    filters.showDeleted,
+                    filters.setShowDeleted
+                  ),
                 ]}
               />
               <Button size="sm" onClick={() => setSheet({ mode: 'create' })}>
@@ -191,7 +134,7 @@ export default function ConstantsPage() {
               searchQuery={searchQuery}
               resultsCount={constantsPage?.page.totalElements ?? 0}
               onClearSearch={clearSearch}
-              raised={selectedRows.length > 0}
+              raised={list.selectedRows.length > 0}
             />
           )}
 
@@ -203,10 +146,10 @@ export default function ConstantsPage() {
             sort={listQuery.query.sort}
             onSortChange={listQuery.setSort}
             enableRowSelection
-            rowSelection={rowSelection}
-            onRowSelectionChange={setRowSelection}
+            rowSelection={list.rowSelection}
+            onRowSelectionChange={list.setRowSelection}
             onPageChange={listQuery.setPage}
-            onPageSizeChange={handlePageSizeChange}
+            onPageSizeChange={filters.handlePageSizeChange}
             onRowClick={(constant) => setSheet({ mode: 'edit', constant })}
             emptyIcon={<Ruler className="h-10 w-10 text-muted-foreground/50" />}
             emptyTitle={t('constants.empty.title')}
@@ -238,31 +181,31 @@ export default function ConstantsPage() {
       )}
 
       <BulkActionBar
-        count={selectedRows.length}
-        onClear={clearSelection}
-        canDelete={anyLive}
-        canRestore={anyDeleted}
-        busy={removeMutation.isPending || restoreMutation.isPending}
-        onDelete={() => setConfirmBulk(true)}
-        onRestore={() => runBulk('restore')}
+        count={list.selectedRows.length}
+        onClear={list.clearSelection}
+        canDelete={list.anyLive}
+        canRestore={list.anyDeleted}
+        busy={list.isBusy}
+        onDelete={() => list.setConfirmBulk(true)}
+        onRestore={() => list.runBulk('restore')}
       />
 
       <DeleteConfirmationDialog
-        open={confirmBulk}
-        onOpenChange={setConfirmBulk}
+        open={list.confirmBulk}
+        onOpenChange={list.setConfirmBulk}
         objectName=""
         title={t('common.bulk.deleteTitle')}
         description={t('common.bulk.deleteDescription', {
-          count: selectedRows.filter((row) => !row.deleted).length,
+          count: list.deletableCount,
         })}
-        onDelete={() => runBulk('delete')}
+        onDelete={() => list.runBulk('delete')}
       />
 
       <DeleteConfirmationDialog
-        open={!!toDelete}
-        onOpenChange={(open) => !open && setToDelete(null)}
-        onDelete={confirmDelete}
-        objectName={toDelete?.name ?? ''}
+        open={!!list.toDelete}
+        onOpenChange={(open) => !open && list.setToDelete(null)}
+        onDelete={list.confirmDelete}
+        objectName={list.toDelete?.name ?? ''}
       />
     </>
   )

@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import type { RowSelectionState } from '@tanstack/react-table'
 import { useTranslations } from 'next-intl'
 import { PlusCircle, HelpCircle, FunctionSquare } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { toast } from 'sonner'
 import type { FormulaDTO } from 'io2p-client'
 
 import { Button } from '@/components/ui'
@@ -18,14 +16,14 @@ import {
 import {
   BulkActionBar,
   EntityTable,
+  useEntityListActions,
+  useEntityListFilters,
   useEntityListQuery,
 } from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useFormulas } from '@/hooks/api/leaves'
 import { useAuth, useSearch } from '@/contexts'
-import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { logger } from '@/lib/logger'
 
 import {
   buildFormulaColumns,
@@ -52,6 +50,13 @@ const FormulaReferenceDialog = dynamic(
   { ssr: false }
 )
 
+const FORMULA_MESSAGES = {
+  deleted: 'formulas.deleted',
+  deleteFailed: 'formulas.deleteFailed',
+  restored: 'formulas.restored',
+  restoreFailed: 'formulas.restoreFailed',
+}
+
 type SheetState =
   | { mode: 'create' }
   | { mode: 'duplicate' | 'view'; formula: FormulaDTO }
@@ -61,13 +66,8 @@ export default function FormulasPage() {
 
   const [sheet, setSheet] = useState<SheetState | null>(null)
   const [referenceOpen, setReferenceOpen] = useState(false)
-  const [showDeleted, setShowDeleted] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
-  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [confirmBulk, setConfirmBulk] = useState(false)
   const [shareTarget, setShareTarget] = useState<FormulaDTO | null>(null)
-  const [toDelete, setToDelete] = useState<FormulaDTO | null>(null)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
   const { userId } = useAuth()
@@ -77,100 +77,39 @@ export default function FormulasPage() {
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
 
+  const setPage = listQuery.setPage
+  const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
+
   const { data: formulasPage, isFetching } = useList(
     {
       ...listQuery.query,
-      size: pageSize,
+      size: filters.pageSize,
       // `all` is the library view: built-ins are shared, so `mine` would hide most of them.
       scope: 'all',
       q: isSearchMode ? searchQuery : undefined,
-      deleted: showDeleted ? 'include' : undefined,
+      deleted: filters.showDeleted ? 'include' : undefined,
       system: owner,
     },
     { keepPreviousData: true }
   )
 
-  const handlePageSizeChange = useCallback(
-    (size: number) => {
-      setPageSize(size)
-      listQuery.setPage(1)
-    },
-    [listQuery]
-  )
-
-  const confirmDelete = useCallback(async () => {
-    if (!toDelete) return
-    try {
-      await removeMutation.mutateAsync({ id: toDelete.id })
-      toast.success(t('formulas.deleted'))
-    } catch (error) {
-      logger.error('Delete formula failed', error)
-      toast.error(t('formulas.deleteFailed'))
-    } finally {
-      setToDelete(null)
-    }
-  }, [toDelete, removeMutation, t])
-
-  const handleRestore = useCallback(
-    async (formula: FormulaDTO) => {
-      try {
-        await restoreMutation.mutateAsync({ id: formula.id })
-        toast.success(t('formulas.restored'))
-      } catch (error) {
-        logger.error('Restore formula failed', error)
-        toast.error(t('formulas.restoreFailed'))
-      }
-    },
-    [restoreMutation, t]
-  )
+  const list = useEntityListActions({
+    page: formulasPage,
+    remove: removeMutation,
+    restore: restoreMutation,
+    entityName: 'formula',
+    messages: FORMULA_MESSAGES,
+  })
 
   const actions: FormulaColumnActions = useMemo(
     () => ({
       onViewDetails: (formula) => setSheet({ mode: 'view', formula }),
       onDuplicate: (formula) => setSheet({ mode: 'duplicate', formula }),
       onShare: setShareTarget,
-      onDelete: setToDelete,
-      onRestore: handleRestore,
+      onDelete: list.setToDelete,
+      onRestore: list.handleRestore,
     }),
-    [handleRestore]
-  )
-
-  const selectedRows = useMemo(
-    () => (formulasPage?.data ?? []).filter((row) => rowSelection[row.id]),
-    [formulasPage, rowSelection]
-  )
-  const clearSelection = useCallback(() => setRowSelection({}), [])
-  const anyDeleted = selectedRows.some((row) => row.deleted)
-  const anyLive = selectedRows.some((row) => !row.deleted)
-
-  // Sequential — a partial failure should stop rather than leave an unknown subset changed.
-  const runBulk = useCallback(
-    async (action: 'delete' | 'restore') => {
-      const mutation = action === 'delete' ? removeMutation : restoreMutation
-      const targets = selectedRows.filter((row) =>
-        action === 'delete' ? !row.deleted : row.deleted
-      )
-      try {
-        for (const row of targets) {
-          await mutation.mutateAsync({ id: row.id })
-        }
-        toast.success(
-          t(action === 'delete' ? 'formulas.deleted' : 'formulas.restored')
-        )
-      } catch (error) {
-        logger.error('Bulk formulas failed', error)
-        toast.error(
-          t(
-            action === 'delete'
-              ? 'formulas.deleteFailed'
-              : 'formulas.restoreFailed'
-          )
-        )
-      } finally {
-        clearSelection()
-      }
-    },
-    [selectedRows, removeMutation, restoreMutation, clearSelection, t]
+    [list.setToDelete, list.handleRestore]
   )
 
   const columns = useMemo(
@@ -188,7 +127,11 @@ export default function FormulasPage() {
               <FilterMenu
                 sections={[
                   ownerSection(t, owner, setOwner),
-                  deletedSection(t, showDeleted, setShowDeleted),
+                  deletedSection(
+                    t,
+                    filters.showDeleted,
+                    filters.setShowDeleted
+                  ),
                 ]}
               />
               <Button
@@ -212,7 +155,7 @@ export default function FormulasPage() {
               searchQuery={searchQuery}
               resultsCount={formulasPage?.page.totalElements ?? 0}
               onClearSearch={clearSearch}
-              raised={selectedRows.length > 0}
+              raised={list.selectedRows.length > 0}
             />
           )}
 
@@ -224,10 +167,10 @@ export default function FormulasPage() {
             sort={listQuery.query.sort}
             onSortChange={listQuery.setSort}
             enableRowSelection
-            rowSelection={rowSelection}
-            onRowSelectionChange={setRowSelection}
+            rowSelection={list.rowSelection}
+            onRowSelectionChange={list.setRowSelection}
             onPageChange={listQuery.setPage}
-            onPageSizeChange={handlePageSizeChange}
+            onPageSizeChange={filters.handlePageSizeChange}
             onRowClick={(formula) => setSheet({ mode: 'view', formula })}
             emptyIcon={
               <FunctionSquare className="h-10 w-10 text-muted-foreground/50" />
@@ -266,31 +209,31 @@ export default function FormulasPage() {
       )}
 
       <BulkActionBar
-        count={selectedRows.length}
-        onClear={clearSelection}
-        canDelete={anyLive}
-        canRestore={anyDeleted}
-        busy={removeMutation.isPending || restoreMutation.isPending}
-        onDelete={() => setConfirmBulk(true)}
-        onRestore={() => runBulk('restore')}
+        count={list.selectedRows.length}
+        onClear={list.clearSelection}
+        canDelete={list.anyLive}
+        canRestore={list.anyDeleted}
+        busy={list.isBusy}
+        onDelete={() => list.setConfirmBulk(true)}
+        onRestore={() => list.runBulk('restore')}
       />
 
       <DeleteConfirmationDialog
-        open={confirmBulk}
-        onOpenChange={setConfirmBulk}
+        open={list.confirmBulk}
+        onOpenChange={list.setConfirmBulk}
         objectName=""
         title={t('common.bulk.deleteTitle')}
         description={t('common.bulk.deleteDescription', {
-          count: selectedRows.filter((row) => !row.deleted).length,
+          count: list.deletableCount,
         })}
-        onDelete={() => runBulk('delete')}
+        onDelete={() => list.runBulk('delete')}
       />
 
       <DeleteConfirmationDialog
-        open={!!toDelete}
-        onOpenChange={(open) => !open && setToDelete(null)}
-        onDelete={confirmDelete}
-        objectName={toDelete?.name ?? ''}
+        open={!!list.toDelete}
+        onOpenChange={(open) => !open && list.setToDelete(null)}
+        onDelete={list.confirmDelete}
+        objectName={list.toDelete?.name ?? ''}
       />
     </>
   )

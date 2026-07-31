@@ -21,16 +21,17 @@ import {
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
 import { ObjectColumnsView } from '@/app/objects/components/columns-view'
-import { EntityTable, useEntityListQuery } from '@/components/tables'
+import {
+  EntityTable,
+  useEntityListFilters,
+  useEntityListQuery,
+} from '@/components/tables'
 import { DraftRows } from '@/components/drafts'
 import { useObjectDrafts } from '@/hooks/drafts'
 
 import { ObjectBulkBar } from './components/object-bulk-bar'
 import { ObjectRowPortals } from './components/object-row-portals'
-import {
-  useObjectListFilters,
-  useObjectListPage,
-} from './components/use-object-list-page'
+import { useObjectListPage } from './components/use-object-list-page'
 
 const EntitySheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
@@ -67,7 +68,7 @@ export default function ObjectsPage() {
   const prefetchDetail = usePrefetchDetail()
 
   const setPage = listQuery.setPage
-  const filters = useObjectListFilters(useCallback(() => setPage(1), [setPage]))
+  const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
 
   const { data: objectsPage, isFetching } = useList(
     {

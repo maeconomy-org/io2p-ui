@@ -12,15 +12,16 @@ import { useObjects } from '@/hooks/api/entities'
 import { Button } from '@/components/ui'
 import { FilterMenu, deletedSection } from '@/components/filters'
 import { ObjectBreadcrumb } from '../components/object-breadcrumb'
-import { EntityTable, useEntityListQuery } from '@/components/tables'
+import {
+  EntityTable,
+  useEntityListFilters,
+  useEntityListQuery,
+} from '@/components/tables'
 import { ContentSkeleton } from '@/components/skeletons'
 
 import { ObjectBulkBar } from '../components/object-bulk-bar'
 import { ObjectRowPortals } from '../components/object-row-portals'
-import {
-  useObjectListFilters,
-  useObjectListPage,
-} from '../components/use-object-list-page'
+import { useObjectListPage } from '../components/use-object-list-page'
 
 const EntitySheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
@@ -51,7 +52,7 @@ export default function ObjectChildrenPage() {
 
   const listQuery = useEntityListQuery()
   const setPage = listQuery.setPage
-  const filters = useObjectListFilters(useCallback(() => setPage(1), [setPage]))
+  const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
 
   const { data: childrenPage, isFetching } = useList(
     {

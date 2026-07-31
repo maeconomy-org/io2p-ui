@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import type { RowSelectionState } from '@tanstack/react-table'
 import { useTranslations } from 'next-intl'
 import { PlusCircle, FileText, Package, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { toast } from 'sonner'
 import type { CreateTemplateInput, TemplateListItem } from 'io2p-client'
 
 import {
@@ -24,14 +22,14 @@ import {
 import {
   BulkActionBar,
   EntityTable,
+  useEntityListActions,
+  useEntityListFilters,
   useEntityListQuery,
 } from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { useTemplates } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { DeleteConfirmationDialog } from '@/components/modals'
-import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { logger } from '@/lib/logger'
 
 import { buildTemplateColumns } from './components/template-columns'
 import {
@@ -49,6 +47,13 @@ const TemplateSheet = dynamic(
   { ssr: false }
 )
 
+const TEMPLATE_MESSAGES = {
+  deleted: 'templates.deleted',
+  deleteFailed: 'templates.deleteFailed',
+  restored: 'templates.restored',
+  restoreFailed: 'templates.restoreFailed',
+}
+
 export default function TemplatesPage() {
   const t = useTranslations()
 
@@ -56,18 +61,12 @@ export default function TemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] =
     useState<TemplateListItem | null>(null)
   const [openInEditMode, setOpenInEditMode] = useState(false)
-  const [showDeleted, setShowDeleted] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
   const [typeFilter, setTypeFilter] = useState<TemplateTypeFilterValue>()
   // Which kind a CREATE will be. An edit takes the loaded template's own type.
   const [createType, setCreateType] =
     useState<NonNullable<CreateTemplateInput['type']>>('object')
-  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [confirmBulk, setConfirmBulk] = useState(false)
   const [shareTarget, setShareTarget] = useState<TemplateListItem | null>(null)
-  const [templateToDelete, setTemplateToDelete] =
-    useState<TemplateListItem | null>(null)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
   const { userId } = useAuth()
@@ -76,13 +75,16 @@ export default function TemplatesPage() {
   const { useList, useRemove, useRestore } = useTemplates()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
+  const setPage = listQuery.setPage
+  const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
+
   const { data: templatesPage, isFetching } = useList(
     {
       ...listQuery.query,
-      size: pageSize,
+      size: filters.pageSize,
       scope: 'all',
       q: isSearchMode ? searchQuery : undefined,
-      deleted: showDeleted ? 'include' : undefined,
+      deleted: filters.showDeleted ? 'include' : undefined,
       system: owner,
       type: typeFilter,
     },
@@ -108,77 +110,13 @@ export default function TemplatesPage() {
     []
   )
 
-  const handleRestoreTemplate = useCallback(
-    async (template: TemplateListItem) => {
-      try {
-        await restoreMutation.mutateAsync({ id: template.id })
-        toast.success(t('templates.restored'))
-      } catch (error) {
-        logger.error('Error restoring template:', error)
-        toast.error(t('templates.restoreFailed'))
-      }
-    },
-    [restoreMutation, t]
-  )
-
-  const handlePageSizeChange = useCallback(
-    (size: number) => {
-      setPageSize(size)
-      listQuery.setPage(1)
-    },
-    [listQuery]
-  )
-
-  const confirmDeleteTemplate = useCallback(async () => {
-    if (!templateToDelete) return
-    try {
-      await removeMutation.mutateAsync({ id: templateToDelete.id })
-      toast.success(t('templates.deleted'))
-    } catch (error) {
-      logger.error('Error deleting template:', error)
-      toast.error(t('templates.deleteFailed'))
-    } finally {
-      setTemplateToDelete(null)
-    }
-  }, [templateToDelete, removeMutation, t])
-
-  const selectedRows = useMemo(
-    () => (templatesPage?.data ?? []).filter((row) => rowSelection[row.id]),
-    [templatesPage, rowSelection]
-  )
-  const clearSelection = useCallback(() => setRowSelection({}), [])
-  const anyDeleted = selectedRows.some((row) => row.deleted)
-  const anyLive = selectedRows.some((row) => !row.deleted)
-
-  // Sequential — a partial failure should stop rather than leave an unknown subset changed.
-  const runBulk = useCallback(
-    async (action: 'delete' | 'restore') => {
-      const mutation = action === 'delete' ? removeMutation : restoreMutation
-      const targets = selectedRows.filter((row) =>
-        action === 'delete' ? !row.deleted : row.deleted
-      )
-      try {
-        for (const row of targets) {
-          await mutation.mutateAsync({ id: row.id })
-        }
-        toast.success(
-          t(action === 'delete' ? 'templates.deleted' : 'templates.restored')
-        )
-      } catch (error) {
-        logger.error('Bulk templates failed', error)
-        toast.error(
-          t(
-            action === 'delete'
-              ? 'templates.deleteFailed'
-              : 'templates.restoreFailed'
-          )
-        )
-      } finally {
-        clearSelection()
-      }
-    },
-    [selectedRows, removeMutation, restoreMutation, clearSelection, t]
-  )
+  const list = useEntityListActions({
+    page: templatesPage,
+    remove: removeMutation,
+    restore: restoreMutation,
+    entityName: 'template',
+    messages: TEMPLATE_MESSAGES,
+  })
 
   const columns = useMemo(
     () =>
@@ -188,11 +126,11 @@ export default function TemplatesPage() {
           onViewDetails: (template) => openTemplate(template, false),
           onEdit: (template) => openTemplate(template, true),
           onShare: setShareTarget,
-          onDelete: setTemplateToDelete,
-          onRestore: handleRestoreTemplate,
+          onDelete: list.setToDelete,
+          onRestore: list.handleRestore,
         },
       }),
-    [t, openTemplate, handleRestoreTemplate]
+    [t, openTemplate, list.setToDelete, list.handleRestore]
   )
 
   return (
@@ -206,7 +144,11 @@ export default function TemplatesPage() {
                 sections={[
                   templateTypeSection(t, typeFilter, setTypeFilter),
                   ownerSection(t, owner, setOwner),
-                  deletedSection(t, showDeleted, setShowDeleted),
+                  deletedSection(
+                    t,
+                    filters.showDeleted,
+                    filters.setShowDeleted
+                  ),
                 ]}
               />
               {/* One list holds both kinds, so the button has to ask which — the page no longer
@@ -241,7 +183,7 @@ export default function TemplatesPage() {
               searchQuery={searchQuery}
               resultsCount={templatesPage?.page.totalElements ?? 0}
               onClearSearch={clearSearch}
-              raised={selectedRows.length > 0}
+              raised={list.selectedRows.length > 0}
             />
           )}
 
@@ -253,10 +195,10 @@ export default function TemplatesPage() {
             sort={listQuery.query.sort}
             onSortChange={listQuery.setSort}
             enableRowSelection
-            rowSelection={rowSelection}
-            onRowSelectionChange={setRowSelection}
+            rowSelection={list.rowSelection}
+            onRowSelectionChange={list.setRowSelection}
             onPageChange={listQuery.setPage}
-            onPageSizeChange={handlePageSizeChange}
+            onPageSizeChange={filters.handlePageSizeChange}
             emptyIcon={
               <FileText className="h-10 w-10 text-muted-foreground/50" />
             }
@@ -290,31 +232,31 @@ export default function TemplatesPage() {
       )}
 
       <BulkActionBar
-        count={selectedRows.length}
-        onClear={clearSelection}
-        canDelete={anyLive}
-        canRestore={anyDeleted}
-        busy={removeMutation.isPending || restoreMutation.isPending}
-        onDelete={() => setConfirmBulk(true)}
-        onRestore={() => runBulk('restore')}
+        count={list.selectedRows.length}
+        onClear={list.clearSelection}
+        canDelete={list.anyLive}
+        canRestore={list.anyDeleted}
+        busy={list.isBusy}
+        onDelete={() => list.setConfirmBulk(true)}
+        onRestore={() => list.runBulk('restore')}
       />
 
       <DeleteConfirmationDialog
-        open={confirmBulk}
-        onOpenChange={setConfirmBulk}
+        open={list.confirmBulk}
+        onOpenChange={list.setConfirmBulk}
         objectName=""
         title={t('common.bulk.deleteTitle')}
         description={t('common.bulk.deleteDescription', {
-          count: selectedRows.filter((row) => !row.deleted).length,
+          count: list.deletableCount,
         })}
-        onDelete={() => runBulk('delete')}
+        onDelete={() => list.runBulk('delete')}
       />
 
       <DeleteConfirmationDialog
-        open={!!templateToDelete}
-        onOpenChange={(open) => !open && setTemplateToDelete(null)}
-        onDelete={confirmDeleteTemplate}
-        objectName={templateToDelete?.name || t('templates.defaultName')}
+        open={!!list.toDelete}
+        onOpenChange={(open) => !open && list.setToDelete(null)}
+        onDelete={list.confirmDelete}
+        objectName={list.toDelete?.name || t('templates.defaultName')}
       />
     </>
   )

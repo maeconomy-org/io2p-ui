@@ -7,32 +7,9 @@ import type { ObjectListItem, Page } from 'io2p-client'
 
 import { useObjects } from '@/hooks/api/entities'
 import { logger } from '@/lib/logger'
-import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
 import { buildObjectColumns } from './object-columns'
 import { useCreateTemplateFromObject } from './use-create-template-from-object'
-
-/**
- * Filter state, split out because it runs BEFORE the list query — `pageSize` and `showDeleted` are
- * query inputs, while everything in `useObjectListPage` needs the query's RESULT. One hook holding
- * both would be a circular dependency, so the seam follows the data flow rather than the file.
- */
-export function useObjectListFilters(onPageReset: () => void) {
-  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
-  const [showDeleted, setShowDeleted] = useState(false)
-
-  const handlePageSizeChange = useCallback(
-    (size: number) => {
-      setPageSize(size)
-      onPageReset()
-    },
-    [onPageReset]
-  )
-
-  return { pageSize, showDeleted, setShowDeleted, handlePageSizeChange }
-}
-
-export type ObjectListFilters = ReturnType<typeof useObjectListFilters>
 
 interface UseObjectListPageOptions {
   /** The page on screen. Selection resolves row ids against it, so it must be the rendered one. */

@@ -4,8 +4,6 @@ import { useState, useCallback, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { PlusCircle, Share2, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { toast } from 'sonner'
-import type { RowSelectionState } from '@tanstack/react-table'
 import type { ProcessListItem } from 'io2p-client'
 
 import { Button } from '@/components/ui'
@@ -18,6 +16,8 @@ import {
 import {
   BulkActionBar,
   EntityTable,
+  useEntityListActions,
+  useEntityListFilters,
   useEntityListQuery,
 } from '@/components/tables'
 import { SearchResultsBar } from '@/components/search-results-bar'
@@ -27,11 +27,7 @@ import { ContentSkeleton } from '@/components/skeletons'
 import { useProcesses } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { usePreference } from '@/hooks/ui/use-preference'
-import {
-  DEFAULT_TABLE_PAGE_SIZE,
-  ENABLED_PROCESS_VIEW_TYPES,
-} from '@/constants'
-import { logger } from '@/lib/logger'
+import { ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
 import { buildProcessColumns } from './components/process-columns'
 import { ProcessFlowView } from './components/process-flow-view'
@@ -53,19 +49,21 @@ const ProcessSheet = dynamic(
   { ssr: false }
 )
 
+const PROCESS_MESSAGES = {
+  deleted: 'processes.deleted',
+  deleteFailed: 'processes.deleteFailed',
+  restored: 'processes.restored',
+  restoreFailed: 'processes.restoreFailed',
+}
+
 export default function ProcessesPage() {
   const t = useTranslations()
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openInEditMode, setOpenInEditMode] = useState(false)
-  const [showDeleted, setShowDeleted] = useState(false)
   const [scope, setScope] = useState<ScopeFilterValue>('all')
-  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
-  const [toDelete, setToDelete] = useState<ProcessListItem | null>(null)
   const [toShare, setToShare] = useState<ProcessListItem | null>(null)
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
   // The stored view is account-keyed, so it cannot be read until `/me` resolves. Rendering the
@@ -77,6 +75,8 @@ export default function ProcessesPage() {
   const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
+  const setPage = listQuery.setPage
+  const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
   const { useList, useRemove, useRestore, usePrefetchDetail } = useProcesses()
   // Warm the detail cache on hover so the sheet opens populated.
   const prefetchDetail = usePrefetchDetail()
@@ -85,10 +85,10 @@ export default function ProcessesPage() {
   const { data: processesPage, isFetching } = useList(
     {
       ...listQuery.query,
-      size: pageSize,
+      size: filters.pageSize,
       scope,
       q: isSearchMode ? searchQuery : undefined,
-      deleted: showDeleted ? 'include' : undefined,
+      deleted: filters.showDeleted ? 'include' : undefined,
     },
     // The flow view sweeps its own pages; a paginated list would be a second, unused request. And
     // until the stored view is known, `isTable` is only a guess — firing on it would fetch a list
@@ -108,75 +108,13 @@ export default function ProcessesPage() {
     setSheetOpen(true)
   }, [])
 
-  const handlePageSizeChange = useCallback(
-    (size: number) => {
-      setPageSize(size)
-      listQuery.setPage(1)
-    },
-    [listQuery]
-  )
-
-  const confirmDelete = useCallback(async () => {
-    if (!toDelete) return
-    try {
-      await removeMutation.mutateAsync({ id: toDelete.id })
-      toast.success(t('processes.deleted'))
-    } catch (error) {
-      logger.error('Delete process failed', error)
-      toast.error(t('processes.deleteFailed'))
-    } finally {
-      setToDelete(null)
-    }
-  }, [toDelete, removeMutation, t])
-
-  const handleRestore = useCallback(
-    async (process: ProcessListItem) => {
-      try {
-        await restoreMutation.mutateAsync({ id: process.id })
-        toast.success(t('processes.restored'))
-      } catch (error) {
-        logger.error('Restore process failed', error)
-        toast.error(t('processes.restoreFailed'))
-      }
-    },
-    [restoreMutation, t]
-  )
-
-  const selectedProcesses = useMemo(
-    () => (processesPage?.data ?? []).filter((p) => rowSelection[p.id]),
-    [processesPage, rowSelection]
-  )
-  const clearSelection = useCallback(() => setRowSelection({}), [])
-
-  // Sequential — a partial failure should stop rather than leave an unknown subset changed.
-  const runBulk = useCallback(
-    async (action: 'delete' | 'restore') => {
-      const mutation = action === 'delete' ? removeMutation : restoreMutation
-      const targets = selectedProcesses.filter((p) =>
-        action === 'delete' ? !p.deleted : p.deleted
-      )
-      try {
-        for (const process of targets) {
-          await mutation.mutateAsync({ id: process.id })
-        }
-        toast.success(
-          t(action === 'delete' ? 'processes.deleted' : 'processes.restored')
-        )
-      } catch (error) {
-        logger.error('Bulk process action failed', error)
-        toast.error(
-          t(
-            action === 'delete'
-              ? 'processes.deleteFailed'
-              : 'processes.restoreFailed'
-          )
-        )
-      } finally {
-        clearSelection()
-      }
-    },
-    [selectedProcesses, removeMutation, restoreMutation, clearSelection, t]
-  )
+  const list = useEntityListActions({
+    page: processesPage,
+    remove: removeMutation,
+    restore: restoreMutation,
+    entityName: 'process',
+    messages: PROCESS_MESSAGES,
+  })
 
   const columns = useMemo(
     () =>
@@ -187,11 +125,11 @@ export default function ProcessesPage() {
           onViewDetails: (p) => openProcess(p.id),
           onEdit: (p) => openProcess(p.id, true),
           onShare: setToShare,
-          onDelete: setToDelete,
-          onRestore: handleRestore,
+          onDelete: list.setToDelete,
+          onRestore: list.handleRestore,
         },
       }),
-    [t, openProcess, handleRestore, userId]
+    [t, openProcess, list.setToDelete, list.handleRestore, userId]
   )
 
   return (
@@ -207,7 +145,11 @@ export default function ProcessesPage() {
                 <FilterMenu
                   sections={[
                     scopeSection(t, scope, setScope),
-                    deletedSection(t, showDeleted, setShowDeleted),
+                    deletedSection(
+                      t,
+                      filters.showDeleted,
+                      filters.setShowDeleted
+                    ),
                   ]}
                 />
               )}
@@ -230,7 +172,7 @@ export default function ProcessesPage() {
               searchQuery={searchQuery}
               resultsCount={processesPage?.page.totalElements ?? 0}
               onClearSearch={clearSearch}
-              raised={isTable && selectedProcesses.length > 0}
+              raised={isTable && list.selectedRows.length > 0}
             />
           )}
 
@@ -245,10 +187,10 @@ export default function ProcessesPage() {
                 sort={listQuery.query.sort}
                 onSortChange={listQuery.setSort}
                 enableRowSelection
-                rowSelection={rowSelection}
-                onRowSelectionChange={setRowSelection}
+                rowSelection={list.rowSelection}
+                onRowSelectionChange={list.setRowSelection}
                 onPageChange={listQuery.setPage}
-                onPageSizeChange={handlePageSizeChange}
+                onPageSizeChange={filters.handlePageSizeChange}
                 onRowClick={(process) => openProcess(process.id)}
                 emptyIcon={
                   <Workflow className="h-10 w-10 text-muted-foreground/50" />
@@ -272,13 +214,13 @@ export default function ProcessesPage() {
       )}
 
       <BulkActionBar
-        count={isTable ? selectedProcesses.length : 0}
-        onClear={clearSelection}
-        canDelete={selectedProcesses.some((p) => !p.deleted)}
-        canRestore={selectedProcesses.some((p) => p.deleted)}
-        busy={removeMutation.isPending || restoreMutation.isPending}
-        onDelete={() => setConfirmBulkDelete(true)}
-        onRestore={() => runBulk('restore')}
+        count={isTable ? list.selectedRows.length : 0}
+        onClear={list.clearSelection}
+        canDelete={list.anyLive}
+        canRestore={list.anyDeleted}
+        busy={list.isBusy}
+        onDelete={() => list.setConfirmBulk(true)}
+        onRestore={() => list.runBulk('restore')}
         actions={[
           {
             key: 'share',
@@ -294,7 +236,7 @@ export default function ProcessesPage() {
           open
           onOpenChange={(open) => !open && setBulkShareOpen(false)}
           mode="create"
-          seedResources={selectedProcesses.map((p) => ({
+          seedResources={list.selectedRows.map((p) => ({
             type: 'process' as const,
             id: p.id,
             name: p.name,
@@ -303,14 +245,14 @@ export default function ProcessesPage() {
       )}
 
       <DeleteConfirmationDialog
-        open={confirmBulkDelete}
-        onOpenChange={setConfirmBulkDelete}
+        open={list.confirmBulk}
+        onOpenChange={list.setConfirmBulk}
         objectName=""
         title={t('common.bulk.deleteTitle')}
         description={t('common.bulk.deleteDescription', {
-          count: selectedProcesses.filter((p) => !p.deleted).length,
+          count: list.deletableCount,
         })}
-        onDelete={() => runBulk('delete')}
+        onDelete={() => list.runBulk('delete')}
       />
 
       {toShare && (
@@ -323,10 +265,10 @@ export default function ProcessesPage() {
       )}
 
       <DeleteConfirmationDialog
-        open={!!toDelete}
-        onOpenChange={(open) => !open && setToDelete(null)}
-        onDelete={confirmDelete}
-        objectName={toDelete?.name ?? ''}
+        open={!!list.toDelete}
+        onOpenChange={(open) => !open && list.setToDelete(null)}
+        onDelete={list.confirmDelete}
+        objectName={list.toDelete?.name ?? ''}
       />
     </>
   )
