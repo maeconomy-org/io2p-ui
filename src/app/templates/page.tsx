@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, FileText, Package, Workflow } from 'lucide-react'
+import { PlusCircle, FileText, Package, Share2, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { CreateTemplateInput, TemplateListItem } from 'io2p-client'
 
@@ -44,6 +44,10 @@ const ShareSheet = dynamic(
   () => import('@/components/access').then((mod) => mod.ShareSheet),
   { ssr: false }
 )
+const BulkShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.BulkShareSheet),
+  { ssr: false }
+)
 const TemplateSheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.TemplateSheet),
   { ssr: false }
@@ -69,6 +73,7 @@ export default function TemplatesPage() {
   const [createType, setCreateType] =
     useState<NonNullable<CreateTemplateInput['type']>>('object')
   const [shareTarget, setShareTarget] = useState<TemplateListItem | null>(null)
+  const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
   const { userId } = useAuth()
@@ -250,7 +255,28 @@ export default function TemplatesPage() {
         busy={list.isBusy}
         onDelete={() => list.setConfirmBulk(true)}
         onRestore={() => list.runBulk('restore')}
+        actions={[
+          {
+            key: 'share',
+            label: t('access.share'),
+            icon: Share2,
+            onSelect: () => setBulkShareOpen(true),
+          },
+        ]}
       />
+
+      {bulkShareOpen && (
+        <BulkShareSheet
+          open
+          onOpenChange={(open) => !open && setBulkShareOpen(false)}
+          resources={list.selectedRows.map((row) => ({
+            type: 'template' as const,
+            id: row.id,
+            name: row.name,
+          }))}
+          onDone={list.clearSelection}
+        />
+      )}
 
       <DeleteConfirmationDialog
         open={list.confirmBulk}

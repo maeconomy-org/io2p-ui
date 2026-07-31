@@ -5,11 +5,17 @@ import { useTranslations } from 'next-intl'
 import { Loader2, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 
 import { Button, SheetFooter } from '@/components/ui'
+import { DeleteConfirmationDialog } from '@/components/modals'
 import { anchor } from '@/constants'
 
 /**
- * The footer every entity sheet shares: view mode offers Edit and a two-step Delete, edit mode offers
- * Cancel and Save, and a soft-deleted entity offers only Restore.
+ * The footer every entity sheet shares: view mode offers Edit and Delete, edit mode offers Cancel
+ * and Save, and a soft-deleted entity offers only Restore.
+ *
+ * Delete opens a MODAL rather than asking for a second click on the button. The click-to-confirm
+ * pattern is right for the many small deletions inside the sheet — a property, a value, a file —
+ * where a dialog per row would be unbearable. Deleting the ENTITY is one rare, whole-record action,
+ * and it deserves to name what it is about to remove.
  *
  * A deleted entity is shown rather than hidden, but it cannot be edited until it is restored — which
  * is why Restore replaces the whole set instead of sitting alongside Edit.
@@ -22,6 +28,7 @@ export function SheetLifecycleFooter({
   isSubmitting,
   lifecycleBusy,
   canDelete,
+  entityName,
   onEdit,
   onCancel,
   onDelete,
@@ -35,6 +42,8 @@ export function SheetLifecycleFooter({
   lifecycleBusy: boolean
   /** False while the entity has no id yet, or the caller has no delete for it. */
   canDelete: boolean
+  /** Named in the confirmation, so the dialog says what it is about to delete. */
+  entityName?: string
   onEdit: () => void
   onCancel: () => void
   onDelete: () => void
@@ -72,22 +81,10 @@ export function SheetLifecycleFooter({
               variant="outline"
               className="text-destructive hover:text-destructive"
               disabled={lifecycleBusy}
-              // Blur resets the confirm so a half-pressed delete never lingers on a reopened sheet.
-              onBlur={() => setConfirmDelete(false)}
-              onClick={() => {
-                if (!confirmDelete) return setConfirmDelete(true)
-                setConfirmDelete(false)
-                onDelete()
-              }}
+              onClick={() => setConfirmDelete(true)}
             >
-              {confirmDelete ? (
-                t('common.confirm')
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t('common.delete')}
-                </>
-              )}
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('common.delete')}
             </Button>
           )}
         </>
@@ -112,6 +109,17 @@ export function SheetLifecycleFooter({
           </Button>
         </>
       )}
+
+      <DeleteConfirmationDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        objectName={entityName ?? ''}
+        disabled={lifecycleBusy}
+        onDelete={() => {
+          setConfirmDelete(false)
+          onDelete()
+        }}
+      />
     </SheetFooter>
   )
 }

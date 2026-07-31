@@ -193,6 +193,7 @@ export function TemplateSheet({
           isSubmitting={isSubmitting}
           lifecycleBusy={lifecycle.isBusy}
           canDelete={!!template && !isSystem}
+          entityName={template?.name}
           onEdit={() => setEditing(true)}
           onCancel={() => guardUnsaved(cancel)}
           onDelete={() => template && void lifecycle.run('delete', template.id)}

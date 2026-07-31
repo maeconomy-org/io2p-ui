@@ -21,7 +21,7 @@ interface EmptyStateProps {
  * ```tsx
  * <EmptyState
  *   icon={<Inbox className="h-10 w-10" />}
- *   title={t('objects.noObjects')}
+ *   title={t('objects.noObjectsTitle')}
  *   description={t('objects.noObjectsDescription')}
  *   action={<Button onClick={onCreate}>{t('objects.create')}</Button>}
  * />

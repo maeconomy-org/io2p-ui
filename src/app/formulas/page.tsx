@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, HelpCircle, FunctionSquare } from 'lucide-react'
+import { PlusCircle, HelpCircle, FunctionSquare, Share2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { FormulaDTO } from 'io2p-client'
 
@@ -34,6 +34,10 @@ import {
 
 const ShareSheet = dynamic(
   () => import('@/components/access').then((mod) => mod.ShareSheet),
+  { ssr: false }
+)
+const BulkShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.BulkShareSheet),
   { ssr: false }
 )
 const FormulaSheet = dynamic(
@@ -70,6 +74,7 @@ export default function FormulasPage() {
   const [referenceOpen, setReferenceOpen] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
   const [shareTarget, setShareTarget] = useState<FormulaDTO | null>(null)
+  const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
   const { userId } = useAuth()
@@ -229,7 +234,28 @@ export default function FormulasPage() {
         busy={list.isBusy}
         onDelete={() => list.setConfirmBulk(true)}
         onRestore={() => list.runBulk('restore')}
+        actions={[
+          {
+            key: 'share',
+            label: t('access.share'),
+            icon: Share2,
+            onSelect: () => setBulkShareOpen(true),
+          },
+        ]}
       />
+
+      {bulkShareOpen && (
+        <BulkShareSheet
+          open
+          onOpenChange={(open) => !open && setBulkShareOpen(false)}
+          resources={list.selectedRows.map((row) => ({
+            type: 'formula' as const,
+            id: row.id,
+            name: row.name,
+          }))}
+          onDone={list.clearSelection}
+        />
+      )}
 
       <DeleteConfirmationDialog
         open={list.confirmBulk}

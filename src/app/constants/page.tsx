@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, Ruler } from 'lucide-react'
+import { PlusCircle, Ruler, Share2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { ConstantDTO } from 'io2p-client'
 
@@ -35,6 +35,10 @@ const ShareSheet = dynamic(
   () => import('@/components/access').then((mod) => mod.ShareSheet),
   { ssr: false }
 )
+const BulkShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.BulkShareSheet),
+  { ssr: false }
+)
 const ConstantSheet = dynamic(
   () =>
     import('@/app/constants/components/constant-sheet').then(
@@ -58,6 +62,7 @@ export default function ConstantsPage() {
   const [sheet, setSheet] = useState<SheetState | null>(null)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
   const [shareTarget, setShareTarget] = useState<ConstantDTO | null>(null)
+  const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
   const { userId } = useAuth()
@@ -198,7 +203,28 @@ export default function ConstantsPage() {
         busy={list.isBusy}
         onDelete={() => list.setConfirmBulk(true)}
         onRestore={() => list.runBulk('restore')}
+        actions={[
+          {
+            key: 'share',
+            label: t('access.share'),
+            icon: Share2,
+            onSelect: () => setBulkShareOpen(true),
+          },
+        ]}
       />
+
+      {bulkShareOpen && (
+        <BulkShareSheet
+          open
+          onOpenChange={(open) => !open && setBulkShareOpen(false)}
+          resources={list.selectedRows.map((row) => ({
+            type: 'constant' as const,
+            id: row.id,
+            name: row.name,
+          }))}
+          onDone={list.clearSelection}
+        />
+      )}
 
       <DeleteConfirmationDialog
         open={list.confirmBulk}

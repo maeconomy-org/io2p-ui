@@ -31,11 +31,6 @@ function ResourceLabel({ name, id }: { name?: string; id: string }) {
   )
 }
 
-/** Only object and process can be managed here — `GET /v1/access` refuses the library types. */
-function isManageable(type: SharedByMeItem['resource']['type']) {
-  return type === 'object' || type === 'process'
-}
-
 /**
  * One row per RESOURCE, and the row is a SUMMARY — it does not manage access.
  *
@@ -147,30 +142,25 @@ export function buildSharedByMeColumns({
     ),
     // The same primary-button-plus-dropdown every other table uses. A bare icon button here read as
     // a different kind of row than it is.
-    actionsColumn<SharedByMeItem>((item): ReactNode => {
-      const manageable = isManageable(item.resource.type)
-      return (
+    actionsColumn<SharedByMeItem>(
+      (item): ReactNode => (
         <EntityActionsCell
           testIdPrefix="shared-by-me"
           detailsLabel={t('shares.manageAccess')}
-          onViewDetails={() => manageable && onManage(item)}
-          emptyMenuLabel={manageable ? undefined : t('shares.notManageable')}
-          actions={
-            manageable
-              ? [
-                  {
-                    key: 'revoke-all',
-                    label: t('shares.revokeAll'),
-                    icon: Ban,
-                    destructive: true,
-                    separated: true,
-                    onSelect: () => onRevokeAll(item),
-                  },
-                ]
-              : []
-          }
+          onViewDetails={() => onManage(item)}
+          actions={[
+            {
+              key: 'revoke-all',
+              label: t('shares.revokeAll'),
+              icon: Ban,
+              destructive: true,
+              separated: true,
+              onSelect: () => onRevokeAll(item),
+            },
+          ]}
         />
-      )
-    }, t('common.actions')),
+      ),
+      t('common.actions')
+    ),
   ]
 }
