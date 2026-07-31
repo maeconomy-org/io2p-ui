@@ -53,14 +53,14 @@ import {
   parseDateValue,
   type NormalizedProperty,
   type PassportFile,
-} from '@/components/object-sheets/passport/utils/passport-utils'
+} from '@/components/passport/utils/passport-utils'
 import {
   getStatusBadgeClasses,
   isUrlValue,
   resolveColorSwatch,
   urlLinkLabel,
-} from '@/components/object-sheets/passport/utils/passport-formatters'
-import { formatDate } from '@/components/object-sheets/passport/utils/format-date'
+} from '@/components/passport/utils/passport-formatters'
+import { formatDate } from '@/components/passport/utils/format-date'
 import type { PassportAddressInfo } from './passport-types'
 import {
   CalendarIcon,
@@ -268,9 +268,8 @@ function formatDurationPdf(days: number, locale: 'en' | 'nl'): string {
 
 interface HeroProps {
   object: {
-    uuid: string
+    id: string
     name: string
-    abbreviation: string
     description: string
   }
   properties: NormalizedProperty[]
@@ -335,20 +334,8 @@ function PdfHero({ object, properties, qrDataUrl, locale }: HeroProps) {
           >
             {object.name || t.untitled}
           </Text>
-          {(object.abbreviation || status || category) && (
+          {(status || category) && (
             <View style={[S.row, { flexWrap: 'wrap', gap: 4 }]}>
-              {object.abbreviation && (
-                <View
-                  style={[
-                    S.badge,
-                    { backgroundColor: C.grayBg, borderColor: C.border },
-                  ]}
-                >
-                  <Text style={{ fontSize: 7, color: C.text, lineHeight: 1 }}>
-                    {object.abbreviation}
-                  </Text>
-                </View>
-              )}
               {status && sc && (
                 <View
                   style={[
@@ -742,7 +729,7 @@ function PdfCategoryCard({ group, t }: CategoryCardProps) {
 
             return (
               <View
-                key={property.uuid ?? property.key}
+                key={property.id ?? property.key}
                 style={{ width: isLong ? '100%' : '48%', marginBottom: 2 }}
               >
                 <Text
@@ -873,7 +860,7 @@ interface DocumentsProps {
 
 function PdfDocumentsList({ files, locale }: DocumentsProps) {
   const t = TRANSLATIONS[locale]
-  const live = (files ?? []).filter((f) => !f.softDeleted)
+  const live = (files ?? []).filter((f) => !f.deleted)
   if (live.length === 0) return null
 
   const images = live.filter(isImageFile)
@@ -899,7 +886,7 @@ function PdfDocumentsList({ files, locale }: DocumentsProps) {
           >
             {images.slice(0, 6).map((file) => (
               <View
-                key={file.uuid ?? file.fileName}
+                key={file.id ?? file.fileName}
                 style={[
                   S.row,
                   {
@@ -926,7 +913,7 @@ function PdfDocumentsList({ files, locale }: DocumentsProps) {
         )}
         {docs.map((file) => (
           <View
-            key={file.uuid ?? file.fileName}
+            key={file.id ?? file.fileName}
             style={[S.row, { marginBottom: 3 }]}
           >
             <FileTextIcon size={8} color={C.muted} />
@@ -950,9 +937,8 @@ function PdfDocumentsList({ files, locale }: DocumentsProps) {
 
 export interface PassportPdfDocumentProps {
   object: {
-    uuid: string
+    id: string
     name: string
-    abbreviation: string
     description: string
   }
   properties: NormalizedProperty[]

@@ -24,12 +24,13 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }))
 
+// The import routes verify the core JWT, so this is what the hook now reads.
 const mockGetToken = vi.fn()
-vi.mock('@/contexts', () => ({
-  useIomSdkClient: () => ({
-    getToken: mockGetToken,
-  }),
+vi.mock('@/lib/auth-client', () => ({
+  getCoreToken: () => mockGetToken(),
 }))
+
+vi.mock('@/contexts', () => ({}))
 
 // Mock fetch
 global.fetch = vi.fn()
@@ -37,7 +38,7 @@ global.fetch = vi.fn()
 describe('useBulkImport', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetToken.mockReturnValue('fake-token')
+    mockGetToken.mockResolvedValue('fake-token')
     ;(global.fetch as any).mockReset()
   })
 
@@ -104,7 +105,7 @@ describe('useBulkImport', () => {
   })
 
   it('should fail if no token is available', async () => {
-    mockGetToken.mockReturnValue(null)
+    mockGetToken.mockResolvedValue(null)
     const { result } = renderHook(() => useBulkImport())
 
     let response: any

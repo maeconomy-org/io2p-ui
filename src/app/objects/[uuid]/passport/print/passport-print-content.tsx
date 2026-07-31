@@ -4,8 +4,8 @@ import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { useObjectData } from '@/components/object-sheets/hooks'
-import { PassportView } from '@/components/object-sheets/passport'
+import { useObjects } from '@/hooks/api/entities'
+import { PassportView } from '@/components/passport'
 
 /**
  * The interactive half of the print route: it fetches, then triggers the browser print dialog.
@@ -15,10 +15,7 @@ import { PassportView } from '@/components/object-sheets/passport'
  */
 export function PassportPrintContent({ uuid }: { uuid: string }) {
   const t = useTranslations()
-  const { object, properties, files, addressInfo, isLoading } = useObjectData({
-    uuid,
-    isOpen: true,
-  })
+  const { data: object, isLoading } = useObjects().useGet(uuid)
 
   useEffect(() => {
     if (isLoading || !object) return
@@ -40,10 +37,10 @@ export function PassportPrintContent({ uuid }: { uuid: string }) {
   return (
     <div className="mx-auto max-w-4xl px-2 py-2 print:px-0 print:py-0">
       <PassportView
-        object={object}
-        properties={properties}
-        files={files}
-        addressInfo={addressInfo}
+        object={object ?? null}
+        properties={object?.properties ?? []}
+        files={object?.files ?? []}
+        addressInfo={object?.address ?? null}
       />
     </div>
   )

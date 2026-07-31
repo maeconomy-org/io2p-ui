@@ -3,14 +3,8 @@ export * from './query-context'
 export * from './search-context'
 
 /**
- * DO NOT add `export * from './upload-queue-context'` here.
- *
- * Two upload systems are mounted side by side during the io2p migration, and BOTH export
- * `useUploadQueue` and `useOptionalUploadQueue`. Star-exporting both would make those names
- * ambiguous, and an ambiguous star-export is silently EXCLUDED from the module rather than being an
- * error — every importer would get `undefined` and fail at call time with no build signal.
- *
- * The new system is imported by direct path (`@/contexts/upload-queue-context`) on purpose. This
- * barrel exposes only the legacy one, which dies with the Processes vertical.
+ * `upload-queue-context` is still imported by direct path rather than star-exported here. It was
+ * kept out while a legacy upload context exported the SAME hook names — an ambiguous star-export is
+ * silently excluded rather than an error, so every importer would have got `undefined`. The legacy
+ * one is gone; adding it here is now safe, and only left undone to keep this change a deletion.
  */
-export * from './upload-context'

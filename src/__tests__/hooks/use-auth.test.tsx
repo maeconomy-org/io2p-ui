@@ -45,7 +45,7 @@ vi.mock('@/lib/io2p', () => ({
 }))
 
 // AuthEffects clears legacy drafts — stub it (localStorage-heavy).
-vi.mock('@/components/object-sheets/hooks/use-object-drafts', () => ({
+vi.mock('@/hooks/drafts/use-object-drafts', () => ({
   clearLegacyDrafts: vi.fn(),
 }))
 

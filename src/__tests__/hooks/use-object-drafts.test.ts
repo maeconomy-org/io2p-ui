@@ -8,7 +8,7 @@ import {
   draftKeyFor,
   clearLegacyDrafts,
   MAX_DRAFTS,
-} from '@/components/object-sheets/hooks/use-object-drafts'
+} from '@/hooks/drafts/use-object-drafts'
 
 const USER_A = 'user-a-uuid'
 const USER_B = 'user-b-uuid'

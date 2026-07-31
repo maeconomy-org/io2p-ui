@@ -32,7 +32,7 @@ const clientsByOrigin = new Map<string, Io2pClient>()
 
 /**
  * The io2p-client seam every migrated data hook consumes — distinct from the
- * dormant `useIomSdkClient` (old iom-sdk) that un-migrated hooks still use.
+ * the only client — the retired SDK and its context are gone.
  */
 export function useIomClient(): Io2pClient {
   const baseUrl = getCachedConfig()?.coreBaseUrl ?? ''

@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useForm } from 'react-hook-form'
 
-import { useFormDraftPersistence } from '@/components/object-sheets/hooks/use-form-draft-persistence'
+import { useFormDraftPersistence } from '@/hooks/drafts/use-form-draft-persistence'
 import {
   objectDraftsStore,
   indexKeyFor,
   draftKeyFor,
-} from '@/components/object-sheets/hooks/use-object-drafts'
+} from '@/hooks/drafts/use-object-drafts'
 
 const USER_A = 'user-a-uuid'
 

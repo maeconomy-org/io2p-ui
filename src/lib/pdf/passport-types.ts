@@ -1,7 +1,7 @@
 import type {
   NormalizedProperty,
   PassportFile,
-} from '@/components/object-sheets/passport/utils/passport-utils'
+} from '@/components/passport/utils/passport-utils'
 
 export interface PassportAddressInfo {
   uuid?: string
@@ -17,9 +17,8 @@ export interface PassportAddressInfo {
 
 export interface PassportDataResult {
   object: {
-    uuid: string
+    id: string
     name: string
-    abbreviation: string
     description: string
   }
   properties: NormalizedProperty[]

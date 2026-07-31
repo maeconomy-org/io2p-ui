@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { PUBLIC_PAGES_SET, getCachedConfig } from '@/constants'
-import { clearLegacyDrafts } from '@/components/object-sheets/hooks/use-object-drafts'
+import { clearLegacyDrafts } from '@/hooks/drafts/use-object-drafts'
 import { authClient, clearCoreToken, useSession } from '@/lib/auth-client'
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'

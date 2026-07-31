@@ -37,18 +37,15 @@ const EntitySheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
   { ssr: false }
 )
-const CopyObjectsSheet = dynamic(
+const DuplicateObjectsSheet = dynamic(
   () =>
-    import('@/components/object-sheets/copy-objects-sheet').then(
-      (mod) => mod.CopyObjectsSheet
+    import('@/components/duplicate-objects/duplicate-objects-sheet').then(
+      (mod) => mod.DuplicateObjectsSheet
     ),
   { ssr: false }
 )
 const ProductPassportSheet = dynamic(
-  () =>
-    import('@/components/object-sheets').then(
-      (mod) => mod.ProductPassportSheet
-    ),
+  () => import('@/components/passport').then((mod) => mod.ProductPassportSheet),
   { ssr: false }
 )
 const QRCodeModal = dynamic(
@@ -429,7 +426,7 @@ function ObjectsPageContent() {
       )}
 
       {isCopySheetOpen && copyTarget && (
-        <CopyObjectsSheet
+        <DuplicateObjectsSheet
           open={isCopySheetOpen}
           onOpenChange={setIsCopySheetOpen}
           preselectedObjects={[

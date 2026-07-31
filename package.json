@@ -73,7 +73,6 @@
     "expr-eval": "2.0.2",
     "input-otp": "^1.4.2",
     "io2p-client": "file:../iom-v2/io2p-client",
-    "iom-sdk": "0.2.7",
     "ioredis": "^5.11.1",
     "jsep": "^1.4.0",
     "lucide-react": "^1.17.0",

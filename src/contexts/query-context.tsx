@@ -2,11 +2,9 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
-import type { Client } from 'iom-sdk'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import type { ClientConfig } from '@/constants'
-import { getSdkClient } from '@/lib/sdk-client'
 
 // Dev-only, and lazy so the devtools bundle never enters the module graph of
 // the provider that wraps every route.
@@ -21,18 +19,7 @@ const ReactQueryDevtools =
         { ssr: false }
       )
 
-const IomSdkClientContext = createContext<Client | null>(null)
 const ConfigContext = createContext<ClientConfig | null>(null)
-
-export function useIomSdkClient(): Client {
-  const context = useContext(IomSdkClientContext)
-  if (!context) {
-    throw new Error(
-      'useIomSdkClient must be used within a QueryProvider and client must be ready'
-    )
-  }
-  return context
-}
 
 export function useAppConfig(): ClientConfig {
   const context = useContext(ConfigContext)
@@ -80,16 +67,12 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
     []
   )
 
-  const client = useMemo(() => getSdkClient(config), [config])
-
   return (
     <ConfigContext.Provider value={config}>
-      <IomSdkClientContext.Provider value={client}>
-        <QueryClientProvider client={queryClient}>
-          {children}
-          <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
-      </IomSdkClientContext.Provider>
+      <QueryClientProvider client={queryClient}>
+        {children}
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
     </ConfigContext.Provider>
   )
 }

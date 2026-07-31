@@ -16,29 +16,28 @@ function buildFixture(
 ): PassportPdfDocumentProps {
   return {
     object: {
-      uuid: 'test-uuid',
+      id: 'test-uuid',
       name: 'Test Window Frame',
-      abbreviation: 'WF',
       description: 'Steel window frame for unit-test fixture.',
     },
     properties: [
       {
-        uuid: 'p-manuf',
+        id: 'p-manuf',
         key: 'manufacturer',
         label: 'Manufacturer',
-        values: [{ value: 'Reynaers Aluminium' }],
+        values: [{ data: 'Reynaers Aluminium' }],
       },
       {
-        uuid: 'p-height',
+        id: 'p-height',
         key: 'height',
         label: 'Height',
-        values: [{ value: '1624 mm' }],
+        values: [{ data: '1624 mm' }],
       },
       {
-        uuid: 'p-status',
+        id: 'p-status',
         key: 'status',
         label: 'Status',
-        values: [{ value: 'Operational' }],
+        values: [{ data: 'Operational' }],
       },
     ],
     files: [],
