@@ -645,7 +645,13 @@
     "templateNameFrom": "{name} Sjabloon",
     "templateCreatedSuccess": "Sjabloon aangemaakt",
     "noObjectsAction": "Maak je eerste object",
-    "unnamed": "Naamloos"
+    "unnamed": "Naamloos",
+    "cover": {
+      "previewOf": "Bekijk de omslagafbeelding van {name}",
+      "set": "Gebruik als omslagafbeelding",
+      "clear": "Niet meer als omslagafbeelding gebruiken",
+      "current": "Omslagafbeelding"
+    }
   },
   "uploads": {
     "centerAnnounceCancelled": "Upload van {fileName} geannuleerd",

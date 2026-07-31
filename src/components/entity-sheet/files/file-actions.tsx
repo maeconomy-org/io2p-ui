@@ -6,8 +6,10 @@ import {
   Download,
   ExternalLink,
   Eye,
+  Image as ImageIcon,
   Loader2,
   RotateCcw,
+  Star,
   Trash2,
   X,
 } from 'lucide-react'
@@ -15,7 +17,28 @@ import {
 import { cn } from '@/lib/utils'
 import type { DraftFile } from '@/lib/entity-body'
 
+import { isImageFile } from './file-helpers'
 import type { FileState } from './use-file-state'
+
+/**
+ * Whether this file could be the entity's cover.
+ *
+ * Mirrors the server's rules so the button never offers something that would 422: an UPLOADED,
+ * READY, live IMAGE. A reference has no files-collection row and is rejected by construction; a
+ * pending pick has no id yet; video is deferred with the video-thumbnail decision.
+ *
+ * The server accepts a file at ANY level (entity, property, value, flow) — narrowing the picker to
+ * entity-level files is a UI choice, made by only passing `onSetCover` down that path.
+ */
+export function canBeCover(file: DraftFile, deleted: boolean): boolean {
+  return (
+    !deleted &&
+    file.kind === 'upload' &&
+    !!file.id &&
+    file.status === 'ready' &&
+    isImageFile(file)
+  )
+}
 
 const ACTION =
   'shrink-0 rounded p-1 text-muted-foreground transition-colors disabled:opacity-50'
@@ -34,6 +57,8 @@ export function FileActions({
   onPreview,
   onDownload,
   onRemove,
+  onSetCover,
+  isCover,
   className,
 }: {
   file: DraftFile
@@ -42,11 +67,20 @@ export function FileActions({
   onPreview?: (file: DraftFile) => void
   onDownload: () => void
   onRemove?: (localId: string) => void
+  /** Omitted everywhere but the entity's own file list — that is the picker's narrowing. */
+  onSetCover?: (fileId: string | null) => void
+  isCover?: boolean
   className?: string
 }) {
   const t = useTranslations()
   const isRef = file.kind === 'reference'
   const canPreview = state.previewable && !!onPreview
+  // EDIT MODE ONLY. `coverFileId` is an entity attribute, so it is staged and saved with the rest —
+  // and read mode's footer has no Save, so a change made there could never be committed. The same
+  // line the sheet already draws: a file's own soft-delete works in read mode because it commits
+  // itself; anything that PATCHes the entity waits for Edit.
+  const coverable =
+    !!onSetCover && editing && canBeCover(state.file, state.deleted)
 
   return (
     // The row itself performs the primary action, so a click on an icon must not do it twice.
@@ -92,6 +126,46 @@ export function FileActions({
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
             <Download className="h-3.5 w-3.5" />
+          )}
+        </button>
+      )}
+
+      {/* Read mode still SHOWS which file is the cover — that is worth knowing without entering
+          Edit — it just cannot be changed there. */}
+      {isCover && !editing && (
+        <span
+          className={cn(ACTION, 'text-amber-500')}
+          title={t('objects.cover.current')}
+          aria-label={`${t('objects.cover.current')}: ${state.name}`}
+        >
+          <Star className="h-3.5 w-3.5 fill-current" />
+        </span>
+      )}
+
+      {/* A filled star means "this is the cover" and clicking it clears; an outline offers the
+          swap. One control for both directions, because they are the same decision. */}
+      {editing && (coverable || isCover) && onSetCover && (
+        <button
+          type="button"
+          aria-label={
+            isCover
+              ? `${t('objects.cover.clear')} ${state.name}`
+              : `${t('objects.cover.set')} ${state.name}`
+          }
+          title={isCover ? t('objects.cover.clear') : t('objects.cover.set')}
+          aria-pressed={!!isCover}
+          onClick={() => onSetCover(isCover ? null : (state.file.id ?? null))}
+          className={cn(
+            ACTION,
+            isCover
+              ? 'text-amber-500 hover:text-amber-600'
+              : 'hover:text-foreground'
+          )}
+        >
+          {isCover ? (
+            <Star className="h-3.5 w-3.5 fill-current" />
+          ) : (
+            <ImageIcon className="h-3.5 w-3.5" />
           )}
         </button>
       )}

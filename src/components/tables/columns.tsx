@@ -15,6 +15,9 @@ import {
 import { cn } from '@/lib/utils'
 
 import { getSelectColumn } from './data-table'
+import type { CoverImage } from 'io2p-client'
+
+import { CoverCell } from './cover-cell'
 import type { EntitySort } from './use-entity-list-query'
 
 interface SortableOpts {
@@ -90,6 +93,32 @@ function headerCell<T>(
 
 export function selectColumn<T>(): ColumnDef<T, unknown> {
   return getSelectColumn<T>()
+}
+
+/**
+ * The cover thumbnail column. No header label — the pictures are self-evident and a word above a
+ * 40px column only steals width from Name.
+ *
+ * Fixed size so a row without a cover is exactly as tall as one with it; a column that changes the
+ * row height as covers arrive would make the whole table jump on load.
+ */
+export function coverColumn<T>(
+  getCover: (row: T) => CoverImage | null | undefined,
+  getName: (row: T) => string
+): ColumnDef<T, unknown> {
+  return {
+    id: 'cover',
+    header: () => null,
+    cell: ({ row }) => (
+      <CoverCell cover={getCover(row.original)} name={getName(row.original)} />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+    size: 40,
+    // The default px-4 is for text. On a 40px thumbnail it doubled the column and left 32px of dead
+    // space before the name — the picture and the name it belongs to have to read as one unit.
+    meta: { cellClassName: 'w-10 pl-2 pr-0' },
+  }
 }
 
 export function textColumn<T>(

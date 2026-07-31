@@ -6,6 +6,7 @@ import type { ObjectListItem } from 'io2p-client'
 
 import {
   actionsColumn,
+  coverColumn,
   idColumn,
   nameColumn,
   selectColumn,
@@ -45,6 +46,15 @@ export function buildObjectColumns({
   const cols: ColumnDef<ObjectListItem, unknown>[] = []
 
   if (enableSelection) cols.push(selectColumn<ObjectListItem>())
+
+  // `cover` is a ROOT field on the entity, which is the only reason a thumbnail can appear here:
+  // it survives the lean list select, where `files` does not.
+  cols.push(
+    coverColumn<ObjectListItem>(
+      (o) => o.cover,
+      (o) => o.name
+    )
+  )
 
   cols.push(
     nameColumn<ObjectListItem>((o) => o.name, {

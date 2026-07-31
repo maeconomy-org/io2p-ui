@@ -646,6 +646,8 @@ describe('dtoToDraft', () => {
 
     expect(dtoToDraft(dto)).toEqual({
       name: 'Wall A',
+      // The read model carries an enriched ref; the draft holds the id the write model wants.
+      coverFileId: null,
       description: 'a wall',
       address: { city: 'Zurich' },
       parentIds: ['p1', 'p2'],
@@ -665,10 +667,52 @@ describe('dtoToDraft', () => {
     const d = dtoToDraft(loaded({ name: 'Bare' }))
     expect(d).toEqual({
       name: 'Bare',
+      coverFileId: null,
       description: null,
       address: null,
       parentIds: [],
       properties: [],
+    })
+  })
+
+  describe('cover', () => {
+    it('reads the cover ref back as an id', () => {
+      const dto = loaded({
+        name: 'Wall',
+        cover: { id: 'file-9', kind: 'upload' },
+      } as unknown as Partial<ObjectDTO>)
+      expect(dtoToDraft(dto).coverFileId).toBe('file-9')
+    })
+
+    it('sends the new id when the cover changes', () => {
+      const before = loaded({
+        name: 'Wall',
+        cover: { id: 'file-1', kind: 'upload' },
+      } as unknown as Partial<ObjectDTO>)
+      const draft = { ...dtoToDraft(before), coverFileId: 'file-2' }
+      expect(buildUpdateObjectBody(before, draft).coverFileId).toBe('file-2')
+    })
+
+    it('sends null to CLEAR, not undefined', () => {
+      // `undefined` would be omitted from the body and read as "no change" — the clear would
+      // silently do nothing.
+      const before = loaded({
+        name: 'Wall',
+        cover: { id: 'file-1', kind: 'upload' },
+      } as unknown as Partial<ObjectDTO>)
+      const draft = { ...dtoToDraft(before), coverFileId: null }
+      const body = buildUpdateObjectBody(before, draft)
+      expect(body.coverFileId).toBeNull()
+      expect('coverFileId' in body).toBe(true)
+    })
+
+    it('omits it entirely when unchanged', () => {
+      const before = loaded({
+        name: 'Wall',
+        cover: { id: 'file-1', kind: 'upload' },
+      } as unknown as Partial<ObjectDTO>)
+      const body = buildUpdateObjectBody(before, dtoToDraft(before))
+      expect('coverFileId' in body).toBe(false)
     })
   })
 

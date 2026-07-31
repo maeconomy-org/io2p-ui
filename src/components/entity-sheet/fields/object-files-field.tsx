@@ -25,12 +25,18 @@ export function ObjectFilesField({
   allowViewToggle,
   showEmptyState,
   basePath = 'files',
+  allowCover = false,
 }: {
   form: UseFormReturn<EntityDraft>
   editing: boolean
   entityId?: string
   allowViewToggle?: boolean
   showEmptyState?: boolean
+  /**
+   * Offer "set as cover" on these rows. Entity-level only — the server accepts a file at any level,
+   * but a picker that spanned every property and value would be a worse question to ask.
+   */
+  allowCover?: boolean
   /**
    * Which file bag this edits. Defaults to the entity's own; a process FLOW passes its own path, so
    * the same section serves both instead of a near-copy per container.
@@ -77,6 +83,16 @@ export function ObjectFilesField({
         onAttach={editing ? () => setModalOpen(true) : undefined}
         onRemove={removeFile}
         onChange={patchFile}
+        // Staged on the form like any other field, so Save writes it with the rest and Cancel
+        // reverts it. Writing it here instead would bump `currentVersion` mid-edit and the sheet's
+        // reload would discard whatever else was typed.
+        onSetCover={
+          allowCover
+            ? (fileId) =>
+                form.setValue('coverFileId', fileId, { shouldDirty: true })
+            : undefined
+        }
+        coverFileId={form.watch('coverFileId')}
       />
       <AttachmentModal
         open={modalOpen}

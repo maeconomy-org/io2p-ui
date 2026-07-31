@@ -645,7 +645,13 @@
     "templateNameFrom": "{name} Template",
     "templateCreatedSuccess": "Template created",
     "noObjectsAction": "Create your first object",
-    "unnamed": "Unnamed"
+    "unnamed": "Unnamed",
+    "cover": {
+      "previewOf": "Preview the cover image of {name}",
+      "set": "Use as cover image",
+      "clear": "Remove as cover image",
+      "current": "Cover image"
+    }
   },
   "uploads": {
     "centerAnnounceCancelled": "Upload of {fileName} cancelled",

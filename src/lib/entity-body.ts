@@ -133,6 +133,14 @@ export interface DraftFlow {
  */
 export interface EntityDraft {
   name: string
+  /**
+   * The file acting as this entity's cover picture. `null` clears it.
+   *
+   * STAGED like any other field rather than written the moment it is picked: a cover is an entity
+   * attribute, so writing it immediately would bump `currentVersion`, and the sheet's reload effect
+   * keys on that — it would refetch and reset the form, discarding whatever else the user had typed.
+   */
+  coverFileId?: string | null
   description?: string | null
   address?: DraftAddress | null
   parentIds: string[]
@@ -209,6 +217,8 @@ export function readFiles(
 export function dtoToDraft(dto: ObjectDTO): EntityDraft {
   return {
     name: dto.name,
+    // The read model returns an enriched ref; the write model takes an id.
+    coverFileId: dto.cover?.id ?? null,
     description: dto.description ?? null,
     address: dto.address ?? null,
     parentIds: (dto.parents ?? []).map((p) => p.id),
@@ -505,6 +515,11 @@ export function buildUpdateObjectBody(
   const body: UpdateObjectBody = {}
 
   if (draft.name !== before.name) body.name = draft.name
+
+  // Compare against the ref's id, since that is what the draft holds.
+  const beforeCover = before.cover?.id ?? null
+  const draftCover = draft.coverFileId ?? null
+  if (beforeCover !== draftCover) body.coverFileId = draftCover
 
   const desc = scalarChange(before.description, draft.description)
   if (desc !== undefined) body.description = desc

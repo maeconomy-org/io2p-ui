@@ -10,6 +10,7 @@ import {
   type RowSelectionState,
   type VisibilityState,
   type OnChangeFn,
+  type RowData,
 } from '@tanstack/react-table'
 import { ChevronDown } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -33,6 +34,17 @@ import {
   Skeleton,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
+
+declare module '@tanstack/react-table' {
+  interface ColumnMeta<TData extends RowData, TValue> {
+    /**
+     * Padding/alignment for this column's cells. The default `px-4` is right for text and far too
+     * generous for a 40px thumbnail — it doubled the column's width and pushed the name away from
+     * the image it belongs to.
+     */
+    cellClassName?: string
+  }
+}
 
 /** Placeholder rows shown on FIRST load, before any data exists. */
 const LOADING_ROWS = 8
@@ -311,7 +323,10 @@ export function DataTable<TData>({
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className={cn(enableColumnResizing && 'relative')}
+                    className={cn(
+                      enableColumnResizing && 'relative',
+                      header.column.columnDef.meta?.cellClassName
+                    )}
                     style={
                       enableColumnResizing
                         ? { width: header.getSize() }
@@ -393,7 +408,10 @@ export function DataTable<TData>({
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={cell.column.columnDef.meta?.cellClassName}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

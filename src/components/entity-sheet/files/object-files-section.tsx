@@ -34,6 +34,9 @@ interface RowProps {
   onRemove?: (localId: string) => void
   onChange?: FileChange
   onPreview?: (file: DraftFile) => void
+  /** Present only at ENTITY level — that is how the picker is narrowed. */
+  onSetCover?: (fileId: string | null) => void
+  coverFileId?: string | null
 }
 
 /**
@@ -50,6 +53,8 @@ export function ObjectFilesSection({
   onAttach,
   onRemove,
   onChange,
+  onSetCover,
+  coverFileId,
   allowViewToggle = true,
   showEmptyState = true,
 }: {
@@ -59,6 +64,9 @@ export function ObjectFilesSection({
   onAttach?: () => void
   onRemove?: (localId: string) => void
   onChange?: FileChange
+  /** Omitted by the create form and by property/value file lists. */
+  onSetCover?: (fileId: string | null) => void
+  coverFileId?: string | null
   /** Off while creating: nothing is uploaded yet, so there are no thumbnails for a grid to show. */
   allowViewToggle?: boolean
   /** Off while creating: an empty object is the expected state, not something to report. */
@@ -69,7 +77,14 @@ export function ObjectFilesSection({
   const view = allowViewToggle ? storedView : 'list'
   const [previewFile, setPreviewFile] = useState<DraftFile | null>(null)
 
-  const rowProps = { editing, entityId, onRemove, onChange }
+  const rowProps = {
+    editing,
+    entityId,
+    onRemove,
+    onChange,
+    onSetCover,
+    coverFileId,
+  }
 
   return (
     <div className="space-y-3">
@@ -157,6 +172,8 @@ function FileCard({
   onRemove,
   onChange,
   onPreview,
+  onSetCover,
+  coverFileId,
 }: RowProps) {
   const t = useTranslations()
   const [thumbBroken, setThumbBroken] = useState(false)
@@ -225,6 +242,8 @@ function FileCard({
         onPreview={onPreview}
         onDownload={state.download}
         onRemove={onRemove}
+        onSetCover={onSetCover}
+        isCover={!!file.id && file.id === coverFileId}
       />
     </div>
   )
@@ -237,6 +256,8 @@ function FileTile({
   onRemove,
   onChange,
   onPreview,
+  onSetCover,
+  coverFileId,
 }: RowProps) {
   const [thumbBroken, setThumbBroken] = useState(false)
   const state = useFileState(file, { entityId, onChange })
@@ -293,6 +314,8 @@ function FileTile({
         onPreview={onPreview}
         onDownload={state.download}
         onRemove={onRemove}
+        onSetCover={onSetCover}
+        isCover={!!file.id && file.id === coverFileId}
         className="absolute right-1 top-1 rounded-md bg-background/90 opacity-0 shadow-sm focus-within:opacity-100 group-hover:opacity-100"
       />
     </div>

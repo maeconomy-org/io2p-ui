@@ -159,7 +159,12 @@ export function EntitySheet({
       label: t('objects.filesTitle'),
       dirty: !!dirtyFields.files,
       content: (
-        <ObjectFilesField form={form} editing={editing} entityId={entity?.id} />
+        <ObjectFilesField
+          form={form}
+          editing={editing}
+          entityId={entity?.id}
+          allowCover
+        />
       ),
     },
     {
