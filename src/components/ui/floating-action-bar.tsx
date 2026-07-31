@@ -4,10 +4,24 @@ import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
+/**
+ * Where in the stack this bar sits. Two can be up at once — a search context AND a selection — so
+ * the levels are named rather than left to whichever renders last.
+ *
+ * Written as literal classes because Tailwind resolves them from source text, so they cannot be
+ * computed from an index.
+ */
+const LEVELS = {
+  base: 'bottom-12',
+  raised: 'bottom-28',
+} as const
+
 interface FloatingActionBarProps {
   open: boolean
   /** Announced when the bar appears; it arrives without the user navigating to it. */
   label: string
+  /** `raised` clears a bar already sitting at `base`. Defaults to `base`. */
+  level?: keyof typeof LEVELS
   children: ReactNode
   className?: string
 }
@@ -33,6 +47,7 @@ interface FloatingActionBarProps {
 export function FloatingActionBar({
   open,
   label,
+  level = 'base',
   children,
   className,
 }: FloatingActionBarProps) {
@@ -42,7 +57,10 @@ export function FloatingActionBar({
     <div
       role="region"
       aria-label={label}
-      className="pointer-events-none fixed inset-x-0 bottom-12 z-40 flex justify-center px-4"
+      className={cn(
+        'pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4',
+        LEVELS[level]
+      )}
     >
       <div
         className={cn(

@@ -230,6 +230,7 @@ export default function ProcessesPage() {
               searchQuery={searchQuery}
               resultsCount={processesPage?.page.totalElements ?? 0}
               onClearSearch={clearSearch}
+              raised={isTable && selectedProcesses.length > 0}
             />
           )}
 

@@ -150,6 +150,7 @@ export default function ObjectsPage() {
             // the rows can no longer disagree. The table paginates itself.
             resultsCount={objectsPage?.page.totalElements ?? 0}
             onClearSearch={clearSearch}
+            raised={viewType === 'table' && state.selectedObjects.length > 0}
           />
         )}
 

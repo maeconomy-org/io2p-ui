@@ -176,6 +176,7 @@ export default function SharesPage() {
                   searchQuery={searchQuery}
                   resultsCount={sharesPage?.page.totalElements ?? 0}
                   onClearSearch={clearSearch}
+                  raised={tab === 'shares' && selectedShares.length > 0}
                 />
               )}
 

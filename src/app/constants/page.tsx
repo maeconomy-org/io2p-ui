@@ -191,6 +191,7 @@ export default function ConstantsPage() {
               searchQuery={searchQuery}
               resultsCount={constantsPage?.page.totalElements ?? 0}
               onClearSearch={clearSearch}
+              raised={selectedRows.length > 0}
             />
           )}
 

@@ -212,6 +212,7 @@ export default function FormulasPage() {
               searchQuery={searchQuery}
               resultsCount={formulasPage?.page.totalElements ?? 0}
               onClearSearch={clearSearch}
+              raised={selectedRows.length > 0}
             />
           )}
 

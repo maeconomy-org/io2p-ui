@@ -241,6 +241,7 @@ export default function TemplatesPage() {
               searchQuery={searchQuery}
               resultsCount={templatesPage?.page.totalElements ?? 0}
               onClearSearch={clearSearch}
+              raised={selectedRows.length > 0}
             />
           )}
 
