@@ -2,7 +2,7 @@ import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 
-import { PropertyNameCombobox } from '@/components/properties/property-name-combobox'
+import { PropertyNameCombobox } from '@/components/entity-sheet/fields/property-name-combobox'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,

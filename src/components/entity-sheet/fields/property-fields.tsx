@@ -22,7 +22,7 @@ import {
   Label,
 } from '@/components/ui'
 import { cn } from '@/lib'
-import { PropertyNameCombobox } from '@/components/properties/property-name-combobox'
+import { PropertyNameCombobox } from './property-name-combobox'
 import { useConstants } from '@/hooks/api/leaves'
 import {
   getValuePlaceholder,

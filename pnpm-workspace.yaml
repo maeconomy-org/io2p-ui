@@ -9,16 +9,20 @@ allowBuilds:
   sharp: true
 
 # Supply-chain cooldown: refuse any version published in the last 4320 minutes
-# (3 days), stronger than pnpm 11's 1-day default. Excludes our own SDK and the
+# (3 days), stronger than pnpm 11's 1-day default. Excludes our own client and the
 # framework packages we bump deliberately.
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
-  - iom-sdk
+  # Listed ahead of publication: io2p-client is a `file:` link today, so the
+  # cooldown does not apply yet, but it will the day it lands on a registry —
+  # and a 3-day wait on our own client would be a confusing first failure.
+  - io2p-client
   - next
   - react
   - react-dom
 
-# Security floor: keep axios on the patched line that iom-sdk's peer requires
-# (^1.17.0). Covers the SDK peer and any other transitive axios consumer.
+# Security floor. NOTHING depends on axios today — io2p-client pulls only uuid and
+# zod — so this is dormant. Kept so that anything which later drags axios in cannot
+# land on a pre-1.17.0 line.
 overrides:
   axios@>=1.0.0 <1.17.0: '>=1.17.0'
