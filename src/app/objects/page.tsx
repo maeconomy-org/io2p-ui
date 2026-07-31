@@ -20,7 +20,7 @@ import {
 } from '@/components/filters'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
-import { ObjectColumnsView } from '@/components/object-columns-view'
+import { ObjectColumnsView } from '@/app/objects/components/columns-view'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
 import { DraftRows } from '@/components/drafts'
 import { useObjectDrafts } from '@/hooks/drafts'

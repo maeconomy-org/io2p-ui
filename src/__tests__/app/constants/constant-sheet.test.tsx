@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import type { ConstantDTO } from 'io2p-client'
 
-import { ConstantSheet } from '@/components/constants/constant-sheet'
+import { ConstantSheet } from '@/app/constants/components/constant-sheet'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>

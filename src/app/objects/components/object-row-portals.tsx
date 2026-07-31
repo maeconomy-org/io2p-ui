@@ -13,7 +13,7 @@ const EntitySheet = dynamic(
 )
 const DuplicateObjectsSheet = dynamic(
   () =>
-    import('@/components/duplicate-objects/duplicate-objects-sheet').then(
+    import('@/app/objects/components/duplicate-objects/duplicate-objects-sheet').then(
       (mod) => mod.DuplicateObjectsSheet
     ),
   { ssr: false }

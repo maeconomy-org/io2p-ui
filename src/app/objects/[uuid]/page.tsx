@@ -11,7 +11,7 @@ import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { useObjects } from '@/hooks/api/entities'
 import { Button } from '@/components/ui'
 import { FilterMenu, deletedSection } from '@/components/filters'
-import { ObjectBreadcrumb } from '@/components/object-breadcrumb'
+import { ObjectBreadcrumb } from '../components/object-breadcrumb'
 import { EntityTable, useEntityListQuery } from '@/components/tables'
 import { ContentSkeleton } from '@/components/skeletons'
 
@@ -28,7 +28,7 @@ const EntitySheet = dynamic(
 )
 const DuplicateObjectsSheet = dynamic(
   () =>
-    import('@/components/duplicate-objects/duplicate-objects-sheet').then(
+    import('@/app/objects/components/duplicate-objects/duplicate-objects-sheet').then(
       (mod) => mod.DuplicateObjectsSheet
     ),
   { ssr: false }

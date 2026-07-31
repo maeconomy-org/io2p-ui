@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { useIomClient } from '@/lib/io2p'
 import { useDuplicateObjects } from '@/hooks/api/use-duplicate-objects'
-import { ParentSelector } from '@/components/duplicate-objects/components'
+import { ParentSelector } from '@/app/objects/components/duplicate-objects/components'
 
 const EMPTY_PRESELECTED: DuplicateSourceObject[] = []
 

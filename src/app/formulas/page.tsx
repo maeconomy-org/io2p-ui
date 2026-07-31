@@ -38,13 +38,15 @@ const ShareSheet = dynamic(
 )
 const FormulaSheet = dynamic(
   () =>
-    import('@/components/formulas/formula-sheet').then((m) => m.FormulaSheet),
+    import('@/app/formulas/components/formula-sheet').then(
+      (m) => m.FormulaSheet
+    ),
   { ssr: false }
 )
 
 const FormulaReferenceDialog = dynamic(
   () =>
-    import('@/components/formulas/formula-reference-dialog').then(
+    import('@/app/formulas/components/formula-reference-dialog').then(
       (m) => m.FormulaReferenceDialog
     ),
   { ssr: false }

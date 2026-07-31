@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import type { FormulaDTO } from 'io2p-client'
 
-import { FormulaSheet } from '@/components/formulas/formula-sheet'
+import { FormulaSheet } from '@/app/formulas/components/formula-sheet'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>

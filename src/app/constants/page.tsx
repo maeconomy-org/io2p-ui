@@ -38,7 +38,7 @@ const ShareSheet = dynamic(
 )
 const ConstantSheet = dynamic(
   () =>
-    import('@/components/constants/constant-sheet').then(
+    import('@/app/constants/components/constant-sheet').then(
       (m) => m.ConstantSheet
     ),
   { ssr: false }
