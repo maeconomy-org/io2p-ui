@@ -6,7 +6,8 @@ import { toast } from 'sonner'
 
 import { Badge, Label } from '@/components/ui'
 import { useObjects } from '@/hooks/api/entities'
-import type { ValueProvenance } from '@/lib/entity-body'
+import { useObjectDrafts } from '@/hooks/drafts'
+import { hasPendingUploads, type ValueProvenance } from '@/lib/entity-body'
 
 import { useEntityForm } from './hooks/use-entity-form'
 import { useEntityLifecycle } from './hooks/use-entity-lifecycle'
@@ -38,6 +39,8 @@ export interface EntitySheetProps {
    * so without these the preset parent renders as a bare UUID.
    */
   defaultParentNames?: Record<string, string>
+  /** Resume a locally-stored draft. Create flow only — an existing entity is its own source. */
+  draftId?: string | null
 }
 
 export function EntitySheet({
@@ -46,6 +49,7 @@ export function EntitySheet({
   entityId,
   defaultParentIds,
   defaultParentNames,
+  draftId,
 }: EntitySheetProps) {
   const t = useTranslations()
   const isCreate = !entityId
@@ -67,15 +71,38 @@ export function EntitySheet({
     setEditing(false)
   )
 
+  const drafts = useObjectDrafts()
+  const { getDraft } = drafts
+  const resumeDraft = useMemo(() => {
+    if (!isCreate || !draftId) return null
+    const draft = getDraft(draftId)
+    return draft ? { id: draftId, draft } : null
+  }, [isCreate, draftId, getDraft])
+
   const { form, submit, isSubmitting } = useEntityForm(entity, {
     defaultParentIds,
+    resumeDraft,
     onSaved: () => {
       setEditing(false)
-      if (isCreate) onOpenChange(false)
+      if (!isCreate) return
+      // The object exists on the server now, so the local copy is no longer a draft of anything.
+      if (draftId) drafts.deleteDraft(draftId)
+      onOpenChange(false)
     },
   })
 
   const { dirtyFields, isDirty } = form.formState
+
+  const saveAsDraft = () => {
+    const values = form.getValues()
+    const id = draftId ?? drafts.newDraftId()
+    drafts.saveDraft(
+      id,
+      values,
+      values.name.trim() || t('objects.drafts.untitled')
+    )
+    toast.success(t('objects.drafts.saved'))
+  }
 
   // Keyed by value id: presence means the value is derived, the payload is the node's evaluation
   // trace. A derived value always has a source; `provenance` is what it was computed FROM.
@@ -194,8 +221,10 @@ export function EntitySheet({
       dirtyCount={countDirtyLeaves(dirtyFields)}
       onFiles={dropFiles}
       onSubmit={submit}
+      onSaveDraft={isCreate ? saveAsDraft : undefined}
+      droppedUploads={isCreate && hasPendingUploads(form.getValues())}
       tabs={isCreate ? undefined : tabs}
-      footer={
+      footer={(guardUnsaved) => (
         <SheetLifecycleFooter
           editing={editing}
           isCreate={isCreate}
@@ -205,11 +234,11 @@ export function EntitySheet({
           lifecycleBusy={lifecycle.isBusy}
           canDelete={!!entity}
           onEdit={() => setEditing(true)}
-          onCancel={cancel}
+          onCancel={() => guardUnsaved(cancel)}
           onDelete={() => entity && void lifecycle.run('delete', entity.id)}
           onRestore={() => entity && void lifecycle.run('restore', entity.id)}
         />
-      }
+      )}
     >
       <CreateForm form={form} parentNames={parentNames} />
     </EntitySheetShell>

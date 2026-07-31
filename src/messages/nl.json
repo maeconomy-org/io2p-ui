@@ -705,10 +705,20 @@
       "badge": "Concept",
       "untitled": "Naamloos concept",
       "hideDraftsLabel": "Verberg concepten",
+      "saved": "Concept opgeslagen",
+      "savedOn": "Opgeslagen {date}",
+      "notSaved": "Nog niet opgeslagen — alleen op dit apparaat",
       "actions": {
         "open": "Openen",
-        "discard": "Verwerpen",
-        "more": "Meer conceptacties"
+        "resume": "Verder bewerken",
+        "discard": "Verwerpen"
+      },
+      "unsaved": {
+        "title": "Wijzigingen bewaren?",
+        "description": "Je hebt {count, plural, =1 {# niet-opgeslagen wijziging} other {# niet-opgeslagen wijzigingen}}. Sla ze op als concept op dit apparaat om later verder te gaan, of verwerp ze.",
+        "descriptionEdit": "Je hebt {count, plural, =1 {# niet-opgeslagen wijziging} other {# niet-opgeslagen wijzigingen}}. Als je nu sluit, gaan ze verloren.",
+        "saveDraft": "Concept opslaan",
+        "uploadsDropped": "Gekozen bestanden worden niet in een concept bewaard — je moet ze opnieuw toevoegen."
       },
       "discardConfirm": {
         "title": "Concept verwerpen?",

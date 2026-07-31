@@ -34,6 +34,7 @@ function renderShell(
   props: Partial<React.ComponentProps<typeof EntitySheetShell>> = {}
 ) {
   const onOpenChange = vi.fn()
+  const onCancel = vi.fn()
   const onSubmit = vi.fn((e: React.FormEvent) => e.preventDefault())
   const view = render(
     <EntitySheetShell
@@ -46,11 +47,18 @@ function renderShell(
       dirtyCount={0}
       onFiles={vi.fn()}
       onSubmit={onSubmit}
-      footer={<button type="submit">Save</button>}
+      footer={(guardUnsaved) => (
+        <>
+          <button type="submit">Save</button>
+          <button type="button" onClick={() => guardUnsaved(onCancel)}>
+            Cancel
+          </button>
+        </>
+      )}
       {...props}
     />
   )
-  return { ...view, onOpenChange, onSubmit }
+  return { ...view, onOpenChange, onCancel, onSubmit }
 }
 
 describe('EntitySheetShell', () => {
@@ -132,26 +140,98 @@ describe('EntitySheetShell', () => {
   })
 
   describe('closing with unsaved work', () => {
-    it('closes without confirming when clean', () => {
-      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const escape = () => fireEvent.keyDown(document.body, { key: 'Escape' })
+    const click = (key: string) =>
+      fireEvent.click(screen.getByText(key, { exact: false }))
+
+    it('closes straight away when clean', () => {
       const { onOpenChange } = renderShell({ isDirty: false })
-      fireEvent.keyDown(document.body, { key: 'Escape' })
-      expect(confirm).not.toHaveBeenCalled()
+      escape()
+      expect(
+        screen.queryByText('objects.drafts.unsaved.title')
+      ).not.toBeInTheDocument()
       expect(onOpenChange).toHaveBeenCalledWith(false)
     })
 
-    it('keeps the sheet open when the user declines the discard prompt', () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(false)
+    it('asks first when dirty, and stays open until answered', () => {
       const { onOpenChange } = renderShell({ isDirty: true, dirtyCount: 2 })
-      fireEvent.keyDown(document.body, { key: 'Escape' })
+      escape()
       expect(onOpenChange).not.toHaveBeenCalled()
+      expect(
+        screen.getByText('objects.detailsSheet.discardConfirm')
+      ).toBeInTheDocument()
     })
 
-    it('closes when the user accepts the discard prompt', () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
+    it('closes on Discard', () => {
       const { onOpenChange } = renderShell({ isDirty: true, dirtyCount: 2 })
-      fireEvent.keyDown(document.body, { key: 'Escape' })
+      escape()
+      click('objects.drafts.actions.discard')
       expect(onOpenChange).toHaveBeenCalledWith(false)
+    })
+
+    it('offers Save draft only when the caller can handle one', () => {
+      renderShell({ isDirty: true, dirtyCount: 2 })
+      escape()
+      expect(
+        screen.queryByText('objects.drafts.unsaved.saveDraft')
+      ).not.toBeInTheDocument()
+    })
+
+    // The create flow: saving the draft must both persist AND close, or the user answers the
+    // dialog and the sheet they were trying to leave is still sitting there.
+    it('saves the draft and closes when Save draft is chosen', () => {
+      const onSaveDraft = vi.fn()
+      const { onOpenChange } = renderShell({
+        isDirty: true,
+        dirtyCount: 2,
+        onSaveDraft,
+      })
+      escape()
+      click('objects.drafts.unsaved.saveDraft')
+      expect(onSaveDraft).toHaveBeenCalled()
+      expect(onOpenChange).toHaveBeenCalledWith(false)
+    })
+
+    // The regression this guards: Escape prompted, but the Cancel button sitting right beside Save
+    // threw the work away without a word.
+    it('routes the footer Cancel through the same prompt', () => {
+      const { onCancel } = renderShell({ isDirty: true, dirtyCount: 2 })
+      fireEvent.click(screen.getByText('Cancel'))
+      expect(onCancel).not.toHaveBeenCalled()
+      click('objects.drafts.actions.discard')
+      expect(onCancel).toHaveBeenCalled()
+    })
+
+    it('lets a clean Cancel through without asking', () => {
+      const { onCancel } = renderShell({ isDirty: false })
+      fireEvent.click(screen.getByText('Cancel'))
+      expect(onCancel).toHaveBeenCalled()
+    })
+
+    it('saves a draft from the Cancel prompt too', () => {
+      const onSaveDraft = vi.fn()
+      const { onCancel } = renderShell({
+        isDirty: true,
+        dirtyCount: 1,
+        onSaveDraft,
+      })
+      fireEvent.click(screen.getByText('Cancel'))
+      click('objects.drafts.unsaved.saveDraft')
+      expect(onSaveDraft).toHaveBeenCalled()
+      expect(onCancel).toHaveBeenCalled()
+    })
+
+    it('warns that picked files will not survive a draft', () => {
+      renderShell({
+        isDirty: true,
+        dirtyCount: 1,
+        onSaveDraft: vi.fn(),
+        droppedUploads: true,
+      })
+      escape()
+      expect(
+        screen.getByText('objects.drafts.unsaved.uploadsDropped')
+      ).toBeInTheDocument()
     })
   })
 })

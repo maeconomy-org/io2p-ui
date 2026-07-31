@@ -266,7 +266,7 @@ export function ProcessSheet({
       onFiles={dropFiles}
       onSubmit={submit}
       tabs={tabs}
-      footer={
+      footer={(guardUnsaved) => (
         <SheetLifecycleFooter
           editing={editing}
           isCreate={isCreate}
@@ -276,11 +276,11 @@ export function ProcessSheet({
           lifecycleBusy={lifecycle.isBusy}
           canDelete={!!process}
           onEdit={() => setEditing(true)}
-          onCancel={cancel}
+          onCancel={() => guardUnsaved(cancel)}
           onDelete={() => process && void lifecycle.run('delete', process.id)}
           onRestore={() => process && void lifecycle.run('restore', process.id)}
         />
-      }
+      )}
     />
   )
 }

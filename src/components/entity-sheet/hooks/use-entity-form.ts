@@ -32,6 +32,12 @@ const EMPTY_DRAFT: EntityDraft = {
 export interface UseEntityFormOptions {
   /** Parents to preset on a create draft (e.g. the "add child" flow). */
   defaultParentIds?: string[]
+  /**
+   * A locally-stored draft being resumed. Only meaningful when creating. The `id` is carried so the
+   * reload effect can tell one draft from another — without it, resuming a second draft while the
+   * sheet stays mounted would keep showing the first.
+   */
+  resumeDraft?: { id: string; draft: EntityDraft } | null
   /** Called after a successful create/update (or a no-op save) with the entity id. */
   onSaved?: (id: string) => void
 }
@@ -54,15 +60,17 @@ export function useEntityForm(
   entity?: ObjectDTO | null,
   options: UseEntityFormOptions = {}
 ) {
-  const { defaultParentIds, onSaved } = options
+  const { defaultParentIds, resumeDraft, onSaved } = options
   const t = useTranslations()
   const client = useIomClient()
   // Optional so the hook still renders outside the provider (tests, isolated usage).
   const uploadQueue = useOptionalUploadQueue()
 
-  const initial: EntityDraft = entity
-    ? dtoToDraft(entity)
-    : { ...EMPTY_DRAFT, parentIds: defaultParentIds ?? [] }
+  // A resumed draft already carries its own parents, so `defaultParentIds` must not overwrite them.
+  const blankOrResumed = (): EntityDraft =>
+    resumeDraft?.draft ?? { ...EMPTY_DRAFT, parentIds: defaultParentIds ?? [] }
+
+  const initial: EntityDraft = entity ? dtoToDraft(entity) : blankOrResumed()
 
   const form = useForm<EntityDraft>({ defaultValues: initial })
 
@@ -71,13 +79,15 @@ export function useEntityForm(
   const updateMutation = useUpdate()
 
   // Reload the form whenever a different entity (or a newer version after save) arrives.
-  const loadedKey = entity ? `${entity.id}:${entity.currentVersion}` : 'new'
+  const loadedKey = entity
+    ? `${entity.id}:${entity.currentVersion}`
+    : `new:${resumeDraft?.id ?? ''}`
   useEffect(() => {
-    form.reset(
-      entity
-        ? dtoToDraft(entity)
-        : { ...EMPTY_DRAFT, parentIds: defaultParentIds ?? [] }
-    )
+    form.reset(entity ? dtoToDraft(entity) : blankOrResumed())
+    // Identity key ONLY. `form` and `entity` are deliberately absent: this effect exists to resync
+    // when a DIFFERENT entity or draft arrives, and depending on the objects themselves would reset
+    // the form mid-edit on any unrelated re-render, discarding what the user typed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedKey])
 
   /**

@@ -113,6 +113,18 @@ export interface DataTableProps<TData> {
   emptyIcon?: ReactNode
   emptyTitle?: string
   emptyDescription?: string
+
+  /**
+   * `<TableRow>`s rendered above the data rows. Receives the CURRENT visible column count, because
+   * the column toggle changes it at runtime and a hard-coded span would drift out of the grid.
+   *
+   * For rows that are NOT part of the server page — local drafts, for one. They stay outside
+   * TanStack's row model on purpose: they have no server id, so selection would hand a bulk action
+   * an id the API has never issued, and counting them would make `totalElements` lie.
+   */
+  pinnedRows?: (colSpan: number) => ReactNode
+  /** Suppresses the empty state when pinned rows are the only thing to show. */
+  hasPinnedRows?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +241,8 @@ export function DataTable<TData>({
   emptyIcon,
   emptyTitle,
   emptyDescription,
+  pinnedRows,
+  hasPinnedRows = false,
 }: DataTableProps<TData>) {
   const t = useTranslations()
 
@@ -329,6 +343,7 @@ export function DataTable<TData>({
                 whole point of `placeholderData: keepPreviousData` on the list
                 queries — replacing the rows with a spinner threw the previous
                 page away and made paging flash, defeating it. */}
+            {pinnedRows?.(colCount)}
             {fetching && table.getRowModel().rows.length === 0 ? (
               Array.from({ length: LOADING_ROWS }).map((_, i) => (
                 <TableRow key={`loading-${i}`} aria-hidden="true">
@@ -339,7 +354,7 @@ export function DataTable<TData>({
                   ))}
                 </TableRow>
               ))
-            ) : table.getRowModel().rows.length === 0 ? (
+            ) : table.getRowModel().rows.length === 0 && !hasPinnedRows ? (
               <TableRow>
                 <TableCell colSpan={colCount} className="text-center">
                   <EmptyState

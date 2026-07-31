@@ -28,6 +28,8 @@ import {
   useEntityListQuery,
 } from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
+import { DraftRows } from '@/components/drafts'
+import { useObjectDrafts } from '@/hooks/drafts'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
 import { buildObjectColumns } from './components/object-columns'
@@ -112,6 +114,7 @@ function ObjectsPageContent() {
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [bulkParentOpen, setBulkParentOpen] = useState(false)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
+  const [resumeDraftId, setResumeDraftId] = useState<string | null>(null)
 
   const { clearTrail } = useBreadcrumbTrail(undefined)
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
@@ -121,6 +124,7 @@ function ObjectsPageContent() {
   const templateSource = templateFromObject.source
   const setTemplateSource = templateFromObject.setSource
 
+  const { drafts, deleteDraft } = useObjectDrafts()
   const listQuery = useEntityListQuery({ scope })
   const { useList, useRemove, useRestore, usePrefetchDetail } = useObjects()
   // Warm the detail cache on hover so the sheet opens populated.
@@ -188,6 +192,25 @@ function ObjectsPageContent() {
     setSelectedObject(object)
     setIsObjectSheetOpen(true)
   }, [])
+
+  const resumeDraft = useCallback((id: string) => {
+    setResumeDraftId(id)
+    setIsAddSheetOpen(true)
+  }, [])
+
+  /**
+   * Drafts pin to the FIRST page of an unfiltered, unsorted list only.
+   *
+   * They live in localStorage, so the server cannot search, sort or paginate them. Showing them
+   * under an active search would claim they matched it; showing them on page 3 would place them
+   * somewhere the sort never put them. `showDeleted` is excluded for the same reason — a draft was
+   * never created, so it cannot have been deleted.
+   */
+  const showDrafts =
+    !isSearchMode &&
+    !showDeleted &&
+    !listQuery.query.sort &&
+    (listQuery.query.page ?? 1) === 1
 
   const handleDoubleClick = useCallback(
     (object: ObjectListItem) => {
@@ -302,6 +325,19 @@ function ObjectsPageContent() {
             onPageChange={listQuery.setPage}
             onPageSizeChange={handlePageSizeChange}
             onRowDoubleClick={handleDoubleClick}
+            hasPinnedRows={showDrafts && drafts.length > 0}
+            pinnedRows={
+              showDrafts
+                ? (colSpan) => (
+                    <DraftRows
+                      drafts={drafts}
+                      colSpan={colSpan}
+                      onResume={resumeDraft}
+                      onDiscard={deleteDraft}
+                    />
+                  )
+                : undefined
+            }
             emptyIcon={
               <FileText className="h-10 w-10 text-muted-foreground/50" />
             }
@@ -394,7 +430,15 @@ function ObjectsPageContent() {
       )}
 
       {isAddSheetOpen && (
-        <EntitySheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen} />
+        <EntitySheet
+          open={isAddSheetOpen}
+          onOpenChange={(open) => {
+            setIsAddSheetOpen(open)
+            // Drop the resumed id on close, or the next plain "New object" would reopen the draft.
+            if (!open) setResumeDraftId(null)
+          }}
+          draftId={resumeDraftId}
+        />
       )}
 
       {qrTarget && (

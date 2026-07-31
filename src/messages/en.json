@@ -746,10 +746,20 @@
       "badge": "Draft",
       "untitled": "Untitled draft",
       "hideDraftsLabel": "Hide drafts",
+      "saved": "Draft saved",
+      "savedOn": "Saved {date}",
+      "notSaved": "Not saved yet — only on this device",
       "actions": {
         "open": "Open",
-        "discard": "Discard",
-        "more": "More draft actions"
+        "resume": "Continue editing",
+        "discard": "Discard"
+      },
+      "unsaved": {
+        "title": "Keep your changes?",
+        "description": "You have {count, plural, =1 {# unsaved change} other {# unsaved changes}}. Save them as a draft on this device to continue later, or discard them.",
+        "descriptionEdit": "You have {count, plural, =1 {# unsaved change} other {# unsaved changes}}. Closing now will discard them.",
+        "saveDraft": "Save draft",
+        "uploadsDropped": "Files you picked are not included in a draft — you will need to add them again."
       },
       "discardConfirm": {
         "title": "Discard draft?",

@@ -184,7 +184,7 @@ export function TemplateSheet({
       dirtyCount={countDirtyLeaves(dirtyFields)}
       onSubmit={submit}
       tabs={isCreate ? undefined : tabs}
-      footer={
+      footer={(guardUnsaved) => (
         <SheetLifecycleFooter
           editing={editing}
           isCreate={isCreate}
@@ -194,13 +194,13 @@ export function TemplateSheet({
           lifecycleBusy={lifecycle.isBusy}
           canDelete={!!template && !isSystem}
           onEdit={() => setEditing(true)}
-          onCancel={cancel}
+          onCancel={() => guardUnsaved(cancel)}
           onDelete={() => template && void lifecycle.run('delete', template.id)}
           onRestore={() =>
             template && void lifecycle.run('restore', template.id)
           }
         />
-      }
+      )}
     >
       <div className="space-y-4">
         <MetadataFields form={form} editing />

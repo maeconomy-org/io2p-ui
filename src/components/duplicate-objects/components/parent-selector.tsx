@@ -20,13 +20,9 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui'
-import { cn, truncateText, isDraftRef } from '@/lib/utils'
+import { cn, truncateText } from '@/lib/utils'
 import { useIomClient } from '@/lib/io2p'
-import { useAuth } from '@/contexts'
 import type { ParentObject } from '@/types'
-
-import { objectDraftsStore } from '@/hooks/drafts/use-object-drafts'
-import { DraftBadge } from './draft-badge'
 
 const EMPTY_PARENT_UUIDS: string[] = []
 
@@ -66,7 +62,6 @@ export function ParentSelector({
   onCreateInline,
 }: ParentSelectorProps) {
   const t = useTranslations()
-  const { userId } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -334,19 +329,13 @@ export function ParentSelector({
       {!compact && selectedParents.length > 0 && (
         <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-md">
           {selectedParents.map((parent) => {
-            const isDraft = isDraftRef(parent.uuid)
-            const draftPayload =
-              isDraft && userId
-                ? objectDraftsStore.get<{ name?: string }>(userId, parent.uuid)
-                : null
             const searchResult = searchResults.find(
               (obj) => obj.uuid === parent.uuid
             )
-            const displayName = isDraft
-              ? draftPayload?.name || t('objects.drafts.untitled')
-              : searchResult?.name ||
-                parent.name ||
-                `${parent.uuid.slice(0, 8)}...`
+            const displayName =
+              searchResult?.name ||
+              parent.name ||
+              `${parent.uuid.slice(0, 8)}...`
 
             return (
               <Badge
@@ -356,7 +345,6 @@ export function ParentSelector({
                 title={parent.uuid}
               >
                 <span className="truncate max-w-32">{displayName}</span>
-                {isDraft && <DraftBadge />}
                 {!disabled && (
                   <Button
                     variant="ghost"

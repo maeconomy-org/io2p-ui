@@ -1,8 +1,8 @@
 'use client'
 
-import type { FormEventHandler, ReactNode } from 'react'
-import { useTranslations } from 'next-intl'
+import { useState, type FormEventHandler, type ReactNode } from 'react'
 
+import { UnsavedChangesDialog } from '@/components/drafts/unsaved-changes-dialog'
 import {
   Sheet,
   SheetBody,
@@ -57,7 +57,19 @@ export interface EntitySheetShellProps {
   tabs?: SheetTab[]
   /** Linear body, used when `tabs` is omitted — the create flow. */
   children?: ReactNode
-  footer: ReactNode
+  /**
+   * Offered as a third option when closing dirty. Omit on an edit — the entity already exists
+   * server-side, so a local draft of it would be a rival copy with no way to say which is newer.
+   */
+  onSaveDraft?: () => void
+  /** Warn in the close dialog that pending file picks cannot be carried into a draft. */
+  droppedUploads?: boolean
+  /**
+   * Receives `guardUnsaved` so footer buttons that throw work away — Cancel, above all — run the
+   * same prompt as closing does. A guard the panel applies but the footer skips is worse than none:
+   * Escape asks, and the button right next to Save silently discards.
+   */
+  footer: (guardUnsaved: (proceed: () => void) => void) => ReactNode
 }
 
 /**
@@ -85,86 +97,121 @@ export function EntitySheetShell({
   onSubmit,
   tabs,
   children,
+  onSaveDraft,
+  droppedUploads,
   footer,
 }: EntitySheetShellProps) {
-  const t = useTranslations()
+  // Wrapped in an object because `useState` treats a bare function as a lazy initializer and would
+  // call the pending action instead of storing it.
+  const [pending, setPending] = useState<{ run: () => void } | null>(null)
 
-  const requestClose = () => {
-    if (isDirty && !window.confirm(t('objects.detailsSheet.discardConfirm')))
+  const guardUnsaved = (proceed: () => void) => {
+    if (!isDirty) {
+      proceed()
       return
-    onOpenChange(false)
+    }
+    setPending({ run: proceed })
   }
 
+  const resolve = () => {
+    const run = pending?.run
+    setPending(null)
+    run?.()
+  }
+
+  const requestClose = () => guardUnsaved(() => onOpenChange(false))
+
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(next) => (next ? onOpenChange(true) : requestClose())}
-    >
-      <SheetContent className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-xl">
-        <SheetHeader className="border-b px-6 py-4 pr-12">
-          <SheetTitle className="flex items-center gap-2">
-            <span className="min-w-0 truncate">{title}</span>
-            {badges}
-          </SheetTitle>
-          <SheetDescription className="sr-only">{title}</SheetDescription>
-        </SheetHeader>
+    <>
+      <Sheet
+        open={open}
+        onOpenChange={(next) => (next ? onOpenChange(true) : requestClose())}
+      >
+        <SheetContent className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-xl">
+          <SheetHeader className="border-b px-6 py-4 pr-12">
+            <SheetTitle className="flex items-center gap-2">
+              <span className="min-w-0 truncate">{title}</span>
+              {badges}
+            </SheetTitle>
+            <SheetDescription className="sr-only">{title}</SheetDescription>
+          </SheetHeader>
 
-        {loading && (
-          <div className="flex-1 space-y-3 px-6 py-6">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-8 w-2/3" />
-          </div>
-        )}
+          {loading && (
+            <div className="flex-1 space-y-3 px-6 py-6">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-8 w-2/3" />
+            </div>
+          )}
 
-        {!loading && (
-          <MaybeDropzone onFiles={onFiles} editing={editing}>
-            <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-              {tabs ? (
-                <Tabs
-                  defaultValue={tabs[0]?.value}
-                  className="flex min-h-0 flex-1 flex-col"
-                >
-                  <div className="px-6 pt-4">
-                    <TabsList
-                      className={cn(
-                        'grid w-full',
-                        TAB_COLUMNS[tabs.length] ?? 'grid-cols-3'
-                      )}
-                    >
-                      {tabs.map((tab) => (
-                        <TabsTrigger key={tab.value} value={tab.value}>
-                          {tab.label}
-                          <DirtyDot show={tab.dirty} />
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </div>
-
-                  <SheetBody>
-                    {tabs.map((tab) => (
-                      <TabsContent
-                        key={tab.value}
-                        value={tab.value}
-                        className="mt-0"
+          {!loading && (
+            <MaybeDropzone onFiles={onFiles} editing={editing}>
+              <form
+                onSubmit={onSubmit}
+                className="flex min-h-0 flex-1 flex-col"
+              >
+                {tabs ? (
+                  <Tabs
+                    defaultValue={tabs[0]?.value}
+                    className="flex min-h-0 flex-1 flex-col"
+                  >
+                    <div className="px-6 pt-4">
+                      <TabsList
+                        className={cn(
+                          'grid w-full',
+                          TAB_COLUMNS[tabs.length] ?? 'grid-cols-3'
+                        )}
                       >
-                        {tab.content}
-                      </TabsContent>
-                    ))}
-                  </SheetBody>
-                </Tabs>
-              ) : (
-                <SheetBody>{children}</SheetBody>
-              )}
+                        {tabs.map((tab) => (
+                          <TabsTrigger key={tab.value} value={tab.value}>
+                            {tab.label}
+                            <DirtyDot show={tab.dirty} />
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </div>
 
-              {isDirty && <UnsavedBar count={dirtyCount} />}
+                    <SheetBody>
+                      {tabs.map((tab) => (
+                        <TabsContent
+                          key={tab.value}
+                          value={tab.value}
+                          className="mt-0"
+                        >
+                          {tab.content}
+                        </TabsContent>
+                      ))}
+                    </SheetBody>
+                  </Tabs>
+                ) : (
+                  <SheetBody>{children}</SheetBody>
+                )}
 
-              {footer}
-            </form>
-          </MaybeDropzone>
-        )}
-      </SheetContent>
-    </Sheet>
+                {isDirty && <UnsavedBar count={dirtyCount} />}
+
+                {footer(guardUnsaved)}
+              </form>
+            </MaybeDropzone>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <UnsavedChangesDialog
+        open={!!pending}
+        onOpenChange={(open) => !open && setPending(null)}
+        count={dirtyCount}
+        onSaveDraft={
+          onSaveDraft
+            ? () => {
+                onSaveDraft()
+                resolve()
+              }
+            : undefined
+        }
+        onDiscard={resolve}
+        droppedUploads={droppedUploads}
+      />
+    </>
   )
 }
 

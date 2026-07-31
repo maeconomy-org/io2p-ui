@@ -45,6 +45,10 @@ export interface EntityTableProps<T> {
   emptyIcon?: ReactNode
   emptyTitle?: string
   emptyDescription?: string
+
+  /** Rows above the server page — see DataTable. Forwarded via `...rest`. */
+  pinnedRows?: (colSpan: number) => ReactNode
+  hasPinnedRows?: boolean
 }
 
 export function EntityTable<T>({

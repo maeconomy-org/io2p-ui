@@ -3,12 +3,15 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
 import { useAuth } from '@/contexts/auth-context'
+import type { DraftFile, EntityDraft } from '@/lib/entity-body'
 
 const ROOT = 'iom-drafts:objects'
-const MAX_DRAFTS = 25
 
-const indexKeyFor = (uuid: string) => `${ROOT}:${uuid}:index`
-const draftKeyFor = (uuid: string, id: string) => `${ROOT}:${uuid}:${id}`
+/** Oldest drafts past this are evicted on save. localStorage is ~5 MB per origin, shared. */
+export const MAX_DRAFTS = 25
+
+const indexKeyFor = (userId: string) => `${ROOT}:${userId}:index`
+const draftKeyFor = (userId: string, id: string) => `${ROOT}:${userId}:${id}`
 
 export interface DraftIndexEntry {
   id: string
@@ -16,35 +19,114 @@ export interface DraftIndexEntry {
   name: string
 }
 
-function readIndex(uuid: string): DraftIndexEntry[] {
+/**
+ * A pending upload is a `File` handle, which does not survive `JSON.stringify` — it serializes to
+ * `{}` and comes back as a file with no bytes and no name. Dropping those picks is the honest
+ * option: the alternative is a restored draft whose file rows look real and upload nothing.
+ */
+function withoutPendingUploads(files?: DraftFile[]): DraftFile[] | undefined {
+  if (!files) return undefined
+  const keep = files.filter((f) => !f.blob)
+  return keep.length ? keep : undefined
+}
+
+function serializable(draft: EntityDraft): EntityDraft {
+  return {
+    ...draft,
+    files: withoutPendingUploads(draft.files),
+    properties: draft.properties.map((p) => ({
+      ...p,
+      files: withoutPendingUploads(p.files),
+      values: p.values.map((v) => ({
+        ...v,
+        files: withoutPendingUploads(v.files),
+      })),
+    })),
+  }
+}
+
+function readIndex(userId: string): DraftIndexEntry[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = localStorage.getItem(indexKeyFor(uuid))
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
+    const parsed = JSON.parse(localStorage.getItem(indexKeyFor(userId)) ?? '[]')
     return Array.isArray(parsed) ? (parsed as DraftIndexEntry[]) : []
   } catch {
     return []
   }
 }
 
-function writeIndex(uuid: string, entries: DraftIndexEntry[]) {
-  try {
-    localStorage.setItem(indexKeyFor(uuid), JSON.stringify(entries))
-  } catch {
-    // silent fail
-  }
-}
-
 const listeners = new Set<() => void>()
-function notify() {
-  listeners.forEach((l) => l())
+
+/**
+ * Non-hook access, for callers that cannot use `useAuth()`. `userId` is a required argument rather
+ * than ambient state because it is the isolation boundary: two accounts on one browser must never
+ * see each other's drafts.
+ */
+export const objectDraftsStore = {
+  list(userId: string): DraftIndexEntry[] {
+    return [...readIndex(userId)].sort((a, b) => b.updatedAt - a.updatedAt)
+  },
+
+  get(userId: string, id: string): EntityDraft | null {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = localStorage.getItem(draftKeyFor(userId, id))
+      return raw ? (JSON.parse(raw) as EntityDraft) : null
+    } catch {
+      return null
+    }
+  },
+
+  save(userId: string, id: string, draft: EntityDraft, name: string) {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(
+        draftKeyFor(userId, id),
+        JSON.stringify(serializable(draft))
+      )
+      const next = [
+        { id, updatedAt: Date.now(), name },
+        ...readIndex(userId).filter((e) => e.id !== id),
+      ].sort((a, b) => b.updatedAt - a.updatedAt)
+
+      for (const evicted of next.slice(MAX_DRAFTS)) {
+        localStorage.removeItem(draftKeyFor(userId, evicted.id))
+      }
+      localStorage.setItem(
+        indexKeyFor(userId),
+        JSON.stringify(next.slice(0, MAX_DRAFTS))
+      )
+      listeners.forEach((l) => l())
+    } catch {
+      // A quota error must not take the sheet down with it — the user's real move is Save, and the
+      // draft is a convenience. The count in the table is the feedback that it did not stick.
+    }
+  },
+
+  delete(userId: string, id: string) {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.removeItem(draftKeyFor(userId, id))
+      localStorage.setItem(
+        indexKeyFor(userId),
+        JSON.stringify(readIndex(userId).filter((e) => e.id !== id))
+      )
+      listeners.forEach((l) => l())
+    } catch {
+      // see save()
+    }
+  },
+
+  newId(): string {
+    return `draft_${crypto.randomUUID()}`
+  },
 }
 
-function subscribeFactory(uuid: string | undefined) {
+function subscribe(userId: string | undefined) {
   return (listener: () => void) => {
     listeners.add(listener)
-    const key = uuid ? indexKeyFor(uuid) : null
+    // Another TAB writing drafts fires `storage`, not our in-process listener set.
+    const key = userId ? indexKeyFor(userId) : null
     const onStorage = (e: StorageEvent) => {
       if (e.key === key || e.key === null) listener()
     }
@@ -56,217 +138,88 @@ function subscribeFactory(uuid: string | undefined) {
   }
 }
 
-function getSnapshotFactory(uuid: string | undefined) {
+// `useSyncExternalStore` compares snapshots by identity, so this returns the raw JSON string and
+// parsing happens after. Returning a fresh array here would re-render on every check.
+function getSnapshot(userId: string | undefined) {
   return () => {
-    if (typeof window === 'undefined' || !uuid) return '[]'
-    return localStorage.getItem(indexKeyFor(uuid)) ?? '[]'
+    if (typeof window === 'undefined' || !userId) return '[]'
+    return localStorage.getItem(indexKeyFor(userId)) ?? '[]'
   }
 }
 
-function getServerSnapshot(): string {
-  return '[]'
-}
+const getServerSnapshot = () => '[]'
 
 export function useObjectDrafts() {
   const { userId } = useAuth()
 
   const indexRaw = useSyncExternalStore(
-    subscribeFactory(userId),
-    getSnapshotFactory(userId),
+    subscribe(userId),
+    getSnapshot(userId),
     getServerSnapshot
   )
 
-  const drafts: DraftIndexEntry[] = (() => {
-    if (!userId) return []
+  let drafts: DraftIndexEntry[] = []
+  if (userId) {
     try {
       const parsed = JSON.parse(indexRaw)
-      if (!Array.isArray(parsed)) return []
-      return [...(parsed as DraftIndexEntry[])].sort(
-        (a, b) => b.updatedAt - a.updatedAt
-      )
+      if (Array.isArray(parsed)) {
+        drafts = [...(parsed as DraftIndexEntry[])].sort(
+          (a, b) => b.updatedAt - a.updatedAt
+        )
+      }
     } catch {
-      return []
+      drafts = []
     }
-  })()
-
-  const createDraftId = useCallback((): string => {
-    const rand =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
-    return `draft_${rand}`
-  }, [])
+  }
 
   const getDraft = useCallback(
-    <T = unknown>(id: string): T | null => {
-      if (typeof window === 'undefined' || !userId) return null
-      try {
-        const raw = localStorage.getItem(draftKeyFor(userId, id))
-        if (!raw) return null
-        return JSON.parse(raw) as T
-      } catch {
-        return null
-      }
-    },
+    (id: string) => (userId ? objectDraftsStore.get(userId, id) : null),
     [userId]
   )
 
   const saveDraft = useCallback(
-    (id: string, payload: unknown, name: string) => {
-      if (typeof window === 'undefined' || !userId) return
-      try {
-        localStorage.setItem(draftKeyFor(userId, id), JSON.stringify(payload))
-        const current = readIndex(userId).filter((e) => e.id !== id)
-        const next: DraftIndexEntry[] = [
-          { id, updatedAt: Date.now(), name },
-          ...current,
-        ]
-        if (next.length > MAX_DRAFTS) {
-          const sorted = [...next].sort((a, b) => b.updatedAt - a.updatedAt)
-          const evicted = sorted.slice(MAX_DRAFTS)
-          for (const e of evicted) {
-            try {
-              localStorage.removeItem(draftKeyFor(userId, e.id))
-            } catch {
-              // silent fail
-            }
-          }
-          writeIndex(userId, sorted.slice(0, MAX_DRAFTS))
-        } else {
-          writeIndex(userId, next)
-        }
-        notify()
-      } catch {
-        // silent fail
-      }
+    (id: string, draft: EntityDraft, name: string) => {
+      if (userId) objectDraftsStore.save(userId, id, draft, name)
     },
     [userId]
   )
 
   const deleteDraft = useCallback(
     (id: string) => {
-      if (typeof window === 'undefined' || !userId) return
-      try {
-        localStorage.removeItem(draftKeyFor(userId, id))
-        writeIndex(
-          userId,
-          readIndex(userId).filter((e) => e.id !== id)
-        )
-        notify()
-      } catch {
-        // silent fail
-      }
+      if (userId) objectDraftsStore.delete(userId, id)
     },
     [userId]
   )
 
   return {
     drafts,
-    createDraftId,
+    newDraftId: objectDraftsStore.newId,
     getDraft,
     saveDraft,
     deleteDraft,
   }
 }
 
-// Non-hook escape hatch — useful inside RHF watch callbacks and pure
-// utilities where we can't call useAuth(). Callers must pass the current
-// userId; this is the security boundary that isolates drafts per user.
-export const objectDraftsStore = {
-  read(uuid: string) {
-    return readIndex(uuid)
-  },
-  get<T = unknown>(uuid: string, id: string): T | null {
-    if (typeof window === 'undefined') return null
-    try {
-      const raw = localStorage.getItem(draftKeyFor(uuid, id))
-      return raw ? (JSON.parse(raw) as T) : null
-    } catch {
-      return null
-    }
-  },
-  save(uuid: string, id: string, payload: unknown, name: string) {
-    if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(draftKeyFor(uuid, id), JSON.stringify(payload))
-      const current = readIndex(uuid).filter((e) => e.id !== id)
-      const next: DraftIndexEntry[] = [
-        { id, updatedAt: Date.now(), name },
-        ...current,
-      ]
-      const sorted = [...next].sort((a, b) => b.updatedAt - a.updatedAt)
-      if (sorted.length > MAX_DRAFTS) {
-        const evicted = sorted.slice(MAX_DRAFTS)
-        for (const e of evicted) {
-          try {
-            localStorage.removeItem(draftKeyFor(uuid, e.id))
-          } catch {
-            // silent fail
-          }
-        }
-        writeIndex(uuid, sorted.slice(0, MAX_DRAFTS))
-      } else {
-        writeIndex(uuid, sorted)
-      }
-      notify()
-    } catch {
-      // silent fail
-    }
-  },
-  delete(uuid: string, id: string) {
-    if (typeof window === 'undefined') return
-    try {
-      localStorage.removeItem(draftKeyFor(uuid, id))
-      writeIndex(
-        uuid,
-        readIndex(uuid).filter((e) => e.id !== id)
-      )
-      notify()
-    } catch {
-      // silent fail
-    }
-  },
-  MAX_DRAFTS,
-}
-
-// One-time cleanup of legacy un-namespaced draft keys created before user
-// isolation existed. Old keys looked like `iom-drafts:objects:index` and
-// `iom-drafts:objects:<draftId>` (no uuid segment). Since we can't safely
-// attribute them to any user, drop them on app boot.
+/**
+ * One-time cleanup of un-namespaced keys written before drafts were isolated per user. The old
+ * shape was `iom-drafts:objects:index` / `iom-drafts:objects:draft_<id>` — no user segment — so
+ * they cannot be attributed to anyone and are dropped rather than migrated.
+ */
 export function clearLegacyDrafts() {
   if (typeof window === 'undefined') return
   try {
-    const toRemove: string[] = []
+    const stale: string[] = []
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
-      if (!key || !key.startsWith(`${ROOT}:`)) continue
-      // New format has a uuid segment, then either `:index` or `:draft_<id>`.
-      // Anything not matching the new shape is legacy.
+      if (!key?.startsWith(`${ROOT}:`)) continue
       const rest = key.slice(ROOT.length + 1)
-      const firstSep = rest.indexOf(':')
-      if (firstSep === -1) {
-        // e.g. `iom-drafts:objects:index` (legacy index)
-        toRemove.push(key)
-        continue
-      }
-      const head = rest.slice(0, firstSep)
-      // Legacy draft payloads were `iom-drafts:objects:draft_<id>` — head
-      // would start with `draft_` and there'd be no uuid before it.
-      if (head.startsWith('draft_')) {
-        toRemove.push(key)
-      }
+      const sep = rest.indexOf(':')
+      if (sep === -1 || rest.slice(0, sep).startsWith('draft_')) stale.push(key)
     }
-    for (const key of toRemove) {
-      try {
-        localStorage.removeItem(key)
-      } catch {
-        // silent fail
-      }
-    }
+    stale.forEach((key) => localStorage.removeItem(key))
   } catch {
-    // silent fail
+    // see save()
   }
 }
 
-// Re-export used by tests
-export { indexKeyFor, draftKeyFor, MAX_DRAFTS }
+export { indexKeyFor, draftKeyFor }
