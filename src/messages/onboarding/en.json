@@ -4,8 +4,10 @@
     "welcomeDescription": "This is your main workspace where you can browse, manage, and organize all the objects in your system. Objects are the core entities that represent real-world items, documents, or concepts you want to track and manage.",
     "processes": "I/O Processes",
     "processesDescription": "Here you can track and monitor processes that transform or move your objects. This section helps you understand how objects flow through different stages, from input to output, giving you complete visibility into your operational workflows.",
-    "models": "Models & Templates",
-    "modelsDescription": "Create reusable models and templates that define the structure and properties of your objects. Models act as blueprints, ensuring consistency when creating new objects and helping standardize your data across the platform.",
+    "shares": "Shares",
+    "sharesDescription": "Bundle objects and hand them to other people. Replaces Groups — a Share carries resources, and lists who can see them.",
+    "library": "Library",
+    "libraryDescription": "Your reusable definitions: Templates to start an object from, Formulas to compute values, and Constants they can refer to.",
     "import": "Data Import",
     "importDescription": "Import existing data from external sources, spreadsheets, or other systems. This powerful feature allows you to bring your legacy data into IoM efficiently, supporting various formats and bulk operations to get you started quickly.",
     "search": "Global Search",
@@ -32,13 +34,38 @@
     "fileAttachmentsDescription": "Upload supporting documents, images, specifications, or any files that provide additional context about your object. These attachments become part of the object's permanent record and are searchable within the system.",
     "customProperties": "Custom Properties",
     "customPropertiesDescription": "Add specialized data fields unique to your object. Each property has a name and value, and you can attach files to individual properties for detailed documentation. This flexibility allows you to capture any specific information your object needs.",
-    "propertyFiles": "Property File Attachments",
-    "propertyFilesDescription": "Properties support file attachments at multiple levels - you can attach files to the property name itself (for documentation about what the property represents) and to individual property values (for evidence or supporting documents). This granular file system creates comprehensive documentation for your objects.",
     "completeCreation": "Complete Object Creation",
     "completeCreationDescription": "When you've filled in all the necessary information, click Create to save your new object to the system. The object will then be available for searching, linking, and use in processes throughout your IoM workspace."
   },
-  "createObject": {
-    "title": "Create your first object",
-    "description": "Use this button to add a new object to the system."
+  "buildTemplate": {
+    "start": "Start a template",
+    "startDescription": "Pick object or process. A template carries the properties a new entity starts with — including formula recipes and the constants those bind to.",
+    "reuse": "Then use it here",
+    "reuseDescription": "Every new object offers your templates at the top of the create sheet. Choosing one fills the fields; you can still change anything before saving."
+  },
+  "writeFormula": {
+    "start": "Write a formula",
+    "startDescription": "A formula is an expression bound to a property value and recomputed server-side. Formulas are immutable — changing one means duplicating it.",
+    "reference": "What you can use",
+    "referenceDescription": "The reference lists every function and operator available, plus how to refer to other properties and to constants."
+  },
+  "shareObjects": {
+    "start": "Create a share",
+    "startDescription": "A share bundles objects and processes and grants a group access to all of them at once. Access cascades to children, and the whole bundle can be revoked in one step.",
+    "tabs": "Two kinds of access",
+    "tabsDescription": "Shares are the bundles you built. Shared by me lists everything you have granted individually as well, so you can see and withdraw it all in one place."
+  },
+  "workWithDrafts": {
+    "start": "Start something you can finish later",
+    "startDescription": "Close the create sheet with unsaved changes and you are offered a draft. Drafts live on this device only — files you picked are not carried over.",
+    "pinned": "Drafts wait at the top",
+    "pinnedDescription": "Unfinished work pins above the list so it cannot get lost behind pagination. Continue editing to reopen it, or discard it from the row menu."
+  },
+  "whatsNew": {
+    "gotIt": "Got it",
+    "shares": "Groups are now Shares",
+    "sharesDescription": "Same place in the nav, different idea. A share bundles objects and processes and grants access to all of them at once — it holds resources, and lists who can see them.",
+    "library": "Templates moved into Library",
+    "libraryDescription": "Templates now sit alongside Formulas and Constants under one menu. Nothing was removed — open Library to find them."
   }
 }

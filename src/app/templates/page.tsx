@@ -30,6 +30,8 @@ import { SearchResultsBar } from '@/components/search-results-bar'
 import { useTemplates } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { DeleteConfirmationDialog } from '@/components/modals'
+import { anchor } from '@/constants'
+import { PageTourButton } from '@/components/onboarding/page-tour-button'
 
 import { buildTemplateColumns } from './components/template-columns'
 import {
@@ -138,7 +140,10 @@ export default function TemplatesPage() {
       <div className="container mx-auto flex-1 p-4">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-2xl font-semibold">{t('templates.title')}</h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-2xl font-semibold">{t('templates.title')}</h2>
+              <PageTourButton tour="build-template" />
+            </div>
             <div className="flex items-center gap-2">
               <FilterMenu
                 sections={[
@@ -155,7 +160,7 @@ export default function TemplatesPage() {
                   implies one. */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm">
+                  <Button size="sm" {...anchor('templatesCreate')}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     {t('templates.create')}
                   </Button>
@@ -204,6 +209,12 @@ export default function TemplatesPage() {
             }
             emptyTitle={t('templates.noTemplatesTitle')}
             emptyDescription={t('templates.noTemplatesDescription')}
+            emptyAction={
+              <Button size="sm" onClick={() => handleAddTemplate('object')}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {t('templates.noTemplatesAction')}
+              </Button>
+            }
           />
         </div>
       </div>

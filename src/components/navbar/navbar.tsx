@@ -1,6 +1,6 @@
 'use client'
 
-import { useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
@@ -15,7 +15,8 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { useSearch, useAppConfig } from '@/contexts'
-import { NAV_ITEMS } from '@/constants'
+import { NAV_ITEMS, anchor } from '@/constants'
+import { NAV_MENU_TOGGLE_EVENT } from '@/components/onboarding/constants'
 import { UserProfileDropdown } from './user-profile-dropdown'
 import { MobileMenu } from './mobile-menu'
 
@@ -35,6 +36,23 @@ export default function Navbar() {
   const { open: commandCenterOpen, setOpen: setCommandCenterOpen } =
     useCommandCenter()
 
+  // Which grouped nav menu is forced open. Normally null — Radix owns its own
+  // open state — but a tour needs to show what is inside the group it is
+  // highlighting.
+  const [openNavMenu, setOpenNavMenu] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handleToggle = (event: Event) => {
+      const detail = (event as CustomEvent<{ key: string; open: boolean }>)
+        .detail
+      if (!detail) return
+      setOpenNavMenu(detail.open ? detail.key : null)
+    }
+
+    window.addEventListener(NAV_MENU_TOGGLE_EVENT, handleToggle)
+    return () => window.removeEventListener(NAV_MENU_TOGGLE_EVENT, handleToggle)
+  }, [])
+
   return (
     <>
       <header className="border-b bg-background top-0 z-10">
@@ -51,7 +69,7 @@ export default function Navbar() {
 
               <nav
                 className="hidden md:flex items-center gap-6"
-                data-tour="top-nav"
+                {...anchor('topNav')}
               >
                 {NAV_ITEMS.map((item) => {
                   // A group is active when ANY child route is, so the parent still reads as "where
@@ -80,7 +98,16 @@ export default function Navbar() {
                   }
 
                   return (
-                    <DropdownMenu key={item.key}>
+                    // Fully controlled rather than defaulting to Radix's own
+                    // state: flipping between controlled and uncontrolled mid-life
+                    // is what breaks these menus.
+                    <DropdownMenu
+                      key={item.key}
+                      open={openNavMenu === item.key}
+                      onOpenChange={(open) =>
+                        setOpenNavMenu(open ? item.key : null)
+                      }
+                    >
                       <DropdownMenuTrigger
                         data-tour={item.dataTour}
                         className={cn(className, 'flex items-center gap-1')}
@@ -107,7 +134,7 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-4">
               <button
                 onClick={() => setCommandCenterOpen(true)}
-                data-tour="search-button"
+                {...anchor('searchButton')}
                 className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all',
                   'bg-muted/50 hover:bg-muted border-border/50 hover:border-border',

@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import type { ShareDTO } from 'io2p-client'
 
 import {
+  ConceptHint,
   Button,
   Tabs,
   TabsContent,
@@ -24,7 +25,7 @@ import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useShares } from '@/hooks/api/access'
 import { useSearch } from '@/contexts'
-import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
+import { DEFAULT_TABLE_PAGE_SIZE, anchor } from '@/constants'
 import { logger } from '@/lib/logger'
 
 import { buildShareColumns } from './components/share-columns'
@@ -34,6 +35,7 @@ import {
   type ShareEditorMode,
 } from './components/share-editor-sheet'
 import { ShareDetailSheet } from './components/share-detail-sheet'
+import { PageTourButton } from '@/components/onboarding/page-tour-button'
 
 export default function SharesPage() {
   const t = useTranslations()
@@ -143,9 +145,15 @@ export default function SharesPage() {
               rather than adding a third band of chrome above the table. */}
           <Tabs value={tab} onValueChange={setTab} className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-2xl font-semibold">{t('shares.title')}</h2>
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-2xl font-semibold">{t('shares.title')}</h2>
+                <ConceptHint label={t('concepts.share.label')}>
+                  {t('concepts.share.body')}
+                </ConceptHint>
+                <PageTourButton tour="share-objects" />
+              </div>
               <div className="flex items-center gap-2">
-                <TabsList>
+                <TabsList {...anchor('sharesTabs')}>
                   <TabsTrigger value="shares">
                     {t('shares.tabShares')}
                   </TabsTrigger>
@@ -163,6 +171,7 @@ export default function SharesPage() {
                 <Button
                   size="sm"
                   onClick={() => setEditor({ mode: 'create', share: null })}
+                  {...anchor('sharesCreate')}
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
                   {t('shares.create')}

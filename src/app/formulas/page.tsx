@@ -6,7 +6,7 @@ import { PlusCircle, HelpCircle, FunctionSquare } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { FormulaDTO } from 'io2p-client'
 
-import { Button } from '@/components/ui'
+import { ConceptHint, Button } from '@/components/ui'
 import {
   FilterMenu,
   deletedSection,
@@ -24,6 +24,8 @@ import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useFormulas } from '@/hooks/api/leaves'
 import { useAuth, useSearch } from '@/contexts'
+import { anchor } from '@/constants'
+import { PageTourButton } from '@/components/onboarding/page-tour-button'
 
 import {
   buildFormulaColumns,
@@ -122,7 +124,13 @@ export default function FormulasPage() {
       <div className="container mx-auto flex-1 p-4">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-2xl font-semibold">{t('formulas.title')}</h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-2xl font-semibold">{t('formulas.title')}</h2>
+              <ConceptHint label={t('concepts.formula.label')}>
+                {t('concepts.formula.body')}
+              </ConceptHint>
+              <PageTourButton tour="write-formula" />
+            </div>
             <div className="flex items-center gap-2">
               <FilterMenu
                 sections={[
@@ -139,11 +147,16 @@ export default function FormulasPage() {
                 size="sm"
                 variant="ghost"
                 onClick={() => setReferenceOpen(true)}
+                {...anchor('formulasReference')}
               >
                 <HelpCircle className="mr-2 h-4 w-4" />
                 {t('formulas.reference.title')}
               </Button>
-              <Button size="sm" onClick={() => setSheet({ mode: 'create' })}>
+              <Button
+                size="sm"
+                onClick={() => setSheet({ mode: 'create' })}
+                {...anchor('formulasCreate')}
+              >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 {t('formulas.create')}
               </Button>

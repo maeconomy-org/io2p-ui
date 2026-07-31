@@ -4,11 +4,11 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react'
 
 import { useAuth } from '@/contexts/auth-context'
 import {
+  PREFERENCES,
   PREFERENCES_ROOT,
   PREFERENCES_VERSION,
-  VIEW_PREFERENCES,
-  type ViewPreferenceKey,
-  type ViewPreferenceValues,
+  type PreferenceKey,
+  type PreferenceValues,
 } from '@/constants'
 
 /**
@@ -22,7 +22,7 @@ import {
  * object with no refactor.
  */
 
-type PreferenceBlob = Partial<ViewPreferenceValues>
+type PreferenceBlob = Partial<PreferenceValues>
 
 const keyFor = (uuid: string) =>
   `${PREFERENCES_ROOT}:${PREFERENCES_VERSION}:${uuid}`
@@ -41,28 +41,28 @@ function readBlob(uuid: string): PreferenceBlob {
   }
 }
 
-function isAllowed<K extends ViewPreferenceKey>(
+function isAllowed<K extends PreferenceKey>(
   key: K,
   value: unknown
-): value is ViewPreferenceValues[K] {
-  return (VIEW_PREFERENCES[key].allowed as readonly unknown[]).includes(value)
+): value is PreferenceValues[K] {
+  return PREFERENCES[key].validate(value)
 }
 
 /** Validated stored value for `key`, else the hardcoded default. */
-function resolve<K extends ViewPreferenceKey>(
+function resolve<K extends PreferenceKey>(
   uuid: string | undefined,
   key: K
-): ViewPreferenceValues[K] {
-  const fallback = VIEW_PREFERENCES[key].default
+): PreferenceValues[K] {
+  const fallback = PREFERENCES[key].default
   if (!uuid) return fallback
   const stored = readBlob(uuid)[key]
   return isAllowed(key, stored) ? stored : fallback
 }
 
-function writePreference<K extends ViewPreferenceKey>(
+function writePreference<K extends PreferenceKey>(
   uuid: string,
   key: K,
-  value: ViewPreferenceValues[K]
+  value: PreferenceValues[K]
 ) {
   try {
     const next = { ...readBlob(uuid), [key]: value }
@@ -125,13 +125,9 @@ function getServerSnapshot(): string {
  * `authLoading`, not `userId`, so a logged-out or failed auth still resolves
  * (to the defaults) rather than waiting forever.
  */
-export function usePreference<K extends ViewPreferenceKey>(
+export function usePreference<K extends PreferenceKey>(
   key: K
-): [
-  ViewPreferenceValues[K],
-  (value: ViewPreferenceValues[K]) => void,
-  boolean,
-] {
+): [PreferenceValues[K], (value: PreferenceValues[K]) => void, boolean] {
   const { userId, authLoading } = useAuth()
 
   // Recreate subscribe/getSnapshot only when the account changes — the raw
@@ -141,8 +137,8 @@ export function usePreference<K extends ViewPreferenceKey>(
 
   const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
-  const value = useMemo<ViewPreferenceValues[K]>(() => {
-    const fallback = VIEW_PREFERENCES[key].default
+  const value = useMemo<PreferenceValues[K]>(() => {
+    const fallback = PREFERENCES[key].default
     if (!userId || !raw) return fallback
     try {
       const parsed = JSON.parse(raw) as PreferenceBlob
@@ -154,7 +150,7 @@ export function usePreference<K extends ViewPreferenceKey>(
   }, [raw, key, userId])
 
   const setValue = useCallback(
-    (next: ViewPreferenceValues[K]) => {
+    (next: PreferenceValues[K]) => {
       if (!userId) return
       writePreference(userId, key, next)
     },

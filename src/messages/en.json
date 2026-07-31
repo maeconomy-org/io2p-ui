@@ -819,8 +819,8 @@
       "noGroups": "No groups found",
       "clear": "Clear group filter"
     },
-    "noObjectsTitle": "No Objects Found",
-    "noObjectsDescription": "Start by creating your first object",
+    "noObjectsTitle": "No objects yet",
+    "noObjectsDescription": "An object is anything you want to track — a machine, a batch, a document. Give it properties, files and a place in the hierarchy.",
     "viewDetails": "View Details",
     "columnCount": "{count} column{count, plural, one {} other {s}}",
     "columnSearch": "Search in this column...",
@@ -883,8 +883,8 @@
       "addChild": "Add Child",
       "childrenTitle": "Children",
       "childrenCount": "{count} children",
-      "noChildrenTitle": "No Children Yet",
-      "noChildrenDescription": "This object has no child objects. Add a new child or copy existing objects here."
+      "noChildrenTitle": "No child objects yet",
+      "noChildrenDescription": "Children sit under this object in the hierarchy. Adding one sets this object as its parent — the child owns the link, so it can be moved without touching anything here."
     },
     "modelSelector": {
       "label": "Model",
@@ -995,7 +995,8 @@
     "templateNameFrom": "{name} Template",
     "templateCreatedSuccess": "Template created",
     "templateAbbreviationLabel": "Abbreviation",
-    "templateAbbreviationPlaceholder": "e.g. WALL"
+    "templateAbbreviationPlaceholder": "e.g. WALL",
+    "noObjectsAction": "Create your first object"
   },
   "uploads": {
     "centerAnnounceCancelled": "Upload of {fileName} cancelled",
@@ -1212,8 +1213,8 @@
     "create": "Create Template",
     "update": "Update Template",
     "loading": "Loading templates...",
-    "noTemplatesTitle": "No Templates Found",
-    "noTemplatesDescription": "There are no templates to display",
+    "noTemplatesTitle": "No templates yet",
+    "noTemplatesDescription": "A template is a starting point for new objects: its properties, formula recipes and the constants they bind to, ready to reuse.",
     "restoreTitle": "Restore template",
     "searchResults": "Search Results for: \"{query}\"",
     "results": "{count} result{count, plural, one {} other {s}}",
@@ -1230,7 +1231,8 @@
     "createObject": "Object template",
     "createProcess": "Process template",
     "flowSlot": "Any object",
-    "flowSlotPlaceholder": "Any object (optional default)"
+    "flowSlotPlaceholder": "Any object (optional default)",
+    "noTemplatesAction": "Create a template"
   },
   "formulas": {
     "title": "Formulas",
@@ -1844,5 +1846,41 @@
       "revokeDescription": "This removes the access you granted directly on {count} items."
     },
     "tabOverview": "Overview"
+  },
+  "concepts": {
+    "share": {
+      "label": "What is a share?",
+      "body": "A bundle of objects and processes handed to a group of people at once. It replaced Groups: a group mixed people and resources under one word, a share carries only resources and lists who can see them. Access cascades to children, and you can revoke the whole bundle in one go."
+    },
+    "formula": {
+      "label": "What is a formula?",
+      "body": "A reusable expression bound to a property value, recomputed by the server. Formulas are immutable — to change one you duplicate it and bind the new version, so anything already using the old one keeps its meaning."
+    },
+    "constant": {
+      "label": "What is a constant?",
+      "body": "A shared, versioned number that formulas refer to by name. The version is pinned at the moment you bind it, so publishing a new value never silently changes results that were already computed."
+    },
+    "draft": {
+      "label": "What is a draft?",
+      "body": "An unsaved object kept on this device and pinned above the list until you finish it. Files you picked but have not uploaded cannot be carried into a draft — reattach them when you come back."
+    },
+    "parent": {
+      "label": "How does the hierarchy work?",
+      "body": "The hierarchy is parents-only: a child records who its parent is, and adding a child edits the child rather than this object. That means moving something never touches the object it used to sit under."
+    },
+    "deleted": {
+      "label": "What happens when I delete something?",
+      "body": "Nothing is destroyed. Deleted records stay in place, struck through, and can be restored at any time. Turn this on to see them alongside everything else."
+    }
+  },
+  "onboarding": {
+    "tours": {
+      "create-object": "Create an object",
+      "build-template": "Build a template",
+      "write-formula": "Write a formula",
+      "share-objects": "Share objects",
+      "work-with-drafts": "Work with drafts"
+    },
+    "startTour": "Start the “{tour}” walkthrough"
   }
 }

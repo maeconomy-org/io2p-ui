@@ -4,8 +4,10 @@
     "welcomeDescription": "Dit is uw hoofdwerkruimte waar u alle objecten in uw systeem kunt bekijken, beheren en organiseren. Objecten zijn de kernentiteiten die echte items, documenten of concepten vertegenwoordigen die u wilt volgen en beheren.",
     "processes": "I/O-processen",
     "processesDescription": "Hier kunt u processen volgen en monitoren die uw objecten transformeren of verplaatsen. Deze sectie helpt u te begrijpen hoe objecten door verschillende fasen stromen, van input naar output, waardoor u volledig inzicht krijgt in uw operationele workflows.",
-    "models": "Modellen & sjablonen",
-    "modelsDescription": "Maak herbruikbare modellen en sjablonen die de structuur en eigenschappen van uw objecten definiëren. Modellen fungeren als blauwdrukken, zorgen voor consistentie bij het maken van nieuwe objecten en helpen uw gegevens te standaardiseren over het hele platform.",
+    "shares": "Delen",
+    "sharesDescription": "Bundel objecten en geef ze door aan anderen. Vervangt Groepen — een Share bevat resources en toont wie ze mag zien.",
+    "library": "Bibliotheek",
+    "libraryDescription": "Je herbruikbare definities: Templates om een object mee te starten, Formules om waarden te berekenen, en Constanten waarnaar ze verwijzen.",
     "import": "Gegevensimport",
     "importDescription": "Importeer bestaande gegevens uit externe bronnen, spreadsheets of andere systemen. Deze krachtige functie stelt u in staat om uw legacy-gegevens efficiënt in IoM te brengen, met ondersteuning voor verschillende formaten en bulkbewerkingen om snel aan de slag te gaan.",
     "search": "Globaal zoeken",
@@ -32,13 +34,38 @@
     "fileAttachmentsDescription": "Upload ondersteunende documenten, afbeeldingen, specificaties of bestanden die extra context bieden over uw object. Deze bijlagen worden onderdeel van het permanente record van het object en zijn doorzoekbaar binnen het systeem.",
     "customProperties": "Aangepaste eigenschappen",
     "customPropertiesDescription": "Voeg gespecialiseerde gegevensvelden toe die uniek zijn voor uw object. Elke eigenschap heeft een naam en waarde, en u kunt bestanden aan individuele eigenschappen koppelen voor gedetailleerde documentatie. Deze flexibiliteit stelt u in staat om specifieke informatie vast te leggen die uw object nodig heeft.",
-    "propertyFiles": "Eigenschapsbestandsbijlagen",
-    "propertyFilesDescription": "Eigenschappen ondersteunen bestandsbijlagen op meerdere niveaus - u kunt bestanden koppelen aan de eigenschapsnaam zelf (voor documentatie over wat de eigenschap vertegenwoordigt) en aan individuele eigenschapswaarden (voor bewijs of ondersteunende documenten). Dit gedetailleerde bestandssysteem creëert uitgebreide documentatie voor uw objecten.",
     "completeCreation": "Objectcreatie voltooien",
     "completeCreationDescription": "Wanneer u alle benodigde informatie heeft ingevuld, klik op Maken om uw nieuwe object op te slaan in het systeem. Het object is dan beschikbaar voor zoeken, koppelen en gebruik in processen in uw hele IoM-werkruimte."
   },
-  "createObject": {
-    "title": "Maak uw eerste object",
-    "description": "Gebruik deze knop om een nieuw object aan het systeem toe te voegen."
+  "buildTemplate": {
+    "start": "Begin een template",
+    "startDescription": "Kies object of proces. Een template bevat de eigenschappen waarmee een nieuwe entiteit start — inclusief formulerecepten en de constanten waaraan die gebonden zijn.",
+    "reuse": "En gebruik hem hier",
+    "reuseDescription": "Elk nieuw object biedt je templates bovenaan het aanmaakscherm. Een template kiezen vult de velden; je kunt alles nog wijzigen voor je opslaat."
+  },
+  "writeFormula": {
+    "start": "Schrijf een formule",
+    "startDescription": "Een formule is een expressie die aan een waarde is gekoppeld en op de server wordt herberekend. Formules zijn onveranderlijk — wijzigen betekent dupliceren.",
+    "reference": "Wat je kunt gebruiken",
+    "referenceDescription": "Het overzicht toont elke beschikbare functie en operator, plus hoe je naar andere eigenschappen en naar constanten verwijst."
+  },
+  "shareObjects": {
+    "start": "Maak een share",
+    "startDescription": "Een share bundelt objecten en processen en geeft een groep in één keer toegang tot alles. Toegang werkt door naar onderliggende objecten en de hele bundel is in één stap in te trekken.",
+    "tabs": "Twee soorten toegang",
+    "tabsDescription": "Shares zijn de bundels die je hebt gemaakt. Door mij gedeeld toont ook alles wat je los hebt gegeven, zodat je het op één plek ziet en kunt intrekken."
+  },
+  "workWithDrafts": {
+    "start": "Begin iets dat je later afmaakt",
+    "startDescription": "Sluit je het aanmaakscherm met niet-opgeslagen wijzigingen, dan krijg je een concept aangeboden. Concepten staan alleen op dit apparaat — gekozen bestanden gaan niet mee.",
+    "pinned": "Concepten wachten bovenaan",
+    "pinnedDescription": "Onafgemaakt werk staat vastgezet boven de lijst, zodat het niet achter paginering verdwijnt. Ga verder met bewerken om het te openen, of gooi het weg via het rijmenu."
+  },
+  "whatsNew": {
+    "gotIt": "Begrepen",
+    "shares": "Groepen heten nu Shares",
+    "sharesDescription": "Dezelfde plek in de navigatie, een ander idee. Een share bundelt objecten en processen en geeft in één keer toegang tot alles — hij bevat resources en toont wie ze mag zien.",
+    "library": "Templates staan nu in Bibliotheek",
+    "libraryDescription": "Templates staan nu samen met Formules en Constanten onder één menu. Er is niets verwijderd — open Bibliotheek om ze te vinden."
   }
 }

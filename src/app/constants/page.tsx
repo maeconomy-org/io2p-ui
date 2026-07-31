@@ -6,7 +6,7 @@ import { PlusCircle, Ruler } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { ConstantDTO } from 'io2p-client'
 
-import { Button } from '@/components/ui'
+import { ConceptHint, Button } from '@/components/ui'
 import {
   FilterMenu,
   deletedSection,
@@ -24,6 +24,7 @@ import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useConstants } from '@/hooks/api/leaves'
 import { useAuth, useSearch } from '@/contexts'
+import { anchor } from '@/constants'
 
 import {
   buildConstantColumns,
@@ -110,7 +111,12 @@ export default function ConstantsPage() {
       <div className="container mx-auto flex-1 p-4">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-2xl font-semibold">{t('constants.title')}</h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-2xl font-semibold">{t('constants.title')}</h2>
+              <ConceptHint label={t('concepts.constant.label')}>
+                {t('concepts.constant.body')}
+              </ConceptHint>
+            </div>
             <div className="flex items-center gap-2">
               <FilterMenu
                 sections={[
@@ -122,7 +128,11 @@ export default function ConstantsPage() {
                   ),
                 ]}
               />
-              <Button size="sm" onClick={() => setSheet({ mode: 'create' })}>
+              <Button
+                size="sm"
+                onClick={() => setSheet({ mode: 'create' })}
+                {...anchor('constantsCreate')}
+              >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 {t('constants.create')}
               </Button>

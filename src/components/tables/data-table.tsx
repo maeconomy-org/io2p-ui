@@ -113,6 +113,12 @@ export interface DataTableProps<TData> {
   emptyIcon?: ReactNode
   emptyTitle?: string
   emptyDescription?: string
+  /**
+   * The one thing to do from here. An empty table is the screen a first-time
+   * user actually lands on, so it is the cheapest place to teach the concept and
+   * hand over the next step — permanent and re-readable, unlike a tour.
+   */
+  emptyAction?: ReactNode
 
   /**
    * `<TableRow>`s rendered above the data rows. Receives the CURRENT visible column count, because
@@ -241,6 +247,7 @@ export function DataTable<TData>({
   emptyIcon,
   emptyTitle,
   emptyDescription,
+  emptyAction,
   pinnedRows,
   hasPinnedRows = false,
 }: DataTableProps<TData>) {
@@ -361,6 +368,7 @@ export function DataTable<TData>({
                     icon={emptyIcon}
                     title={emptyTitle || t('common.noResults')}
                     description={emptyDescription}
+                    action={emptyAction}
                     className="py-8"
                   />
                 </TableCell>

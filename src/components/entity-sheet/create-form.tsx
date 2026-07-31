@@ -4,7 +4,8 @@ import { useState, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import type { UseFormReturn } from 'react-hook-form'
 
-import { Label, Separator } from '@/components/ui'
+import { ConceptHint, Label, Separator } from '@/components/ui'
+import { anchor } from '@/constants'
 import type { EntityDraft } from '@/lib/entity-body'
 import { templatePresetToDraftProperties } from '@/lib/template-body'
 
@@ -65,35 +66,52 @@ export function CreateForm({
       <Field
         label={t('objects.templateSelector.label')}
         htmlFor="entity-template"
+        {...anchor('sheetTemplate')}
       >
         <TemplateSelector selected={template} onSelect={applyTemplate} />
       </Field>
 
-      <Field label={t('objects.detailsSheet.tabParents')}>
+      <Field
+        label={t('objects.detailsSheet.tabParents')}
+        hint={
+          <ConceptHint label={t('concepts.parent.label')}>
+            {t('concepts.parent.body')}
+          </ConceptHint>
+        }
+        {...anchor('sheetParents')}
+      >
         <ParentsField form={form} editing parentNames={parentNames} />
       </Field>
 
-      <MetadataFields form={form} editing />
+      <div {...anchor('sheetMetadata')}>
+        <MetadataFields form={form} editing />
+      </div>
 
       <Separator />
-      <AddressField form={form} editing />
+      <div {...anchor('sheetAddress')}>
+        <AddressField form={form} editing />
+      </div>
 
       <Separator />
       {/* No grid toggle while creating: nothing is uploaded yet, so there are no thumbnails. */}
-      <ObjectFilesField
-        form={form}
-        editing
-        allowViewToggle={false}
-        showEmptyState={false}
-      />
+      <div {...anchor('sheetFiles')}>
+        <ObjectFilesField
+          form={form}
+          editing
+          allowViewToggle={false}
+          showEmptyState={false}
+        />
+      </div>
 
       <Separator />
-      <PropertyFields
-        form={form}
-        editing
-        derivedValues={NO_DERIVED_VALUES}
-        label={t('objects.fields.properties')}
-      />
+      <div {...anchor('sheetProperties')}>
+        <PropertyFields
+          form={form}
+          editing
+          derivedValues={NO_DERIVED_VALUES}
+          label={t('objects.fields.properties')}
+        />
+      </div>
     </div>
   )
 }
@@ -101,15 +119,22 @@ export function CreateForm({
 function Field({
   label,
   htmlFor,
+  hint,
   children,
+  ...rest
 }: {
   label: string
   htmlFor?: string
+  /** Optional ⓘ beside the label — see ConceptHint. */
+  hint?: ReactNode
   children: ReactNode
-}) {
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={htmlFor}>{label}</Label>
+    <div className="space-y-1.5" {...rest}>
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={htmlFor}>{label}</Label>
+        {hint}
+      </div>
       {children}
     </div>
   )

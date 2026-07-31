@@ -32,6 +32,8 @@ import { useObjectDrafts } from '@/hooks/drafts'
 import { ObjectBulkBar } from './components/object-bulk-bar'
 import { ObjectRowPortals } from './components/object-row-portals'
 import { useObjectListPage } from './components/use-object-list-page'
+import { anchor } from '@/constants'
+import { PageTourButton } from '@/components/onboarding/page-tour-button'
 
 const EntitySheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
@@ -39,11 +41,6 @@ const EntitySheet = dynamic(
 )
 const ShareSheet = dynamic(
   () => import('@/components/access').then((mod) => mod.ShareSheet),
-  { ssr: false }
-)
-// Also driver.js — only ever runs once, on a first login.
-const InitialLoginTour = dynamic(
-  () => import('@/components/onboarding/initial-login-tour'),
   { ssr: false }
 )
 
@@ -116,27 +113,29 @@ export default function ObjectsPage() {
 
   return (
     <div className="container mx-auto p-4">
-      <InitialLoginTour />
       <div className="flex flex-col">
         <div className="mb-4 flex items-center justify-between gap-2">
-          <h1 className="shrink-0 text-2xl font-bold">{t('objects.title')}</h1>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <h1 className="text-2xl font-bold">{t('objects.title')}</h1>
+            <PageTourButton tour="create-object" />
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
             <FilterMenu
               sections={[
                 scopeSection(t, scope, setScope),
                 deletedSection(t, filters.showDeleted, filters.setShowDeleted),
               ]}
-              data-tour="filters"
+              {...anchor('filters')}
             />
             <ViewSelector
               view={viewType}
               onChange={setViewType}
-              data-tour="view-selector"
+              {...anchor('viewSelector')}
             />
             <Button
               size="sm"
               onClick={() => setIsAddSheetOpen(true)}
-              data-tour="create-object"
+              {...anchor('createObject')}
             >
               <PlusCircle className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">{t('objects.create')}</span>
@@ -188,6 +187,12 @@ export default function ObjectsPage() {
             }
             emptyTitle={t('objects.noObjectsTitle')}
             emptyDescription={t('objects.noObjectsDescription')}
+            emptyAction={
+              <Button size="sm" onClick={() => setIsAddSheetOpen(true)}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {t('objects.noObjectsAction')}
+              </Button>
+            }
           />
         ) : (
           <ObjectColumnsView

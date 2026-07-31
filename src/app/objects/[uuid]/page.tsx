@@ -22,6 +22,7 @@ import { ContentSkeleton } from '@/components/skeletons'
 import { ObjectBulkBar } from '../components/object-bulk-bar'
 import { ObjectRowPortals } from '../components/object-row-portals'
 import { useObjectListPage } from '../components/use-object-list-page'
+import { anchor } from '@/constants'
 
 const EntitySheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
@@ -123,7 +124,7 @@ export default function ObjectChildrenPage() {
               sections={[
                 deletedSection(t, filters.showDeleted, filters.setShowDeleted),
               ]}
-              data-tour="filters"
+              {...anchor('filters')}
             />
             <Button
               size="sm"

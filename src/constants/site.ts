@@ -2,6 +2,8 @@
  * Site configuration and navigation
  */
 
+import { TOUR_ANCHORS } from './tour-anchors'
+
 export interface NavItem {
   readonly key: string
   readonly path: string
@@ -18,23 +20,23 @@ export interface NavItem {
  * Objects in a bar that is already five items wide.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
-  { key: 'objects', path: '/objects', dataTour: 'nav-objects' },
-  { key: 'processes', path: '/processes', dataTour: 'nav-processes' },
+  { key: 'objects', path: '/objects', dataTour: TOUR_ANCHORS.navObjects },
+  { key: 'processes', path: '/processes', dataTour: TOUR_ANCHORS.navProcesses },
   // Shares takes the slot `/groups` held. It is the successor concept, not a rename: a group
   // bundled people AND resources under one word, a Share bundles only resources and lists its
   // members inline.
-  { key: 'shares', path: '/shares', dataTour: 'nav-shares' },
+  { key: 'shares', path: '/shares', dataTour: TOUR_ANCHORS.navShares },
   {
     key: 'library',
     path: '/templates',
-    dataTour: 'nav-models',
+    dataTour: TOUR_ANCHORS.navLibrary,
     children: [
       { key: 'models', path: '/templates' },
       { key: 'formulas', path: '/formulas' },
       { key: 'constants', path: '/constants' },
     ],
   },
-  { key: 'import', path: '/import', dataTour: 'nav-import' },
+  { key: 'import', path: '/import', dataTour: TOUR_ANCHORS.navImport },
 ]
 
 // Footer links

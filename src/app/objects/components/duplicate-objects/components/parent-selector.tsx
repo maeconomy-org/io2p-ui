@@ -33,7 +33,6 @@ interface ParentSelectorProps {
   placeholder?: string
   maxSelections?: number
   disabled?: boolean
-  dataTour?: string
   /** Compact mode for toolbar usage - hides label and selected parents display */
   compact?: boolean
   /** Custom trigger content for compact mode */
@@ -55,7 +54,6 @@ export function ParentSelector({
   placeholder,
   maxSelections = 10,
   disabled = false,
-  dataTour,
   compact = false,
   triggerContent,
   allowInlineCreate = true,
@@ -212,7 +210,6 @@ export function ParentSelector({
               aria-controls="parent-selector-listbox"
               className={cn('justify-between', compact ? 'h-8' : 'w-full')}
               disabled={disabled}
-              data-tour={dataTour}
             >
               {selectedParents.length > 0 ? (
                 <div className="flex items-center gap-2">

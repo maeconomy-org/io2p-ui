@@ -8,133 +8,98 @@ import { useLocale, useTranslations } from 'next-intl'
 
 import { useAuth } from '@/contexts'
 import { loadTourMessages, tourText, type TourMessages } from './tour-messages'
-import { USER_MENU_TOGGLE_EVENT } from '@/components/onboarding/constants'
-
-const ONBOARDING_KEY = 'onboarding:initial-login:v1'
-const MAX_ATTEMPTS = 10
-const ATTEMPT_DELAY_MS = 300
-
-const NAV_OBJECTS_SELECTOR = '[data-tour="nav-objects"]'
-const NAV_PROCESSES_SELECTOR = '[data-tour="nav-processes"]'
-const NAV_MODELS_SELECTOR = '[data-tour="nav-models"]'
-const NAV_IMPORT_SELECTOR = '[data-tour="nav-import"]'
-const SEARCH_BUTTON_SELECTOR = '[data-tour="search-button"]'
-const DEMO_TOUR_SELECTOR = '[data-tour="demo-tour"]'
-const READY_SELECTORS = [
-  NAV_OBJECTS_SELECTOR,
-  NAV_PROCESSES_SELECTOR,
-  NAV_MODELS_SELECTOR,
-  NAV_IMPORT_SELECTOR,
-  SEARCH_BUTTON_SELECTOR,
-]
+import { INITIAL_LOGIN_TOUR, useTourSeen } from './use-onboarding'
+import { sel } from '@/constants'
+import {
+  ELEMENT_WAIT_MS,
+  NAV_MENU_TOGGLE_EVENT,
+  USER_MENU_TOGGLE_EVENT,
+  prefersReducedMotion,
+} from '@/components/onboarding/constants'
 
 type DriverApi = ReturnType<typeof driver>
 type DriverHookOptions = { driver?: DriverApi }
 
+const toggleNavMenu = (key: string, open: boolean) =>
+  window.dispatchEvent(
+    new CustomEvent(NAV_MENU_TOGGLE_EVENT, { detail: { key, open } })
+  )
+
+const toggleUserMenu = (open: boolean) =>
+  window.dispatchEvent(
+    new CustomEvent(USER_MENU_TOGGLE_EVENT, { detail: { open } })
+  )
+
 const getSteps = (m: TourMessages) => [
   {
-    element: NAV_OBJECTS_SELECTOR,
+    element: sel('navObjects'),
     popover: {
       title: tourText(m, 'initialLogin', 'welcome'),
       description: tourText(m, 'initialLogin', 'welcomeDescription'),
     },
   },
   {
-    element: NAV_PROCESSES_SELECTOR,
+    element: sel('navProcesses'),
     popover: {
       title: tourText(m, 'initialLogin', 'processes'),
       description: tourText(m, 'initialLogin', 'processesDescription'),
     },
   },
   {
-    element: NAV_MODELS_SELECTOR,
+    // `/shares` took the slot `/groups` held, and is a genuinely new concept
+    // rather than a rename — an unexplained new noun in the primary nav was the
+    // largest comprehension gap left by the refactor.
+    element: sel('navShares'),
     popover: {
-      title: tourText(m, 'initialLogin', 'models'),
-      description: tourText(m, 'initialLogin', 'modelsDescription'),
+      title: tourText(m, 'initialLogin', 'shares'),
+      description: tourText(m, 'initialLogin', 'sharesDescription'),
     },
   },
   {
-    element: NAV_IMPORT_SELECTOR,
+    // Points at the Library TRIGGER, so open the menu while it is highlighted —
+    // otherwise the step can only ever describe the word "Library" and never
+    // reveals Formulas or Constants.
+    element: sel('navLibrary'),
+    onHighlightStarted: () => toggleNavMenu('library', true),
+    onDeselected: () => toggleNavMenu('library', false),
+    popover: {
+      title: tourText(m, 'initialLogin', 'library'),
+      description: tourText(m, 'initialLogin', 'libraryDescription'),
+    },
+  },
+  {
+    element: sel('navImport'),
     popover: {
       title: tourText(m, 'initialLogin', 'import'),
       description: tourText(m, 'initialLogin', 'importDescription'),
-      onNextClick: (
-        _element: Element | undefined,
-        _step: unknown,
-        options: DriverHookOptions
-      ) => {
-        const driverApi = options?.driver
-        if (!driverApi) {
-          return
-        }
-        driverApi.moveNext()
-      },
     },
   },
   {
-    element: SEARCH_BUTTON_SELECTOR,
+    element: sel('searchButton'),
     popover: {
       title: tourText(m, 'initialLogin', 'search'),
       description: tourText(m, 'initialLogin', 'searchDescription'),
+      // The next step lives inside the profile dropdown, so open it on the way
+      // out. Waiting for it to render is `waitForElement`'s job now, not a
+      // hand-rolled poll's.
       onNextClick: (
         _element: Element | undefined,
         _step: unknown,
         options: DriverHookOptions
       ) => {
-        const driverApi = options?.driver
-        if (!driverApi) {
-          return
-        }
-
-        window.dispatchEvent(
-          new CustomEvent(USER_MENU_TOGGLE_EVENT, { detail: { open: true } })
-        )
-
-        let attempts = 0
-        const waitForMenuItem = () => {
-          if (document.querySelector(DEMO_TOUR_SELECTOR)) {
-            driverApi.moveNext()
-            return
-          }
-
-          attempts += 1
-          if (attempts < MAX_ATTEMPTS) {
-            setTimeout(waitForMenuItem, ATTEMPT_DELAY_MS)
-          } else {
-            driverApi.destroy()
-          }
-        }
-
-        waitForMenuItem()
+        toggleUserMenu(true)
+        options?.driver?.moveNext()
       },
     },
   },
   {
-    element: DEMO_TOUR_SELECTOR,
-    onHighlightStarted: () => {
-      window.dispatchEvent(
-        new CustomEvent(USER_MENU_TOGGLE_EVENT, { detail: { open: true } })
-      )
-    },
-    onDeselected: () => {
-      window.dispatchEvent(
-        new CustomEvent(USER_MENU_TOGGLE_EVENT, { detail: { open: false } })
-      )
-    },
+    element: sel('demoTour'),
+    // Re-asserts the open state so stepping backwards onto this step works too.
+    onHighlightStarted: () => toggleUserMenu(true),
+    onDeselected: () => toggleUserMenu(false),
     popover: {
       title: tourText(m, 'initialLogin', 'demoTour'),
       description: tourText(m, 'initialLogin', 'demoTourDescription'),
-      onNextClick: (
-        _element: Element | undefined,
-        _step: unknown,
-        options: DriverHookOptions
-      ) => {
-        localStorage.setItem(ONBOARDING_KEY, 'done')
-        window.dispatchEvent(
-          new CustomEvent(USER_MENU_TOGGLE_EVENT, { detail: { open: false } })
-        )
-        options?.driver?.destroy()
-      },
     },
   },
 ]
@@ -145,60 +110,60 @@ export default function InitialLoginTour() {
   const locale = useLocale()
   const driverRef = useRef<ReturnType<typeof driver> | null>(null)
   const hasStartedRef = useRef(false)
+  const { seen, markSeen, resolved } = useTourSeen(INITIAL_LOGIN_TOUR)
+
+  // `markSeen` changes identity as the stored list changes, but the driver
+  // config below is built once inside an effect. A ref keeps the teardown hook
+  // calling the current one instead of the one captured at construction.
+  const markSeenRef = useRef(markSeen)
+  useEffect(() => {
+    markSeenRef.current = markSeen
+  }, [markSeen])
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated || hasStartedRef.current) {
-      return
-    }
-
-    const hasCompleted = localStorage.getItem(ONBOARDING_KEY) === 'done'
-    if (hasCompleted) {
+    // `resolved` gates on auth settling: the seen-flag lives in an
+    // account-scoped blob, so before it lands `seen` is false for everyone.
+    if (
+      authLoading ||
+      !isAuthenticated ||
+      !resolved ||
+      seen ||
+      hasStartedRef.current
+    ) {
       return
     }
 
     let cancelled = false
-    let attempts = 0
-    let startTimeout: ReturnType<typeof setTimeout> | null = null
-
-    const allTargetsReady = () =>
-      READY_SELECTORS.every((selector) => document.querySelector(selector))
 
     const startTour = async () => {
-      if (cancelled) {
-        return
-      }
-
-      if (!allTargetsReady()) {
-        attempts += 1
-        if (attempts < MAX_ATTEMPTS) {
-          startTimeout = setTimeout(() => void startTour(), ATTEMPT_DELAY_MS)
-        }
-        return
-      }
-
       hasStartedRef.current = true
       // Tour copy is fetched here rather than bundled with the page — see
       // tour-messages. One await before driver() starts; nothing is on screen yet.
       const steps = getSteps(await loadTourMessages(locale))
       if (cancelled) return
+
       const onboardingDriver = driver({
         nextBtnText: t('common.next'),
         prevBtnText: t('common.previous'),
         showProgress: true,
-        allowClose: false,
+        allowClose: true,
         allowKeyboardControl: true,
-        onCloseClick: () => {
-          localStorage.setItem(ONBOARDING_KEY, 'done')
-          window.dispatchEvent(
-            new CustomEvent(USER_MENU_TOGGLE_EVENT, { detail: { open: false } })
-          )
-          onboardingDriver.destroy()
-        },
+        // The nav this tour points at lives in `hidden md:flex`, so on mobile
+        // every anchor is absent. Skipping past them ends the tour cleanly and —
+        // via onDestroyStarted — records it as seen, instead of the readiness
+        // poll that used to spin and never set the flag on every mobile visit.
+        skipMissingElement: true,
+        waitForElement: ELEMENT_WAIT_MS,
+        animate: !prefersReducedMotion(),
+        // The single exit path: finishing, closing, and ESC all land here.
+        // driver.js hands control over rather than destroying itself, so this
+        // hook owns calling destroy().
         onDestroyStarted: () => {
-          localStorage.setItem(ONBOARDING_KEY, 'done')
-          window.dispatchEvent(
-            new CustomEvent(USER_MENU_TOGGLE_EVENT, { detail: { open: false } })
-          )
+          markSeenRef.current()
+          // Leaving mid-tour must not strand a menu the tour forced open.
+          toggleUserMenu(false)
+          toggleNavMenu('library', false)
+          onboardingDriver.destroy()
         },
         onDestroyed: () => {
           driverRef.current = null
@@ -210,24 +175,21 @@ export default function InitialLoginTour() {
       onboardingDriver.drive()
     }
 
-    startTimeout = setTimeout(() => void startTour(), 0)
+    void startTour()
 
     return () => {
       cancelled = true
-      if (startTimeout) {
-        clearTimeout(startTimeout)
-      }
       if (driverRef.current) {
         driverRef.current.destroy()
         driverRef.current = null
       }
     }
     // `locale` and `t` are deliberately omitted. The tour runs at most once per
-    // account (guarded by hasStartedRef and the ONBOARDING_KEY), and restarting
-    // it because the user switched language mid-tour would be worse than
-    // finishing in the language it began in.
+    // account (guarded by hasStartedRef and the stored `toursSeen` list), and
+    // restarting it because the user switched language mid-tour would be worse
+    // than finishing in the language it began in.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, isAuthenticated])
+  }, [authLoading, isAuthenticated, resolved, seen])
 
   return null
 }

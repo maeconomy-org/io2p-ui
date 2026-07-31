@@ -24,15 +24,20 @@ import {
   DropdownMenuTrigger,
   CopyButton,
   Skeleton,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
 import { useMounted } from '@/hooks/ui/use-mounted'
 import {
-  DEMO_TOUR_START_EVENT,
+  TOUR_START_EVENT,
   USER_MENU_TOGGLE_EVENT,
 } from '@/components/onboarding/constants'
+import { TOURS } from '@/components/onboarding/tour-registry'
 import { LanguageDropdownItem } from '@/components/language-switcher'
 import { ThemeDropdownItem } from '@/components/ui/theme-toggle'
+import { anchor } from '@/constants'
 
 export function UserProfileDropdown() {
   const t = useTranslations()
@@ -74,7 +79,7 @@ export function UserProfileDropdown() {
         <Button
           variant="outline"
           className="flex items-center gap-2 px-3 h-auto hover:bg-muted/50 transition-colors"
-          data-tour="user-menu-trigger"
+          {...anchor('userMenuTrigger')}
         >
           <User className="h-4 w-4 text-primary" />
           <div className="flex flex-col items-start text-left">
@@ -153,16 +158,35 @@ export function UserProfileDropdown() {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem
-          data-tour="demo-tour"
-          onClick={() =>
-            window.dispatchEvent(new CustomEvent(DEMO_TOUR_START_EVENT))
-          }
-          className="cursor-pointer"
-        >
-          <RocketIcon className="h-4 w-4 mr-2" />
-          <span>{t('nav.demoWalkthrough')}</span>
-        </DropdownMenuItem>
+        {/* A submenu rather than one item: the product outgrew having a single
+            thing worth walking someone through, and the registry is the list. */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger
+            {...anchor('demoTour')}
+            className="cursor-pointer"
+          >
+            <RocketIcon className="h-4 w-4 mr-2" />
+            <span>{t('nav.demoWalkthrough')}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {TOURS.map((tour) => (
+              <DropdownMenuItem
+                key={tour.id}
+                data-testid={`tour-${tour.id}`}
+                className="cursor-pointer"
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent(TOUR_START_EVENT, {
+                      detail: { id: tour.id },
+                    })
+                  )
+                }
+              >
+                {t(`onboarding.tours.${tour.id}`)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
         <DropdownMenuSeparator />
         <LanguageDropdownItem />

@@ -778,8 +778,8 @@
       "noGroups": "Geen groepen gevonden",
       "clear": "Groepsfilter wissen"
     },
-    "noObjectsTitle": "Geen objecten gevonden",
-    "noObjectsDescription": "Begin met het aanmaken van uw eerste object",
+    "noObjectsTitle": "Nog geen objecten",
+    "noObjectsDescription": "Een object is alles wat je wilt volgen — een machine, een batch, een document. Geef het eigenschappen, bestanden en een plek in de hiërarchie.",
     "viewDetails": "Details bekijken",
     "columnCount": "{count} kolom{count, plural, one {} other {men}}",
     "columnSearch": "Zoeken in deze kolom...",
@@ -899,8 +899,8 @@
       "addChild": "Kind toevoegen",
       "childrenTitle": "Kinderen",
       "childrenCount": "{count} kinderen",
-      "noChildrenTitle": "Nog geen kinderen",
-      "noChildrenDescription": "Dit object heeft geen onderliggende objecten. Voeg een nieuw kind toe of kopieer bestaande objecten hierheen."
+      "noChildrenTitle": "Nog geen onderliggende objecten",
+      "noChildrenDescription": "Onderliggende objecten staan onder dit object in de hiërarchie. Er een toevoegen maakt dit object de parent — het kind bezit de koppeling en kan worden verplaatst zonder hier iets te wijzigen."
     },
     "modelSelector": {
       "label": "Model",
@@ -995,7 +995,8 @@
     "templateNameFrom": "{name} Sjabloon",
     "templateCreatedSuccess": "Sjabloon aangemaakt",
     "templateAbbreviationLabel": "Afkorting",
-    "templateAbbreviationPlaceholder": "bijv. MUUR"
+    "templateAbbreviationPlaceholder": "bijv. MUUR",
+    "noObjectsAction": "Maak je eerste object"
   },
   "uploads": {
     "centerAnnounceCancelled": "Upload van {fileName} geannuleerd",
@@ -1212,8 +1213,8 @@
     "create": "Sjabloon maken",
     "update": "Sjabloon bijwerken",
     "loading": "Sjablonen laden...",
-    "noTemplatesTitle": "Geen sjablonen gevonden",
-    "noTemplatesDescription": "Er zijn geen sjablonen om weer te geven",
+    "noTemplatesTitle": "Nog geen templates",
+    "noTemplatesDescription": "Een template is een startpunt voor nieuwe objecten: de eigenschappen, formulerecepten en de constanten waaraan ze gebonden zijn, klaar voor hergebruik.",
     "restoreTitle": "Sjabloon herstellen",
     "searchResults": "Zoekresultaten voor: \"{query}\"",
     "results": "{count} resultaat{count, plural, one {} other {en}}",
@@ -1230,7 +1231,8 @@
     "createObject": "Objectsjabloon",
     "createProcess": "Processjabloon",
     "flowSlot": "Elk object",
-    "flowSlotPlaceholder": "Elk object (optionele standaard)"
+    "flowSlotPlaceholder": "Elk object (optionele standaard)",
+    "noTemplatesAction": "Maak een template"
   },
   "formulas": {
     "title": "Formules",
@@ -1845,5 +1847,41 @@
       "revokeDescription": "Dit trekt de toegang in die u rechtstreeks op {count} items hebt gegeven."
     },
     "tabOverview": "Overzicht"
+  },
+  "concepts": {
+    "share": {
+      "label": "Wat is een share?",
+      "body": "Een bundel objecten en processen die je in één keer aan een groep mensen geeft. Vervangt Groepen: een groep mengde mensen en resources onder één woord, een share bevat alleen resources en toont wie ze mag zien. Toegang werkt door naar onderliggende objecten en je kunt de hele bundel in één keer intrekken."
+    },
+    "formula": {
+      "label": "Wat is een formule?",
+      "body": "Een herbruikbare expressie die aan een waarde is gekoppeld en door de server wordt herberekend. Formules zijn onveranderlijk — om er een te wijzigen dupliceer je hem en koppel je de nieuwe versie, zodat bestaand gebruik zijn betekenis behoudt."
+    },
+    "constant": {
+      "label": "Wat is een constante?",
+      "body": "Een gedeeld, geversioneerd getal waar formules op naam naar verwijzen. De versie wordt vastgezet op het moment van koppelen, dus een nieuwe waarde publiceren verandert nooit stilzwijgend al berekende resultaten."
+    },
+    "draft": {
+      "label": "Wat is een concept?",
+      "body": "Een niet-opgeslagen object dat op dit apparaat bewaard blijft en boven de lijst wordt vastgezet tot je het afmaakt. Gekozen maar nog niet geüploade bestanden kunnen niet mee in een concept — koppel ze opnieuw als je terugkomt."
+    },
+    "parent": {
+      "label": "Hoe werkt de hiërarchie?",
+      "body": "De hiërarchie kent alleen parents: een kind legt vast wie zijn parent is, en een kind toevoegen wijzigt het kind in plaats van dit object. Iets verplaatsen raakt dus nooit het object waar het eerst onder stond."
+    },
+    "deleted": {
+      "label": "Wat gebeurt er als ik iets verwijder?",
+      "body": "Er wordt niets vernietigd. Verwijderde records blijven staan, doorgestreept, en kunnen altijd worden hersteld. Zet dit aan om ze tussen de rest te zien."
+    }
+  },
+  "onboarding": {
+    "tours": {
+      "create-object": "Een object maken",
+      "build-template": "Een template bouwen",
+      "write-formula": "Een formule schrijven",
+      "share-objects": "Objecten delen",
+      "work-with-drafts": "Werken met concepten"
+    },
+    "startTour": "Start de rondleiding “{tour}”"
   }
 }

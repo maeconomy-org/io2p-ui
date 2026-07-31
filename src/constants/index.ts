@@ -1,4 +1,5 @@
 export * from './site'
+export * from './tour-anchors'
 export * from './limits'
 export * from './view-types'
 export * from './preferences'

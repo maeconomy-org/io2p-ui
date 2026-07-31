@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Loader2, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 
 import { Button, SheetFooter } from '@/components/ui'
+import { anchor } from '@/constants'
 
 /**
  * The footer every entity sheet shares: view mode offers Edit and a two-step Delete, edit mode offers
@@ -104,6 +105,7 @@ export function SheetLifecycleFooter({
             type="submit"
             className="flex-1"
             disabled={isSubmitting || !isDirty}
+            {...anchor('sheetSubmit')}
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('common.save')}
