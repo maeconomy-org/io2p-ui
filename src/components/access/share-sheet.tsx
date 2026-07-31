@@ -51,7 +51,7 @@ export type ShareResourceType =
  * node's rules layer, so any other permission 400s. Offering the ladder would render choices the
  * node refuses.
  */
-function isReadOnlyResource(type: ShareResourceType) {
+export function isReadOnlyResource(type: ShareResourceType) {
   return type === 'formula' || type === 'constant' || type === 'template'
 }
 

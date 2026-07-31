@@ -1772,7 +1772,12 @@
     },
     "saved": "Sharing updated",
     "redundantRead": "They already have read access through general access. This grant only takes effect if general access is turned off.",
-    "readShareOnly": "This can only be shared for reading — the owner keeps editing rights."
+    "readShareOnly": "This can only be shared for reading — the owner keeps editing rights.",
+    "bulkShareTitle": "Share {count, plural, =1 {# item} other {# items}}",
+    "bulkShareDescription": "Everyone you add here gets access to all of the selected items.",
+    "bulkShareAdditive": "This only adds access. Nobody loses access, and existing sharing is left as it is.",
+    "bulkShareNobody": "Add someone to share these with.",
+    "bulkShared": "Shared {count, plural, =1 {# item} other {# items}}"
   },
   "shares": {
     "title": "Shares",
@@ -1812,7 +1817,6 @@
     },
     "mixedPermissions": "Mixed",
     "manageAccess": "Manage access",
-    "notManageable": "Access to this can only be changed from the item itself.",
     "revokeAll": "Revoke all access",
     "revokeAllTitle": "Revoke all access?",
     "revokeAllDescription": "This removes the access you granted directly on this item — {count} listed.",

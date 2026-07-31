@@ -1773,7 +1773,12 @@
     },
     "saved": "Delen bijgewerkt",
     "redundantRead": "Zij hebben al leestoegang via algemene toegang. Deze toekenning werkt pas als algemene toegang wordt uitgezet.",
-    "readShareOnly": "Dit kan alleen ter inzage worden gedeeld — de eigenaar behoudt bewerkrechten."
+    "readShareOnly": "Dit kan alleen ter inzage worden gedeeld — de eigenaar behoudt bewerkrechten.",
+    "bulkShareTitle": "{count, plural, =1 {# item} other {# items}} delen",
+    "bulkShareDescription": "Iedereen die je hier toevoegt, krijgt toegang tot alle geselecteerde items.",
+    "bulkShareAdditive": "Dit voegt alleen toegang toe. Niemand verliest toegang en bestaande deelinstellingen blijven ongewijzigd.",
+    "bulkShareNobody": "Voeg iemand toe om deze mee te delen.",
+    "bulkShared": "{count, plural, =1 {# item} other {# items}} gedeeld"
   },
   "shares": {
     "title": "Delen",
@@ -1813,7 +1818,6 @@
     },
     "mixedPermissions": "Gemengd",
     "manageAccess": "Toegang beheren",
-    "notManageable": "Toegang hiertoe kan alleen bij het item zelf worden gewijzigd.",
     "revokeAll": "Alle toegang intrekken",
     "revokeAllTitle": "Alle toegang intrekken?",
     "revokeAllDescription": "Dit trekt de toegang in die u rechtstreeks op dit item hebt gegeven — {count} vermeld.",
