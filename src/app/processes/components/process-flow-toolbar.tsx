@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 
 import type { GraphNode } from '../utils/process-graph'
 

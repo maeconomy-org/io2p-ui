@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 interface TextViewerProps {
   src: string
@@ -18,34 +18,43 @@ export function TextViewer({
   maxBytes = DEFAULT_MAX_BYTES,
 }: TextViewerProps) {
   const t = useTranslations()
-  const [text, setText] = useState<string | null>(null)
-  const [tooLarge, setTooLarge] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  /**
+   * One state stamped with the `src` it belongs to, rather than three fields reset at the top of the
+   * effect. The reset is then DERIVED — a result for a previous src simply doesn't match — so
+   * switching files shows the loader immediately instead of the old file's text for one render.
+   */
+  const [result, setResult] = useState<{
+    src: string
+    text?: string
+    tooLarge?: boolean
+    error?: string
+  } | null>(null)
+
+  const current = result?.src === src ? result : null
+  const text = current?.text ?? null
+  const tooLarge = current?.tooLarge ?? false
+  const error = current?.error ?? null
 
   useEffect(() => {
     if (!src) return
     const ctrl = new AbortController()
-
-    setText(null)
-    setTooLarge(false)
-    setError(null)
 
     fetch(src, { signal: ctrl.signal })
       .then(async (res) => {
         const blob = await res.blob()
         if (ctrl.signal.aborted) return
         if (blob.size > maxBytes) {
-          setTooLarge(true)
+          setResult({ src, tooLarge: true })
           return
         }
         const body = await blob.text()
         if (ctrl.signal.aborted) return
-        setText(body)
+        setResult({ src, text: body })
       })
       .catch((err) => {
         if (ctrl.signal.aborted) return
         logger.error('Failed to read text preview', { error: err })
-        setError(String(err))
+        setResult({ src, error: String(err) })
       })
 
     return () => {

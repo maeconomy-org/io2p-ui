@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 
 import { getSelectColumn } from './data-table'
 import type { EntitySort } from './use-entity-list-query'

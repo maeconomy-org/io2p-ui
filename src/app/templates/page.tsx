@@ -31,7 +31,7 @@ import { useTemplates } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 import { buildTemplateColumns } from './components/template-columns'
 import {

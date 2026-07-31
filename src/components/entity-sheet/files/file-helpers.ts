@@ -1,4 +1,4 @@
-import { detectMimeType, detectPreviewKind } from '@/lib'
+import { detectMimeType, detectPreviewKind } from '@/lib/mime-type'
 import type { DraftFile } from '@/lib/entity-body'
 
 // A picked file → a pending upload draft (bytes ride the draft until Save; see plan §18).

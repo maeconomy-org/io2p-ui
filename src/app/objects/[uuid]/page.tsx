@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl'
 import { PlusCircle, Copy, FileText } from 'lucide-react'
 import type { ObjectListItem } from 'io2p-client'
 
-import { useBreadcrumbTrail } from '@/hooks'
+import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { useObjects } from '@/hooks/api/entities'
 import { Button } from '@/components/ui'
 import { FilterMenu, deletedSection } from '@/components/filters'

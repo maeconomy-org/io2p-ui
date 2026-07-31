@@ -22,7 +22,7 @@ import {
 import { useOptionalUploadQueue } from '@/contexts/upload-queue-context'
 import { Button, Card, Progress } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { formatBytes, truncateText } from '@/lib'
+import { formatBytes, truncateText } from '@/lib/utils'
 import type { UploadTask } from '@/lib/upload-queue'
 
 function mimeIcon(mimeType?: string): LucideIcon {

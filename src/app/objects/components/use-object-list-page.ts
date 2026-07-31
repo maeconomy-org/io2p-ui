@@ -6,7 +6,7 @@ import type { RowSelectionState } from '@tanstack/react-table'
 import type { ObjectListItem, Page } from 'io2p-client'
 
 import { useObjects } from '@/hooks/api/entities'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
 import { buildObjectColumns } from './object-columns'

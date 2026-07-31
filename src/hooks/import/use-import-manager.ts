@@ -1,223 +1,154 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/contexts'
-import { logger } from '@/lib'
+'use client'
+
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
+import { logger } from '@/lib/logger'
 import { authFetch } from '@/lib/auth-fetch'
+import { queryKeys } from '@/lib/query-keys'
+
 import { ImportJobSummary, isActiveJobStatus } from './types'
 
 export interface ImportManagerJobDetails extends ImportJobSummary {
   // Additional fields from detailed status API if needed
 }
 
+/** How often a RUNNING job is re-read. Finished jobs stop polling on their own — see below. */
+const ACTIVE_POLL_MS = 2000
+
+async function readJson(response: Response, fallback: string) {
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    throw new Error(body.error || fallback)
+  }
+  return response.json()
+}
+
 interface UseImportManagerResult {
-  // Jobs list
   jobs: ImportJobSummary[]
   jobsLoading: boolean
   jobsError: string | null
   refreshJobs: () => void
 
-  // Selected job details
   selectedJob: ImportManagerJobDetails | null
   selectedJobLoading: boolean
   selectedJobError: string | null
   refreshSelectedJob: () => void
 
-  // Auto-refresh for active jobs
   isAutoRefreshing: boolean
   toggleAutoRefresh: () => void
 
-  // Job selection
   selectJob: (jobId: string | null) => void
   selectedJobId: string | null
 
-  // Job cancellation
   cancelJob: (jobId: string) => Promise<void>
   cancellingJobId: string | null
 }
 
+/**
+ * The import-status screen's data, on React Query rather than hand-rolled effects.
+ *
+ * It used to hold nine `useState`s and three effects, and paid for them: a fetch that set a loading
+ * flag synchronously from inside an effect, a poll interval reading a stale closure, and an
+ * auto-refresh flag written as a side effect of the fetch that read it.
+ *
+ * Polling is now `refetchInterval`, driven by the job's OWN status — an active job polls, a finished
+ * one stops, with nothing to keep in sync. The manual toggle is an override on top, so `null` means
+ * "follow the job" and only an explicit click pins it.
+ */
 export function useImportManager(
   initialJobId?: string | null
 ): UseImportManagerResult {
-  const { userId } = useAuth()
-
-  // Jobs list state
-  const [jobs, setJobs] = useState<ImportJobSummary[]>([])
-  const [jobsLoading, setJobsLoading] = useState(true)
-  const [jobsError, setJobsError] = useState<string | null>(null)
-
-  // Selected job state
+  const qc = useQueryClient()
   const [selectedJobId, setSelectedJobId] = useState<string | null>(
     initialJobId || null
   )
-  const [selectedJob, setSelectedJob] =
-    useState<ImportManagerJobDetails | null>(null)
-  const [selectedJobLoading, setSelectedJobLoading] = useState(false)
-  const [selectedJobError, setSelectedJobError] = useState<string | null>(null)
-
-  // Auto-refresh state
-  const [autoRefresh, setAutoRefresh] = useState(false)
-
-  // Cancel job state
+  const [autoRefreshOverride, setAutoRefreshOverride] = useState<
+    boolean | null
+  >(null)
   const [cancellingJobId, setCancellingJobId] = useState<string | null>(null)
 
-  // Fetch all jobs
-  const fetchJobs = useCallback(async () => {
-    try {
-      setJobsLoading(true)
-      const params = new URLSearchParams()
-      params.set('limit', '100')
-
-      const response = await authFetch(`/api/import/jobs?${params.toString()}`)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to fetch jobs')
-      }
-
-      const data = await response.json()
-      setJobs(data.jobs)
-      setJobsError(null)
-    } catch (err) {
-      logger.error('Error fetching import jobs:', err)
-      setJobsError(err instanceof Error ? err.message : 'Failed to fetch jobs')
-    } finally {
-      setJobsLoading(false)
-    }
-  }, [userId])
-
-  // Fetch selected job details
-  const fetchSelectedJob = useCallback(
-    async (showLoading = true) => {
-      if (!selectedJobId) {
-        setSelectedJob(null)
-        setSelectedJobLoading(false)
-        return
-      }
-
-      try {
-        if (showLoading) {
-          setSelectedJobLoading(true)
-        }
-        const response = await authFetch(
-          `/api/import/jobs?jobId=${selectedJobId}`
-        )
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to fetch job details')
-        }
-
-        const data = await response.json()
-        setSelectedJob(data)
-        setSelectedJobError(null)
-
-        // Enable auto-refresh for active jobs
-        setAutoRefresh(isActiveJobStatus(data.status))
-      } catch (err) {
-        logger.error('Error fetching job details:', err)
-        setSelectedJobError(
-          err instanceof Error ? err.message : 'Failed to fetch job details'
-        )
-        setAutoRefresh(false)
-      } finally {
-        if (showLoading) {
-          setSelectedJobLoading(false)
-        }
-      }
+  const jobsQuery = useQuery({
+    queryKey: queryKeys.importJobs.list(),
+    queryFn: async () => {
+      const res = await authFetch('/api/import/jobs?limit=100')
+      const data = await readJson(res, 'Failed to fetch jobs')
+      return data.jobs as ImportJobSummary[]
     },
-    [selectedJobId]
-  )
+  })
 
-  // Select a job
-  const selectJob = useCallback((jobId: string | null) => {
-    setSelectedJobId(jobId)
-    setSelectedJob(null)
-    setSelectedJobError(null)
-  }, [])
+  const selectedQuery = useQuery({
+    queryKey: queryKeys.importJobs.detail(selectedJobId ?? ''),
+    queryFn: async () => {
+      const res = await authFetch(`/api/import/jobs?jobId=${selectedJobId}`)
+      return (await readJson(
+        res,
+        'Failed to fetch job details'
+      )) as ImportManagerJobDetails
+    },
+    enabled: !!selectedJobId,
+    // Derived from the data it polls, so a job that finishes stops the interval by itself.
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      const active = isActiveJobStatus(status)
+      const on = autoRefreshOverride ?? active
+      return on ? ACTIVE_POLL_MS : false
+    },
+  })
 
-  // Initial jobs fetch
-  useEffect(() => {
-    fetchJobs()
-  }, [fetchJobs])
+  const selectedJob = selectedJobId ? (selectedQuery.data ?? null) : null
+  const isAutoRefreshing =
+    autoRefreshOverride ?? isActiveJobStatus(selectedJob?.status)
 
-  // Fetch selected job when it changes
-  useEffect(() => {
-    if (selectedJobId) {
-      fetchSelectedJob(true)
-    }
-  }, [selectedJobId])
+  const cancelMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      const res = await authFetch('/api/import/cancel', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      })
+      await readJson(res, 'Failed to cancel job')
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.importJobs.all }),
+    onError: (error) => logger.error('Error cancelling job:', error),
+  })
 
-  // Auto-refresh for active jobs
-  useEffect(() => {
-    if (!autoRefresh || !selectedJobId) return
+  const errorText = (error: unknown, fallback: string) =>
+    error ? (error instanceof Error ? error.message : fallback) : null
 
-    const intervalId = setInterval(() => {
-      fetchSelectedJob(false) // Don't show loading spinner on auto-refresh
-    }, 2000) // Refresh every 2 seconds
+  return {
+    jobs: jobsQuery.data ?? [],
+    jobsLoading: jobsQuery.isLoading,
+    jobsError: errorText(jobsQuery.error, 'Failed to fetch jobs'),
+    refreshJobs: () => void jobsQuery.refetch(),
 
-    return () => clearInterval(intervalId)
-  }, [autoRefresh, selectedJobId])
+    selectedJob,
+    selectedJobLoading: !!selectedJobId && selectedQuery.isLoading,
+    selectedJobError: errorText(
+      selectedQuery.error,
+      'Failed to fetch job details'
+    ),
+    refreshSelectedJob: () => void selectedQuery.refetch(),
 
-  // Toggle auto-refresh
-  const toggleAutoRefresh = useCallback(() => {
-    setAutoRefresh((prev) => !prev)
-  }, [])
+    isAutoRefreshing,
+    toggleAutoRefresh: () => setAutoRefreshOverride(!isAutoRefreshing),
 
-  // Cancel a job
-  const cancelJob = useCallback(
-    async (jobId: string) => {
+    selectJob: (jobId) => {
+      setSelectedJobId(jobId)
+      // Drop the pin: the next job's own status decides again.
+      setAutoRefreshOverride(null)
+    },
+    selectedJobId,
+
+    cancelJob: async (jobId) => {
+      setCancellingJobId(jobId)
       try {
-        setCancellingJobId(jobId)
-        const response = await authFetch('/api/import/cancel', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ jobId }),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to cancel job')
-        }
-
-        // Refresh jobs list and selected job
-        await fetchJobs()
-        if (selectedJobId === jobId) {
-          await fetchSelectedJob(true)
-        }
-      } catch (err) {
-        logger.error('Error cancelling job:', err)
-        throw err
+        await cancelMutation.mutateAsync(jobId)
       } finally {
         setCancellingJobId(null)
       }
     },
-    [fetchJobs, fetchSelectedJob, selectedJobId]
-  )
-
-  return {
-    // Jobs list
-    jobs,
-    jobsLoading,
-    jobsError,
-    refreshJobs: fetchJobs,
-
-    // Selected job
-    selectedJob,
-    selectedJobLoading,
-    selectedJobError,
-    refreshSelectedJob: () => fetchSelectedJob(true),
-
-    // Auto-refresh
-    isAutoRefreshing: autoRefresh,
-    toggleAutoRefresh,
-
-    // Job selection
-    selectJob,
-    selectedJobId,
-
-    // Job cancellation
-    cancelJob,
     cancellingJobId,
   }
 }

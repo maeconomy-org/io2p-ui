@@ -1,10 +1,7 @@
 'use client'
 
 import {
-  useCallback,
-  useEffect,
   useMemo,
-  useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
@@ -34,10 +31,9 @@ import { ImageViewer, UnsupportedFallback } from '@/components/file-viewers'
 import {
   detectMimeType,
   detectPreviewKind,
-  formatBytes,
   type PreviewKind,
-} from '@/lib'
-import { cn } from '@/lib/utils'
+} from '@/lib/mime-type'
+import { cn, formatBytes } from '@/lib/utils'
 import { signedFileUrlQuery, useFileDownload } from '@/hooks/api/files'
 import { useIomClient } from '@/lib/io2p'
 import type { DraftFile } from '@/lib/entity-body'
@@ -96,21 +92,30 @@ export function FilePreview({
     return pool.filter(isPreviewable)
   }, [siblings, file])
 
-  const [currentId, setCurrentId] = useState<string | null>(
-    file?._localId ?? null
-  )
-  const [scale, setScale] = useState(1)
-  const [rotation, setRotation] = useState(0)
-
-  // Key off the id, not the object: a parent re-render hands us a new `file` reference for the same
-  // attachment, which would otherwise snap the dialog back after a Next/Prev navigation.
-  useEffect(() => {
-    if (open) setCurrentId(file?._localId ?? null)
-  }, [open, file?._localId])
+  /**
+   * The dialog opens on one file but can walk to its siblings, so `nav` records where the user went
+   * — stamped with the (open, file) it started from.
+   *
+   * Derived rather than reset by an effect, and keyed off the id rather than the object: a parent
+   * re-render hands us a new `file` reference for the SAME attachment, which would otherwise snap
+   * the dialog back after a Next/Prev.
+   */
+  const session = `${open}:${file?._localId ?? ''}`
+  const [nav, setNav] = useState<{ session: string; id: string } | null>(null)
+  const currentId = nav?.session === session ? nav.id : (file?._localId ?? null)
 
   const currentIndex = viewable.findIndex((f) => f._localId === currentId)
   const current =
     currentIndex >= 0 ? viewable[currentIndex] : (file ?? viewable[0] ?? null)
+
+  // Zoom and rotation belong to the file being LOOKED AT, so stamping them with its id is what
+  // resets them on navigation — no effect, and no frame showing the previous file's zoom.
+  const [view, setView] = useState({ id: currentId, scale: 1, rotation: 0 })
+  const active =
+    view.id === currentId ? view : { id: currentId, scale: 1, rotation: 0 }
+  const { scale, rotation } = active
+  const adjustView = (patch: Partial<{ scale: number; rotation: number }>) =>
+    setView({ ...active, ...patch, id: currentId })
 
   const mime = current ? detectMimeType(current) : 'application/octet-stream'
   const kind: PreviewKind = detectPreviewKind(mime)
@@ -125,66 +130,48 @@ export function FilePreview({
   })
   const url = signed?.url
 
-  useEffect(() => {
-    setScale(1)
-    setRotation(0)
-  }, [currentId])
-
   const hasMultiple = viewable.length > 1
 
-  // Latest nav state in a ref so `goTo` stays referentially stable and the key handler doesn't
-  // re-bind on every index change.
-  const navRef = useRef({ viewable, currentIndex })
-  navRef.current = { viewable, currentIndex }
+  const goTo = (delta: number) => {
+    if (viewable.length <= 1 || currentIndex < 0) return
+    const next = (currentIndex + delta + viewable.length) % viewable.length
+    setNav({ session, id: viewable[next]._localId })
+  }
 
-  const goTo = useCallback((delta: number) => {
-    const { viewable: vs, currentIndex: idx } = navRef.current
-    if (vs.length <= 1 || idx < 0) return
-    const next = (idx + delta + vs.length) % vs.length
-    setCurrentId(vs[next]._localId)
-  }, [])
+  const zoom = (factor: number) =>
+    adjustView({
+      scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * factor)),
+    })
 
-  const zoom = useCallback((factor: number) => {
-    setScale((s) => Math.max(MIN_SCALE, Math.min(MAX_SCALE, s * factor)))
-  }, [])
-
-  const resetView = useCallback(() => {
-    setScale(1)
-    setRotation(0)
-  }, [])
-
-  const toggleZoom = useCallback(() => {
-    setScale((s) => (s === 1 ? 2 : 1))
-  }, [])
+  const resetView = () => adjustView({ scale: 1, rotation: 0 })
+  const toggleZoom = () => adjustView({ scale: scale === 1 ? 2 : 1 })
+  const rotate = () => adjustView({ rotation: (rotation + 90) % 360 })
 
   // Scoped to the dialog: a window-level listener would hijack +/-/r/0 from inputs elsewhere on the
   // page while the dialog is open.
-  const handleDialogKeyDown = useCallback(
-    (e: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'ArrowRight' && hasMultiple) {
+  const handleDialogKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowRight' && hasMultiple) {
+      e.preventDefault()
+      goTo(1)
+    } else if (e.key === 'ArrowLeft' && hasMultiple) {
+      e.preventDefault()
+      goTo(-1)
+    } else if (kind === 'image') {
+      if (e.key === '+' || e.key === '=') {
         e.preventDefault()
-        goTo(1)
-      } else if (e.key === 'ArrowLeft' && hasMultiple) {
+        zoom(1.2)
+      } else if (e.key === '-' || e.key === '_') {
         e.preventDefault()
-        goTo(-1)
-      } else if (kind === 'image') {
-        if (e.key === '+' || e.key === '=') {
-          e.preventDefault()
-          zoom(1.2)
-        } else if (e.key === '-' || e.key === '_') {
-          e.preventDefault()
-          zoom(1 / 1.2)
-        } else if (e.key === '0') {
-          e.preventDefault()
-          resetView()
-        } else if (e.key.toLowerCase() === 'r') {
-          e.preventDefault()
-          setRotation((r) => (r + 90) % 360)
-        }
+        zoom(1 / 1.2)
+      } else if (e.key === '0') {
+        e.preventDefault()
+        resetView()
+      } else if (e.key.toLowerCase() === 'r') {
+        e.preventDefault()
+        rotate()
       }
-    },
-    [hasMultiple, goTo, kind, zoom, resetView]
-  )
+    }
+  }
 
   if (!current) return null
 
@@ -329,7 +316,7 @@ export function FilePreview({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-white hover:bg-white/10 hover:text-white"
-                onClick={() => setRotation((r) => (r + 90) % 360)}
+                onClick={rotate}
                 aria-label={t('attachments.preview.rotate')}
               >
                 <RotateCw className="h-4 w-4" />

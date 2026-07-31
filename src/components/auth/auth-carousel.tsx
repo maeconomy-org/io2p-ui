@@ -1,28 +1,33 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useTranslations } from 'next-intl'
 
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import { AUTH_SCENES } from '@/constants'
 
 const ROTATION_MS = 6000
 const TAG_INDEXES = [1, 2, 3] as const
 
+// `useSyncExternalStore`, not an effect: matchMedia IS an external store, and reading it into state
+// meant the first paint always animated before correcting itself a render later.
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
+const subscribeReducedMotion = (onChange: () => void) => {
+  const mq = window.matchMedia(REDUCED_MOTION)
+  mq.addEventListener('change', onChange)
+  return () => mq.removeEventListener('change', onChange)
+}
+
 export function AuthCarousel() {
   const t = useTranslations()
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
-  const [reducedMotion, setReducedMotion] = useState(false)
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setReducedMotion(mq.matches)
-    const onChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
+  const reducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia(REDUCED_MOTION).matches,
+    () => false
+  )
 
   useEffect(() => {
     if (paused || reducedMotion) return

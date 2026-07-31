@@ -9,7 +9,7 @@ import { useObjects, useTemplates } from '@/hooks/api/entities'
 import { useConstants } from '@/hooks/api/leaves'
 import { objectToTemplateInput } from '@/lib/template-body'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 export interface TemplateCreationData {
   name: string

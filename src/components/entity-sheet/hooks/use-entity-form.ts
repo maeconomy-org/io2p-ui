@@ -10,7 +10,7 @@ import { useObjects } from '@/hooks/api/entities'
 import { useOptionalUploadQueue } from '@/contexts/upload-queue-context'
 import { useIomClient } from '@/lib/io2p'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import {
   type EntityDraft,
   dtoToDraft,

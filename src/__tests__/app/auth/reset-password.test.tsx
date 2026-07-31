@@ -22,7 +22,7 @@ const mockResetPassword = vi.fn(
 vi.mock('@/lib/auth-client', () => ({
   authClient: { resetPassword: (input: any) => mockResetPassword(input) },
 }))
-vi.mock('@/lib', () => ({ logger: { error: vi.fn() } }))
+vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn() } }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), info: vi.fn() } }))
 
 beforeEach(() => {

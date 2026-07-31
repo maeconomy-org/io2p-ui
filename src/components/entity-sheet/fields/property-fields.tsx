@@ -21,7 +21,7 @@ import {
   CollapsibleTrigger,
   Label,
 } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import { PropertyNameCombobox } from './property-name-combobox'
 import { useConstants } from '@/hooks/api/leaves'
 import {

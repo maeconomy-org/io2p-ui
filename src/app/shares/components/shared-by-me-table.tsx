@@ -12,7 +12,7 @@ import { DeleteConfirmationDialog } from '@/components/modals'
 import { useGrants } from '@/hooks/api/access'
 import { useUserDirectory } from '@/hooks/api/users'
 import { saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
 import { buildSharedByMeColumns } from './shared-by-me-columns'

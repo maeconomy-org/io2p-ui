@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 
 import { Badge, Input, Label } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import {
   builtinNames,
   parseExpression,

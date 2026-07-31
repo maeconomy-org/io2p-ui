@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 // Sentry tunnel endpoint to bypass ad blockers
 // This proxies Sentry events through your own domain

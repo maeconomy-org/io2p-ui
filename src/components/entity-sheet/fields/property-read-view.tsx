@@ -11,7 +11,7 @@ import {
   CollapsibleTrigger,
   ViewToggle,
 } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import { usePreference } from '@/hooks/ui/use-preference'
 import type { DraftProperty, DraftFile, DraftValue } from '@/lib/entity-body'
 

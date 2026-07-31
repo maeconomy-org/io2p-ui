@@ -16,7 +16,7 @@ const mockRequestReset = vi.fn(async (_input?: any) => ({ error: null }) as any)
 vi.mock('@/lib/auth-client', () => ({
   authClient: { requestPasswordReset: (input: any) => mockRequestReset(input) },
 }))
-vi.mock('@/lib', () => ({ logger: { error: vi.fn() } }))
+vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn() } }))
 
 beforeEach(() => vi.clearAllMocks())
 

@@ -22,7 +22,7 @@ import {
 import { OwnerCell } from '@/components/tables'
 import { useConstants } from '@/hooks/api/leaves'
 import { saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 export type ConstantSheetMode = 'create' | 'edit'
 

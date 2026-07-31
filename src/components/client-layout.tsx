@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
-import { useKeyboardShortcuts } from '@/hooks'
+import { useKeyboardShortcuts } from '@/hooks/use-theme-shortcut'
 import { PUBLIC_PAGES } from '@/constants'
 
 // client-layout wraps EVERY route, so a static import here put driver.js + its CSS in the shared

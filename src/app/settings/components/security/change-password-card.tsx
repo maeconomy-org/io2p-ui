@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { Loader2, Save } from 'lucide-react'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { authClient } from '@/lib/auth-client'
 import {
   changePasswordSchema,

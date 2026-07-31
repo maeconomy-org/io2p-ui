@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { FileText, Link as LinkIcon, Loader2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import type { DraftFile } from '@/lib/entity-body'
 
 import { isImageFile } from './file-helpers'

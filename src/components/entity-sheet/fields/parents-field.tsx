@@ -20,7 +20,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { useObjects } from '@/hooks/api/entities'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import type { EntityDraft } from '@/lib/entity-body'
 
 const SEARCH_SIZE = 8

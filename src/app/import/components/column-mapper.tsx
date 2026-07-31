@@ -30,7 +30,10 @@ import {
   DialogTrigger,
   ScrollArea,
 } from '@/components/ui'
-import { useColumnMapper, DEFAULT_PROPERTIES } from '@/hooks'
+import {
+  useColumnMapper,
+  DEFAULT_PROPERTIES,
+} from '@/hooks/import/use-column-mapper'
 
 interface ColumnMapperProps {
   sheetData: (string | number | boolean | null)[][]

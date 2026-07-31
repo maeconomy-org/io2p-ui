@@ -15,8 +15,8 @@ import {
   Skeleton,
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
-import { useMounted } from '@/hooks'
-import { cn } from '@/lib'
+import { useMounted } from '@/hooks/ui/use-mounted'
+import { cn } from '@/lib/utils'
 
 /** Locale-aware date format; returns null for missing/invalid input. */
 function formatDate(value: string | undefined, locale: string): string | null {

@@ -3,7 +3,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import { ENABLED_OBJECT_VIEW_TYPES, ObjectViewType } from '@/constants'
 
 export type ViewType = ObjectViewType

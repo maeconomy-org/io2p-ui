@@ -36,7 +36,7 @@ import {
   CommandList,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { useIomClient } from '@/lib/io2p'
 import { useDuplicateObjects } from '@/hooks/api/use-duplicate-objects'
 import { ParentSelector } from '@/components/duplicate-objects/components'

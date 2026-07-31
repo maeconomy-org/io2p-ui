@@ -32,7 +32,7 @@ import {
   EmptyState,
   Skeleton,
 } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 
 /** Placeholder rows shown on FIRST load, before any data exists. */
 const LOADING_ROWS = 8

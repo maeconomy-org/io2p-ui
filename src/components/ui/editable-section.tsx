@@ -5,7 +5,7 @@ import { Edit, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui'
 
 export interface EditableSectionProps {

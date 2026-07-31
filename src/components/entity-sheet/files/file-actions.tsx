@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react'
 
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import type { DraftFile } from '@/lib/entity-body'
 
 import type { FileState } from './use-file-state'

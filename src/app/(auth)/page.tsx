@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, Shield, AlertTriangle, Mail } from 'lucide-react'
@@ -8,7 +8,8 @@ import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import { logger, cn } from '@/lib'
+import { logger } from '@/lib/logger'
+import { cn } from '@/lib/utils'
 import { useAuth, useAppConfig } from '@/contexts'
 import { loginSchema, type LoginFormData } from '@/lib/validations/auth'
 import {
@@ -26,6 +27,9 @@ import {
 } from '@/components/ui'
 import { BrickLoader } from '@/components/brick-loader'
 
+/** Remembers which sign-in the user reached for last, so that path is highlighted next time. */
+const LAST_AUTH_METHOD_KEY = 'iom-last-auth-method'
+
 export default function LoginPage() {
   const router = useRouter()
   const t = useTranslations()
@@ -35,9 +39,17 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [certLoading, setCertLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [lastAuthMethod, setLastAuthMethod] = useState<
-    'certificate' | 'email' | null
-  >(null)
+  // localStorage IS an external store, so read it as one. As state seeded by an effect it could
+  // only ever be null on the first paint, so the "last used" hint flickered in a render late.
+  // `subscribe` is a no-op: nothing rewrites the key while this page is mounted.
+  const lastAuthMethod = useSyncExternalStore(
+    () => () => {},
+    () => {
+      const stored = localStorage.getItem(LAST_AUTH_METHOD_KEY)
+      return stored === 'certificate' || stored === 'email' ? stored : null
+    },
+    () => null
+  )
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -46,13 +58,6 @@ export default function LoginPage() {
   })
 
   const isLoading = submitting || certLoading
-
-  useEffect(() => {
-    const stored = localStorage.getItem('iom-last-auth-method')
-    if (stored === 'certificate' || stored === 'email') {
-      setLastAuthMethod(stored)
-    }
-  }, [])
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -112,7 +117,7 @@ export default function LoginPage() {
       if (!result.success) {
         throw new Error(result.error)
       }
-      localStorage.setItem('iom-last-auth-method', 'email')
+      localStorage.setItem(LAST_AUTH_METHOD_KEY, 'email')
       router.replace('/objects')
     } catch (err) {
       logger.error('Email Login Error:', err)
@@ -133,7 +138,7 @@ export default function LoginPage() {
       if (!result.success) {
         throw new Error(result.error)
       }
-      localStorage.setItem('iom-last-auth-method', 'certificate')
+      localStorage.setItem(LAST_AUTH_METHOD_KEY, 'certificate')
       router.replace('/objects')
     } catch (err) {
       logger.error('Certificate Authentication Error:', err)

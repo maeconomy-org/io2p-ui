@@ -3,7 +3,7 @@
 import { FileQuestion } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { formatBytes } from '@/lib'
+import { formatBytes } from '@/lib/utils'
 
 interface UnsupportedFallbackProps {
   fileName: string

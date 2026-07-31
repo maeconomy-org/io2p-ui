@@ -9,7 +9,7 @@ import { ColumnMapper } from './components/column-mapper'
 import { ImportPreview } from './components/import-preview'
 import { Steps, Step } from './components/steps'
 import { useBulkImport } from '@/hooks/import/use-bulk-import'
-import type { SheetData } from '@/hooks'
+import type { SheetData } from '@/hooks/import/use-file-processor'
 import {
   Select,
   SelectContent,
@@ -23,9 +23,21 @@ import {
   IMPORT_START_ROW_KEY,
   IMPORT_COLUMN_MAPPING_KEY,
 } from '@/constants'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 type ImportStep = 'upload' | 'map-columns' | 'preview'
+
+/**
+ * Wipes the in-progress mapping. Module scope, not a component closure: it reads nothing from
+ * render, and as a closure it was referenced by the effect above its own declaration.
+ */
+function clearSessionStorage() {
+  sessionStorage.removeItem(IMPORT_HEADER_ROW_KEY)
+  sessionStorage.removeItem(IMPORT_START_ROW_KEY)
+  sessionStorage.removeItem(IMPORT_COLUMN_MAPPING_KEY)
+  // Legacy localStorage mappings, cleared too so a stale one cannot resurface.
+  localStorage.removeItem('import_last_column_mapping')
+}
 
 export default function ImportPage() {
   const t = useTranslations()
@@ -56,15 +68,6 @@ export default function ImportPage() {
       clearSessionStorage()
     }
   }, [step])
-
-  const clearSessionStorage = () => {
-    sessionStorage.removeItem(IMPORT_HEADER_ROW_KEY)
-    sessionStorage.removeItem(IMPORT_START_ROW_KEY)
-    sessionStorage.removeItem(IMPORT_COLUMN_MAPPING_KEY)
-
-    // Also clear any legacy localStorage mappings to prevent confusion
-    localStorage.removeItem('import_last_column_mapping')
-  }
 
   const handleFileSelected = (
     selectedFile: File,

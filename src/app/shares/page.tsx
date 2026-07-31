@@ -25,7 +25,7 @@ import { DeleteConfirmationDialog } from '@/components/modals'
 import { useShares } from '@/hooks/api/access'
 import { useSearch } from '@/contexts'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 import { buildShareColumns } from './components/share-columns'
 import { SharedByMeTable } from './components/shared-by-me-table'

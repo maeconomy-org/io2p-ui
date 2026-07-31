@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { useImportManager } from '@/hooks'
+import { useImportManager } from '@/hooks/import/use-import-manager'
 import { Button, Progress } from '@/components/ui'
 import { ContentSkeleton } from '@/components/skeletons'
 

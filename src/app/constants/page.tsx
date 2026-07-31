@@ -25,7 +25,7 @@ import { DeleteConfirmationDialog } from '@/components/modals'
 import { useConstants } from '@/hooks/api/leaves'
 import { useAuth, useSearch } from '@/contexts'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 import {
   buildConstantColumns,

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { MapPin, Loader2 } from 'lucide-react'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { authFetch } from '@/lib/auth-fetch'
 import { Input } from '@/components/ui'
 

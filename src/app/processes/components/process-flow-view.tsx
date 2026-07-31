@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
@@ -15,7 +15,7 @@ import {
   FloatingActionBarSeparator,
 } from '@/components/ui'
 import { ContentSkeleton } from '@/components/skeletons'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 
 import { useProcessGraph } from '../hooks/use-process-graph'
 import {
@@ -111,13 +111,13 @@ export function ProcessFlowView({
     acyclic: layered,
   })
 
-  // A shallower graph (a refetch, or a filter applied) could leave the start past the new end,
-  // rendering an empty slice with both arrows disabled — a dead end. Clamp back to the last slice.
-  useEffect(() => {
-    setWindowStart((start) =>
-      Math.min(start, Math.max(0, totalLevels - DEPTH_WINDOW_SIZE))
-    )
-  }, [totalLevels])
+  // `windowStart` is the user's INTENT; `useProcessGraph` clamps it against the real depth, and this
+  // mirrors that clamp for the pager's own labels and arrows. Derived rather than an effect, which
+  // spent a commit and a setState to land on a number both sides can simply compute.
+  const start = Math.min(
+    windowStart,
+    Math.max(0, totalLevels - DEPTH_WINDOW_SIZE)
+  )
 
   // The user's pick wins, but only once they have made one — otherwise follow the data, which may
   // not have loaded when this first renders.
@@ -184,14 +184,14 @@ export function ProcessFlowView({
           setDepthLimited(limited)
           setWindowStart(0)
         }}
-        windowFrom={windowStart + 1}
-        windowTo={Math.min(windowStart + DEPTH_WINDOW_SIZE, totalLevels)}
+        windowFrom={start + 1}
+        windowTo={Math.min(start + DEPTH_WINDOW_SIZE, totalLevels)}
         totalLevels={totalLevels}
         windowSize={DEPTH_WINDOW_SIZE}
-        canPrev={pagerActive && windowStart > 0}
-        canNext={pagerActive && windowStart + DEPTH_WINDOW_SIZE < totalLevels}
-        onPrev={() => setWindowStart((s) => Math.max(0, s - DEPTH_WINDOW_STEP))}
-        onNext={() => setWindowStart((s) => s + DEPTH_WINDOW_STEP)}
+        canPrev={pagerActive && start > 0}
+        canNext={pagerActive && start + DEPTH_WINDOW_SIZE < totalLevels}
+        onPrev={() => setWindowStart(Math.max(0, start - DEPTH_WINDOW_STEP))}
+        onNext={() => setWindowStart(start + DEPTH_WINDOW_STEP)}
         hiddenNodeCount={Math.max(0, totalNodes - graph.nodes.length)}
         depthDisabled={!!focusId || selectedObjects.length > 0}
         layered={layered}

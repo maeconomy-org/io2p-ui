@@ -19,7 +19,7 @@ import type { Io2pClient, ProcessListItem } from 'io2p-client'
 
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 import {
   buildProcessGraph,
@@ -172,7 +172,17 @@ export function useProcessGraph({
     }))
     if (edges.length === 0) return null
     if (focus) return limitDepthAround(edges, focusHops, focus)
-    if (window) return limitDepth(edges, window.size, window.from)
+    if (window) {
+      // Clamped HERE because this is the only place both numbers are known. The caller holds the
+      // requested start but learns `levels` from this hook, so clamping there is circular — and a
+      // graph that got shallower (a refetch, a filter) would otherwise leave the start past the end,
+      // drawing an empty slice with both pager arrows disabled.
+      const from = Math.min(
+        window.from,
+        Math.max(0, topology.levels - window.size)
+      )
+      return limitDepth(edges, window.size, from)
+    }
     return null
   }, [topology, focus, focusHops, window])
 

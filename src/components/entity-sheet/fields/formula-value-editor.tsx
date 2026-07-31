@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { evaluateExpression } from '@/lib/formula-expression'
 

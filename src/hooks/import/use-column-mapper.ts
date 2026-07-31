@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import {
   IMPORT_HEADER_ROW_KEY,
   IMPORT_START_ROW_KEY,
@@ -66,6 +66,17 @@ export const DEFAULT_PROPERTIES: PropertyDefinition[] = [
   { key: '__property__', label: 'As Property', isCustomProperty: true },
 ]
 
+function readStoredTemplates(): MappingTemplate[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(IMPORT_MAPPING_TEMPLATES_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch (error) {
+    logger.error('Failed to load mapping templates:', error)
+    return []
+  }
+}
+
 export function useColumnMapper({
   sheetData,
   suggestedStartRow = 0,
@@ -112,10 +123,10 @@ export function useColumnMapper({
     getSessionValue(IMPORT_START_ROW_KEY, suggestedStartRow + 1)
   )
 
-  // Template state
-  const [mappingTemplates, setMappingTemplates] = useState<MappingTemplate[]>(
-    []
-  )
+  // Read once, lazily, instead of empty-then-effect: the saved templates were always missing from
+  // the first render, so the template picker flashed empty on every open.
+  const [mappingTemplates, setMappingTemplates] =
+    useState<MappingTemplate[]>(readStoredTemplates)
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null)
 
   // Store values in session storage when they change
@@ -144,21 +155,6 @@ export function useColumnMapper({
       // Note: Removed localStorage persistence to avoid confusion between different CSV structures
     }
   }, [columnMapping])
-
-  // Load templates from localStorage
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    try {
-      const templatesString = localStorage.getItem(IMPORT_MAPPING_TEMPLATES_KEY)
-      if (templatesString) {
-        const templates = JSON.parse(templatesString)
-        setMappingTemplates(templates)
-      }
-    } catch (error) {
-      logger.error('Failed to load mapping templates:', error)
-    }
-  }, [])
 
   // Extract headers from sheet data
   const headers = useMemo(() => {

@@ -26,7 +26,7 @@ import {
   Skeleton,
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
-import { useMounted } from '@/hooks'
+import { useMounted } from '@/hooks/ui/use-mounted'
 import {
   DEMO_TOUR_START_EVENT,
   USER_MENU_TOGGLE_EVENT,

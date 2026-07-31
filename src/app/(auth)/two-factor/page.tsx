@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ShieldCheck, Loader2, AlertTriangle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { authClient } from '@/lib/auth-client'
 import {
   Button,

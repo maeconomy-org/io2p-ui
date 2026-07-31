@@ -5,7 +5,8 @@ import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
-import { logger, cn } from '@/lib'
+import { logger } from '@/lib/logger'
+import { cn } from '@/lib/utils'
 import { Button } from './button'
 import {
   Tooltip,

@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { useObjects } from '@/hooks/api/entities'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 
 const SEARCH_SIZE = 8
 

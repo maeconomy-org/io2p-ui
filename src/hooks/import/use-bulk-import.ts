@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import { getCoreToken } from '@/lib/auth-client'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { API_CHUNK_SIZE } from '@/constants'
 
 interface UseBulkImportOptions {

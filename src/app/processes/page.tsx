@@ -26,12 +26,12 @@ import { ViewSelector } from '@/components/view-selector'
 import { ContentSkeleton } from '@/components/skeletons'
 import { useProcesses } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
-import { usePreference } from '@/hooks'
+import { usePreference } from '@/hooks/ui/use-preference'
 import {
   DEFAULT_TABLE_PAGE_SIZE,
   ENABLED_PROCESS_VIEW_TYPES,
 } from '@/constants'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 import { buildProcessColumns } from './components/process-columns'
 import { ProcessFlowView } from './components/process-flow-view'

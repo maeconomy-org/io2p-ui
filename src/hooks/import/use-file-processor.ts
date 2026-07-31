@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { MAX_IMPORT_FILE_SIZE_MB, STREAM_CHUNK_SIZE } from '@/constants'
 
 export interface SheetData {
@@ -49,52 +49,77 @@ export function useFileProcessor({
     [onProgress]
   )
 
-  const processFile = useCallback(
-    async (file: File): Promise<SheetData[]> => {
-      setIsProcessing(true)
-      setError(null)
-      updateProgress(0)
+  const extractSheetData = useCallback(
+    async (workbook: any): Promise<SheetData[]> => {
+      const sheets: SheetData[] = []
 
-      try {
-        // Check file size
-        const fileSizeInMB = file.size / (1024 * 1024)
-        if (fileSizeInMB > maxSizeInMB) {
-          throw new Error(
-            `File size exceeds the maximum limit of ${maxSizeInMB}MB`
+      // Process each worksheet
+      workbook.eachSheet((worksheet: any) => {
+        const rawData: any[][] = []
+
+        // Convert worksheet to 2D array
+        worksheet.eachRow((row: any, rowNumber: number) => {
+          const rowData: any[] = []
+          row.eachCell(
+            { includeEmpty: true },
+            (cell: any, colNumber: number) => {
+              // Get cell value, handling different types
+              let value = cell.value
+
+              // Handle formula results (ExcelJS.ValueType.Formula = 6)
+              if (cell.type === 6 && cell.result !== undefined) {
+                value = cell.result
+              }
+
+              // Handle dates
+              if (value instanceof Date) {
+                value = value.toISOString()
+              }
+
+              // Handle rich text
+              if (
+                typeof value === 'object' &&
+                value !== null &&
+                'richText' in value
+              ) {
+                value = (value as any).richText.map((t: any) => t.text).join('')
+              }
+
+              rowData[colNumber - 1] = value
+            }
           )
-        }
+          rawData.push(rowData)
+        })
 
-        // Check file type
-        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.csv')) {
-          throw new Error('Please upload an XLSX or CSV file')
-        }
+        // Filter out empty rows
+        const data = cleanSheetData(rawData)
 
-        // Use different processing based on file type
-        if (file.name.endsWith('.csv')) {
-          // For CSV files, use dedicated CSV parser
-          return await processCSVFile(file)
-        } else {
-          // For XLSX files, use different strategies based on file size
-          if (fileSizeInMB > 5) {
-            // For larger files, use streaming approach
-            return await processLargeFile(file)
-          } else {
-            // For smaller files, use standard approach
-            return await processStandardFile(file)
-          }
-        }
-      } catch (err) {
-        logger.error('Error parsing file:', err)
-        setError(err instanceof Error ? err.message : 'Failed to parse file')
-        return []
-      } finally {
-        setIsProcessing(false)
+        // Try to detect the start row by finding patterns
+        const suggestedStartRow = detectDataStartRow(data)
+
+        sheets.push({
+          name: worksheet.name,
+          data,
+          suggestedStartRow,
+        })
+      })
+
+      // Check if we have data
+      if (sheets.length === 0) {
+        throw new Error('No sheets found in the file')
       }
+
+      // Check if any sheet has data
+      const hasData = sheets.some((sheet) => sheet.data.length > 0)
+      if (!hasData) {
+        throw new Error('No data found in any sheet')
+      }
+
+      return sheets
     },
-    [maxSizeInMB, updateProgress]
+    []
   )
 
-  // Process CSV files
   const processCSVFile = useCallback(
     async (file: File): Promise<SheetData[]> => {
       updateProgress(10)
@@ -156,7 +181,6 @@ export function useFileProcessor({
     [updateProgress]
   )
 
-  // Process standard-sized files
   const processStandardFile = useCallback(
     async (file: File): Promise<SheetData[]> => {
       updateProgress(10)
@@ -171,10 +195,9 @@ export function useFileProcessor({
 
       return extractSheetData(workbook)
     },
-    [updateProgress]
+    [updateProgress, extractSheetData]
   )
 
-  // Process large files with streaming
   const processLargeFile = useCallback(
     async (file: File): Promise<SheetData[]> => {
       return new Promise((resolve, reject) => {
@@ -251,79 +274,58 @@ export function useFileProcessor({
         }
       })
     },
-    [streamChunkSize, updateProgress]
+    [streamChunkSize, updateProgress, extractSheetData]
   )
 
-  // Helper to extract sheet data from a workbook
-  const extractSheetData = useCallback(
-    async (workbook: any): Promise<SheetData[]> => {
-      const sheets: SheetData[] = []
+  const processFile = useCallback(
+    async (file: File): Promise<SheetData[]> => {
+      setIsProcessing(true)
+      setError(null)
+      updateProgress(0)
 
-      // Process each worksheet
-      workbook.eachSheet((worksheet: any) => {
-        const rawData: any[][] = []
-
-        // Convert worksheet to 2D array
-        worksheet.eachRow((row: any, rowNumber: number) => {
-          const rowData: any[] = []
-          row.eachCell(
-            { includeEmpty: true },
-            (cell: any, colNumber: number) => {
-              // Get cell value, handling different types
-              let value = cell.value
-
-              // Handle formula results (ExcelJS.ValueType.Formula = 6)
-              if (cell.type === 6 && cell.result !== undefined) {
-                value = cell.result
-              }
-
-              // Handle dates
-              if (value instanceof Date) {
-                value = value.toISOString()
-              }
-
-              // Handle rich text
-              if (
-                typeof value === 'object' &&
-                value !== null &&
-                'richText' in value
-              ) {
-                value = (value as any).richText.map((t: any) => t.text).join('')
-              }
-
-              rowData[colNumber - 1] = value
-            }
+      try {
+        // Check file size
+        const fileSizeInMB = file.size / (1024 * 1024)
+        if (fileSizeInMB > maxSizeInMB) {
+          throw new Error(
+            `File size exceeds the maximum limit of ${maxSizeInMB}MB`
           )
-          rawData.push(rowData)
-        })
+        }
 
-        // Filter out empty rows
-        const data = cleanSheetData(rawData)
+        // Check file type
+        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.csv')) {
+          throw new Error('Please upload an XLSX or CSV file')
+        }
 
-        // Try to detect the start row by finding patterns
-        const suggestedStartRow = detectDataStartRow(data)
-
-        sheets.push({
-          name: worksheet.name,
-          data,
-          suggestedStartRow,
-        })
-      })
-
-      // Check if we have data
-      if (sheets.length === 0) {
-        throw new Error('No sheets found in the file')
+        // Use different processing based on file type
+        if (file.name.endsWith('.csv')) {
+          // For CSV files, use dedicated CSV parser
+          return await processCSVFile(file)
+        } else {
+          // For XLSX files, use different strategies based on file size
+          if (fileSizeInMB > 5) {
+            // For larger files, use streaming approach
+            return await processLargeFile(file)
+          } else {
+            // For smaller files, use standard approach
+            return await processStandardFile(file)
+          }
+        }
+      } catch (err) {
+        logger.error('Error parsing file:', err)
+        setError(err instanceof Error ? err.message : 'Failed to parse file')
+        return []
+      } finally {
+        setIsProcessing(false)
       }
-
-      // Check if any sheet has data
-      const hasData = sheets.some((sheet) => sheet.data.length > 0)
-      if (!hasData) {
-        throw new Error('No data found in any sheet')
-      }
-
-      return sheets
     },
-    []
+    [
+      maxSizeInMB,
+      updateProgress,
+      processCSVFile,
+      processLargeFile,
+      processStandardFile,
+    ]
   )
 
   return { processFile, isProcessing, progress, error, reset }

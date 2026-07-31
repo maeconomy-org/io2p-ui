@@ -12,7 +12,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl'
 import { Sparkles } from 'lucide-react'
 
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui'
 import {
   getDictionaryEntry,

@@ -1,4 +1,4 @@
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import { requireAuth } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 

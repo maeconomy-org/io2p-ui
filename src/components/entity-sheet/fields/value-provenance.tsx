@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { AlertTriangle, ChevronDown, ChevronUp, Sigma } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import type {
   DraftProperty,
   ValueProvenance as ValueProvenanceData,

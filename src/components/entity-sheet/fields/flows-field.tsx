@@ -12,7 +12,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui'
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 import type { EntityDraft } from '@/lib/entity-body'
 import { QUANTITY_KEY } from '@/lib/process-body'
 

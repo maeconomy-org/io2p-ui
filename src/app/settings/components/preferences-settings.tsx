@@ -14,7 +14,7 @@ import {
   ENABLED_OBJECT_VIEW_TYPES,
   ENABLED_PROCESS_VIEW_TYPES,
 } from '@/constants'
-import { usePreference } from '@/hooks'
+import { usePreference } from '@/hooks/ui/use-preference'
 import { SegmentedControl } from './segmented-control'
 
 function Row({

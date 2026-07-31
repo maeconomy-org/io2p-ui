@@ -10,7 +10,7 @@ import { useProcesses } from '@/hooks/api/entities'
 import { useOptionalUploadQueue } from '@/contexts/upload-queue-context'
 import { useIomClient } from '@/lib/io2p'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import {
   type EntityDraft,
   findEmptyPropertyKey,
@@ -59,6 +59,10 @@ export function useProcessForm(
   const loadedKey = process ? `${process.id}:${process.currentVersion}` : 'new'
   useEffect(() => {
     form.reset(process ? processToDraft(process) : EMPTY_PROCESS_DRAFT)
+    // Identity key ONLY — same reasoning as use-entity-form: this exists to resync when a DIFFERENT
+    // process arrives, and depending on `form`/`process` would reset mid-edit on any unrelated
+    // re-render, discarding what the user typed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedKey])
 
   const submit = form.handleSubmit(async (draft) => {

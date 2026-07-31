@@ -29,8 +29,9 @@ export interface ImportJobDetails extends ImportJobSummary {
 /**
  * Check if a job status is considered "active" (still processing)
  */
-export function isActiveJobStatus(status: ImportJobStatus): boolean {
-  return ['pending', 'receiving', 'processing'].includes(status)
+// Takes `undefined` so callers can ask about a job that has not loaded yet — which is not active.
+export function isActiveJobStatus(status?: ImportJobStatus): boolean {
+  return !!status && ['pending', 'receiving', 'processing'].includes(status)
 }
 
 /**

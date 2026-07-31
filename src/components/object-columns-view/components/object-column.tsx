@@ -24,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui'
-import { cn, truncateText } from '@/lib'
+import { cn, truncateText } from '@/lib/utils'
 import { useObjects } from '@/hooks/api/entities'
 
 import { ColumnHeader } from './column-header'

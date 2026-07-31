@@ -6,7 +6,7 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 import * as Sentry from '@sentry/nextjs'
 
 import { Button } from '@/components/ui'
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 interface ErrorBoundaryProps {
   error: Error & { digest?: string }

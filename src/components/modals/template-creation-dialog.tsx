@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { FileText, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 import {
   Dialog,
   DialogContent,
@@ -41,18 +41,9 @@ export function TemplateCreationDialog({
   isCreating = false,
 }: TemplateCreationDialogProps) {
   const t = useTranslations()
-  const [templateData, setTemplateData] = useState<TemplateData>({
-    name: '',
-    version: '',
-    description: '',
-  })
-
-  // Reset form data when dialog opens with new initial data
-  useEffect(() => {
-    if (open) {
-      setTemplateData(initialData)
-    }
-  }, [open, initialData])
+  // Seeded once, not reset by an effect on `open`: every caller renders this dialog conditionally,
+  // so it MOUNTS with its initial data already. The effect was re-doing what mounting had just done.
+  const [templateData, setTemplateData] = useState<TemplateData>(initialData)
 
   const handleInputChange = (field: keyof TemplateData, value: string) => {
     setTemplateData((prev) => ({

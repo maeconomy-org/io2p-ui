@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/logger'
 
 interface GlobalErrorProps {
   error: Error & { digest?: string }

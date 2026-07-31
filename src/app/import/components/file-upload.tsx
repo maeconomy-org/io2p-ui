@@ -4,7 +4,10 @@ import { useCallback, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Upload, FileSpreadsheet } from 'lucide-react'
 import { FileDropzone } from '@/components/ui/file-dropzone'
-import { useFileProcessor, SheetData } from '@/hooks'
+import {
+  useFileProcessor,
+  type SheetData,
+} from '@/hooks/import/use-file-processor'
 
 interface FileUploadProps {
   onFileSelected: (file: File, sheets: SheetData[]) => void
