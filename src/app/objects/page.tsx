@@ -9,7 +9,7 @@ import type { ObjectListItem } from 'io2p-client'
 
 import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { usePreference } from '@/hooks/ui/use-preference'
-import { useObjects } from '@/hooks/api/entities'
+import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { Button } from '@/components/ui'
 import {
@@ -65,7 +65,7 @@ export default function ObjectsPage() {
   const listQuery = useEntityListQuery({ scope })
   const { useList, usePrefetchDetail } = useObjects()
   // Warm the detail cache on hover so the sheet opens populated.
-  const prefetchDetail = usePrefetchDetail()
+  const prefetchDetail = usePrefetchDetail(OBJECT_DETAIL_READ)
 
   const setPage = listQuery.setPage
   const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))

@@ -275,6 +275,7 @@ export function ProcessSheet({
           isSubmitting={isSubmitting}
           lifecycleBusy={lifecycle.isBusy}
           canDelete={!!process}
+          entityName={process?.name}
           onEdit={() => setEditing(true)}
           onCancel={() => guardUnsaved(cancel)}
           onDelete={() => process && void lifecycle.run('delete', process.id)}

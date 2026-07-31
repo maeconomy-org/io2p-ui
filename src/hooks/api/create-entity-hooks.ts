@@ -32,6 +32,16 @@ const DEFAULT_STALE_TIME = 30_000
  * Keeping one generic for both would let a table read `properties` off a list row and render
  * nothing, with no error anywhere. Two generics turn that into a compile failure.
  */
+/**
+ * Options that change the SHAPE of a detail response, and therefore its cache key. Shared by the
+ * read and the prefetch so a hover warms exactly what opening the sheet will ask for.
+ */
+export interface DetailReadOptions {
+  enrichFiles?: boolean
+  /** Include soft-deleted properties/values/files, each carrying its own `deleted` flag. */
+  includeDeleted?: boolean
+}
+
 export interface EntityResource<
   Dto,
   ListDto,
@@ -116,34 +126,46 @@ export function createEntityHooks<
     })
   }
 
-  function useGet(
-    id: string | undefined,
-    options?: {
-      enabled?: boolean
-      enrichFiles?: boolean
-      /** Include soft-deleted properties/values/files, each carrying its own `deleted` flag. */
-      includeDeleted?: boolean
-    }
+  /**
+   * The ONE place a detail read's key and request are derived.
+   *
+   * Both options change the response SHAPE, so both belong in the key — otherwise a read that asked
+   * for deleted sub-items (or enriched files) would be served one that didn't, with no error to
+   * notice. Only non-default values contribute, so existing keys are unchanged.
+   *
+   * Shared with the prefetch on purpose. When each derived its own key, hover cached a plain
+   * `get(id)` under the bare key while the sheet asked for `{enrichFiles, includeDeleted}` under a
+   * suffixed one — so the prefetch could never be read, and every hover paid for a request the
+   * sheet then repeated.
+   */
+  function detailQuery(
+    client: Io2pClient,
+    id: string,
+    options?: DetailReadOptions
   ) {
-    const client = useIomClient()
-    // BOTH options change the response SHAPE, so both belong in the key — otherwise a read that
-    // asked for deleted sub-items (or enriched files) would be served one that didn't, with no
-    // error to notice. Only non-default values contribute, so existing keys are unchanged.
     const shape: string[] = []
     if (options?.includeDeleted) shape.push('withDeleted')
     if (options?.enrichFiles === false) shape.push('thinFiles')
 
-    return useQuery({
-      queryKey: shape.length
-        ? [...keys.detail(id ?? ''), ...shape]
-        : keys.detail(id ?? ''),
+    return {
+      queryKey: shape.length ? [...keys.detail(id), ...shape] : keys.detail(id),
       queryFn: () =>
-        select(client).get(id!, {
+        select(client).get(id, {
           enrichFiles: options?.enrichFiles,
           includeDeleted: options?.includeDeleted,
         }),
-      enabled: !!id && options?.enabled !== false,
       staleTime,
+    }
+  }
+
+  function useGet(
+    id: string | undefined,
+    options?: DetailReadOptions & { enabled?: boolean }
+  ) {
+    const client = useIomClient()
+    return useQuery({
+      ...detailQuery(client, id ?? '', options),
+      enabled: !!id && options?.enabled !== false,
     })
   }
 
@@ -211,19 +233,24 @@ export function createEntityHooks<
    * is a no-op while the entry is still fresh, so repeated pointer-enters cost
    * nothing.
    */
-  function usePrefetchDetail() {
+  /**
+   * Warm the detail cache on hover.
+   *
+   * MUST be called with the same options the sheet reads with — they are part of the key, so a
+   * mismatch caches something nothing will ever ask for and the hover becomes pure cost.
+   */
+  function usePrefetchDetail(options?: DetailReadOptions) {
     const client = useIomClient()
     const qc = useQueryClient()
+    const shapeKey = `${options?.enrichFiles ?? ''}:${options?.includeDeleted ?? ''}`
     return useCallback(
       (id: string) => {
         if (!id) return
-        void qc.prefetchQuery({
-          queryKey: keys.detail(id),
-          queryFn: () => select(client).get(id),
-          staleTime,
-        })
+        void qc.prefetchQuery(detailQuery(client, id, options))
       },
-      [client, qc]
+      // `shapeKey` rather than `options`, which is a fresh object literal on every render.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [client, qc, shapeKey]
     )
   }
 

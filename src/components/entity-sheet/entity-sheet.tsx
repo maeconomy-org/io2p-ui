@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import { Badge, Label } from '@/components/ui'
-import { useObjects } from '@/hooks/api/entities'
+import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useObjectDrafts } from '@/hooks/drafts'
 import { hasPendingUploads, type ValueProvenance } from '@/lib/entity-body'
 
@@ -55,11 +55,10 @@ export function EntitySheet({
   const isCreate = !entityId
 
   const objects = useObjects()
+  // OBJECT_DETAIL_READ, not a literal: the hover prefetch keys on these exact options.
   const { data: entity, isLoading } = objects.useGet(
     entityId ?? undefined,
-    // Ask for soft-deleted sub-items so they render struck-through with a Restore action, rather
-    // than silently vanishing — nothing is destroyed, so nothing should look destroyed.
-    { enrichFiles: true, includeDeleted: true }
+    OBJECT_DETAIL_READ
   )
   const loading = !isCreate && (isLoading || !entity)
 
@@ -233,6 +232,7 @@ export function EntitySheet({
           isSubmitting={isSubmitting}
           lifecycleBusy={lifecycle.isBusy}
           canDelete={!!entity}
+          entityName={entity?.name}
           onEdit={() => setEditing(true)}
           onCancel={() => guardUnsaved(cancel)}
           onDelete={() => entity && void lifecycle.run('delete', entity.id)}

@@ -31,7 +31,23 @@ import type {
   ListTemplatesQuery,
 } from 'io2p-client'
 
-import { createEntityHooks } from './create-entity-hooks'
+import {
+  createEntityHooks,
+  type DetailReadOptions,
+} from './create-entity-hooks'
+
+/**
+ * How the object detail sheet reads. Exported because the hover PREFETCH must match it exactly —
+ * these options are part of the cache key, so warming with anything else caches a response the
+ * sheet will never ask for.
+ *
+ * Soft-deleted sub-items are asked for so they render struck-through with a Restore action, rather
+ * than silently vanishing: nothing is destroyed, so nothing should look destroyed.
+ */
+export const OBJECT_DETAIL_READ: DetailReadOptions = {
+  enrichFiles: true,
+  includeDeleted: true,
+}
 
 const OBJECT_STALE_TIME = 30_000
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 
 import { SheetLifecycleFooter } from '@/components/entity-sheet/sheet-lifecycle-footer'
 
@@ -50,26 +50,34 @@ describe('SheetLifecycleFooter', () => {
     expect(screen.queryByText('common.delete')).not.toBeInTheDocument()
   })
 
-  describe('two-step delete', () => {
-    it('asks for confirmation before firing', () => {
-      const { onDelete } = renderFooter()
+  describe('delete', () => {
+    it('opens a confirmation dialog rather than firing', () => {
+      const { onDelete } = renderFooter({ entityName: 'North wall' })
       fireEvent.click(screen.getByText('common.delete'))
-      expect(onDelete).not.toHaveBeenCalled()
-      expect(screen.getByText('common.confirm')).toBeInTheDocument()
 
-      fireEvent.click(screen.getByText('common.confirm'))
+      expect(onDelete).not.toHaveBeenCalled()
+      // The dialog names what it is about to remove — the whole reason a modal beats a second click
+      // for a whole-record action.
+      expect(
+        screen.getByText(/objects.deleteConfirmDescription/)
+      ).toBeInTheDocument()
+    })
+
+    it('fires once the dialog is confirmed', () => {
+      const { onDelete } = renderFooter({ entityName: 'North wall' })
+      fireEvent.click(screen.getByText('common.delete'))
+      // Scoped to the dialog: the footer button carries the same label.
+      const dialog = within(screen.getByRole('alertdialog'))
+      fireEvent.click(dialog.getByText('common.delete'))
+
       expect(onDelete).toHaveBeenCalledTimes(1)
     })
 
-    // A half-pressed delete that survived would fire on the next single click, in a sheet the user
-    // may have reopened on a different entity.
-    it('resets the confirmation on blur', () => {
-      const { onDelete } = renderFooter()
-      const button = screen.getByText('common.delete')
-      fireEvent.click(button)
-      fireEvent.blur(screen.getByText('common.confirm'))
+    it('does not fire when the dialog is dismissed', () => {
+      const { onDelete } = renderFooter({ entityName: 'North wall' })
+      fireEvent.click(screen.getByText('common.delete'))
+      fireEvent.click(screen.getByText('common.cancel'))
 
-      expect(screen.getByText('common.delete')).toBeInTheDocument()
       expect(onDelete).not.toHaveBeenCalled()
     })
   })
