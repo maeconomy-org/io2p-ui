@@ -33,7 +33,6 @@ import { useAuth } from '@/contexts'
 import { useGrants } from '@/hooks/api/access'
 import { useUserDirectory, useUserSearch } from '@/hooks/api/users'
 import { UnsavedBar } from '@/components/entity-sheet/sheet-lifecycle-footer'
-import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
 
 import { PermissionSelect, type Permission } from './permission-select'
@@ -236,13 +235,51 @@ function ShareForm({
 
   const candidates = users.filter((u) => u.id !== userId && !draft[u.id])
 
+  /**
+   * Apply each edit INDEPENDENTLY, revokes first.
+   *
+   * Two deliberate choices, both bought by a real report ("I can't revoke one user from this
+   * share"):
+   *
+   * - **Revokes go first.** They used to run after every grant, in one `try` — so a single failing
+   *   grant, on an unrelated member, aborted the loop before any revoke ran. Taking access away is
+   *   the half the user asked for most urgently, and it is the fail-safe direction: a grant that
+   *   then fails leaves LESS access, never more.
+   * - **One failure no longer cancels the rest.** Sequential-and-abort made the outcome depend on
+   *   member ORDER, which the user cannot see. Each edit stands alone; whatever failed is named.
+   *
+   * The sheet stays OPEN when anything failed, so the refetched list shows what actually landed
+   * rather than closing over a half-applied state.
+   */
   const save = async () => {
     setSaving(true)
-    try {
-      // `grant` upserts on (resource, subject), so an added member and a changed rung are the same
-      // call — the diff only has to say WHICH subjects differ, not how.
-      for (const [, member] of changed) {
-        await grantMutation.mutateAsync({
+    const failed: string[] = []
+
+    const attempt = async (key: string, run: () => Promise<unknown>) => {
+      try {
+        await run()
+      } catch (error) {
+        logger.error('Access change failed', { error, subject: key })
+        failed.push(key === PUBLIC_KEY ? t('access.publicLabel') : nameOf(key))
+      }
+    }
+
+    for (const key of removed) {
+      await attempt(key, () =>
+        revokeMutation.mutateAsync({
+          body: {
+            resource: { type: target.type, id: target.id },
+            subject: initial[key].subject,
+          },
+        })
+      )
+    }
+
+    // `grant` upserts on (resource, subject), so an added member and a changed rung are the same
+    // call — the diff only has to say WHICH subjects differ, not how.
+    for (const [key, member] of changed) {
+      await attempt(key, () =>
+        grantMutation.mutateAsync({
           body: {
             resource: { type: target.type, id: target.id },
             subject: member.subject,
@@ -252,24 +289,18 @@ function ShareForm({
               : {}),
           },
         })
-      }
-      for (const key of removed) {
-        await revokeMutation.mutateAsync({
-          body: {
-            resource: { type: target.type, id: target.id },
-            subject: initial[key].subject,
-          },
-        })
-      }
-      toast.success(t('access.saved'))
-      onDone()
-    } catch (error) {
-      logger.error('Save access failed', error)
-      const { key, values } = saveErrorMessage(error)
-      toast.error(t(key, values))
-    } finally {
-      setSaving(false)
+      )
     }
+
+    setSaving(false)
+
+    if (failed.length > 0) {
+      toast.error(t('access.saveFailedFor', { names: failed.join(', ') }))
+      return
+    }
+
+    toast.success(t('access.saved'))
+    onDone()
   }
 
   return (

@@ -1208,7 +1208,8 @@
     "bulkShareDescription": "Everyone you add here gets access to all of the selected items.",
     "bulkShareAdditive": "This only adds access. Nobody loses access, and existing sharing is left as it is.",
     "bulkShareNobody": "Add someone to share these with.",
-    "bulkShared": "Shared {count, plural, =1 {# item} other {# items}}"
+    "bulkShared": "Shared {count, plural, =1 {# item} other {# items}}",
+    "saveFailedFor": "Could not save access for {names}. Everything else was applied."
   },
   "shares": {
     "title": "Shares",

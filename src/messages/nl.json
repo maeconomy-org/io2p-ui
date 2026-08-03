@@ -1208,7 +1208,8 @@
     "bulkShareDescription": "Iedereen die je hier toevoegt, krijgt toegang tot alle geselecteerde items.",
     "bulkShareAdditive": "Dit voegt alleen toegang toe. Niemand verliest toegang en bestaande deelinstellingen blijven ongewijzigd.",
     "bulkShareNobody": "Voeg iemand toe om deze mee te delen.",
-    "bulkShared": "{count, plural, =1 {# item} other {# items}} gedeeld"
+    "bulkShared": "{count, plural, =1 {# item} other {# items}} gedeeld",
+    "saveFailedFor": "Toegang voor {names} kon niet worden opgeslagen. De rest is toegepast."
   },
   "shares": {
     "title": "Delen",
