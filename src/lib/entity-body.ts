@@ -105,14 +105,19 @@ export interface DraftProperty {
  * data. Quantity is not a field here and never will be — io2p keeps domain semantics above the
  * protocol (D67), so a quantity is an ordinary property on the flow, keyed by `QUANTITY_KEY`.
  *
- * There is deliberately NO `deleted` flag, unlike properties/values/files. Removing a flow emits
- * `unlink`, which HARD-splices it and its whole data subtree out of the projection — there is no
- * restore section for flows. Marking one deleted would imply a reversibility the backend does not
- * offer, so a removed flow simply leaves the draft and the UI confirms first.
+ * Soft-deletes exactly like a property or a file, and did NOT always — io2p PR #44 replaced the old
+ * hard `unlink` with a soft delete plus a `restore` section. Anything still describing a flow removal
+ * as irreversible predates that.
  */
 export interface DraftFlow {
   /** Server-minted; absent on a flow the user just added. */
   id?: string
+  /**
+   * Soft-deleted, like a property or a file. io2p PR #44 turned flow `remove` into a soft delete and
+   * added a `restore` section — before it, removing a flow spliced it and its whole data subtree out
+   * of the projection with no way back, which was the one place this app destroyed data.
+   */
+  deleted?: boolean
   /** The object this flow points at. Retargeting keeps the flow's own data. */
   ref: string
   /** Resolved display name from the read model — never written back. */
@@ -399,7 +404,7 @@ export function diffFiles(
  * session" and "dropped from the draft entirely" — a row that never had an id was never stored, so
  * dropping it is the only way it can disappear.
  */
-function diffDeleted<T extends { id?: string; deleted?: boolean }>(
+export function diffDeleted<T extends { id?: string; deleted?: boolean }>(
   before: { id: string; deleted?: boolean }[],
   after: T[]
 ): { remove: string[]; restore: string[] } {

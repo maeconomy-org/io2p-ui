@@ -2,8 +2,8 @@
 // body. Processes DIFF like objects — `properties`/`files` take the same add/update/remove sections —
 // so the object diff helpers are reused verbatim rather than reimplemented. Only flows are new.
 //
-// The one asymmetry: a flow section has add/update/remove but NO `restore`, because `unlink` splices
-// the flow out of the projection rather than flagging it. See `DraftFlow` for what that costs the UI.
+// Flows are no exception any more: since io2p PR #44 a flow section carries add/update/remove AND
+// `restore`, so a removed flow is soft-deleted and recoverable exactly like a property or a file.
 
 import type {
   ProcessDTO,
@@ -17,6 +17,7 @@ import {
   type DraftProperty,
   type ResolvedUpload,
   containerUploads,
+  diffDeleted,
   diffFiles,
   diffProperties,
   newReferenceInputs,
@@ -52,6 +53,7 @@ function flowToDraft(flow: ReadFlow): DraftFlow {
     id: flow.id,
     ref: flow.ref,
     refName: flow.refName,
+    deleted: flow.deleted,
     properties: (flow.properties ?? []).map(propertyToDraft),
     files: readFiles(flow.files),
   }
@@ -125,39 +127,45 @@ export function buildCreateProcessInput(
 
   // Always sent, even when empty: the node REQUIRES at least one of each, so an omitted bag is a 422
   // we would rather surface as the validation it is than as a mysterious missing field.
-  body.inputs = (draft.inputs ?? []).filter(hasRef).map(toCreateFlow)
-  body.outputs = (draft.outputs ?? []).filter(hasRef).map(toCreateFlow)
+  body.inputs = (draft.inputs ?? []).filter(isLiveFlow).map(toCreateFlow)
+  body.outputs = (draft.outputs ?? []).filter(isLiveFlow).map(toCreateFlow)
 
   return body
 }
 
 const hasRef = (flow: DraftFlow) => flow.ref.trim() !== ''
 
+// A create has nothing to soft-delete against, so a flow marked deleted in the draft is simply not sent.
+const isLiveFlow = (flow: DraftFlow) => hasRef(flow) && !flow.deleted
+
 type FlowSections = NonNullable<UpdateProcessBody['inputs']>
 
 /**
- * Diff one flow bag.
+ * Diff one flow bag — the SAME soft-delete discipline properties and files use, via `diffDeleted`.
  *
- * A flow missing from the draft is an `unlink` — there is no soft-delete to report, so "gone from the
- * draft" is the only signal, and it is irreversible on the server. `ref` is sent only when it
- * actually changed: a re-emitted `link` retargets the flow IN PLACE, keeping its own data, so sending
- * an unchanged ref would be a pointless write.
+ * A removed flow is marked `deleted` on the draft rather than dropped from it, so the diff can tell
+ * "deleted just now" from "was already deleted" and a restore has something to restore. Dropping it
+ * would work for the delete and make Restore impossible, which is exactly the shape this replaced.
+ *
+ * `ref` is sent only when it actually changed: a re-emitted `link` retargets the flow IN PLACE,
+ * keeping its own data, so an unchanged ref would be a pointless write.
  */
 function diffFlows(
   before: ReadFlow[] | undefined,
   after: DraftFlow[] | undefined
 ): FlowSections | undefined {
-  const live = (after ?? []).filter(hasRef)
+  const withRef = (after ?? []).filter(hasRef)
   const beforeList = before ?? []
   const beforeById = new Map(beforeList.map((f) => [f.id, f]))
-  const afterIds = new Set(live.filter((f) => f.id).map((f) => f.id as string))
 
-  const add = live.filter((f) => !f.id).map(toCreateFlow)
-  const remove = beforeList.filter((f) => !afterIds.has(f.id)).map((f) => f.id)
+  const add = withRef.filter((f) => !f.id && !f.deleted).map(toCreateFlow)
+
+  const { remove, restore } = diffDeleted(beforeList, withRef)
 
   const update: NonNullable<FlowSections['update']> = []
-  for (const flow of live) {
-    if (!flow.id) continue
+  for (const flow of withRef) {
+    // A deleted flow takes no edits — same rule as a deleted property.
+    if (!flow.id || flow.deleted) continue
     const prev = beforeById.get(flow.id)
     if (!prev) continue
     const refChange = flow.ref !== prev.ref ? flow.ref : undefined
@@ -177,7 +185,25 @@ function diffFlows(
   if (add.length) sections.add = add
   if (update.length) sections.update = update
   if (remove.length) sections.remove = remove
+  if (restore.length) sections.restore = restore
   return Object.keys(sections).length ? sections : undefined
+}
+
+/**
+ * The direction a save would leave with no live flow, or null.
+ *
+ * Since PR #44 the node rejects emptying a side (422) — a process with no inputs or no outputs is not
+ * a transformation. Caught here so the sheet can say which side and keep the user's other edits,
+ * rather than surfacing a server error after a failed round trip.
+ */
+export function findEmptiedDirection(
+  draft: EntityDraft
+): 'inputs' | 'outputs' | null {
+  for (const bag of ['inputs', 'outputs'] as const) {
+    const live = (draft[bag] ?? []).filter((f) => hasRef(f) && !f.deleted)
+    if (live.length === 0) return bag
+  }
+  return null
 }
 
 /** An all-unchanged draft returns `{}` (a node no-op). Callers pass if-match = before.currentVersion. */

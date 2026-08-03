@@ -1,8 +1,8 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, renderHook } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { useForm, type UseFormReturn } from 'react-hook-form'
 
 import { FlowsField } from '@/components/entity-sheet/fields'
 import type { EntityDraft } from '@/lib/entity-body'
@@ -53,36 +53,58 @@ const FLOW = {
   ],
 }
 
-function renderFlows(editing: boolean) {
+/**
+ * The form lives INSIDE the tree. Removing or restoring a flow is a `setValue`, and a form created
+ * in a separate `renderHook` root cannot re-render this one — the row would never change on screen.
+ */
+function Harness({
+  editing,
+  inputs,
+  capture,
+}: {
+  editing: boolean
+  inputs: unknown[]
+  capture: (form: UseFormReturn<EntityDraft>) => void
+}) {
+  const form = useForm<EntityDraft>({
+    defaultValues: {
+      name: 'Smelt',
+      description: null,
+      address: null,
+      parentIds: [],
+      properties: [],
+      inputs,
+      outputs: [],
+    },
+  } as never) as UseFormReturn<EntityDraft>
+  capture(form)
+  return React.createElement(FlowsField, {
+    form,
+    bag: 'inputs' as const,
+    editing,
+    derivedValues: NO_DERIVED,
+  })
+}
+
+function renderFlows(editing: boolean, inputs: unknown[] = [FLOW]) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  const { result } = renderHook(() =>
-    useForm<EntityDraft>({
-      defaultValues: {
-        name: 'Smelt',
-        description: null,
-        address: null,
-        parentIds: [],
-        properties: [],
-        inputs: [FLOW],
-        outputs: [],
-      },
-    })
-  )
+  let form!: UseFormReturn<EntityDraft>
   const view = render(
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(FlowsField, {
-        form: result.current,
-        bag: 'inputs' as const,
+      React.createElement(Harness, {
         editing,
-        derivedValues: NO_DERIVED,
+        inputs,
+        capture: (f) => {
+          form = f
+        },
       })
     )
   )
-  return { ...view, form: result.current }
+  return { ...view, form }
 }
 
 describe('FlowsField row', () => {
@@ -160,5 +182,74 @@ describe('FlowsField row', () => {
     fireEvent.click(trigger)
 
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  })
+})
+
+describe('FlowsField soft delete', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    objects.list.mockResolvedValue({ data: [], page: {} })
+    formulas.list.mockResolvedValue({ data: [], page: {} })
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+    )
+  })
+
+  it('marks a STORED flow instead of dropping it, and offers Restore', () => {
+    // The regression: a flow removal used to splice the row out with no way back. It is a soft
+    // delete now, so the row must survive struck-through with the same treatment a property gets.
+    const { form } = renderFlows(true)
+
+    fireEvent.click(screen.getByLabelText('common.remove'))
+
+    expect(form.getValues('inputs.0.deleted')).toBe(true)
+    expect(form.getValues('inputs')).toHaveLength(1)
+    expect(screen.getByText('common.deleted')).toBeTruthy()
+    expect(screen.getByText('common.restore')).toBeTruthy()
+  })
+
+  it('removes without a confirm step, because the row itself is the undo', () => {
+    const { form } = renderFlows(true)
+
+    fireEvent.click(screen.getByLabelText('common.remove'))
+
+    // The old two-step existed only because the removal was irreversible.
+    expect(screen.queryByText('common.confirm')).toBeNull()
+    expect(form.getValues('inputs.0.deleted')).toBe(true)
+  })
+
+  it('restores a deleted flow', () => {
+    const { form } = renderFlows(true, [{ ...FLOW, deleted: true }])
+
+    fireEvent.click(screen.getByText('common.restore'))
+
+    expect(form.getValues('inputs.0.deleted')).toBe(false)
+  })
+
+  it('DROPS a flow that was never stored — nothing to soft-delete', () => {
+    const { form } = renderFlows(true, [{ ref: 'obj-new', properties: [] }])
+
+    fireEvent.click(screen.getByLabelText('common.remove'))
+
+    expect(form.getValues('inputs')).toHaveLength(0)
+  })
+
+  it('offers no Restore in read mode, where nothing can commit it', () => {
+    renderFlows(false, [{ ...FLOW, deleted: true }])
+
+    expect(screen.getByText('common.deleted')).toBeTruthy()
+    expect(screen.queryByText('common.restore')).toBeNull()
+  })
+
+  it('shows the empty state only when the bag is genuinely empty', () => {
+    // A deleted flow is still a flow. Saying "no inputs" over one would hide data, which is the
+    // thing this whole change exists to stop.
+    renderFlows(false, [])
+    expect(screen.getByText('processes.flows.empty.inputs')).toBeTruthy()
   })
 })

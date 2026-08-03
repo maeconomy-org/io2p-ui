@@ -5,6 +5,7 @@ import {
   processToDraft,
   buildCreateProcessInput,
   buildUpdateProcessBody,
+  findEmptiedDirection,
   findFlowWithoutRef,
   EMPTY_PROCESS_DRAFT,
   QUANTITY_KEY,
@@ -134,16 +135,62 @@ describe('buildUpdateProcessBody', () => {
     })
   })
 
-  // Removal is an unlink — irreversible server-side, so "missing from the draft" is the only signal
-  // there is. There is no `restore` section to emit.
-  it('removes a flow dropped from the draft, and never emits restore', () => {
-    const before = loaded()
-    const d = processToDraft(before)
-    d.inputs = []
+  // Since io2p PR #44 a flow removal is a SOFT delete with a `restore` section, exactly like a
+  // property or a file. These four cases are the whole contract.
+  describe('soft-deleting a flow', () => {
+    it('removes a flow marked deleted, keeping it in the draft', () => {
+      const before = loaded()
+      const d = processToDraft(before)
+      d.inputs![0].deleted = true
 
-    const body = buildUpdateProcessBody(before, d)
-    expect(body.inputs).toEqual({ remove: ['f1'] })
-    expect(body.inputs).not.toHaveProperty('restore')
+      expect(buildUpdateProcessBody(before, d).inputs).toEqual({
+        remove: ['f1'],
+      })
+    })
+
+    it('still removes a flow dropped from the draft entirely', () => {
+      // Marking is how the UI removes now, but a dropped flow must not silently survive.
+      const before = loaded()
+      const d = processToDraft(before)
+      d.inputs = []
+
+      expect(buildUpdateProcessBody(before, d).inputs).toEqual({
+        remove: ['f1'],
+      })
+    })
+
+    it('restores a flow whose deleted flag was cleared', () => {
+      const before = loaded()
+      before.inputs[0].deleted = true
+      const d = processToDraft(before)
+      d.inputs![0].deleted = false
+
+      expect(buildUpdateProcessBody(before, d).inputs).toEqual({
+        restore: ['f1'],
+      })
+    })
+
+    it('sends no edits for a deleted flow', () => {
+      // A deleted row takes no edits — same rule as a deleted property. Sending both would ask the
+      // server to update something in the act of removing it.
+      const before = loaded()
+      const d = processToDraft(before)
+      d.inputs![0].deleted = true
+      d.inputs![0].ref = 'obj-other'
+      d.inputs![0].properties[0].values[0].data = '900 kg'
+
+      expect(buildUpdateProcessBody(before, d).inputs).toEqual({
+        remove: ['f1'],
+      })
+    })
+
+    it('drops a never-stored flow instead of sending it', () => {
+      const before = loaded()
+      const d = processToDraft(before)
+      d.outputs!.push({ ref: 'obj-scrap', properties: [], deleted: true })
+
+      expect(buildUpdateProcessBody(before, d).outputs).toBeUndefined()
+    })
   })
 
   it('retargets in place by sending only the changed ref', () => {
@@ -359,5 +406,33 @@ describe('resolveProcessUploadTargets', () => {
 
     // `committed` never got that flow, so there is no id to attach against.
     expect(resolveProcessUploadTargets(before, d)).toEqual([])
+  })
+})
+
+describe('findEmptiedDirection', () => {
+  it('accepts a process with a live flow on both sides', () => {
+    expect(findEmptiedDirection(processToDraft(loaded()))).toBeNull()
+  })
+
+  it('catches a side whose only flow was soft-deleted', () => {
+    // The bag still HAS an entry, so a length check would pass it and the node would 422 on save.
+    const d = processToDraft(loaded())
+    d.inputs![0].deleted = true
+
+    expect(findEmptiedDirection(d)).toBe('inputs')
+  })
+
+  it('catches an empty bag', () => {
+    const d = processToDraft(loaded())
+    d.outputs = []
+
+    expect(findEmptiedDirection(d)).toBe('outputs')
+  })
+
+  it('ignores a row with no target, which cannot be saved either way', () => {
+    const d = processToDraft(loaded())
+    d.inputs = [{ ref: '  ', properties: [] }]
+
+    expect(findEmptiedDirection(d)).toBe('inputs')
   })
 })

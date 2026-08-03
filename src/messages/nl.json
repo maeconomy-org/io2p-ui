@@ -719,11 +719,13 @@
         "outputs": "Nog geen uitvoer"
       },
       "alsoInput": "ook een invoer",
-      "alsoOutput": "ook een uitvoer"
+      "alsoOutput": "ook een uitvoer",
+      "untitled": "Stroom"
     },
     "saveError": {
       "flowNeedsObject": "Elke invoer en uitvoer moet naar een object verwijzen",
-      "needsInputAndOutput": "Een proces heeft minstens één invoer en één uitvoer nodig"
+      "needsInput": "Een proces heeft minstens één invoer nodig.",
+      "needsOutput": "Een proces heeft minstens één uitvoer nodig."
     },
     "deleted": "Proces verwijderd",
     "deleteFailed": "Verwijderen van proces mislukt",

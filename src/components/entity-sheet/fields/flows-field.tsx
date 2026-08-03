@@ -21,6 +21,7 @@ import type { DerivedValues } from './value-provenance'
 import { ObjectFilesField } from './object-files-field'
 import { ObjectPicker } from './object-picker'
 import { PropertyFields } from './property-fields'
+import { DeletedRow } from './deleted-row'
 import { useRefName } from './use-ref-name'
 
 type Bag = 'inputs' | 'outputs'
@@ -89,6 +90,26 @@ export function FlowsField({
   const addFlow = () =>
     append({ ref: '', properties: [] }, { shouldFocus: false })
 
+  /**
+   * Removing a STORED flow marks it, so Save sends a soft delete the server can reverse and the row
+   * stays on screen struck-through with Restore. A flow that was never stored has nothing to
+   * preserve, so it just goes. Identical to how a property is removed — flows only differed while
+   * the backend hard-spliced them.
+   */
+  const removeFlow = (index: number) => {
+    if (form.getValues(`${bag}.${index}.id`)) {
+      form.setValue(`${bag}.${index}.deleted`, true, { shouldDirty: true })
+    } else {
+      remove(index)
+    }
+  }
+
+  const restoreFlow = (index: number) =>
+    form.setValue(`${bag}.${index}.deleted`, false, { shouldDirty: true })
+
+  // Deliberately counts ALL rows, deleted included: a soft-deleted flow is shown struck-through in
+  // read mode, exactly like a deleted property, so "no inputs" would be a lie about a bag that has
+  // some. (The node rejects emptying a direction anyway, so a saved process always has a live one.)
   if (fields.length === 0 && !editing) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -111,7 +132,8 @@ export function FlowsField({
           entityId={entityId}
           optionalRef={optionalRef}
           onBothSides={onBothSides}
-          onRemove={() => remove(index)}
+          onRemove={() => removeFlow(index)}
+          onRestore={() => restoreFlow(index)}
         />
       ))}
 
@@ -136,6 +158,7 @@ function FlowRow({
   optionalRef,
   onBothSides,
   onRemove,
+  onRestore,
 }: {
   form: UseFormReturn<EntityDraft>
   bag: Bag
@@ -148,10 +171,10 @@ function FlowRow({
   /** Object ids referenced on the opposite side, so a both-sides flow can say so. */
   onBothSides: Set<string>
   onRemove: () => void
+  onRestore: () => void
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
-  const [confirmRemove, setConfirmRemove] = useState(false)
 
   const base = `${bag}.${index}` as const
   const flow = form.watch(base)
@@ -174,6 +197,18 @@ function FlowRow({
   ).length
 
   const alsoOnOtherSide = !!flow?.ref && onBothSides.has(flow.ref)
+
+  // Struck through and marked rather than gone — the same treatment a deleted property or file gets,
+  // now that a flow removal is reversible. Restore is offered in edit mode only: it is a draft edit
+  // that only Save can commit.
+  if (flow?.deleted) {
+    return (
+      <DeletedRow
+        label={refLabel || t('processes.flows.untitled')}
+        onRestore={editing ? onRestore : undefined}
+      />
+    )
+  }
 
   /**
    * Write the quantity, creating the property the first time. Kept here rather than making the user
@@ -300,21 +335,11 @@ function FlowRow({
             size="icon"
             className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
             aria-label={t('common.remove')}
-            // Two-step, and NOT the struck-through + Restore used elsewhere: removing a flow emits
-            // `unlink`, which drops it and all its data from the projection with no way back.
-            onBlur={() => setConfirmRemove(false)}
-            onClick={() => {
-              if (!confirmRemove) return setConfirmRemove(true)
-              onRemove()
-            }}
+            // One click, no confirm: the removal is a soft delete the row itself offers to undo.
+            // The old two-step existed because a flow removal used to be irreversible.
+            onClick={onRemove}
           >
-            {confirmRemove ? (
-              <span className="text-[10px] font-medium">
-                {t('common.confirm')}
-              </span>
-            ) : (
-              <Trash2 className="h-3.5 w-3.5" />
-            )}
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>

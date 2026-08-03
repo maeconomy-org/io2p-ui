@@ -719,11 +719,13 @@
         "outputs": "No outputs yet"
       },
       "alsoInput": "also an input",
-      "alsoOutput": "also an output"
+      "alsoOutput": "also an output",
+      "untitled": "Flow"
     },
     "saveError": {
       "flowNeedsObject": "Every input and output must point at an object",
-      "needsInputAndOutput": "A process needs at least one input and one output"
+      "needsInput": "A process needs at least one input.",
+      "needsOutput": "A process needs at least one output."
     },
     "deleted": "Process deleted",
     "deleteFailed": "Failed to delete process",

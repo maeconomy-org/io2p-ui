@@ -22,6 +22,7 @@ import {
   processToDraft,
   buildCreateProcessInput,
   buildUpdateProcessBody,
+  findEmptiedDirection,
   findFlowWithoutRef,
   resolveProcessUploadTargets,
 } from '@/lib/process-body'
@@ -82,10 +83,17 @@ export function useProcessForm(
       return
     }
 
-    // The node enforces this too, but a 422 on save is a poor way to learn it — the user would have
-    // to guess which bag was empty.
-    if (!(draft.inputs ?? []).length || !(draft.outputs ?? []).length) {
-      toast.error(t('processes.saveError.needsInputAndOutput'))
+    // Counts LIVE flows, not entries: a bag whose rows are all soft-deleted still has length, and
+    // the node 422s on emptying a direction. Naming the side beats making the user guess which.
+    const emptied = findEmptiedDirection(draft)
+    if (emptied) {
+      toast.error(
+        t(
+          emptied === 'inputs'
+            ? 'processes.saveError.needsInput'
+            : 'processes.saveError.needsOutput'
+        )
+      )
       return
     }
 
