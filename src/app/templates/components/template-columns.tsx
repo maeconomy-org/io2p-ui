@@ -41,7 +41,7 @@ export function buildTemplateColumns({
       'type',
       t('templates.fields.type'),
       (template): ReactNode => (
-        <Badge variant="secondary" className="capitalize">
+        <Badge variant={template.type} className="capitalize">
           {template.type}
         </Badge>
       )

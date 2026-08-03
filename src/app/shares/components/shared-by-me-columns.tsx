@@ -62,7 +62,7 @@ export function buildSharedByMeColumns({
       t('shares.fields.resource'),
       (item): ReactNode => (
         <span className="flex items-center gap-2">
-          <Badge variant="outline" className="h-5 shrink-0">
+          <Badge variant={item.resource.type} className="h-5 shrink-0">
             {t(`shares.resourceType.${item.resource.type}`)}
           </Badge>
           {/* The rollup returns `{type, id}` with no name, so the label comes from the cached
@@ -131,11 +131,15 @@ export function buildSharedByMeColumns({
         // Different people can sit at different rungs on the same resource, and picking one would
         // misreport the others — "Mixed" says look inside. The cascade flag lives in the
         // Shared-with tooltip, since it is per person and this column is per row.
-        return (
+        // Mixed stays NEUTRAL rather than borrowing one rung's colour — the ramp means "this is
+        // the level", and colouring a row that has several would assert a level nobody holds.
+        return levels.size > 1 ? (
           <Badge variant="secondary" className="h-5">
-            {levels.size > 1
-              ? t('shares.mixedPermissions')
-              : t(`access.permission.${item.grants[0].permission}`)}
+            {t('shares.mixedPermissions')}
+          </Badge>
+        ) : (
+          <Badge variant={item.grants[0].permission} className="h-5">
+            {t(`access.permission.${item.grants[0].permission}`)}
           </Badge>
         )
       }

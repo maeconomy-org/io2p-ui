@@ -110,7 +110,7 @@ export function ResourcePicker({
                     onAdd(resource)
                   }}
                 >
-                  <Badge variant="outline" className="mr-2 h-5 shrink-0">
+                  <Badge variant={resource.type} className="mr-2 h-5 shrink-0">
                     {t(`shares.resourceType.${resource.type}`)}
                   </Badge>
                   <span className="truncate">{resource.name}</span>

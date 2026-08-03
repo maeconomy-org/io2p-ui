@@ -129,7 +129,7 @@ export function ShareDetailSheet({
                   key={resource.id}
                   className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
                 >
-                  <Badge variant="outline" className="h-5 shrink-0">
+                  <Badge variant={resource.type} className="h-5 shrink-0">
                     {t(`shares.resourceType.${resource.type}`)}
                   </Badge>
                   <ResourceLabel name={resource.name} id={resource.id} />
@@ -165,7 +165,7 @@ export function ShareDetailSheet({
                   <span className="min-w-0 flex-1 truncate">
                     {nameOf(member.userId)}
                   </span>
-                  <Badge variant="secondary" className="h-5 shrink-0">
+                  <Badge variant={member.permission} className="h-5 shrink-0">
                     {t(`access.permission.${member.permission}`)}
                   </Badge>
                 </div>
