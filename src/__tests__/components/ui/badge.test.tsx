@@ -131,3 +131,18 @@ describe('Badge', () => {
     expect(screen.getByText('Neutral')).toHaveClass('bg-secondary')
   })
 })
+
+describe('the ramp against the neutral variants', () => {
+  // `--secondary` (0 0% 96.1%) and slate-50 measure 1.04:1 against each other — the same lightness.
+  // In the permission column a neutral chip sits beside `read`, so the rung has to be told apart by
+  // something other than fill.
+  it('gives read a visible border where every neutral variant has none', () => {
+    expect(badgeVariants({ variant: 'read' })).toMatch(/border-slate-\d+/)
+
+    for (const neutral of ['default', 'secondary', 'destructive'] as const) {
+      expect(badgeVariants({ variant: neutral })).toContain(
+        'border-transparent'
+      )
+    }
+  })
+})

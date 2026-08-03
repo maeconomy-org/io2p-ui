@@ -39,7 +39,11 @@ const badgeVariants = cva(
         // ── permissions: COOL → WARM (ordinal) ──
         // Temperature is the ladder: neutral → cool → warm → hot. A single hue deepening was tried
         // first and the three tinted rungs were nearly indistinguishable at badge size.
-        read: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
+        // A VISIBLE border, unlike every neutral variant above (all `border-transparent`). The
+        // bottom rung is neutral by design, and `--secondary` is the same lightness as slate-50 —
+        // measured at 1.04:1, indistinguishable — so the ramp's first step is told apart by having
+        // an edge at all, not by fill.
+        read: 'border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300',
         write:
           'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300',
         share:

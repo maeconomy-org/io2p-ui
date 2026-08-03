@@ -133,8 +133,10 @@ export function buildSharedByMeColumns({
         // Shared-with tooltip, since it is per person and this column is per row.
         // Mixed stays NEUTRAL rather than borrowing one rung's colour — the ramp means "this is
         // the level", and colouring a row that has several would assert a level nobody holds.
+        // `outline`, not `secondary`: a filled neutral sits at the same lightness as the `read`
+        // rung, so in THIS column — the only place both appear — a flat chip would read as a level.
         return levels.size > 1 ? (
-          <Badge variant="secondary" className="h-5">
+          <Badge variant="outline" className="h-5">
             {t('shares.mixedPermissions')}
           </Badge>
         ) : (
