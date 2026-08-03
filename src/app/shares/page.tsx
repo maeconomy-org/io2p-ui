@@ -28,6 +28,7 @@ import { DEFAULT_TABLE_PAGE_SIZE, anchor } from '@/constants'
 import { logger } from '@/lib/logger'
 
 import { buildShareColumns } from './components/share-columns'
+import { PeopleAccessView } from './components/people-access-view'
 import { SharedByMeTable } from './components/shared-by-me-table'
 import {
   ShareEditorSheet,
@@ -164,6 +165,9 @@ export default function SharesPage() {
                   <TabsTrigger value="sharedByMe">
                     {t('shares.tabSharedByMe')}
                   </TabsTrigger>
+                  <TabsTrigger value="people">
+                    {t('shares.tabPeople')}
+                  </TabsTrigger>
                 </TabsList>
                 {/* Only the Shares list is filterable — `/access/shared-by-me` takes no filters
                     at all, so showing the control on that tab would offer something inert. */}
@@ -215,6 +219,10 @@ export default function SharesPage() {
 
             <TabsContent value="sharedByMe">
               <SharedByMeTable />
+            </TabsContent>
+
+            <TabsContent value="people">
+              <PeopleAccessView />
             </TabsContent>
           </Tabs>
         </div>
