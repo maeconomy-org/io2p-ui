@@ -550,6 +550,47 @@ export function unitBreakdown(
 }
 
 /**
+ * Narrow the graph to the processes the given objects take part in — WHOLE processes, not just the
+ * chosen objects' own flows.
+ *
+ * Keeping only links that touch a selected object answers a narrower question than anyone asks. A
+ * process is a transformation: "what happens to this material" is unreadable without the other
+ * inputs it is combined with and the other outputs it yields. Filtering to one object's own two
+ * flows draws `object -> process -> object` and hides the fact that three other materials went in.
+ *
+ * So this expands one hop: find the processes touched, then keep every flow of those processes. The
+ * graph is bipartite (objects and processes alternate), so one hop from an object is exactly the set
+ * of processes it participates in — no depth search needed.
+ */
+export function narrowToObjects(
+  graph: ProcessGraph,
+  objectIds: string[]
+): ProcessGraph {
+  const selected = new Set(objectIds)
+  const isProcess = new Map(
+    graph.nodes.map((n) => [n.id, n.kind === 'process'])
+  )
+
+  // Kind-checked rather than "the other end", so a process id passed in by mistake narrows to
+  // nothing visible instead of quietly expanding to every process its objects touch.
+  const touched = new Set<string>()
+  for (const link of graph.links) {
+    if (selected.has(link.source) && isProcess.get(link.target)) {
+      touched.add(link.target)
+    }
+    if (selected.has(link.target) && isProcess.get(link.source)) {
+      touched.add(link.source)
+    }
+  }
+
+  const links = graph.links.filter(
+    (l) => touched.has(l.source) || touched.has(l.target)
+  )
+  const connected = new Set(links.flatMap((l) => [l.source, l.target]))
+  return { nodes: graph.nodes.filter((n) => connected.has(n.id)), links }
+}
+
+/**
  * Keep only the nodes in `keep`, and the links whose BOTH ends survive.
  *
  * Then drop nodes left with no link at all: a node kept by the depth window whose only edges reach

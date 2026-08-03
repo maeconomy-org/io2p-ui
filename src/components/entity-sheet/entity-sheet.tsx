@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
@@ -25,6 +26,7 @@ import {
   ObjectFilesField,
   ParentsField,
   PropertyFields,
+  RelationsField,
 } from './fields'
 
 export interface EntitySheetProps {
@@ -52,6 +54,7 @@ export function EntitySheet({
   draftId,
 }: EntitySheetProps) {
   const t = useTranslations()
+  const router = useRouter()
   const isCreate = !entityId
 
   const objects = useObjects()
@@ -164,6 +167,28 @@ export function EntitySheet({
           editing={editing}
           entityId={entity?.id}
           allowCover
+        />
+      ),
+    },
+    {
+      value: 'relations',
+      label: t('objects.detailsSheet.tabRelations'),
+      // Nothing here is editable, so this tab can never hold an unsaved change of its own.
+      dirty: false,
+      // ...but leaving for /processes abandons whatever OTHER tabs have edited, so the exit runs
+      // through the same guard Cancel and Escape do.
+      content: (guardUnsaved) => (
+        <RelationsField
+          entityId={entity?.id}
+          onViewAll={
+            entity
+              ? () =>
+                  guardUnsaved(() => {
+                    onOpenChange(false)
+                    router.push(`/processes?ref=${entity.id}`)
+                  })
+              : undefined
+          }
         />
       ),
     },

@@ -10,3 +10,8 @@ export { useEntityForm } from './hooks/use-entity-form'
 export { useTemplateForm } from './hooks/use-template-form'
 export { useProcessForm } from './hooks/use-process-form'
 export { useEntityLifecycle } from './hooks/use-entity-lifecycle'
+export {
+  useObjectRelations,
+  type ProcessRelation,
+  type RelationGroup,
+} from './hooks/use-object-relations'

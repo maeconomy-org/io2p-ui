@@ -26,8 +26,15 @@ export interface SheetTab {
   label: string
   /** Marks the trigger with a dot when this tab holds edited fields. */
   dirty: boolean
-  content: ReactNode
+  /**
+   * Plain content, or a render prop receiving `guardUnsaved` — same shape as `footer`, and needed
+   * for the same reason: anything inside a tab that LEAVES the sheet (a link out, a route push)
+   * throws away unsaved work, and a guard the panel applies but a tab skips is worse than none.
+   */
+  content: ReactNode | ((guardUnsaved: GuardUnsaved) => ReactNode)
 }
+
+export type GuardUnsaved = (proceed: () => void) => void
 
 // Tailwind resolves classes from literal source text, so the column count can't be interpolated.
 const TAB_COLUMNS: Record<number, string> = {
@@ -69,7 +76,7 @@ export interface EntitySheetShellProps {
    * same prompt as closing does. A guard the panel applies but the footer skips is worse than none:
    * Escape asks, and the button right next to Save silently discards.
    */
-  footer: (guardUnsaved: (proceed: () => void) => void) => ReactNode
+  footer: (guardUnsaved: GuardUnsaved) => ReactNode
 }
 
 /**
@@ -178,7 +185,9 @@ export function EntitySheetShell({
                           value={tab.value}
                           className="mt-0"
                         >
-                          {tab.content}
+                          {typeof tab.content === 'function'
+                            ? tab.content(guardUnsaved)
+                            : tab.content}
                         </TabsContent>
                       ))}
                     </SheetBody>

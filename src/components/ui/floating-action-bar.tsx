@@ -5,8 +5,8 @@ import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
- * Where in the stack this bar sits. Two can be up at once — a search context AND a selection — so
- * the levels are named rather than left to whichever renders last.
+ * Where in the stack this bar sits. Three can be up at once — a selection, a text search AND a
+ * relation filter — so the levels are named rather than left to whichever renders last.
  *
  * Written as literal classes because Tailwind resolves them from source text, so they cannot be
  * computed from an index.
@@ -14,14 +14,24 @@ import { cn } from '@/lib/utils'
 const LEVELS = {
   base: 'bottom-12',
   raised: 'bottom-28',
+  stacked: 'bottom-44',
 } as const
+
+export type FloatingActionBarLevel = keyof typeof LEVELS
+
+/** The levels in stacking order, so a caller can pick by how many bars sit below it. */
+export const FLOATING_BAR_LEVELS = [
+  'base',
+  'raised',
+  'stacked',
+] as const satisfies readonly FloatingActionBarLevel[]
 
 interface FloatingActionBarProps {
   open: boolean
   /** Announced when the bar appears; it arrives without the user navigating to it. */
   label: string
-  /** `raised` clears a bar already sitting at `base`. Defaults to `base`. */
-  level?: keyof typeof LEVELS
+  /** Each step clears the bar below it. Defaults to `base`. */
+  level?: FloatingActionBarLevel
   children: ReactNode
   className?: string
 }

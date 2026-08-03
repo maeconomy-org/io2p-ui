@@ -27,6 +27,7 @@ import {
   countLevels,
   limitDepth,
   limitDepthAround,
+  narrowToObjects,
   removeCycles,
   sliceGraph,
   unitBreakdown,
@@ -194,12 +195,7 @@ export function useProcessGraph({
     let graph = visible ? sliceGraph(topology.full, visible) : topology.full
 
     if (highlightObjects.length > 0) {
-      const selected = new Set(highlightObjects)
-      const links = graph.links.filter(
-        (l) => selected.has(l.source) || selected.has(l.target)
-      )
-      const connected = new Set(links.flatMap((l) => [l.source, l.target]))
-      graph = { nodes: graph.nodes.filter((n) => connected.has(n.id)), links }
+      graph = narrowToObjects(graph, highlightObjects)
     }
 
     // Cut cycles last, so what gets reported as "not drawn" reflects the visible slice rather than

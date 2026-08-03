@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { PlusCircle, Share2, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { ProcessListItem } from 'io2p-client'
 
-import { Button } from '@/components/ui'
+import { Button, FLOATING_BAR_LEVELS } from '@/components/ui'
 import {
   FilterMenu,
   deletedSection,
@@ -31,6 +32,7 @@ import { ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
 import { buildProcessColumns } from './components/process-columns'
 import { ProcessFlowView } from './components/process-flow-view'
+import { RelatedObjectBar } from './components/related-object-bar'
 
 const ShareEditorSheet = dynamic(
   () =>
@@ -58,6 +60,20 @@ const PROCESS_MESSAGES = {
 
 export default function ProcessesPage() {
   const t = useTranslations()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Arrive here from an object's Relations tab. `ref` mirrors the API parameter it drives, so the
+  // URL says exactly what the request says.
+  //
+  // DELIBERATELY NOT under a Suspense boundary, despite `useSearchParams`. That advice is for a
+  // route that would otherwise be PRERENDERED; every route here is already dynamic, so the server
+  // receives the real params and nothing bails. Adding a boundary made the server render its
+  // fallback while the client rendered the table — a hydration mismatch on every load, with the
+  // fallback's own markup as the diff.
+  const relatedObjectId = searchParams.get('ref')
+
+  const clearRelated = useCallback(() => router.replace('/processes'), [router])
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -89,6 +105,9 @@ export default function ProcessesPage() {
       scope,
       q: isSearchMode ? searchQuery : undefined,
       deleted: filters.showDeleted ? 'include' : undefined,
+      // Server-side reverse flow lookup. No `direction`, so both sides come back — the point here is
+      // "everything related", where the Relations tab splits them.
+      ref: relatedObjectId ?? undefined,
     },
     // The flow view sweeps its own pages; a paginated list would be a second, unused request. And
     // until the stored view is known, `isTable` is only a guess — firing on it would fetch a list
@@ -131,6 +150,13 @@ export default function ProcessesPage() {
       }),
     [t, openProcess, list.setToDelete, list.handleRestore, userId]
   )
+
+  // Three bars can be up together. Each one sits above however many are open beneath it, rather than
+  // every caller hardcoding a level and two of them landing on the same one.
+  const selectionOpen = isTable && list.selectedRows.length > 0
+  const searchOpen = viewResolved && isTable && isSearchMode
+  const relatedLevel =
+    FLOATING_BAR_LEVELS[(selectionOpen ? 1 : 0) + (searchOpen ? 1 : 0)]
 
   return (
     <>
@@ -199,7 +225,11 @@ export default function ProcessesPage() {
                 emptyDescription={t('processes.empty.description')}
               />
             ) : (
-              <ProcessFlowView variant={view} onOpenProcess={openProcess} />
+              <ProcessFlowView
+                variant={view}
+                onOpenProcess={openProcess}
+                relatedObjectId={relatedObjectId}
+              />
             ))}
         </div>
       </div>
@@ -210,6 +240,14 @@ export default function ProcessesPage() {
           onOpenChange={setSheetOpen}
           processId={selectedId ?? undefined}
           initialEditing={openInEditMode}
+        />
+      )}
+
+      {relatedObjectId && (
+        <RelatedObjectBar
+          objectId={relatedObjectId}
+          onClear={clearRelated}
+          level={relatedLevel}
         />
       )}
 

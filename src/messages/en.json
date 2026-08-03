@@ -450,7 +450,8 @@
       "tabParents": "Parents",
       "unsavedChanges": "{count} unsaved change{count, plural, one {} other {s}}",
       "discardConfirm": "Discard unsaved changes?",
-      "noProperties": "No properties"
+      "noProperties": "No properties",
+      "tabRelations": "Relations"
     },
     "propertyEditor": {
       "name": "Name",
@@ -651,6 +652,17 @@
       "set": "Use as cover image",
       "clear": "Remove as cover image",
       "current": "Cover image"
+    },
+    "relations": {
+      "consumedBy": "Consumed by",
+      "consumedByHint": "Processes that take this object as an input.",
+      "producedBy": "Produced by",
+      "producedByHint": "Processes that produce this object as an output.",
+      "empty": "No processes reference this object yet.",
+      "loadFailed": "Could not load related processes.",
+      "more": "+{count} more not shown",
+      "flowCount": "{count} flows",
+      "viewAll": "View all in Processes"
     }
   },
   "uploads": {
@@ -704,7 +716,9 @@
       "empty": {
         "inputs": "No inputs yet",
         "outputs": "No outputs yet"
-      }
+      },
+      "alsoInput": "also an input",
+      "alsoOutput": "also an output"
     },
     "saveError": {
       "flowNeedsObject": "Every input and output must point at an object",
@@ -754,7 +768,9 @@
       "flowCount": "{count, plural, one {# flow} other {# flows}}",
       "legendHint": "Drag to rearrange · scroll to zoom · click a node to focus it",
       "seeOverview": "The overview view draws them."
-    }
+    },
+    "relatedTo": "Processes related to {name}",
+    "clearRelated": "Clear"
   },
   "templates": {
     "title": "Templates",

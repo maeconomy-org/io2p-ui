@@ -42,6 +42,15 @@ export const queryKeys = {
     // The flow graph sweeps every page to get whole-graph topology, so it is not one of the
     // paginated lists — but it must still be invalidated by a write, hence living under `lists()`.
     graph: () => [...queryKeys.processes.lists(), 'graph'] as const,
+    // Reverse flow lookup: which processes reference an object. Also under `lists()` — editing a
+    // process's flows changes who its relations are, so a write has to reach this.
+    relations: (objectId: string, direction: 'input' | 'output') =>
+      [
+        ...queryKeys.processes.lists(),
+        'relations',
+        objectId,
+        direction,
+      ] as const,
   },
 
   // ─── Addresses ───────────────────────────────────────────

@@ -72,9 +72,12 @@ export type ProcessGraphVariant = 'sankey' | 'network'
 export function ProcessFlowView({
   variant,
   onOpenProcess,
+  relatedObjectId,
 }: {
   variant: ProcessGraphVariant
   onOpenProcess: (processId: string) => void
+  /** Narrow to one object's chains — set by `?ref=` when arriving from that object's Relations tab. */
+  relatedObjectId?: string | null
 }) {
   const t = useTranslations()
   const router = useRouter()
@@ -87,12 +90,23 @@ export function ProcessFlowView({
 
   const layered = variant === 'sankey'
 
+  // The URL's object composes with the toolbar's picks rather than replacing them — both narrow to
+  // the same set, so they are one filter with two sources. Derived, never copied into state: clearing
+  // `?ref=` clears the chart, which a `useState(initial)` seed would not.
+  const highlighted = useMemo(
+    () =>
+      relatedObjectId
+        ? [...new Set([relatedObjectId, ...selectedObjects])]
+        : selectedObjects,
+    [relatedObjectId, selectedObjects]
+  )
+
   // Focus and the object filter each ask a whole-graph question ("what touches this?"), so neither
   // is answered inside a depth slice. Keeping the window would silently return nothing whenever the
   // chosen object happened to sit outside the current levels — an empty chart with no explanation.
   // The overview never windows at all: seeing the whole graph IS its job.
   const windowed =
-    layered && depthLimited && !focusId && selectedObjects.length === 0
+    layered && depthLimited && !focusId && highlighted.length === 0
 
   const {
     graph,
@@ -107,7 +121,7 @@ export function ProcessFlowView({
     window: windowed ? { from: windowStart, size: DEPTH_WINDOW_SIZE } : null,
     focus: focusId,
     focusHops: FOCUS_HOPS,
-    highlightObjects: selectedObjects,
+    highlightObjects: highlighted,
     acyclic: layered,
   })
 
@@ -193,7 +207,7 @@ export function ProcessFlowView({
         onPrev={() => setWindowStart(Math.max(0, start - DEPTH_WINDOW_STEP))}
         onNext={() => setWindowStart(start + DEPTH_WINDOW_STEP)}
         hiddenNodeCount={Math.max(0, totalNodes - graph.nodes.length)}
-        depthDisabled={!!focusId || selectedObjects.length > 0}
+        depthDisabled={!!focusId || highlighted.length > 0}
         layered={layered}
         units={units}
         activeUnit={activeUnit}

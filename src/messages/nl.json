@@ -451,7 +451,8 @@
       "tabParents": "Bovenliggend",
       "unsavedChanges": "{count} niet-opgeslagen wijziging{count, plural, one {} other {en}}",
       "discardConfirm": "Niet-opgeslagen wijzigingen weggooien?",
-      "noProperties": "Geen eigenschappen"
+      "noProperties": "Geen eigenschappen",
+      "tabRelations": "Relaties"
     },
     "propertyEditor": {
       "name": "Naam",
@@ -651,6 +652,17 @@
       "set": "Gebruik als omslagafbeelding",
       "clear": "Niet meer als omslagafbeelding gebruiken",
       "current": "Omslagafbeelding"
+    },
+    "relations": {
+      "consumedBy": "Verbruikt door",
+      "consumedByHint": "Processen die dit object als invoer gebruiken.",
+      "producedBy": "Geproduceerd door",
+      "producedByHint": "Processen die dit object als uitvoer opleveren.",
+      "empty": "Nog geen processen verwijzen naar dit object.",
+      "loadFailed": "Gerelateerde processen konden niet worden geladen.",
+      "more": "+{count} meer niet getoond",
+      "flowCount": "{count} stromen",
+      "viewAll": "Alles bekijken in Processen"
     }
   },
   "uploads": {
@@ -704,7 +716,9 @@
       "empty": {
         "inputs": "Nog geen invoer",
         "outputs": "Nog geen uitvoer"
-      }
+      },
+      "alsoInput": "ook een invoer",
+      "alsoOutput": "ook een uitvoer"
     },
     "saveError": {
       "flowNeedsObject": "Elke invoer en uitvoer moet naar een object verwijzen",
@@ -754,7 +768,9 @@
       "flowCount": "{count, plural, one {# stroom} other {# stromen}}",
       "legendHint": "Sleep om te herschikken · scroll om te zoomen · klik op een knooppunt om te focussen",
       "seeOverview": "Het overzicht tekent ze wel."
-    }
+    },
+    "relatedTo": "Processen gerelateerd aan {name}",
+    "clearRelated": "Wissen"
   },
   "templates": {
     "title": "Sjablonen",

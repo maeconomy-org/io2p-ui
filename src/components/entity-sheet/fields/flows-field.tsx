@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useFieldArray, type UseFormReturn } from 'react-hook-form'
-import { ChevronRight, Package, Plus, Trash2 } from 'lucide-react'
+import { ChevronRight, Package, Plus, Repeat, Trash2 } from 'lucide-react'
 
 import {
   Badge,
@@ -65,6 +65,27 @@ export function FlowsField({
     name: bag,
   })
 
+  /**
+   * Objects referenced on the OTHER side.
+   *
+   * The same object as both an input and an output is legal — io2p has no rule against it, and the
+   * overview view exists partly to show recirculation (repair, reprocessing, a stockpile that comes
+   * back finer). So this marks rather than blocks: a deliberate loop proceeds, an accidental
+   * double-pick becomes visible immediately instead of surfacing later as a cut cycle in the Sankey.
+   *
+   * Watched once per bag rather than per row — every row asks the same question.
+   */
+  const oppositeRefs = form.watch(bag === 'inputs' ? 'outputs' : 'inputs')
+  const onBothSides = useMemo(
+    () =>
+      new Set(
+        (oppositeRefs ?? [])
+          .map((f) => f.ref)
+          .filter((ref): ref is string => Boolean(ref))
+      ),
+    [oppositeRefs]
+  )
+
   const addFlow = () =>
     append({ ref: '', properties: [] }, { shouldFocus: false })
 
@@ -89,6 +110,7 @@ export function FlowsField({
           derivedValues={derivedValues}
           entityId={entityId}
           optionalRef={optionalRef}
+          onBothSides={onBothSides}
           onRemove={() => remove(index)}
         />
       ))}
@@ -112,6 +134,7 @@ function FlowRow({
   derivedValues,
   entityId,
   optionalRef,
+  onBothSides,
   onRemove,
 }: {
   form: UseFormReturn<EntityDraft>
@@ -122,6 +145,8 @@ function FlowRow({
   derivedValues: DerivedValues
   entityId?: string
   optionalRef?: boolean
+  /** Object ids referenced on the opposite side, so a both-sides flow can say so. */
+  onBothSides: Set<string>
   onRemove: () => void
 }) {
   const t = useTranslations()
@@ -147,6 +172,8 @@ function FlowRow({
   const otherCount = properties.filter(
     (p, i) => i !== quantityIndex && !p.deleted
   ).length
+
+  const alsoOnOtherSide = !!flow?.ref && onBothSides.has(flow.ref)
 
   /**
    * Write the quantity, creating the property the first time. Kept here rather than making the user
@@ -243,6 +270,21 @@ function FlowRow({
               aria-label={t('processes.flows.quantity')}
             />
           </>
+        )}
+
+        {/* Amber, not destructive: this is legal and sometimes deliberate (rework, reprocessing), so
+            it must read as "check this", not "you broke something". The icon pairs with the text
+            rather than replacing it — colour alone carries nothing. */}
+        {alsoOnOtherSide && (
+          <Badge
+            variant="outline"
+            className="h-5 shrink-0 gap-1 border-amber-300 bg-amber-50 px-1.5 text-[10px] font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
+          >
+            <Repeat className="h-3 w-3" aria-hidden="true" />
+            {bag === 'inputs'
+              ? t('processes.flows.alsoOutput')
+              : t('processes.flows.alsoInput')}
+          </Badge>
         )}
 
         {otherCount > 0 && (

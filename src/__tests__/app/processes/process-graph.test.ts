@@ -11,12 +11,14 @@ import {
   graphDegrees,
   limitDepth,
   limitDepthAround,
+  narrowToObjects,
   removeCycles,
   sliceGraph,
   unitBreakdown,
   withDepths,
   type Edge,
   type GraphLink,
+  type ProcessGraph,
 } from '@/app/processes/utils/process-graph'
 import { QUANTITY_KEY } from '@/lib/process-body'
 
@@ -568,6 +570,72 @@ describe('unitBreakdown', () => {
     ])
 
     expect(unitBreakdown(links)).toEqual([])
+  })
+})
+
+// ── narrowing ─────────────────────────────────────────────────────────────────
+
+describe('narrowToObjects', () => {
+  const ids = (graph: ProcessGraph) => graph.nodes.map((n) => n.id).sort()
+
+  it('keeps the WHOLE process, not just the chosen object’s own flows', () => {
+    // Scrap + Ore -> [Smelt] -> Billet. Narrowing to scrap must still show ore, because "what
+    // happens to this material" is unreadable without what it was combined with.
+    const narrowed = narrowToObjects(buildProcessGraph(chain()), ['scrap'])
+
+    expect(ids(narrowed)).toEqual(['billet', 'ore', 'scrap', 'smelt'])
+  })
+
+  it('does not reach past the processes the object takes part in', () => {
+    // Billet feeds Roll, but scrap never touches Roll — so rebar stays out.
+    const narrowed = narrowToObjects(buildProcessGraph(chain()), ['scrap'])
+
+    expect(narrowed.nodes.map((n) => n.id)).not.toContain('rebar')
+    expect(narrowed.nodes.map((n) => n.id)).not.toContain('roll')
+  })
+
+  it('spans both processes for an object that sits between them', () => {
+    const narrowed = narrowToObjects(buildProcessGraph(chain()), ['billet'])
+
+    expect(ids(narrowed)).toEqual([
+      'billet',
+      'ore',
+      'rebar',
+      'roll',
+      'scrap',
+      'smelt',
+    ])
+  })
+
+  it('unions the processes when several objects are chosen', () => {
+    const narrowed = narrowToObjects(buildProcessGraph(chain()), [
+      'scrap',
+      'rebar',
+    ])
+
+    expect(ids(narrowed)).toEqual([
+      'billet',
+      'ore',
+      'rebar',
+      'roll',
+      'scrap',
+      'smelt',
+    ])
+  })
+
+  it('narrows to nothing for an object in no process', () => {
+    const narrowed = narrowToObjects(buildProcessGraph(chain()), ['stranger'])
+
+    expect(narrowed.nodes).toEqual([])
+    expect(narrowed.links).toEqual([])
+  })
+
+  // The kind check earns its keep here: without it a process id would expand through its own
+  // objects to every process those objects touch — quietly showing MORE than was asked for.
+  it('ignores a process id passed in place of an object', () => {
+    const narrowed = narrowToObjects(buildProcessGraph(chain()), ['smelt'])
+
+    expect(narrowed.nodes).toEqual([])
   })
 })
 

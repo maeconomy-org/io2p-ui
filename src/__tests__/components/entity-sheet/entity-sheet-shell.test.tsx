@@ -233,5 +233,36 @@ describe('EntitySheetShell', () => {
         screen.getByText('objects.drafts.unsaved.uploadsDropped')
       ).toBeInTheDocument()
     })
+
+    // A tab can hold a way OUT of the sheet — Relations links to /processes — and that abandons
+    // whatever the other tabs edited. So the guard has to reach inside a tab, not just the footer.
+    describe('a tab that leaves the sheet', () => {
+      const leaveTab = (onLeave: () => void): SheetTab => ({
+        value: 'relations',
+        label: 'Relations',
+        dirty: false,
+        content: (guardUnsaved) => (
+          <button type="button" onClick={() => guardUnsaved(onLeave)}>
+            Leave
+          </button>
+        ),
+      })
+
+      it('runs a render-prop tab with the guard', () => {
+        const onLeave = vi.fn()
+        renderShell({ tabs: [leaveTab(onLeave)], isDirty: false })
+        fireEvent.click(screen.getByText('Leave'))
+        expect(onLeave).toHaveBeenCalled()
+      })
+
+      it('asks before leaving when another tab is dirty', () => {
+        const onLeave = vi.fn()
+        renderShell({ tabs: [leaveTab(onLeave)], isDirty: true, dirtyCount: 3 })
+        fireEvent.click(screen.getByText('Leave'))
+        expect(onLeave).not.toHaveBeenCalled()
+        click('objects.drafts.actions.discard')
+        expect(onLeave).toHaveBeenCalled()
+      })
+    })
   })
 })
