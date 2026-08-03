@@ -128,9 +128,21 @@ export const queryKeys = {
     grants: {
       // Keyed by type AND id because the request carries both — `WhoCanAccessInput` is
       // `{resourceType, resourceId}`, and a key that drops a request parameter can serve one
-      // resource's grants for another.
-      forResource: (resourceType: string, resourceId: string) =>
-        [...queryKeys.access.all, 'grants', resourceType, resourceId] as const,
+      // resource's grants for another. `query` is in the key for the SAME reason: it now carries
+      // `revoked`, which changes WHICH rows come back, so omitting it would serve the active-only
+      // response to a request that asked for revoked ones — with no error to notice.
+      forResource: (
+        resourceType: string,
+        resourceId: string,
+        query?: unknown
+      ) =>
+        [
+          ...queryKeys.access.all,
+          'grants',
+          resourceType,
+          resourceId,
+          query,
+        ] as const,
       sharedByMe: (query?: { page?: number; size?: number }) =>
         [...queryKeys.access.all, 'sharedByMe', query] as const,
     },

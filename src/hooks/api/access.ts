@@ -10,9 +10,10 @@ import {
   keepPreviousData,
 } from '@tanstack/react-query'
 import type {
-  AccessPageQuery,
   CreateShareBody,
   GrantBody,
+  ListGrantsQuery,
+  ListSharedByMeQuery,
   ListSharesQuery,
   RevokeBody,
   UpdateShareBody,
@@ -32,22 +33,26 @@ const ACCESS_STALE_TIME = 30_000
 // ── grants ──────────────────────────────────────────────────────────────────
 
 /**
- * The active grants on one resource.
+ * The grants on one resource — active only unless `query.revoked` says otherwise.
  *
  * Owner/admin only — the node 403s anyone else, which is correct and means a `write` sharee opening
  * an entity must not see this at all. Callers gate on ownership rather than swallowing the error,
  * so a real failure still surfaces.
+ *
+ * `query` reaches the cache key, not just the request: `revoked` changes which ROWS come back, so a
+ * key without it would hand the active-only response to a caller asking for revoked ones.
  */
 function useGrantList(
   resource: WhoCanAccessInput | undefined,
-  query?: AccessPageQuery,
+  query?: ListGrantsQuery,
   options?: { enabled?: boolean }
 ) {
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.access.grants.forResource(
       resource?.resourceType ?? '',
-      resource?.resourceId ?? ''
+      resource?.resourceId ?? '',
+      query
     ),
     queryFn: () => client.access.grants.list(resource!, query),
     enabled: !!resource?.resourceId && options?.enabled !== false,
@@ -57,7 +62,7 @@ function useGrantList(
 
 /** Everything the caller has shared, paginated BY RESOURCE — a resource's grants never split. */
 function useSharedByMe(
-  query?: AccessPageQuery,
+  query?: ListSharedByMeQuery,
   options?: { enabled?: boolean; keepPreviousData?: boolean }
 ) {
   const client = useIomClient()

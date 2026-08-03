@@ -1209,7 +1209,11 @@
     "bulkShareAdditive": "This only adds access. Nobody loses access, and existing sharing is left as it is.",
     "bulkShareNobody": "Add someone to share these with.",
     "bulkShared": "Shared {count, plural, =1 {# item} other {# items}}",
-    "saveFailedFor": "Could not save access for {names}. Everything else was applied."
+    "saveFailedFor": "Could not save access for {names}. Everything else was applied.",
+    "revokedTitle": "Previously had access",
+    "revokedHint": "Shows who was removed and the last permission they held — not a full history of changes.",
+    "fromShareBundle": "Access comes from a share, which owns this grant — open that share to change or remove it.",
+    "saveFailedReason": "Some changes could not be applied."
   },
   "shares": {
     "title": "Shares",
@@ -1277,7 +1281,15 @@
       "deleteDescription": "This deletes {count} shares and revokes every grant they own.",
       "revokeDescription": "This removes the access you granted directly on {count} items."
     },
-    "tabOverview": "Overview"
+    "tabOverview": "Overview",
+    "tabPeople": "People",
+    "people": {
+      "hint": "Everyone who can reach something you shared, and the most they can do with it.",
+      "itemCount": "{count, plural, =1 {# item} other {# items}}",
+      "andBelow": "and everything below",
+      "emptyTitle": "Nobody has access yet",
+      "emptyDescription": "Share an object, process or library item and the people who can reach it appear here."
+    }
   },
   "concepts": {
     "share": {

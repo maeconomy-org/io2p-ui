@@ -1,9 +1,18 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Globe, Info, Loader2, UserPlus, X } from 'lucide-react'
+import {
+  ChevronRight,
+  Globe,
+  History,
+  Info,
+  Loader2,
+  RotateCcw,
+  UserPlus,
+  X,
+} from 'lucide-react'
 import type { GrantDTO } from 'io2p-client'
 
 import {
@@ -33,7 +42,9 @@ import { useAuth } from '@/contexts'
 import { useGrants } from '@/hooks/api/access'
 import { useUserDirectory, useUserSearch } from '@/hooks/api/users'
 import { UnsavedBar } from '@/components/entity-sheet/sheet-lifecycle-footer'
+import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
+import { cn } from '@/lib/utils'
 
 import { PermissionSelect, type Permission } from './permission-select'
 
@@ -83,9 +94,24 @@ function keyOf(subject: GrantDTO['subject']) {
   return subject.kind === 'public' ? PUBLIC_KEY : subject.userId
 }
 
+/** A grant this sheet can actually write: active, and not owned by a Share. */
+const isDirect = (g: GrantDTO) => !g.shareId
+
+/**
+ * Only ACTIVE, DIRECT grants become editable rows.
+ *
+ * io2p keys a grant by (resource, subject, SOURCE): an ad-hoc grant and each Share that covers the
+ * same pair are SEPARATE entities, and effective access is their union (most-permissive wins).
+ * `revoke` without a shareId targets the direct row only — so a Share-sourced grant cannot be
+ * removed from here at all, and staging one as editable would render controls whose writes are
+ * silently a no-op.
+ *
+ * Revoked rows are excluded for a different reason: seeding one would list a removed person as a
+ * member, and the diff would re-grant them on the next Save.
+ */
 function draftFromGrants(grants: GrantDTO[]): Draft {
   const draft: Draft = {}
-  for (const grant of grants) {
+  for (const grant of grants.filter((g) => g.active && isDirect(g))) {
     draft[keyOf(grant.subject)] = {
       subject: grant.subject,
       permission: grant.permission as Permission,
@@ -121,9 +147,14 @@ export function ShareSheet({
     () => ({ resourceType: target.type, resourceId: target.id }),
     [target.type, target.id]
   )
-  const { data: grantsPage, isLoading } = useList(resource, undefined, {
-    enabled: open && isOwner,
-  })
+  // `revoked: 'include'` on the ONE read: active and revoked rows arrive together, so showing
+  // history is a filter over what is already here rather than a second request and a second
+  // loading state. They are split below — a revoked row must never reach the editable draft.
+  const { data: grantsPage, isLoading } = useList(
+    resource,
+    { revoked: 'include' },
+    { enabled: open && isOwner }
+  )
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -192,6 +223,7 @@ function ShareForm({
   onDone: () => void
 }) {
   const t = useTranslations()
+  const format = useFormatter()
   const { userId } = useAuth()
 
   const initial = useMemo(() => draftFromGrants(grants), [grants])
@@ -216,6 +248,78 @@ function ShareForm({
   const cascade = canCascade(target.type)
   const readOnly = isReadOnlyResource(target.type)
   const publicMember = draft[PUBLIC_KEY]
+
+  /**
+   * Who USED TO have access and does not now.
+   *
+   * Keyed by (subject, SOURCE), because io2p keys a grant that way: someone can hold a live
+   * Share-sourced grant while their old ad-hoc one sits revoked, and those are two real rows, not a
+   * duplicate. Collapsing them by subject hid a genuine revocation; ignoring source entirely listed
+   * people as former while they were sitting in the members list above.
+   *
+   * Grants are APPEND-ONLY (a revoked row is kept for audit/rebuild), so a subject revoked more than
+   * once from the same source collapses to their most recent removal.
+   */
+  const revoked = useMemo(() => {
+    const sourceOf = (g: GrantDTO) =>
+      `${keyOf(g.subject)}::${g.shareId ?? 'direct'}`
+    const live = new Set(grants.filter((g) => g.active).map(sourceOf))
+    const latest = new Map<string, GrantDTO>()
+
+    for (const g of grants) {
+      if (g.active) continue
+      const key = sourceOf(g)
+      if (live.has(key)) continue
+      const seen = latest.get(key)
+      if (!seen || g.updatedAt > seen.updatedAt) latest.set(key, g)
+    }
+
+    return [...latest.values()].sort((a, b) => b.updatedAt - a.updatedAt)
+  }, [grants])
+
+  /**
+   * Access that comes from a Share, listed but NOT editable here.
+   *
+   * A Share owns its own grant rows; `revoke` from this sheet carries no shareId and so targets the
+   * direct row, returning `revoked: false` when there isn't one. Offering an X and a permission
+   * select would be two controls that look normal and do nothing — the exact failure this codebase
+   * keeps producing. Editing belongs to the Share.
+   */
+  const fromShares = useMemo(
+    () => grants.filter((g) => g.active && g.shareId),
+    [grants]
+  )
+  const [showRevoked, setShowRevoked] = useState(false)
+
+  /**
+   * Restoring costs no new endpoint: `grant` UPSERTS on (resource, subject), so re-sending the
+   * permission the subject held reactivates the same row. Applied immediately rather than staged —
+   * unlike the rows above, there is nothing here to diff against.
+   */
+  const restore = async (grant: GrantDTO) => {
+    try {
+      await grantMutation.mutateAsync({
+        body: {
+          resource: { type: target.type, id: target.id },
+          subject: grant.subject,
+          permission: grant.permission,
+          ...(cascade
+            ? { includeDescendants: !!grant.includeDescendants }
+            : {}),
+        },
+      })
+      toast.success(t('access.saved'))
+      onDone()
+    } catch (error) {
+      logger.error('Restore grant failed', error)
+      toast.error(t('access.saveFailedFor', { names: subjectName(grant) }))
+    }
+  }
+
+  const subjectName = (grant: GrantDTO) =>
+    grant.subject.kind === 'public'
+      ? t('access.publicLabel')
+      : nameOf(grant.subject.userId)
 
   const setMember = (key: string, patch: Partial<DraftMember>) =>
     setDraft((d) => ({ ...d, [key]: { ...d[key], ...patch } }))
@@ -253,55 +357,92 @@ function ShareForm({
    */
   const save = async () => {
     setSaving(true)
-    const failed: string[] = []
+    const failed: { key: string; error: unknown }[] = []
 
     const attempt = async (key: string, run: () => Promise<unknown>) => {
       try {
         await run()
       } catch (error) {
         logger.error('Access change failed', { error, subject: key })
-        failed.push(key === PUBLIC_KEY ? t('access.publicLabel') : nameOf(key))
+        failed.push({ key, error })
       }
     }
 
-    for (const key of removed) {
-      await attempt(key, () =>
-        revokeMutation.mutateAsync({
-          body: {
-            resource: { type: target.type, id: target.id },
-            subject: initial[key].subject,
-          },
-        })
-      )
+    try {
+      for (const key of removed) {
+        await attempt(key, () =>
+          revokeMutation.mutateAsync({
+            body: {
+              resource: { type: target.type, id: target.id },
+              subject: initial[key].subject,
+            },
+          })
+        )
+      }
+
+      // `grant` upserts on (resource, subject), so an added member and a changed rung are the same
+      // call — the diff only has to say WHICH subjects differ, not how.
+      for (const [key, member] of changed) {
+        await attempt(key, () =>
+          grantMutation.mutateAsync({
+            body: {
+              resource: { type: target.type, id: target.id },
+              subject: member.subject,
+              permission: member.permission,
+              ...(cascade
+                ? { includeDescendants: member.includeDescendants }
+                : {}),
+            },
+          })
+        )
+      }
+    } finally {
+      // In `finally` because there is more than one way out now: anything unexpected outside
+      // `attempt` would otherwise leave Save spinning and disabled with no way to retry.
+      setSaving(false)
     }
 
-    // `grant` upserts on (resource, subject), so an added member and a changed rung are the same
-    // call — the diff only has to say WHICH subjects differ, not how.
-    for (const [key, member] of changed) {
-      await attempt(key, () =>
-        grantMutation.mutateAsync({
-          body: {
-            resource: { type: target.type, id: target.id },
-            subject: member.subject,
-            permission: member.permission,
-            ...(cascade
-              ? { includeDescendants: member.includeDescendants }
-              : {}),
-          },
-        })
-      )
-    }
-
-    setSaving(false)
-
-    if (failed.length > 0) {
-      toast.error(t('access.saveFailedFor', { names: failed.join(', ') }))
+    if (failed.length === 0) {
+      toast.success(t('access.saved'))
+      onDone()
       return
     }
 
-    toast.success(t('access.saved'))
-    onDone()
+    /**
+     * Snap the FAILED rows back to what the server still holds.
+     *
+     * Partial application breaks the assumption the old abort-on-first-error gave for free — that
+     * the draft equals server state. Left alone, a failed row keeps rendering the permission the
+     * user ASKED for, so a 403 looks exactly like a success. Rows that succeeded keep the user's
+     * input because that IS now the truth; `initial` is untouched for the failed ones precisely
+     * because their write never landed.
+     */
+    setDraft((d) => {
+      const next = { ...d }
+      for (const { key } of failed) {
+        if (initial[key]) next[key] = initial[key]
+        else delete next[key]
+      }
+      return next
+    })
+
+    // The mapped reason (403, 409, 412 …) rather than one flat string — but only when a single
+    // failure means there IS one reason. Several failures can differ, so those get the names alone.
+    const { key, values } =
+      failed.length === 1
+        ? saveErrorMessage(failed[0].error)
+        : { key: 'access.saveFailedReason', values: undefined }
+
+    toast.error(
+      t('access.saveFailedFor', {
+        names: failed.map((f) => subjectLabel(f.key)).join(', '),
+      }),
+      { description: t(key, values) }
+    )
   }
+
+  const subjectLabel = (key: string) =>
+    key === PUBLIC_KEY ? t('access.publicLabel') : nameOf(key)
 
   return (
     <>
@@ -377,7 +518,32 @@ function ShareForm({
             </div>
           ))}
 
-          {memberIds.length === 0 && (
+          {/* Read-only, and deliberately so: these rows say WHO has access without pretending this
+              sheet can change it. Every control is absent rather than disabled-looking, so there is
+              nothing to click that would no-op. */}
+          {fromShares.map((grant) => (
+            <div
+              key={grant.id}
+              className="space-y-2 rounded-md border border-dashed px-3 py-2"
+            >
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {grant.subject.kind === 'public'
+                    ? t('access.publicLabel')
+                    : nameOf(grant.subject.userId)}
+                </span>
+                <Badge variant={grant.permission} className="h-5 shrink-0">
+                  {t(`access.permission.${grant.permission}`)}
+                </Badge>
+              </div>
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{t('access.fromShareBundle')}</span>
+              </p>
+            </div>
+          ))}
+
+          {memberIds.length === 0 && fromShares.length === 0 && (
             <p className="text-sm text-muted-foreground">
               {t('access.notShared')}
             </p>
@@ -470,6 +636,78 @@ function ShareForm({
             </span>
           </label>
         </div>
+
+        {revoked.length > 0 && (
+          <div className="space-y-2 border-t pt-4">
+            {/* Chevron FIRST and rotating, matching the flow and property rows — a heading that
+                expands has to look like one before it is clicked, not only after. `aria-expanded`
+                says the same thing to a screen reader either way. */}
+            <button
+              type="button"
+              className="flex w-full items-center gap-1.5 rounded-md text-left text-sm font-medium hover:text-foreground/80"
+              aria-expanded={showRevoked}
+              onClick={() => setShowRevoked((v) => !v)}
+            >
+              <ChevronRight
+                className={cn(
+                  'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
+                  showRevoked && 'rotate-90'
+                )}
+                aria-hidden="true"
+              />
+              <History
+                className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="flex-1">{t('access.revokedTitle')}</span>
+              <Badge variant="secondary" className="h-5">
+                {revoked.length}
+              </Badge>
+            </button>
+
+            {showRevoked && (
+              <>
+                {/* The ceiling, stated where it matters: the projection keeps WHO and the LAST
+                    permission held, not the permission at revoke time. This answers "X used to
+                    have access", never "X had write on the 3rd" — and a reader who assumes the
+                    latter would be reading an audit trail that does not exist. */}
+                <p className="text-xs text-muted-foreground">
+                  {t('access.revokedHint')}
+                </p>
+                {revoked.map((grant) => (
+                  <div
+                    key={grant.id}
+                    className="flex flex-wrap items-center gap-2 rounded-md border border-dashed px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+                      {grant.subject.kind === 'public'
+                        ? t('access.publicLabel')
+                        : nameOf(grant.subject.userId)}
+                    </span>
+                    <Badge variant="secondary" className="h-5 shrink-0">
+                      {t(`access.permission.${grant.permission}`)}
+                    </Badge>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {format.dateTime(new Date(grant.updatedAt), {
+                        dateStyle: 'medium',
+                      })}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 shrink-0 px-2 text-xs"
+                      onClick={() => restore(grant)}
+                    >
+                      <RotateCcw className="mr-1 h-3 w-3" />
+                      {t('common.restore')}
+                    </Button>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
       </SheetBody>
 
       {dirty && <UnsavedBar count={changed.length + removed.length} />}
