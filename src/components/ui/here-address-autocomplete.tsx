@@ -6,6 +6,7 @@ import { MapPin, Loader2 } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import { authFetch } from '@/lib/auth-fetch'
 import { Input } from '@/components/ui'
+import { ALPHA3_TO_ALPHA2 } from '@/constants/country-codes'
 
 export interface AddressComponents {
   street: string
@@ -26,6 +27,26 @@ export interface AddressComponents {
    */
   lat?: number
   lng?: number
+}
+
+/**
+ * The country as a STABLE code, not as prose.
+ *
+ * HERE gives both `countryCode` ("NLD", ISO alpha-3) and `countryName` ("Nederland" — localised, so
+ * its text depends on the request language). Storing the name made "all assets in NL" a string match
+ * against a value that could be Nederland, Netherlands or Pays-Bas depending on when the row was
+ * written. io2p's schema documents alpha-2, so the alpha-3 is converted here.
+ *
+ * Falls back to the name only when the code is missing or unmapped — an address with SOMETHING in
+ * its country field beats one with nothing, and `countryLabel` renders a non-code unchanged.
+ */
+function countryCode(address: { countryCode?: string; countryName?: string }) {
+  const alpha3 = address.countryCode?.toUpperCase()
+  const alpha2 = alpha3 ? ALPHA3_TO_ALPHA2[alpha3] : undefined
+  if (alpha3 && !alpha2) {
+    logger.warn('Unmapped HERE country code', { countryCode: alpha3 })
+  }
+  return alpha2 ?? address.countryName ?? ''
 }
 
 /**
@@ -176,7 +197,7 @@ export function HereAddressAutocomplete({
       houseNumber: suggestion.address.houseNumber || '',
       city: suggestion.address.city || '',
       postalCode: suggestion.address.postalCode || '',
-      country: suggestion.address.countryName || '',
+      country: countryCode(suggestion.address),
       state: suggestion.address.state || '',
       district: suggestion.address.district || '',
       fullAddress: fullAddress,

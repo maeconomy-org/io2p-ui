@@ -8,6 +8,7 @@ import type { EntityDraft } from '@/lib/entity-body'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useLocale: () => 'en',
 }))
 
 const PICKED: AddressComponents = {
@@ -124,6 +125,19 @@ describe('AddressField', () => {
     )
 
     expect(screen.getByText('52.15672, 5.38416')).toBeTruthy()
+  })
+
+  it('names the stored country code in read mode', () => {
+    harness({ fullAddress: 'Somewhere', country: 'NL' }, false)
+
+    expect(screen.getByText('Netherlands')).toBeTruthy()
+  })
+
+  it('shows a legacy display name unchanged rather than blank', () => {
+    // Rows written before codes were stored hold "Nederland" here.
+    harness({ fullAddress: 'Somewhere', country: 'Nederland' }, false)
+
+    expect(screen.getByText('Nederland')).toBeTruthy()
   })
 
   it('shows no coordinate row when the lookup never resolved one', () => {

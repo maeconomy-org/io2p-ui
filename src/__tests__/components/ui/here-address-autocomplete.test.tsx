@@ -30,6 +30,7 @@ const SUGGESTION = {
     houseNumber: '1',
     postalCode: '3811 LM',
     city: 'Amersfoort',
+    countryCode: 'NLD',
     countryName: 'Nederland',
     state: 'Utrecht',
   },
@@ -91,6 +92,40 @@ describe('HereAddressAutocomplete', () => {
     expect(components.lat).toBeUndefined()
 
     release({ json: async () => ({ position: { lat: 1, lng: 2 } }) })
+  })
+
+  it('stores the country as a stable code, not a localised name', async () => {
+    // "Nederland" is whatever language HERE answered in, so grouping by country was a string match
+    // against a value that moved. The code does not.
+    respond(() => json({ position: { lat: 1, lng: 2 } }))
+    const onAddressSelect = vi.fn<OnSelect>()
+
+    await pick(onAddressSelect)
+
+    expect(onAddressSelect.mock.calls[0][1].country).toBe('NL')
+  })
+
+  it('falls back to the country name when the code cannot be mapped', async () => {
+    // Something in the field beats nothing, and the read side renders a non-code unchanged.
+    respond(() => json({ position: { lat: 1, lng: 2 } }))
+    authFetch.mockImplementation((url: string) =>
+      url.includes('id=')
+        ? json({ position: { lat: 1, lng: 2 } })
+        : json({
+            items: [
+              {
+                ...SUGGESTION,
+                address: { ...SUGGESTION.address, countryCode: 'XYZ' },
+              },
+            ],
+          })
+    )
+    const onAddressSelect = vi.fn<OnSelect>()
+
+    await pick(onAddressSelect)
+
+    expect(onAddressSelect.mock.calls[0][1].country).toBe('Nederland')
+    expect(loggerWarn).toHaveBeenCalled()
   })
 
   it('does not search again for the address it just resolved', async () => {

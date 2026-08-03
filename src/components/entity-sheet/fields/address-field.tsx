@@ -1,10 +1,11 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import type { UseFormReturn } from 'react-hook-form'
 
 import { HereAddressAutocomplete, Label } from '@/components/ui'
 import type { AddressComponents } from '@/components/ui/here-address-autocomplete'
+import { countryLabel } from '@/constants/country-codes'
 import type { EntityDraft } from '@/lib/entity-body'
 
 import { ReadOnlyField } from './read-only-field'
@@ -33,6 +34,7 @@ export function AddressField({
   editing: boolean
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const address = form.watch('address')
 
   if (!editing) {
@@ -43,7 +45,9 @@ export function AddressField({
       [t('objects.address.postalCode'), address?.postalCode],
       [t('objects.address.city'), address?.city],
       [t('objects.address.state'), address?.state],
-      [t('objects.address.country'), address?.country],
+      // Stored as an ISO code, read back in the CURRENT UI language — so the reader's locale
+      // decides the wording, not whatever language the row happened to be created in.
+      [t('objects.address.country'), countryLabel(address?.country, locale)],
       // Shown, labelled, only when present. A coordinate pair means little to an asset manager, but
       // its ABSENCE means nothing either — and without this there is no way to tell a geocoded
       // address from one the lookup silently failed on.
