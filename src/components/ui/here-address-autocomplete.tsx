@@ -16,6 +16,48 @@ export interface AddressComponents {
   state?: string
   district?: string
   fullAddress: string
+  /**
+   * Rooftop/parcel centre of the picked suggestion. Absent when the lookup failed or HERE has no
+   * position — never blocks the address itself.
+   *
+   * This is `position`, NOT HERE's `access` (the routable point on the street). Same building,
+   * different coordinates: correct for map pins and radius queries, wrong as input to drive-time
+   * isolines. Worth knowing before anyone assumes the stored point routes.
+   */
+  lat?: number
+  lng?: number
+}
+
+/**
+ * Resolve a picked suggestion to coordinates.
+ *
+ * A failed lookup applies the address WITHOUT coordinates — the one place a fallback belongs here.
+ * Blocking address entry on a geocoding outage is worse than a missing coordinate a backfill can
+ * repair later. It is logged rather than swallowed: "addresses stopped getting coordinates" is
+ * otherwise invisible for months.
+ */
+async function lookupPosition(
+  id: string
+): Promise<{ lat: number; lng: number } | null> {
+  if (!id) return null
+  try {
+    const response = await authFetch(
+      `/api/address?id=${encodeURIComponent(id)}`
+    )
+    const data = await response.json()
+    const { lat, lng } = data?.position ?? {}
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      logger.warn('HERE lookup returned no position', { id })
+      return null
+    }
+    return { lat, lng }
+  } catch (error) {
+    logger.warn('HERE lookup failed; address applied without coordinates', {
+      id,
+      error,
+    })
+    return null
+  }
 }
 
 interface HereAddressAutocompleteProps {
@@ -34,6 +76,16 @@ export function HereAddressAutocomplete({
   className = '',
 }: HereAddressAutocompleteProps) {
   const [query, setQuery] = useState('')
+  /**
+   * What the user TYPED, which is the only thing worth searching for.
+   *
+   * `query` also changes when a suggestion is picked and when the `value` prop syncs in, and driving
+   * the debounced search off it meant HERE was queried for an address that had just been RESOLVED —
+   * one wasted request per selection, and another every time a sheet opened on an object that
+   * already had one. It also left stale suggestions behind the closed dropdown for the next focus
+   * to reopen.
+   */
+  const [typedQuery, setTypedQuery] = useState('')
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
@@ -42,6 +94,8 @@ export function HereAddressAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Which coordinate lookup is current, so a slow earlier one cannot answer after a newer pick.
+  const lookupSeq = useRef(0)
   // React's documented "adjust state when a prop changes" pattern: hold the
   // previous prop in STATE, not a ref, and compare during render. A ref written
   // during render is unsound (the render may be discarded), which is what
@@ -91,8 +145,8 @@ export function HereAddressAutocomplete({
     }
 
     timeoutRef.current = setTimeout(() => {
-      if (query) {
-        searchAddresses(query)
+      if (typedQuery) {
+        searchAddresses(typedQuery)
       }
     }, 300)
 
@@ -101,18 +155,21 @@ export function HereAddressAutocomplete({
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [query])
+  }, [typedQuery])
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     setQuery(newValue)
+    // The ONE place a search is armed. Everything else that moves `query` — picking a suggestion,
+    // the `value` prop syncing in — deliberately leaves this alone.
+    setTypedQuery(newValue)
     setIsOpen(true)
     setSelectedIndex(-1)
   }
 
   // Handle suggestion selection
-  const handleSuggestionSelect = (suggestion: any) => {
+  const handleSuggestionSelect = async (suggestion: any) => {
     const fullAddress = suggestion.address.label
     const components: AddressComponents = {
       street: suggestion.address.street || '',
@@ -130,7 +187,21 @@ export function HereAddressAutocomplete({
     setSuggestions([])
     setSelectedIndex(-1)
 
+    // Reported IMMEDIATELY, then again once coordinates land. Awaiting the lookup before the first
+    // call would leave a window where the input shows the address but the form does not hold it —
+    // saving in that window would lose the address entirely, which is far worse than losing a
+    // coordinate.
     onAddressSelect(fullAddress, components)
+
+    const seq = ++lookupSeq.current
+    setIsLoading(true)
+    const position = await lookupPosition(suggestion.id)
+    // A newer pick superseded this one; letting a slow earlier lookup answer last would overwrite
+    // the address the user actually chose.
+    if (seq !== lookupSeq.current) return
+
+    setIsLoading(false)
+    if (position) onAddressSelect(fullAddress, { ...components, ...position })
   }
 
   // Handle keyboard navigation
@@ -151,7 +222,7 @@ export function HereAddressAutocomplete({
       case 'Enter':
         e.preventDefault()
         if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-          handleSuggestionSelect(suggestions[selectedIndex])
+          void handleSuggestionSelect(suggestions[selectedIndex])
         }
         break
       case 'Escape':
@@ -214,7 +285,7 @@ export function HereAddressAutocomplete({
               className={`px-4 py-3 cursor-pointer hover:bg-muted/50 border-b border-border last:border-b-0 ${
                 index === selectedIndex ? 'bg-muted' : ''
               }`}
-              onClick={() => handleSuggestionSelect(suggestion)}
+              onClick={() => void handleSuggestionSelect(suggestion)}
             >
               <div className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />

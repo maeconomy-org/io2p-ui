@@ -14,6 +14,15 @@ function joinStreet(address: EntityDraft['address']): string | undefined {
   return [address?.street, address?.houseNumber].filter(Boolean).join(' ')
 }
 
+/** Both or neither: half a coordinate locates nothing. Five decimals is ~1 m. */
+function formatCoordinates(
+  address: EntityDraft['address']
+): string | undefined {
+  const { lat, lng } = address ?? {}
+  if (typeof lat !== 'number' || typeof lng !== 'number') return undefined
+  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+}
+
 // EDITING is one field (the full address) — the autocomplete resolves the granular components, and
 // asking the user to fill them by hand would be worse. READING shows them, since by then they exist.
 export function AddressField({
@@ -35,6 +44,10 @@ export function AddressField({
       [t('objects.address.city'), address?.city],
       [t('objects.address.state'), address?.state],
       [t('objects.address.country'), address?.country],
+      // Shown, labelled, only when present. A coordinate pair means little to an asset manager, but
+      // its ABSENCE means nothing either — and without this there is no way to tell a geocoded
+      // address from one the lookup silently failed on.
+      [t('objects.address.coordinates'), formatCoordinates(address)],
     ]
     const present = parts.filter(([, value]) => !!value?.trim())
 
@@ -55,6 +68,11 @@ export function AddressField({
     )
   }
 
+  // Fields are enumerated, so anything new on `AddressComponents` must be added HERE too — the type
+  // does not complain about a key left out, which is exactly how `lat`/`lng` came to be wired
+  // end-to-end and permanently empty.
+  //
+  // Called TWICE per pick: once immediately without coordinates, again when the lookup resolves.
   const applySuggestion = (fullAddress: string, c: AddressComponents) => {
     form.setValue(
       'address',
@@ -66,6 +84,8 @@ export function AddressField({
         state: c.state,
         district: c.district,
         country: c.country,
+        lat: c.lat,
+        lng: c.lng,
         fullAddress,
       },
       { shouldDirty: true }

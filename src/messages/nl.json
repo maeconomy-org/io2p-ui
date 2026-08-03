@@ -467,7 +467,8 @@
       "postalCode": "Postcode",
       "city": "Plaats",
       "state": "Provincie",
-      "country": "Land"
+      "country": "Land",
+      "coordinates": "Coördinaten"
     },
     "objectUuid": "Object-UUID",
     "values": "{count} waarde{count, plural, one {} other {s}}",

@@ -466,7 +466,8 @@
       "postalCode": "Postal code",
       "city": "City",
       "state": "State",
-      "country": "Country"
+      "country": "Country",
+      "coordinates": "Coordinates"
     },
     "objectUuid": "Object UUID",
     "values": "{count} value{count, plural, one {} other {s}}",
