@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
+import type { TemplateDTO } from 'io2p-client'
 
 import {
   Button,
@@ -44,11 +45,13 @@ export interface TemplateChoice {
 }
 
 /**
- * Pick a template to start an object from. Templates carry their properties in the list response, so
- * choosing one can prefill immediately without a second read.
+ * Pick a template to start an object or process from.
  *
- * Only name, description and properties are prefilled — io2p has no `abbreviation` and no authored
- * `version` (the legacy selector filled both); those are ordinary properties now.
+ * **`full: true` is load-bearing, not an optimisation.** A templates list row is LEAN — it carries
+ * identity and attributes, and drops `properties` along with a process template's `inputs`/`outputs`
+ * presets entirely. Without the flag every pick prefills the NAME and nothing else, silently: the
+ * presets are simply absent, so there is no error to see and the form looks like an empty create.
+ * Eight rows is the whole page, so asking for their presets costs one request either way.
  */
 export function TemplateSelector({
   onSelect,
@@ -68,10 +71,20 @@ export function TemplateSelector({
   const [query, setQuery] = useState('')
 
   const { data, isFetching } = useTemplates().useList(
-    { q: query.trim() || undefined, size: SEARCH_SIZE, page: 1, type },
+    {
+      q: query.trim() || undefined,
+      size: SEARCH_SIZE,
+      page: 1,
+      type,
+      full: true,
+    },
     { enabled: open, keepPreviousData: true }
   )
-  const templates = data?.data ?? []
+
+  // `list()` is typed `Page<TemplateListItem>` whatever the query says, so the flag above cannot show
+  // up in the type. The API documents a `full: true` row as matching `TemplateDTO`, and that is the
+  // only thing making this assertion true — the two must be changed together.
+  const templates = (data?.data ?? []) as TemplateDTO[]
 
   const choose = (template: TemplateChoice) => {
     onSelect(selected?.id === template.id ? null : template)
@@ -123,7 +136,7 @@ export function TemplateSelector({
                 <CommandItem
                   key={template.id}
                   value={template.id}
-                  onSelect={() => choose(template as TemplateChoice)}
+                  onSelect={() => choose(template)}
                 >
                   <Check
                     className={cn(
