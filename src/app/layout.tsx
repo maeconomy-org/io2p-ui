@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Geist } from 'next/font/google'
 import './globals.css'
 import { getMessages, getLocale } from 'next-intl/server'
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: process.env.APP_DESCRIPTION || 'Material Management System',
 }
 
-const inter = Inter({ subsets: ['latin'] })
+const geist = Geist({ subsets: ['latin'] })
 
 export default async function RootLayout({
   children,
@@ -30,7 +30,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${inter.className} h-full`}
+      className={`${geist.className} h-full`}
     >
       <head>
         <script
