@@ -17,7 +17,7 @@
   },
   "demo": {
     "filters": "Filters",
-    "filtersDescription": "Use filters to refine your view and find exactly what you need. You can filter by various criteria including showing or hiding deleted objects, status, categories, and more. Filters help you focus on the most relevant data for your current task.",
+    "filtersDescription": "Narrow the list — including whether deleted objects are shown. Nothing here is ever destroyed: a deleted object stays in place, struck through, and can be restored at any time.",
     "viewOptions": "View Options",
     "viewOptionsDescription": "Switch between different view modes to see your data in the format that works best for you. Choose from table view for detailed listings or column view for a more visual, card-based layout. Your preference is automatically saved.",
     "createObjects": "Create New Objects",
@@ -25,7 +25,7 @@
     "modelTemplates": "Model Templates",
     "modelTemplatesDescription": "Choose from predefined templates that automatically populate relevant fields based on the type of object you're creating. Models ensure consistency and save time by providing structured blueprints for common object types in your organization.",
     "parentRelationships": "Parent Relationships",
-    "parentRelationshipsDescription": "Establish hierarchical connections by linking this object to its parent objects. This creates a structured tree that helps organize your data and enables powerful filtering and navigation through related objects.",
+    "parentRelationshipsDescription": "Place this object under others in the hierarchy. The hierarchy is parents-only — a child records who its parent is, so moving something never touches the object it used to sit under.",
     "objectMetadata": "Object Metadata",
     "objectMetadataDescription": "These core fields define your object's identity: Name (the primary identifier), Abbreviation (optional short code for quick reference), Version (for tracking changes over time), and Description (detailed explanation for team understanding). Fill these thoughtfully as they're used throughout the system for search and identification.",
     "locationInfo": "Location Information",
@@ -39,33 +39,34 @@
   },
   "buildTemplate": {
     "start": "Start a template",
-    "startDescription": "Pick object or process. A template carries the properties a new entity starts with — including formula recipes and the constants those bind to.",
-    "reuse": "Then use it here",
-    "reuseDescription": "Every new object offers your templates at the top of the create sheet. Choosing one fills the fields; you can still change anything before saving."
+    "startDescription": "A template is a starting point for new objects — the properties they begin with, including formula recipes and the constants those bind to. This button offers object and process templates; Next opens an object one to build.",
+    "properties": "The properties it carries",
+    "propertiesDescription": "Whatever you add here is what a new object starts with. A property bound to a formula brings that binding along, not just the field name.",
+    "save": "Save it",
+    "saveDescription": "Once saved it appears at the top of the create sheet for every new object, ready to pick."
   },
   "writeFormula": {
-    "start": "Write a formula",
-    "startDescription": "A formula is an expression bound to a property value and recomputed server-side. Formulas are immutable — changing one means duplicating it.",
     "reference": "What you can use",
-    "referenceDescription": "The reference lists every function and operator available, plus how to refer to other properties and to constants."
+    "referenceDescription": "The reference lists every function and operator available, plus how to refer to other properties and to constants.",
+    "start": "Write a formula",
+    "startDescription": "A formula is an expression bound to a property value and recomputed server-side.",
+    "expression": "The expression",
+    "expressionDescription": "Formulas are immutable once saved — changing one means duplicating it and binding the new version, so anything already using the old one keeps its meaning."
   },
   "shareObjects": {
-    "start": "Create a share",
-    "startDescription": "A share bundles objects and processes and grants a group access to all of them at once. Access cascades to children, and the whole bundle can be revoked in one step.",
     "tabs": "Two kinds of access",
-    "tabsDescription": "Shares are the bundles you built. Shared by me lists everything you have granted individually as well, so you can see and withdraw it all in one place."
+    "tabsDescription": "Shares are the bundles you built. Shared by me also lists everything you granted individually, so you can see and withdraw it all in one place.",
+    "start": "Create a share",
+    "startDescription": "A share bundles resources and grants a group access to all of them at once.",
+    "resources": "What is in the bundle",
+    "resourcesDescription": "Add the objects and processes to share. Access cascades to their children, and the whole bundle can be revoked in one step.",
+    "members": "Who can see it",
+    "membersDescription": "A share carries only resources and lists its members here — that is the difference from the Groups it replaced, which mixed both under one word."
   },
   "workWithDrafts": {
     "start": "Start something you can finish later",
-    "startDescription": "Close the create sheet with unsaved changes and you are offered a draft. Drafts live on this device only — files you picked are not carried over.",
-    "pinned": "Drafts wait at the top",
-    "pinnedDescription": "Unfinished work pins above the list so it cannot get lost behind pagination. Continue editing to reopen it, or discard it from the row menu."
-  },
-  "whatsNew": {
-    "gotIt": "Got it",
-    "shares": "Groups are now Shares",
-    "sharesDescription": "Same place in the nav, different idea. A share bundles objects and processes and grants access to all of them at once — it holds resources, and lists who can see them.",
-    "library": "Templates moved into Library",
-    "libraryDescription": "Templates now sit alongside Formulas and Constants under one menu. Nothing was removed — open Library to find them."
+    "startDescription": "Open the create sheet as usual. Nothing is saved to the server until you submit.",
+    "fill": "Fill in what you know",
+    "fillDescription": "Close the sheet with unsaved changes and you are offered a draft. It waits pinned above the objects list until you come back — on this device only, and files you picked are not carried over."
   }
 }

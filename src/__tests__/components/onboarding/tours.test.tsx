@@ -1,10 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { act, render } from '@testing-library/react'
 
 import { TOUR_START_EVENT } from '@/components/onboarding/constants'
 import { INITIAL_LOGIN_TOUR } from '@/components/onboarding/use-onboarding'
 import { ONBOARDING_EPOCH } from '@/constants'
-import { keyFor } from '@/hooks/ui/use-preference'
+import { queryKeys } from '@/lib/query-keys'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 
 /**
  * Regression coverage for the tour lock.
@@ -44,21 +46,41 @@ vi.mock('next-intl', () => ({
   useLocale: () => 'en',
 }))
 
+let pathname = '/objects'
+const push = vi.fn((to: string) => {
+  pathname = to
+})
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/objects',
-  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => pathname,
+  useRouter: () => ({ push }),
 }))
 
 const USER = 'user-uuid'
-const authState = {
+const authState: {
+  isAuthenticated: boolean
+  authLoading: boolean
+  userId?: string
+  preferences?: Record<string, Record<string, unknown>>
+} = {
   isAuthenticated: true,
   authLoading: false,
-  userId: USER as string | undefined,
+  userId: USER,
+  preferences: undefined,
 }
 vi.mock('@/contexts', () => ({ useAuth: () => authState }))
 // `usePreference` reaches for the module directly rather than the barrel, so it
 // needs its own mock or the real provider tree comes with it.
 vi.mock('@/contexts/auth-context', () => ({ useAuth: () => authState }))
+
+const updatePreferences = vi.fn()
+vi.mock('@/lib/io2p', () => ({
+  useIomClient: () => ({ users: { updatePreferences } }),
+}))
+
+let queryClient: QueryClient
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+)
 
 vi.mock('@/components/onboarding/tour-messages', async () => {
   const actual = await vi.importActual<
@@ -92,17 +114,27 @@ describe('TourRunner', () => {
     setReducedMotion(false)
     authState.isAuthenticated = true
     authState.authLoading = false
+    updatePreferences.mockResolvedValue({})
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
   })
 
   const startTour = async () => {
     const { default: TourRunner } =
       await import('@/components/onboarding/tour-runner')
-    render(<TourRunner />)
+    render(<TourRunner />, { wrapper })
     await act(async () => {
       window.dispatchEvent(
         new CustomEvent(TOUR_START_EVENT, { detail: { id: 'create-object' } })
       )
     })
+    // The request is parked in state first so it can survive a route change, so
+    // driving happens on the NEXT render rather than inside the dispatch.
+    await act(async () => {})
   }
 
   it('stays escapable so a missing anchor cannot lock the page', async () => {
@@ -112,12 +144,25 @@ describe('TourRunner', () => {
     expect(lastConfig().allowClose).toBe(true)
   })
 
-  it('skips anchors that no longer exist instead of stalling on them', async () => {
+  it('does not prune gated steps before the tour starts', async () => {
     await startTour()
 
-    expect(lastConfig().skipMissingElement).toBe(true)
-    // A finite wait, so a dead anchor times out rather than polling forever.
+    // driver.js judges skippability against the DOM as it stands. Set globally,
+    // every step inside an unopened sheet counts as missing, the tour collapses
+    // to its first step and renders "Done" instead of "Next".
+    expect(lastConfig().skipMissingElement).toBe(false)
+    // A finite wait instead, so a step that never appears times out rather than
+    // hanging the tour.
     expect(lastConfig().waitForElement).toBeGreaterThan(0)
+  })
+
+  it('only targets things a tour can actually reach', async () => {
+    const { TOURS } = await import('@/components/onboarding/tour-registry')
+    // work-with-drafts used to end on the pinned-drafts row, which does not
+    // exist until a draft has been saved — that is, after the tour is over. It
+    // rendered "Done" on step 2 of 3 and read as stuck.
+    const drafts = TOURS.find((tour) => tour.id === 'work-with-drafts')
+    expect(drafts?.steps({} as never)).toHaveLength(2)
   })
 
   it('advances on click rather than hand-rolled click-and-poll glue', async () => {
@@ -127,7 +172,10 @@ describe('TourRunner', () => {
       popover?: { onNextClick?: unknown }
     }>
     expect(lastConfig().advanceOnClick).toBe(true)
-    expect(steps.every((s) => s.popover?.onNextClick === undefined)).toBe(true)
+    // Exactly one step keeps a handler: the Create button, which has to be
+    // clicked for the sheet the remaining steps live in to exist at all.
+    const gated = steps.filter((s) => s.popover?.onNextClick !== undefined)
+    expect(gated).toHaveLength(1)
   })
 
   it('disables animation when the user prefers reduced motion', async () => {
@@ -142,42 +190,91 @@ describe('TourRunner', () => {
 
     expect(driveMock).toHaveBeenCalledTimes(1)
   })
+
+  it('asks the page to open the sheet rather than faking a click', async () => {
+    // Synthesising DOM events meant depending on how each trigger happens to be
+    // built — a Radix dropdown trigger has no click handler at all, so the
+    // build-a-template sheet never opened. The page owns the opener; the tour
+    // just asks for it.
+    const { TOUR_ACTION_EVENT } =
+      await import('@/components/onboarding/constants')
+    await startTour()
+
+    const heard: string[] = []
+    const listener = (event: Event) =>
+      heard.push((event as CustomEvent<{ action: string }>).detail.action)
+    window.addEventListener(TOUR_ACTION_EVENT, listener)
+
+    const steps = lastConfig().steps as Array<{
+      popover?: { onNextClick?: () => void }
+    }>
+    steps.find((s) => s.popover?.onNextClick)?.popover?.onNextClick?.()
+
+    expect(heard).toEqual(['objects.create'])
+    window.removeEventListener(TOUR_ACTION_EVENT, listener)
+  })
+
+  it('navigates first when the tour belongs to another page', async () => {
+    // `router.push` does not block, so driving immediately ran the tour against
+    // the page being left — every anchor missing, every step skipped, and
+    // nothing visibly happened.
+    const { default: TourRunner } =
+      await import('@/components/onboarding/tour-runner')
+    const { rerender } = render(<TourRunner />, { wrapper })
+
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent(TOUR_START_EVENT, { detail: { id: 'build-template' } })
+      )
+    })
+    await act(async () => {})
+
+    expect(push).toHaveBeenCalledWith('/templates')
+    expect(driverMock).not.toHaveBeenCalled()
+
+    // Arriving on the route is what releases the parked request.
+    await act(async () => {
+      rerender(<TourRunner />)
+    })
+    await act(async () => {})
+
+    expect(driverMock).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('InitialLoginTour', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     setReducedMotion(false)
-    localStorage.clear()
     authState.isAuthenticated = true
     authState.authLoading = false
     authState.userId = USER
+    authState.preferences = undefined
+    updatePreferences.mockResolvedValue({})
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    queryClient.setQueryData(queryKeys.users.current, {
+      id: USER,
+      identities: [],
+      preferences: {},
+    })
   })
 
-  afterEach(() => {
-    localStorage.clear()
-  })
-
-  const blob = () =>
-    JSON.parse(localStorage.getItem(keyFor(USER)) ?? '{}') as Record<
-      string,
-      unknown
-    >
-
-  const markSeenInStorage = (uuid = USER, epoch = ONBOARDING_EPOCH) =>
-    localStorage.setItem(
-      keyFor(uuid),
-      JSON.stringify({
-        toursSeen: [INITIAL_LOGIN_TOUR],
-        onboardingEpoch: epoch,
-      })
-    )
+  const markSeen = (epoch = ONBOARDING_EPOCH) => {
+    authState.preferences = {
+      onboarding: { toursSeen: [INITIAL_LOGIN_TOUR], onboardingEpoch: epoch },
+    }
+  }
 
   const mount = async () => {
     const { default: InitialLoginTour } =
       await import('@/components/onboarding/initial-login-tour')
     await act(async () => {
-      render(<InitialLoginTour />)
+      render(<InitialLoginTour />, { wrapper })
     })
   }
 
@@ -192,21 +289,24 @@ describe('InitialLoginTour', () => {
     // driver.js hands control to this hook instead of destroying itself, so the
     // hook owning destroy() is what stops the close button from doing nothing.
     expect(destroyMock).toHaveBeenCalledTimes(1)
-    expect(blob().toursSeen).toEqual([INITIAL_LOGIN_TOUR])
+    // Written to the account on the node, not to this browser.
+    expect(updatePreferences).toHaveBeenCalledWith({
+      onboarding: { toursSeen: [INITIAL_LOGIN_TOUR] },
+    })
   })
 
   it('does not run again once the tour has been seen', async () => {
-    markSeenInStorage()
+    markSeen()
 
     await mount()
 
     expect(driverMock).not.toHaveBeenCalled()
   })
 
-  it('keeps the seen flag scoped to the account that set it', async () => {
-    // The bare localStorage key this replaced was machine-wide, so on a shared
-    // login whoever finished first silenced the tour for everyone after them.
-    markSeenInStorage('someone-else')
+  it('runs for an account whose record carries no seen-flag', async () => {
+    // The flag now travels with the account rather than the browser, so a
+    // different person on the same machine still gets the tour.
+    authState.preferences = { onboarding: {} }
 
     await mount()
 
@@ -214,36 +314,38 @@ describe('InitialLoginTour', () => {
   })
 
   it('re-runs for an account whose stored epoch predates the current one', async () => {
-    markSeenInStorage(USER, ONBOARDING_EPOCH - 1)
+    markSeen(ONBOARDING_EPOCH - 1)
 
     await mount()
 
     expect(driverMock).toHaveBeenCalledTimes(1)
   })
 
-  it('leaves unrelated view preferences alone when re-onboarding', async () => {
-    localStorage.setItem(
-      keyFor(USER),
-      JSON.stringify({
-        objectsView: 'columns',
+  it('touches only onboarding keys when re-onboarding', async () => {
+    authState.preferences = {
+      ui: { objectsView: 'columns' },
+      onboarding: {
         toursSeen: [INITIAL_LOGIN_TOUR],
         onboardingEpoch: ONBOARDING_EPOCH - 1,
-      })
-    )
+      },
+    }
 
     await mount()
     await act(async () => (lastConfig().onDestroyStarted as () => void)())
 
-    // The epoch exists precisely so re-onboarding does not cost people their
-    // saved views the way bumping PREFERENCES_VERSION would.
-    expect(blob().objectsView).toBe('columns')
-    expect(blob().onboardingEpoch).toBe(ONBOARDING_EPOCH)
+    // A merge patch of the onboarding namespace only — re-onboarding must not
+    // cost anyone their saved views.
+    for (const call of updatePreferences.mock.calls) {
+      expect(Object.keys(call[0])).toEqual(['onboarding'])
+    }
   })
 
-  it('skips missing anchors so the mobile nav cannot poll forever', async () => {
+  it('keeps the step inside the closed profile menu in the tour', async () => {
     await mount()
 
-    expect(lastConfig().skipMissingElement).toBe(true)
+    // With skipMissingElement on, the final step — which Radix has not mounted
+    // yet — was judged missing and the tour ended one step early.
+    expect(lastConfig().skipMissingElement).toBe(false)
     expect(lastConfig().allowClose).toBe(true)
   })
 })

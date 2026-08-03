@@ -1291,17 +1291,21 @@
       "label": "Wat is een constante?",
       "body": "Een gedeeld, geversioneerd getal waar formules op naam naar verwijzen. De versie wordt vastgezet op het moment van koppelen, dus een nieuwe waarde publiceren verandert nooit stilzwijgend al berekende resultaten."
     },
-    "draft": {
-      "label": "Wat is een concept?",
-      "body": "Een niet-opgeslagen object dat op dit apparaat bewaard blijft en boven de lijst wordt vastgezet tot je het afmaakt. Gekozen maar nog niet geüploade bestanden kunnen niet mee in een concept — koppel ze opnieuw als je terugkomt."
+    "object": {
+      "label": "Wat is een object?",
+      "body": "Alles wat je wilt volgen — een machine, een batch, een document. Een object heeft eigenschappen, bestanden, een adres en een plek in de hiërarchie."
     },
-    "parent": {
-      "label": "Hoe werkt de hiërarchie?",
-      "body": "De hiërarchie kent alleen parents: een kind legt vast wie zijn parent is, en een kind toevoegen wijzigt het kind in plaats van dit object. Iets verplaatsen raakt dus nooit het object waar het eerst onder stond."
+    "process": {
+      "label": "Wat is een proces?",
+      "body": "Een stap die invoerobjecten omzet in uitvoerobjecten. Met processen leg je vast dat iets is gemaakt, verplaatst of getransformeerd, en waar het vandaan kwam."
     },
-    "deleted": {
-      "label": "Wat gebeurt er als ik iets verwijder?",
-      "body": "Er wordt niets vernietigd. Verwijderde records blijven staan, doorgestreept, en kunnen altijd worden hersteld. Zet dit aan om ze tussen de rest te zien."
+    "template": {
+      "label": "Wat is een template?",
+      "body": "Een startpunt voor nieuwe objecten: de eigenschappen waarmee ze beginnen, inclusief formulerecepten en de constanten waaraan die gebonden zijn. Een template kiezen vult het formulier; je kunt alles nog wijzigen."
+    },
+    "import": {
+      "label": "Hoe werkt importeren?",
+      "body": "Haal objecten in bulk binnen uit een CSV- of Excel-bestand. Je koppelt je kolommen één keer aan objectvelden, daarna draait de taak op de achtergrond en rapporteert per rij het resultaat."
     }
   },
   "onboarding": {
@@ -1312,6 +1316,6 @@
       "share-objects": "Objecten delen",
       "work-with-drafts": "Werken met concepten"
     },
-    "startTour": "Start de rondleiding “{tour}”"
+    "startTour": "Start de rondleiding"
   }
 }

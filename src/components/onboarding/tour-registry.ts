@@ -1,4 +1,5 @@
 import { sel } from '@/constants'
+import { TOUR_ACTIONS, type TourAction } from './use-tour-action'
 import { tourText, type TourMessages } from './tour-messages'
 
 /**
@@ -25,6 +26,15 @@ export type TourId =
 interface TourStep {
   element: string
   disableActiveInteraction?: boolean
+  /**
+   * Ask the page to do this step's thing when advancing with Next.
+   *
+   * The steps after a gate live inside a sheet that does not exist until it is
+   * opened, so Next has to actually open it. The page performs the action
+   * through its own handler — simulating a click on the trigger meant depending
+   * on how that particular control happens to be built.
+   */
+  action?: TourAction
   popover: { title: string; description: string }
 }
 
@@ -61,7 +71,9 @@ export const TOURS: readonly TourDefinition[] = [
     steps: (m) => [
       step(m, 'demo', 'filters', sel('filters')),
       step(m, 'demo', 'viewOptions', sel('viewSelector')),
-      step(m, 'demo', 'createObjects', sel('createObject')),
+      step(m, 'demo', 'createObjects', sel('createObject'), {
+        action: TOUR_ACTIONS.createObject,
+      }),
       step(m, 'demo', 'modelTemplates', sel('sheetTemplate')),
       step(m, 'demo', 'parentRelationships', sel('sheetParents')),
       step(m, 'demo', 'objectMetadata', sel('sheetMetadata')),
@@ -78,8 +90,13 @@ export const TOURS: readonly TourDefinition[] = [
     route: '/templates',
     group: 'buildTemplate',
     steps: (m) => [
-      step(m, 'buildTemplate', 'start', sel('templatesCreate')),
-      step(m, 'buildTemplate', 'reuse', sel('createObject')),
+      step(m, 'buildTemplate', 'start', sel('templatesCreate'), {
+        action: TOUR_ACTIONS.createTemplate,
+      }),
+      step(m, 'buildTemplate', 'properties', sel('sheetProperties')),
+      step(m, 'buildTemplate', 'save', sel('sheetSubmit'), {
+        disableActiveInteraction: true,
+      }),
     ],
   },
   {
@@ -87,8 +104,11 @@ export const TOURS: readonly TourDefinition[] = [
     route: '/formulas',
     group: 'writeFormula',
     steps: (m) => [
-      step(m, 'writeFormula', 'start', sel('formulasCreate')),
       step(m, 'writeFormula', 'reference', sel('formulasReference')),
+      step(m, 'writeFormula', 'start', sel('formulasCreate'), {
+        action: TOUR_ACTIONS.createFormula,
+      }),
+      step(m, 'writeFormula', 'expression', sel('formulaExpression')),
     ],
   },
   {
@@ -96,8 +116,12 @@ export const TOURS: readonly TourDefinition[] = [
     route: '/shares',
     group: 'shareObjects',
     steps: (m) => [
-      step(m, 'shareObjects', 'start', sel('sharesCreate')),
       step(m, 'shareObjects', 'tabs', sel('sharesTabs')),
+      step(m, 'shareObjects', 'start', sel('sharesCreate'), {
+        action: TOUR_ACTIONS.createShare,
+      }),
+      step(m, 'shareObjects', 'resources', sel('shareResources')),
+      step(m, 'shareObjects', 'members', sel('shareMembers')),
     ],
   },
   {
@@ -105,8 +129,10 @@ export const TOURS: readonly TourDefinition[] = [
     route: '/objects',
     group: 'workWithDrafts',
     steps: (m) => [
-      step(m, 'workWithDrafts', 'start', sel('createObject')),
-      step(m, 'workWithDrafts', 'pinned', sel('draftRows')),
+      step(m, 'workWithDrafts', 'start', sel('createObject'), {
+        action: TOUR_ACTIONS.createObject,
+      }),
+      step(m, 'workWithDrafts', 'fill', sel('sheetMetadata')),
     ],
   },
 ] as const

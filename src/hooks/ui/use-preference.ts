@@ -1,164 +1,105 @@
 'use client'
 
-import { useCallback, useMemo, useSyncExternalStore } from 'react'
+import { useCallback, useMemo } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { Preferences, UserDTO } from 'io2p-client'
 
 import { useAuth } from '@/contexts/auth-context'
+import { useIomClient } from '@/lib/io2p'
+import { queryKeys } from '@/lib/query-keys'
 import {
   PREFERENCES,
-  PREFERENCES_ROOT,
-  PREFERENCES_VERSION,
   type PreferenceKey,
   type PreferenceValues,
 } from '@/constants'
 
 /**
- * Account-scoped UI preferences persisted in `localStorage`.
+ * Read + write one account preference, stored on the node.
  *
- * Clones the `useSyncExternalStore` idiom from `use-object-drafts.ts`: a single
- * versioned blob per `userId`, a module-level listener set for same-tab sync,
- * a `storage`-event subscription for cross-tab sync, silent-fail `try/catch`,
- * and an SSR-safe server snapshot. All view preferences share one blob, so a
- * single read/write covers them and a future settings page edits the same
- * object with no refactor.
+ * Previously a per-browser `localStorage` blob, which made a preference a
+ * property of the machine rather than of the account: a view set on a laptop
+ * was not the view you got on a phone, and the onboarding seen-flag was shared
+ * by everyone who logged into the same computer.
+ *
+ * The read is free — `users.me()` already runs during auth and carries
+ * `preferences` with it, so this reads out of that cache rather than issuing
+ * anything. The write is a MERGE patch of the single key that changed, which is
+ * what lets two devices edit two different preferences concurrently without one
+ * clobbering the other.
  */
-
-type PreferenceBlob = Partial<PreferenceValues>
-
-const keyFor = (uuid: string) =>
-  `${PREFERENCES_ROOT}:${PREFERENCES_VERSION}:${uuid}`
-
-function readBlob(uuid: string): PreferenceBlob {
-  if (typeof window === 'undefined') return {}
-  try {
-    const raw = localStorage.getItem(keyFor(uuid))
-    if (!raw) return {}
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object'
-      ? (parsed as PreferenceBlob)
-      : {}
-  } catch {
-    return {}
-  }
-}
-
-function isAllowed<K extends PreferenceKey>(
-  key: K,
-  value: unknown
-): value is PreferenceValues[K] {
-  return PREFERENCES[key].validate(value)
-}
 
 /** Validated stored value for `key`, else the hardcoded default. */
 function resolve<K extends PreferenceKey>(
-  uuid: string | undefined,
+  preferences: Preferences | undefined,
   key: K
 ): PreferenceValues[K] {
-  const fallback = PREFERENCES[key].default
-  if (!uuid) return fallback
-  const stored = readBlob(uuid)[key]
-  return isAllowed(key, stored) ? stored : fallback
-}
-
-function writePreference<K extends PreferenceKey>(
-  uuid: string,
-  key: K,
-  value: PreferenceValues[K]
-) {
-  try {
-    const next = { ...readBlob(uuid), [key]: value }
-    localStorage.setItem(keyFor(uuid), JSON.stringify(next))
-    notify()
-  } catch {
-    // silent fail
-  }
-}
-
-const listeners = new Set<() => void>()
-function notify() {
-  listeners.forEach((l) => l())
-}
-
-function subscribeFactory(uuid: string | undefined) {
-  return (listener: () => void) => {
-    listeners.add(listener)
-    const key = uuid ? keyFor(uuid) : null
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === key || e.key === null) listener()
-    }
-    window.addEventListener('storage', onStorage)
-    return () => {
-      listeners.delete(listener)
-      window.removeEventListener('storage', onStorage)
-    }
-  }
-}
-
-function getSnapshotFactory(uuid: string | undefined) {
-  return () => {
-    if (typeof window === 'undefined' || !uuid) return ''
-    // `localStorage` access itself can throw (private mode / blocked storage);
-    // returning '' falls back to defaults instead of crashing the render.
-    try {
-      return localStorage.getItem(keyFor(uuid)) ?? ''
-    } catch {
-      return ''
-    }
-  }
-}
-
-function getServerSnapshot(): string {
-  return ''
+  const spec = PREFERENCES[key]
+  const stored = (
+    preferences?.[spec.ns] as Record<string, unknown> | undefined
+  )?.[key]
+  return spec.validate(stored) ? stored : spec.default
 }
 
 /**
- * Read + write one account-scoped view preference. Returns
- * `[value, setValue, resolved]` — `useState` plus a readiness flag.
+ * Returns `[value, setValue, resolved]` — `useState` plus a readiness flag.
  *
- * `value` is the validated stored value or the hardcoded default. Until
- * `userId` resolves (auth init / logged out) it returns the default and
- * `setValue` is a no-op — we never persist without an account.
- *
- * `resolved` matters because the blob is keyed by account, so nothing can be
- * read until `/me` comes back. A caller that renders the default meanwhile
- * shows the WRONG view and then swaps — a visible flip on every cold load.
- * Wait on `resolved` and you get one loading state instead. It follows
- * `authLoading`, not `userId`, so a logged-out or failed auth still resolves
- * (to the defaults) rather than waiting forever.
+ * `resolved` matters because preferences arrive with `/me`. A caller that
+ * renders the default meanwhile shows the WRONG view and then swaps — a visible
+ * flip on every cold load. Wait on `resolved` and you get one loading state
+ * instead. It follows `authLoading`, so a logged-out or failed auth still
+ * resolves (to the defaults) rather than waiting forever.
  */
 export function usePreference<K extends PreferenceKey>(
   key: K
 ): [PreferenceValues[K], (value: PreferenceValues[K]) => void, boolean] {
-  const { userId, authLoading } = useAuth()
+  const { preferences, authLoading } = useAuth()
+  const iom = useIomClient()
+  const queryClient = useQueryClient()
 
-  // Recreate subscribe/getSnapshot only when the account changes — the raw
-  // snapshot must keep a stable string identity (parsing happens below).
-  const subscribe = useMemo(() => subscribeFactory(userId), [userId])
-  const getSnapshot = useMemo(() => getSnapshotFactory(userId), [userId])
+  const value = useMemo(() => resolve(preferences, key), [preferences, key])
 
-  const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-
-  const value = useMemo<PreferenceValues[K]>(() => {
-    const fallback = PREFERENCES[key].default
-    if (!userId || !raw) return fallback
-    try {
-      const parsed = JSON.parse(raw) as PreferenceBlob
-      const stored = parsed?.[key]
-      return isAllowed(key, stored) ? stored : fallback
-    } catch {
-      return fallback
-    }
-  }, [raw, key, userId])
+  const { mutate } = useMutation({
+    mutationFn: (next: PreferenceValues[K]) =>
+      iom.users.updatePreferences({ [PREFERENCES[key].ns]: { [key]: next } }),
+    // A view toggle must flip on click, not a round trip later, so patch the
+    // cached user up front and let the response confirm it.
+    onMutate: async (next) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.users.current })
+      const previous = queryClient.getQueryData<UserDTO>(
+        queryKeys.users.current
+      )
+      queryClient.setQueryData<UserDTO>(queryKeys.users.current, (user) => {
+        if (!user) return user
+        const ns = PREFERENCES[key].ns
+        const preferences: Preferences = {
+          ...user.preferences,
+          [ns]: { ...user.preferences?.[ns], [key]: next },
+        }
+        return { ...user, preferences }
+      })
+      return { previous }
+    },
+    onError: (_error, _next, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.users.current, context.previous)
+      }
+    },
+    // The node returns the FULL merged bag, so trust it over the optimistic
+    // guess — another device may have changed a different key meanwhile.
+    onSuccess: (merged) => {
+      queryClient.setQueryData<UserDTO>(queryKeys.users.current, (user) =>
+        user ? { ...user, preferences: merged } : user
+      )
+    },
+  })
 
   const setValue = useCallback(
-    (next: PreferenceValues[K]) => {
-      if (!userId) return
-      writePreference(userId, key, next)
-    },
-    [userId, key]
+    (next: PreferenceValues[K]) => mutate(next),
+    [mutate]
   )
 
   return [value, setValue, !authLoading]
 }
 
-// Test surface + non-hook escape hatch for callers without a React context.
-export { keyFor, readBlob, resolve, writePreference }
+// Test surface.
+export { resolve }

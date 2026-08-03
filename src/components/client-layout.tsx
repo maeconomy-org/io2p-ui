@@ -19,11 +19,6 @@ const InitialLoginTour = dynamic(
   () => import('./onboarding/initial-login-tour'),
   { ssr: false }
 )
-// Beacons for people who already have their seen-flag set and would otherwise be
-// told nothing about what the refactor moved.
-const WhatsNewHints = dynamic(() => import('./onboarding/whats-new-hints'), {
-  ssr: false,
-})
 
 /**
  * Layout shell — navbar, footer, keyboard shortcuts, and page chrome.
@@ -44,7 +39,6 @@ export default function ClientLayout({
       <div className="flex-1 flex flex-col">
         <TourRunner />
         {!isPublicPage && <InitialLoginTour />}
-        {!isPublicPage && <WhatsNewHints />}
         {!isPublicPage && <Navbar />}
         {children}
       </div>

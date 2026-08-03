@@ -148,11 +148,13 @@ export default function InitialLoginTour() {
         showProgress: true,
         allowClose: true,
         allowKeyboardControl: true,
-        // The nav this tour points at lives in `hidden md:flex`, so on mobile
-        // every anchor is absent. Skipping past them ends the tour cleanly and —
-        // via onDestroyStarted — records it as seen, instead of the readiness
-        // poll that used to spin and never set the flag on every mobile visit.
-        skipMissingElement: true,
+        // Deliberately false. The last step points inside the profile dropdown,
+        // which Radix unmounts while closed — and driver.js judges skippability
+        // against the DOM as it currently stands, so with this on it decided
+        // there was no step after Search and rendered "Done" one step early.
+        // `waitForElement` covers the gap instead: the menu opens on the way out
+        // of Search, and the step waits for it.
+        skipMissingElement: false,
         waitForElement: ELEMENT_WAIT_MS,
         animate: !prefersReducedMotion(),
         // The single exit path: finishing, closing, and ESC all land here.

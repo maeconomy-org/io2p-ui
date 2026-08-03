@@ -33,7 +33,11 @@ import { ObjectBulkBar } from './components/object-bulk-bar'
 import { ObjectRowPortals } from './components/object-row-portals'
 import { useObjectListPage } from './components/use-object-list-page'
 import { anchor } from '@/constants'
-import { PageTourButton } from '@/components/onboarding/page-tour-button'
+import { PageHelp } from '@/components/onboarding/page-help'
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 
 const EntitySheet = dynamic(
   () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
@@ -92,6 +96,8 @@ export default function ObjectsPage() {
     [clearTrail, router]
   )
 
+  useTourAction(TOUR_ACTIONS.createObject, () => setIsAddSheetOpen(true))
+
   const resumeDraft = useCallback((id: string) => {
     setResumeDraftId(id)
     setIsAddSheetOpen(true)
@@ -117,7 +123,7 @@ export default function ObjectsPage() {
         <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex shrink-0 items-center gap-1.5">
             <h1 className="text-2xl font-bold">{t('objects.title')}</h1>
-            <PageTourButton tour="create-object" />
+            <PageHelp concept="object" tour="create-object" />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
             <FilterMenu

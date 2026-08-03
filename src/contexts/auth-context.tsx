@@ -156,6 +156,10 @@ export function useAuth() {
     isRefreshing: false,
     // The core user id (io2p-core /me.id) — the operational id used everywhere.
     userId: coreUser?.id,
+    // Server-stored UI preferences, already on this response — no second
+    // request. `usePreference` reads them from here and writes through
+    // `users.updatePreferences`.
+    preferences: coreUser?.preferences,
     // Personal account details from the auth session.
     userInfo: sessionUser ? mapAccount(sessionUser) : null,
     logout,

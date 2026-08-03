@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
@@ -16,6 +16,7 @@ import {
 } from '@/components/onboarding/constants'
 import { loadTourMessages } from './tour-messages'
 import { getTour, type TourId } from './tour-registry'
+import { runTourAction } from './use-tour-action'
 
 /**
  * The one component that runs an opt-in walkthrough.
@@ -32,6 +33,18 @@ export default function TourRunner() {
   const router = useRouter()
   const driverRef = useRef<ReturnType<typeof driver> | null>(null)
   const isStartingRef = useRef(false)
+
+  // A tour asked for from another page. `router.push` does not block, so driving
+  // straight after it ran the tour against the page the user was LEAVING — every
+  // anchor missing, every step skipped, and the tour ended before the new route
+  // painted. Nothing appeared to happen. Park the request instead and let the
+  // effect pick it up once `pathname` actually reports the destination.
+  const [pending, setPending] = useState<TourId | null>(null)
+  // Which parked request we have already acted on. Clearing `pending` instead
+  // would re-run the effect mid-launch, and its cleanup sets the `cancelled`
+  // flag that `startTour` checks after awaiting its copy — so the tour would
+  // cancel itself before it ever built a driver.
+  const launchedRef = useRef<TourId | null>(null)
 
   useEffect(() => {
     if (authLoading) {
@@ -58,10 +71,6 @@ export default function TourRunner() {
         new CustomEvent(USER_MENU_TOGGLE_EVENT, { detail: { open: false } })
       )
 
-      if (pathname !== tour.route) {
-        router.push(tour.route)
-      }
-
       const driverObj = driver({
         nextBtnText: t('common.next'),
         prevBtnText: t('common.previous'),
@@ -75,16 +84,39 @@ export default function TourRunner() {
         // Clicking the highlighted element advances, which is what removed the
         // onNextClick -> .click() -> poll -> moveNext() glue that caused the lock.
         advanceOnClick: true,
-        // An anchor that is not on screen costs one skipped step, not a stall —
-        // several steps here live inside a sheet the user may never open.
-        skipMissingElement: true,
+        // NOT set globally. driver.js decides skippability against the DOM as it
+        // stands, so every step living inside a sheet that has not been opened
+        // yet counts as missing — the tour prunes itself down to step one and
+        // renders "Done" instead of "Next". Steps that may genuinely have no
+        // target opt in per-step via `optional`; the rest wait, bounded by
+        // `waitForElement`.
+        skipMissingElement: false,
         waitForElement: ELEMENT_WAIT_MS,
         animate: !prefersReducedMotion(),
         onDestroyed: () => {
           driverRef.current = null
           isStartingRef.current = false
+          // Released only once the tour is over, so the same walkthrough can be
+          // started again from the menu.
+          launchedRef.current = null
+          setPending(null)
         },
-        steps: tour.steps(m),
+        steps: tour.steps(m).map(({ action, ...step }) => {
+          return action
+            ? {
+                ...step,
+                popover: {
+                  ...step.popover,
+                  // Next asks the page to open what the following steps live
+                  // inside. `waitForElement` then covers the render.
+                  onNextClick: () => {
+                    runTourAction(action)
+                    driverObj.moveNext()
+                  },
+                },
+              }
+            : step
+        }),
       })
 
       driverRef.current = driverObj
@@ -97,7 +129,23 @@ export default function TourRunner() {
       if (driverRef.current) {
         driverRef.current.destroy()
       }
-      void startTour(id)
+      setPending(id)
+    }
+
+    // A parked request runs as soon as we are on its route, and navigates there
+    // first if we are not. `pathname` is in the deps, so arriving re-runs this.
+    if (pending && launchedRef.current !== pending) {
+      const tour = getTour(pending)
+      if (!tour) {
+        // An id with no registry entry: mark it handled so this stops being
+        // re-evaluated, rather than clearing state from inside the effect.
+        launchedRef.current = pending
+      } else if (pathname === tour.route) {
+        launchedRef.current = pending
+        void startTour(pending)
+      } else {
+        router.push(tour.route)
+      }
     }
 
     window.addEventListener(TOUR_START_EVENT, handleStart)
@@ -110,7 +158,7 @@ export default function TourRunner() {
     // startTour, which runs on an explicit user action, and re-registering the
     // listener on a language change would tear down a tour mid-flight.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, isAuthenticated, pathname, router])
+  }, [authLoading, isAuthenticated, pathname, router, pending])
 
   return null
 }

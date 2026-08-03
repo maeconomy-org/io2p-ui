@@ -24,6 +24,7 @@ import {
   IMPORT_COLUMN_MAPPING_KEY,
 } from '@/constants'
 import { logger } from '@/lib/logger'
+import { PageHelp } from '@/components/onboarding/page-help'
 
 type ImportStep = 'upload' | 'map-columns' | 'preview'
 
@@ -169,7 +170,10 @@ export default function ImportPage() {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold">{t('import.title')}</h1>
+        <div className="flex items-center gap-1.5">
+          <h1 className="text-2xl font-semibold">{t('import.title')}</h1>
+          <PageHelp concept="import" />
+        </div>
         <p className="text-muted-foreground mt-2">
           {t('import.subtitle')}
           {selectedSheet && (

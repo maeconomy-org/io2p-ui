@@ -31,7 +31,11 @@ import { useTemplates } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { anchor } from '@/constants'
-import { PageTourButton } from '@/components/onboarding/page-tour-button'
+import { PageHelp } from '@/components/onboarding/page-help'
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 
 import { buildTemplateColumns } from './components/template-columns'
 import {
@@ -108,6 +112,10 @@ export default function TemplatesPage() {
     []
   )
 
+  // The tour opens the sheet through the page's own handler rather than by
+  // synthesising clicks on a dropdown trigger.
+  useTourAction(TOUR_ACTIONS.createTemplate, () => handleAddTemplate('object'))
+
   const openTemplate = useCallback(
     (template: TemplateListItem, edit: boolean) => {
       setSelectedTemplate(template)
@@ -147,7 +155,7 @@ export default function TemplatesPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <h2 className="text-2xl font-semibold">{t('templates.title')}</h2>
-              <PageTourButton tour="build-template" />
+              <PageHelp concept="template" tour="build-template" />
             </div>
             <div className="flex items-center gap-2">
               <FilterMenu
@@ -173,6 +181,7 @@ export default function TemplatesPage() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
                     onSelect={() => handleAddTemplate('object')}
+                    {...anchor('templatesCreateObject')}
                   >
                     <Package className="mr-2 h-4 w-4" />
                     {t('templates.createObject')}

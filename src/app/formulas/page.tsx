@@ -6,7 +6,7 @@ import { PlusCircle, HelpCircle, FunctionSquare, Share2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { FormulaDTO } from 'io2p-client'
 
-import { ConceptHint, Button } from '@/components/ui'
+import { Button } from '@/components/ui'
 import {
   FilterMenu,
   deletedSection,
@@ -25,7 +25,11 @@ import { DeleteConfirmationDialog } from '@/components/modals'
 import { useFormulas } from '@/hooks/api/leaves'
 import { useAuth, useSearch } from '@/contexts'
 import { anchor } from '@/constants'
-import { PageTourButton } from '@/components/onboarding/page-tour-button'
+import { PageHelp } from '@/components/onboarding/page-help'
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 
 import {
   buildFormulaColumns,
@@ -100,6 +104,8 @@ export default function FormulasPage() {
     { keepPreviousData: true }
   )
 
+  useTourAction(TOUR_ACTIONS.createFormula, () => setSheet({ mode: 'create' }))
+
   const list = useEntityListActions({
     page: formulasPage,
     remove: removeMutation,
@@ -131,10 +137,7 @@ export default function FormulasPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <h2 className="text-2xl font-semibold">{t('formulas.title')}</h2>
-              <ConceptHint label={t('concepts.formula.label')}>
-                {t('concepts.formula.body')}
-              </ConceptHint>
-              <PageTourButton tour="write-formula" />
+              <PageHelp concept="formula" tour="write-formula" />
             </div>
             <div className="flex items-center gap-2">
               <FilterMenu

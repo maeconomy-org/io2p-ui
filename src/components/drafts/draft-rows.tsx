@@ -7,8 +7,7 @@ import { Trash2 } from 'lucide-react'
 import { DeleteConfirmationDialog } from '@/components/modals/delete-confirmation-dialog'
 import { formatTimestamp } from '@/components/tables/columns'
 import { EntityActionsCell } from '@/components/tables/entity-actions-cell'
-import { ConceptHint, TableCell, TableRow } from '@/components/ui'
-import { anchor } from '@/constants'
+import { TableCell, TableRow } from '@/components/ui'
 import type { DraftIndexEntry } from '@/hooks/drafts'
 
 import { DraftBadge } from './draft-badge'
@@ -49,18 +48,12 @@ export function DraftRows({
         <TableRow
           key={draft.id}
           data-testid="draft-row"
-          {...anchor('draftRows')}
           className="cursor-pointer border-l-2 border-l-primary/40 bg-muted/40 hover:bg-muted/60"
           onDoubleClick={() => onResume(draft.id)}
         >
           <TableCell colSpan={colSpan}>
             <div className="flex items-center gap-3">
               <DraftBadge className="shrink-0" />
-              {/* Drafts are device-local and carry a file caveat — neither is
-                  guessable from a badge alone. */}
-              <ConceptHint label={t('concepts.draft.label')}>
-                {t('concepts.draft.body')}
-              </ConceptHint>
               <span className="min-w-0 flex-1 truncate font-medium">
                 {draft.name || t('objects.drafts.untitled')}
               </span>

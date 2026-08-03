@@ -42,16 +42,18 @@ export const TOUR_ANCHORS = {
 
   // Library
   templatesCreate: 'templates-create',
+  /** The "object template" item inside the create dropdown. */
+  templatesCreateObject: 'templates-create-object',
   formulasCreate: 'formulas-create',
   formulasReference: 'formulas-reference',
+  formulaExpression: 'formula-expression',
   constantsCreate: 'constants-create',
 
   // Shares
   sharesCreate: 'shares-create',
   sharesTabs: 'shares-tabs',
-
-  // Drafts
-  draftRows: 'draft-rows',
+  shareResources: 'share-resources',
+  shareMembers: 'share-members',
 } as const
 
 export type TourAnchorName = keyof typeof TOUR_ANCHORS

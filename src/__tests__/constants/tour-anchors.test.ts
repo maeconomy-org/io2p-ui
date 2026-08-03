@@ -136,6 +136,39 @@ describe('tour copy', () => {
     }
   })
 
+  it('targets anchors that live under the tour’s own route', () => {
+    // build-template pointed at `sheetProperties`, which existed only in the
+    // OBJECT create form — the template sheet is a different component. The step
+    // waited six seconds for something that could never appear on /templates.
+    const ROUTE_DIRS: Record<string, string[]> = {
+      '/objects': ['src/app/objects', 'src/components'],
+      '/templates': ['src/app/templates', 'src/components'],
+      '/formulas': ['src/app/formulas', 'src/components'],
+      '/shares': ['src/app/shares', 'src/components'],
+    }
+
+    for (const tour of TOURS) {
+      const dirs = ROUTE_DIRS[tour.route] ?? []
+      const scope = sources
+        .filter(({ file }) =>
+          dirs.some((dir) => file.startsWith(join(process.cwd(), dir)))
+        )
+        .map(({ text }) => text)
+        .join('\n')
+
+      for (const step of tour.steps(en as unknown as TourMessages)) {
+        const name = Object.entries(TOUR_ANCHORS).find(
+          ([, value]) => step.element === `[data-tour="${value}"]`
+        )?.[0]
+        expect(
+          scope.includes(`anchor('${name}')`) ||
+            scope.includes(`TOUR_ANCHORS.${name}`),
+          `${tour.id} targets ${name}, which nothing under ${tour.route} renders`
+        ).toBe(true)
+      }
+    }
+  })
+
   it('registers a tour for every label in the profile submenu', () => {
     const labels = Object.keys(mainEn.onboarding.tours)
     expect(labels.sort()).toEqual(TOURS.map((tour) => tour.id).sort())

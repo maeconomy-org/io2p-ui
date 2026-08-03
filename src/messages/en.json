@@ -1291,17 +1291,21 @@
       "label": "What is a constant?",
       "body": "A shared, versioned number that formulas refer to by name. The version is pinned at the moment you bind it, so publishing a new value never silently changes results that were already computed."
     },
-    "draft": {
-      "label": "What is a draft?",
-      "body": "An unsaved object kept on this device and pinned above the list until you finish it. Files you picked but have not uploaded cannot be carried into a draft — reattach them when you come back."
+    "object": {
+      "label": "What is an object?",
+      "body": "Anything you want to track — a machine, a batch, a document. An object carries properties, files, an address and a place in the hierarchy."
     },
-    "parent": {
-      "label": "How does the hierarchy work?",
-      "body": "The hierarchy is parents-only: a child records who its parent is, and adding a child edits the child rather than this object. That means moving something never touches the object it used to sit under."
+    "process": {
+      "label": "What is a process?",
+      "body": "A step that turns input objects into output objects. Processes are how you record that something was made, moved or transformed, and what it came from."
     },
-    "deleted": {
-      "label": "What happens when I delete something?",
-      "body": "Nothing is destroyed. Deleted records stay in place, struck through, and can be restored at any time. Turn this on to see them alongside everything else."
+    "template": {
+      "label": "What is a template?",
+      "body": "A starting point for new objects: the properties they begin with, including formula recipes and the constants those bind to. Picking one fills the form; you can still change anything."
+    },
+    "import": {
+      "label": "How does importing work?",
+      "body": "Bring objects in from a CSV or Excel file in bulk. You map your columns onto object fields once, then the job runs in the background and reports per-row results."
     }
   },
   "onboarding": {
@@ -1312,6 +1316,6 @@
       "share-objects": "Share objects",
       "work-with-drafts": "Work with drafts"
     },
-    "startTour": "Start the “{tour}” walkthrough"
+    "startTour": "Start the walkthrough"
   }
 }

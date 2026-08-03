@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { Info } from 'lucide-react'
+import { HelpCircle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from './hover-card'
@@ -15,6 +15,13 @@ interface ConceptHintProps {
   label: string
   /** The explanation. One or two sentences; this is a definition, not a manual. */
   children: ReactNode
+  /**
+   * Rendered under the explanation, separated by a rule. Exists so a page can
+   * offer "start the walkthrough" from inside the same ⓘ rather than parking a
+   * second icon next to it — two adjacent mystery glyphs in a heading is worse
+   * than one, and the walkthrough is the natural follow-on from the definition.
+   */
+  footer?: ReactNode
   className?: string
 }
 
@@ -30,9 +37,14 @@ interface ConceptHintProps {
  * Radix's HoverCard opens on focus as well as hover, so this stays reachable by
  * keyboard rather than being a mouse-only affordance.
  */
-export function ConceptHint({ label, children, className }: ConceptHintProps) {
+export function ConceptHint({
+  label,
+  children,
+  footer,
+  className,
+}: ConceptHintProps) {
   return (
-    <HoverCard openDelay={150} closeDelay={100}>
+    <HoverCard openDelay={150} closeDelay={200}>
       <HoverCardTrigger asChild>
         <button
           type="button"
@@ -44,11 +56,12 @@ export function ConceptHint({ label, children, className }: ConceptHintProps) {
             className
           )}
         >
-          <Info className="h-4 w-4" />
+          <HelpCircle className="h-4 w-4" />
         </button>
       </HoverCardTrigger>
       <HoverCardContent className="w-80 text-sm leading-relaxed font-normal">
         {children}
+        {footer && <div className="mt-3 border-t pt-3">{footer}</div>}
       </HoverCardContent>
     </HoverCard>
   )

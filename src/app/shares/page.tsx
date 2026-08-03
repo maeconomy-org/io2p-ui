@@ -8,7 +8,6 @@ import { toast } from 'sonner'
 import type { ShareDTO } from 'io2p-client'
 
 import {
-  ConceptHint,
   Button,
   Tabs,
   TabsContent,
@@ -35,7 +34,11 @@ import {
   type ShareEditorMode,
 } from './components/share-editor-sheet'
 import { ShareDetailSheet } from './components/share-detail-sheet'
-import { PageTourButton } from '@/components/onboarding/page-tour-button'
+import { PageHelp } from '@/components/onboarding/page-help'
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 
 export default function SharesPage() {
   const t = useTranslations()
@@ -118,6 +121,10 @@ export default function SharesPage() {
     }
   }, [deletableShares, deleteMutation, clearSelection, t])
 
+  useTourAction(TOUR_ACTIONS.createShare, () =>
+    setEditor({ mode: 'create', share: null })
+  )
+
   const columns = useMemo(
     () =>
       buildShareColumns({
@@ -147,10 +154,7 @@ export default function SharesPage() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <h2 className="text-2xl font-semibold">{t('shares.title')}</h2>
-                <ConceptHint label={t('concepts.share.label')}>
-                  {t('concepts.share.body')}
-                </ConceptHint>
-                <PageTourButton tour="share-objects" />
+                <PageHelp concept="share" tour="share-objects" />
               </div>
               <div className="flex items-center gap-2">
                 <TabsList {...anchor('sharesTabs')}>

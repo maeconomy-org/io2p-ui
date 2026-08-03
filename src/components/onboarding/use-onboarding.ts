@@ -41,33 +41,3 @@ export function useTourSeen(tourId: string) {
 
   return { seen, markSeen, resolved }
 }
-
-/**
- * Which "what's new" beacons this account has already acknowledged.
- *
- * Shares the epoch with the tours: bumping `ONBOARDING_EPOCH` re-shows the
- * beacons too, which is the point — the next reshuffle needs the same lever.
- */
-export function useHintsDismissed() {
-  const [epoch, setEpoch] = usePreference('onboardingEpoch')
-  const [hintsDismissed, setHintsDismissed, resolved] =
-    usePreference('hintsDismissed')
-
-  const stale = epoch < ONBOARDING_EPOCH
-  const dismissed = stale ? NO_HINTS : hintsDismissed
-
-  const dismiss = useCallback(
-    (hintId: string) => {
-      setHintsDismissed(
-        stale ? [hintId] : [...new Set([...hintsDismissed, hintId])]
-      )
-      if (stale) setEpoch(ONBOARDING_EPOCH)
-    },
-    [stale, hintsDismissed, setHintsDismissed, setEpoch]
-  )
-
-  return { dismissed, dismiss, resolved }
-}
-
-/** Stable empty list, so `dismissed` keeps a constant identity across renders. */
-const NO_HINTS: string[] = []

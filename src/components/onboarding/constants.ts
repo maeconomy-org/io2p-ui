@@ -1,5 +1,18 @@
 /** Starts an opt-in walkthrough. Detail carries the registry `id`. */
 export const TOUR_START_EVENT = 'onboarding:tour:start'
+
+/**
+ * Asks the page to perform the thing a tour step is describing — open the create
+ * sheet, usually. Detail carries a `TourAction` id.
+ *
+ * Synthesising a click on the button is not good enough. A Radix dropdown
+ * trigger opens on `pointerdown` and has no click handler; a menu item lives in
+ * a portal that does not exist until the menu is open; and either way the tour
+ * ends up reverse-engineering how a component happens to be wired. The page
+ * already owns a function that opens its sheet, so the tour calls that instead —
+ * the same mechanism the nav and profile menus already use.
+ */
+export const TOUR_ACTION_EVENT = 'onboarding:tour:action'
 export const USER_MENU_TOGGLE_EVENT = 'onboarding:user-menu:toggle'
 
 /**

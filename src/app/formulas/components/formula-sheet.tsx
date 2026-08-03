@@ -25,6 +25,7 @@ import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
 
 import { FormulaExpressionField } from './formula-expression-field'
+import { anchor } from '@/constants'
 
 /**
  * `duplicate` rather than `edit`, deliberately.
@@ -173,7 +174,12 @@ function FormulaForm({
             />
           </div>
 
-          <FormulaExpressionField value={expression} onChange={setExpression} />
+          <div {...anchor('formulaExpression')}>
+            <FormulaExpressionField
+              value={expression}
+              onChange={setExpression}
+            />
+          </div>
         </SheetBody>
 
         <SheetFooter className="flex-row gap-2 border-t px-6 py-3">

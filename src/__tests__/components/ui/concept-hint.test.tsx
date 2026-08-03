@@ -3,8 +3,25 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { ConceptHint } from '@/components/ui/concept-hint'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+
 import en from '@/messages/en.json'
 import nl from '@/messages/nl.json'
+
+const walk = (dir: string): string[] =>
+  readdirSync(dir).flatMap((entry) => {
+    const full = join(dir, entry)
+    if (statSync(full).isDirectory()) {
+      return entry === '__tests__' ? [] : walk(full)
+    }
+    return /\.tsx?$/.test(entry) ? [full] : []
+  })
+
+/** Every source file, concatenated — for "is this concept referenced anywhere". */
+const sources = walk(join(process.cwd(), 'src'))
+  .map((file) => readFileSync(file, 'utf8'))
+  .join('\n')
 
 describe('ConceptHint', () => {
   it('exposes an accessible name, since the trigger is icon-only', () => {
@@ -47,13 +64,16 @@ describe('ConceptHint', () => {
 })
 
 describe('concept copy', () => {
+  // One per page that has a help control — the inline hints were removed, so a
+  // concept with no page is dead copy.
   const CONCEPTS = [
+    'object',
+    'process',
     'share',
+    'template',
     'formula',
     'constant',
-    'draft',
-    'parent',
-    'deleted',
+    'import',
   ] as const
 
   it('defines a label and body for every concept, in both locales', () => {
@@ -76,6 +96,15 @@ describe('concept copy', () => {
         )
       }
     }
+  })
+
+  it('defines no concept that nothing renders', () => {
+    // Inline hints were removed in favour of one control per page heading, which
+    // orphaned three concepts. This fails if that happens again.
+    const used = new Set(
+      [...sources.matchAll(/concept="(\w+)"/g)].map((m) => m[1])
+    )
+    expect([...Object.keys(en.concepts)].sort()).toEqual([...used].sort())
   })
 
   it('phrases every label as a question, so the ⓘ reads as one', () => {

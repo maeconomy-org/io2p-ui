@@ -33,6 +33,7 @@ import { ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 import { buildProcessColumns } from './components/process-columns'
 import { ProcessFlowView } from './components/process-flow-view'
 import { RelatedObjectBar } from './components/related-object-bar'
+import { PageHelp } from '@/components/onboarding/page-help'
 
 const ShareEditorSheet = dynamic(
   () =>
@@ -163,7 +164,10 @@ export default function ProcessesPage() {
       <div className="container mx-auto flex-1 p-4">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-2xl font-semibold">{t('processes.title')}</h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-2xl font-semibold">{t('processes.title')}</h2>
+              <PageHelp concept="process" />
+            </div>
             <div className="flex items-center gap-2">
               {/* Deleted processes are a list concern: the flow graph is about what connects to
                   what, and a soft-deleted process has no place in a chain. */}

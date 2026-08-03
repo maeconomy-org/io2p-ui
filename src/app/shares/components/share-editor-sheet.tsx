@@ -38,6 +38,7 @@ import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
 
 import { ResourcePicker, type ShareResource } from './resource-picker'
+import { anchor } from '@/constants'
 
 export type ShareEditorMode = 'create' | 'edit' | 'duplicate'
 
@@ -241,7 +242,7 @@ function ShareForm({
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" {...anchor('shareResources')}>
           <Label>{t('shares.fields.resources')}</Label>
           {resources.map((resource) => (
             <div
@@ -285,7 +286,7 @@ function ShareForm({
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" {...anchor('shareMembers')}>
           <Label>{t('shares.fields.members')}</Label>
           {members.map((member) => (
             <div

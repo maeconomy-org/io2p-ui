@@ -20,6 +20,7 @@ import {
   SheetLifecycleFooter,
   countDirtyLeaves,
 } from './sheet-lifecycle-footer'
+import { anchor } from '@/constants'
 
 // A template is a recipe, not a measured thing: its values are placeholders, so nothing in it is
 // ever server-derived and there is no evaluation trace to show.
@@ -204,16 +205,23 @@ export function TemplateSheet({
       )}
     >
       <div className="space-y-4">
-        <MetadataFields form={form} editing />
-        {versionField}
+        <div {...anchor('sheetMetadata')}>
+          <MetadataFields form={form} editing />
+          {versionField}
+        </div>
         <Separator />
-        <PropertyFields
-          form={form}
-          editing
-          derivedValues={NO_DERIVED_VALUES}
-          label={t('objects.fields.properties')}
-          allowFiles={false}
-        />
+        {/* The CREATE layout is a flat column, so a tour can point at this. The
+            edit layout puts the same field behind a tab, which Radix unmounts
+            while inactive — hence anchoring here and not there. */}
+        <div {...anchor('sheetProperties')}>
+          <PropertyFields
+            form={form}
+            editing
+            derivedValues={NO_DERIVED_VALUES}
+            label={t('objects.fields.properties')}
+            allowFiles={false}
+          />
+        </div>
         {isProcess &&
           (['inputs', 'outputs'] as const).map((bag) => (
             <div key={bag} className="space-y-2">

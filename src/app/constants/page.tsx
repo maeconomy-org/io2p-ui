@@ -6,7 +6,7 @@ import { PlusCircle, Ruler, Share2 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { ConstantDTO } from 'io2p-client'
 
-import { ConceptHint, Button } from '@/components/ui'
+import { Button } from '@/components/ui'
 import {
   FilterMenu,
   deletedSection,
@@ -30,6 +30,7 @@ import {
   buildConstantColumns,
   type ConstantColumnActions,
 } from './components/constant-columns'
+import { PageHelp } from '@/components/onboarding/page-help'
 
 const ShareSheet = dynamic(
   () => import('@/components/access').then((mod) => mod.ShareSheet),
@@ -118,9 +119,7 @@ export default function ConstantsPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <h2 className="text-2xl font-semibold">{t('constants.title')}</h2>
-              <ConceptHint label={t('concepts.constant.label')}>
-                {t('concepts.constant.body')}
-              </ConceptHint>
+              <PageHelp concept="constant" />
             </div>
             <div className="flex items-center gap-2">
               <FilterMenu

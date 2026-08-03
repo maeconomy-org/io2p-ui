@@ -1,6 +1,5 @@
 'use client'
 
-import type { ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { Check, SlidersHorizontal } from 'lucide-react'
 
@@ -9,7 +8,6 @@ import {
   Button,
   Command,
   CommandGroup,
-  ConceptHint,
   CommandItem,
   CommandList,
   CommandSeparator,
@@ -32,8 +30,6 @@ export interface FilterSection {
   /** Stable id; also the group's React key. */
   key: string
   label: string
-  /** Optional ⓘ beside the heading, for a section whose meaning is not obvious. */
-  hint?: ReactNode
   options: FilterOption[]
   selected: string[]
   onChange: (values: string[]) => void
@@ -121,18 +117,7 @@ export function FilterMenu({
             {sections.map((section, index) => (
               <div key={section.key}>
                 {index > 0 && <CommandSeparator />}
-                <CommandGroup
-                  heading={
-                    section.hint ? (
-                      <span className="flex items-center gap-1.5">
-                        {section.label}
-                        {section.hint}
-                      </span>
-                    ) : (
-                      section.label
-                    )
-                  }
-                >
+                <CommandGroup heading={section.label}>
                   {section.options.map((option) => {
                     const isSelected = section.selected.includes(option.value)
                     return (
@@ -202,13 +187,6 @@ export function deletedSection(
   return {
     key: 'status',
     label: t('common.status'),
-    // Soft-delete is the single most surprising rule in the app: nothing is ever
-    // destroyed, so "deleted" here means struck through, not gone.
-    hint: (
-      <ConceptHint label={t('concepts.deleted.label')}>
-        {t('concepts.deleted.body')}
-      </ConceptHint>
-    ),
     options: [{ value: 'deleted', label: t('objects.showDeleted') }],
     selected: showDeleted ? ['deleted'] : [],
     onChange: (values) => onChange(values.includes('deleted')),

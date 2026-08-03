@@ -6,15 +6,23 @@ import {
 } from './view-types'
 
 /**
- * Client-side user-preference storage (no backend API yet).
+ * User preferences, stored on the node.
  *
- * All preferences live in a single per-account blob at
- * `${PREFERENCES_ROOT}:${PREFERENCES_VERSION}:${userUUID}`. Bump the version to
- * invalidate every account's blob at once (mirrors `CONFIG_CACHE_VERSION` in
- * `client.ts`). Keying by `userUUID` isolates accounts on a shared machine.
+ * They used to live in `localStorage`, which meant a view you set on your laptop
+ * was not the view you got on your phone, and a shared machine leaked one
+ * person's settings to the next. The node exposes a purpose-built
+ * `namespace -> key -> value` bag for exactly this; `users.me()` already returns
+ * it on every load, so reading costs no extra request.
+ *
+ * The node writes keys INDIVIDUALLY, so two devices changing two different
+ * preferences at the same time do not overwrite each other.
  */
-export const PREFERENCES_ROOT = 'iom:prefs'
-export const PREFERENCES_VERSION = 'v1'
+
+/** Namespaces, matching the shape the node's own API documents. */
+export const PREF_NS = {
+  ui: 'ui',
+  onboarding: 'onboarding',
+} as const
 
 /**
  * Bump to re-run onboarding for everyone — after a refactor that moves the nav
@@ -42,8 +50,6 @@ export interface PreferenceValues {
   filesView: FilesViewType
   /** Tour ids the user has completed or dismissed. */
   toursSeen: string[]
-  /** Hint ids the user has dismissed. */
-  hintsDismissed: string[]
   /** The `ONBOARDING_EPOCH` the stored onboarding state was written under. */
   onboardingEpoch: number
 }
@@ -84,35 +90,39 @@ const isFiniteNumber = (value: unknown): value is number =>
  */
 export const PREFERENCES: {
   [K in PreferenceKey]: {
+    /** Which namespace this key lives under in the node's preference bag. */
+    ns: string
     default: PreferenceValues[K]
     validate: (value: unknown) => value is PreferenceValues[K]
   }
 } = {
   objectsView: {
+    ns: PREF_NS.ui,
     default: 'table',
     validate: oneOf(ENABLED_OBJECT_VIEW_TYPES.map((t) => t.value)),
   },
   processView: {
+    ns: PREF_NS.ui,
     default: 'table',
     validate: oneOf(ENABLED_PROCESS_VIEW_TYPES.map((t) => t.value)),
   },
   propertiesView: {
+    ns: PREF_NS.ui,
     default: 'detailed',
     validate: oneOf(['detailed', 'grid'] as const),
   },
   filesView: {
+    ns: PREF_NS.ui,
     default: 'list',
     validate: oneOf(['list', 'grid'] as const),
   },
   toursSeen: {
-    default: NO_STRINGS,
-    validate: isStringArray,
-  },
-  hintsDismissed: {
+    ns: PREF_NS.onboarding,
     default: NO_STRINGS,
     validate: isStringArray,
   },
   onboardingEpoch: {
+    ns: PREF_NS.onboarding,
     default: 0,
     validate: isFiniteNumber,
   },
