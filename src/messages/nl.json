@@ -503,7 +503,6 @@
       "viewPassport": "Paspoort bekijken"
     },
     "bulk": {
-      "selected": "{selected} van {total} rij(en) geselecteerd",
       "setParent": "Bovenliggend instellen",
       "parentSet": "{count} items verplaatst",
       "columns": "Kolommen",

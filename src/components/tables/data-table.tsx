@@ -425,15 +425,10 @@ export function DataTable<TData>({
         </Table>
       </div>
 
-      {/* Selection info */}
-      {enableRowSelection && Object.keys(rowSelection).length > 0 && (
-        <div className="text-muted-foreground text-sm px-2 pt-2">
-          {t('objects.bulk.selected', {
-            selected: Object.keys(rowSelection).length,
-            total: pagination?.totalElements ?? data.length,
-          })}
-        </div>
-      )}
+      {/* No selection count here: `BulkActionBar` already carries one, and every table that turns
+          selection on renders it. Two counters disagreed about what the number MEANT — this one
+          read "20 of 25", counting a total across pages against a selection you make one page at a
+          time, so the 5 looked deliberately unselected rather than simply elsewhere. */}
 
       {/* Server-side pagination */}
       {pagination && (

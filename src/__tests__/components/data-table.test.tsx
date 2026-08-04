@@ -194,4 +194,32 @@ describe('DataTable', () => {
     expect(container.querySelectorAll('tbody tr').length).toBe(TEST_DATA.length)
     expect(screen.getByText(TEST_DATA[0].name)).toBeInTheDocument()
   })
+
+  /**
+   * `BulkActionBar` owns the selection count, and every table that enables selection renders one.
+   * A second count here read "20 of 25" — a page-at-a-time selection measured against a total
+   * across pages — so the unselected 5 looked withheld rather than simply on the next page.
+   */
+  it('renders no selection count of its own', () => {
+    render(
+      <DataTable
+        columns={TEST_COLUMNS}
+        data={TEST_DATA}
+        getRowId={(row) => row.id}
+        enableRowSelection
+        rowSelection={{ '1': true }}
+        onRowSelectionChange={vi.fn()}
+        pagination={{
+          currentPage: 1,
+          totalPages: 2,
+          totalElements: 25,
+          pageSize: 20,
+          isFirstPage: true,
+          isLastPage: false,
+        }}
+      />
+    )
+
+    expect(screen.queryByText(/objects\.bulk\.selected/)).toBeNull()
+  })
 })

@@ -529,7 +529,6 @@
       "viewPassport": "View Passport"
     },
     "bulk": {
-      "selected": "{selected} of {total} row(s) selected",
       "setParent": "Set parent",
       "parentSet": "{count} items moved",
       "columns": "Columns",
