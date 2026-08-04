@@ -155,24 +155,40 @@ export function useProcessGraph({
 
   // Topology from the list rows alone. Depths are computed over the FULL graph so columns stay put
   // as the user pages slices, and so the pager's level count doesn't shift under it.
+  //
+  // They are computed over the ACYCLIC full graph, because that is what actually gets DRAWN. A node
+  // inside a cycle has no topological depth, and a depthless node defeated the window twice over:
+  // the base slice let it through (there is no depth to fall outside), and the chart could not pin
+  // a column for it — so ECharts placed it by its own layout pass, and "5 levels" drew seven
+  // columns. Measuring the graph we draw, rather than the one we hold, gives every node a depth.
   const topology = useMemo(() => {
     const full = buildProcessGraph(processes ?? [])
-    const edges: Edge[] = full.links.map(({ source, target }) => ({
-      source,
-      target,
-    }))
-    return { full, depths: computeDepths(edges), levels: countLevels(edges) }
+    const layoutEdges: Edge[] = removeCycles(full.links).acyclic.map(
+      ({ source, target }) => ({ source, target })
+    )
+    return {
+      full,
+      layoutEdges,
+      depths: computeDepths(layoutEdges),
+      levels: countLevels(layoutEdges),
+    }
   }, [processes])
 
   // Which nodes are on screen. Focus wins over the window: it is a different question ("what touches
   // this?") and answering it inside a depth slice would silently drop half the answer.
   const visible = useMemo(() => {
-    const edges: Edge[] = topology.full.links.map(({ source, target }) => ({
-      source,
-      target,
-    }))
-    if (edges.length === 0) return null
-    if (focus) return limitDepthAround(edges, focusHops, focus)
+    if (topology.full.links.length === 0) return null
+    // Focus walks the CYCLIC graph: "what touches this?" is a question about real flows, and a
+    // circular one still connects two things even though the Sankey cannot draw it. The window
+    // walks the acyclic one, because it is a question about columns.
+    if (focus) {
+      const edges: Edge[] = topology.full.links.map(({ source, target }) => ({
+        source,
+        target,
+      }))
+      return limitDepthAround(edges, focusHops, focus)
+    }
+    const edges = topology.layoutEdges
     if (window) {
       // Clamped HERE because this is the only place both numbers are known. The caller holds the
       // requested start but learns `levels` from this hook, so clamping there is circular — and a

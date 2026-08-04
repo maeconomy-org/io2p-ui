@@ -810,3 +810,80 @@ describe('findBridges', () => {
     expect(findBridges([]).size).toBe(0)
   })
 })
+
+/**
+ * The Sankey draws the ACYCLIC graph, so the window has to be measured on the acyclic graph too.
+ *
+ * A node inside a cycle has no topological depth. Measured on the cyclic graph it defeated the
+ * window twice: `limitDepth` let it through at `from: 0` (no depth means no depth to fall outside)
+ * and `withDepths` could not pin it a column, so ECharts placed it by its own layout pass. A
+ * 5-level window drew seven columns.
+ */
+describe('windowing a graph that contains a cycle', () => {
+  // a → b → c → d → e → f → g, with a cycle x ⇄ y hanging off b.
+  const cyclic: Edge[] = [
+    { source: 'a', target: 'b' },
+    { source: 'b', target: 'c' },
+    { source: 'c', target: 'd' },
+    { source: 'd', target: 'e' },
+    { source: 'e', target: 'f' },
+    { source: 'f', target: 'g' },
+    { source: 'b', target: 'x' },
+    { source: 'x', target: 'y' },
+    { source: 'y', target: 'x' },
+  ]
+
+  const acyclicOf = (edges: Edge[]): Edge[] =>
+    removeCycles(edges.map((e) => edge(e.source, e.target))).acyclic.map(
+      ({ source, target }) => ({ source, target })
+    )
+
+  it('leaves cycle members depthless when measured cyclically — the cause', () => {
+    const depths = computeDepths(cyclic)
+
+    expect(depths.get('x')).toBeUndefined()
+    expect(depths.get('y')).toBeUndefined()
+  })
+
+  it('gives every node a depth once cycles are cut', () => {
+    const depths = computeDepths(acyclicOf(cyclic))
+
+    for (const id of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'x', 'y']) {
+      expect(depths.get(id)).toBeTypeOf('number')
+    }
+  })
+
+  it('keeps every windowed node INSIDE the window — no unpinned stragglers', () => {
+    const edges = acyclicOf(cyclic)
+    const depths = computeDepths(edges)
+    const kept = limitDepth(edges, 5, 0)
+
+    for (const id of kept) {
+      const depth = depths.get(id)
+      expect(depth).toBeTypeOf('number')
+      expect(depth!).toBeGreaterThanOrEqual(0)
+      expect(depth!).toBeLessThan(5)
+    }
+  })
+
+  it('draws no more columns than the window asked for', () => {
+    const edges = acyclicOf(cyclic)
+    const kept = limitDepth(edges, 5, 0)
+    const graph = withDepths(
+      {
+        nodes: [...kept].map((id) => ({
+          id,
+          name: id,
+          kind: 'object' as const,
+          role: 'intermediate' as const,
+        })),
+        links: [],
+      },
+      computeDepths(edges)
+    )
+
+    const columns = new Set(graph.nodes.map((n) => n.depth))
+    expect(columns.size).toBeLessThanOrEqual(5)
+    expect(columns.has(undefined)).toBe(false)
+  })
+})
