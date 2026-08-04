@@ -97,6 +97,9 @@ export default function ObjectsPage() {
   )
 
   useTourAction(TOUR_ACTIONS.createObject, () => setIsAddSheetOpen(true))
+  // Stepping BACK past the gate: the next step points at the page behind the
+  // sheet, so the sheet has to get out of the way.
+  useTourAction(TOUR_ACTIONS.closeSheet, () => setIsAddSheetOpen(false))
 
   const resumeDraft = useCallback((id: string) => {
     setResumeDraftId(id)

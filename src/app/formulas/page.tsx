@@ -105,6 +105,7 @@ export default function FormulasPage() {
   )
 
   useTourAction(TOUR_ACTIONS.createFormula, () => setSheet({ mode: 'create' }))
+  useTourAction(TOUR_ACTIONS.closeSheet, () => setSheet(null))
 
   const list = useEntityListActions({
     page: formulasPage,

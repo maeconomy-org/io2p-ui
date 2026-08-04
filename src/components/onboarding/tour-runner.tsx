@@ -16,7 +16,70 @@ import {
 } from '@/components/onboarding/constants'
 import { loadTourMessages } from './tour-messages'
 import { getTour, type TourId } from './tour-registry'
-import { runTourAction } from './use-tour-action'
+import { runTourAction, TOUR_ACTIONS } from './use-tour-action'
+
+/** Frames the anchor must hold still before we trust its position. */
+const SETTLED_FRAMES = 3
+/** Give-up cap (~1s at 60fps) so a permanently-animating anchor can't spin. */
+const MAX_SETTLE_FRAMES = 60
+
+/**
+ * Re-measure a step once its anchor stops moving.
+ *
+ * driver.js positions the cutout from `getBoundingClientRect()` the moment the
+ * element EXISTS — and a step inside a sheet exists as soon as the sheet mounts,
+ * which is while it is still sliding in. The highlight then lands where the
+ * field was partway through the animation, a little off from where it comes to
+ * rest. `waitForElement` cannot help: it waits for presence, not for the element
+ * to settle.
+ *
+ * Watching the rect rather than listening for `animationend` keeps this honest
+ * about anything that moves an anchor late — a sheet transition today, a
+ * lazy-loaded section or a font swap tomorrow — without hard-coding a duration
+ * that would silently rot if the animation changed.
+ *
+ * Refreshes only if the anchor actually moved: a no-op refresh would repaint the
+ * popover for nothing, which reads as a flicker.
+ */
+function refreshWhenSettled(
+  element: Element,
+  getDriver: () => ReturnType<typeof driver> | null
+) {
+  let previous = element.getBoundingClientRect()
+  let stillFor = 0
+  let frames = 0
+  let moved = false
+
+  const tick = () => {
+    const active = getDriver()
+    // The tour ended (or moved on) while we were watching — nothing to refresh.
+    if (!active) return
+
+    const rect = element.getBoundingClientRect()
+    const shifted =
+      Math.abs(rect.top - previous.top) > 0.5 ||
+      Math.abs(rect.left - previous.left) > 0.5 ||
+      Math.abs(rect.width - previous.width) > 0.5 ||
+      Math.abs(rect.height - previous.height) > 0.5
+
+    previous = rect
+    frames += 1
+    if (shifted) {
+      moved = true
+      stillFor = 0
+    } else {
+      stillFor += 1
+    }
+
+    if (stillFor >= SETTLED_FRAMES || frames >= MAX_SETTLE_FRAMES) {
+      if (moved) active.refresh()
+      return
+    }
+    requestAnimationFrame(tick)
+  }
+
+  requestAnimationFrame(tick)
+}
 
 /**
  * The one component that runs an opt-in walkthrough.
@@ -93,6 +156,13 @@ export default function TourRunner() {
         skipMissingElement: false,
         waitForElement: ELEMENT_WAIT_MS,
         animate: !prefersReducedMotion(),
+        // The first step inside a freshly-opened sheet is measured mid-slide, so
+        // re-measure once the anchor comes to rest. See refreshWhenSettled.
+        onHighlighted: (element) => {
+          if (element) {
+            refreshWhenSettled(element, () => driverRef.current)
+          }
+        },
         onDestroyed: () => {
           driverRef.current = null
           isStartingRef.current = false
@@ -101,22 +171,40 @@ export default function TourRunner() {
           launchedRef.current = null
           setPending(null)
         },
-        steps: tour.steps(m).map(({ action, ...step }) => {
-          return action
-            ? {
-                ...step,
-                popover: {
-                  ...step.popover,
-                  // Next asks the page to open what the following steps live
-                  // inside. `waitForElement` then covers the render.
+        steps: (() => {
+          const defs = tour.steps(m)
+          return defs.map(({ action, ...step }, index) => {
+            // The step BEFORE this one opened a sheet, so stepping back has to
+            // shut it again — otherwise Previous highlights a control the open
+            // sheet is covering.
+            const reopensPage = defs[index - 1]?.action !== undefined
+            if (!action && !reopensPage) {
+              return step
+            }
+            return {
+              ...step,
+              popover: {
+                ...step.popover,
+                // Next asks the page to open what the following steps live
+                // inside. `waitForElement` then covers the render.
+                ...(action && {
                   onNextClick: () => {
                     runTourAction(action)
                     driverObj.moveNext()
                   },
-                },
-              }
-            : step
-        }),
+                }),
+                // Defining the hook means driver.js no longer moves for us, so
+                // both branches have to drive explicitly.
+                ...(reopensPage && {
+                  onPrevClick: () => {
+                    runTourAction(TOUR_ACTIONS.closeSheet)
+                    driverObj.movePrevious()
+                  },
+                }),
+              },
+            }
+          })
+        })(),
       })
 
       driverRef.current = driverObj

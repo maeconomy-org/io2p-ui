@@ -115,6 +115,7 @@ export default function TemplatesPage() {
   // The tour opens the sheet through the page's own handler rather than by
   // synthesising clicks on a dropdown trigger.
   useTourAction(TOUR_ACTIONS.createTemplate, () => handleAddTemplate('object'))
+  useTourAction(TOUR_ACTIONS.closeSheet, () => setTemplateSheetOpen(false))
 
   const openTemplate = useCallback(
     (template: TemplateListItem, edit: boolean) => {

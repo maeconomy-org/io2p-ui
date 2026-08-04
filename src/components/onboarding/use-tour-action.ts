@@ -13,9 +13,24 @@ import { TOUR_ACTION_EVENT } from './constants'
  */
 export const TOUR_ACTIONS = {
   createObject: 'objects.create',
+  createProcess: 'processes.create',
   createTemplate: 'templates.create',
   createFormula: 'formulas.create',
   createShare: 'shares.create',
+  /**
+   * Undo the opening above when the tour steps BACK across the gate.
+   *
+   * The steps before a gate point at the page; the steps after it point inside
+   * the sheet. Going back without closing leaves the sheet covering the very
+   * control the earlier step is highlighting — driver.js draws the cutout at the
+   * button's coordinates, the sheet renders on top of it, and the user sees a
+   * bright rectangle framing nothing.
+   *
+   * One generic close rather than a counterpart per open: only one page is
+   * mounted at a time, so there is no ambiguity about whose sheet this means,
+   * and a tour still does not have to know how any particular sheet is built.
+   */
+  closeSheet: 'sheet.close',
 } as const
 
 export type TourAction = (typeof TOUR_ACTIONS)[keyof typeof TOUR_ACTIONS]

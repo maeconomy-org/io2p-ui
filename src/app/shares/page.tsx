@@ -147,6 +147,7 @@ export default function SharesPage() {
   useTourAction(TOUR_ACTIONS.createShare, () =>
     setEditor({ mode: 'create', share: null })
   )
+  useTourAction(TOUR_ACTIONS.closeSheet, () => setEditor(null))
 
   const columns = useMemo(
     () =>
