@@ -37,6 +37,20 @@
     "completeCreation": "Complete Object Creation",
     "completeCreationDescription": "When you've filled in all the necessary information, click Create to save your new object to the system. The object will then be available for searching, linking, and use in processes throughout your IoM workspace."
   },
+  "createProcess": {
+    "start": "Start a process",
+    "startDescription": "A process records something that happened — a step that took objects in and produced others. This button opens the create sheet; Next opens it for you.",
+    "template": "Start from a template",
+    "templateDescription": "A process template pre-fills the properties this kind of process usually records, so you are not typing the same fields each time. Skip it and start blank if none fit.",
+    "details": "Name it",
+    "detailsDescription": "The name is how the process reads everywhere else — in the list, and as a node in the flow diagram. Something specific beats something clever.",
+    "properties": "What it records",
+    "propertiesDescription": "Properties hold what you measured about this process — a temperature, a duration, a cost. Values can be typed in or derived from a formula.",
+    "flows": "Inputs and outputs live here",
+    "flowsDescription": "These tabs are where a process says what it consumed and what it produced. A process needs at least one of each before it will save, so open them before saving — walking the flows themselves is a separate tour.",
+    "save": "Save it",
+    "saveDescription": "Saved processes appear in the list and connect to the objects they reference, which is what draws the flow diagram."
+  },
   "buildTemplate": {
     "start": "Start a template",
     "startDescription": "A template is a starting point for new objects — the properties they begin with, including formula recipes and the constants those bind to. This button offers object and process templates; Next opens an object one to build.",

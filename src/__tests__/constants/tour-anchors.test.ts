@@ -142,6 +142,7 @@ describe('tour copy', () => {
     // waited six seconds for something that could never appear on /templates.
     const ROUTE_DIRS: Record<string, string[]> = {
       '/objects': ['src/app/objects', 'src/components'],
+      '/processes': ['src/app/processes', 'src/components'],
       '/templates': ['src/app/templates', 'src/components'],
       '/formulas': ['src/app/formulas', 'src/components'],
       '/shares': ['src/app/shares', 'src/components'],

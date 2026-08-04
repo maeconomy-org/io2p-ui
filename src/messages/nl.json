@@ -1328,6 +1328,7 @@
   "onboarding": {
     "tours": {
       "create-object": "Een object maken",
+      "create-process": "Maak een proces",
       "build-template": "Een template bouwen",
       "write-formula": "Een formule schrijven",
       "share-objects": "Objecten delen",

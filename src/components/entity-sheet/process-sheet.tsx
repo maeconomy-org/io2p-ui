@@ -8,6 +8,7 @@ import { Badge, Label } from '@/components/ui'
 import { useProcesses } from '@/hooks/api/entities'
 import type { EntityDraft, ValueProvenance } from '@/lib/entity-body'
 import { templatePresetToDraftProperties } from '@/lib/template-body'
+import { anchor } from '@/constants'
 
 import { useProcessForm } from './hooks/use-process-form'
 import { useEntityLifecycle } from './hooks/use-entity-lifecycle'
@@ -160,7 +161,7 @@ export function ProcessSheet({
     <div className="space-y-4">
       {process && <EntityFacts entity={process} />}
       {isCreate && (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" {...anchor('sheetTemplate')}>
           <Label>{t('objects.templateSelector.label')}</Label>
           <TemplateSelector
             type="process"
@@ -169,14 +170,21 @@ export function ProcessSheet({
           />
         </div>
       )}
-      <MetadataFields form={form} editing={editing} />
-      <PropertyFields
-        form={form}
-        editing={editing}
-        derivedValues={derivedValues}
-        siblingSource={allProperties}
-        label={t('objects.fields.properties')}
-      />
+      {/* Anchored for the create-process tour. The names are the SHARED sheet
+          section names, not process-specific ones — the object sheet marks the
+          same sections, and a tour step reads the same either way. */}
+      <div {...anchor('sheetMetadata')}>
+        <MetadataFields form={form} editing={editing} />
+      </div>
+      <div {...anchor('sheetProperties')}>
+        <PropertyFields
+          form={form}
+          editing={editing}
+          derivedValues={derivedValues}
+          siblingSource={allProperties}
+          label={t('objects.fields.properties')}
+        />
+      </div>
     </div>
   )
 

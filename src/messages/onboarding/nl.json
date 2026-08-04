@@ -37,6 +37,20 @@
     "completeCreation": "Objectcreatie voltooien",
     "completeCreationDescription": "Wanneer u alle benodigde informatie heeft ingevuld, klik op Maken om uw nieuwe object op te slaan in het systeem. Het object is dan beschikbaar voor zoeken, koppelen en gebruik in processen in uw hele IoM-werkruimte."
   },
+  "createProcess": {
+    "start": "Begin een proces",
+    "startDescription": "Een proces legt vast wat er is gebeurd — een stap die objecten opnam en andere opleverde. Deze knop opent het aanmaakvenster; met Volgende openen we het voor je.",
+    "template": "Begin vanuit een sjabloon",
+    "templateDescription": "Een processjabloon vult alvast de eigenschappen in die dit soort proces meestal vastlegt, zodat je niet telkens dezelfde velden typt. Sla het over en begin leeg als er geen past.",
+    "details": "Geef het een naam",
+    "detailsDescription": "De naam is hoe het proces overal verder wordt gelezen — in de lijst en als knooppunt in het stroomdiagram. Specifiek werkt beter dan gevat.",
+    "properties": "Wat het vastlegt",
+    "propertiesDescription": "Eigenschappen bevatten wat je aan dit proces hebt gemeten — een temperatuur, een duur, een kostenpost. Waarden typ je in of leid je af met een formule.",
+    "flows": "Invoer en uitvoer staan hier",
+    "flowsDescription": "Op deze tabbladen geeft een proces aan wat het verbruikte en wat het opleverde. Een proces heeft er minstens één van elk nodig voordat het opslaat, dus open ze voor je opslaat — de stromen zelf doorlopen we in een aparte rondleiding.",
+    "save": "Sla het op",
+    "saveDescription": "Opgeslagen processen verschijnen in de lijst en verbinden zich met de objecten waarnaar ze verwijzen; dat is wat het stroomdiagram tekent."
+  },
   "buildTemplate": {
     "start": "Begin een template",
     "startDescription": "Een template is een startpunt voor nieuwe objecten — de eigenschappen waarmee ze beginnen, inclusief formulerecepten en de constanten waaraan die gebonden zijn. Deze knop biedt object- en procestemplates; Volgende opent er een van het type object.",

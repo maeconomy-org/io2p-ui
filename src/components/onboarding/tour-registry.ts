@@ -18,6 +18,7 @@ import { tourText, type TourMessages } from './tour-messages'
 
 export type TourId =
   | 'create-object'
+  | 'create-process'
   | 'build-template'
   | 'write-formula'
   | 'share-objects'
@@ -81,6 +82,27 @@ export const TOURS: readonly TourDefinition[] = [
       step(m, 'demo', 'fileAttachments', sel('sheetFiles')),
       step(m, 'demo', 'customProperties', sel('sheetProperties')),
       step(m, 'demo', 'completeCreation', sel('sheetSubmit'), {
+        disableActiveInteraction: true,
+      }),
+    ],
+  },
+  {
+    id: 'create-process',
+    route: '/processes',
+    group: 'createProcess',
+    steps: (m) => [
+      step(m, 'createProcess', 'start', sel('processesCreate'), {
+        action: TOUR_ACTIONS.createProcess,
+      }),
+      step(m, 'createProcess', 'template', sel('sheetTemplate')),
+      step(m, 'createProcess', 'details', sel('sheetMetadata')),
+      step(m, 'createProcess', 'properties', sel('sheetProperties')),
+      // Flows are NOT walked here — that is a bigger tour. But the tab strip
+      // still gets a step, because a process will not save without at least one
+      // input and one output: a tour that went straight from properties to Save
+      // would teach a flow that 422s.
+      step(m, 'createProcess', 'flows', sel('sheetTabs')),
+      step(m, 'createProcess', 'save', sel('sheetSubmit'), {
         disableActiveInteraction: true,
       }),
     ],

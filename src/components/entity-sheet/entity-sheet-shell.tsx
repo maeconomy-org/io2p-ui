@@ -18,6 +18,7 @@ import {
   TabsTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { anchor } from '@/constants'
 
 import { DirtyDot, UnsavedBar } from './sheet-lifecycle-footer'
 
@@ -164,6 +165,7 @@ export function EntitySheetShell({
                   >
                     <div className="px-6 pt-4">
                       <TabsList
+                        {...anchor('sheetTabs')}
                         className={cn(
                           'grid w-full',
                           TAB_COLUMNS[tabs.length] ?? 'grid-cols-3'

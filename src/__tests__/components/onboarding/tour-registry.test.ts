@@ -63,7 +63,13 @@ describe('tour registry', () => {
   })
 
   it('sends each tour to a route that exists', () => {
-    const ROUTES = ['/objects', '/templates', '/formulas', '/shares']
+    const ROUTES = [
+      '/objects',
+      '/processes',
+      '/templates',
+      '/formulas',
+      '/shares',
+    ]
     for (const tour of TOURS) {
       expect(ROUTES, `${tour.id} -> ${tour.route}`).toContain(tour.route)
     }

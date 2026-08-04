@@ -28,12 +28,16 @@ import { ContentSkeleton } from '@/components/skeletons'
 import { useProcesses } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { usePreference } from '@/hooks/ui/use-preference'
-import { ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
+import { anchor, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
 import { buildProcessColumns } from './components/process-columns'
 import { ProcessFlowView } from './components/process-flow-view'
 import { RelatedObjectBar } from './components/related-object-bar'
 import { PageHelp } from '@/components/onboarding/page-help'
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 
 const ShareEditorSheet = dynamic(
   () =>
@@ -128,6 +132,11 @@ export default function ProcessesPage() {
     setSheetOpen(true)
   }, [])
 
+  // The tour opens the sheet through the page's own handler rather than by
+  // synthesising a click, and closes it again when stepping back past the gate.
+  useTourAction(TOUR_ACTIONS.createProcess, handleCreate)
+  useTourAction(TOUR_ACTIONS.closeSheet, () => setSheetOpen(false))
+
   const list = useEntityListActions({
     page: processesPage,
     remove: removeMutation,
@@ -166,7 +175,7 @@ export default function ProcessesPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <h2 className="text-2xl font-semibold">{t('processes.title')}</h2>
-              <PageHelp concept="process" />
+              <PageHelp concept="process" tour="create-process" />
             </div>
             <div className="flex items-center gap-2">
               {/* Deleted processes are a list concern: the flow graph is about what connects to
@@ -188,7 +197,11 @@ export default function ProcessesPage() {
                 onChange={setView}
                 options={ENABLED_PROCESS_VIEW_TYPES}
               />
-              <Button size="sm" onClick={handleCreate}>
+              <Button
+                size="sm"
+                onClick={handleCreate}
+                {...anchor('processesCreate')}
+              >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 {t('processes.create')}
               </Button>

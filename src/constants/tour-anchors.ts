@@ -40,6 +40,16 @@ export const TOUR_ANCHORS = {
   sheetProperties: 'sheet-properties',
   sheetSubmit: 'sheet-submit',
 
+  // Processes list
+  processesCreate: 'processes-create',
+
+  /**
+   * The tab strip inside a sheet that has one (the process sheet's Details /
+   * Files / Inputs / Outputs). Generic rather than process-specific: it is the
+   * shell that renders it, so any tabbed sheet gets the anchor for free.
+   */
+  sheetTabs: 'sheet-tabs',
+
   // Library
   templatesCreate: 'templates-create',
   /** The "object template" item inside the create dropdown. */

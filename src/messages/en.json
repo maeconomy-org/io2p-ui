@@ -1328,6 +1328,7 @@
   "onboarding": {
     "tours": {
       "create-object": "Create an object",
+      "create-process": "Create a process",
       "build-template": "Build a template",
       "write-formula": "Write a formula",
       "share-objects": "Share objects",
