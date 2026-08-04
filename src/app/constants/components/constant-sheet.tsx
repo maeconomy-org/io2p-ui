@@ -176,6 +176,7 @@ function ConstantForm({
             <OwnerCell
               system={constant.system}
               ownerUserId={constant.ownerUserId}
+              ownerName={constant.ownerName}
             />
           </div>
         )}

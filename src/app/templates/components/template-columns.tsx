@@ -55,6 +55,7 @@ export function buildTemplateColumns({
         <OwnerCell
           system={template.system}
           ownerUserId={template.ownerUserId}
+          ownerName={template.ownerName}
         />
       )
     ),

@@ -77,7 +77,11 @@ export function buildConstantColumns({
       'owner',
       t('common.owner'),
       (c): ReactNode => (
-        <OwnerCell system={c.system} ownerUserId={c.ownerUserId} />
+        <OwnerCell
+          system={c.system}
+          ownerUserId={c.ownerUserId}
+          ownerName={c.ownerName}
+        />
       )
     ),
     idColumn<ConstantDTO>((c) => c.id, t('objects.fields.uuid')),

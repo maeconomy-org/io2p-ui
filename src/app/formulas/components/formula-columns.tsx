@@ -77,7 +77,11 @@ export function buildFormulaColumns({
       'owner',
       t('common.owner'),
       (f): ReactNode => (
-        <OwnerCell system={f.system} ownerUserId={f.ownerUserId} />
+        <OwnerCell
+          system={f.system}
+          ownerUserId={f.ownerUserId}
+          ownerName={f.ownerName}
+        />
       )
     ),
     idColumn<FormulaDTO>((f) => f.id, t('objects.fields.uuid')),

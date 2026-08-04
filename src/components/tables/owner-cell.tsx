@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl'
 
 import { Badge } from '@/components/ui'
 import { useAuth } from '@/contexts'
-import { useUserDirectory } from '@/hooks/api/users'
 
 /**
  * Who a library item belongs to — for formulas, constants and templates, which share the shape.
@@ -16,8 +15,8 @@ import { useUserDirectory } from '@/hooks/api/users'
  *  - **someone else's** — their display name or email, because the list will show shared items and
  *    a raw uuid answers nothing.
  *
- * Falls back to the id when nothing resolves the user: an unresolved owner should look unresolved,
- * not absent.
+ * Falls back to the id when the node could not resolve the user: an unresolved owner should look
+ * unresolved, not absent.
  */
 export function OwnerCell({
   system,
@@ -27,17 +26,14 @@ export function OwnerCell({
   system?: boolean
   ownerUserId?: string
   /**
-   * The name the NODE resolved, where the read carries one (`ShareDTO.ownerName` today; the five
-   * entity types when Pass 2 lands). Given it, no directory is fetched at all — which is the point:
-   * the directory is one page, so it names the first N users and no more.
+   * The name the NODE resolved on read. Every read that carries an owner now carries this, so there
+   * is no client-side lookup left: absent means the node could not resolve the user at all, and a
+   * page of the directory could not have resolved them either.
    */
   ownerName?: string
 }) {
   const t = useTranslations()
   const { userId } = useAuth()
-  // Only pay for the directory when there is a foreign owner AND the read did not already name them.
-  const isForeign = !system && !!ownerUserId && ownerUserId !== userId
-  const { nameOf } = useUserDirectory({ enabled: isForeign && !ownerName })
 
   if (system) {
     return (
@@ -57,7 +53,7 @@ export function OwnerCell({
 
   return (
     <Badge variant="secondary" className="h-5 max-w-[12rem] truncate">
-      {ownerName ?? nameOf(ownerUserId)}
+      {ownerName ?? ownerUserId}
     </Badge>
   )
 }

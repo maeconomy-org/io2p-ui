@@ -4,7 +4,6 @@ import type { ReactNode } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 
 import { Badge, CopyButton } from '@/components/ui'
-import { useUserDirectory } from '@/hooks/api/users'
 
 /**
  * The lifecycle fields every io2p entity carries. Typed structurally rather than as `ObjectDTO` so
@@ -16,9 +15,12 @@ export interface EntityFactsShape {
   createdAt: number
   updatedAt: number
   createdBy?: string
+  /** Resolved by the node on read, so a rename shows immediately. Absent = unresolved, not blank. */
+  createdByName?: string
   deleted?: boolean
   deletedAt?: number
   deletedBy?: string
+  deletedByName?: string
 }
 
 /**
@@ -29,10 +31,6 @@ export interface EntityFactsShape {
 export function EntityFacts({ entity }: { entity: EntityFactsShape }) {
   const t = useTranslations()
   const format = useFormatter()
-  // Only fetch the directory when there is actually an id to put a name to.
-  const { nameOf } = useUserDirectory({
-    enabled: !!(entity.createdBy || entity.deletedBy),
-  })
 
   const at = (epochMs: number) =>
     format.dateTime(new Date(epochMs), {
@@ -66,7 +64,7 @@ export function EntityFacts({ entity }: { entity: EntityFactsShape }) {
         {entity.createdBy && (
           <span className="text-muted-foreground">
             {' · '}
-            {nameOf(entity.createdBy)}
+            {entity.createdByName ?? entity.createdBy}
           </span>
         )}
       </Fact>
@@ -83,7 +81,8 @@ export function EntityFacts({ entity }: { entity: EntityFactsShape }) {
               {t('common.deleted')}
             </Badge>
             {entity.deletedAt && at(entity.deletedAt)}
-            {entity.deletedBy && `· ${nameOf(entity.deletedBy)}`}
+            {entity.deletedBy &&
+              `· ${entity.deletedByName ?? entity.deletedBy}`}
           </span>
         </Fact>
       )}
