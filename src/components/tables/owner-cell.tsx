@@ -16,21 +16,28 @@ import { useUserDirectory } from '@/hooks/api/users'
  *  - **someone else's** — their display name or email, because the list will show shared items and
  *    a raw uuid answers nothing.
  *
- * Falls back to the id when the directory cannot resolve a user: an unresolved owner should look
- * unresolved, not absent.
+ * Falls back to the id when nothing resolves the user: an unresolved owner should look unresolved,
+ * not absent.
  */
 export function OwnerCell({
   system,
   ownerUserId,
+  ownerName,
 }: {
   system?: boolean
   ownerUserId?: string
+  /**
+   * The name the NODE resolved, where the read carries one (`ShareDTO.ownerName` today; the five
+   * entity types when Pass 2 lands). Given it, no directory is fetched at all — which is the point:
+   * the directory is one page, so it names the first N users and no more.
+   */
+  ownerName?: string
 }) {
   const t = useTranslations()
   const { userId } = useAuth()
-  // Only pay for the directory when there is actually a foreign owner to name.
+  // Only pay for the directory when there is a foreign owner AND the read did not already name them.
   const isForeign = !system && !!ownerUserId && ownerUserId !== userId
-  const { nameOf } = useUserDirectory({ enabled: isForeign })
+  const { nameOf } = useUserDirectory({ enabled: isForeign && !ownerName })
 
   if (system) {
     return (
@@ -50,7 +57,7 @@ export function OwnerCell({
 
   return (
     <Badge variant="secondary" className="h-5 max-w-[12rem] truncate">
-      {nameOf(ownerUserId)}
+      {ownerName ?? nameOf(ownerUserId)}
     </Badge>
   )
 }

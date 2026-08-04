@@ -33,7 +33,7 @@ import { PermissionSelect, type Permission } from '@/components/access'
 import { UnsavedBar } from '@/components/entity-sheet/sheet-lifecycle-footer'
 import { useAuth } from '@/contexts'
 import { useShares } from '@/hooks/api/access'
-import { useUserDirectory, useUserSearch } from '@/hooks/api/users'
+import { useUserSearch } from '@/hooks/api/users'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
 
@@ -154,6 +154,19 @@ function ShareForm({
       permission: m.permission as Permission,
     }))
   )
+  /**
+   * Display names, kept BESIDE `members` rather than on it.
+   *
+   * `Member[]` is what the create body and the edit delta are built from, so a `name` field there
+   * would post a resolved-on-read value straight back to the node. Seeded from the bundle (the node
+   * resolves `members[].name`) and extended by the picker, which knows the name of whoever it just
+   * offered — a member added but not yet saved has no read to resolve from.
+   */
+  const [memberNames, setMemberNames] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      (seed?.members ?? []).flatMap((m) => (m.name ? [[m.userId, m.name]] : []))
+    )
+  )
   const [cascade, setCascade] = useState(!!seed?.includeDescendants)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [peopleQuery, setPeopleQuery] = useState('')
@@ -163,7 +176,8 @@ function ShareForm({
   const createMutation = useCreate()
   const updateMutation = useUpdate()
 
-  const { nameOf } = useUserDirectory({ enabled: members.length > 0 })
+  // Absent means unresolved, not blank — the id keeps an unresolvable member visible.
+  const nameOf = (userId: string) => memberNames[userId] ?? userId
   const { users, isFetching: searching } = useUserSearch(peopleQuery, {
     enabled: pickerOpen,
   })
@@ -400,6 +414,11 @@ function ShareForm({
                         onSelect={() => {
                           setPickerOpen(false)
                           setPeopleQuery('')
+                          setMemberNames((n) => ({
+                            ...n,
+                            [user.id]:
+                              user.displayName || user.email || user.id,
+                          }))
                           setMembers((ms) => [
                             ...ms,
                             { userId: user.id, permission: 'read' },

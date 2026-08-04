@@ -11,9 +11,11 @@ const original = {
     { type: 'object' as const, id: 'o1' },
     { type: 'object' as const, id: 'o2' },
   ],
+  // `name` is resolved ON READ by the node, so a loaded bundle carries it — and the delta must
+  // never send it back. See the round-trip guard at the bottom of this file.
   members: [
-    { userId: 'anna', permission: 'read' as const },
-    { userId: 'ben', permission: 'write' as const },
+    { userId: 'anna', permission: 'read' as const, name: 'Anna Roos' },
+    { userId: 'ben', permission: 'write' as const, name: 'Ben Aker' },
   ],
   includeDescendants: false,
   createdBy: 'me',
@@ -29,9 +31,11 @@ const unchanged = {
     { type: 'object' as const, id: 'o1', name: 'o1' },
     { type: 'object' as const, id: 'o2', name: 'o2' },
   ],
+  // `name` is resolved ON READ by the node, so a loaded bundle carries it — and the delta must
+  // never send it back. See the round-trip guard at the bottom of this file.
   members: [
-    { userId: 'anna', permission: 'read' as const },
-    { userId: 'ben', permission: 'write' as const },
+    { userId: 'anna', permission: 'read' as const, name: 'Anna Roos' },
+    { userId: 'ben', permission: 'write' as const, name: 'Ben Aker' },
   ],
   cascade: false,
 }
@@ -105,5 +109,48 @@ describe('buildDelta', () => {
     const body = buildDelta(original, { ...unchanged, name: 'Q4' })
     expect(body).not.toHaveProperty('resources')
     expect(body).not.toHaveProperty('members')
+  })
+})
+
+/**
+ * The write body must carry NOTHING the node resolved on read.
+ *
+ * `ShareDTO.members[]` gained a `name`, and the editor builds its delta from a `Member[]` of its
+ * own — precisely so a resolved-on-read field cannot ride back out on a write. If the two shapes
+ * are ever collapsed into one, this is what fails.
+ */
+describe('resolved names never reach the write body', () => {
+  it('omits name from members.add', () => {
+    const body = buildDelta(original, {
+      ...unchanged,
+      members: [
+        ...unchanged.members,
+        { userId: 'cara', permission: 'read' as const },
+      ],
+    })
+
+    expect(body.members).toEqual({
+      add: [{ userId: 'cara', permission: 'read' }],
+    })
+  })
+
+  it('omits name from members.update', () => {
+    const body = buildDelta(original, {
+      ...unchanged,
+      members: [
+        { userId: 'anna', permission: 'write' as const },
+        { userId: 'ben', permission: 'write' as const },
+      ],
+    })
+
+    expect(body.members).toEqual({
+      update: [{ userId: 'anna', permission: 'write' }],
+    })
+  })
+
+  it('does not treat a resolved name as a change on its own', () => {
+    // A rename upstream changes what the read returns. It is not an edit, and must not make an
+    // untouched share look dirty or issue a write that says nothing.
+    expect(buildDelta(original, unchanged)).toEqual({})
   })
 })

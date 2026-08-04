@@ -43,7 +43,7 @@ import {
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useAuth } from '@/contexts'
 import { useGrants, useShares } from '@/hooks/api/access'
-import { useUserDirectory, useUserSearch } from '@/hooks/api/users'
+import { useUserSearch } from '@/hooks/api/users'
 import { UnsavedBar } from '@/components/entity-sheet/sheet-lifecycle-footer'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
@@ -257,9 +257,9 @@ function ShareForm({
 
   const memberIds = Object.keys(draft).filter((key) => key !== PUBLIC_KEY)
 
-  // Names for staged rows come from the cached directory — and only when there is a row to name.
-  // CANDIDATES come from a server search, so the picker can reach a user no directory page held.
-  const { nameOf } = useUserDirectory({ enabled: memberIds.length > 0 })
+  // No directory here any more: every name on screen either arrived resolved on its grant or was
+  // staged by the picker that displayed it. CANDIDATES still come from a server search, which is
+  // what lets the picker reach a user no single page of the directory would have held.
   const { users, isFetching: searching } = useUserSearch(peopleQuery, {
     enabled: pickerOpen,
   })
@@ -339,7 +339,7 @@ function ShareForm({
     } catch (error) {
       logger.error('Remove from share failed', error)
       toast.error(
-        t('access.saveFailedFor', { names: subjectLabel(keyOf(grant.subject)) })
+        t('access.saveFailedFor', { names: subjectName(grant.subject) })
       )
     } finally {
       setRemovingFrom(null)
@@ -381,14 +381,24 @@ function ShareForm({
       onDone()
     } catch (error) {
       logger.error('Restore grant failed', error)
-      toast.error(t('access.saveFailedFor', { names: subjectName(grant) }))
+      toast.error(
+        t('access.saveFailedFor', { names: subjectName(grant.subject) })
+      )
     }
   }
 
-  const subjectName = (grant: GrantDTO) =>
-    grant.subject.kind === 'public'
+  /**
+   * The one way this sheet turns a subject into a label.
+   *
+   * `name` is resolved by the node on read, so it is current at the moment of the request — a
+   * rename shows immediately, and there is no page of users to fall off the end of. Absent means
+   * unresolved (no display name, or the id no longer maps), NOT blank: falling back to the id keeps
+   * an unresolved grantee looking unresolved rather than nameless.
+   */
+  const subjectName = (subject: GrantDTO['subject']) =>
+    subject.kind === 'public'
       ? t('access.publicLabel')
-      : nameOf(grant.subject.userId)
+      : (subject.name ?? subject.userId)
 
   const setMember = (key: string, patch: Partial<DraftMember>) =>
     setDraft((d) => ({ ...d, [key]: { ...d[key], ...patch } }))
@@ -504,14 +514,22 @@ function ShareForm({
 
     toast.error(
       t('access.saveFailedFor', {
-        names: failed.map((f) => subjectLabel(f.key)).join(', '),
+        names: failed.map((f) => labelForKey(f.key)).join(', '),
       }),
       { description: t(key, values) }
     )
   }
 
-  const subjectLabel = (key: string) =>
-    key === PUBLIC_KEY ? t('access.publicLabel') : nameOf(key)
+  /**
+   * Same label, reached by draft key rather than by subject — the rows and the error paths are
+   * keyed, not carried. `initial` is the fallback because a failed row is resynced out of the draft
+   * before the toast that names it renders.
+   */
+  const labelForKey = (key: string) => {
+    const staged = draft[key] ?? initial[key]
+    if (staged) return subjectName(staged.subject)
+    return key === PUBLIC_KEY ? t('access.publicLabel') : key
+  }
 
   return (
     <>
@@ -541,14 +559,14 @@ function ShareForm({
             <div key={id} className="space-y-2 rounded-md border px-3 py-2">
               <div className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate text-sm">
-                  {nameOf(id)}
+                  {labelForKey(id)}
                 </span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 shrink-0"
-                  aria-label={t('access.revokeFor', { name: nameOf(id) })}
+                  aria-label={t('access.revokeFor', { name: labelForKey(id) })}
                   onClick={() => removeMember(id)}
                 >
                   <X className="h-4 w-4" />
@@ -559,7 +577,9 @@ function ShareForm({
                 className="w-full"
                 value={draft[id].permission}
                 disabled={readOnly}
-                aria-label={t('access.permissionFor', { name: nameOf(id) })}
+                aria-label={t('access.permissionFor', {
+                  name: labelForKey(id),
+                })}
                 onChange={(permission) => setMember(id, { permission })}
               />
 
@@ -597,9 +617,7 @@ function ShareForm({
             >
               <div className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate text-sm">
-                  {grant.subject.kind === 'public'
-                    ? t('access.publicLabel')
-                    : nameOf(grant.subject.userId)}
+                  {subjectName(grant.subject)}
                 </span>
                 <Badge variant={grant.permission} className="h-5 shrink-0">
                   {t(`access.permission.${grant.permission}`)}
@@ -661,7 +679,14 @@ function ShareForm({
                         setDraft((d) => ({
                           ...d,
                           [user.id]: {
-                            subject: { kind: 'user', userId: user.id },
+                            // Stage the name the picker just showed. A staged row has no grant to
+                            // resolve from, so without this the person you picked by name becomes
+                            // a uuid the moment they land in the list.
+                            subject: {
+                              kind: 'user',
+                              userId: user.id,
+                              name: user.displayName || user.email,
+                            },
                             permission: 'read',
                             includeDescendants: false,
                           },
@@ -754,9 +779,7 @@ function ShareForm({
                     className="flex flex-wrap items-center gap-2 rounded-md border border-dashed px-3 py-2"
                   >
                     <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-                      {grant.subject.kind === 'public'
-                        ? t('access.publicLabel')
-                        : nameOf(grant.subject.userId)}
+                      {subjectName(grant.subject)}
                     </span>
                     <Badge variant="secondary" className="h-5 shrink-0">
                       {t(`access.permission.${grant.permission}`)}
@@ -790,7 +813,7 @@ function ShareForm({
           onOpenChange={(open) => !open && setRemovingFrom(null)}
           objectName=""
           title={t('access.removeFromShareTitle', {
-            name: subjectLabel(keyOf(removingFrom.subject)),
+            name: subjectName(removingFrom.subject),
             share: shareNameOf(removingFrom.shareId!) ?? '',
           })}
           description={t('access.removeFromShareBody', {

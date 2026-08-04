@@ -10,7 +10,6 @@ import type { SharedByMeItem } from 'io2p-client'
 import { BulkActionBar, EntityTable } from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useGrants } from '@/hooks/api/access'
-import { useUserDirectory } from '@/hooks/api/users'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
@@ -55,8 +54,6 @@ export function SharedByMeTable() {
   const revokeMutation = useRevoke()
 
   const items = useMemo(() => data?.data ?? [], [data])
-  // Only pay for the directory once there is a name to resolve.
-  const { nameOf } = useUserDirectory({ enabled: items.length > 0 })
 
   const handlePageSizeChange = useCallback((size: number) => {
     setPageSize(size)
@@ -118,11 +115,10 @@ export function SharedByMeTable() {
     () =>
       buildSharedByMeColumns({
         t,
-        nameOf,
         onManage: setManaging,
         onRevokeAll: setRevoking,
       }),
-    [t, nameOf]
+    [t]
   )
 
   return (

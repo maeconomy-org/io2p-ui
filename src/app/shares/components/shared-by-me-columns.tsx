@@ -41,19 +41,19 @@ function ResourceLabel({ name, id }: { name?: string; id: string }) {
  */
 export function buildSharedByMeColumns({
   t,
-  nameOf,
   onManage,
   onRevokeAll,
 }: {
   t: (key: string, values?: Record<string, string | number>) => string
-  nameOf: (userId: string) => string
   onManage: (item: SharedByMeItem) => void
   onRevokeAll: (item: SharedByMeItem) => void
 }): ColumnDef<SharedByMeItem, unknown>[] {
+  // The node resolves the grantee's name on the row. Absent means unresolved, not blank — the id
+  // keeps an unresolvable grantee visible instead of rendering an empty cell that reads as nobody.
   const labelFor = (grant: Grant) =>
     grant.subject.kind === 'public'
       ? t('shares.everyone')
-      : nameOf(grant.subject.userId)
+      : (grant.subject.name ?? grant.subject.userId)
 
   return [
     selectColumn<SharedByMeItem>(),

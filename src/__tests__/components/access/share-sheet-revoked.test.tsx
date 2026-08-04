@@ -31,16 +31,22 @@ vi.mock('next-intl', () => ({
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn(), warn: vi.fn() } }))
 vi.mock('@/contexts', () => ({ useAuth: () => ({ userId: 'me' }) }))
+// No `useUserDirectory` — the sheet must not reach for one. Every name it renders now arrives
+// resolved on the grant, so mocking a directory here would hide a regression back to the old
+// page-of-users lookup rather than catch it.
 vi.mock('@/hooks/api/users', () => ({
-  useUserDirectory: () => ({ nameOf: (id: string) => `name:${id}` }),
   useUserSearch: () => ({ users: [], isFetching: false }),
 }))
 
 function grantRow(over: Record<string, unknown> = {}) {
-  return {
+  const row = {
     id: 'g1',
     resource: { type: 'object', id: 'obj-1' },
-    subject: { kind: 'user', userId: 'u1' },
+    subject: { kind: 'user', userId: 'u1' } as {
+      kind: string
+      userId?: string
+      name?: string
+    },
     permission: 'read',
     includeDescendants: false,
     active: true,
@@ -50,6 +56,12 @@ function grantRow(over: Record<string, unknown> = {}) {
     updatedAt: 1719230000000,
     ...over,
   }
+  // The node resolves the grantee's name ONTO the row, so the fixture does too. A subject that
+  // wants to test the unresolved case passes `name: undefined` explicitly.
+  if (row.subject.kind === 'user' && !('name' in row.subject)) {
+    row.subject = { ...row.subject, name: `name:${row.subject.userId}` }
+  }
+  return row
 }
 
 function renderSheet(rows: unknown[]) {
@@ -101,6 +113,31 @@ describe('ShareSheet revoked history', () => {
     await waitFor(() => expect(list).toHaveBeenCalled())
     expect(list.mock.calls[0][1]).toMatchObject({ revoked: 'include' })
     expect(list).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders the name the node resolved onto the grant', async () => {
+    renderSheet([
+      grantRow({ subject: { kind: 'user', userId: 'u1', name: 'Anna Roos' } }),
+    ])
+
+    expect(
+      await screen.findByLabelText('access.permissionFor:{"name":"Anna Roos"}')
+    ).toBeTruthy()
+  })
+
+  /**
+   * `name` is OMITTED, never blank, when a user has no display name or the id no longer resolves.
+   * Falling back to the id keeps an unresolved grantee visible; an empty label would render a row
+   * that reads as nobody at all — a failure indistinguishable from success.
+   */
+  it('falls back to the id when the node could not resolve a name', async () => {
+    renderSheet([
+      grantRow({ subject: { kind: 'user', userId: 'u1', name: undefined } }),
+    ])
+
+    expect(
+      await screen.findByLabelText('access.permissionFor:{"name":"u1"}')
+    ).toBeTruthy()
   })
 
   it('keeps a revoked grant OUT of the editable members', async () => {

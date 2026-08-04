@@ -29,7 +29,7 @@ import {
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
 import { useGrants } from '@/hooks/api/access'
-import { useUserDirectory, useUserSearch } from '@/hooks/api/users'
+import { useUserSearch } from '@/hooks/api/users'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
 
@@ -110,8 +110,10 @@ export function BulkShareSheet({
   const { useGrant } = useGrants()
   const grantMutation = useGrant()
 
-  const recipientIds = Object.keys(recipients).filter((k) => k !== PUBLIC_KEY)
-  const { nameOf } = useUserDirectory({ enabled: recipientIds.length > 0 })
+  // Recipients are STAGED, never read back, so the name is whatever the picker showed when it was
+  // picked — and the picker searches the server, so it reaches users no directory page would hold.
+  // This used to prefer a cached-directory lookup that never returns falsy, which made the staged
+  // label unreachable: past the directory's page the picker showed a name and the row showed a uuid.
   const { users, isFetching: searching } = useUserSearch(peopleQuery, {
     enabled: pickerOpen,
   })
@@ -191,16 +193,14 @@ export function BulkShareSheet({
                 <span className="min-w-0 flex-1 truncate text-sm">
                   {key === PUBLIC_KEY
                     ? t('access.publicHint')
-                    : nameOf(key) || recipient.label}
+                    : recipient.label}
                 </span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 shrink-0"
-                  aria-label={t('access.revokeFor', {
-                    name: nameOf(key) || recipient.label,
-                  })}
+                  aria-label={t('access.revokeFor', { name: recipient.label })}
                   onClick={() => remove(key)}
                 >
                   <X className="h-4 w-4" />

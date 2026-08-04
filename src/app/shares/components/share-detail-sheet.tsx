@@ -23,7 +23,6 @@ import {
 } from '@/components/ui'
 import { OwnerCell, formatTimestamp } from '@/components/tables'
 import { SheetLifecycleFooter } from '@/components/entity-sheet/sheet-lifecycle-footer'
-import { useUserDirectory } from '@/hooks/api/users'
 
 /** Small enough that a page fits the sheet without scrolling far, and bounds the name lookups. */
 const PAGE_SIZE = 10
@@ -59,7 +58,6 @@ export function ShareDetailSheet({
 
   const resources = share.resources ?? []
   const members = share.members ?? []
-  const { nameOf } = useUserDirectory({ enabled: open && members.length > 0 })
 
   const pageOf = <T,>(rows: T[], page: number) =>
     rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -103,7 +101,10 @@ export function ShareDetailSheet({
             <TabsContent value="overview" className="mt-0 space-y-4">
               <Field label={t('shares.fields.name')}>{share.name}</Field>
               <Field label={t('common.owner')}>
-                <OwnerCell ownerUserId={share.ownerUserId} />
+                <OwnerCell
+                  ownerUserId={share.ownerUserId}
+                  ownerName={share.ownerName}
+                />
               </Field>
               <Field label={t('shares.fields.cascade')}>
                 {share.includeDescendants
@@ -163,7 +164,7 @@ export function ShareDetailSheet({
                   className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
                 >
                   <span className="min-w-0 flex-1 truncate">
-                    {nameOf(member.userId)}
+                    {member.name ?? member.userId}
                   </span>
                   <Badge variant={member.permission} className="h-5 shrink-0">
                     {t(`access.permission.${member.permission}`)}
