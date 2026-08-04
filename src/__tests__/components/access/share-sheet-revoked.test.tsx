@@ -9,9 +9,15 @@ const list = vi.fn()
 const grant = vi.fn()
 const revoke = vi.fn()
 
+const shareList = vi.fn()
+const shareUpdate = vi.fn()
+
 vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({
-    access: { grants: { list, grant, revoke } },
+    access: {
+      grants: { list, grant, revoke },
+      shares: { list: shareList, update: shareUpdate },
+    },
     users: { list: vi.fn().mockResolvedValue({ data: [], page: {} }) },
   }),
 }))
@@ -73,6 +79,20 @@ describe('ShareSheet revoked history', () => {
     vi.clearAllMocks()
     grant.mockResolvedValue({})
     revoke.mockResolvedValue({})
+    shareUpdate.mockResolvedValue({})
+    shareList.mockResolvedValue({
+      data: [
+        {
+          id: 'share-9',
+          name: 'Q3 rollout',
+          resources: [
+            { type: 'object', id: 'o1', name: 'Wall A' },
+            { type: 'object', id: 'o2', name: 'Wall B' },
+          ],
+        },
+      ],
+      page: { number: 1, size: 100, totalElements: 1, totalPages: 1 },
+    })
   })
 
   it('asks for revoked rows in the SAME read, not a second one', async () => {
@@ -158,7 +178,11 @@ describe('ShareSheet revoked history', () => {
       grantRow({ shareId: 'share-9', subject: { kind: 'user', userId: 'u2' } }),
     ])
 
-    expect(await screen.findByText('access.fromShareBundle')).toBeTruthy()
+    // §4: a "via <bundle>" chip and a deep-link, and NO controls — editing belongs to the share.
+    expect(
+      await screen.findByText('access.viaShare:{"name":"Q3 rollout"}')
+    ).toBeTruthy()
+    expect(screen.getByText('access.manageBundle')).toBeTruthy()
     expect(
       screen.queryByLabelText('access.permissionFor:{"name":"name:u2"}')
     ).toBeNull()
@@ -181,14 +205,14 @@ describe('ShareSheet revoked history', () => {
     expect(
       await screen.findByLabelText('access.permissionFor:{"name":"name:u1"}')
     ).toBeTruthy()
-    expect(screen.getByText('access.fromShareBundle')).toBeTruthy()
+    expect(screen.getByText('access.manageBundle')).toBeTruthy()
   })
 
   it('says nothing about bundles for a direct grant', async () => {
     renderSheet([grantRow()])
 
     await screen.findByText('access.peopleWithAccess')
-    expect(screen.queryByText('access.fromShareBundle')).toBeNull()
+    expect(screen.queryByText('access.manageBundle')).toBeNull()
   })
 })
 
@@ -197,6 +221,20 @@ describe('ShareSheet revoked history — append-only grants', () => {
     vi.clearAllMocks()
     grant.mockResolvedValue({})
     revoke.mockResolvedValue({})
+    shareUpdate.mockResolvedValue({})
+    shareList.mockResolvedValue({
+      data: [
+        {
+          id: 'share-9',
+          name: 'Q3 rollout',
+          resources: [
+            { type: 'object', id: 'o1', name: 'Wall A' },
+            { type: 'object', id: 'o2', name: 'Wall B' },
+          ],
+        },
+      ],
+      page: { number: 1, size: 100, totalElements: 1, totalPages: 1 },
+    })
   })
 
   it('does not list someone as former when they hold access NOW', async () => {
@@ -242,6 +280,20 @@ describe('ShareSheet — a grant is keyed by subject AND source', () => {
     vi.clearAllMocks()
     grant.mockResolvedValue({})
     revoke.mockResolvedValue({})
+    shareUpdate.mockResolvedValue({})
+    shareList.mockResolvedValue({
+      data: [
+        {
+          id: 'share-9',
+          name: 'Q3 rollout',
+          resources: [
+            { type: 'object', id: 'o1', name: 'Wall A' },
+            { type: 'object', id: 'o2', name: 'Wall B' },
+          ],
+        },
+      ],
+      page: { number: 1, size: 100, totalElements: 1, totalPages: 1 },
+    })
   })
 
   it('lists a revoked DIRECT grant even while a Share still grants that person', async () => {
@@ -256,7 +308,7 @@ describe('ShareSheet — a grant is keyed by subject AND source', () => {
     fireEvent.click(await screen.findByText('access.revokedTitle'))
     expect(screen.getAllByText('common.restore')).toHaveLength(1)
     // …and they are still shown as having access, from the share.
-    expect(screen.getByText('access.fromShareBundle')).toBeTruthy()
+    expect(screen.getByText('access.manageBundle')).toBeTruthy()
   })
 
   it('does not list a source that is still live', async () => {
@@ -267,5 +319,184 @@ describe('ShareSheet — a grant is keyed by subject AND source', () => {
 
     await screen.findByText('access.peopleWithAccess')
     expect(screen.queryByText('access.revokedTitle')).toBeNull()
+  })
+})
+
+describe('ShareSheet — removing a member from the bundle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    grant.mockResolvedValue({})
+    revoke.mockResolvedValue({})
+    shareUpdate.mockResolvedValue({})
+    shareList.mockResolvedValue({
+      data: [
+        {
+          id: 'share-9',
+          name: 'Q3 rollout',
+          resources: [
+            { type: 'object', id: 'o1', name: 'Wall A' },
+            { type: 'object', id: 'o2', name: 'Wall B' },
+          ],
+        },
+      ],
+      page: { number: 1, size: 100, totalElements: 1, totalPages: 1 },
+    })
+  })
+
+  it('names the blast radius BEFORE firing, because a share is a cross product', async () => {
+    renderSheet([
+      grantRow({ shareId: 'share-9', subject: { kind: 'user', userId: 'u2' } }),
+    ])
+
+    fireEvent.click(await screen.findByText('access.removeFromShare'))
+
+    // The confirm resolves the actual items — a count in a button label would not say WHICH.
+    expect(
+      screen.getByText(/access.removeFromShareBody.*Wall A, Wall B/)
+    ).toBeTruthy()
+    expect(shareUpdate).not.toHaveBeenCalled()
+  })
+
+  it('edits the BUNDLE, not the grant — that is why it is allowed', async () => {
+    renderSheet([
+      grantRow({ shareId: 'share-9', subject: { kind: 'user', userId: 'u2' } }),
+    ])
+
+    fireEvent.click(await screen.findByText('access.removeFromShare'))
+    fireEvent.click(screen.getByText('common.delete'))
+
+    // `members: { remove }` on the SHARE; the service re-syncs the grants, so the bundle and its
+    // expansion cannot drift. A direct revoke here would have been the forbidden inline edit.
+    await waitFor(() => expect(shareUpdate).toHaveBeenCalledTimes(1))
+    expect(shareUpdate.mock.calls[0]).toEqual([
+      'share-9',
+      { members: { remove: ['u2'] } },
+    ])
+    expect(revoke).not.toHaveBeenCalled()
+  })
+
+  it('offers nothing to remove for public, which is not a share member', async () => {
+    renderSheet([grantRow({ shareId: 'share-9', subject: { kind: 'public' } })])
+
+    await screen.findByText('access.manageBundle')
+    expect(screen.queryByText('access.removeFromShare')).toBeNull()
+  })
+})
+
+describe('ShareSheet directOnly — the Direct shares tab stays direct', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    grant.mockResolvedValue({})
+    revoke.mockResolvedValue({})
+    shareUpdate.mockResolvedValue({})
+    shareList.mockResolvedValue({
+      data: [{ id: 'share-9', name: 'Q3 rollout', resources: [] }],
+      page: { number: 1, size: 100, totalElements: 1, totalPages: 1 },
+    })
+  })
+
+  /**
+   * The mock APPLIES `source`, because the node does.
+   *
+   * Filtering moved out of the sheet the day `?source=` shipped, so a mock that returned every row
+   * regardless would prove only that the component ignores the parameter it now depends on.
+   */
+  function renderDirect(rows: unknown[]) {
+    list.mockImplementation(
+      (_resource: unknown, query?: { source?: string }) => {
+        const data =
+          query?.source === 'direct'
+            ? rows.filter((r) => !(r as { shareId?: string }).shareId)
+            : rows
+        return Promise.resolve({
+          data,
+          page: {
+            number: 1,
+            size: 20,
+            totalElements: data.length,
+            totalPages: 1,
+          },
+        })
+      }
+    )
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    return render(
+      React.createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        React.createElement(ShareSheet, {
+          open: true,
+          onOpenChange: vi.fn(),
+          target: { type: 'object' as const, id: 'obj-1', name: 'Wall A' },
+          isOwner: true,
+          directOnly: true,
+        })
+      )
+    )
+  }
+
+  it('asks the node for direct grants only — the filter is a request parameter, not a client pass', async () => {
+    renderDirect([grantRow({ subject: { kind: 'user', userId: 'u1' } })])
+
+    await screen.findByLabelText('access.permissionFor:{"name":"name:u1"}')
+    expect(list).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ source: 'direct', revoked: 'include' })
+    )
+  })
+
+  it('shows no bundle rows at all — no chip, no Manage bundle, no Remove from share', async () => {
+    renderDirect([
+      grantRow({ id: 'd1', subject: { kind: 'user', userId: 'u1' } }),
+      grantRow({
+        id: 's1',
+        shareId: 'share-9',
+        subject: { kind: 'user', userId: 'u2' },
+      }),
+    ])
+
+    await screen.findByLabelText('access.permissionFor:{"name":"name:u1"}')
+    expect(screen.queryByText('access.manageBundle')).toBeNull()
+    expect(screen.queryByText('access.removeFromShare')).toBeNull()
+    expect(screen.queryByText('access.viaShareUnnamed')).toBeNull()
+  })
+
+  it('keeps the ad-hoc members fully editable', async () => {
+    renderDirect([grantRow({ subject: { kind: 'user', userId: 'u1' } })])
+
+    expect(
+      await screen.findByLabelText('access.permissionFor:{"name":"name:u1"}')
+    ).toBeTruthy()
+  })
+
+  it('narrows revoked history too — a bundle revocation is not this tab’s business', async () => {
+    renderDirect([
+      grantRow({ id: 'd1', subject: { kind: 'user', userId: 'u1' } }),
+      grantRow({
+        id: 's1',
+        shareId: 'share-9',
+        active: false,
+        subject: { kind: 'user', userId: 'u2' },
+      }),
+    ])
+
+    await screen.findByLabelText('access.permissionFor:{"name":"name:u1"}')
+    expect(screen.queryByText('access.revokedTitle')).toBeNull()
+  })
+
+  it('still shows everything when NOT direct-only (the §4 entry point)', async () => {
+    renderSheet([
+      grantRow({
+        shareId: 'share-9',
+        subject: { kind: 'user', userId: 'u2' },
+      }),
+    ])
+
+    expect(await screen.findByText('access.manageBundle')).toBeTruthy()
   })
 })

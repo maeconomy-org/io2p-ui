@@ -60,7 +60,14 @@ function useGrantList(
   })
 }
 
-/** Everything the caller has shared, paginated BY RESOURCE — a resource's grants never split. */
+/**
+ * Everything the caller has shared, paginated BY RESOURCE — a resource's grants never split.
+ *
+ * `query.source` narrows by GRANT SOURCE server-side (`direct` = ad-hoc only, `bundle` =
+ * Share-expanded only). It has to be the server's job: filtering a page here would break both
+ * numbers the response carries — a page of 20 resources might hold 3 direct ones, the total would
+ * count rows we do not show, and page 2 could come back empty while page 3 has rows.
+ */
 function useSharedByMe(
   query?: ListSharedByMeQuery,
   options?: { enabled?: boolean; keepPreviousData?: boolean }

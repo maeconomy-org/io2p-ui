@@ -1212,14 +1212,19 @@
     "saveFailedFor": "Could not save access for {names}. Everything else was applied.",
     "revokedTitle": "Previously had access",
     "revokedHint": "Shows who was removed and the last permission they held — not a full history of changes.",
-    "fromShareBundle": "Access comes from a share, which owns this grant — open that share to change or remove it.",
-    "saveFailedReason": "Some changes could not be applied."
+    "saveFailedReason": "Some changes could not be applied.",
+    "viaShare": "via {name}",
+    "viaShareUnnamed": "via a share",
+    "manageBundle": "Manage bundle",
+    "removeFromShare": "Remove from share",
+    "removeFromShareTitle": "Remove {name} from “{share}”?",
+    "removeFromShareBody": "They lose access to {count} items: {items}. A share applies to everyone in it, so this cannot be limited to one item — split the share if you need that.",
+    "removedFromShare": "Removed from the share."
   },
   "shares": {
     "title": "Shares",
     "create": "New share",
     "tabShares": "Shares",
-    "tabSharedByMe": "Shared items",
     "deleteAction": "Delete share",
     "deleted": "Share deleted",
     "deleteFailed": "Could not delete the share",
@@ -1245,7 +1250,7 @@
     },
     "empty": {
       "title": "No shares yet",
-      "description": "A share bundles objects and processes, and gives a group of people access to all of them at once."
+      "description": "A share bundles items together and gives a group of people access to all of them at once."
     },
     "sharedByMeEmpty": {
       "title": "You haven't shared anything",
@@ -1265,31 +1270,31 @@
     "saved": "Share updated",
     "editorDescription": "Name the share, choose what it covers and who it is for.",
     "namePlaceholder": "e.g. Q3 recycling audit",
-    "addResources": "Add objects or processes",
-    "searchResources": "Search objects and processes...",
+    "addResources": "Add to this share",
+    "searchResources": "Search...",
     "noResources": "Nothing left to add.",
+    "family": {
+      "data": "Objects & processes",
+      "library": "Formulas, constants & templates"
+    },
+    "familyLocked": "A share holds either objects and processes, or library items — not both. Remove everything to switch.",
+    "libraryShareHint": "Library items can only be shared to view. Everyone in this share gets read access.",
     "noResourcesYet": "Nothing in this share yet.",
     "noMembersYet": "No one has been added yet.",
     "removeResource": "Remove {name}",
     "removeMember": "Remove {name}",
     "cascadeLabel": "Include everything under these objects",
     "cascadeHint": "Objects added under them later are shared automatically.",
-    "cascadeBlockedByProcess": "Not available while a process is included — processes have no contents to cascade to.",
-    "incompleteHint": "A share needs a name, at least one object or process, and at least one person.",
+    "cascadeBlocked": "Only available for a share made up entirely of objects — nothing else has contents to cascade to.",
+    "incompleteHint": "A share needs a name, at least one item, and at least one person.",
     "bulk": {
       "deleteTitle": "Delete these shares?",
       "deleteDescription": "This deletes {count} shares and revokes every grant they own.",
       "revokeDescription": "This removes the access you granted directly on {count} items."
     },
     "tabOverview": "Overview",
-    "tabPeople": "People",
-    "people": {
-      "hint": "Everyone who can reach something you shared, and the most they can do with it.",
-      "itemCount": "{count, plural, =1 {# item} other {# items}}",
-      "andBelow": "and everything below",
-      "emptyTitle": "Nobody has access yet",
-      "emptyDescription": "Share an object, process or library item and the people who can reach it appear here."
-    }
+    "tabDirect": "Direct shares",
+    "lastMemberHint": "A share needs at least one person. To stop sharing entirely, delete the share."
   },
   "concepts": {
     "share": {

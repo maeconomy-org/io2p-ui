@@ -55,11 +55,11 @@
   },
   "shareObjects": {
     "tabs": "Two kinds of access",
-    "tabsDescription": "Shares are the bundles you built. Shared by me also lists everything you granted individually, so you can see and withdraw it all in one place.",
+    "tabsDescription": "Shares are the bundles you built. Direct shares lists what you granted on a single item on its own. Each tab edits only its own kind — a bundle is always changed on the bundle.",
     "start": "Create a share",
     "startDescription": "A share bundles resources and grants a group access to all of them at once.",
     "resources": "What is in the bundle",
-    "resourcesDescription": "Add the objects and processes to share. Access cascades to their children, and the whole bundle can be revoked in one step.",
+    "resourcesDescription": "Add what you want to share — objects and processes, or formulas, constants and templates, but never both kinds in one bundle. Access cascades to an object's children, and the whole bundle can be revoked in one step.",
     "members": "Who can see it",
     "membersDescription": "A share carries only resources and lists its members here — that is the difference from the Groups it replaced, which mixed both under one word."
   },

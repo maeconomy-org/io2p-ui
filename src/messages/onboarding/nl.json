@@ -55,11 +55,11 @@
   },
   "shareObjects": {
     "tabs": "Twee soorten toegang",
-    "tabsDescription": "Shares zijn de bundels die je hebt gemaakt. Door mij gedeeld toont ook alles wat je los hebt gegeven, zodat je het op één plek ziet en kunt intrekken.",
+    "tabsDescription": "Shares zijn de bundels die je hebt gemaakt. Directe shares toont wat je los op één item hebt gegeven. Elk tabblad bewerkt alleen zijn eigen soort — een bundel wijzig je altijd op de bundel zelf.",
     "start": "Maak een share",
     "startDescription": "Een share bundelt resources en geeft een groep in één keer toegang tot alles.",
     "resources": "Wat er in de bundel zit",
-    "resourcesDescription": "Voeg de objecten en processen toe die je wilt delen. Toegang werkt door naar onderliggende objecten en de hele bundel is in één stap in te trekken.",
+    "resourcesDescription": "Voeg toe wat je wilt delen — objecten en processen, óf formules, constanten en sjablonen, maar nooit beide soorten in één bundel. Toegang werkt door naar onderliggende objecten en de hele bundel is in één stap in te trekken.",
     "members": "Wie het mag zien",
     "membersDescription": "Een share bevat alleen resources en toont zijn leden hier — dat is het verschil met de Groepen die hij vervangt, die beide onder één woord mengden."
   },

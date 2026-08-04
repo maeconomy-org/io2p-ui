@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import {
+  ArrowRight,
   ChevronRight,
   Globe,
   History,
@@ -38,8 +40,9 @@ import {
   SheetTitle,
   Skeleton,
 } from '@/components/ui'
+import { DeleteConfirmationDialog } from '@/components/modals'
 import { useAuth } from '@/contexts'
-import { useGrants } from '@/hooks/api/access'
+import { useGrants, useShares } from '@/hooks/api/access'
 import { useUserDirectory, useUserSearch } from '@/hooks/api/users'
 import { UnsavedBar } from '@/components/entity-sheet/sheet-lifecycle-footer'
 import { saveErrorMessage } from '@/lib/io2p-errors'
@@ -133,12 +136,24 @@ export function ShareSheet({
   onOpenChange,
   target,
   isOwner,
+  directOnly = false,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   target: ShareTarget
   /** Only an owner/admin may read the grant list; the node 403s everyone else. */
   isOwner: boolean
+  /**
+   * Show ONLY ad-hoc grants — nothing a Share owns, in any section.
+   *
+   * Set when opening from the Direct shares tab, which exists precisely to separate the two kinds.
+   * Arriving there and finding bundle rows with "Manage bundle" makes the separation look broken,
+   * even though the rows are real.
+   *
+   * DEFAULT FALSE, because the entry point from an object or process is the access design's §4 tab:
+   * it answers "who can access this thing", and hiding a source there would understate the answer.
+   */
+  directOnly?: boolean
 }) {
   const t = useTranslations()
 
@@ -150,9 +165,13 @@ export function ShareSheet({
   // `revoked: 'include'` on the ONE read: active and revoked rows arrive together, so showing
   // history is a filter over what is already here rather than a second request and a second
   // loading state. They are split below — a revoked row must never reach the editable draft.
+  //
+  // `source` narrows by ORIGIN at the node, so `directOnly` never sees a bundle row at all — every
+  // section below (members, revoked history, the bundle group) reads the same narrowed set and
+  // cannot disagree about what is on screen.
   const { data: grantsPage, isLoading } = useList(
     resource,
-    { revoked: 'include' },
+    { revoked: 'include', source: directOnly ? 'direct' : 'all' },
     { enabled: open && isOwner }
   )
 
@@ -276,6 +295,56 @@ function ShareForm({
 
     return [...latest.values()].sort((a, b) => b.updatedAt - a.updatedAt)
   }, [grants])
+
+  /**
+   * Names for the bundles on screen, so a row can say "via Q3 rollout" rather than a uuid.
+   *
+   * ONE list read for the whole sheet, not one per row — the access design says so explicitly
+   * ("Do not call this endpoint per-row on the list (N+1)"). A share outside the first page simply
+   * stays unnamed and the chip falls back to a link, which is a smaller failure than N requests.
+   */
+  const { useList: useShareList, useUpdate: useShareUpdate } = useShares()
+  const { data: sharesPage } = useShareList(
+    { page: 1, size: 100 },
+    { enabled: grants.some((g) => g.shareId) }
+  )
+  const shareOf = (shareId: string) =>
+    sharesPage?.data.find((s) => s.id === shareId)
+  const shareNameOf = (shareId: string) => shareOf(shareId)?.name
+
+  const shareUpdate = useShareUpdate()
+  const [removingFrom, setRemovingFrom] = useState<GrantDTO | null>(null)
+
+  /**
+   * Remove a member from the BUNDLE (§4, amended 2026-08-03).
+   *
+   * This does not inline-edit the grant — the rule that forbids that guards against the bundle
+   * drifting from its expansion. It edits the BUNDLE, and the shares service re-syncs the grants,
+   * so the desync cannot occur.
+   *
+   * The confirm names the items because a Share is a CROSS PRODUCT: removing a member removes them
+   * from EVERY resource in it. `ShareDTO` carries `resources` in full, so the scope is resolved and
+   * shown before it fires rather than described in a button label.
+   */
+  const removeFromShare = async () => {
+    const grant = removingFrom
+    if (!grant?.shareId || grant.subject.kind !== 'user') return
+    try {
+      await shareUpdate.mutateAsync({
+        id: grant.shareId,
+        body: { members: { remove: [grant.subject.userId] } },
+      })
+      toast.success(t('access.removedFromShare'))
+      onDone()
+    } catch (error) {
+      logger.error('Remove from share failed', error)
+      toast.error(
+        t('access.saveFailedFor', { names: subjectLabel(keyOf(grant.subject)) })
+      )
+    } finally {
+      setRemovingFrom(null)
+    }
+  }
 
   /**
    * Access that comes from a Share, listed but NOT editable here.
@@ -536,10 +605,15 @@ function ShareForm({
                   {t(`access.permission.${grant.permission}`)}
                 </Badge>
               </div>
-              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span>{t('access.fromShareBundle')}</span>
-              </p>
+              <ViaShareChip
+                shareId={grant.shareId!}
+                name={shareNameOf(grant.shareId!)}
+                onRemove={
+                  grant.subject.kind === 'user'
+                    ? () => setRemovingFrom(grant)
+                    : undefined
+                }
+              />
             </div>
           ))}
 
@@ -710,6 +784,26 @@ function ShareForm({
         )}
       </SheetBody>
 
+      {removingFrom && (
+        <DeleteConfirmationDialog
+          open
+          onOpenChange={(open) => !open && setRemovingFrom(null)}
+          objectName=""
+          title={t('access.removeFromShareTitle', {
+            name: subjectLabel(keyOf(removingFrom.subject)),
+            share: shareNameOf(removingFrom.shareId!) ?? '',
+          })}
+          description={t('access.removeFromShareBody', {
+            count: shareOf(removingFrom.shareId!)?.resources.length ?? 0,
+            items:
+              shareOf(removingFrom.shareId!)
+                ?.resources.map((r) => r.name ?? r.id)
+                .join(', ') ?? '',
+          })}
+          onDelete={removeFromShare}
+        />
+      )}
+
       {dirty && <UnsavedBar count={changed.length + removed.length} />}
 
       <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
@@ -732,5 +826,52 @@ function ShareForm({
         </Button>
       </SheetFooter>
     </>
+  )
+}
+
+/**
+ * The §4 provenance chip: "via <bundle>" plus a deep-link to manage it there.
+ *
+ * Editing is restricted to the bundle ON PURPOSE — a grant edited here would drift from the Share
+ * that expanded it. So this row's only affordance is the way to the place that owns it.
+ */
+function ViaShareChip({
+  shareId,
+  name,
+  onRemove,
+}: {
+  shareId: string
+  name?: string
+  /** Omitted for `public`, which is not a share member and cannot be removed from one. */
+  onRemove?: () => void
+}) {
+  const t = useTranslations()
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs text-muted-foreground">
+        {/* An unnamed share still gets a chip — the LINK is what matters, and "via " with nothing
+            after it reads as a rendering fault rather than as a name we could not resolve. */}
+        {name ? t('access.viaShare', { name }) : t('access.viaShareUnnamed')}
+      </span>
+      <Link
+        href={`/shares?share=${shareId}`}
+        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+      >
+        {t('access.manageBundle')}
+        <ArrowRight className="h-3 w-3" aria-hidden="true" />
+      </Link>
+      {onRemove && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs text-destructive hover:text-destructive"
+          onClick={onRemove}
+        >
+          {t('access.removeFromShare')}
+        </Button>
+      )}
+    </div>
   )
 }

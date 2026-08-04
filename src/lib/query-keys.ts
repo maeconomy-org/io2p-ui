@@ -143,7 +143,7 @@ export const queryKeys = {
           resourceId,
           query,
         ] as const,
-      sharedByMe: (query?: { page?: number; size?: number }) =>
+      sharedByMe: (query?: unknown) =>
         [...queryKeys.access.all, 'sharedByMe', query] as const,
     },
     shares: {

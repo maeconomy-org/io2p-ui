@@ -1212,14 +1212,19 @@
     "saveFailedFor": "Toegang voor {names} kon niet worden opgeslagen. De rest is toegepast.",
     "revokedTitle": "Had eerder toegang",
     "revokedHint": "Toont wie is verwijderd en de laatste rechten die zij hadden — geen volledige wijzigingsgeschiedenis.",
-    "fromShareBundle": "Toegang komt van een share, die deze verlening bezit — open die share om te wijzigen of te verwijderen.",
-    "saveFailedReason": "Sommige wijzigingen konden niet worden toegepast."
+    "saveFailedReason": "Sommige wijzigingen konden niet worden toegepast.",
+    "viaShare": "via {name}",
+    "viaShareUnnamed": "via een share",
+    "manageBundle": "Share beheren",
+    "removeFromShare": "Uit share verwijderen",
+    "removeFromShareTitle": "{name} uit “{share}” verwijderen?",
+    "removeFromShareBody": "Zij verliezen toegang tot {count} items: {items}. Een share geldt voor iedereen erin, dus dit kan niet tot één item worden beperkt — splits de share als dat nodig is.",
+    "removedFromShare": "Uit de share verwijderd."
   },
   "shares": {
     "title": "Delen",
     "create": "Nieuwe deling",
     "tabShares": "Delingen",
-    "tabSharedByMe": "Gedeelde items",
     "deleteAction": "Deling verwijderen",
     "deleted": "Deling verwijderd",
     "deleteFailed": "Kon de deling niet verwijderen",
@@ -1245,7 +1250,7 @@
     },
     "empty": {
       "title": "Nog geen delingen",
-      "description": "Een deling bundelt objecten en processen en geeft een groep mensen in één keer toegang tot alles."
+      "description": "Een deling bundelt items en geeft een groep mensen in één keer toegang tot alles."
     },
     "sharedByMeEmpty": {
       "title": "U hebt nog niets gedeeld",
@@ -1265,31 +1270,31 @@
     "saved": "Deling bijgewerkt",
     "editorDescription": "Geef de deling een naam, kies wat erin zit en voor wie.",
     "namePlaceholder": "bijv. Q3 recyclingaudit",
-    "addResources": "Objecten of processen toevoegen",
-    "searchResources": "Objecten en processen zoeken...",
+    "addResources": "Aan deze deling toevoegen",
+    "searchResources": "Zoeken...",
     "noResources": "Niets meer om toe te voegen.",
+    "family": {
+      "data": "Objecten & processen",
+      "library": "Formules, constanten & sjablonen"
+    },
+    "familyLocked": "Een deling bevat óf objecten en processen, óf bibliotheekitems — niet allebei. Verwijder alles om te wisselen.",
+    "libraryShareHint": "Bibliotheekitems kunnen alleen ter inzage worden gedeeld. Iedereen in deze deling krijgt leestoegang.",
     "noResourcesYet": "Nog niets in deze deling.",
     "noMembersYet": "Nog niemand toegevoegd.",
     "removeResource": "{name} verwijderen",
     "removeMember": "{name} verwijderen",
     "cascadeLabel": "Alles onder deze objecten meenemen",
     "cascadeHint": "Objecten die er later onder komen worden automatisch gedeeld.",
-    "cascadeBlockedByProcess": "Niet beschikbaar zolang er een proces in zit — processen hebben geen inhoud om door te geven.",
-    "incompleteHint": "Een deling heeft een naam nodig, minstens één object of proces, en minstens één persoon.",
+    "cascadeBlocked": "Alleen beschikbaar voor een deling die volledig uit objecten bestaat — al het andere heeft geen inhoud om door te geven.",
+    "incompleteHint": "Een deling heeft een naam nodig, minstens één item, en minstens één persoon.",
     "bulk": {
       "deleteTitle": "Deze delingen verwijderen?",
       "deleteDescription": "Dit verwijdert {count} delingen en trekt alle toegekende toegang in.",
       "revokeDescription": "Dit trekt de toegang in die u rechtstreeks op {count} items hebt gegeven."
     },
     "tabOverview": "Overzicht",
-    "tabPeople": "Personen",
-    "people": {
-      "hint": "Iedereen die iets kan bereiken dat je hebt gedeeld, en het maximale dat zij ermee kunnen.",
-      "itemCount": "{count, plural, =1 {# item} other {# items}}",
-      "andBelow": "en alles daaronder",
-      "emptyTitle": "Nog niemand heeft toegang",
-      "emptyDescription": "Deel een object, proces of bibliotheekitem en de personen die het kunnen bereiken verschijnen hier."
-    }
+    "tabDirect": "Directe shares",
+    "lastMemberHint": "Een share heeft minstens één persoon nodig. Verwijder de share om het delen helemaal te stoppen."
   },
   "concepts": {
     "share": {

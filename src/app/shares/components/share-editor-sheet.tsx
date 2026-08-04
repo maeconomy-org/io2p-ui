@@ -37,8 +37,14 @@ import { useUserDirectory, useUserSearch } from '@/hooks/api/users'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
 
-import { ResourcePicker, type ShareResource } from './resource-picker'
 import { anchor } from '@/constants'
+
+import { ResourcePicker, type ShareResource } from './resource-picker'
+import {
+  canCascade,
+  familyOfBundle,
+  pinPermissions,
+} from '../utils/share-rules'
 
 export type ShareEditorMode = 'create' | 'edit' | 'duplicate'
 
@@ -162,11 +168,12 @@ function ShareForm({
     enabled: pickerOpen,
   })
 
-  // Cascade is an ancestor walk, and a process has no descendants — the node REJECTS the flag if any
-  // resource is a process. Clearing it here turns a 400 three steps later into a visible rule.
-  const hasProcess = resources.some((r) => r.type === 'process')
-  const cascadeAllowed = !hasProcess
+  const family = familyOfBundle(resources)
+  const libraryShare = family === 'library'
+  const cascadeAllowed = canCascade(resources)
   const effectiveCascade = cascadeAllowed && cascade
+
+  const effectiveMembers = pinPermissions(members, family)
 
   const memberIds = new Set(members.map((m) => m.userId))
   const candidates = users.filter(
@@ -186,7 +193,7 @@ function ShareForm({
       ? buildDelta(share, {
           name: name.trim(),
           resources,
-          members,
+          members: effectiveMembers,
           cascade: effectiveCascade,
         })
       : null
@@ -204,7 +211,7 @@ function ShareForm({
           body: buildDelta(share, {
             name: name.trim(),
             resources,
-            members,
+            members: effectiveMembers,
             cascade: effectiveCascade,
           }),
         })
@@ -213,7 +220,7 @@ function ShareForm({
           body: {
             name: name.trim(),
             resources: resources.map((r) => ({ type: r.type, id: r.id })),
-            members,
+            members: effectiveMembers,
             ...(effectiveCascade ? { includeDescendants: true } : {}),
           },
         })
@@ -282,8 +289,15 @@ function ShareForm({
           )}
           <ResourcePicker
             selectedIds={new Set(resources.map((r) => r.id))}
+            family={family}
             onAdd={(resource) => setResources((rs) => [...rs, resource])}
           />
+          {libraryShare && (
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{t('shares.libraryShareHint')}</span>
+            </p>
+          )}
         </div>
 
         <div className="space-y-2" {...anchor('shareMembers')}>
@@ -297,11 +311,21 @@ function ShareForm({
                 <span className="min-w-0 flex-1 truncate text-sm">
                   {nameOf(member.userId)}
                 </span>
+                {/* The LAST member cannot be removed: the node 422s an empty bundle, because a
+                    share with nobody in it generates no grants — it is not "shared with no one", it
+                    is not sharing. Disabled with a reason rather than left to fail on Save, and the
+                    reason names the action that IS meant here: delete the share. */}
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 shrink-0"
+                  disabled={members.length === 1}
+                  title={
+                    members.length === 1
+                      ? t('shares.lastMemberHint')
+                      : undefined
+                  }
                   aria-label={t('shares.removeMember', {
                     name: nameOf(member.userId),
                   })}
@@ -314,9 +338,12 @@ function ShareForm({
                   <X className="h-4 w-4" />
                 </Button>
               </div>
+              {/* Library resources are READ-SHARE ONLY, so the ladder is not a choice here —
+                  showing it would render rungs the node refuses. */}
               <PermissionSelect
                 className="w-full"
-                value={member.permission}
+                value={libraryShare ? 'read' : member.permission}
+                disabled={libraryShare}
                 aria-label={t('access.permissionFor', {
                   name: nameOf(member.userId),
                 })}
@@ -330,6 +357,13 @@ function ShareForm({
               />
             </div>
           ))}
+          {members.length === 1 && mode === 'edit' && (
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{t('shares.lastMemberHint')}</span>
+            </p>
+          )}
+
           {members.length === 0 && (
             <p className="text-sm text-muted-foreground">
               {t('shares.noMembersYet')}
@@ -398,7 +432,7 @@ function ShareForm({
             <span>
               {cascadeAllowed
                 ? t('shares.cascadeHint')
-                : t('shares.cascadeBlockedByProcess')}
+                : t('shares.cascadeBlocked')}
             </span>
           </p>
         </div>

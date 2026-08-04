@@ -19,10 +19,16 @@ import { buildSharedByMeColumns } from './shared-by-me-columns'
 import { ManageAccessSheet } from './manage-access-sheet'
 
 /**
- * Everything the signed-in user has shared.
+ * DIRECT shares only — the ad-hoc grants made from an item's own Share sheet.
  *
- * This is the only place ad-hoc grants — the ones made from an item's own Share sheet — can be seen
- * together; bundle-owned grants appear here too.
+ * Bundle-owned grants are filtered OUT, which is what the access design's §9 always specified
+ * ("[Bundles] | [Direct shares]", `direct` being core's own word for a grant with no `shareId`).
+ * It could not be implemented until the rollup carried `shareId`, so this tab shipped showing both
+ * kinds mixed — and that single fact produced every confusing thing about this page: rows that look
+ * identical but where half the actions silently do nothing, and a "Revoke all" that under-delivers.
+ *
+ * With the two separated, each tab is internally consistent: one kind of thing, one set of actions,
+ * all of which work on every row.
  */
 export function SharedByMeTable() {
   const t = useTranslations()
@@ -35,14 +41,19 @@ export function SharedByMeTable() {
   const [confirmBulk, setConfirmBulk] = useState(false)
 
   const { useSharedByMe, useRevoke } = useGrants()
+  /**
+   * `source: 'direct'` is the whole filter, done by the node.
+   *
+   * A resource whose grants are ALL bundle-owned drops out entirely — it is not a direct share, and
+   * listing it would put back the row that cannot be revoked from here. Because the node applies
+   * that before paginating, `totalElements` counts exactly the rows this tab lists.
+   */
   const { data, isFetching } = useSharedByMe(
-    { page, size: pageSize },
+    { page, size: pageSize, source: 'direct' },
     { keepPreviousData: true }
   )
   const revokeMutation = useRevoke()
 
-  // Memoised because `?? []` is a fresh array each render, which would make every dependent memo
-  // recompute on every render.
   const items = useMemo(() => data?.data ?? [], [data])
   // Only pay for the directory once there is a name to resolve.
   const { nameOf } = useUserDirectory({ enabled: items.length > 0 })
@@ -52,6 +63,13 @@ export function SharedByMeTable() {
     setPage(1)
   }, [])
 
+  /**
+   * Revoke every grant on this resource — and here that means ALL of them, because the rows are
+   * already filtered to direct grants. A `revoke` with no shareId targets exactly the row shown.
+   *
+   * This is the payoff of splitting the tabs: the action no longer needs to explain what it could
+   * not reach, because nothing unreachable is on screen.
+   */
   const confirmRevokeAll = useCallback(async () => {
     if (!revoking) return
     try {

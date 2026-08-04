@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { RowSelectionState } from '@tanstack/react-table'
 import { useTranslations } from 'next-intl'
 import { PlusCircle, Share2 } from 'lucide-react'
@@ -28,7 +29,6 @@ import { DEFAULT_TABLE_PAGE_SIZE, anchor } from '@/constants'
 import { logger } from '@/lib/logger'
 
 import { buildShareColumns } from './components/share-columns'
-import { PeopleAccessView } from './components/people-access-view'
 import { SharedByMeTable } from './components/shared-by-me-table'
 import {
   ShareEditorSheet,
@@ -57,6 +57,17 @@ export default function SharesPage() {
   } | null>(null)
   const [viewing, setViewing] = useState<ShareDTO | null>(null)
 
+  /**
+   * `?share=<id>` opens that bundle's detail — the deep-link target the access design's §4 asks for
+   * ("Manage bundle →" from a grant that a Share owns).
+   *
+   * A URL PARAM rather than a `/shares/<id>` route: detail is a sheet over this list, and a route
+   * would fork it into a second presentation of the same thing. Matches `?ref=` on `/processes`.
+   */
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const deepLinkedShareId = searchParams.get('share')
+
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
 
   const listQuery = useEntityListQuery()
@@ -71,6 +82,17 @@ export default function SharesPage() {
       deleted: showDeleted ? 'include' : undefined,
     },
     { keepPreviousData: true }
+  )
+
+  // Resolved from the loaded page — the node has no get-by-id for a Share, and a list row IS the
+  // whole ShareDTO. A link to a share outside the current page simply does not open one, which is
+  // why the bundle chip that produces these links is drawn from the same page.
+  const deepLinked = useMemo(
+    () =>
+      deepLinkedShareId
+        ? (sharesPage?.data.find((s) => s.id === deepLinkedShareId) ?? null)
+        : null,
+    [deepLinkedShareId, sharesPage]
   )
 
   const handlePageSizeChange = useCallback(
@@ -162,11 +184,8 @@ export default function SharesPage() {
                   <TabsTrigger value="shares">
                     {t('shares.tabShares')}
                   </TabsTrigger>
-                  <TabsTrigger value="sharedByMe">
-                    {t('shares.tabSharedByMe')}
-                  </TabsTrigger>
-                  <TabsTrigger value="people">
-                    {t('shares.tabPeople')}
+                  <TabsTrigger value="direct">
+                    {t('shares.tabDirect')}
                   </TabsTrigger>
                 </TabsList>
                 {/* Only the Shares list is filterable — `/access/shared-by-me` takes no filters
@@ -176,6 +195,7 @@ export default function SharesPage() {
                     sections={[deletedSection(t, showDeleted, setShowDeleted)]}
                   />
                 )}
+
                 <Button
                   size="sm"
                   onClick={() => setEditor({ mode: 'create', share: null })}
@@ -217,12 +237,11 @@ export default function SharesPage() {
               />
             </TabsContent>
 
-            <TabsContent value="sharedByMe">
+            {/* Split by SOURCE, which is what the access design's §9 specified from the start:
+                bundles are managed as bundles, ad-hoc grants get a home of their own. Mixing them
+                was the whole problem — one list where half the actions applied to half the rows. */}
+            <TabsContent value="direct">
               <SharedByMeTable />
-            </TabsContent>
-
-            <TabsContent value="people">
-              <PeopleAccessView />
             </TabsContent>
           </Tabs>
         </div>
@@ -236,11 +255,16 @@ export default function SharesPage() {
         onDelete={() => setConfirmBulkDelete(true)}
       />
 
-      {viewing && (
+      {(viewing || deepLinked) && (
         <ShareDetailSheet
           open
-          onOpenChange={(open) => !open && setViewing(null)}
-          share={viewing}
+          onOpenChange={(open) => {
+            if (open) return
+            setViewing(null)
+            // Clear the param too, or reopening from a row is impossible while it is set.
+            if (deepLinked) router.replace('/shares')
+          }}
+          share={(viewing ?? deepLinked)!}
           onEdit={() => {
             setEditor({ mode: 'edit', share: viewing })
             setViewing(null)
