@@ -31,6 +31,10 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname()
   const isPublicPage = PUBLIC_PAGES.includes(pathname)
+  // Throwaway sidebar exploration — brings its own chrome, so the navbar and footer would be a
+  // second one stacked on top. Delete this line with `src/app/lab/`.
+  const isLab = pathname.startsWith('/lab')
+  const bare = isPublicPage || isLab
 
   useKeyboardShortcuts()
 
@@ -38,11 +42,11 @@ export default function ClientLayout({
     <>
       <div className="flex-1 flex flex-col">
         <TourRunner />
-        {!isPublicPage && <InitialLoginTour />}
-        {!isPublicPage && <Navbar />}
+        {!bare && <InitialLoginTour />}
+        {!bare && <Navbar />}
         {children}
       </div>
-      {!isPublicPage && <Footer />}
+      {!bare && <Footer />}
     </>
   )
 }
