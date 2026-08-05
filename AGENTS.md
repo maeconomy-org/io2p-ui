@@ -156,9 +156,21 @@ Providers (providers.tsx)
 - **API**: `logger.error(msg, fields?)` — the Error always travels under `fields.err`, never flattened or stringified. Same for `debug/info/warn`.
 - **Server** (API routes, RSC): NDJSON to stdout, always on, gated by `LOG_LEVEL` (default `info` in prod, `debug` in dev). When `OTEL_ENABLED=true` the same records also flow as OTel log records.
 - **Browser, dev**: console at `LOG_LEVEL` (via `__IOM_CONFIG__`), ship sink off by default.
-- **Browser, production**: console OFF by design (set `localStorage['iom:log-level']` to re-enable on a live session); records at/above `LOG_SHIP_LEVEL` ship to `/api/telemetry`; error-level records go to Sentry with the real exception.
+- **Browser, production**: console OFF by design (the `localStorage['iom:log-level']` override re-enables it on a live session, or silences with `'off'`); records at/above `LOG_SHIP_LEVEL` ship to `/api/telemetry`; error-level records go to Sentry with the real exception.
 - Use `logger.security(event, details)` for auth/security events.
 - Use `logger.import(event, details)` for import pipeline events.
+
+### Observability (spans, metrics, telemetry)
+
+Logging semantics are above; these rules cover everything else new code instruments.
+
+- **Log vs span vs metric**: log = a fact about one request you'll read later; span = timing/causality in a trace waterfall (wrap meaningful async operations, join the active trace); metric = an aggregate you'd alert or dashboard on (counter for events, histogram for durations, observable gauge for depths/pools).
+- **Naming & cardinality**: never an id or unbounded value in a span name or metric label — ids go in span attributes namespaced `io2p.*`; metric names are `io2p.<domain>.<thing>` with closed-set attribute values; use OTel semconv names for standard things (prebuilt dashboards key on them).
+- **Server OTel** boots in `src/instrumentation.node.ts` (manual NodeSDK). `OTEL_ENABLED` defaults to false — telemetry must never break boot or tests; a start failure logs once, exporter errors never throw; endpoint/headers via the standard `OTEL_EXPORTER_OTLP_*` envs. New server spans/metrics use `@opentelemetry/api` (`trace.getTracer` / `metrics.getMeter`) — no-ops when the SDK is off.
+- **The browser has NO OTel SDK** (still experimental) — the browser signal is the logger. Records ship to `/api/telemetry` as `{ records: [...] }` (io2p-auth-ui's route takes a bare array — don't cross wire formats). A new browser destination is one more sink behind the interface in `src/lib/logger` — never a new logging path.
+- **Sentry is BROWSER-ONLY, errors-only.** Never add server-side Sentry or any tracing option — `tracesSampleRate: 0` still boots the tracing machinery; omit, don't zero.
+- **Scrubbing lives in `src/lib/redact.ts` and applies to ALL sinks** (ship, Sentry, NDJSON). Key-based redaction cannot see a secret inside a string VALUE — presigned URLs and query strings are sanitized at the call site (`redactPresignedUrlString`); a query string is a credential until proven otherwise. Never tokens, cookies or full URLs in span attributes or metric labels.
+- **New browser-visible config goes through `__IOM_CONFIG__` / `buildRuntimeConfig()`** (`src/constants/client.ts`) — a bare `process.env` read compiles away in the browser bundle and becomes a silent no-op.
 
 ### Dynamic Imports & Code Splitting
 
