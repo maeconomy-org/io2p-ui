@@ -22,6 +22,7 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 
 import type { LogLevel, LogRecord } from '@/lib/logger/core'
+import { FATAL_FLUSH, registerFatalHandlers } from '@/lib/logger/fatal'
 import { OTEL_LOG_SINK } from '@/lib/logger/server'
 
 // Local traffic that must not become tracing noise (plan §2 noise-drop list).
@@ -44,6 +45,7 @@ const BOOTED = Symbol.for('io2p.otelBooted')
 type GlobalWithOtel = typeof globalThis & {
   [BOOTED]?: boolean
   [OTEL_LOG_SINK]?: { write(rec: LogRecord): void }
+  [FATAL_FLUSH]?: () => Promise<void>
 }
 
 function toLogAttributes(rec: LogRecord): Record<string, string | number> {
@@ -69,6 +71,11 @@ function toLogAttributes(rec: LogRecord): Record<string, string | number> {
 }
 
 export function registerOtel(): void {
+  // Process-level fatal handlers first, and UNCONDITIONALLY: a background
+  // promise rejecting outside any request must reach NDJSON/OTel and crash
+  // the process cleanly whether or not the OTel SDK is enabled.
+  registerFatalHandlers()
+
   const g = globalThis as GlobalWithOtel
   if (g[BOOTED]) return
   if (process.env.OTEL_ENABLED !== 'true') return
@@ -138,9 +145,14 @@ export function registerOtel(): void {
       },
     }
 
+    // Hand the fatal handlers a flush: buffered spans/logs should leave the
+    // process before a fatal exit(1).
+    g[FATAL_FLUSH] = () => sdk.shutdown()
+
     // Best-effort flush on shutdown; never blocks or throws.
     const shutdown = () => {
       g[OTEL_LOG_SINK] = undefined
+      g[FATAL_FLUSH] = undefined
       sdk.shutdown().catch(() => {})
     }
     process.once('SIGTERM', shutdown)
@@ -149,5 +161,6 @@ export function registerOtel(): void {
     // OTel boot failure must never take the app down. NDJSON logging is
     // unaffected; there is nothing safe to report the failure to yet.
     g[OTEL_LOG_SINK] = undefined
+    g[FATAL_FLUSH] = undefined
   }
 }
