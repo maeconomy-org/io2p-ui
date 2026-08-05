@@ -9,6 +9,7 @@ import {
   tracesSampler,
 } from '@/lib/sentry-config'
 import { getCachedConfig } from '@/constants/client'
+import { initWebVitals } from '@/lib/web-vitals'
 
 // Read the DSN from the inline __IOM_CONFIG__ script rather than fetching
 // /api/config. The script runs in <head> before this module, so the config is
@@ -59,5 +60,9 @@ function initSentry() {
 }
 
 initSentry()
+
+// Web vitals ride the ship pipeline (→ /api/telemetry), not Sentry. No-ops
+// when the ship sink is dark (dev default).
+initWebVitals()
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart

@@ -11,7 +11,7 @@ import * as Sentry from '@sentry/nextjs'
 
 import { getCachedConfig } from '@/constants/client'
 import type { LogLevel, LogRecordWithRaw, Sink } from './core'
-import { normalizeLevel, rawError } from './core'
+import { LOG_LEVELS, normalizeLevel, rawError } from './core'
 
 export const LOG_LEVEL_STORAGE_KEY = 'iom:log-level'
 
@@ -52,10 +52,19 @@ export function consoleThreshold(): LogLevel | 'off' {
   return normalizeLevel(config?.logLevel, 'info')
 }
 
-/** Ship threshold — config-driven (`logShipLevel` via __IOM_CONFIG__). */
+/**
+ * Ship threshold — config-driven (`logShipLevel` via __IOM_CONFIG__).
+ * Prod default: 'info' (plan §5 config matrix). Dev default: off — the dev
+ * server would only echo what the browser console already shows. Shipping
+ * `debug` from a prod browser is a config flip, not a code change.
+ */
 export function shipThreshold(): LogLevel | 'off' {
   const config = getCachedConfig()
-  return normalizeLevel(config?.logShipLevel, 'info')
+  const configured = config?.logShipLevel
+  if (LOG_LEVELS.includes(configured as LogLevel)) {
+    return configured as LogLevel
+  }
+  return isProduction ? 'info' : 'off'
 }
 
 export const consoleSink: Sink = {

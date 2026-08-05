@@ -12,7 +12,13 @@
 import type { LogLevel } from './core'
 import { createLogger, normalizeLevel } from './core'
 import { ndjsonSink, otelBridgeActive, otelBridgeSink } from './server'
-import { consoleSink, consoleThreshold, sentrySink } from './client'
+import {
+  consoleSink,
+  consoleThreshold,
+  sentrySink,
+  shipThreshold,
+} from './client'
+import { shipSink } from './ship'
 
 const isServer = typeof window === 'undefined'
 const isProduction = process.env.NODE_ENV === 'production'
@@ -37,6 +43,7 @@ export const logger = createLogger(
     : [
         { sink: consoleSink, threshold: consoleThreshold },
         { sink: sentrySink, threshold: () => 'error' },
+        { sink: shipSink, threshold: shipThreshold },
       ]
 )
 

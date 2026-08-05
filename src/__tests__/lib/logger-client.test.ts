@@ -61,13 +61,21 @@ describe('client sinks', () => {
   })
 
   describe('shipThreshold', () => {
-    it('defaults to info and reads config.logShipLevel', async () => {
-      const mod = await import('@/lib/logger/client')
-      expect(mod.shipThreshold()).toBe('info')
+    it('is off by default outside production', async () => {
+      const { shipThreshold } = await import('@/lib/logger/client')
+      expect(shipThreshold()).toBe('off')
+    })
+
+    it('honours an explicit config.logShipLevel anywhere', async () => {
       setIomConfig({ baseUrl: 'https://x', logShipLevel: 'debug' })
-      vi.resetModules()
-      const mod2 = await import('@/lib/logger/client')
-      expect(mod2.shipThreshold()).toBe('debug')
+      const { shipThreshold } = await import('@/lib/logger/client')
+      expect(shipThreshold()).toBe('debug')
+    })
+
+    it('defaults to info in production (ship sink ON by design)', async () => {
+      vi.stubEnv('NODE_ENV', 'production')
+      const { shipThreshold } = await import('@/lib/logger/client')
+      expect(shipThreshold()).toBe('info')
     })
   })
 

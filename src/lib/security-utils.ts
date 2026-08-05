@@ -47,6 +47,42 @@ export interface PayloadValidationResult {
 import { logSecurityEvent } from './logger'
 
 /**
+ * Generic fixed-window rate limiter (Redis INCR/EXPIRE with the same
+ * in-memory fallback the import limiter uses). Deliberately does NOT log:
+ * the telemetry route is a caller, and a security-event log per throttled
+ * telemetry batch would feed the very pipeline being throttled.
+ */
+export async function checkSimpleRateLimit(
+  scope: string,
+  identifier: string,
+  maxRequests: number,
+  windowSeconds: number
+): Promise<{ allowed: boolean; current: number }> {
+  const key = `rate_limit:${scope}:${identifier}`
+  try {
+    const redis = getRedis()
+    const pipeline = redis.pipeline()
+    pipeline.incr(key)
+    pipeline.expire(key, windowSeconds)
+    const results = await pipeline.exec()
+    const current = (results?.[0]?.[1] as number) ?? 1
+    return { allowed: current <= maxRequests, current }
+  } catch {
+    const now = Date.now()
+    const entry = memoryRateLimit.get(key)
+    if (entry && now < entry.resetAt) {
+      entry.count += 1
+      return { allowed: entry.count <= maxRequests, current: entry.count }
+    }
+    memoryRateLimit.set(key, {
+      count: 1,
+      resetAt: now + windowSeconds * 1000,
+    })
+    return { allowed: true, current: 1 }
+  }
+}
+
+/**
  * Validate import payload size and object count
  */
 export function validateImportPayload(
