@@ -11,9 +11,10 @@ import {
 // In-memory fallback rate limiter when Redis is unavailable
 const memoryRateLimit = new Map<string, { count: number; resetAt: number }>()
 
-// Clean up expired entries every 60 seconds
+// Clean up expired entries every 60 seconds. unref() so this housekeeping
+// timer never keeps the process alive on shutdown.
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  const cleanupTimer = setInterval(() => {
     const now = Date.now()
     for (const [key, entry] of memoryRateLimit) {
       if (now >= entry.resetAt) {
@@ -21,6 +22,7 @@ if (typeof setInterval !== 'undefined') {
       }
     }
   }, 60_000)
+  ;(cleanupTimer as { unref?: () => void }).unref?.()
 }
 
 export interface SecurityValidationResult {
@@ -63,9 +65,18 @@ export async function checkSimpleRateLimit(
     const redis = getRedis()
     const pipeline = redis.pipeline()
     pipeline.incr(key)
-    pipeline.expire(key, windowSeconds)
+    pipeline.ttl(key)
     const results = await pipeline.exec()
     const current = (results?.[0]?.[1] as number) ?? 1
+    const ttl = (results?.[1]?.[1] as number) ?? -1
+    // FIXED window: set the expiry only when this INCR created the key (or a
+    // crash between INCR and EXPIRE left it without a TTL). Refreshing the
+    // TTL on every request would slide the window forever — sustained
+    // traffic (the ship sink flushes every 5s) would accumulate to the cap
+    // and then be 429'd permanently.
+    if (current === 1 || ttl === -1) {
+      await redis.expire(key, windowSeconds)
+    }
     return { allowed: current <= maxRequests, current }
   } catch {
     const now = Date.now()
@@ -149,12 +160,19 @@ export async function checkImportRateLimit(
     // Get current count and increment
     const pipeline = redis.pipeline()
     pipeline.incr(rateLimitKey)
-    pipeline.expire(rateLimitKey, windowSeconds)
     pipeline.ttl(rateLimitKey)
 
     const results = await pipeline.exec()
     const currentCount = results?.[0]?.[1] as number
-    const ttl = results?.[2]?.[1] as number
+    let ttl = results?.[1]?.[1] as number
+
+    // FIXED window: expiry only on key creation (or a missing TTL after a
+    // crash) — an EXPIRE on every request slides the window forever and
+    // permanently blocks sustained traffic once it reaches the cap.
+    if (currentCount === 1 || ttl === -1) {
+      await redis.expire(rateLimitKey, windowSeconds)
+      ttl = windowSeconds
+    }
 
     const resetTime = Date.now() + ttl * 1000
 
@@ -353,7 +371,16 @@ export function getClientIdentifier(req: Request): string {
   const realIP = req.headers.get('x-real-ip')
   const userAgent = req.headers.get('user-agent') || ''
 
-  const clientIP = forwardedFor?.split(',')[0] || realIP
+  // Take the LAST x-forwarded-for hop, not the first: each proxy appends the
+  // peer address it accepted the connection from, so the last entry is the
+  // one written by OUR edge proxy. The first entry is client-supplied and
+  // trivially spoofable — keying a rate limit on it lets an attacker rotate
+  // identities (or pin someone else's) with a header.
+  const hops = forwardedFor
+    ?.split(',')
+    .map((h) => h.trim())
+    .filter(Boolean)
+  const clientIP = (hops && hops[hops.length - 1]) || realIP
 
   if (clientIP && clientIP !== 'unknown') {
     // Create a hash for rate limiting without storing actual IP

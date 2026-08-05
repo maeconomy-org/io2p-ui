@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { LOG_LEVELS, type LogLevel, type LogRecord } from '@/lib/logger/core'
+import {
+  LOG_LEVELS,
+  levelPasses,
+  normalizeLevel,
+  type LogLevel,
+  type LogRecord,
+} from '@/lib/logger/core'
 import { ndjsonSink } from '@/lib/logger/server'
 import { logger } from '@/lib/logger'
 import { redactValue } from '@/lib/redact'
@@ -55,9 +61,35 @@ function sanitizeRecord(raw: unknown): LogRecord | null {
   }
   out.level = rec.level
   out.msg = clampString(rec.msg)
-  out.time = typeof rec.time === 'string' ? rec.time : new Date().toISOString()
+  // `time` is client-supplied and therefore attacker-controlled: clamp it to
+  // now ± 1h so a hostile batch cannot backdate or future-date log lines
+  // (which would poison time-ordered queries in the collector).
+  out.time = clampTime(rec.time)
   out.source = 'browser'
   return out as LogRecord
+}
+
+const MAX_TIME_SKEW_MS = 60 * 60 * 1000
+
+function clampTime(value: unknown): string {
+  const now = Date.now()
+  const parsed = typeof value === 'string' ? Date.parse(value) : NaN
+  if (Number.isNaN(parsed)) return new Date(now).toISOString()
+  if (Math.abs(parsed - now) > MAX_TIME_SKEW_MS) {
+    return new Date(now).toISOString()
+  }
+  return new Date(parsed).toISOString()
+}
+
+// The NDJSON path bypasses the logger's level gate (records are written to
+// the sink directly), so re-apply the server's LOG_LEVEL here — a browser
+// configured to ship debug must not flood a prod server that logs at info.
+function serverLevelAdmits(level: LogLevel): boolean {
+  const threshold = normalizeLevel(
+    process.env.LOG_LEVEL,
+    process.env.NODE_ENV === 'production' ? 'info' : 'debug'
+  )
+  return levelPasses(level, threshold)
 }
 
 function toOtlpLogsPayload(records: LogRecord[]): unknown {
@@ -123,6 +155,8 @@ function parseOtlpHeaders(): Record<string, string> {
   return headers
 }
 
+const OTLP_FORWARD_TIMEOUT_MS = 3_000
+
 async function forwardToOtlp(
   endpoint: string,
   records: LogRecord[]
@@ -135,6 +169,8 @@ async function forwardToOtlp(
         ...parseOtlpHeaders(),
       },
       body: JSON.stringify(toOtlpLogsPayload(records)),
+      // A hung collector must not hold request handlers open.
+      signal: AbortSignal.timeout(OTLP_FORWARD_TIMEOUT_MS),
     })
     return res.ok
   } catch {
@@ -145,11 +181,29 @@ async function forwardToOtlp(
 // One line per process for repeated forward failures, not one per batch.
 let loggedForwardFailure = false
 
+function writeToNdjson(records: LogRecord[]): void {
+  for (const rec of records) {
+    // The direct sink write bypasses the logger's gate — re-apply LOG_LEVEL
+    // so browser debug shipping cannot flood a prod server's stdout.
+    if (serverLevelAdmits(rec.level)) {
+      ndjsonSink.write(rec)
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Payload cap before reading the body when the client declared a length.
-    const declared = parseInt(request.headers.get('content-length') || '0')
-    if (declared > MAX_PAYLOAD_BYTES) {
+    // Require a declared length: a chunked body would have to be buffered in
+    // full BEFORE any size check could run, which hands a memory-pressure
+    // lever to anonymous callers. fetch/sendBeacon always set Content-Length
+    // for string/Blob bodies, so legitimate ship-sink traffic is unaffected.
+    // nginx client_max_body_size remains the backstop in front of this.
+    const declaredHeader = request.headers.get('content-length')
+    if (!declaredHeader) {
+      return new NextResponse(null, { status: 411 })
+    }
+    const declared = parseInt(declaredHeader)
+    if (Number.isNaN(declared) || declared > MAX_PAYLOAD_BYTES) {
       return new NextResponse(null, { status: 413 })
     }
 
@@ -165,7 +219,8 @@ export async function POST(request: NextRequest) {
     }
 
     const text = await request.text()
-    if (text.length > MAX_PAYLOAD_BYTES) {
+    // Byte length, not UTF-16 char count — the cap and the wire must agree.
+    if (Buffer.byteLength(text, 'utf8') > MAX_PAYLOAD_BYTES) {
       return new NextResponse(null, { status: 413 })
     }
 
@@ -192,18 +247,30 @@ export async function POST(request: NextRequest) {
 
     const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT
     if (endpoint) {
-      const ok = await forwardToOtlp(endpoint, records)
-      if (!ok && !loggedForwardFailure) {
-        loggedForwardFailure = true
-        logger.warn('Telemetry OTLP forward failing; will not repeat this log')
-      }
-      if (ok) loggedForwardFailure = false
+      // Fire-and-forget: the 204 does not wait on the collector, and a
+      // failed forward degrades to the NDJSON stream instead of losing the
+      // batch (stdout is always available; the collector is not).
+      void forwardToOtlp(endpoint, records)
+        .then((ok) => {
+          if (ok) {
+            loggedForwardFailure = false
+            return
+          }
+          writeToNdjson(records)
+          if (!loggedForwardFailure) {
+            loggedForwardFailure = true
+            logger.warn(
+              'Telemetry OTLP forward failing, degrading to NDJSON; will not repeat this log'
+            )
+          }
+        })
+        .catch(() => {
+          // forwardToOtlp never rejects, but telemetry must never throw.
+        })
     } else {
       // No collector configured: land browser records in the server NDJSON
       // stream, tagged source: 'browser' (set in sanitizeRecord).
-      for (const rec of records) {
-        ndjsonSink.write(rec)
-      }
+      writeToNdjson(records)
     }
 
     return new NextResponse(null, { status: 204 })

@@ -24,7 +24,13 @@ function post(body: unknown, headers: Record<string, string> = {}) {
   const text = typeof body === 'string' ? body : JSON.stringify(body)
   return new NextRequest('https://app.test/api/telemetry', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...headers },
+    headers: {
+      'content-type': 'application/json',
+      // The route requires a declared length (chunked bodies are rejected
+      // with 411); real fetch/sendBeacon always set this.
+      'content-length': String(Buffer.byteLength(text, 'utf8')),
+      ...headers,
+    },
     body: text,
   })
 }
@@ -64,6 +70,53 @@ describe('POST /api/telemetry', () => {
     expect(ndjsonWrite).not.toHaveBeenCalled()
   })
 
+  it('rejects a request without Content-Length with 411', async () => {
+    // NextRequest keeps a caller-supplied header set verbatim; omit the
+    // length to model a chunked upload.
+    const req = new NextRequest('https://app.test/api/telemetry', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"records":[]}',
+    })
+    req.headers.delete('content-length')
+    const res = await POST(req)
+    expect(res.status).toBe(411)
+  })
+
+  it('clamps attacker-controlled record time to the server clock window', async () => {
+    await POST(
+      post({
+        records: [
+          {
+            level: 'error',
+            time: '1999-01-01T00:00:00.000Z',
+            msg: 'backdated',
+          },
+        ],
+      })
+    )
+    const rec = ndjsonWrite.mock.calls[0][0] as Record<string, unknown>
+    const drift = Math.abs(Date.parse(rec.time as string) - Date.now())
+    expect(drift).toBeLessThan(60_000)
+  })
+
+  it("gates NDJSON writes by the server's LOG_LEVEL", async () => {
+    vi.stubEnv('NODE_ENV', 'production') // default threshold: info
+    await POST(
+      post({
+        records: [
+          { level: 'debug', time: new Date().toISOString(), msg: 'chatty' },
+          { level: 'info', time: new Date().toISOString(), msg: 'kept' },
+        ],
+      })
+    )
+    vi.unstubAllEnvs()
+    const written = ndjsonWrite.mock.calls.map(
+      (c) => (c[0] as Record<string, unknown>).msg
+    )
+    expect(written).toEqual(['kept'])
+  })
+
   it('returns 429 when the rate limiter says no', async () => {
     rateLimit.mockResolvedValueOnce({ allowed: false, current: 999 })
     const res = await POST(post({ records: [] }))
@@ -101,22 +154,41 @@ describe('POST /api/telemetry', () => {
     const res = await POST(
       post({
         records: [
-          { level: 'info', time: '2026-08-05T10:00:00.000Z', msg: 'hello' },
+          { level: 'info', time: new Date().toISOString(), msg: 'hello' },
         ],
       })
     )
+    // Fire-and-forget: 204 first, forward settles after.
     expect(res.status).toBe(204)
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
     expect(ndjsonWrite).not.toHaveBeenCalled()
-    expect(fetchMock).toHaveBeenCalledTimes(1)
     const [url, init] = fetchMock.mock.calls[0] as unknown as [
       string,
-      { body: string },
+      { body: string; signal?: AbortSignal },
     ]
     expect(url).toBe('https://collector.test/v1/logs')
+    expect(init.signal).toBeInstanceOf(AbortSignal)
     const payload = JSON.parse(init.body)
     const logRecord = payload.resourceLogs[0].scopeLogs[0].logRecords[0]
     expect(logRecord.body.stringValue).toBe('hello')
     expect(logRecord.severityText).toBe('INFO')
+  })
+
+  it('degrades a failed OTLP forward to the NDJSON sink instead of dropping', async () => {
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'https://collector.test'
+    fetchMock.mockRejectedValueOnce(new Error('collector down'))
+    const res = await POST(
+      post({
+        records: [
+          { level: 'error', time: new Date().toISOString(), msg: 'precious' },
+        ],
+      })
+    )
+    expect(res.status).toBe(204)
+    await vi.waitFor(() => expect(ndjsonWrite).toHaveBeenCalledTimes(1))
+    expect((ndjsonWrite.mock.calls[0][0] as Record<string, unknown>).msg).toBe(
+      'precious'
+    )
   })
 
   it('caps the records taken from one batch', async () => {
