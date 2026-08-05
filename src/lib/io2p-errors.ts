@@ -26,6 +26,22 @@ export function iomStatus(error: unknown): number | undefined {
   return undefined
 }
 
+// `NetworkError` (fetch itself rejected — node down, DNS, CORS) carries status 0, the XHR
+// "no response" convention, so "node unreachable" is distinguishable from every HTTP status
+// without `instanceof` (same dual-module-copy hazard as above).
+export function isNodeUnreachable(error: unknown): boolean {
+  return iomStatus(error) === 0
+}
+
+// `TimeoutError` is a `NetworkError` subclass (status 0 too); the SDK contract is to
+// discriminate it by `name`, never `instanceof`.
+export function isTimeout(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null && 'name' in error) {
+    return (error as { name: unknown }).name === 'TimeoutError'
+  }
+  return false
+}
+
 // The problem+json `detail` — server prose naming the rule that rejected the write. Only worth
 // surfacing for 422, where it tells the user which field to fix.
 export function iomDetail(error: unknown): string | undefined {
