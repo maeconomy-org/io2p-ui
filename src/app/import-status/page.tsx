@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 import { useImportManager } from '@/hooks/import/use-import-manager'
 import { Button, Progress } from '@/components/ui'
 import { ContentSkeleton } from '@/components/skeletons'
@@ -417,10 +418,9 @@ function ImportStatusContent() {
                                     try {
                                       await cancelJob(selectedJob.jobId)
                                     } catch (error) {
-                                      console.error(
-                                        'Failed to cancel job:',
-                                        error
-                                      )
+                                      logger.error('Failed to cancel job', {
+                                        err: error,
+                                      })
                                     }
                                   }}
                                   disabled={

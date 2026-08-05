@@ -58,6 +58,28 @@ describe('client sinks', () => {
       const { consoleThreshold } = await import('@/lib/logger/client')
       expect(consoleThreshold()).toBe('debug')
     })
+
+    it('keeps the prod console OFF for an INVALID override value', async () => {
+      // Regression: an invalid override used to hit the fallback level and
+      // silently turn the production console ON.
+      vi.stubEnv('NODE_ENV', 'production')
+      window.localStorage.setItem('iom:log-level', 'debgu')
+      const { consoleThreshold } = await import('@/lib/logger/client')
+      expect(consoleThreshold()).toBe('off')
+    })
+
+    it("accepts 'off' as an override to silence the dev console", async () => {
+      window.localStorage.setItem('iom:log-level', 'off')
+      const { consoleThreshold } = await import('@/lib/logger/client')
+      expect(consoleThreshold()).toBe('off')
+    })
+
+    it('re-reads the override per call — same-tab changes apply immediately', async () => {
+      const { consoleThreshold } = await import('@/lib/logger/client')
+      expect(consoleThreshold()).toBe('info')
+      window.localStorage.setItem('iom:log-level', 'error')
+      expect(consoleThreshold()).toBe('error')
+    })
   })
 
   describe('shipThreshold', () => {
@@ -76,6 +98,13 @@ describe('client sinks', () => {
       vi.stubEnv('NODE_ENV', 'production')
       const { shipThreshold } = await import('@/lib/logger/client')
       expect(shipThreshold()).toBe('info')
+    })
+
+    it('honours LOG_SHIP_LEVEL=off in production — no fallback to info', async () => {
+      vi.stubEnv('NODE_ENV', 'production')
+      setIomConfig({ baseUrl: 'https://x', logShipLevel: 'off' })
+      const { shipThreshold } = await import('@/lib/logger/client')
+      expect(shipThreshold()).toBe('off')
     })
   })
 

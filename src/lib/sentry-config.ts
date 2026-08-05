@@ -26,8 +26,11 @@ type SentryEvent = ErrorEvent
  * log shipping is the /api/telemetry pipeline's job.
  */
 export const sharedSentryOptions = {
-  // Enable session health tracking (crash rates, stability metrics)
-  autoSessionTracking: true,
+  // NOTE: session health tracking is NOT an option anymore — the old
+  // `autoSessionTracking` flag was removed in SDK v9 and was silently
+  // ignored here. With defaultIntegrations off, sessions only exist if
+  // browserSessionIntegration is registered explicitly (it is, in
+  // instrumentation-client.ts).
 
   // Disable all default integrations to prevent auto-loading 40+ integrations
   defaultIntegrations: false,

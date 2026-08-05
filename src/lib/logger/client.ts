@@ -17,36 +17,36 @@ export const LOG_LEVEL_STORAGE_KEY = 'iom:log-level'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
-// The override is read once and re-read on the `storage` event, so a second
-// tab can flip it without reloading this one.
-let storedOverride: string | null | undefined
+// Read the override fresh on every call: it only runs when a record is
+// actually emitted, a localStorage read is nanoseconds at that scale, and it
+// makes a same-tab `localStorage.setItem('iom:log-level', ...)` take effect
+// immediately — the `storage` event only fires in OTHER tabs, so a cache
+// keyed on it forced a reload in the tab doing the debugging.
 function readOverride(): string | null {
-  if (storedOverride !== undefined) return storedOverride
   try {
-    storedOverride = window.localStorage.getItem(LOG_LEVEL_STORAGE_KEY)
+    return window.localStorage.getItem(LOG_LEVEL_STORAGE_KEY)
   } catch {
-    storedOverride = null
+    return null
   }
-  return storedOverride
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
-    if (e.key === LOG_LEVEL_STORAGE_KEY || e.key === null) {
-      storedOverride = undefined
-    }
-  })
+/** A configured level value: a real level, or 'off' to silence the sink. */
+function validConfigured(value: unknown): LogLevel | 'off' | null {
+  if (value === 'off') return 'off'
+  if (LOG_LEVELS.includes(value as LogLevel)) return value as LogLevel
+  return null
 }
 
 /**
  * Browser console level precedence:
- *   localStorage['iom:log-level'] > config.logLevel > 'warn' prod / 'info' dev
- * In production the console sink is OFF unless the localStorage override is
- * present (explicit debug opt-in).
+ *   localStorage['iom:log-level'] > config.logLevel > 'warn' dev / OFF prod
+ * Only a VALID override counts — an invalid value falls through to the
+ * config/default path rather than turning the prod console on via a
+ * fallback level.
  */
 export function consoleThreshold(): LogLevel | 'off' {
-  const override = readOverride()
-  if (override) return normalizeLevel(override, isProduction ? 'warn' : 'info')
+  const override = validConfigured(readOverride())
+  if (override !== null) return override
   if (isProduction) return 'off'
   const config = getCachedConfig()
   return normalizeLevel(config?.logLevel, 'info')
@@ -54,16 +54,14 @@ export function consoleThreshold(): LogLevel | 'off' {
 
 /**
  * Ship threshold — config-driven (`logShipLevel` via __IOM_CONFIG__).
- * Prod default: 'info' (plan §5 config matrix). Dev default: off — the dev
- * server would only echo what the browser console already shows. Shipping
- * `debug` from a prod browser is a config flip, not a code change.
+ * `off` is a first-class value: LOG_SHIP_LEVEL=off must disable shipping in
+ * production too, not fall back to 'info'. Prod default: 'info' (plan §5
+ * config matrix). Dev default: off — the dev server would only echo what the
+ * browser console already shows.
  */
 export function shipThreshold(): LogLevel | 'off' {
-  const config = getCachedConfig()
-  const configured = config?.logShipLevel
-  if (LOG_LEVELS.includes(configured as LogLevel)) {
-    return configured as LogLevel
-  }
+  const configured = validConfigured(getCachedConfig()?.logShipLevel)
+  if (configured !== null) return configured
   return isProduction ? 'info' : 'off'
 }
 

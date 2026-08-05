@@ -181,12 +181,23 @@ export function buildRecord(
     }
   }
 
+  // Strip reserved keys from context BEFORE spreading: a ctx field named
+  // `level`/`time`/`msg`/`err` must never overwrite the record's core fields
+  // (and the core fields stay first, which keeps the NDJSON key order).
+  const {
+    level: _ctxLevel,
+    time: _ctxTime,
+    msg: _ctxMsg,
+    err: _ctxErr,
+    ...safeCtx
+  } = redactValue(ctx) as Record<string, unknown>
+
   const rec: LogRecordWithRaw = {
     level,
     time: new Date().toISOString(),
     msg,
     ...(err !== undefined ? { err: serializeError(err) } : {}),
-    ...(redactValue(ctx) as Record<string, unknown>),
+    ...safeCtx,
   }
   if (err !== undefined) rec[rawError] = err
   return rec

@@ -118,14 +118,24 @@ function redactValueInner(
   if (typeof value === 'string') return redactPresignedUrlString(value)
   if (value === null || typeof value !== 'object') return value
   if (depth <= 0) return undefined
+  // `seen` tracks the CURRENT PATH, not every visited node: entries are
+  // removed after their subtree is processed, so a shared (diamond)
+  // reference is copied normally at each occurrence and only a genuine
+  // ancestor cycle is labeled '[Circular]'.
   if (seen.has(value)) return '[Circular]'
   seen.add(value)
+  let out: unknown
   if (Array.isArray(value)) {
-    return value.map((v) => redactValueInner(v, depth - 1, seen))
+    out = value.map((v) => redactValueInner(v, depth - 1, seen))
+  } else {
+    const obj: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      obj[k] = isRedactedKey(k)
+        ? REDACTED
+        : redactValueInner(v, depth - 1, seen)
+    }
+    out = obj
   }
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    out[k] = isRedactedKey(k) ? REDACTED : redactValueInner(v, depth - 1, seen)
-  }
+  seen.delete(value)
   return out
 }

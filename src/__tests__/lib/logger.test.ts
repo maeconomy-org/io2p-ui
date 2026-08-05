@@ -150,6 +150,31 @@ describe('buildRecord', () => {
     const rec = buildRecord('info', 'odd shape', 'stringy')
     expect(rec.data).toBe('stringy')
   })
+
+  it('never lets context overwrite the core record fields', () => {
+    const rec = buildRecord('error', 'real message', {
+      err: new Error('real error'),
+      level: 'debug', // hostile/accidental collisions
+      time: 'not-a-time',
+      msg: 'spoofed',
+    } as never)
+    expect(rec.level).toBe('error')
+    expect(rec.msg).toBe('real message')
+    expect(Number.isNaN(Date.parse(rec.time))).toBe(false)
+    expect(rec.err?.message).toBe('real error')
+  })
+
+  it('copies shared (diamond) references without mislabeling them circular', () => {
+    const shared = { host: 'core.internal' }
+    const rec = buildRecord('info', 'diamond', { a: shared, b: shared })
+    expect(rec.a).toEqual({ host: 'core.internal' })
+    expect(rec.b).toEqual({ host: 'core.internal' })
+    // A genuine cycle IS labeled.
+    const cyclic: Record<string, unknown> = {}
+    cyclic.self = cyclic
+    const rec2 = buildRecord('info', 'cycle', { c: cyclic })
+    expect((rec2.c as Record<string, unknown>).self).toBe('[Circular]')
+  })
 })
 
 describe('createLogger sink routing', () => {

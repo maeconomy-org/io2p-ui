@@ -76,6 +76,41 @@ describe('ship sink', () => {
     expect(total).toBeGreaterThan(0)
   })
 
+  it('exempts web-vital records from dedupe — re-reports are measurements', () => {
+    const vital = (value: number) => ({
+      ...buildRecord('info', 'web-vital CLS', {
+        category: 'web-vital',
+        metric: 'CLS',
+        value,
+      }),
+    })
+    shipRecord(vital(0.01))
+    shipRecord(vital(0.05))
+    shipRecord(vital(0.09))
+    vi.advanceTimersByTime(5_000)
+
+    const [batch] = sentBatches()
+    expect(batch.records).toHaveLength(3)
+    expect(batch.records.map((r) => r.value)).toEqual([0.01, 0.05, 0.09])
+  })
+
+  it('truncates oversized records instead of losing the whole batch', () => {
+    const err = new Error('big')
+    err.stack = 'x'.repeat(100_000)
+    shipRecord(buildRecord('error', 'huge', { err, blob: 'y'.repeat(100_000) }))
+    vi.advanceTimersByTime(5_000)
+
+    const [batch] = sentBatches()
+    const rec = batch.records[0]
+    expect((rec.err as { stack: string }).stack.length).toBeLessThanOrEqual(
+      8 * 1024
+    )
+    expect(
+      new TextEncoder().encode(JSON.stringify(rec)).length
+    ).toBeLessThanOrEqual(32 * 1024)
+    expect(rec.msg).toBe('huge')
+  })
+
   it('uses sendBeacon for records produced while the page is hidden', () => {
     const spy = vi
       .spyOn(document, 'visibilityState', 'get')

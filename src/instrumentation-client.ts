@@ -37,6 +37,12 @@ function initSentry() {
           Sentry.browserApiErrorsIntegration(),
           Sentry.globalHandlersIntegration(),
           Sentry.dedupeIntegration(), // Remove duplicate errors
+          // Session health (crash rates): the v8 autoSessionTracking option
+          // is gone in v9+, and with defaultIntegrations: false this
+          // integration is the ONLY thing that produces sessions.
+          Sentry.browserSessionIntegration(),
+          // URL + headers context on events (no PII beyond the URL).
+          Sentry.httpContextIntegration(),
           // Breadcrumbs for debugging context (no PII)
           Sentry.breadcrumbsIntegration({
             console: false, // Console logs flow through the logger's ship sink

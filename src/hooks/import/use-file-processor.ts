@@ -151,7 +151,7 @@ export function useFileProcessor({
       updateProgress(70)
 
       if (parseResult.errors.length > 0) {
-        console.warn('CSV parsing warnings:', parseResult.errors)
+        logger.warn('CSV parsing warnings', { errors: parseResult.errors })
       }
 
       const data = parseResult.data as any[][]

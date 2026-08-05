@@ -12,8 +12,19 @@ const MAX_BATCH_RECORDS = 20
 const MAX_BATCH_BYTES = 60_000 // stay under the route's 64KB payload cap
 const DEDUPE_WINDOW_MS = 30_000
 const MAX_RECORDS_PER_MINUTE = 60
+// Per-record ceilings so one huge record (a deep ctx, a monster stack) can't
+// exceed the route's payload cap on its own and become guaranteed-lost.
+const MAX_STRING_FIELD_CHARS = 8 * 1024
+const MAX_RECORD_BYTES = 32 * 1024
 
 const TELEMETRY_URL = '/api/telemetry'
+
+const encoder = new TextEncoder()
+
+/** Byte length as the wire will see it — NOT the UTF-16 char count. */
+function byteLength(s: string): number {
+  return encoder.encode(s).length
+}
 
 interface QueuedRecord {
   rec: Record<string, unknown>
@@ -22,7 +33,18 @@ interface QueuedRecord {
 
 let queue: QueuedRecord[] = []
 let flushTimer: ReturnType<typeof setTimeout> | null = null
-let listenersInstalled = false
+
+// HMR guard: module state resets on hot replace, but the old listeners stay
+// attached — install the listeners once (flag on globalThis) and route them
+// through a globalThis function pointer that every module instance refreshes,
+// so post-HMR flushes hit the LIVE queue, not the orphaned one.
+const LISTENERS_KEY = Symbol.for('io2p.shipListenersInstalled')
+const FLUSH_KEY = Symbol.for('io2p.shipFlush')
+
+type GlobalWithShip = typeof globalThis & {
+  [LISTENERS_KEY]?: boolean
+  [FLUSH_KEY]?: (useBeacon?: boolean) => void
+}
 
 // Dedupe: identical record repeated inside the window increments a counter on
 // the queued copy instead of enqueuing again.
@@ -32,7 +54,11 @@ const seen = new Map<string, { at: number; queued: QueuedRecord | null }>()
 let minuteWindowStart = 0
 let minuteCount = 0
 
-function dedupeKey(rec: LogRecordWithRaw): string {
+function dedupeKey(rec: LogRecordWithRaw): string | null {
+  // Web vitals are measurements, not repeats: CLS/INP legitimately re-report
+  // within seconds and each report matters — exempt them from dedupe (the
+  // per-minute cap still applies).
+  if (rec.category === 'web-vital') return null
   const err = rec.err as { name?: string; message?: string } | undefined
   return [rec.level, rec.msg, err?.name ?? '', err?.message ?? ''].join('|')
 }
@@ -41,7 +67,39 @@ function toWireRecord(rec: LogRecordWithRaw): Record<string, unknown> {
   // The raw error rides under a symbol key, which JSON.stringify skips — but
   // strip it anyway so the wire shape is exactly the serializable record.
   const { [rawError]: _ignored, ...copy } = rec
-  return copy
+  return truncateRecord(copy)
+}
+
+// Clamp oversized string fields (stacks, blobs of ctx), then — if the record
+// is still over the per-record byte budget — keep only the core fields plus
+// a truncation marker. Better a clipped record than a whole lost batch.
+function truncateRecord(rec: Record<string, unknown>): Record<string, unknown> {
+  const clamped: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(rec)) {
+    if (typeof v === 'string' && v.length > MAX_STRING_FIELD_CHARS) {
+      clamped[k] = v.slice(0, MAX_STRING_FIELD_CHARS)
+    } else if (k === 'err' && v && typeof v === 'object') {
+      const err = { ...(v as Record<string, unknown>) }
+      if (
+        typeof err.stack === 'string' &&
+        err.stack.length > MAX_STRING_FIELD_CHARS
+      ) {
+        err.stack = err.stack.slice(0, MAX_STRING_FIELD_CHARS)
+      }
+      clamped[k] = err
+    } else {
+      clamped[k] = v
+    }
+  }
+  try {
+    if (byteLength(JSON.stringify(clamped)) <= MAX_RECORD_BYTES) {
+      return clamped
+    }
+  } catch {
+    // Unserializable ctx — fall through to the minimal shape.
+  }
+  const { level, time, msg, err } = clamped
+  return { level, time, msg, err, truncated: true }
 }
 
 function throttled(now: number): boolean {
@@ -67,7 +125,7 @@ function takeBatch(): Record<string, unknown>[] {
   let bytes = 0
   while (queue.length > 0 && batch.length < MAX_BATCH_RECORDS) {
     const next = queue[0]
-    const size = JSON.stringify(next.rec).length
+    const size = byteLength(JSON.stringify(next.rec))
     if (bytes + size > MAX_BATCH_BYTES && batch.length > 0) break
     queue.shift()
     if (next.key && seen.get(next.key)?.queued === next) {
@@ -110,12 +168,15 @@ function flush(useBeacon = false): void {
 }
 
 function installLifecycleFlush(): void {
-  if (listenersInstalled || typeof window === 'undefined') return
-  listenersInstalled = true
+  if (typeof window === 'undefined') return
+  const g = globalThis as GlobalWithShip
+  g[FLUSH_KEY] = flush // always point at THIS module instance's flush
+  if (g[LISTENERS_KEY]) return
+  g[LISTENERS_KEY] = true
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') flush(true)
+    if (document.visibilityState === 'hidden') g[FLUSH_KEY]?.(true)
   })
-  window.addEventListener('pagehide', () => flush(true))
+  window.addEventListener('pagehide', () => g[FLUSH_KEY]?.(true))
 }
 
 /**
@@ -127,20 +188,24 @@ export function shipRecord(rec: LogRecordWithRaw): void {
   installLifecycleFlush()
 
   const now = Date.now()
-  const key = dedupeKey(rec)
-  const entry = seen.get(key)
-  if (entry && now - entry.at < DEDUPE_WINDOW_MS) {
-    // Repeat inside the window: count it on the queued copy if one is still
-    // waiting, otherwise drop it — an error loop becomes one record + count.
-    if (entry.queued) {
-      entry.queued.rec.repeats = ((entry.queued.rec.repeats as number) || 0) + 1
+  const key = dedupeKey(rec) // null = dedupe-exempt (web vitals)
+  if (key !== null) {
+    const entry = seen.get(key)
+    if (entry && now - entry.at < DEDUPE_WINDOW_MS) {
+      // Repeat inside the window: count it on the queued copy if one is
+      // still waiting, otherwise drop it — an error loop becomes one record
+      // plus a count.
+      if (entry.queued) {
+        entry.queued.rec.repeats =
+          ((entry.queued.rec.repeats as number) || 0) + 1
+      }
+      return
     }
-    return
   }
   if (throttled(now)) return
 
-  const queued: QueuedRecord = { rec: toWireRecord(rec), key }
-  seen.set(key, { at: now, queued })
+  const queued: QueuedRecord = { rec: toWireRecord(rec), key: key ?? '' }
+  if (key !== null) seen.set(key, { at: now, queued })
   // Opportunistic GC of expired dedupe entries.
   if (seen.size > 200) {
     for (const [k, v] of seen) {

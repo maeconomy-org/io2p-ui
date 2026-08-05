@@ -165,11 +165,14 @@ const CONFIG_CACHE_VERSION = 'v1' // Increment to invalidate cache
 export function getCachedConfig(): ClientConfig | null {
   if (typeof window === 'undefined') return null
 
-  // Prefer server-injected inline config (zero network requests)
+  // Prefer server-injected inline config (zero network requests). Gate on
+  // the OBJECT being present, not on any one field — a deployment without
+  // BASE_URL must not lose every other inline value (logLevel, sentryDsn…)
+  // to the stale-localStorage path.
   const inlineConfig = (window as any).__IOM_CONFIG__ as
     | ClientConfig
     | undefined
-  if (inlineConfig && inlineConfig.baseUrl) {
+  if (inlineConfig && typeof inlineConfig === 'object') {
     return inlineConfig
   }
 
