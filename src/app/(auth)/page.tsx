@@ -120,7 +120,7 @@ export default function LoginPage() {
       localStorage.setItem(LAST_AUTH_METHOD_KEY, 'email')
       router.replace('/objects')
     } catch (err) {
-      logger.error('Email Login Error:', err)
+      logger.error('Email Login Error:', { err })
       const msg =
         err instanceof Error ? err.message : 'Unknown authentication error'
       setError(mapError(msg))
@@ -141,7 +141,7 @@ export default function LoginPage() {
       localStorage.setItem(LAST_AUTH_METHOD_KEY, 'certificate')
       router.replace('/objects')
     } catch (err) {
-      logger.error('Certificate Authentication Error:', err)
+      logger.error('Certificate Authentication Error:', { err })
       const msg =
         err instanceof Error ? err.message : 'Unknown authentication error'
       setError(mapError(msg))

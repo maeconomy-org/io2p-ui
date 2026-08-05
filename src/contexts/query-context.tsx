@@ -2,9 +2,15 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  MutationCache,
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
 
 import type { ClientConfig } from '@/constants'
+import { logger } from '@/lib/logger'
 
 // Dev-only, and lazy so the devtools bundle never enters the module graph of
 // the provider that wraps every route.
@@ -44,6 +50,27 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
   const queryClient = useMemo(
     () =>
       new QueryClient({
+        // Global error handlers: every failed query/mutation not hand-caught
+        // by a component used to disappear silently (and `retry: 1` meant it
+        // cost two requests before doing so). Logging ONLY — toasts stay a
+        // per-hook decision, or every background refetch failure becomes a
+        // popup.
+        queryCache: new QueryCache({
+          onError: (error, query) => {
+            logger.error('Query failed', {
+              err: error,
+              queryKey: query.queryKey,
+            })
+          },
+        }),
+        mutationCache: new MutationCache({
+          onError: (error, _variables, _context, mutation) => {
+            logger.error('Mutation failed', {
+              err: error,
+              mutationKey: mutation.options.mutationKey,
+            })
+          },
+        }),
         defaultOptions: {
           queries: {
             // Deliberately conservative: these apply to every hook that does NOT

@@ -80,7 +80,7 @@ export function ActiveSessionsCard() {
       toast.success(t('sessions.revoked'))
       refetch()
     } catch (err) {
-      logger.error('Revoke session error:', err)
+      logger.error('Revoke session error:', { err })
       toast.error(t('sessions.revokeError'))
     } finally {
       setRevoking(null)
@@ -97,7 +97,7 @@ export function ActiveSessionsCard() {
       toast.success(t('sessions.revokedOthers'))
       refetch()
     } catch (err) {
-      logger.error('Revoke other sessions error:', err)
+      logger.error('Revoke other sessions error:', { err })
       toast.error(t('sessions.revokeError'))
     } finally {
       setRevokingOthers(false)

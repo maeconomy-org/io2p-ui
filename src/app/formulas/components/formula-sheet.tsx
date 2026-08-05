@@ -133,7 +133,7 @@ function FormulaForm({
       toast.success(t('formulas.created'))
       onDone()
     } catch (error) {
-      logger.error('Create formula failed', error)
+      logger.error('Create formula failed', { err: error })
       const { key, values } = saveErrorMessage(error)
       toast.error(t(key, values))
     }

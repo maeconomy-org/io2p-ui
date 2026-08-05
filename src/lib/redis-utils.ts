@@ -130,7 +130,7 @@ export async function getRedisMemoryInfo(): Promise<{
       keyCount: dbSize,
     }
   } catch (error) {
-    logger.error('Failed to get Redis memory info', { error })
+    logger.error('Failed to get Redis memory info', { err: error })
     return {
       usedMemory: 0,
       maxMemory: 0,
@@ -190,7 +190,7 @@ export async function cleanupExpiredJobs(): Promise<{
 
     return { jobsDeleted, chunksDeleted }
   } catch (error) {
-    logger.error('Failed to cleanup expired jobs', { error })
+    logger.error('Failed to cleanup expired jobs', { err: error })
     return { jobsDeleted: 0, chunksDeleted: 0 }
   }
 }
@@ -231,7 +231,7 @@ export async function deleteJob(jobId: string): Promise<{
 
     return { success: true, chunksDeleted }
   } catch (error) {
-    logger.error('Failed to delete job', { jobId, error })
+    logger.error('Failed to delete job', { jobId, err: error })
     return {
       success: false,
       chunksDeleted: 0,
@@ -289,7 +289,7 @@ export async function getImportJobStats(): Promise<{
       totalChunks: chunkKeys.length,
     }
   } catch (error) {
-    logger.error('Failed to get job stats', { error })
+    logger.error('Failed to get job stats', { err: error })
     return {
       totalJobs: 0,
       activeJobs: 0,
@@ -354,7 +354,7 @@ export async function getImportJobsList(limit = 50): Promise<JobDetails[]> {
 
     return jobs
   } catch (error) {
-    logger.error('Failed to get jobs list', { error })
+    logger.error('Failed to get jobs list', { err: error })
     return []
   }
 }
@@ -407,7 +407,7 @@ export async function getJobFailures(
 
     return { failures, total }
   } catch (error) {
-    logger.error('Failed to get job failures', { error })
+    logger.error('Failed to get job failures', { err: error })
     return { failures: [], total: 0 }
   }
 }
@@ -444,7 +444,7 @@ export async function getFailedObjectsForRetry(jobId: string): Promise<{
 
     return { objects, userUUID }
   } catch (error) {
-    logger.error('Failed to get failed objects', { error })
+    logger.error('Failed to get failed objects', { err: error })
     return { objects: [], userUUID: null }
   }
 }

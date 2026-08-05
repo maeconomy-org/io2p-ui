@@ -1,7 +1,18 @@
 // Shared Sentry configuration for all runtimes (server, edge, client)
 // This reduces duplication across sentry.*.config.ts files
+//
+// Scrubbing primitives live in `@/lib/redact` (neutral module) so the logger
+// sinks share them. What stays here is Sentry-shaped: the event adapters and
+// the noise filters. The ECONNREFUSED/ETIMEDOUT filter is deliberately
+// Sentry-ONLY — core being down is exactly what the NDJSON/ship/OTel paths
+// must record, so it must never move into redact.ts.
 
 import type { ErrorEvent } from '@sentry/nextjs'
+
+import { redactDeep, redactPresignedUrlString } from '@/lib/redact'
+
+// Re-export so existing imports (tests, tooling) keep one name for it.
+export { redactPresignedUrlString } from '@/lib/redact'
 
 // Type alias for Sentry event (not DOM Event)
 type SentryEvent = ErrorEvent
@@ -114,65 +125,6 @@ export function filterNoisyErrors(event: SentryEvent): SentryEvent | null {
   }
 
   return event
-}
-
-/**
- * Redact S3 presigned-URL credentials wherever they may appear in a Sentry
- * event. Presigned URLs are self-authenticating for their full TTL (5 min on
- * upload PUTs, 15 min on previews), so leaking the `X-Amz-Signature` /
- * `X-Amz-Credential` query string into Sentry is equivalent to leaking
- * short-lived write access to the bucket. We also redact AWS SigV4
- * `Authorization` header values in case a future direct-call code path
- * ever surfaces one in an exception message.
- */
-const AMZ_QUERY_PARAMS = [
-  'X-Amz-Signature',
-  'X-Amz-Credential',
-  'X-Amz-Security-Token',
-  'X-Amz-Date',
-  'X-Amz-Expires',
-  'X-Amz-SignedHeaders',
-  'X-Amz-Algorithm',
-]
-
-export function redactPresignedUrlString(input: string): string {
-  if (typeof input !== 'string' || input.length === 0) return input
-  let out = input
-  // Strip X-Amz-* query params (case-insensitive).
-  for (const key of AMZ_QUERY_PARAMS) {
-    const pattern = new RegExp(`([?&])${key}=[^&\\s"'<>]*`, 'gi')
-    out = out.replace(pattern, '$1' + key + '=REDACTED')
-  }
-  // Strip SigV4 Authorization values.
-  out = out.replace(
-    /AWS4-HMAC-SHA256\s+Credential=[^,\s]+,\s*SignedHeaders=[^,\s]+,\s*Signature=[A-Fa-f0-9]+/g,
-    'AWS4-HMAC-SHA256 REDACTED'
-  )
-  return out
-}
-
-// Walk a plain object up to `depth` levels deep, replacing string leaves in
-// place via `redactPresignedUrlString`. Cycle-safe via the `seen` set.
-function redactDeep(value: unknown, depth: number, seen: WeakSet<object>) {
-  if (depth <= 0 || value === null || value === undefined) return
-  if (typeof value === 'object') {
-    if (seen.has(value as object)) return
-    seen.add(value as object)
-    if (Array.isArray(value)) {
-      for (let i = 0; i < value.length; i++) {
-        const v = value[i]
-        if (typeof v === 'string') value[i] = redactPresignedUrlString(v)
-        else redactDeep(v, depth - 1, seen)
-      }
-      return
-    }
-    const obj = value as Record<string, unknown>
-    for (const k of Object.keys(obj)) {
-      const v = obj[k]
-      if (typeof v === 'string') obj[k] = redactPresignedUrlString(v)
-      else redactDeep(v, depth - 1, seen)
-    }
-  }
 }
 
 function scrubPresignedUrls(event: SentryEvent): SentryEvent {

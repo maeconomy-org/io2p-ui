@@ -146,14 +146,14 @@ export function HereAddressAutocomplete({
           setSuggestions(data.items || [])
         })
         .catch((error) => {
-          logger.error('Error searching addresses:', error)
+          logger.error('Error searching addresses:', { err: error })
           setSuggestions([])
         })
         .finally(() => {
           setIsLoading(false)
         })
     } catch (error) {
-      logger.error('Error searching addresses:', error)
+      logger.error('Error searching addresses:', { err: error })
       setSuggestions([])
       setIsLoading(false)
     }

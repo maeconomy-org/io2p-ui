@@ -42,39 +42,28 @@ export function getRedis(): Redis {
       keepAlive: 30000, // 30s
     })
 
+    // The record's own `time` field covers timestamps; the logger serializer
+    // owns error shape and redaction.
+    const safeUrl = redisUrl.replace(/\/\/.*@/, '//***@') // Hide credentials
+
     redis.on('error', (error) => {
-      logger.error('Redis connection error:', {
-        error: error.message,
-        redisUrl: redisUrl.replace(/\/\/.*@/, '//***@'), // Hide credentials
-        timestamp: new Date().toISOString(),
-      })
+      logger.error('Redis connection error', { err: error, redisUrl: safeUrl })
     })
 
     redis.on('connect', () => {
-      logger.info('Redis connected successfully', {
-        redisUrl: redisUrl.replace(/\/\/.*@/, '//***@'), // Hide credentials
-        timestamp: new Date().toISOString(),
-      })
+      logger.info('Redis connected successfully', { redisUrl: safeUrl })
     })
 
     redis.on('ready', () => {
-      logger.info('Redis ready and accepting commands', {
-        redisUrl: redisUrl.replace(/\/\/.*@/, '//***@'), // Hide credentials
-        timestamp: new Date().toISOString(),
-      })
+      logger.info('Redis ready and accepting commands', { redisUrl: safeUrl })
     })
 
     redis.on('reconnecting', (delay: number) => {
-      logger.warn('Redis reconnecting', {
-        delay,
-        timestamp: new Date().toISOString(),
-      })
+      logger.warn('Redis reconnecting', { delay })
     })
 
     redis.on('close', () => {
-      logger.warn('Redis connection closed', {
-        timestamp: new Date().toISOString(),
-      })
+      logger.warn('Redis connection closed')
     })
   }
 
@@ -86,16 +75,12 @@ export async function testRedisConnection(): Promise<boolean> {
   try {
     const redis = getRedis()
     await redis.ping()
-    logger.info('Redis connection test successful', {
-      status: 'connected',
-      timestamp: new Date().toISOString(),
-    })
+    logger.info('Redis connection test successful', { status: 'connected' })
     return true
   } catch (error) {
     logger.error('Redis connection test failed', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+      err: error,
       status: 'failed',
-      timestamp: new Date().toISOString(),
     })
     return false
   }

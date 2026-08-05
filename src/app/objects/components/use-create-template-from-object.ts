@@ -87,7 +87,7 @@ export function useCreateTemplateFromObject() {
         logger.error('Create template from object failed', {
           objectId: full.id,
           status: iomStatus(error),
-          error: error instanceof Error ? error.message : String(error),
+          err: error,
         })
         toast.error(t(saveErrorMessage(error).key))
       }

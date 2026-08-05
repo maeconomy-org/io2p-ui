@@ -123,7 +123,7 @@ function ConstantForm({
       }
       onDone()
     } catch (error) {
-      logger.error('Save constant failed', error)
+      logger.error('Save constant failed', { err: error })
       const { key, values } = saveErrorMessage(error)
       toast.error(t(key, values))
     }

@@ -33,6 +33,13 @@ export interface ClientConfig {
   sentryEnabled: string
   sentryRelease: string
 
+  // Logging (browser reads these via __IOM_CONFIG__ — process.env compiles
+  // away client-side, so an env read in browser code is always undefined)
+  // logLevel: browser console emit gate outside production ('' = default)
+  logLevel: string
+  // logShipLevel: minimum level shipped to /api/telemetry ('' = default)
+  logShipLevel: string
+
   // Environment
   nodeEnv: string
   emailLoginEnabled: string
@@ -60,6 +67,8 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   sentryDsn: '',
   sentryEnabled: 'false',
   sentryRelease: '',
+  logLevel: '',
+  logShipLevel: '',
   nodeEnv: 'development',
   emailLoginEnabled: 'false',
   appName: 'Internet of Materials',
@@ -114,6 +123,8 @@ export function buildRuntimeConfig(): ClientConfig {
     sentryDsn: process.env.SENTRY_DSN || '',
     sentryEnabled: process.env.SENTRY_ENABLED || 'false',
     sentryRelease: process.env.SENTRY_RELEASE || process.env.APP_VERSION || '',
+    logLevel: process.env.LOG_LEVEL || '',
+    logShipLevel: process.env.LOG_SHIP_LEVEL || '',
     nodeEnv: process.env.NODE_ENV || 'development',
     emailLoginEnabled: process.env.EMAIL_LOGIN_ENABLED || 'false',
     appName: process.env.APP_NAME || 'Internet of Materials',

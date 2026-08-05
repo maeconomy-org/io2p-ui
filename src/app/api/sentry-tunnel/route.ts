@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    logger.error('Sentry tunnel error:', error)
+    logger.error('Sentry tunnel error:', { err: error })
     return NextResponse.json(
       { error: 'Failed to forward to Sentry' },
       { status: 500 }

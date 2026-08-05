@@ -55,7 +55,7 @@ export default function ImportPage() {
       logger.import(`Bulk import job started: ${jobId}`, { jobId })
     },
     onImportError: (jobId: string, error: string) => {
-      logger.error(`Bulk import failed: ${jobId}`, { jobId, error })
+      logger.error(`Bulk import failed: ${jobId}`, { jobId, err: error })
     },
   })
 

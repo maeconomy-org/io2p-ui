@@ -53,7 +53,7 @@ export function encrypt(plaintext: string): string {
     const combined = Buffer.concat([iv, authTag, encrypted])
     return combined.toString('base64')
   } catch (error) {
-    logger.error('Encryption failed', { error })
+    logger.error('Encryption failed', { err: error })
     throw new Error('Failed to encrypt value', { cause: error })
   }
 }
@@ -113,7 +113,7 @@ export function decrypt(encryptedValue: string): string {
     // than "this node cannot read what it wrote".
     if (!looksEncrypted(encryptedValue)) return encryptedValue
     logger.error('JWT decryption failed', {
-      error: error instanceof Error ? error.message : String(error),
+      err: error,
     })
     throw new Error(
       'Stored token could not be decrypted — ENCRYPTION_KEY may have changed',

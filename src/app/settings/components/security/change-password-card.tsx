@@ -53,7 +53,7 @@ export function ChangePasswordCard() {
       toast.success(t('password.success'))
       form.reset()
     } catch (err) {
-      logger.error('Change password error:', err)
+      logger.error('Change password error:', { err })
       toast.error(t('password.error'))
     } finally {
       setSubmitting(false)

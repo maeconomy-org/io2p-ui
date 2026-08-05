@@ -16,6 +16,13 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 const nextConfig = {
   output: 'standalone',
   serverExternalPackages: ['@react-pdf/renderer'],
+  logging: {
+    // Do not forward browser console output to the dev terminal: forwarded
+    // lines are annotated with the console CALL SITE, which for a wrapped
+    // logger is permanently the logger's own frame — actively misleading.
+    // Devtools and the dev overlay show the true, source-mapped origin.
+    browserToTerminal: false,
+  },
   // Source maps are emitted by the Sentry plugin (hidden-source-map, client +
   // server) for upload, then deleted from the production image in the
   // Dockerfile. We intentionally do NOT enable productionBrowserSourceMaps:

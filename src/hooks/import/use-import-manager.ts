@@ -111,7 +111,7 @@ export function useImportManager(
     },
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: queryKeys.importJobs.all }),
-    onError: (error) => logger.error('Error cancelling job:', error),
+    onError: (error) => logger.error('Error cancelling job:', { err: error }),
   })
 
   const errorText = (error: unknown, fallback: string) =>

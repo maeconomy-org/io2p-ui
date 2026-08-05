@@ -50,7 +50,7 @@ export default function TwoFactorPage() {
       }
       router.replace('/objects')
     } catch (err) {
-      logger.error('2FA verify error:', err)
+      logger.error('2FA verify error:', { err })
       setError(t('auth.twoFactor.error'))
     } finally {
       setSubmitting(false)

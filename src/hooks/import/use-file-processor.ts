@@ -312,7 +312,7 @@ export function useFileProcessor({
           }
         }
       } catch (err) {
-        logger.error('Error parsing file:', err)
+        logger.error('Error parsing file:', { err })
         setError(err instanceof Error ? err.message : 'Failed to parse file')
         return []
       } finally {

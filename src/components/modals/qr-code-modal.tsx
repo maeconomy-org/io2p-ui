@@ -47,7 +47,7 @@ export function QRCodeModal({
           buildQrCodeConfig({ data: uuid })
         )
       } catch (error) {
-        logger.error('Error initializing QR code:', error)
+        logger.error('Error initializing QR code:', { err: error })
         return
       }
 
@@ -76,7 +76,7 @@ export function QRCodeModal({
         extension: format,
       })
     } catch (error) {
-      logger.error('Error downloading QR code:', error)
+      logger.error('Error downloading QR code:', { err: error })
     } finally {
       setIsDownloading(false)
     }

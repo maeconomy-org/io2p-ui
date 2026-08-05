@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
       // Always show success (don't reveal whether the email exists).
       setSent(true)
     } catch (err) {
-      logger.error('Forgot password error:', err)
+      logger.error('Forgot password error:', { err })
       setError(t('auth.forgotPassword.error'))
     } finally {
       setSubmitting(false)

@@ -53,7 +53,7 @@ export function TextViewer({
       })
       .catch((err) => {
         if (ctrl.signal.aborted) return
-        logger.error('Failed to read text preview', { error: err })
+        logger.error('Failed to read text preview', { err })
         setResult({ src, error: String(err) })
       })
 

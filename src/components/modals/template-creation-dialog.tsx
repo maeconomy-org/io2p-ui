@@ -58,7 +58,7 @@ export function TemplateCreationDialog({
       onOpenChange(false)
     } catch (error) {
       // Error handling is done in the parent component
-      logger.error('Error creating template:', error)
+      logger.error('Error creating template:', { err: error })
     }
   }
 

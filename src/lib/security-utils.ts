@@ -168,7 +168,7 @@ export async function checkImportRateLimit(
       {
         identifier,
         userUUID,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        err: error,
       },
       'error'
     )
@@ -245,7 +245,7 @@ export async function checkConcurrentJobLimit(
       'concurrent_job_check_failed',
       {
         userUUID,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        err: error,
       },
       'error'
     )
@@ -276,7 +276,7 @@ export async function trackUserJob(
       {
         userUUID,
         jobId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        err: error,
       },
       'error'
     )
@@ -301,7 +301,7 @@ export async function untrackUserJob(
       {
         userUUID,
         jobId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        err: error,
       },
       'error'
     )
