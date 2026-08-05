@@ -121,6 +121,89 @@ describe('ship sink', () => {
     spy.mockRestore()
   })
 
+  it('falls back to keepalive fetch when sendBeacon refuses the batch', () => {
+    beaconMock.mockReturnValueOnce(false)
+    const spy = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('hidden')
+    shipRecord(buildRecord('error', 'refused by beacon'))
+    expect(beaconMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const init = (
+      fetchMock.mock.calls[0] as unknown as [string, { keepalive: boolean }]
+    )[1]
+    expect(init.keepalive).toBe(true)
+    spy.mockRestore()
+  })
+
+  it('splits a 413-rejected batch in half once, never recursively', async () => {
+    // All three sends get a 413 — the halves must NOT split again.
+    fetchMock
+      .mockResolvedValueOnce(new Response(null, { status: 413 }) as never)
+      .mockResolvedValueOnce(new Response(null, { status: 413 }) as never)
+      .mockResolvedValueOnce(new Response(null, { status: 413 }) as never)
+    shipRecord(buildRecord('error', 'first'))
+    shipRecord(buildRecord('error', 'second'))
+    vi.advanceTimersByTime(5_000)
+    // Original send + two halves — and although the halves ALSO got 413,
+    // no further splits (retry loops are the flood this sink prevents).
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const halves = fetchMock.mock.calls
+      .slice(1)
+      .map(
+        (c) =>
+          JSON.parse((c as unknown as [string, { body: string }])[1].body)
+            .records
+      )
+    expect(halves[0].map((r: { msg: string }) => r.msg)).toEqual(['first'])
+    expect(halves[1].map((r: { msg: string }) => r.msg)).toEqual(['second'])
+  })
+
+  it('clamps a giant err.message through the cause chain — batch survives', () => {
+    // Control the stacks (V8 embeds the message in .stack) so this pins the
+    // MESSAGE clamp, recursively — the old code clamped only stacks.
+    const cause = new Error('y'.repeat(100_000))
+    cause.stack = 'Error: cause frame'
+    const err = new Error('x'.repeat(100_000), { cause })
+    err.stack = 'Error: top frame'
+    shipRecord(buildRecord('error', 'monster message', { err }))
+    vi.advanceTimersByTime(5_000)
+
+    const [batch] = sentBatches()
+    expect(batch.records).toHaveLength(1)
+    const rec = batch.records[0]
+    const recErr = rec.err as { message: string; cause?: { message: string } }
+    expect(recErr.message.length).toBeLessThanOrEqual(8 * 1024)
+    expect(recErr.cause?.message.length).toBeLessThanOrEqual(8 * 1024)
+    expect(
+      new TextEncoder().encode(JSON.stringify(rec)).length
+    ).toBeLessThanOrEqual(32 * 1024)
+  })
+
+  it('degrades a pathological record to a bare err instead of losing it', () => {
+    // Message AND stack both huge on every level: even clamped, the record
+    // exceeds the per-record budget — the bare name/message tier must ship.
+    const cause = new Error('y'.repeat(100_000))
+    const err = new Error('x'.repeat(100_000), { cause })
+    shipRecord(buildRecord('error', 'beyond salvage', { err }))
+    vi.advanceTimersByTime(5_000)
+
+    const [batch] = sentBatches()
+    expect(batch.records).toHaveLength(1)
+    const rec = batch.records[0]
+    expect(rec.truncated).toBe(true)
+    expect(rec.msg).toBe('beyond salvage')
+    const recErr = rec.err as { name: string; message: string }
+    expect(recErr.name).toBe('Error')
+    expect(recErr.message.length).toBeLessThanOrEqual(8 * 1024)
+    expect(
+      new TextEncoder().encode(JSON.stringify(rec)).length
+    ).toBeLessThanOrEqual(32 * 1024)
+  })
+
   it('exposes a Sink whose write enqueues', () => {
     shipSink.write(buildRecord('info', 'via sink'))
     vi.advanceTimersByTime(5_000)

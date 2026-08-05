@@ -1,14 +1,17 @@
 // Process-level fatal handlers: unhandledRejection/uncaughtException must be
-// logged structured through the logger ({ err }), flushed best-effort, and
-// then crash the process (exit 1) — never keep a corrupted process alive,
-// never throw from the handler itself, never double-register.
+// written SYNCHRONOUSLY to fd 1 (fs.writeSync — process.stdout.write is async
+// on pipes and process.exit() does not drain it, so the plain sink could lose
+// the one line this feature exists for), flushed best-effort, and then crash
+// the process (exit 1) — never keep a corrupted process alive, never throw
+// from the handler itself, never double-register.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-const mockError = vi.fn()
-vi.mock('@/lib/logger/index', () => ({
-  logger: { error: (...args: unknown[]) => mockError(...args) },
-}))
+const writeSyncMock = vi.fn()
+vi.mock('fs', () => {
+  const writeSync = (...args: unknown[]) => writeSyncMock(...args)
+  return { writeSync, default: { writeSync } }
+})
 
 import {
   FATAL_FLUSH,
@@ -18,6 +21,13 @@ import {
 
 type Handler = (err: unknown) => void
 
+function writtenRecord(): Record<string, unknown> {
+  const [fd, line] = writeSyncMock.mock.calls[0] as [number, string]
+  expect(fd).toBe(1)
+  expect(line.endsWith('\n')).toBe(true)
+  return JSON.parse(line)
+}
+
 describe('registerFatalHandlers', () => {
   let handlers: Map<string, Handler>
   let onSpy: ReturnType<typeof vi.spyOn>
@@ -25,7 +35,7 @@ describe('registerFatalHandlers', () => {
 
   beforeEach(() => {
     resetFatalStateForTests()
-    mockError.mockReset()
+    writeSyncMock.mockReset()
     handlers = new Map()
     // Capture instead of attaching — attaching real fatal handlers to the
     // vitest process would fight the test runner's own.
@@ -55,19 +65,23 @@ describe('registerFatalHandlers', () => {
     expect(handlers.has('uncaughtException')).toBe(true)
   })
 
-  it('logs the real error under err and exits 1', async () => {
+  it('writes the fatal record synchronously to fd 1 and exits 1', async () => {
     registerFatalHandlers()
     const boom = new Error('background job exploded')
     handlers.get('unhandledRejection')!(boom)
 
-    expect(mockError).toHaveBeenCalledTimes(1)
-    const [msg, fields] = mockError.mock.calls[0] as [
-      string,
-      Record<string, unknown>,
-    ]
-    expect(msg).toBe('Fatal: unhandledRejection')
-    expect(fields.err).toBe(boom)
-    expect(fields.fatal).toBe(true)
+    // fs.writeSync(1, ndjsonLine) — the wire, not the async stdout sink.
+    expect(writeSyncMock).toHaveBeenCalledTimes(1)
+    const rec = writtenRecord()
+    expect(rec.level).toBe('error')
+    expect(rec.msg).toBe('Fatal: unhandledRejection')
+    expect(rec.fatal).toBe(true)
+    expect((rec.err as { message: string }).message).toBe(
+      'background job exploded'
+    )
+    expect((rec.err as { stack?: string }).stack).toContain(
+      'background job exploded'
+    )
     await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1))
   })
 
@@ -92,10 +106,10 @@ describe('registerFatalHandlers', () => {
     await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1))
   })
 
-  it('never throws, even when the logger itself throws', async () => {
+  it('never throws, even when writeSync itself throws', async () => {
     registerFatalHandlers()
-    mockError.mockImplementation(() => {
-      throw new Error('logger broken')
+    writeSyncMock.mockImplementation(() => {
+      throw new Error('fd 1 gone')
     })
     expect(() =>
       handlers.get('uncaughtException')!(new Error('original'))
@@ -107,7 +121,7 @@ describe('registerFatalHandlers', () => {
     registerFatalHandlers()
     handlers.get('unhandledRejection')!(new Error('first'))
     handlers.get('unhandledRejection')!(new Error('second'))
-    expect(mockError).toHaveBeenCalledTimes(1)
+    expect(writeSyncMock).toHaveBeenCalledTimes(1)
     await vi.waitFor(() => expect(exitSpy).toHaveBeenCalled())
   })
 })

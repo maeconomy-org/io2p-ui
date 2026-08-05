@@ -30,6 +30,26 @@ function io2pFields(ctx?: Record<string, unknown>): Record<string, unknown> {
   return fields
 }
 
+/**
+ * A caller cancellation, not a failure: the SDK fires onError for aborts too,
+ * and React Query aborts in-flight queries on unmount — ordinary navigation
+ * would otherwise manufacture error-level telemetry (shipped AND
+ * Sentry-captured). AbortError may arrive raw (DOMException) or as the
+ * `cause` of the SDK's wrapper error. TimeoutError is NOT an abort — a
+ * request that ran out of budget is a real failure and stays at error.
+ */
+function isCallerAbort(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const name = (err as { name?: unknown }).name
+  if (name === 'AbortError') return true
+  if (name === 'TimeoutError') return false
+  const cause = (err as { cause?: unknown }).cause
+  if (cause && typeof cause === 'object') {
+    return (cause as { name?: unknown }).name === 'AbortError'
+  }
+  return false
+}
+
 const sdkLogger: ClientLogger = {
   debug: (msg, ctx) => logger.debug(msg, io2pFields(ctx)),
   info: (msg, ctx) => logger.info(msg, io2pFields(ctx)),
@@ -128,14 +148,21 @@ export function createIo2pClient(
       // `err` under `fields.err` — the logger's Sentry sink captures the real
       // exception in the browser and the server sink NDJSONs the serialized
       // form. No direct Sentry call here: that would double-capture.
-      logger.error('io2p request failed', {
+      const fields = {
         scope: 'io2p-client',
         err,
         method: info.method,
         path: pathOf(info.url),
         status: info.status,
         ms: info.durationMs,
-      })
+      }
+      if (isCallerAbort(err)) {
+        // Debug, not error: aborts are the caller's own doing (unmounts,
+        // superseded queries) and must not reach Sentry or the ship sink.
+        logger.debug('io2p request aborted', fields)
+        return
+      }
+      logger.error('io2p request failed', fields)
     },
     traceHeaders,
   })

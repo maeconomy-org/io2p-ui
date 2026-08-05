@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 
 import {
   LOG_LEVELS,
@@ -250,23 +250,34 @@ export async function POST(request: NextRequest) {
       // Fire-and-forget: the 204 does not wait on the collector, and a
       // failed forward degrades to the NDJSON stream instead of losing the
       // batch (stdout is always available; the collector is not).
-      void forwardToOtlp(endpoint, records)
-        .then((ok) => {
-          if (ok) {
-            loggedForwardFailure = false
-            return
-          }
-          writeToNdjson(records)
-          if (!loggedForwardFailure) {
-            loggedForwardFailure = true
-            logger.warn(
-              'Telemetry OTLP forward failing, degrading to NDJSON; will not repeat this log'
-            )
-          }
-        })
-        .catch(() => {
-          // forwardToOtlp never rejects, but telemetry must never throw.
-        })
+      const forward = () =>
+        forwardToOtlp(endpoint, records)
+          .then((ok) => {
+            if (ok) {
+              loggedForwardFailure = false
+              return
+            }
+            writeToNdjson(records)
+            if (!loggedForwardFailure) {
+              loggedForwardFailure = true
+              logger.warn(
+                'Telemetry OTLP forward failing, degrading to NDJSON; will not repeat this log'
+              )
+            }
+          })
+          .catch(() => {
+            // forwardToOtlp never rejects, but telemetry must never throw.
+          })
+      try {
+        // Next's sanctioned post-response mechanism: a bare floating promise
+        // dies with the process (a SIGTERM inside the 3s window would lose
+        // both the forward AND the NDJSON degrade); `after` keeps the
+        // handler's work alive until it settles.
+        after(forward)
+      } catch {
+        // Outside a request scope (unit tests) — run it directly.
+        void forward()
+      }
     } else {
       // No collector configured: land browser records in the server NDJSON
       // stream, tagged source: 'browser' (set in sanitizeRecord).

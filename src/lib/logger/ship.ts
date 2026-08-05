@@ -70,23 +70,38 @@ function toWireRecord(rec: LogRecordWithRaw): Record<string, unknown> {
   return truncateRecord(copy)
 }
 
+// Clamp message/detail/title/stack RECURSIVELY through the cause chain
+// (mirrors auth-ui's truncateStacks) — a single error with a giant message
+// used to sail through the stack-only clamp and produce a >64KB wire record,
+// which the route rejects wholesale.
+function truncateErr(
+  err: Record<string, unknown>,
+  depth = 6
+): Record<string, unknown> {
+  const out = { ...err }
+  for (const k of ['message', 'detail', 'title', 'stack'] as const) {
+    const v = out[k]
+    if (typeof v === 'string' && v.length > MAX_STRING_FIELD_CHARS) {
+      out[k] = v.slice(0, MAX_STRING_FIELD_CHARS)
+    }
+  }
+  if (depth > 0 && out.cause && typeof out.cause === 'object') {
+    out.cause = truncateErr(out.cause as Record<string, unknown>, depth - 1)
+  }
+  return out
+}
+
 // Clamp oversized string fields (stacks, blobs of ctx), then — if the record
-// is still over the per-record byte budget — keep only the core fields plus
-// a truncation marker. Better a clipped record than a whole lost batch.
+// is still over the per-record byte budget — degrade in tiers rather than
+// lose the record: first drop the context, finally drop everything but a
+// bare name/message error. Better a clipped record than a whole lost batch.
 function truncateRecord(rec: Record<string, unknown>): Record<string, unknown> {
   const clamped: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(rec)) {
     if (typeof v === 'string' && v.length > MAX_STRING_FIELD_CHARS) {
       clamped[k] = v.slice(0, MAX_STRING_FIELD_CHARS)
     } else if (k === 'err' && v && typeof v === 'object') {
-      const err = { ...(v as Record<string, unknown>) }
-      if (
-        typeof err.stack === 'string' &&
-        err.stack.length > MAX_STRING_FIELD_CHARS
-      ) {
-        err.stack = err.stack.slice(0, MAX_STRING_FIELD_CHARS)
-      }
-      clamped[k] = err
+      clamped[k] = truncateErr(v as Record<string, unknown>)
     } else {
       clamped[k] = v
     }
@@ -98,8 +113,27 @@ function truncateRecord(rec: Record<string, unknown>): Record<string, unknown> {
   } catch {
     // Unserializable ctx — fall through to the minimal shape.
   }
-  const { level, time, msg, err } = clamped
-  return { level, time, msg, err, truncated: true }
+  // Tier 2: keep the spine — the CLAMPED err (no re-inclusion of the raw
+  // one), losing someone's giant context beats losing the error.
+  const { level, time, msg } = clamped
+  const err = clamped.err as Record<string, unknown> | undefined
+  const minimal = { level, time, msg, err, truncated: true }
+  try {
+    if (byteLength(JSON.stringify(minimal)) <= MAX_RECORD_BYTES) {
+      return minimal
+    }
+  } catch {
+    // Fall through.
+  }
+  // Tier 3: pathological err (deep cause chain, huge `problem` object) —
+  // bare name/message is always bounded (message is already clamped).
+  return {
+    level,
+    time,
+    msg,
+    ...(err ? { err: { name: err.name, message: err.message } } : {}),
+    truncated: true,
+  }
 }
 
 function throttled(now: number): boolean {
@@ -138,26 +172,52 @@ function takeBatch(): Record<string, unknown>[] {
   return batch
 }
 
+function sendViaFetch(
+  records: Record<string, unknown>[],
+  allowSplit: boolean
+): void {
+  void fetch(TELEMETRY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ records }),
+    // Lets an in-flight batch outlive its page on same-tab navigations.
+    keepalive: true,
+  })
+    .then((res) => {
+      // A 413 means the server's byte cap and our budget disagree (a proxy
+      // with a smaller cap, a misjudged truncation limit). Halving once
+      // recovers everything except a single monster record; no recursion —
+      // a cap we misjudged once we may misjudge again, and retry loops are
+      // the flood this sink exists to prevent.
+      if (res.status === 413 && allowSplit && records.length > 1) {
+        const mid = Math.ceil(records.length / 2)
+        sendViaFetch(records.slice(0, mid), false)
+        sendViaFetch(records.slice(mid), false)
+      }
+    })
+    .catch(() => {
+      // Telemetry must never break the app — silent drop.
+    })
+}
+
 function flush(useBeacon = false): void {
   while (queue.length > 0) {
     const batch = takeBatch()
     if (batch.length === 0) return
-    const body = JSON.stringify({ records: batch })
     try {
       if (useBeacon && typeof navigator.sendBeacon === 'function') {
-        navigator.sendBeacon(
+        // sendBeacon can REFUSE synchronously (queue full, size cap) and
+        // says so in its return value — on false, fall through to keepalive
+        // fetch, which also survives most unloads.
+        const accepted = navigator.sendBeacon(
           TELEMETRY_URL,
-          new Blob([body], { type: 'application/json' })
+          new Blob([JSON.stringify({ records: batch })], {
+            type: 'application/json',
+          })
         )
+        if (!accepted) sendViaFetch(batch, true)
       } else {
-        void fetch(TELEMETRY_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body,
-          keepalive: true,
-        }).catch(() => {
-          // Telemetry must never break the app — silent drop.
-        })
+        sendViaFetch(batch, true)
       }
     } catch {
       // Silent drop.

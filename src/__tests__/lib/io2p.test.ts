@@ -123,15 +123,17 @@ describe('onResponse', () => {
 })
 
 describe('onError', () => {
+  const info = {
+    method: 'POST',
+    url: 'https://node.example/api/v1/objects?validate=strict',
+    status: 422,
+    durationMs: 40,
+  }
+
   it('logs with the error under fields.err and the query stripped', () => {
     const opts = buildOptions()
     const err = new Error('boom')
-    opts.onError!(err, {
-      method: 'POST',
-      url: 'https://node.example/api/v1/objects?validate=strict',
-      status: 422,
-      durationMs: 40,
-    })
+    opts.onError!(err, info)
     expect(logger.error).toHaveBeenCalledWith('io2p request failed', {
       scope: 'io2p-client',
       err,
@@ -140,6 +142,36 @@ describe('onError', () => {
       status: 422,
       ms: 40,
     })
+  })
+
+  it('logs caller aborts at debug, never error — unmounts are not failures', () => {
+    const opts = buildOptions()
+    // Raw DOMException shape (React Query aborting on unmount).
+    const abort = Object.assign(new Error('The operation was aborted'), {
+      name: 'AbortError',
+    })
+    opts.onError!(abort, { ...info, status: 0 })
+    expect(logger.error).not.toHaveBeenCalled()
+    expect(logger.debug).toHaveBeenCalledWith(
+      'io2p request aborted',
+      expect.objectContaining({ err: abort, path: '/api/v1/objects' })
+    )
+
+    // Abort arriving as the CAUSE of the SDK's wrapper error.
+    const wrapped = new Error('fetch failed', {
+      cause: Object.assign(new Error('aborted'), { name: 'AbortError' }),
+    })
+    opts.onError!(wrapped, { ...info, status: 0 })
+    expect(logger.error).not.toHaveBeenCalled()
+  })
+
+  it('keeps TimeoutError at error level — budget exhaustion is a real failure', () => {
+    const opts = buildOptions()
+    opts.onError!(new TimeoutError('budget exceeded'), { ...info, status: 0 })
+    expect(logger.error).toHaveBeenCalledWith(
+      'io2p request failed',
+      expect.objectContaining({ status: 0 })
+    )
   })
 })
 
