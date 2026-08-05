@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
+import { useMounted } from '@/hooks/ui/use-mounted'
 
 import { SeededAvatar } from './seeded-avatar'
 
@@ -34,18 +35,36 @@ import { SeededAvatar } from './seeded-avatar'
 export function SidebarProfile({ collapsed }: { collapsed: boolean }) {
   const { userInfo, userId, logout } = useAuth()
 
-  const certificateName =
-    userInfo?.certificateInfo?.subjectFields?.CN ||
-    userInfo?.certificateInfo?.issuerFields?.CN
+  /**
+   * Identity is CLIENT-ONLY here — the session lives in localStorage, so the server has no
+   * `userId` and falls back to a different name. The avatar is seeded from that name, so the
+   * server drew one gradient and the client drew another: a hydration mismatch that React
+   * resolves by throwing away the whole subtree.
+   *
+   * Gating on `useMounted` makes the first client render match the server's, then swaps in the
+   * real identity on the second. A deterministic component is only deterministic if its INPUT
+   * is the same on both sides.
+   */
+  const mounted = useMounted()
 
-  const name =
-    userInfo?.username || certificateName || userInfo?.credentialValue || 'You'
+  const certificateName = mounted
+    ? userInfo?.certificateInfo?.subjectFields?.CN ||
+      userInfo?.certificateInfo?.issuerFields?.CN
+    : undefined
+
+  const name = mounted
+    ? userInfo?.username ||
+      certificateName ||
+      userInfo?.credentialValue ||
+      'You'
+    : 'You'
 
   const initials = name.slice(0, 2).toUpperCase()
-  const viaCertificate = userInfo?.identifierType !== 'UserAuthUP'
-  const email = userInfo?.credentialValue?.includes('@')
-    ? userInfo.credentialValue
-    : undefined
+  const viaCertificate = mounted && userInfo?.identifierType !== 'UserAuthUP'
+  const email =
+    mounted && userInfo?.credentialValue?.includes('@')
+      ? userInfo.credentialValue
+      : undefined
 
   // Email if there is one, otherwise how they authenticated. Never the uuid.
   const secondary =
@@ -62,7 +81,10 @@ export function SidebarProfile({ collapsed }: { collapsed: boolean }) {
           )}
           aria-label="Account menu"
         >
-          <SeededAvatar seed={userId ?? name} label={initials} />
+          <SeededAvatar
+            seed={mounted ? (userId ?? name) : 'You'}
+            label={initials}
+          />
           {!collapsed && (
             <>
               <span className="min-w-0 flex-1">
@@ -83,7 +105,7 @@ export function SidebarProfile({ collapsed }: { collapsed: boolean }) {
         <DropdownMenuLabel className="font-normal">
           <div className="flex items-center gap-2">
             <SeededAvatar
-              seed={userId ?? name}
+              seed={mounted ? (userId ?? name) : 'You'}
               label={initials}
               className="size-8"
             />

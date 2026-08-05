@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   Boxes,
   ChevronRight,
+  Columns2,
   GitBranch,
   Import,
   LayoutDashboard,
@@ -62,6 +63,7 @@ const NAV = [
   },
   { id: 'import', href: '/lab/import', label: 'Import', icon: Import },
   { id: 'views', href: '/lab/views', label: 'Views', icon: SlidersHorizontal },
+  { id: 'browse', href: '/lab/browse', label: 'Browse', icon: Columns2 },
   { id: 'access', href: '/lab/access', label: 'Access', icon: ShieldCheck },
 ] as const
 
@@ -85,6 +87,7 @@ const DEFAULT_PREFS: SidebarItemPrefs[] = [
   { id: 'library', label: 'Library', group: 'Workspace', visibility: 'always' },
   { id: 'import', label: 'Import', group: 'Tools', visibility: 'always' },
   { id: 'views', label: 'Views', group: 'Tools', visibility: 'always' },
+  { id: 'browse', label: 'Browse', group: 'Tools', visibility: 'always' },
   { id: 'access', label: 'Access', group: 'Tools', visibility: 'always' },
 ]
 

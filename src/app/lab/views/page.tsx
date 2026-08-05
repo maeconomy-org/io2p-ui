@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import {
   ArrowDownUp,
   BarChart3,
@@ -283,9 +283,13 @@ export default function ViewsLabPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {/* `Fragment` with an explicit key, not `<>`. A group renders TWO siblings — a
+                    header row and its rows — and the shorthand cannot take a key, so React saw
+                    an unkeyed list. The key belongs on the thing being repeated, which is the
+                    group, not the header row inside it. */}
                 {GROUPS.map((group) => (
-                  <>
-                    <TableRow key={group.name} className="bg-muted/40">
+                  <Fragment key={group.name}>
+                    <TableRow className="bg-muted/40">
                       <TableCell
                         colSpan={visible.length + 1}
                         className="py-1.5 text-xs font-medium"
@@ -333,7 +337,7 @@ export default function ViewsLabPage() {
                         ))}
                       </TableRow>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
