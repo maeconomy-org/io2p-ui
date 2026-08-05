@@ -2,12 +2,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from '@sentry/nextjs'
-import {
-  sharedSentryOptions,
-  consoleLevels,
-  beforeSend,
-  tracesSampler,
-} from '@/lib/sentry-config'
+import { sharedSentryOptions, beforeSend } from '@/lib/sentry-config'
 import { getCachedConfig } from '@/constants/client'
 import { initWebVitals } from '@/lib/web-vitals'
 
@@ -32,7 +27,9 @@ function initSentry() {
         release: config.sentryRelease || undefined,
 
         ...sharedSentryOptions,
-        tracesSampler,
+        // Errors only, by design (observability plan §1.3): no tracesSampler
+        // and no tracesSampleRate AT ALL — even a constant 0 still enables
+        // the tracing machinery. Performance lives in OTel.
 
         // Browser-specific integrations
         integrations: [
@@ -40,10 +37,9 @@ function initSentry() {
           Sentry.browserApiErrorsIntegration(),
           Sentry.globalHandlersIntegration(),
           Sentry.dedupeIntegration(), // Remove duplicate errors
-          Sentry.consoleLoggingIntegration({ levels: [...consoleLevels] }),
           // Breadcrumbs for debugging context (no PII)
           Sentry.breadcrumbsIntegration({
-            console: false, // Don't capture console logs as breadcrumbs (we use consoleLoggingIntegration)
+            console: false, // Console logs flow through the logger's ship sink
             dom: true, // Capture click events for debugging
             fetch: false, // Don't capture fetch requests (may contain PII)
             history: true, // Capture navigation for debugging

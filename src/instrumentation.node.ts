@@ -29,8 +29,7 @@ const IGNORED_PATHS = [
   '/api/health',
   '/api/config',
   '/api/telemetry',
-  '/monitoring',
-  '/api/sentry-tunnel',
+  '/monitoring', // Sentry SDK tunnelRoute
 ]
 
 const SEVERITY: Record<LogLevel, { num: SeverityNumber; text: string }> = {

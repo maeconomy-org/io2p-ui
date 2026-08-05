@@ -1,5 +1,7 @@
-// Shared Sentry configuration for all runtimes (server, edge, client)
-// This reduces duplication across sentry.*.config.ts files
+// Sentry configuration — BROWSER ONLY, errors only (observability plan
+// §1.3/§1.4). There is no server or edge Sentry init anymore: server errors
+// flow via the logger (NDJSON stdout + OTel). Consumed by
+// instrumentation-client.ts and the logger's Sentry sink.
 //
 // Scrubbing primitives live in `@/lib/redact` (neutral module) so the logger
 // sinks share them. What stays here is Sentry-shaped: the event adapters and
@@ -18,7 +20,10 @@ export { redactPresignedUrlString } from '@/lib/redact'
 type SentryEvent = ErrorEvent
 
 /**
- * Common Sentry options shared across all runtimes
+ * Common Sentry options for the browser init and the logger's Sentry sink.
+ * Errors only: no tracing options here on purpose (omitting them entirely is
+ * what keeps the tracing machinery out of the bundle) and no enableLogs —
+ * log shipping is the /api/telemetry pipeline's job.
  */
 export const sharedSentryOptions = {
   // Enable session health tracking (crash rates, stability metrics)
@@ -27,44 +32,12 @@ export const sharedSentryOptions = {
   // Disable all default integrations to prevent auto-loading 40+ integrations
   defaultIntegrations: false,
 
-  // Enable console log capture
-  enableLogs: true,
-
   // NEVER enable debug - causes verbose terminal logging
   debug: false,
 
   // GDPR: Disable automatic PII collection
   sendDefaultPii: false,
 } as const
-
-/**
- * Smart transaction sampler for free plan optimization
- * Drops noise transactions that waste quota (health checks, config, sentry tunnel)
- */
-export function tracesSampler(samplingContext: {
-  name?: string
-  attributes?: Record<string, unknown>
-}): number {
-  const name = samplingContext.name || ''
-
-  // Drop health check and config transactions (waste of quota)
-  if (name.includes('/api/config') || name.includes('/api/health')) {
-    return 0
-  }
-
-  // Drop Sentry tunnel transactions
-  if (name.includes('/monitoring') || name.includes('/api/sentry-tunnel')) {
-    return 0
-  }
-
-  // Default: 10% sampling (free tier friendly)
-  return 0.1
-}
-
-/**
- * Console logging levels to capture
- */
-export const consoleLevels = ['error', 'warn', 'log'] as const
 
 /**
  * GDPR-compliant data scrubbing for beforeSend hook

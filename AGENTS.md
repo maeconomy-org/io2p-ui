@@ -48,7 +48,7 @@ pnpm vitest run src/__tests__/lib/search-parser.test.ts
 - **Charts**: ECharts via `echarts-for-react`
 - **i18n**: `next-intl` — locale files in `src/messages/{en,nl}.json`
 - **Auth**: mTLS client certificate authentication via `src/contexts/auth-context.tsx`
-- **Error tracking**: Sentry (tunneled through `/api/sentry-tunnel`)
+- **Error tracking**: Sentry, browser-only and errors-only (tunneled through the SDK's `/monitoring` route); server errors flow via the logger (NDJSON stdout + optional OTel)
 
 ### Key Patterns
 
@@ -153,9 +153,10 @@ Providers (providers.tsx)
 
 ### Logging
 
-- **Local dev**: Console logs everything at `info` level and above, no Sentry.
-- **VM/staging**: Set `LOG_LEVEL=debug` env var for full console output. Set `SENTRY_ENABLED=true` for error tracking.
-- **Production**: Console only logs when `LOG_LEVEL` is explicitly set. Sentry captures errors and warnings automatically.
+- **API**: `logger.error(msg, fields?)` — the Error always travels under `fields.err`, never flattened or stringified. Same for `debug/info/warn`.
+- **Server** (API routes, RSC): NDJSON to stdout, always on, gated by `LOG_LEVEL` (default `info` in prod, `debug` in dev). When `OTEL_ENABLED=true` the same records also flow as OTel log records.
+- **Browser, dev**: console at `LOG_LEVEL` (via `__IOM_CONFIG__`), ship sink off by default.
+- **Browser, production**: console OFF by design (set `localStorage['iom:log-level']` to re-enable on a live session); records at/above `LOG_SHIP_LEVEL` ship to `/api/telemetry`; error-level records go to Sentry with the real exception.
 - Use `logger.security(event, details)` for auth/security events.
 - Use `logger.import(event, details)` for import pipeline events.
 
