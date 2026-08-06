@@ -54,8 +54,6 @@ A modern web application for tracking and managing building materials, component
    ```bash
    BASE_URL=https://example.com    # Base URL for all API services
    HERE_API_KEY=your-key           # HERE Maps API key
-   REDIS_URL=redis://localhost:6379
-   REDIS_PASSWORD=your-password
    ```
 
 4. Start the development server
