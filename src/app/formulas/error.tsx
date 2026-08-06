@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
-import * as Sentry from '@sentry/nextjs'
 
 import { Button } from '@/components/ui'
 import { logger } from '@/lib/logger'
@@ -17,17 +16,13 @@ export default function Error({ error, reset }: ErrorBoundaryProps) {
   const t = useTranslations()
 
   useEffect(() => {
-    const shouldCapture =
-      process.env.NODE_ENV === 'production' ||
-      process.env.SENTRY_ENABLED === 'true'
-
-    if (shouldCapture) {
-      Sentry.captureException(error)
-    }
-
+    // The real Error travels under `err` — the logger's Sentry sink captures
+    // it (with its stack) and the ship/console sinks serialize it. `digest`
+    // only exists for errors that crossed the server boundary, so it is
+    // included only when present.
     logger.error('Unhandled error in route segment', {
-      message: error.message,
-      digest: error.digest,
+      err: error,
+      ...(error.digest ? { digest: error.digest } : {}),
     })
   }, [error])
 

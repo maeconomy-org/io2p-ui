@@ -72,7 +72,7 @@ function readStoredTemplates(): MappingTemplate[] {
     const raw = localStorage.getItem(IMPORT_MAPPING_TEMPLATES_KEY)
     return raw ? JSON.parse(raw) : []
   } catch (error) {
-    logger.error('Failed to load mapping templates:', error)
+    logger.error('Failed to load mapping templates:', { err: error })
     return []
   }
 }
@@ -390,7 +390,7 @@ export function useColumnMapper({
         setMappingTemplates(updatedTemplates)
         setActiveTemplateId(newTemplate.id)
       } catch (error) {
-        logger.error('Failed to save template:', error)
+        logger.error('Failed to save template:', { err: error })
       }
     },
     [columnMapping, mappingTemplates]

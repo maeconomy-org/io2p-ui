@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
-    logger.error('HERE API error:', error)
+    logger.error('HERE API error:', { err: error })
     return NextResponse.json(
       { error: 'Address lookup failed' },
       { status: 500 }

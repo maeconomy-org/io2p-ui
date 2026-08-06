@@ -48,7 +48,7 @@ pnpm vitest run src/__tests__/lib/search-parser.test.ts
 - **Charts**: ECharts via `echarts-for-react`
 - **i18n**: `next-intl` — locale files in `src/messages/{en,nl}.json`
 - **Auth**: mTLS client certificate authentication via `src/contexts/auth-context.tsx`
-- **Error tracking**: Sentry (tunneled through `/api/sentry-tunnel`)
+- **Error tracking**: Sentry, browser-only and errors-only (tunneled through the SDK's `/monitoring` route); server errors flow via the logger (NDJSON stdout + optional OTel)
 
 ### Key Patterns
 
@@ -153,11 +153,24 @@ Providers (providers.tsx)
 
 ### Logging
 
-- **Local dev**: Console logs everything at `info` level and above, no Sentry.
-- **VM/staging**: Set `LOG_LEVEL=debug` env var for full console output. Set `SENTRY_ENABLED=true` for error tracking.
-- **Production**: Console only logs when `LOG_LEVEL` is explicitly set. Sentry captures errors and warnings automatically.
+- **API**: `logger.error(msg, fields?)` — the Error always travels under `fields.err`, never flattened or stringified. Same for `debug/info/warn`.
+- **Server** (API routes, RSC): NDJSON to stdout, always on, gated by `LOG_LEVEL` (default `info` in prod, `debug` in dev). When `OTEL_ENABLED=true` the same records also flow as OTel log records.
+- **Browser, dev**: console at `LOG_LEVEL` (via `__IOM_CONFIG__`), ship sink off by default.
+- **Browser, production**: console OFF by design (the `localStorage['iom:log-level']` override re-enables it on a live session, or silences with `'off'`); records at/above `LOG_SHIP_LEVEL` ship to `/api/telemetry`; error-level records go to Sentry with the real exception.
 - Use `logger.security(event, details)` for auth/security events.
 - Use `logger.import(event, details)` for import pipeline events.
+
+### Observability (spans, metrics, telemetry)
+
+Logging semantics are above; these rules cover everything else new code instruments.
+
+- **Log vs span vs metric**: log = a fact about one request you'll read later; span = timing/causality in a trace waterfall (wrap meaningful async operations, join the active trace); metric = an aggregate you'd alert or dashboard on (counter for events, histogram for durations, observable gauge for depths/pools).
+- **Naming & cardinality**: never an id or unbounded value in a span name or metric label — ids go in span attributes namespaced `io2p.*`; metric names are `io2p.<domain>.<thing>` with closed-set attribute values; use OTel semconv names for standard things (prebuilt dashboards key on them).
+- **Server OTel** boots in `src/instrumentation.node.ts` (manual NodeSDK). `OTEL_ENABLED` defaults to false — telemetry must never break boot or tests; a start failure logs once, exporter errors never throw; endpoint/headers via the standard `OTEL_EXPORTER_OTLP_*` envs. New server spans/metrics use `@opentelemetry/api` (`trace.getTracer` / `metrics.getMeter`) — no-ops when the SDK is off.
+- **The browser has NO OTel SDK** (still experimental) — the browser signal is the logger. Records ship to `/api/telemetry` as `{ records: [...] }` (io2p-auth-ui's route takes a bare array — don't cross wire formats). A new browser destination is one more sink behind the interface in `src/lib/logger` — never a new logging path.
+- **Sentry is BROWSER-ONLY, errors-only.** Never add server-side Sentry or any tracing option — `tracesSampleRate: 0` still boots the tracing machinery; omit, don't zero.
+- **Scrubbing lives in `src/lib/redact.ts` and applies to ALL sinks** (ship, Sentry, NDJSON). Key-based redaction cannot see a secret inside a string VALUE — presigned URLs and query strings are sanitized at the call site (`redactPresignedUrlString`); a query string is a credential until proven otherwise. Never tokens, cookies or full URLs in span attributes or metric labels.
+- **New browser-visible config goes through `__IOM_CONFIG__` / `buildRuntimeConfig()`** (`src/constants/client.ts`) — a bare `process.env` read compiles away in the browser bundle and becomes a silent no-op.
 
 ### Dynamic Imports & Code Splitting
 
@@ -170,7 +183,7 @@ Providers (providers.tsx)
 
 ### API Routes & Security
 
-- **All `/api/*` routes** must validate the JWT via `requireAuth(req)` from `@/lib/api-auth`.
+- **All `/api/*` routes** must validate the JWT via `requireAuth(req)` from `@/lib/api-auth`. The one deliberate exception is `/api/telemetry`, which accepts anonymous records on purpose — a crash on the login page is exactly the one worth having, and there is no session to authenticate yet. It pays for that with the controls an authenticated route gets for free: a rate limit keyed on the client identifier, a declared-length requirement, a payload cap, a per-batch record cap and a server-side re-scrub. Do not "fix" it by adding `requireAuth`; if you add another anonymous route, it owes the same five.
 - **Client-side calls to `/api/*`** must use `authFetch()` from `@/lib/auth-fetch` — it attaches the JWT from localStorage automatically.
 - Never expose JWT tokens in URLs (query params). Use `Authorization: Bearer` header only.
 - File downloads use `fetch` + `Blob` + `URL.createObjectURL()` — never `window.open(url?token=...)`.
@@ -287,7 +300,7 @@ To add a new variable: update `buildRuntimeConfig()`, `ClientConfig`, and `DEFAU
 
 **Required**: `AUTH_API_URL`, `AUTH_REFRESH_API_URL`, `REGISTRY_API_URL`, `NODE_API_URL`, `REDIS_URL`, `REDIS_PASSWORD`.
 
-**Optional**: `UP_API_URL`, `HERE_API_KEY` (address lookups), `EMAIL_LOGIN_ENABLED`, Sentry (`SENTRY_DSN`/`SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_ENABLED`), branding (`APP_NAME`/`APP_DESCRIPTION`/`APP_ACRONYM`), import limits (`MAX_IMPORT_FILE_SIZE_MB`/`MAX_IMPORT_PAYLOAD_MB`/`MAX_OBJECTS_PER_IMPORT`), attachment cap (`MAX_ATTACHMENT_SIZE_MB` — S3-streamed upload, default 1024 = 1 GB hard ceiling at 8 MB × 128 parts), `LOG_LEVEL`, `ENCRYPTION_KEY` (AES-256-GCM for Redis-stored JWTs, auto-generated if missing), `CONTACT_URL`, `SUPPORT_EMAIL`.
+**Optional**: `UP_API_URL`, `HERE_API_KEY` (address lookups), `EMAIL_LOGIN_ENABLED`, Sentry (`SENTRY_DSN`/`SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_ENABLED`), branding (`APP_NAME`/`APP_DESCRIPTION`/`APP_ACRONYM`), import limits (`MAX_IMPORT_FILE_SIZE_MB`/`MAX_IMPORT_PAYLOAD_MB`/`MAX_OBJECTS_PER_IMPORT`), attachment cap (`MAX_ATTACHMENT_SIZE_MB` — S3-streamed upload, default 1024 = 1 GB hard ceiling at 8 MB × 128 parts), `LOG_LEVEL` (server emit gate + browser console level outside production), `LOG_SHIP_LEVEL` (minimum level the browser ships to `/api/telemetry`; default `info` in production, off in dev), `OTEL_ENABLED` (master switch for the server OTel SDK, default `false` — nothing boots without it), `OTEL_EXPORTER_OTLP_ENDPOINT` + `OTEL_EXPORTER_OTLP_HEADERS` (server-held OTLP collector coupling; when set, `/api/telemetry` forwards browser records as OTLP logs), `APP_VERSION` + `DEPLOYMENT_ENVIRONMENT` + `SERVICE_NAMESPACE` (OTel resource attributes, and the `service.version`/`deployment.environment` on forwarded browser records — without them everything reports as `unknown` and you cannot tell releases apart), `TRUSTED_PROXY_HOPS` (how many proxies in front of the app append to `x-forwarded-for`; default 1. Set it to 2 when nginx fronts a platform ingress that also appends — too low and every client behind the outermost proxy shares ONE rate-limit bucket, too high and you key on a spoofable client-supplied entry), `ENCRYPTION_KEY` (AES-256-GCM for Redis-stored JWTs, auto-generated if missing), `CONTACT_URL`, `SUPPORT_EMAIL`.
 
 ## SDK (`iom-sdk`)
 

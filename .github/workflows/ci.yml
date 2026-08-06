@@ -1,0 +1,33 @@
+name: ci
+# PR gate: typecheck / lint / format / tests / production build.
+# Docker publishing lives in docker-build.yml (main + version tags only).
+#
+# DORMANT until io2p-client publishes to npm. It is currently an unpublished
+# `file:../io2p-client` dependency, so `pnpm install --frozen-lockfile` cannot
+# resolve it on a runner — the same reason the Docker build cannot run either.
+# The steps below are correct and ready; only the triggers are withheld, so
+# the gate does not fail every PR for a reason no PR can fix.
+#
+# TO RE-ENABLE, once `io2p-client` is a version range in package.json:
+#   on:
+#     pull_request:
+#     push:
+#       branches: [main, dev]
+on:
+  workflow_dispatch:
+env:
+  HUSKY: 0
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6 # version comes from package.json "packageManager"
+      - uses: actions/setup-node@v6
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test:run
+      - run: pnpm build

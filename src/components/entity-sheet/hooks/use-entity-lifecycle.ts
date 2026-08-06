@@ -45,7 +45,7 @@ export function useEntityLifecycle(
       logger.error(`${label} ${action} failed`, {
         entityId: id,
         status: iomStatus(error),
-        error: error instanceof Error ? error.message : String(error),
+        err: error,
       })
       toast.error(t(saveErrorMessage(error).key))
     }

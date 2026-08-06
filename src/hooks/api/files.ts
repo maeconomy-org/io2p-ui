@@ -152,7 +152,7 @@ export function useFileDownload() {
     onError: (error, vars) => {
       logger.error('File download failed', {
         fileId: vars.id,
-        error: error instanceof Error ? error.message : String(error),
+        err: error,
       })
       toast.error(
         iomStatus(error) === 404

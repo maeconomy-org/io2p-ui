@@ -98,7 +98,7 @@ export function useTemplateForm(
       logger.error('Template save failed', {
         templateId: template?.id,
         status: iomStatus(err),
-        error: err instanceof Error ? err.message : String(err),
+        err: err,
       })
       const message = saveErrorMessage(err)
       toast.error(t(message.key, message.values))

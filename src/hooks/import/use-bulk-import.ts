@@ -209,7 +209,7 @@ export function useBulkImport({
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown import error'
-        logger.error('Bulk import failed:', error)
+        logger.error('Bulk import failed:', { err: error })
 
         toast.error(t('import.toasts.failed'), {
           description: errorMessage,

@@ -123,7 +123,7 @@ export function useProcessForm(
       logger.error('Process save failed', {
         processId: process?.id,
         status: iomStatus(err),
-        error: err instanceof Error ? err.message : String(err),
+        err: err,
       })
       const message = saveErrorMessage(err)
       toast.error(t(message.key, message.values))

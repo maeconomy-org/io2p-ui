@@ -337,7 +337,7 @@ function ShareForm({
       toast.success(t('access.removedFromShare'))
       onDone()
     } catch (error) {
-      logger.error('Remove from share failed', error)
+      logger.error('Remove from share failed', { err: error })
       toast.error(
         t('access.saveFailedFor', { names: subjectName(grant.subject) })
       )
@@ -380,7 +380,7 @@ function ShareForm({
       toast.success(t('access.saved'))
       onDone()
     } catch (error) {
-      logger.error('Restore grant failed', error)
+      logger.error('Restore grant failed', { err: error })
       toast.error(
         t('access.saveFailedFor', { names: subjectName(grant.subject) })
       )
@@ -442,7 +442,7 @@ function ShareForm({
       try {
         await run()
       } catch (error) {
-        logger.error('Access change failed', { error, subject: key })
+        logger.error('Access change failed', { err: error, subject: key })
         failed.push({ key, error })
       }
     }

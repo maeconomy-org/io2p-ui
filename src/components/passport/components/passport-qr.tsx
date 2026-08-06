@@ -35,7 +35,7 @@ export function PassportQr({ uuid, size = 128, className }: PassportQrProps) {
       node.innerHTML = ''
       instance.append(node)
     } catch (error) {
-      logger.error('Error rendering passport QR:', error)
+      logger.error('Error rendering passport QR:', { err: error })
     }
 
     return () => {

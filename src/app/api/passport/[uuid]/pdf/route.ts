@@ -73,8 +73,7 @@ export async function POST(
   } catch (err) {
     logger.error('passport_pdf_error', {
       uuid,
-      error: err instanceof Error ? err.message : String(err),
-      stack: err instanceof Error ? err.stack : undefined,
+      err: err,
     })
     return NextResponse.json(
       { error: 'Failed to generate PDF' },

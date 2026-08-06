@@ -26,6 +26,70 @@ export function iomStatus(error: unknown): number | undefined {
   return undefined
 }
 
+// `NetworkError` (fetch itself rejected — node down, DNS, CORS) carries status 0, the XHR
+// "no response" convention, so "node unreachable" is distinguishable from every HTTP status
+// without `instanceof` (same dual-module-copy hazard as above).
+export function isNodeUnreachable(error: unknown): boolean {
+  return iomStatus(error) === 0
+}
+
+// `TimeoutError` is a `NetworkError` subclass (status 0 too); the SDK contract is to
+// discriminate it by `name`, never `instanceof`.
+export function isTimeout(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null && 'name' in error) {
+    return (error as { name: unknown }).name === 'TimeoutError'
+  }
+  return false
+}
+
+/**
+ * A caller cancellation, not a failure: the SDK fires onError for aborts too, and React Query
+ * aborts in-flight queries on unmount — ordinary navigation would otherwise manufacture
+ * error-level telemetry (shipped AND Sentry-captured). AbortError may arrive raw (DOMException)
+ * or as the `cause` of the SDK's wrapper error. TimeoutError is NOT an abort — a request that ran
+ * out of budget is a real failure and stays at error.
+ *
+ * Lives here rather than in `io2p.ts` so the React Query error handlers can share it: `io2p.ts` is
+ * `'use client'` and owns client construction, this module is neutral error vocabulary.
+ */
+export function isCallerAbort(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const name = (error as { name?: unknown }).name
+  if (name === 'AbortError') return true
+  if (name === 'TimeoutError') return false
+  const cause = (error as { cause?: unknown }).cause
+  if (cause && typeof cause === 'object') {
+    return (cause as { name?: unknown }).name === 'AbortError'
+  }
+  return false
+}
+
+// Marks an error the SDK's own onError hook has ALREADY logged at error level (with method, path,
+// status and duration). React Query's global handlers see the same object again and would produce
+// a second error record for one failure — doubling ship volume and Sentry captures.
+//
+// A non-enumerable symbol: invisible to JSON.stringify, to spreads and to the log serializer, so
+// the mark never reaches a sink.
+const REPORTED = Symbol.for('io2p.errorReported')
+
+export function markErrorReported(error: unknown): void {
+  if (!error || typeof error !== 'object') return
+  try {
+    Object.defineProperty(error, REPORTED, {
+      value: true,
+      enumerable: false,
+      configurable: true,
+    })
+  } catch {
+    // Frozen or sealed error — worst case the failure is logged twice.
+  }
+}
+
+export function wasErrorReported(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  return (error as Record<symbol, unknown>)[REPORTED] === true
+}
+
 // The problem+json `detail` — server prose naming the rule that rejected the write. Only worth
 // surfacing for 422, where it tells the user which field to fix.
 export function iomDetail(error: unknown): string | undefined {

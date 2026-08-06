@@ -242,7 +242,7 @@ function ShareForm({
       toast.success(t(mode === 'edit' ? 'shares.saved' : 'shares.created'))
       onDone()
     } catch (error) {
-      logger.error('Save share failed', error)
+      logger.error('Save share failed', { err: error })
       const { key, values } = saveErrorMessage(error)
       toast.error(t(key, values))
     } finally {

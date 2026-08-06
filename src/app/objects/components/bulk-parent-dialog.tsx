@@ -67,7 +67,7 @@ export function BulkParentDialog({
       onDone()
       onOpenChange(false)
     } catch (error) {
-      logger.error('Bulk set parent failed', error)
+      logger.error('Bulk set parent failed', { err: error })
       const { key, values } = saveErrorMessage(error)
       toast.error(t(key, values))
     } finally {

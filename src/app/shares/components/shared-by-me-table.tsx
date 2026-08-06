@@ -77,7 +77,7 @@ export function SharedByMeTable() {
       }
       toast.success(t('shares.revokedAll'))
     } catch (error) {
-      logger.error('Revoke all failed', error)
+      logger.error('Revoke all failed', { err: error })
       const { key, values } = saveErrorMessage(error)
       toast.error(t(key, values))
     } finally {
@@ -103,7 +103,7 @@ export function SharedByMeTable() {
       }
       toast.success(t('shares.revokedAll'))
     } catch (error) {
-      logger.error('Bulk revoke failed', error)
+      logger.error('Bulk revoke failed', { err: error })
       const { key, values } = saveErrorMessage(error)
       toast.error(t(key, values))
     } finally {

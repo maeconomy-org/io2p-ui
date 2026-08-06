@@ -96,7 +96,7 @@ export function TwoFactorCard() {
       setTotpUri(data.totpURI)
       setMode('enable-verify')
     } catch (err) {
-      logger.error('2FA enable error:', err)
+      logger.error('2FA enable error:', { err })
       toast.error(t('twoFactor.enableError'))
     } finally {
       setBusy(false)
@@ -114,7 +114,7 @@ export function TwoFactorCard() {
       refetch()
       reset()
     } catch (err) {
-      logger.error('2FA verify error:', err)
+      logger.error('2FA verify error:', { err })
       toast.error(t('twoFactor.verifyError'))
     } finally {
       setBusy(false)
@@ -132,7 +132,7 @@ export function TwoFactorCard() {
       refetch()
       reset()
     } catch (err) {
-      logger.error('2FA disable error:', err)
+      logger.error('2FA disable error:', { err })
       toast.error(t('twoFactor.disableError'))
     } finally {
       setBusy(false)

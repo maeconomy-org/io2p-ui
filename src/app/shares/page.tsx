@@ -109,7 +109,7 @@ export default function SharesPage() {
       await deleteMutation.mutateAsync({ id: toDelete.id })
       toast.success(t('shares.deleted'))
     } catch (error) {
-      logger.error('Delete share failed', error)
+      logger.error('Delete share failed', { err: error })
       toast.error(t('shares.deleteFailed'))
     } finally {
       setToDelete(null)
@@ -137,7 +137,7 @@ export default function SharesPage() {
       }
       toast.success(t('shares.deleted'))
     } catch (error) {
-      logger.error('Bulk delete shares failed', error)
+      logger.error('Bulk delete shares failed', { err: error })
       toast.error(t('shares.deleteFailed'))
     } finally {
       clearSelection()

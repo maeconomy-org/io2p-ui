@@ -6,6 +6,9 @@ allowBuilds:
   '@parcel/watcher': true
   '@sentry/cli': true
   '@swc/core': true
+  # protobufjs (via the OTLP proto exporters): its postinstall only stamps a
+  # version file, not needed at runtime — explicitly opted out.
+  protobufjs: false
   sharp: true
 
 # Supply-chain cooldown: refuse any version published in the last 4320 minutes

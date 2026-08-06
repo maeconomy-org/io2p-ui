@@ -148,7 +148,7 @@ export function useEntityForm(
       logger.error('Entity save failed', {
         entityId: entity?.id,
         status: iomStatus(err),
-        error: err instanceof Error ? err.message : String(err),
+        err: err,
       })
       const message = saveErrorMessage(err)
       toast.error(t(message.key, message.values))

@@ -106,7 +106,7 @@ export function ParentSelector({
         )
         setHasInitiallyLoaded(true)
       } catch (error) {
-        logger.error('Search failed:', error)
+        logger.error('Search failed:', { err: error })
         setSearchResults([])
       } finally {
         setIsSearching(false)

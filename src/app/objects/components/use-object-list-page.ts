@@ -82,7 +82,7 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
       try {
         await restoreMutation.mutateAsync({ id: object.id })
       } catch (error) {
-        logger.error('Restore object error:', error)
+        logger.error('Restore object error:', { err: error })
       }
     },
     [restoreMutation]
@@ -93,7 +93,7 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
     try {
       await removeMutation.mutateAsync({ id: objectToDelete.id })
     } catch (error) {
-      logger.error('Delete object error:', error)
+      logger.error('Delete object error:', { err: error })
     } finally {
       setObjectToDelete(null)
     }
@@ -108,7 +108,7 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
         selectedIds.map((id) => removeMutation.mutateAsync({ id }))
       )
     } catch (error) {
-      logger.error('Bulk delete error:', error)
+      logger.error('Bulk delete error:', { err: error })
     } finally {
       setConfirmBulkDelete(false)
       clearSelection()
@@ -121,7 +121,7 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
         selectedIds.map((id) => restoreMutation.mutateAsync({ id }))
       )
     } catch (error) {
-      logger.error('Bulk restore error:', error)
+      logger.error('Bulk restore error:', { err: error })
     } finally {
       clearSelection()
     }

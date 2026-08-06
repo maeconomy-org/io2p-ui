@@ -59,7 +59,7 @@ export function CopyButton({
       if (showToast) {
         toast.error(t('failedToCopy'))
       }
-      logger.error('Failed to copy:', error)
+      logger.error('Failed to copy:', { err: error })
     }
   }
 

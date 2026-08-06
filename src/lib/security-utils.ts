@@ -11,9 +11,10 @@ import {
 // In-memory fallback rate limiter when Redis is unavailable
 const memoryRateLimit = new Map<string, { count: number; resetAt: number }>()
 
-// Clean up expired entries every 60 seconds
+// Clean up expired entries every 60 seconds. unref() so this housekeeping
+// timer never keeps the process alive on shutdown.
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  const cleanupTimer = setInterval(() => {
     const now = Date.now()
     for (const [key, entry] of memoryRateLimit) {
       if (now >= entry.resetAt) {
@@ -21,6 +22,17 @@ if (typeof setInterval !== 'undefined') {
       }
     }
   }, 60_000)
+  ;(cleanupTimer as { unref?: () => void }).unref?.()
+}
+
+/**
+ * How many proxies in front of this app append to `x-forwarded-for`.
+ * `TRUSTED_PROXY_HOPS`, default 1. Invalid or below 1 falls back to 1 rather
+ * than trusting more of the header than intended.
+ */
+function trustedProxyHops(): number {
+  const parsed = parseInt(process.env.TRUSTED_PROXY_HOPS ?? '', 10)
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1
 }
 
 export interface SecurityValidationResult {
@@ -45,6 +57,51 @@ export interface PayloadValidationResult {
 // `logSecurityEvent` lives with the logger, not here — this file used to carry a byte-identical copy
 // that also just delegated to `logger.security`.
 import { logSecurityEvent } from './logger'
+
+/**
+ * Generic fixed-window rate limiter (Redis INCR/EXPIRE with the same
+ * in-memory fallback the import limiter uses). Deliberately does NOT log:
+ * the telemetry route is a caller, and a security-event log per throttled
+ * telemetry batch would feed the very pipeline being throttled.
+ */
+export async function checkSimpleRateLimit(
+  scope: string,
+  identifier: string,
+  maxRequests: number,
+  windowSeconds: number
+): Promise<{ allowed: boolean; current: number }> {
+  const key = `rate_limit:${scope}:${identifier}`
+  try {
+    const redis = getRedis()
+    const pipeline = redis.pipeline()
+    pipeline.incr(key)
+    pipeline.ttl(key)
+    const results = await pipeline.exec()
+    const current = (results?.[0]?.[1] as number) ?? 1
+    const ttl = (results?.[1]?.[1] as number) ?? -1
+    // FIXED window: set the expiry only when this INCR created the key (or a
+    // crash between INCR and EXPIRE left it without a TTL). Refreshing the
+    // TTL on every request would slide the window forever — sustained
+    // traffic (the ship sink flushes every 5s) would accumulate to the cap
+    // and then be 429'd permanently.
+    if (current === 1 || ttl === -1) {
+      await redis.expire(key, windowSeconds)
+    }
+    return { allowed: current <= maxRequests, current }
+  } catch {
+    const now = Date.now()
+    const entry = memoryRateLimit.get(key)
+    if (entry && now < entry.resetAt) {
+      entry.count += 1
+      return { allowed: entry.count <= maxRequests, current: entry.count }
+    }
+    memoryRateLimit.set(key, {
+      count: 1,
+      resetAt: now + windowSeconds * 1000,
+    })
+    return { allowed: true, current: 1 }
+  }
+}
 
 /**
  * Validate import payload size and object count
@@ -113,12 +170,19 @@ export async function checkImportRateLimit(
     // Get current count and increment
     const pipeline = redis.pipeline()
     pipeline.incr(rateLimitKey)
-    pipeline.expire(rateLimitKey, windowSeconds)
     pipeline.ttl(rateLimitKey)
 
     const results = await pipeline.exec()
     const currentCount = results?.[0]?.[1] as number
-    const ttl = results?.[2]?.[1] as number
+    let ttl = results?.[1]?.[1] as number
+
+    // FIXED window: expiry only on key creation (or a missing TTL after a
+    // crash) — an EXPIRE on every request slides the window forever and
+    // permanently blocks sustained traffic once it reaches the cap.
+    if (currentCount === 1 || ttl === -1) {
+      await redis.expire(rateLimitKey, windowSeconds)
+      ttl = windowSeconds
+    }
 
     const resetTime = Date.now() + ttl * 1000
 
@@ -168,7 +232,7 @@ export async function checkImportRateLimit(
       {
         identifier,
         userUUID,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        err: error,
       },
       'error'
     )
@@ -245,7 +309,7 @@ export async function checkConcurrentJobLimit(
       'concurrent_job_check_failed',
       {
         userUUID,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        err: error,
       },
       'error'
     )
@@ -276,7 +340,7 @@ export async function trackUserJob(
       {
         userUUID,
         jobId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        err: error,
       },
       'error'
     )
@@ -301,7 +365,7 @@ export async function untrackUserJob(
       {
         userUUID,
         jobId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        err: error,
       },
       'error'
     )
@@ -317,7 +381,26 @@ export function getClientIdentifier(req: Request): string {
   const realIP = req.headers.get('x-real-ip')
   const userAgent = req.headers.get('user-agent') || ''
 
-  const clientIP = forwardedFor?.split(',')[0] || realIP
+  // Read x-forwarded-for from the RIGHT, by trusted-hop count. Each proxy
+  // appends the peer address it accepted the connection from, so entries to
+  // the left of our own infrastructure are client-supplied and trivially
+  // spoofable — keying a rate limit on the first entry lets an attacker
+  // rotate identities (or pin someone else's) with a header.
+  //
+  // Both directions fail, so this is configuration, not a constant:
+  //   too few hops → you read a proxy's address, and EVERY client behind it
+  //     collapses into one rate-limit bucket (one noisy tab throttles all)
+  //   too many hops → you read a spoofable client-supplied entry
+  // Default 1 = a single trusted proxy in front of the app. Raise it to 2
+  // when nginx fronts a platform ingress that also appends.
+  const hops = forwardedFor
+    ?.split(',')
+    .map((h) => h.trim())
+    .filter(Boolean)
+  const index = hops ? hops.length - trustedProxyHops() : -1
+  // Below zero means fewer hops arrived than configured (a direct request, a
+  // misconfigured count): the leftmost entry is the best available answer.
+  const clientIP = (hops && (hops[index] ?? hops[0])) || realIP
 
   if (clientIP && clientIP !== 'unknown') {
     // Create a hash for rate limiting without storing actual IP

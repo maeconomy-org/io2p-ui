@@ -63,7 +63,7 @@ function ResetPasswordForm() {
       toast.success(t('auth.resetPassword.success'))
       router.replace('/')
     } catch (err) {
-      logger.error('Reset password error:', err)
+      logger.error('Reset password error:', { err })
       setError(t('auth.resetPassword.error'))
     } finally {
       setSubmitting(false)

@@ -155,7 +155,7 @@ export function DuplicateObjectsSheet({
         setSourceSearchResults(results.data.map((o) => ({ ...o, uuid: o.id })))
         setHasSourceLoaded(true)
       } catch (error) {
-        logger.error('Source search failed:', error)
+        logger.error('Source search failed:', { err: error })
         setSourceSearchResults([])
       } finally {
         setIsSourceSearching(false)

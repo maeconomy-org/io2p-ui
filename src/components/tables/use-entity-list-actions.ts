@@ -75,7 +75,7 @@ export function useEntityListActions<T extends ListRow>({
         await restore.mutateAsync({ id: row.id })
         toast.success(t(messages.restored))
       } catch (error) {
-        logger.error(`Restore ${entityName} failed`, error)
+        logger.error(`Restore ${entityName} failed`, { err: error })
         toast.error(t(messages.restoreFailed))
       }
     },
@@ -88,7 +88,7 @@ export function useEntityListActions<T extends ListRow>({
       await remove.mutateAsync({ id: toDelete.id })
       toast.success(t(messages.deleted))
     } catch (error) {
-      logger.error(`Delete ${entityName} failed`, error)
+      logger.error(`Delete ${entityName} failed`, { err: error })
       toast.error(t(messages.deleteFailed))
     } finally {
       // `finally`, so a failed delete does not leave the confirm open inviting a second identical
@@ -117,7 +117,7 @@ export function useEntityListActions<T extends ListRow>({
           t(action === 'delete' ? messages.deleted : messages.restored)
         )
       } catch (error) {
-        logger.error(`Bulk ${entityName} ${action} failed`, error)
+        logger.error(`Bulk ${entityName} ${action} failed`, { err: error })
         toast.error(
           t(
             action === 'delete' ? messages.deleteFailed : messages.restoreFailed

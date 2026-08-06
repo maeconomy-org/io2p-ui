@@ -148,7 +148,7 @@ export function BulkShareSheet({
       onDone?.()
       onOpenChange(false)
     } catch (error) {
-      logger.error('Bulk share failed', error)
+      logger.error('Bulk share failed', { err: error })
       const { key, values } = saveErrorMessage(error)
       toast.error(t(key, values))
     } finally {
