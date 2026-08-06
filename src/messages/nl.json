@@ -1325,10 +1325,21 @@
         "object": "Object",
         "properties": "Eigenschappen",
         "address": "Adres",
-        "files": "Bestanden"
+        "files": "Bestanden",
+        "row": "Rij"
       },
       "valueCount": "({count, number} waarden)",
-      "showingFirst": "De eerste {shown, number} van {total, number} objecten worden getoond."
+      "showingFirst": "De eerste {shown, number} van {total, number} objecten worden getoond.",
+      "filter": {
+        "all": "Alle",
+        "valid": "Geldig",
+        "needsFix": "Moet nog"
+      },
+      "allClear": "Alles klopt. Klaar om te importeren.",
+      "fixOrSkip": "Vul de gemarkeerde cellen in, of laat deze {count, number} rijen buiten de import.",
+      "skipRows": "{count, number} rijen overslaan",
+      "empty": "leeg",
+      "editsAreLocal": "Wijzigingen hier worden nog niet verzonden — deze weergave bestaat om de interactie te beoordelen."
     },
     "run": {
       "refused": "De import is geweigerd — er is niets aangemaakt",

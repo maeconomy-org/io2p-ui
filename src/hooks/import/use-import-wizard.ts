@@ -304,6 +304,8 @@ export function useImportWizard() {
     selectDataRow,
     headers,
     dataRows,
+    /** Index-aligned with `dataRows` — the real file line of each. */
+    dataRowNumbers,
     previewRows: useMemo(() => dataRows.slice(0, PREVIEW_ROWS), [dataRows]),
     columns: wizardColumns,
     // mapping

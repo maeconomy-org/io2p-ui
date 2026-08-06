@@ -1325,10 +1325,21 @@
         "object": "Object",
         "properties": "Properties",
         "address": "Address",
-        "files": "Files"
+        "files": "Files",
+        "row": "Row"
       },
       "valueCount": "({count, number} values)",
-      "showingFirst": "Showing the first {shown, number} of {total, number} objects."
+      "showingFirst": "Showing the first {shown, number} of {total, number} objects.",
+      "filter": {
+        "all": "All",
+        "valid": "Valid",
+        "needsFix": "Needs a fix"
+      },
+      "allClear": "Everything checks out. Ready to import.",
+      "fixOrSkip": "Fill the highlighted cells, or leave these {count, number} rows out of the import.",
+      "skipRows": "Skip {count, number} rows",
+      "empty": "empty",
+      "editsAreLocal": "Edits here are not sent yet — this view exists to judge the interaction."
     },
     "run": {
       "refused": "The import was refused — nothing was created",
