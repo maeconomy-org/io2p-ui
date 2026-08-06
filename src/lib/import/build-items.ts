@@ -274,6 +274,11 @@ export function buildItems(
 
       // Non-hierarchy columns land on the level they were assigned, defaulting to the deepest.
       for (const [column, target] of targets) {
+        // A LEVEL column is already expressed as the object's name and its place in the tree.
+        // Writing it as a property too gives every floor a `gebäude: Northgate House` beside a
+        // parent link that says the same thing, and a `geschoss: Erdgeschoss` beside its own
+        // name — noise on every imported object, in the section the operator reads first.
+        if (mapping.levels.includes(column)) continue
         const level = mapping.attachTo[column]
         const owner =
           level === undefined

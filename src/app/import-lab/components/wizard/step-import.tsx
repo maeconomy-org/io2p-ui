@@ -1,118 +1,150 @@
 'use client'
 
-import { useState } from 'react'
-import { CheckCircle2, Loader2, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2, Upload } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui'
-
-type Phase = 'staging' | 'handed-off'
+import { Alert, AlertDescription, Button, Progress } from '@/components/ui'
+import type { ImportProgress } from '@/hooks/api/imports'
+import type { ImportProblem } from 'io2p-client'
+import type { ImportWizard } from '@/hooks/import/use-import-wizard'
 
 /**
  * Staging and the hand-off, as two visibly different things.
  *
  * They have different rules and the difference matters: while rows are being UPLOADED the tab has
- * to stay open, and a dropped connection resumes rather than restarts. Once the server has them,
- * the job is durable and the tab is free. Today's UI shows one spinner for both and then navigates
- * away, so nobody learns which half they are in.
+ * to stay open, and a dropped connection resumes rather than restarts. Once the node has them the
+ * job is durable and the tab is free. The old UI showed one spinner for both and then navigated
+ * away, so nobody learned which half they were in — or that closing the tab early lost the work.
  */
-export function StepImport() {
-  const [phase, setPhase] = useState<Phase>('staging')
-  const staged = phase === 'staging' ? 3400 : 9000
-  const total = 9000
+export function StepImport({
+  wizard,
+  progress,
+  problems,
+  isPending,
+  error,
+  onStart,
+  onDone,
+}: {
+  wizard: ImportWizard
+  progress: ImportProgress
+  problems: ImportProblem[]
+  isPending: boolean
+  error: unknown
+  onStart: () => void
+  onDone: () => void
+}) {
+  const total = wizard.items.length
+
+  // The node refused the envelope. Nothing was written — the job is still a draft — so this is a
+  // "go back and fix the mapping", not a partial import to clean up.
+  if (problems.length > 0) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <p className="font-medium">
+              The import was refused — nothing was created
+            </p>
+            <ul className="mt-1 space-y-0.5 text-sm">
+              {problems.slice(0, 8).map((problem, index) => (
+                <li key={index}>
+                  <span className="tabular-nums">Row {problem.seq + 1}</span>
+                  {problem.tempId && ` (${problem.tempId})`}: {problem.message}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+        <Button type="button" variant="outline" onClick={onDone}>
+          Back to the mapping
+        </Button>
+      </div>
+    )
+  }
+
+  if (progress.phase === 'started') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-start gap-3">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
+          <div>
+            <h3 className="font-medium">Handed over to the server</h3>
+            <p className="text-sm text-muted-foreground">
+              {total.toLocaleString('en-US')} objects are being created. You can
+              close this tab — the job keeps running, and the status page shows
+              what happened to every row.
+            </p>
+          </div>
+        </div>
+        <Button type="button" onClick={onDone}>
+          See the import status
+        </Button>
+      </div>
+    )
+  }
+
+  if (isPending) {
+    const staging = progress.phase === 'staging'
+    const percent =
+      progress.total === 0 ? 0 : (progress.staged / progress.total) * 100
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="font-medium">
+            {staging ? 'Uploading rows' : 'Checking your data'}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {staging
+              ? 'Keep this tab open until the upload finishes. Nothing has been created yet.'
+              : 'Running the same checks the server runs. Still nothing created.'}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Progress value={staging ? percent : 100} className="h-2" />
+          <p className="text-sm tabular-nums text-muted-foreground">
+            {staging ? (
+              <>
+                {progress.staged.toLocaleString('en-US')} of{' '}
+                {progress.total.toLocaleString('en-US')} rows uploaded
+              </>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Validating…
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {phase === 'staging' ? (
-        <>
-          <div>
-            <h3 className="font-medium">Uploading rows</h3>
-            <p className="text-sm text-muted-foreground">
-              Keep this tab open until the upload finishes. Nothing has been
-              created yet.
-            </p>
-          </div>
+      <div>
+        <h3 className="font-medium">Ready to import</h3>
+        <p className="text-sm text-muted-foreground">
+          {total.toLocaleString('en-US')} objects will be created
+          {wizard.file ? ` from ${wizard.file.name}` : ''}. This cannot be
+          undone — objects can be deleted afterwards, but not un-created.
+        </p>
+      </div>
 
-          <div className="space-y-2">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full bg-blue-500 transition-all"
-                style={{ width: `${(staged / total) * 100}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-sm tabular-nums">
-              <span className="font-medium">
-                {staged.toLocaleString('en-US')} of{' '}
-                {total.toLocaleString('en-US')} rows
-              </span>
-              <span className="text-muted-foreground">chunk 7 of 18</span>
-            </div>
-          </div>
-
-          {/* Byte-sized chunks, not row counts: a row spans 30x in size depending on how many
-              properties it carries, so "how many rows fit in a request" has no fixed answer. */}
-          <p className="text-xs text-muted-foreground">
-            Sent in 6 MB batches. If the connection drops, uploading continues
-            from row {staged.toLocaleString('en-US')} rather than starting over.
-          </p>
-
-          <div className="flex items-center gap-2 border-t pt-4">
-            <Button type="button" variant="outline" size="sm">
-              Cancel upload
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => setPhase('handed-off')}
-              className="text-muted-foreground"
-            >
-              (demo: finish upload)
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500" />
-            <div>
-              <h3 className="font-medium">Import started</h3>
-              <p className="text-sm text-muted-foreground">
-                All 9,000 rows are on the server. You can close this tab — the
-                import keeps running.
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-lg border bg-muted/30 p-4">
-            <div className="flex items-center gap-2 text-sm">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
-              <span className="font-medium">Creating objects</span>
-              <span className="text-muted-foreground tabular-nums">
-                level 1 of 3
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Roughly 4 minutes for a sheet this size.
-            </p>
-          </div>
-
-          <div
-            className={cn(
-              'flex flex-col gap-2 border-t pt-4',
-              'sm:flex-row sm:items-center'
-            )}
-          >
-            <Button type="button" className="gap-2 sm:flex-1">
-              <Upload className="h-4 w-4" />
-              Watch progress
-            </Button>
-            <Button type="button" variant="outline" className="sm:flex-1">
-              Import another file
-            </Button>
-          </div>
-        </>
+      {Boolean(error) && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {error instanceof Error ? error.message : 'The import failed'}
+          </AlertDescription>
+        </Alert>
       )}
+
+      <Button type="button" onClick={onStart} className="gap-2">
+        <Upload className="h-4 w-4" />
+        Import {total.toLocaleString('en-US')} objects
+      </Button>
     </div>
   )
 }

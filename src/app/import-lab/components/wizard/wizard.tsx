@@ -6,8 +6,9 @@ import { Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui'
 
-import type { LabMapping } from '../../wizard-fixtures'
-import { INITIAL_MAPPING } from '../../wizard-fixtures'
+import { useRunImport } from '@/hooks/api/imports'
+import { useImportWizard } from '@/hooks/import/use-import-wizard'
+
 import { StepUpload } from './step-upload'
 import { StepSheet } from './step-sheet'
 import { StepMap } from './step-map'
@@ -87,41 +88,61 @@ function Stepper({
   )
 }
 
-export function Wizard() {
+export function Wizard({ onFinished }: { onFinished?: () => void }) {
   const [step, setStep] = useState(0)
-  const [mapping, setMapping] = useState<LabMapping>(INITIAL_MAPPING)
-  const [sheet, setSheet] = useState('Rooms')
+  const wizard = useImportWizard()
+  const run = useRunImport()
 
   const back = () => setStep((s) => Math.max(0, s - 1))
   const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1))
 
-  const named =
-    (mapping.hierarchyMode === 'levels' && mapping.levels.length > 0) ||
-    mapping.name !== null
-
   /**
    * Why Continue is unavailable, per step — and `null` when it is fine.
    *
-   * The condition has to be scoped to the step that owns it. A single `disabled={!named}` shared
-   * across the footer blocked the Sheet step too, which has nothing to say about names: a dead
-   * button on a screen with no visible problem. Returning the REASON rather than a boolean also
-   * forces it to be sayable, so it can be shown next to the button instead of left to be guessed.
+   * The condition has to be scoped to the step that owns it. A single shared `disabled` blocked
+   * the Sheet step too, which has nothing to say about names: a dead button on a screen with no
+   * visible problem. Returning the REASON rather than a boolean also forces it to be sayable, so
+   * it can be shown next to the button instead of left to be guessed at.
    */
-  const blockedBecause =
-    step === 2 && !named
-      ? 'Map a column to Name, or pick a hierarchy first'
-      : null
+  const blockedBecause = step === 2 ? wizard.blockedBecause : null
+
+  // The node's dry-run problems, kept only while the run is on this screen.
+  const problems = run.data?.started === false ? run.data.problems : []
 
   return (
     <div className="space-y-6">
       <Stepper current={step} onJump={setStep} />
 
       <div className="rounded-lg border bg-card p-6">
-        {step === 0 && <StepUpload onPick={next} />}
-        {step === 1 && <StepSheet selected={sheet} onSelect={setSheet} />}
-        {step === 2 && <StepMap mapping={mapping} onChange={setMapping} />}
-        {step === 3 && <StepCheck mapping={mapping} />}
-        {step === 4 && <StepImport />}
+        {step === 0 && <StepUpload wizard={wizard} onParsed={next} />}
+        {step === 1 && <StepSheet wizard={wizard} />}
+        {step === 2 && <StepMap wizard={wizard} />}
+        {step === 3 && <StepCheck wizard={wizard} />}
+        {step === 4 && (
+          <StepImport
+            wizard={wizard}
+            progress={run.progress}
+            problems={problems}
+            isPending={run.isPending}
+            error={run.error}
+            onStart={() =>
+              run.mutate({
+                items: wizard.items,
+                ...(wizard.file ? { filename: wizard.file.name } : {}),
+              })
+            }
+            onDone={() => {
+              if (problems.length > 0) {
+                // Refused: nothing was written, so send them back to the mapping rather than
+                // out of the wizard.
+                run.reset()
+                setStep(2)
+                return
+              }
+              onFinished?.()
+            }}
+          />
+        )}
       </div>
 
       {/* Upload has no Next — picking a file IS the action, and a disabled Next beside a dropzone
@@ -143,7 +164,9 @@ export function Wizard() {
                 onClick={next}
                 disabled={Boolean(blockedBecause)}
               >
-                {step === 3 ? 'Import 1,847 objects' : 'Continue'}
+                {step === 3
+                  ? `Import ${wizard.items.length.toLocaleString('en-US')} objects`
+                  : 'Continue'}
               </Button>
             </div>
           )}

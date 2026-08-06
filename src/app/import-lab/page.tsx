@@ -3,14 +3,7 @@
 import { useState } from 'react'
 import { FlaskConical } from 'lucide-react'
 
-import {
-  Alert,
-  AlertDescription,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui'
 
 import { JobList } from './components/job-list'
 import { JobDetail } from './components/job-detail'
@@ -27,6 +20,7 @@ import type { LabJob } from './fixtures'
  */
 export default function ImportLabPage() {
   const [openJob, setOpenJob] = useState<LabJob | null>(null)
+  const [tab, setTab] = useState('status')
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -36,20 +30,11 @@ export default function ImportLabPage() {
           Import lab
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Layout sketches on dummy data. Nothing here talks to a backend.
+          The bulk import, wired to the node.
         </p>
       </div>
 
-      <Alert className="mb-6">
-        <AlertDescription>
-          Shaped to core&apos;s <code>bulk-import-plan.md</code> §3d contract —
-          including <code>ok</code> / <code>skipped</code>, <code>staged</code>,
-          level progress and the per-row report, none of which the current page
-          can show.
-        </AlertDescription>
-      </Alert>
-
-      <Tabs defaultValue="status">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="status">Import status</TabsTrigger>
           <TabsTrigger value="wizard">Import wizard</TabsTrigger>
@@ -64,7 +49,9 @@ export default function ImportLabPage() {
         </TabsContent>
 
         <TabsContent value="wizard" className="mt-6">
-          <Wizard />
+          {/* Finishing the wizard lands on the status list, where the job it just started is the
+              top row — the question a user has the moment they press Import. */}
+          <Wizard onFinished={() => setTab('status')} />
         </TabsContent>
       </Tabs>
     </div>

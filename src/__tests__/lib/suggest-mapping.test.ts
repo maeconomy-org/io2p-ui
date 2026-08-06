@@ -135,6 +135,26 @@ describe('suggestLevels', () => {
   it('suggests nothing for a sheet too short to judge', () => {
     expect(suggestLevels([['a'], ['b']], 1)).toEqual([])
   })
+
+  it('drops a column that repeats but SUBDIVIDES nothing', () => {
+    // The case a repetition test alone gets wrong, and it is expensive: it decides how many
+    // objects are created. On a real register `Address` repeats exactly as much as `Building` —
+    // one address per building — so repetition alone proposes it as a level under Building, and
+    // an address becomes a floor.
+    //
+    // Building(2) → +Floor makes 3 groups, so Floor is a real level. +Address leaves it at 2, so
+    // it carries nothing Building did not already have.
+    const rows = [
+      ['Northgate', 'Ground', '1200 Harbor Blvd'],
+      ['Northgate', 'First', '1200 Harbor Blvd'],
+      ['Riverside', 'Ground', '88 Mill Lane'],
+      ['Riverside', 'Ground', '88 Mill Lane'],
+    ]
+    const levels = suggestLevels(rows, 3)
+    expect(levels).toContain(0)
+    expect(levels).toContain(1)
+    expect(levels).not.toContain(2) // the address is an ATTRIBUTE of the building
+  })
 })
 
 describe('suggestSplit', () => {

@@ -117,6 +117,35 @@ describe('buildItems — level columns (rows repeat their ancestors)', () => {
     expect(byId.get('Northgate House/Ground/101')?.address).toBeUndefined()
   })
 
+  it('does not repeat a level column as a property', () => {
+    // A level column is already expressed twice — as the object's name and as its place in the
+    // tree. Writing it a third time as a property gives every floor a `building: Northgate
+    // House` beside a parent link saying the same thing, on every imported object.
+    const mapping = levelsMapping({
+      columns: {
+        ...levelsMapping().columns,
+        0: {
+          kind: 'property',
+          key: 'building',
+          label: 'Building',
+          split: null,
+        },
+        1: { kind: 'property', key: 'floor', label: 'Floor', split: null },
+      },
+    })
+    const { items } = buildItems(ROWS, mapping, HEADERS)
+    const floor = items.find((i) => i.tempId === 'Northgate House/Ground')
+
+    const keys = body(floor!).properties?.map((p) => p.key) ?? []
+    expect(keys).not.toContain('building')
+    expect(keys).not.toContain('floor')
+
+    // …while a genuine property is untouched. It lands on the ROOM: with three levels the room
+    // is the deepest, and an unassigned column attaches to the deepest level.
+    const room = items.find((i) => i.tempId === 'Northgate House/Ground/101')
+    expect(body(room!).properties?.map((p) => p.key)).toContain('area')
+  })
+
   it('splits a delimited cell into several values', () => {
     const { items } = buildItems(ROWS, levelsMapping(), HEADERS)
     const room = items.find((i) => i.tempId === 'Northgate House/Ground/101')
