@@ -40,16 +40,22 @@ export function JobStatusBadge({ status }: { status: LabJobStatus }) {
   )
 }
 
-export function formatDuration(from: number | null, to: number | null): string {
+export function formatDuration(
+  from?: number | null,
+  to?: number | null
+): string {
   if (!from) return '—'
-  const end = to ?? 1754301600000 // a fixed "now" so the lab renders deterministically
+  // A running job has no finish time yet, so measure against the wall clock. (This was a fixed
+  // literal while the page ran on fixtures, to keep the layout deterministic; the data is real
+  // now, so an elapsed time that does not move would be a lie.)
+  const end = to ?? Date.now()
   const seconds = Math.max(0, Math.round((end - from) / 1000))
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
   return m > 0 ? `${m}m ${String(s).padStart(2, '0')}s` : `${s}s`
 }
 
-export function formatClock(ts: number | null): string {
+export function formatClock(ts?: number | null): string {
   if (!ts) return '—'
   const d = new Date(ts)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`

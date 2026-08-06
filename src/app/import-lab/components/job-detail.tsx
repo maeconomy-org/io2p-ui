@@ -31,8 +31,9 @@ import {
   TabsTrigger,
 } from '@/components/ui'
 
+import { useImportItems, useImportJob } from '@/hooks/api/imports'
+
 import type { LabItem, LabJob } from '../fixtures'
-import { LAB_ITEMS } from '../fixtures'
 import {
   JobStatusBadge,
   OutcomeBar,
@@ -40,8 +41,6 @@ import {
   formatDuration,
   n,
 } from './lab-bits'
-
-const EMPTY_ITEMS: LabItem[] = []
 
 /**
  * The number that answers "did it work?" — deliberately bigger than the percentage, which only
@@ -134,10 +133,10 @@ function ItemsTable({
                     variant="outline"
                     className="shrink-0 font-mono text-[10px]"
                   >
-                    {item.code}
+                    {item.error?.code ?? '—'}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
-                    {item.detail}
+                    {item.error?.detail ?? ''}
                   </span>
                 </div>
               </TableCell>
@@ -150,16 +149,26 @@ function ItemsTable({
 }
 
 export function JobDetail({
-  job,
+  job: initial,
   onBack,
 }: {
   job: LabJob
   onBack: () => void
 }) {
   const [tab, setTab] = useState('failed')
-  const items = LAB_ITEMS[job.id] ?? EMPTY_ITEMS
-  const failed = items.filter((i) => i.status === 'failed')
-  const skipped = items.filter((i) => i.status === 'skipped')
+  // POLLS while the job is live and stops once it is not — the counters on this screen are the
+  // only place a running import reports itself. The row from the list is the initial value, so
+  // the page paints immediately instead of flashing empty.
+  const { data: live } = useImportJob(initial.id)
+  const job = live ?? initial
+
+  // Two queries rather than one filtered client-side: the report can be thousands of rows, and
+  // the two tabs answer different questions — `failed` is the operator's own mistake, `skipped`
+  // is the collateral behind it.
+  const { data: failedPage } = useImportItems(job.id, { status: 'failed' })
+  const { data: skippedPage } = useImportItems(job.id, { status: 'skipped' })
+  const failed: LabItem[] = failedPage?.data ?? []
+  const skipped: LabItem[] = skippedPage?.data ?? []
 
   const isDraft = job.status === 'draft'
   const isRunning = job.status === 'running'
@@ -253,7 +262,7 @@ export function JobDetail({
         </Alert>
       )}
 
-      {items.length > 0 && (
+      {failed.length + skipped.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>

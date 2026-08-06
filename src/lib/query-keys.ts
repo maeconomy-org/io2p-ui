@@ -16,6 +16,8 @@ import type {
   ListSharesQuery,
   ListFilesQuery,
   ListUsersQuery,
+  ListImportsQuery,
+  ListImportItemsQuery,
 } from 'io2p-client'
 
 export const queryKeys = {
@@ -90,6 +92,22 @@ export const queryKeys = {
       [...queryKeys.files.lists(), query] as const,
     details: () => [...queryKeys.files.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.files.details(), id] as const,
+  },
+
+  // ─── Imports (bulk load; owner-only, never shared) ───────
+  imports: {
+    all: ['imports'] as const,
+    lists: () => [...queryKeys.imports.all, 'list'] as const,
+    list: (query?: ListImportsQuery) =>
+      [...queryKeys.imports.lists(), query] as const,
+    details: () => [...queryKeys.imports.all, 'detail'] as const,
+    // A RUNNING job is polled, so its entry must be per-id: invalidating the whole list on
+    // every tick would refetch every other job too.
+    detail: (id: string) => [...queryKeys.imports.details(), id] as const,
+    // The per-row report. `status` is part of the key because the failed-only view and the
+    // full map are different questions with different answers.
+    items: (id: string, query?: ListImportItemsQuery) =>
+      [...queryKeys.imports.detail(id), 'items', query ?? null] as const,
   },
 
   // ─── Formulas (io2p-client leaf resource) ────────────────

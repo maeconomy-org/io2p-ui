@@ -6,8 +6,9 @@ import { FileSpreadsheet, Upload } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { DataTable } from '@/components/tables'
 
+import { useImports } from '@/hooks/api/imports'
+
 import type { LabJob } from '../fixtures'
-import { LAB_JOBS } from '../fixtures'
 import {
   JobStatusBadge,
   OutcomeBar,
@@ -117,6 +118,11 @@ function buildColumns(): ColumnDef<LabJob, unknown>[] {
 }
 
 export function JobList({ onOpen }: { onOpen: (job: LabJob) => void }) {
+  // Owner-scoped on the node — there is no filter to pass, and nothing to share.
+  const { data, isLoading } = useImports()
+  const jobs = data?.data ?? []
+  const page = data?.page
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -134,16 +140,17 @@ export function JobList({ onOpen }: { onOpen: (job: LabJob) => void }) {
 
       <DataTable
         columns={buildColumns()}
-        data={LAB_JOBS}
+        data={jobs}
+        fetching={isLoading}
         getRowId={(job) => job.id}
         onRowClick={onOpen}
         pagination={{
-          currentPage: 0,
-          pageSize: 20,
-          totalElements: LAB_JOBS.length,
-          totalPages: 1,
-          isFirstPage: true,
-          isLastPage: true,
+          currentPage: (page?.number ?? 1) - 1,
+          pageSize: page?.size ?? 20,
+          totalElements: page?.totalElements ?? 0,
+          totalPages: page?.totalPages ?? 0,
+          isFirstPage: (page?.number ?? 1) <= 1,
+          isLastPage: (page?.number ?? 1) >= (page?.totalPages ?? 1),
         }}
         emptyIcon={<FileSpreadsheet className="h-12 w-12" />}
         emptyTitle="No imports yet"
