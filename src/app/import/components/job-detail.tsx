@@ -31,7 +31,14 @@ import {
   TabsTrigger,
 } from '@/components/ui'
 
-import { useImportItems, useImportJob } from '@/hooks/api/imports'
+import { useRouter } from 'next/navigation'
+
+import {
+  useCancelImport,
+  useImportItems,
+  useImportJob,
+  useStartImport,
+} from '@/hooks/api/imports'
 
 import type { ImportItem, ImportJob } from '../types'
 import {
@@ -170,8 +177,17 @@ export function JobDetail({
   const failed: ImportItem[] = failedPage?.data ?? []
   const skipped: ImportItem[] = skippedPage?.data ?? []
 
+  const router = useRouter()
+  const cancel = useCancelImport()
+  const start = useStartImport()
+
   const isDraft = job.status === 'draft'
-  const isRunning = job.status === 'running'
+  const isRunning = job.status === 'running' || job.status === 'queued'
+  const isFinished =
+    job.status === 'completed' || job.status === 'completed_with_errors'
+  // A draft whose rows all landed can still be handed over — the node has them. One that stopped
+  // part-way cannot, because resuming needs the original file and the browser no longer has it.
+  const isStartable = isDraft && job.staged === job.total && job.total > 0
 
   return (
     <div className="space-y-6">
@@ -201,24 +217,54 @@ export function JobDetail({
         </div>
 
         <div className="flex shrink-0 gap-2">
-          {isDraft && (
-            <Button type="button" className="gap-2">
+          {isStartable && (
+            <Button
+              type="button"
+              className="gap-2"
+              disabled={start.isPending}
+              onClick={() => start.mutate(job.id)}
+            >
               <Play className="h-4 w-4" />
-              Resume upload
+              Start import
             </Button>
           )}
           {isRunning && (
-            <Button type="button" variant="destructive" className="gap-2">
+            <Button
+              type="button"
+              variant="destructive"
+              className="gap-2"
+              // Held in the "stopping" state by the MUTATION rather than by the job: cancel is
+              // cooperative, so the worker only notices at the next batch boundary and the status
+              // stays `running` for a moment. Without this the button springs back to "Cancel"
+              // and invites a second click at the one moment it looks like nothing happened.
+              // (`cancelRequested` is stored on the node but not exposed on the DTO.)
+              disabled={cancel.isPending || cancel.isSuccess}
+              onClick={() => cancel.mutate(job.id)}
+            >
               <Ban className="h-4 w-4" />
-              Cancel
+              {cancel.isPending || cancel.isSuccess ? 'Stopping…' : 'Cancel'}
             </Button>
           )}
-          {(job.status === 'completed' ||
-            job.status === 'completed_with_errors') && (
-            <Button type="button">View objects</Button>
+          {isFinished && job.ok > 0 && (
+            // The objects list has no deep-link filter, so this goes to the list itself rather
+            // than to a view of THIS import's rows. Honest, and still the place they landed.
+            <Button type="button" onClick={() => router.push('/objects')}>
+              View objects
+            </Button>
           )}
         </div>
       </div>
+
+      {isDraft && !isStartable && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            This upload stopped after {job.staged.toLocaleString('en-US')} of{' '}
+            {job.total.toLocaleString('en-US')} rows, so it cannot be handed
+            over. Nothing was created — import the file again to start over.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="rounded-lg border bg-card p-6">
         <Headline job={job} />

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { FileSpreadsheet } from 'lucide-react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui'
 import { PageHelp } from '@/components/onboarding/page-help'
@@ -19,41 +18,39 @@ import type { ImportJob } from './types'
  * immediately. The predecessor split them across `/import` and `/import-status`, so finishing an
  * import navigated somewhere else and coming back meant starting over.
  *
- * Strings are hardcoded English for now; the translation keys land with the rest of the page's
- * copy rather than mid-migration.
+ * The header follows objects/processes exactly: `container mx-auto flex-1 p-4`, an `h2` with its
+ * PageHelp, and every control on the right of that same row. A page that invents its own heading
+ * size and control placement reads as a different application.
  */
 export default function ImportPage() {
   const [openJob, setOpenJob] = useState<ImportJob | null>(null)
   const [tab, setTab] = useState('status')
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="flex items-center gap-2 text-2xl font-semibold">
-          <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
-          Import
-          <PageHelp concept="import" />
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Load objects from a spreadsheet, keeping their hierarchy.
-        </p>
-      </div>
+    <div className="container mx-auto flex-1 p-4">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-2xl font-semibold">Import</h2>
+            <PageHelp concept="import" />
+          </div>
+          {/* The tabs ARE this page's control, so they sit where every other page puts its
+              controls rather than under the heading in a block of their own. */}
+          <TabsList>
+            <TabsTrigger value="status">Your imports</TabsTrigger>
+            <TabsTrigger value="wizard">New import</TabsTrigger>
+          </TabsList>
+        </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="status">Your imports</TabsTrigger>
-          <TabsTrigger value="wizard">New import</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="status" className="mt-6">
+        <TabsContent value="status" className="mt-0">
           {openJob ? (
             <JobDetail job={openJob} onBack={() => setOpenJob(null)} />
           ) : (
-            <JobList onOpen={setOpenJob} />
+            <JobList onNew={() => setTab('wizard')} onOpen={setOpenJob} />
           )}
         </TabsContent>
 
-        <TabsContent value="wizard" className="mt-6">
+        <TabsContent value="wizard" className="mt-0">
           {/* Finishing the wizard lands on the status list, where the job it just started is the
               top row — the question a user has the moment they press Import. */}
           <Wizard onFinished={() => setTab('status')} />

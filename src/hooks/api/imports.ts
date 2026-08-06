@@ -175,6 +175,29 @@ export function useRunImport() {
 }
 
 /**
+ * Start a job that was staged but never handed over.
+ *
+ * Only meaningful for a DRAFT that is fully staged — the wizard normally stages and starts in one
+ * mutation, so a draft here means the browser closed between the two. The rows are already on the
+ * node, which is exactly why this is one call and not a re-upload.
+ */
+export function useStartImport() {
+  const client = useIomClient()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => client.imports.start(id),
+    onSuccess: (job: ImportJobDTO) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.imports.detail(job.id),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.imports.lists(),
+      })
+    },
+  })
+}
+
+/**
  * Ask the worker to stop.
  *
  * Cooperative, and it does NOT undo: objects already created stay, because an append-only store

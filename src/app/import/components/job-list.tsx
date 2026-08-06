@@ -29,6 +29,10 @@ function buildColumns(): ColumnDef<ImportJob, unknown>[] {
     {
       id: 'file',
       header: 'Import',
+      // Capped, because the filename is the one unbounded value here — a real export arrives
+      // called "CONFIDENTIAL - MAECONOMY - GHE - MultiPack Processed - … (1).xlsx", and without
+      // a ceiling it pushes Duration off the right-hand edge of a table that clips overflow.
+      meta: { cellClassName: 'max-w-[22rem]' },
       cell: ({ row }) => (
         <div className="min-w-0">
           <div className="flex items-center gap-2 font-medium">
@@ -117,7 +121,13 @@ function buildColumns(): ColumnDef<ImportJob, unknown>[] {
   ]
 }
 
-export function JobList({ onOpen }: { onOpen: (job: ImportJob) => void }) {
+export function JobList({
+  onNew,
+  onOpen,
+}: {
+  onNew: () => void
+  onOpen: (job: ImportJob) => void
+}) {
   // Owner-scoped on the node — there is no filter to pass, and nothing to share.
   const { data, isLoading } = useImports()
   const jobs = data?.data ?? []
@@ -125,18 +135,9 @@ export function JobList({ onOpen }: { onOpen: (job: ImportJob) => void }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-medium">Imports</h2>
-          <p className="text-sm text-muted-foreground">
-            Every import you have run. A job keeps running if you close the tab.
-          </p>
-        </div>
-        <Button type="button" className="gap-2">
-          <Upload className="h-4 w-4" />
-          New import
-        </Button>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Every import you have run. A job keeps running if you close the tab.
+      </p>
 
       <DataTable
         columns={buildColumns()}
@@ -154,6 +155,13 @@ export function JobList({ onOpen }: { onOpen: (job: ImportJob) => void }) {
         }}
         emptyIcon={<FileSpreadsheet className="h-12 w-12" />}
         emptyTitle="No imports yet"
+        emptyDescription="Load objects from a spreadsheet, keeping their hierarchy."
+        emptyAction={
+          <Button type="button" onClick={onNew} className="gap-2">
+            <Upload className="h-4 w-4" />
+            New import
+          </Button>
+        }
       />
     </div>
   )
