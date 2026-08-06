@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { FileSpreadsheet, Upload } from 'lucide-react'
 
@@ -16,6 +17,9 @@ import {
   formatDuration,
   n,
 } from './job-bits'
+
+/** Matches the node's own list default, so page 1 needs no size round-trip to look right. */
+const PAGE_SIZE = 20
 
 /**
  * The job list as a DataTable rather than a hand-rolled accordion.
@@ -128,10 +132,15 @@ export function JobList({
   onNew: () => void
   onOpen: (job: ImportJob) => void
 }) {
+  const [page, setPage] = useState(1)
   // Owner-scoped on the node — there is no filter to pass, and nothing to share.
-  const { data, isLoading } = useImports()
+  const { data, isLoading } = useImports({ page, size: PAGE_SIZE })
   const jobs = data?.data ?? []
-  const page = data?.page
+  const meta = data?.page
+  const totalPages = meta?.totalPages ?? 0
+
+  const goTo = (next: number) =>
+    setPage(Math.min(Math.max(next, 1), Math.max(totalPages, 1)))
 
   return (
     <div className="space-y-4">
@@ -145,14 +154,23 @@ export function JobList({
         fetching={isLoading}
         getRowId={(job) => job.id}
         onRowClick={onOpen}
+        // 1-BASED. DataTable subtracts one itself before handing it to the pagination control, so
+        // the `- 1` that used to be here made page 1 render as -1. The node also counts from 1.
         pagination={{
-          currentPage: (page?.number ?? 1) - 1,
-          pageSize: page?.size ?? 20,
-          totalElements: page?.totalElements ?? 0,
-          totalPages: page?.totalPages ?? 0,
-          isFirstPage: (page?.number ?? 1) <= 1,
-          isLastPage: (page?.number ?? 1) >= (page?.totalPages ?? 1),
+          currentPage: meta?.number ?? 1,
+          pageSize: meta?.size ?? PAGE_SIZE,
+          totalElements: meta?.totalElements ?? 0,
+          totalPages,
+          isFirstPage: (meta?.number ?? 1) <= 1,
+          isLastPage: (meta?.number ?? 1) >= Math.max(totalPages, 1),
         }}
+        // Without these the arrows rendered and did nothing: DataTable calls the optional
+        // `onPageChange?.()` and nothing was ever passed.
+        onPageChange={(zeroBased) => goTo(zeroBased + 1)}
+        onFirstPage={() => goTo(1)}
+        onPreviousPage={() => goTo(page - 1)}
+        onNextPage={() => goTo(page + 1)}
+        onLastPage={() => goTo(totalPages)}
         emptyIcon={<FileSpreadsheet className="h-12 w-12" />}
         emptyTitle="No imports yet"
         emptyDescription="Load objects from a spreadsheet, keeping their hierarchy."

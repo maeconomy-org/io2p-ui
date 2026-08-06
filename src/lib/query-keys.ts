@@ -173,12 +173,4 @@ export const queryKeys = {
         [...queryKeys.access.shares.all, 'detail', id] as const,
     },
   },
-
-  // ─── Import jobs (our own /api routes, not io2p) ─────────
-  importJobs: {
-    all: ['import-jobs'] as const,
-    list: () => [...queryKeys.importJobs.all, 'list'] as const,
-    detail: (jobId: string) =>
-      [...queryKeys.importJobs.all, 'detail', jobId] as const,
-  },
 } as const

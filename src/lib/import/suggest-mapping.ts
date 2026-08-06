@@ -44,6 +44,20 @@ const ADDRESS_PARTS: Record<string, ColumnTarget> = {
   country: { kind: 'addressPart', part: 'country' },
   land: { kind: 'addressPart', part: 'country' },
   state: { kind: 'addressPart', part: 'state' },
+  province: { kind: 'addressPart', part: 'state' },
+  provincie: { kind: 'addressPart', part: 'state' },
+  bundesland: { kind: 'addressPart', part: 'state' },
+  // `houseNumber` was mappable by hand but never suggested, so the one address column that is
+  // ALWAYS separate in Dutch and German exports was the one the operator had to notice alone.
+  // `nr` and `no` are bare enough to be risky in another domain; here the header sits beside a
+  // street column and the target is an address, which is as much context as the rest of the table
+  // gets. Normalisation strips separators, so `house-number` and `Huis nr.` both land here.
+  housenumber: { kind: 'addressPart', part: 'houseNumber' },
+  huisnummer: { kind: 'addressPart', part: 'houseNumber' },
+  hausnummer: { kind: 'addressPart', part: 'houseNumber' },
+  hausnr: { kind: 'addressPart', part: 'houseNumber' },
+  huisnr: { kind: 'addressPart', part: 'houseNumber' },
+  nr: { kind: 'addressPart', part: 'houseNumber' },
 }
 
 const normalize = (header: string) =>

@@ -97,6 +97,60 @@ function Headline({ job }: { job: ImportJob }) {
   )
 }
 
+/**
+ * Escape one CSV field.
+ *
+ * A reason string routinely contains a comma, and a `key` for a level import is a path. Quoting
+ * everything and doubling inner quotes is the whole of RFC 4180 that matters here, and it is far
+ * less code than a dependency.
+ */
+function csvField(value: unknown): string {
+  return `"${String(value ?? '').replaceAll('"', '""')}"`
+}
+
+/**
+ * The failure report as a file, built from what is already on screen.
+ *
+ * No request: the rows were fetched to render the table, so re-asking for them would be a second
+ * answer to a question already answered. It is also the only way to get the WHOLE list — the
+ * screen shows a page of it, and "fix these rows" is not something anyone can do 20 at a time.
+ */
+function downloadReport(
+  jobId: string,
+  failed: ImportItem[],
+  skipped: ImportItem[]
+): void {
+  const rows = [
+    ['outcome', 'item', 'key', 'code', 'reason'],
+    ...failed.map((item) => [
+      'failed',
+      item.seq,
+      item.tempId,
+      item.error?.code ?? '',
+      item.error?.detail ?? '',
+    ]),
+    ...skipped.map((item) => [
+      'skipped',
+      item.seq,
+      item.tempId,
+      item.error?.code ?? '',
+      item.error?.detail ?? '',
+    ]),
+  ]
+  // BOM so Excel opens it as UTF-8 — without it a German or Dutch reason renders as mojibake in
+  // the one application the operator is certain to use.
+  const csv = '﻿' + rows.map((row) => row.map(csvField).join(',')).join('\r\n')
+
+  const url = URL.createObjectURL(
+    new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  )
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `import-${jobId}-problems.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 function ItemsTable({
   items,
   kind,
@@ -117,8 +171,14 @@ function ItemsTable({
       <Table>
         <TableHeader>
           <TableRow>
-            {/* `seq` is the line in THEIR sheet — the only address the operator can act on. */}
-            <TableHead className="w-[6rem]">Sheet row</TableHead>
+            {/* NOT the sheet row, though it was labelled that. `seq` is the item's position in
+                the envelope, and with a hierarchy on those are different things — 4 rows become 9
+                items, so item 7 is no line in anyone's spreadsheet. The KEY column is what leads
+                back to the data; for a level import it is the object's path.
+
+                A real row reference would have to travel on the envelope, which is core's call.
+                Until then, saying "item" is the honest version. */}
+            <TableHead className="w-[6rem]">Item</TableHead>
             <TableHead className="w-[12rem]">Key</TableHead>
             <TableHead>Reason</TableHead>
           </TableRow>
@@ -317,7 +377,13 @@ export function JobDetail({
                 Fix these rows in your sheet and import just them again.
               </p>
             </div>
-            <Button type="button" variant="outline" size="sm" className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => downloadReport(job.id, failed, skipped)}
+            >
               <Download className="h-4 w-4" />
               Download {failed.length + skipped.length} rows as CSV
             </Button>

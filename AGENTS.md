@@ -66,7 +66,7 @@ pnpm vitest run src/__tests__/lib/search-parser.test.ts
 - `/objects` — Main object list with pagination, filters, bulk actions
 - `/objects/[uuid]` — Object detail with tabbed sheets
 - `/groups`, `/models`, `/processes` — Entity management views
-- `/import`, `/import-status` — Bulk CSV/Excel import workflow
+- `/import` — Bulk CSV/Excel import: the wizard and the job list are TABS on one page, not two routes
 - `/api/*` — Internal API routes (config, import processing, file downloads, address lookup)
 
 ### Provider Architecture

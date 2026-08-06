@@ -44,6 +44,9 @@ const TARGETS = [
   { value: 'address.houseNumber', label: 'Address — number' },
   { value: 'address.postalCode', label: 'Address — postcode' },
   { value: 'address.city', label: 'Address — city' },
+  // `state` is part of the address model and was the one part with no way to map it: a sheet with
+  // a province or Bundesland column had to drop it or file it as an ordinary property.
+  { value: 'address.state', label: 'Address — state / province' },
   { value: 'address.country', label: 'Address — country' },
   { value: 'fileUrl', label: 'File link' },
   { value: 'key', label: 'Key (this row’s id)' },
