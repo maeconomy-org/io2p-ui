@@ -2,6 +2,8 @@
 
 import { AlertTriangle, CornerDownRight } from 'lucide-react'
 
+import { useFormatter, useTranslations } from 'next-intl'
+
 import {
   Alert,
   AlertDescription,
@@ -68,46 +70,60 @@ function toRows(wizard: ImportWizard): Row[] {
 }
 
 export function StepCheck({ wizard }: { wizard: ImportWizard }) {
+  const t = useTranslations()
+  // Locale-aware thousands separators: 1,847 in English, 1.847 in Dutch.
+  const format = useFormatter()
   const rows = toRows(wizard)
   const shown = rows.slice(0, PREVIEW_LIMIT)
   const depth = rows.reduce((max, row) => Math.max(max, row.depth), 0) + 1
   const totalValues = rows.reduce((sum, row) => sum + row.values, 0)
 
+  // `id` keys the translation AND the React list; the label and hint are looked up from it, so a
+  // copy change never touches this array.
   const stats = [
     {
-      label: 'objects',
+      id: 'objects',
       value: wizard.items.length,
-      hint: `from ${wizard.dataRows.length.toLocaleString('en-US')} rows`,
+      hint: t('import.check.stats.objectsHint', {
+        rows: wizard.dataRows.length,
+      }),
     },
-    { label: 'levels deep', value: depth, hint: 'hierarchy' },
-    { label: 'values', value: totalValues, hint: 'across all properties' },
+    { id: 'depth', value: depth, hint: t('import.check.stats.depthHint') },
     {
-      label: 'problems',
+      id: 'values',
+      value: totalValues,
+      hint: t('import.check.stats.valuesHint'),
+    },
+    {
+      id: 'problems',
       value: wizard.problems.length,
-      hint: wizard.problems.length === 0 ? 'none' : 'rows refused',
+      hint: t('import.check.stats.problemsHint', {
+        count: wizard.problems.length,
+      }),
     },
   ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-medium">Check what will be created</h3>
+        <h3 className="font-medium">{t('import.check.title')}</h3>
         <p className="text-sm text-muted-foreground">
-          Nothing has been written yet. These are the objects, not the rows.
+          {t('import.check.subtitle')}
           {/* Named here as well as on the mapping step: it decides WHERE the whole tree lands,
               and this is the last screen before that becomes permanent. */}
-          {wizard.destination &&
-            ' They will be created under the object you chose.'}
+          {wizard.destination && ` ${t('import.check.underDestination')}`}
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-md border p-3">
+          <div key={stat.id} className="rounded-md border p-3">
             <p className="text-2xl font-semibold tabular-nums">
-              {stat.value.toLocaleString('en-US')}
+              {format.number(stat.value)}
             </p>
-            <p className="text-sm">{stat.label}</p>
+            <p className="text-sm">
+              {t(`import.check.stats.${stat.id}`, { count: stat.value })}
+            </p>
             <p className="text-xs text-muted-foreground">{stat.hint}</p>
           </div>
         ))}
@@ -119,22 +135,27 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
+            {/* Pluralised by the translation, not by a ternary — Dutch and English agree here,
+                but the pattern is what a third locale needs. */}
             <p className="font-medium">
-              {wizard.problems.length} row
-              {wizard.problems.length === 1 ? '' : 's'} will be skipped
+              {t('import.check.willSkip', { count: wizard.problems.length })}
             </p>
             <ul className="mt-1 space-y-0.5 text-sm">
               {wizard.problems.slice(0, 5).map((problem, index) => (
                 <li key={index}>
                   {problem.row > 0 && (
-                    <span className="tabular-nums">Row {problem.row}: </span>
+                    <span className="tabular-nums">
+                      {t('import.check.rowPrefix', { row: problem.row })}
+                    </span>
                   )}
-                  {problem.message}
+                  {t(problem.key, problem.values)}
                 </li>
               ))}
               {wizard.problems.length > 5 && (
                 <li className="text-muted-foreground">
-                  …and {wizard.problems.length - 5} more
+                  {t('import.check.andMore', {
+                    count: wizard.problems.length - 5,
+                  })}
                 </li>
               )}
             </ul>
@@ -146,10 +167,16 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Object</TableHead>
-              <TableHead className="w-[9rem]">Properties</TableHead>
-              <TableHead className="w-[6rem]">Address</TableHead>
-              <TableHead className="w-[5rem]">Files</TableHead>
+              <TableHead>{t('import.check.columns.object')}</TableHead>
+              <TableHead className="w-[9rem]">
+                {t('import.check.columns.properties')}
+              </TableHead>
+              <TableHead className="w-[6rem]">
+                {t('import.check.columns.address')}
+              </TableHead>
+              <TableHead className="w-[5rem]">
+                {t('import.check.columns.files')}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -175,7 +202,10 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
                     <>
                       {row.properties}
                       {row.values > row.properties && (
-                        <span className="text-xs"> ({row.values} values)</span>
+                        <span className="text-xs">
+                          {' '}
+                          {t('import.check.valueCount', { count: row.values })}
+                        </span>
                       )}
                     </>
                   )}
@@ -183,7 +213,7 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
                 <TableCell>
                   {row.hasAddress ? (
                     <Badge variant="outline" className="font-normal">
-                      yes
+                      {t('common.yes')}
                     </Badge>
                   ) : (
                     <span className="text-sm text-muted-foreground">—</span>
@@ -200,8 +230,10 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
 
       {rows.length > PREVIEW_LIMIT && (
         <p className="text-xs tabular-nums text-muted-foreground">
-          Showing the first {PREVIEW_LIMIT} of{' '}
-          {rows.length.toLocaleString('en-US')} objects.
+          {t('import.check.showingFirst', {
+            shown: PREVIEW_LIMIT,
+            total: rows.length,
+          })}
         </p>
       )}
     </div>

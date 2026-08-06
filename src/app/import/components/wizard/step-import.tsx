@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+
 import { AlertTriangle, CheckCircle2, Loader2, Upload } from 'lucide-react'
 
 import { Alert, AlertDescription, Button, Progress } from '@/components/ui'
@@ -32,6 +34,7 @@ export function StepImport({
   onStart: () => void
   onDone: () => void
 }) {
+  const t = useTranslations()
   const total = wizard.items.length
 
   // The node refused the envelope. Nothing was written — the job is still a draft — so this is a
@@ -42,13 +45,15 @@ export function StepImport({
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <p className="font-medium">
-              The import was refused — nothing was created
-            </p>
+            <p className="font-medium">{t('import.run.refused')}</p>
             <ul className="mt-1 space-y-0.5 text-sm">
               {problems.slice(0, 8).map((problem, index) => (
                 <li key={index}>
-                  <span className="tabular-nums">Row {problem.seq + 1}</span>
+                  {/* The node's own detail, in whatever language it speaks — relayed, not
+                      translated. Only the frame around it is ours. */}
+                  <span className="tabular-nums">
+                    {t('import.run.itemPrefix', { item: problem.seq + 1 })}
+                  </span>
                   {problem.tempId && ` (${problem.tempId})`}: {problem.message}
                 </li>
               ))}
@@ -56,7 +61,7 @@ export function StepImport({
           </AlertDescription>
         </Alert>
         <Button type="button" variant="outline" onClick={onDone}>
-          Back to the mapping
+          {t('import.run.backToMapping')}
         </Button>
       </div>
     )
@@ -68,16 +73,14 @@ export function StepImport({
         <div className="flex items-start gap-3">
           <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
           <div>
-            <h3 className="font-medium">Handed over to the server</h3>
+            <h3 className="font-medium">{t('import.run.handedOver')}</h3>
             <p className="text-sm text-muted-foreground">
-              {total.toLocaleString('en-US')} objects are being created. You can
-              close this tab — the job keeps running, and the status page shows
-              what happened to every row.
+              {t('import.run.handedOverDetail', { count: total })}
             </p>
           </div>
         </div>
         <Button type="button" onClick={onDone}>
-          See the import status
+          {t('import.run.seeStatus')}
         </Button>
       </div>
     )
@@ -92,12 +95,12 @@ export function StepImport({
       <div className="space-y-6">
         <div>
           <h3 className="font-medium">
-            {staging ? 'Uploading rows' : 'Checking your data'}
+            {staging ? t('import.run.uploading') : t('import.run.validating')}
           </h3>
           <p className="text-sm text-muted-foreground">
             {staging
-              ? 'Keep this tab open until the upload finishes. Nothing has been created yet.'
-              : 'Running the same checks the server runs. Still nothing created.'}
+              ? t('import.run.uploadingDetail')
+              : t('import.run.validatingDetail')}
           </p>
         </div>
 
@@ -105,14 +108,14 @@ export function StepImport({
           <Progress value={staging ? percent : 100} className="h-2" />
           <p className="text-sm tabular-nums text-muted-foreground">
             {staging ? (
-              <>
-                {progress.staged.toLocaleString('en-US')} of{' '}
-                {progress.total.toLocaleString('en-US')} rows uploaded
-              </>
+              t('import.run.uploadedOf', {
+                staged: progress.staged,
+                total: progress.total,
+              })
             ) : (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Validating…
+                {t('import.run.validatingShort')}
               </span>
             )}
           </p>
@@ -124,11 +127,14 @@ export function StepImport({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-medium">Ready to import</h3>
+        <h3 className="font-medium">{t('import.run.ready')}</h3>
         <p className="text-sm text-muted-foreground">
-          {total.toLocaleString('en-US')} objects will be created
-          {wizard.file ? ` from ${wizard.file.name}` : ''}. This cannot be
-          undone — objects can be deleted afterwards, but not un-created.
+          {wizard.file
+            ? t('import.run.readyDetailWithFile', {
+                count: total,
+                file: wizard.file.name,
+              })
+            : t('import.run.readyDetail', { count: total })}
         </p>
       </div>
 
@@ -136,14 +142,14 @@ export function StepImport({
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            {error instanceof Error ? error.message : 'The import failed'}
+            {error instanceof Error ? error.message : t('import.run.failed')}
           </AlertDescription>
         </Alert>
       )}
 
       <Button type="button" onClick={onStart} className="gap-2">
         <Upload className="h-4 w-4" />
-        Import {total.toLocaleString('en-US')} objects
+        {t('import.actions.importCount', { count: total })}
       </Button>
     </div>
   )

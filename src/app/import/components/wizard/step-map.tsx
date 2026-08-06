@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+
 import { useState } from 'react'
 import { FolderTree, Layers, Sparkles, X } from 'lucide-react'
 
@@ -34,30 +36,34 @@ import type {
  * the operator brought and the import threw away without saying so.
  */
 
+// `value` is the wire value AND the translation suffix (`import.map.targets.<value>`). Module
+// scope cannot call `t`, and a parallel label list inside the component would be a second place
+// to keep in step. Dots in the value nest the key, which is what we want.
 const TARGETS = [
-  { value: 'skip', label: "Don't import" },
-  { value: 'name', label: 'Name' },
-  { value: 'description', label: 'Description' },
-  { value: 'property', label: 'Property' },
-  { value: 'address', label: 'Address (whole cell)' },
-  { value: 'address.street', label: 'Address — street' },
-  { value: 'address.houseNumber', label: 'Address — number' },
-  { value: 'address.postalCode', label: 'Address — postcode' },
-  { value: 'address.city', label: 'Address — city' },
+  'skip',
+  'name',
+  'description',
+  'property',
+  'address',
+  'address.street',
+  'address.houseNumber',
+  'address.postalCode',
+  'address.city',
   // `state` is part of the address model and was the one part with no way to map it: a sheet with
   // a province or Bundesland column had to drop it or file it as an ordinary property.
-  { value: 'address.state', label: 'Address — state / province' },
-  { value: 'address.country', label: 'Address — country' },
-  { value: 'fileUrl', label: 'File link' },
-  { value: 'key', label: 'Key (this row’s id)' },
-  { value: 'parent', label: 'Parent key' },
+  'address.state',
+  'address.country',
+  'fileUrl',
+  'key',
+  'parent',
 ] as const
 
+/** The delimiter IS the label for three of these, so only the mode needs translating. */
 const SPLITS = [
-  { value: 'none', label: 'One value' },
-  { value: ';', label: 'Split on ;' },
-  { value: ',', label: 'Split on ,' },
-  { value: '|', label: 'Split on |' },
+  { value: 'none', labelKey: 'import.map.split.one' },
+  { value: ';', labelKey: 'import.map.split.on', char: ';' },
+  { value: ',', labelKey: 'import.map.split.on', char: ',' },
+  { value: '|', labelKey: 'import.map.split.on', char: '|' },
 ]
 
 function targetValue(target: ColumnTarget | undefined): string {
@@ -92,6 +98,7 @@ function ColumnRow({
   column: WizardColumn
   wizard: ImportWizard
 }) {
+  const t = useTranslations()
   const target = wizard.mapping.columns[column.index]
   const isLevel = wizard.levels.includes(column.index)
   const levelIndex = wizard.levels.indexOf(column.index)
@@ -104,14 +111,14 @@ function ColumnRow({
           {isLevel && (
             <Badge variant="outline" className="gap-1 font-normal">
               <Layers className="h-3 w-3" />
-              Level {levelIndex + 1}
+              {t('import.map.levelBadge', { level: levelIndex + 1 })}
             </Badge>
           )}
         </div>
         {/* The real first values, not a placeholder. A mapping decision is impossible without
             seeing what is actually in the column. */}
         <p className="truncate text-xs text-muted-foreground">
-          {column.samples.join(' · ') || 'no values in this column'}
+          {column.samples.join(' · ') || t('import.map.noValues')}
         </p>
       </div>
 
@@ -132,7 +139,7 @@ function ColumnRow({
             <SelectContent>
               {SPLITS.map((split) => (
                 <SelectItem key={split.value} value={split.value}>
-                  {split.label}
+                  {t(split.labelKey, { char: split.char ?? '' })}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -157,10 +164,16 @@ function ColumnRow({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="deepest">on the deepest level</SelectItem>
+              <SelectItem value="deepest">
+                {t('import.map.attachDeepest')}
+              </SelectItem>
               {wizard.levels.map((levelColumn, index) => (
                 <SelectItem key={levelColumn} value={String(index)}>
-                  on {wizard.headers[levelColumn] || `level ${index + 1}`}
+                  {t('import.map.attachTo', {
+                    level:
+                      wizard.headers[levelColumn] ||
+                      t('import.map.levelBadge', { level: index + 1 }),
+                  })}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -175,7 +188,7 @@ function ColumnRow({
           onClick={() => wizard.toggleLevel(column.index)}
         >
           <Layers className="mr-1 h-3 w-3" />
-          {isLevel ? 'Level' : 'Make level'}
+          {isLevel ? t('import.map.isLevel') : t('import.map.makeLevel')}
         </Button>
 
         <Select
@@ -189,8 +202,8 @@ function ColumnRow({
           </SelectTrigger>
           <SelectContent>
             {TARGETS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
+              <SelectItem key={option} value={option}>
+                {t(`import.map.targets.${option}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -213,23 +226,28 @@ function ColumnRow({
  * searched differently here could offer something the import would then reject.
  */
 function DestinationField({ wizard }: { wizard: ImportWizard }) {
+  const t = useTranslations()
   const [name, setName] = useState<string>()
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-md border px-4 py-3">
       <FolderTree className="h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">Import under an existing object</p>
+        <p className="text-sm font-medium">
+          {t('import.map.destination.title')}
+        </p>
         <p className="text-xs text-muted-foreground">
           {wizard.destination
-            ? `Every top-level object will be created inside ${name ?? 'the chosen object'}.`
-            : 'Optional — leave empty to create them at the top level.'}
+            ? t('import.map.destination.chosen', {
+                name: name ?? t('import.map.destination.fallbackName'),
+              })
+            : t('import.map.destination.optional')}
         </p>
       </div>
       <ObjectPicker
         value={wizard.destination ?? ''}
         displayName={name}
-        placeholder="Choose a parent…"
+        placeholder={t('import.map.destination.placeholder')}
         className="w-[16rem]"
         onSelect={(id, picked) => {
           setName(picked)
@@ -242,7 +260,7 @@ function DestinationField({ wizard }: { wizard: ImportWizard }) {
           size="icon"
           variant="ghost"
           className="h-8 w-8"
-          aria-label="Clear destination"
+          aria-label={t('import.map.destination.clear')}
           onClick={() => {
             setName(undefined)
             wizard.setDestination(null)
@@ -256,19 +274,22 @@ function DestinationField({ wizard }: { wizard: ImportWizard }) {
 }
 
 export function StepMap({ wizard }: { wizard: ImportWizard }) {
+  const t = useTranslations()
   const unusedSuggestion = wizard.suggestedLevels.filter(
     (column) => !wizard.levels.includes(column)
   )
   const hasSuggestion =
     wizard.levels.length === 0 && unusedSuggestion.length > 0
+  /** A column with a blank header still has to be nameable in a sentence. */
+  const columnName = (index: number) =>
+    wizard.headers[index] || t('import.map.unnamedColumn', { index: index + 1 })
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-medium">What is in each column?</h3>
+        <h3 className="font-medium">{t('import.map.title')}</h3>
         <p className="text-sm text-muted-foreground">
-          Guessed from your headers and the values themselves — change anything
-          that is wrong.
+          {t('import.map.subtitle')}
         </p>
       </div>
 
@@ -279,12 +300,9 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1 space-y-2">
             <p className="text-sm">
-              These columns repeat down the sheet, so they may describe a
-              hierarchy:{' '}
+              {t('import.map.suggestion')}{' '}
               <span className="font-medium">
-                {unusedSuggestion
-                  .map((c) => wizard.headers[c] || `Column ${c + 1}`)
-                  .join(' › ')}
+                {unusedSuggestion.map((c) => columnName(c)).join(' › ')}
               </span>
             </p>
             <Button
@@ -293,7 +311,7 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
               variant="outline"
               onClick={() => wizard.setLevels(unusedSuggestion)}
             >
-              Use as hierarchy
+              {t('import.map.useHierarchy')}
             </Button>
           </div>
         </div>
@@ -303,13 +321,13 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
         <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-3">
           <div className="min-w-0">
             <p className="text-sm font-medium">
-              {wizard.levels
-                .map((c) => wizard.headers[c] || `Column ${c + 1}`)
-                .join(' › ')}
+              {wizard.levels.map((c) => columnName(c)).join(' › ')}
             </p>
             <p className="text-xs text-muted-foreground tabular-nums">
-              {wizard.dataRows.length.toLocaleString('en-US')} rows become{' '}
-              {wizard.items.length.toLocaleString('en-US')} objects
+              {t('import.map.rowsBecomeObjects', {
+                rows: wizard.dataRows.length,
+                objects: wizard.items.length,
+              })}
             </p>
           </div>
           <Button
@@ -318,7 +336,7 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
             variant="ghost"
             onClick={() => wizard.setLevels([])}
           >
-            Clear hierarchy
+            {t('import.map.clearHierarchy')}
           </Button>
         </div>
       )}

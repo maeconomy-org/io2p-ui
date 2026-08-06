@@ -191,7 +191,7 @@ describe('buildItems — level columns (rows repeat their ancestors)', () => {
     const { items, problems } = buildItems(rows, levelsMapping(), HEADERS)
 
     expect(problems).toEqual([
-      { row: 5, message: 'Level 2 is blank — every level must have a value' },
+      { row: 5, key: 'import.problem.levelBlank', values: { level: 2 } },
     ])
     expect(items).toHaveLength(9) // the good rows still build
   })
@@ -260,7 +260,8 @@ describe('buildItems — key/parent columns (the sheet carries ids)', () => {
     const { items, problems } = buildItems(rows, keyMapping, KEY_HEADERS)
 
     expect(problems).toHaveLength(1)
-    expect(problems[0]?.message).toContain('B-l2')
+    expect(problems[0]?.key).toBe('import.problem.parentUnresolved')
+    expect(problems[0]?.values).toEqual({ parent: 'B-l2' })
     expect(problems[0]?.row).toBeGreaterThan(0)
     expect(items.map((i) => i.tempId)).not.toContain('B-99')
   })
@@ -290,14 +291,16 @@ describe('buildItems — key/parent columns (the sheet carries ids)', () => {
   it('refuses a duplicate key rather than merging two rows', () => {
     const rows = [...KEY_ROWS, ['B-12', '', 'Another building', 'gross']]
     const { problems } = buildItems(rows, keyMapping, KEY_HEADERS)
-    expect(problems).toEqual([{ row: 4, message: 'Duplicate key "B-12"' }])
+    expect(problems).toEqual([
+      { row: 4, key: 'import.problem.duplicateKey', values: { key: 'B-12' } },
+    ])
   })
 
   it('refuses a blank name', () => {
     const rows = [['B-1', '', '', 'gross']]
     const { items, problems } = buildItems(rows, keyMapping, KEY_HEADERS)
     expect(items).toHaveLength(0)
-    expect(problems).toEqual([{ row: 1, message: 'Name is blank' }])
+    expect(problems).toEqual([{ row: 1, key: 'import.problem.nameBlank' }])
   })
 })
 

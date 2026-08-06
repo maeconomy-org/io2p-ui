@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+
 import { Sparkles } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -17,6 +19,7 @@ const GRID_ROWS = 12
  * data you are describing removes the indirection: the answer is visible where the question is.
  */
 export function StepSheet({ wizard }: { wizard: ImportWizard }) {
+  const t = useTranslations()
   const { sheet, sheets, headerRow, dataRow } = wizard
   if (!sheet) return null
   const grid = sheet.rows.slice(0, GRID_ROWS)
@@ -24,11 +27,9 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-medium">
-          Which sheet, and where does the data start?
-        </h3>
+        <h3 className="font-medium">{t('import.sheet.title')}</h3>
         <p className="text-sm text-muted-foreground">
-          Click a row to mark it as the header, or as the first row of data.
+          {t('import.sheet.subtitle')}
         </p>
       </div>
 
@@ -49,9 +50,11 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
           >
             <p className="text-sm font-medium">{candidate.name}</p>
             <p className="text-xs text-muted-foreground tabular-nums">
-              {candidate.rows.length.toLocaleString('en-US')} rows ·{' '}
-              {(candidate.rows[candidate.suggestedHeaderRow] ?? []).length}{' '}
-              columns
+              {t('import.sheet.dimensions', {
+                rows: candidate.rows.length,
+                columns: (candidate.rows[candidate.suggestedHeaderRow] ?? [])
+                  .length,
+              })}
             </p>
           </button>
         ))}
@@ -61,8 +64,7 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
         <div className="flex items-center gap-2 text-sm">
           <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-muted-foreground">
-            Guessed row {sheet.suggestedHeaderRow + 1} as the header — the first
-            filled row with data of the same width beneath it.
+            {t('import.sheet.guessed', { row: sheet.suggestedHeaderRow + 1 })}
           </span>
         </div>
 
@@ -88,11 +90,11 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
                         </span>
                         {isHeader ? (
                           <Badge variant="outline" className="font-normal">
-                            Header
+                            {t('import.sheet.headerBadge')}
                           </Badge>
                         ) : isFirstData ? (
                           <Badge variant="outline" className="font-normal">
-                            Data starts
+                            {t('import.sheet.dataBadge')}
                           </Badge>
                         ) : (
                           <span className="flex gap-1">
@@ -101,14 +103,14 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
                               onClick={() => wizard.selectHeaderRow(index)}
                               className="rounded px-1 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
-                              header
+                              {t('import.sheet.markHeader')}
                             </button>
                             <button
                               type="button"
                               onClick={() => wizard.selectDataRow(index)}
                               className="rounded px-1 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
-                              data
+                              {t('import.sheet.markData')}
                             </button>
                           </span>
                         )}
@@ -136,8 +138,9 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
         </div>
 
         <p className="text-xs text-muted-foreground tabular-nums">
-          {headerRow > 0 && `Rows 1–${headerRow} will be ignored. `}
-          Reading {wizard.dataRows.length.toLocaleString('en-US')} rows.
+          {headerRow > 0 &&
+            `${t('import.sheet.ignoringAbove', { count: headerRow })} `}
+          {t('import.sheet.reading', { count: wizard.dataRows.length })}
         </p>
       </div>
     </div>

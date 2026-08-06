@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Check, ChevronRight } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -22,12 +23,16 @@ import { StepImport } from './step-import'
  * just another thing a column can be, declaring it belongs with every other column decision — and
  * the tree it produces is already visible in Check, where the rows are the objects themselves.
  */
+// Labels come from `import.steps.<id>`, built from the id — so a prune that only greps for a
+// literal translator call will not see them. Do not delete that namespace by name search.
+// (Written without an example call on purpose: the usage collector in the messages test would
+// read one in a comment as a real key, which is exactly the false positive it just caught.)
 const STEPS = [
-  { id: 'upload', label: 'Upload' },
-  { id: 'sheet', label: 'Sheet' },
-  { id: 'map', label: 'Map columns' },
-  { id: 'check', label: 'Check' },
-  { id: 'import', label: 'Import' },
+  { id: 'upload' },
+  { id: 'sheet' },
+  { id: 'map' },
+  { id: 'check' },
+  { id: 'import' },
 ] as const
 
 /**
@@ -44,6 +49,7 @@ function Stepper({
   current: number
   onJump: (index: number) => void
 }) {
+  const t = useTranslations()
   return (
     <ol className="flex flex-wrap items-center gap-1 text-sm">
       {STEPS.map((step, index) => {
@@ -73,7 +79,7 @@ function Stepper({
               >
                 {done ? <Check className="h-3 w-3" /> : index + 1}
               </span>
-              {step.label}
+              {t(`import.steps.${step.id}`)}
             </button>
             {index < STEPS.length - 1 && (
               <ChevronRight
@@ -89,6 +95,7 @@ function Stepper({
 }
 
 export function Wizard({ onFinished }: { onFinished?: () => void }) {
+  const t = useTranslations()
   const [step, setStep] = useState(0)
   const wizard = useImportWizard()
   const run = useRunImport()
@@ -150,13 +157,13 @@ export function Wizard({ onFinished }: { onFinished?: () => void }) {
       {step > 0 && (
         <div className="flex items-center justify-between">
           <Button type="button" variant="outline" onClick={back}>
-            Back
+            {t('common.back')}
           </Button>
           {step < STEPS.length - 1 && (
             <div className="flex items-center gap-3">
               {blockedBecause && (
                 <p className="text-sm text-muted-foreground">
-                  {blockedBecause}
+                  {t(blockedBecause.key, blockedBecause.values)}
                 </p>
               )}
               <Button
@@ -165,8 +172,10 @@ export function Wizard({ onFinished }: { onFinished?: () => void }) {
                 disabled={Boolean(blockedBecause)}
               >
                 {step === 3
-                  ? `Import ${wizard.items.length.toLocaleString('en-US')} objects`
-                  : 'Continue'}
+                  ? t('import.actions.importCount', {
+                      count: wizard.items.length,
+                    })
+                  : t('common.continue')}
               </Button>
             </div>
           )}

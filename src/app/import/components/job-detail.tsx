@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -55,17 +56,19 @@ import {
  * `processed - failed`, which silently counts skipped rows as created.
  */
 function Headline({ job }: { job: ImportJob }) {
+  const t = useTranslations()
+
   if (job.status === 'draft') {
     return (
       <div className="space-y-1">
         <p className="text-3xl font-semibold tabular-nums">
           {n(job.staged)}{' '}
           <span className="text-lg font-normal text-muted-foreground">
-            of {n(job.total)} rows uploaded
+            {t('import.detail.ofRowsUploaded', { total: job.total })}
           </span>
         </p>
         <p className="text-sm text-muted-foreground">
-          Nothing has been created yet. Uploading picks up where it stopped.
+          {t('import.detail.draftHint')}
         </p>
       </div>
     )
@@ -76,22 +79,20 @@ function Headline({ job }: { job: ImportJob }) {
       <p className="text-3xl font-semibold tabular-nums">
         {n(job.ok)}{' '}
         <span className="text-lg font-normal text-muted-foreground">
-          object{job.ok === 1 ? '' : 's'} created
+          {/* Pluralised by the message, not by a `? '' : 's'` — that construction only ever
+              produces English, and there are two more of them below. */}
+          {t('import.detail.objectsCreated', { count: job.ok })}
         </span>
       </p>
       <p className="text-sm text-muted-foreground">
-        {job.failed > 0 || job.skipped > 0 ? (
-          <>
-            {n(job.failed)} row{job.failed === 1 ? '' : 's'} could not be
-            created
-            {job.skipped > 0 && (
-              <> and {n(job.skipped)} were skipped because a parent failed</>
-            )}
-            .
-          </>
-        ) : (
-          <>Every row in the sheet was created.</>
-        )}
+        {job.failed > 0 || job.skipped > 0
+          ? job.skipped > 0
+            ? t('import.detail.failedAndSkipped', {
+                failed: job.failed,
+                skipped: job.skipped,
+              })
+            : t('import.detail.failedOnly', { failed: job.failed })
+          : t('import.detail.allCreated')}
       </p>
     </div>
   )
@@ -158,10 +159,11 @@ function ItemsTable({
   items: ImportItem[]
   kind: 'failed' | 'skipped'
 }) {
+  const t = useTranslations()
   if (items.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        No {kind} rows.
+        {t(`import.detail.noRows.${kind}`)}
       </p>
     )
   }
@@ -178,9 +180,13 @@ function ItemsTable({
 
                 A real row reference would have to travel on the envelope, which is core's call.
                 Until then, saying "item" is the honest version. */}
-            <TableHead className="w-[6rem]">Item</TableHead>
-            <TableHead className="w-[12rem]">Key</TableHead>
-            <TableHead>Reason</TableHead>
+            <TableHead className="w-[6rem]">
+              {t('import.detail.columns.item')}
+            </TableHead>
+            <TableHead className="w-[12rem]">
+              {t('import.detail.columns.key')}
+            </TableHead>
+            <TableHead>{t('import.detail.columns.reason')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -222,6 +228,7 @@ export function JobDetail({
   job: ImportJob
   onBack: () => void
 }) {
+  const t = useTranslations()
   const [tab, setTab] = useState('failed')
   // POLLS while the job is live and stops once it is not — the counters on this screen are the
   // only place a running import reports itself. The row from the list is the initial value, so
@@ -258,7 +265,7 @@ export function JobDetail({
             variant="ghost"
             size="icon"
             onClick={onBack}
-            aria-label="Back to imports"
+            aria-label={t('import.detail.back')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -271,7 +278,9 @@ export function JobDetail({
             <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">
               Started {formatClock(job.startedAt)} ·{' '}
               {formatDuration(job.startedAt, job.finishedAt)}
-              {job.levels > 1 && <> · {job.levels} levels deep</>}
+              {job.levels > 1 && (
+                <> · {t('import.list.levelCount', { count: job.levels })}</>
+              )}
             </p>
           </div>
         </div>
@@ -285,7 +294,7 @@ export function JobDetail({
               onClick={() => start.mutate(job.id)}
             >
               <Play className="h-4 w-4" />
-              Start import
+              {t('import.detail.startImport')}
             </Button>
           )}
           {isRunning && (
@@ -302,14 +311,16 @@ export function JobDetail({
               onClick={() => cancel.mutate(job.id)}
             >
               <Ban className="h-4 w-4" />
-              {cancel.isPending || cancel.isSuccess ? 'Stopping…' : 'Cancel'}
+              {cancel.isPending || cancel.isSuccess
+                ? t('import.detail.stopping')
+                : t('common.cancel')}
             </Button>
           )}
           {isFinished && job.ok > 0 && (
             // The objects list has no deep-link filter, so this goes to the list itself rather
             // than to a view of THIS import's rows. Honest, and still the place they landed.
             <Button type="button" onClick={() => router.push('/objects')}>
-              View objects
+              {t('import.detail.viewObjects')}
             </Button>
           )}
         </div>
@@ -319,9 +330,10 @@ export function JobDetail({
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            This upload stopped after {job.staged.toLocaleString('en-US')} of{' '}
-            {job.total.toLocaleString('en-US')} rows, so it cannot be handed
-            over. Nothing was created — import the file again to start over.
+            {t('import.detail.stalledUpload', {
+              staged: job.staged,
+              total: job.total,
+            })}
           </AlertDescription>
         </Alert>
       )}
@@ -354,8 +366,10 @@ export function JobDetail({
           <div className="mt-5 flex items-center gap-2 border-t pt-4 text-sm">
             <Layers className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">
-              Creating level {job.currentLevel} of {job.levels} — children wait
-              for their parents.
+              {t('import.detail.creatingLevel', {
+                current: job.currentLevel,
+                total: job.levels,
+              })}
             </span>
           </div>
         )}
@@ -372,9 +386,11 @@ export function JobDetail({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium">What did not import</h3>
+              <h3 className="font-medium">
+                {t('import.detail.problemsTitle')}
+              </h3>
               <p className="text-sm text-muted-foreground">
-                Fix these rows in your sheet and import just them again.
+                {t('import.detail.problemsSubtitle')}
               </p>
             </div>
             <Button
@@ -385,7 +401,9 @@ export function JobDetail({
               onClick={() => downloadReport(job.id, failed, skipped)}
             >
               <Download className="h-4 w-4" />
-              Download {failed.length + skipped.length} rows as CSV
+              {t('import.detail.downloadCsv', {
+                count: failed.length + skipped.length,
+              })}
             </Button>
           </div>
 
@@ -395,7 +413,7 @@ export function JobDetail({
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList>
               <TabsTrigger value="failed" className="gap-2">
-                Failed
+                {t('import.detail.tabs.failed')}
                 <Badge
                   variant="outline"
                   className={cn(failed.length > 0 && 'text-destructive')}
@@ -404,7 +422,7 @@ export function JobDetail({
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="skipped" className="gap-2">
-                Skipped
+                {t('import.detail.tabs.skipped')}
                 <Badge variant="outline">{skipped.length}</Badge>
               </TabsTrigger>
             </TabsList>
@@ -413,8 +431,7 @@ export function JobDetail({
             </TabsContent>
             <TabsContent value="skipped" className="mt-3">
               <p className="mb-3 text-sm text-muted-foreground">
-                These rows were never attempted — the object they hang from
-                failed first. Fixing the parent usually fixes all of them.
+                {t('import.detail.skippedExplainer')}
               </p>
               <ItemsTable items={skipped} kind="skipped" />
             </TabsContent>
@@ -426,12 +443,13 @@ export function JobDetail({
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          Job <code className="rounded bg-muted px-1.5 py-0.5">{job.id}</code>
+          {t('import.detail.jobLabel')}{' '}
+          <code className="rounded bg-muted px-1.5 py-0.5">{job.id}</code>
         </span>
         {isRunning && (
           <span className="flex items-center gap-1.5">
             <RotateCcw className="h-3 w-3 animate-spin" aria-hidden />
-            Updating every 2 seconds
+            {t('import.detail.polling')}
           </span>
         )}
       </div>

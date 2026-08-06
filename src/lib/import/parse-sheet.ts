@@ -18,6 +18,8 @@
  * pays for them until they pick a file.
  */
 
+import type { ImportMessage, ImportMessageKey } from './messages'
+
 export interface ParsedSheet {
   name: string
   /** Every cell trimmed to a string; a blank cell is `''`. */
@@ -43,9 +45,27 @@ export interface ParseOptions {
   onProgress?: (percent: number) => void
 }
 
-export class SheetParseError extends Error {}
+/**
+ * A refusal the USER is meant to read, carrying a key rather than a sentence.
+ *
+ * `Error.message` keeps the key so a stack trace and a log line still say which refusal it was;
+ * the component renders `t(key, values)`.
+ */
+export class SheetParseError extends Error {
+  constructor(
+    readonly key: ImportMessageKey,
+    readonly values?: ImportMessage['values']
+  ) {
+    super(key)
+    this.name = 'SheetParseError'
+  }
+}
 
-/** 100 MB — the same ceiling the node advertises for one import. */
+/**
+ * Fallback ceiling, used only when a caller passes no `maxBytes`.
+ *
+ * The app always passes one, from runtime config. This exists for direct callers and tests.
+ */
 const DEFAULT_MAX_BYTES = 100 * 1024 * 1024
 
 // One cell → text. This is the single place the two parsers converge, so a difference between
@@ -206,7 +226,7 @@ async function parseXlsx(
   })
   onProgress?.(100)
 
-  if (sheets.length === 0) throw new SheetParseError('This file has no data')
+  if (sheets.length === 0) throw new SheetParseError('import.error.noData')
   return sheets
 }
 
@@ -216,12 +236,13 @@ export async function parseSheetFile(
 ): Promise<ParsedSheet[]> {
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES
   if (file.size > maxBytes) {
-    throw new SheetParseError(
-      `That file is ${Math.round(file.size / 1024 / 1024)} MB — the limit is ${Math.round(maxBytes / 1024 / 1024)} MB`
-    )
+    throw new SheetParseError('import.error.fileTooBig', {
+      size: Math.round(file.size / 1024 / 1024),
+      limit: Math.round(maxBytes / 1024 / 1024),
+    })
   }
   const name = file.name.toLowerCase()
   if (name.endsWith('.csv')) return parseCsv(file, options.onProgress)
   if (name.endsWith('.xlsx')) return parseXlsx(file, options.onProgress)
-  throw new SheetParseError('Only .xlsx and .csv files can be imported')
+  throw new SheetParseError('import.error.unsupportedType')
 }

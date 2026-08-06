@@ -14,6 +14,8 @@
 
 import type { ImportItemInput } from 'io2p-client'
 
+import type { ImportMessage } from './messages'
+
 /** Where a column's value goes. `null` means the column is not mapped. */
 export type ColumnTarget =
   | { kind: 'name' }
@@ -55,10 +57,20 @@ export interface BuildMapping {
   destination: string | null
 }
 
+/**
+ * A row the builder refused, addressed by its line in the file.
+ *
+ * The reason is a KEY, not a sentence: this module is pure and must not reach for a locale, and a
+ * test that asserts `problem.key` survives a copy edit that one asserting prose does not.
+ */
+export interface BuildProblem extends ImportMessage {
+  row: number
+}
+
 export interface BuildResult {
   items: ImportItemInput[]
   /** Rows the builder refused, with the reason. Never silently dropped. */
-  problems: { row: number; message: string }[]
+  problems: BuildProblem[]
 }
 
 /**
@@ -294,7 +306,8 @@ export function buildItems(
           // A blank mid-level would silently re-parent everything below it to the wrong node.
           problems.push({
             row: sheetRow,
-            message: `Level ${level + 1} is blank — every level must have a value`,
+            key: 'import.problem.levelBlank',
+            values: { level: level + 1 },
           })
           deepest = null
           break
@@ -334,15 +347,19 @@ export function buildItems(
     const key =
       keyColumn === undefined ? `row-${sheetRow}` : cellText(row[keyColumn])
     if (!key) {
-      problems.push({ row: sheetRow, message: 'Key column is blank' })
+      problems.push({ row: sheetRow, key: 'import.problem.keyBlank' })
       return
     }
     if (!name) {
-      problems.push({ row: sheetRow, message: 'Name is blank' })
+      problems.push({ row: sheetRow, key: 'import.problem.nameBlank' })
       return
     }
     if (drafts.has(key)) {
-      problems.push({ row: sheetRow, message: `Duplicate key "${key}"` })
+      problems.push({
+        row: sheetRow,
+        key: 'import.problem.duplicateKey',
+        values: { key },
+      })
       return
     }
 
@@ -368,7 +385,8 @@ export function buildItems(
     orphans.add(draft.tempId)
     problems.push({
       row: draft.sourceRow,
-      message: `Parent "${parent}" is not a row in this sheet or an object id`,
+      key: 'import.problem.parentUnresolved',
+      values: { parent },
     })
   }
 

@@ -205,7 +205,10 @@
       "deleteTitle": "Geselecteerde items verwijderen?",
       "deleteDescription": "Dit verwijdert {count} items. Ze kunnen daarna worden hersteld."
     },
-    "no": "Nee"
+    "no": "Nee",
+    "back": "Terug",
+    "continue": "Doorgaan",
+    "yes": "Ja"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -1192,5 +1195,206 @@
       "work-with-drafts": "Werken met concepten"
     },
     "startTour": "Start de rondleiding"
+  },
+  "import": {
+    "title": "Importeren",
+    "tabs": {
+      "status": "Jouw imports",
+      "wizard": "Nieuwe import"
+    },
+    "actions": {
+      "newImport": "Nieuwe import",
+      "importCount": "{count, number} {count, plural, one {object} other {objecten}} importeren"
+    },
+    "steps": {
+      "upload": "Uploaden",
+      "sheet": "Blad",
+      "map": "Kolommen koppelen",
+      "check": "Controleren",
+      "import": "Importeren"
+    },
+    "status": {
+      "draft": "Concept",
+      "queued": "In wachtrij",
+      "running": "Bezig",
+      "completed": "Voltooid",
+      "completed_with_errors": "Voltooid met fouten",
+      "failed": "Mislukt",
+      "cancelled": "Geannuleerd"
+    },
+    "error": {
+      "fileTooBig": "Dat bestand is {size, number} MB — de limiet is {limit, number} MB",
+      "unsupportedType": "Alleen .xlsx- en .csv-bestanden kunnen worden geïmporteerd",
+      "noData": "Dit bestand bevat geen gegevens",
+      "unreadable": "Dat bestand kon niet worden gelezen"
+    },
+    "problem": {
+      "levelBlank": "Niveau {level, number} is leeg — elk niveau moet een waarde hebben",
+      "keyBlank": "Sleutelkolom is leeg",
+      "nameBlank": "Naam is leeg",
+      "duplicateKey": "Dubbele sleutel \"{key}\"",
+      "parentUnresolved": "Bovenliggend \"{parent}\" is geen rij in dit blad en geen object-id"
+    },
+    "blocked": {
+      "noFile": "Kies eerst een bestand",
+      "noName": "Koppel een kolom aan Naam, of kies eerst een hiërarchie",
+      "createsNothing": "Deze koppeling zou niets aanmaken",
+      "tooManyObjects": "Dat zijn {count, number} objecten — de limiet is {limit, number} per import"
+    },
+    "upload": {
+      "title": "Upload een spreadsheet",
+      "subtitle": "Excel of CSV. Er wordt niets aangemaakt tot je aan het eind bevestigt.",
+      "reading": "Je bestand wordt gelezen…",
+      "dropzone": "Sleep een bestand hierheen, of klik om te kiezen",
+      "limits": ".xlsx of .csv — tot {size, number} MB en {objects, number} objecten"
+    },
+    "sheet": {
+      "title": "Welk blad, en waar begint de data?",
+      "subtitle": "Klik op een rij om die als kop of als eerste datarij te markeren.",
+      "dimensions": "{rows, number} rijen · {columns, number} kolommen",
+      "guessed": "Rij {row, number} geraden als kop — de eerste gevulde rij met data van dezelfde breedte eronder.",
+      "headerBadge": "Kop",
+      "dataBadge": "Data begint",
+      "markHeader": "kop",
+      "markData": "data",
+      "ignoringAbove": "Rijen 1–{count, number} worden genegeerd.",
+      "reading": "{count, number} rijen worden gelezen."
+    },
+    "map": {
+      "title": "Wat staat er in elke kolom?",
+      "subtitle": "Geraden op basis van je koppen en de waarden zelf — pas aan wat niet klopt.",
+      "noValues": "geen waarden in deze kolom",
+      "unnamedColumn": "Kolom {index, number}",
+      "levelBadge": "Niveau {level, number}",
+      "isLevel": "Niveau",
+      "makeLevel": "Maak niveau",
+      "attachDeepest": "op het diepste niveau",
+      "attachTo": "op {level}",
+      "suggestion": "Deze kolommen herhalen zich in het blad, dus ze beschrijven mogelijk een hiërarchie:",
+      "useHierarchy": "Gebruik als hiërarchie",
+      "clearHierarchy": "Hiërarchie wissen",
+      "rowsBecomeObjects": "{rows, number} rijen worden {objects, number} objecten",
+      "split": {
+        "one": "Eén waarde",
+        "on": "Splitsen op {char}"
+      },
+      "targets": {
+        "skip": "Niet importeren",
+        "name": "Naam",
+        "description": "Omschrijving",
+        "property": "Eigenschap",
+        "address": "Adres (hele cel)",
+        "address.street": "Adres — straat",
+        "address.houseNumber": "Adres — huisnummer",
+        "address.postalCode": "Adres — postcode",
+        "address.city": "Adres — plaats",
+        "address.state": "Adres — provincie",
+        "address.country": "Adres — land",
+        "fileUrl": "Bestandslink",
+        "key": "Sleutel (id van deze rij)",
+        "parent": "Sleutel bovenliggend"
+      },
+      "destination": {
+        "title": "Importeren onder een bestaand object",
+        "optional": "Optioneel — laat leeg om ze op het hoogste niveau aan te maken.",
+        "chosen": "Elk object op het hoogste niveau wordt aangemaakt in {name}.",
+        "fallbackName": "het gekozen object",
+        "placeholder": "Kies een bovenliggend object…",
+        "clear": "Bestemming wissen"
+      }
+    },
+    "check": {
+      "title": "Controleer wat er wordt aangemaakt",
+      "subtitle": "Er is nog niets weggeschreven. Dit zijn de objecten, niet de rijen.",
+      "underDestination": "Ze worden aangemaakt onder het object dat je hebt gekozen.",
+      "stats": {
+        "objects": "{count, plural, one {object} other {objecten}}",
+        "depth": "niveaus diep",
+        "values": "waarden",
+        "problems": "{count, plural, one {probleem} other {problemen}}",
+        "objectsHint": "uit {rows, number} rijen",
+        "depthHint": "hiërarchie",
+        "valuesHint": "over alle eigenschappen",
+        "problemsHint": "{count, plural, =0 {geen} other {rijen geweigerd}}"
+      },
+      "willSkip": "{count, number} {count, plural, one {rij wordt} other {rijen worden}} overgeslagen",
+      "rowPrefix": "Rij {row, number}: ",
+      "andMore": "…en nog {count, number}",
+      "columns": {
+        "object": "Object",
+        "properties": "Eigenschappen",
+        "address": "Adres",
+        "files": "Bestanden"
+      },
+      "valueCount": "({count, number} waarden)",
+      "showingFirst": "De eerste {shown, number} van {total, number} objecten worden getoond."
+    },
+    "run": {
+      "refused": "De import is geweigerd — er is niets aangemaakt",
+      "itemPrefix": "Item {item, number}",
+      "backToMapping": "Terug naar de koppeling",
+      "handedOver": "Overgedragen aan de server",
+      "handedOverDetail": "{count, number} objecten worden aangemaakt. Je kunt dit tabblad sluiten — de taak loopt door, en de statuspagina laat zien wat er met elke rij is gebeurd.",
+      "seeStatus": "Bekijk de importstatus",
+      "uploading": "Rijen uploaden",
+      "uploadingDetail": "Houd dit tabblad open tot de upload klaar is. Er is nog niets aangemaakt.",
+      "validating": "Je gegevens worden gecontroleerd",
+      "validatingDetail": "Dezelfde controles als op de server. Er is nog steeds niets aangemaakt.",
+      "validatingShort": "Controleren…",
+      "uploadedOf": "{staged, number} van {total, number} rijen geüpload",
+      "ready": "Klaar om te importeren",
+      "readyDetail": "{count, number} objecten worden aangemaakt. Dit kan niet ongedaan worden gemaakt — objecten kunnen daarna wel worden verwijderd, maar niet on-aangemaakt.",
+      "readyDetailWithFile": "{count, number} objecten worden aangemaakt uit {file}. Dit kan niet ongedaan worden gemaakt — objecten kunnen daarna wel worden verwijderd, maar niet on-aangemaakt.",
+      "failed": "De import is mislukt"
+    },
+    "list": {
+      "subtitle": "Elke import die je hebt uitgevoerd. Een taak loopt door als je het tabblad sluit.",
+      "emptyTitle": "Nog geen imports",
+      "emptyDescription": "Laad objecten uit een spreadsheet, met hun hiërarchie intact.",
+      "flat": "Vlak",
+      "levelCount": "{count, number} niveaus diep",
+      "levelProgress": "{current, number} van {total, number}",
+      "columns": {
+        "file": "Import",
+        "status": "Status",
+        "outcome": "Resultaat",
+        "depth": "Diepte",
+        "started": "Gestart",
+        "duration": "Duur"
+      }
+    },
+    "detail": {
+      "back": "Terug naar imports",
+      "ofRowsUploaded": "van {total, number} rijen geüpload",
+      "draftHint": "Er is nog niets aangemaakt. Uploaden gaat verder waar het gestopt is.",
+      "objectsCreated": "{count, plural, one {object} other {objecten}} aangemaakt",
+      "allCreated": "Elke rij in het blad is aangemaakt.",
+      "failedOnly": "{failed, number} {failed, plural, one {rij kon} other {rijen konden}} niet worden aangemaakt.",
+      "failedAndSkipped": "{failed, number} {failed, plural, one {rij kon} other {rijen konden}} niet worden aangemaakt en {skipped, number} zijn overgeslagen omdat een bovenliggend object mislukte.",
+      "startImport": "Import starten",
+      "stopping": "Stoppen…",
+      "viewObjects": "Objecten bekijken",
+      "stalledUpload": "Deze upload is gestopt na {staged, number} van {total, number} rijen en kan niet worden overgedragen. Er is niets aangemaakt — importeer het bestand opnieuw.",
+      "creatingLevel": "Niveau {current, number} van {total, number} wordt aangemaakt — onderliggende objecten wachten op hun bovenliggende.",
+      "problemsTitle": "Wat niet is geïmporteerd",
+      "problemsSubtitle": "Corrigeer deze rijen in je blad en importeer alleen die opnieuw.",
+      "downloadCsv": "{count, number} rijen downloaden als CSV",
+      "tabs": {
+        "failed": "Mislukt",
+        "skipped": "Overgeslagen"
+      },
+      "skippedExplainer": "Deze rijen zijn nooit geprobeerd — het object waar ze onder hangen mislukte eerst. Het bovenliggende object corrigeren lost ze meestal allemaal op.",
+      "noRows": {
+        "failed": "Geen mislukte rijen.",
+        "skipped": "Geen overgeslagen rijen."
+      },
+      "columns": {
+        "item": "Item",
+        "key": "Sleutel",
+        "reason": "Reden"
+      },
+      "jobLabel": "Taak",
+      "polling": "Elke 2 seconden bijgewerkt"
+    }
   }
 }

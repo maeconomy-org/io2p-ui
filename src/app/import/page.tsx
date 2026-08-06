@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui'
 import { PageHelp } from '@/components/onboarding/page-help'
@@ -23,6 +24,7 @@ import type { ImportJob } from './types'
  * size and control placement reads as a different application.
  */
 export default function ImportPage() {
+  const t = useTranslations()
   const [openJob, setOpenJob] = useState<ImportJob | null>(null)
   const [tab, setTab] = useState('status')
 
@@ -31,14 +33,14 @@ export default function ImportPage() {
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            <h2 className="text-2xl font-semibold">Import</h2>
+            <h2 className="text-2xl font-semibold">{t('import.title')}</h2>
             <PageHelp concept="import" />
           </div>
           {/* The tabs ARE this page's control, so they sit where every other page puts its
               controls rather than under the heading in a block of their own. */}
           <TabsList>
-            <TabsTrigger value="status">Your imports</TabsTrigger>
-            <TabsTrigger value="wizard">New import</TabsTrigger>
+            <TabsTrigger value="status">{t('import.tabs.status')}</TabsTrigger>
+            <TabsTrigger value="wizard">{t('import.tabs.wizard')}</TabsTrigger>
           </TabsList>
         </div>
 

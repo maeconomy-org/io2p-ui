@@ -25,6 +25,7 @@ import {
   SheetParseError,
 } from '@/lib/import/parse-sheet'
 import { suggestMapping } from '@/lib/import/suggest-mapping'
+import type { ImportMessage } from '@/lib/import/messages'
 import { logger } from '@/lib/observability/logger'
 import { DEFAULT_CLIENT_CONFIG, getCachedConfig } from '@/constants/client'
 
@@ -65,7 +66,7 @@ export function useImportWizard() {
   const [dataRow, setDataRow] = useState(1)
   const [parsing, setParsing] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ImportMessage | null>(null)
 
   // `null` until a sheet is read — that is what tells the map step to seed itself from the
   // suggester rather than from an empty object the user would have to fill by hand.
@@ -126,8 +127,8 @@ export function useImportWizard() {
         }
         setError(
           cause instanceof SheetParseError
-            ? cause.message
-            : 'That file could not be read'
+            ? { key: cause.key, values: cause.values }
+            : { key: 'import.error.unreadable' }
         )
         return false
       } finally {
@@ -263,18 +264,24 @@ export function useImportWizard() {
    * A REASON rather than a boolean, so it can be shown next to the disabled button instead of
    * left to be guessed at.
    */
-  const blockedBecause = useMemo(() => {
-    if (!sheet) return 'Choose a file first'
+  const blockedBecause = useMemo((): ImportMessage | null => {
+    if (!sheet) return { key: 'import.blocked.noFile' }
     const named =
       levels.length > 0 ||
       Object.values(columns ?? {}).some((t) => t.kind === 'name')
-    if (!named) return 'Map a column to Name, or pick a hierarchy first'
-    if (built.items.length === 0) return 'This mapping would create nothing'
+    if (!named) return { key: 'import.blocked.noName' }
+    if (built.items.length === 0)
+      return { key: 'import.blocked.createsNothing' }
     // Counted on OBJECTS, not rows: with a hierarchy on, 1,200 rows become 1,847 objects, and the
     // node's cap is on what gets created. Refused here rather than after staging every item.
     const { maxObjects } = importLimits()
     if (built.items.length > maxObjects) {
-      return `That is ${built.items.length.toLocaleString('en-US')} objects — the limit is ${maxObjects.toLocaleString('en-US')} per import`
+      return {
+        key: 'import.blocked.tooManyObjects',
+        // Numbers stay NUMBERS: next-intl formats them for the active locale, so a Dutch user
+        // sees 1.847 rather than the 1,847 a `toLocaleString('en-US')` here would have forced.
+        values: { count: built.items.length, limit: maxObjects },
+      }
     }
     return null
   }, [sheet, levels, columns, built.items.length])

@@ -205,7 +205,10 @@
       "deleteTitle": "Delete the selected items?",
       "deleteDescription": "This deletes {count} items. They can be restored afterwards."
     },
-    "no": "No"
+    "no": "No",
+    "back": "Back",
+    "continue": "Continue",
+    "yes": "Yes"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -1192,5 +1195,206 @@
       "work-with-drafts": "Work with drafts"
     },
     "startTour": "Start the walkthrough"
+  },
+  "import": {
+    "title": "Import",
+    "tabs": {
+      "status": "Your imports",
+      "wizard": "New import"
+    },
+    "actions": {
+      "newImport": "New import",
+      "importCount": "Import {count, number} {count, plural, one {object} other {objects}}"
+    },
+    "steps": {
+      "upload": "Upload",
+      "sheet": "Sheet",
+      "map": "Map columns",
+      "check": "Check",
+      "import": "Import"
+    },
+    "status": {
+      "draft": "Draft",
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "completed_with_errors": "Completed with errors",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "error": {
+      "fileTooBig": "That file is {size, number} MB — the limit is {limit, number} MB",
+      "unsupportedType": "Only .xlsx and .csv files can be imported",
+      "noData": "This file has no data",
+      "unreadable": "That file could not be read"
+    },
+    "problem": {
+      "levelBlank": "Level {level, number} is blank — every level must have a value",
+      "keyBlank": "Key column is blank",
+      "nameBlank": "Name is blank",
+      "duplicateKey": "Duplicate key \"{key}\"",
+      "parentUnresolved": "Parent \"{parent}\" is not a row in this sheet or an object id"
+    },
+    "blocked": {
+      "noFile": "Choose a file first",
+      "noName": "Map a column to Name, or pick a hierarchy first",
+      "createsNothing": "This mapping would create nothing",
+      "tooManyObjects": "That is {count, number} objects — the limit is {limit, number} per import"
+    },
+    "upload": {
+      "title": "Upload a spreadsheet",
+      "subtitle": "Excel or CSV. Nothing is created until you confirm at the end.",
+      "reading": "Reading your file…",
+      "dropzone": "Drop a file here, or click to choose",
+      "limits": ".xlsx or .csv — up to {size, number} MB and {objects, number} objects"
+    },
+    "sheet": {
+      "title": "Which sheet, and where does the data start?",
+      "subtitle": "Click a row to mark it as the header, or as the first row of data.",
+      "dimensions": "{rows, number} rows · {columns, number} columns",
+      "guessed": "Guessed row {row, number} as the header — the first filled row with data of the same width beneath it.",
+      "headerBadge": "Header",
+      "dataBadge": "Data starts",
+      "markHeader": "header",
+      "markData": "data",
+      "ignoringAbove": "Rows 1–{count, number} will be ignored.",
+      "reading": "Reading {count, number} rows."
+    },
+    "map": {
+      "title": "What is in each column?",
+      "subtitle": "Guessed from your headers and the values themselves — change anything that is wrong.",
+      "noValues": "no values in this column",
+      "unnamedColumn": "Column {index, number}",
+      "levelBadge": "Level {level, number}",
+      "isLevel": "Level",
+      "makeLevel": "Make level",
+      "attachDeepest": "on the deepest level",
+      "attachTo": "on {level}",
+      "suggestion": "These columns repeat down the sheet, so they may describe a hierarchy:",
+      "useHierarchy": "Use as hierarchy",
+      "clearHierarchy": "Clear hierarchy",
+      "rowsBecomeObjects": "{rows, number} rows become {objects, number} objects",
+      "split": {
+        "one": "One value",
+        "on": "Split on {char}"
+      },
+      "targets": {
+        "skip": "Don't import",
+        "name": "Name",
+        "description": "Description",
+        "property": "Property",
+        "address": "Address (whole cell)",
+        "address.street": "Address — street",
+        "address.houseNumber": "Address — number",
+        "address.postalCode": "Address — postcode",
+        "address.city": "Address — city",
+        "address.state": "Address — state / province",
+        "address.country": "Address — country",
+        "fileUrl": "File link",
+        "key": "Key (this row's id)",
+        "parent": "Parent key"
+      },
+      "destination": {
+        "title": "Import under an existing object",
+        "optional": "Optional — leave empty to create them at the top level.",
+        "chosen": "Every top-level object will be created inside {name}.",
+        "fallbackName": "the chosen object",
+        "placeholder": "Choose a parent…",
+        "clear": "Clear destination"
+      }
+    },
+    "check": {
+      "title": "Check what will be created",
+      "subtitle": "Nothing has been written yet. These are the objects, not the rows.",
+      "underDestination": "They will be created under the object you chose.",
+      "stats": {
+        "objects": "{count, plural, one {object} other {objects}}",
+        "depth": "levels deep",
+        "values": "values",
+        "problems": "{count, plural, one {problem} other {problems}}",
+        "objectsHint": "from {rows, number} rows",
+        "depthHint": "hierarchy",
+        "valuesHint": "across all properties",
+        "problemsHint": "{count, plural, =0 {none} other {rows refused}}"
+      },
+      "willSkip": "{count, number} {count, plural, one {row} other {rows}} will be skipped",
+      "rowPrefix": "Row {row, number}: ",
+      "andMore": "…and {count, number} more",
+      "columns": {
+        "object": "Object",
+        "properties": "Properties",
+        "address": "Address",
+        "files": "Files"
+      },
+      "valueCount": "({count, number} values)",
+      "showingFirst": "Showing the first {shown, number} of {total, number} objects."
+    },
+    "run": {
+      "refused": "The import was refused — nothing was created",
+      "itemPrefix": "Item {item, number}",
+      "backToMapping": "Back to the mapping",
+      "handedOver": "Handed over to the server",
+      "handedOverDetail": "{count, number} objects are being created. You can close this tab — the job keeps running, and the status page shows what happened to every row.",
+      "seeStatus": "See the import status",
+      "uploading": "Uploading rows",
+      "uploadingDetail": "Keep this tab open until the upload finishes. Nothing has been created yet.",
+      "validating": "Checking your data",
+      "validatingDetail": "Running the same checks the server runs. Still nothing created.",
+      "validatingShort": "Validating…",
+      "uploadedOf": "{staged, number} of {total, number} rows uploaded",
+      "ready": "Ready to import",
+      "readyDetail": "{count, number} objects will be created. This cannot be undone — objects can be deleted afterwards, but not un-created.",
+      "readyDetailWithFile": "{count, number} objects will be created from {file}. This cannot be undone — objects can be deleted afterwards, but not un-created.",
+      "failed": "The import failed"
+    },
+    "list": {
+      "subtitle": "Every import you have run. A job keeps running if you close the tab.",
+      "emptyTitle": "No imports yet",
+      "emptyDescription": "Load objects from a spreadsheet, keeping their hierarchy.",
+      "flat": "Flat",
+      "levelCount": "{count, number} levels deep",
+      "levelProgress": "{current, number} of {total, number}",
+      "columns": {
+        "file": "Import",
+        "status": "Status",
+        "outcome": "Outcome",
+        "depth": "Depth",
+        "started": "Started",
+        "duration": "Duration"
+      }
+    },
+    "detail": {
+      "back": "Back to imports",
+      "ofRowsUploaded": "of {total, number} rows uploaded",
+      "draftHint": "Nothing has been created yet. Uploading picks up where it stopped.",
+      "objectsCreated": "{count, plural, one {object} other {objects}} created",
+      "allCreated": "Every row in the sheet was created.",
+      "failedOnly": "{failed, number} {failed, plural, one {row} other {rows}} could not be created.",
+      "failedAndSkipped": "{failed, number} {failed, plural, one {row} other {rows}} could not be created and {skipped, number} were skipped because a parent failed.",
+      "startImport": "Start import",
+      "stopping": "Stopping…",
+      "viewObjects": "View objects",
+      "stalledUpload": "This upload stopped after {staged, number} of {total, number} rows, so it cannot be handed over. Nothing was created — import the file again to start over.",
+      "creatingLevel": "Creating level {current, number} of {total, number} — children wait for their parents.",
+      "problemsTitle": "What did not import",
+      "problemsSubtitle": "Fix these rows in your sheet and import just them again.",
+      "downloadCsv": "Download {count, number} rows as CSV",
+      "tabs": {
+        "failed": "Failed",
+        "skipped": "Skipped"
+      },
+      "skippedExplainer": "These rows were never attempted — the object they hang from failed first. Fixing the parent usually fixes all of them.",
+      "noRows": {
+        "failed": "No failed rows.",
+        "skipped": "No skipped rows."
+      },
+      "columns": {
+        "item": "Item",
+        "key": "Key",
+        "reason": "Reason"
+      },
+      "jobLabel": "Job",
+      "polling": "Updating every 2 seconds"
+    }
   }
 }

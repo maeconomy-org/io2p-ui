@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui'
 
@@ -13,17 +15,16 @@ import type { ImportJobStatus } from '../types'
  * make a running import look like a `write` grant on a screen that shows both. A third dimension
  * needs its own decision, so this is where that decision gets tried out rather than assumed.
  */
-const STATUS_STYLE: Record<ImportJobStatus, { dot: string; label: string }> = {
-  draft: { dot: 'bg-muted-foreground/50', label: 'Draft' },
-  queued: { dot: 'bg-muted-foreground', label: 'Queued' },
-  running: { dot: 'bg-blue-500 animate-pulse', label: 'Running' },
-  completed: { dot: 'bg-emerald-500', label: 'Completed' },
-  completed_with_errors: {
-    dot: 'bg-amber-500',
-    label: 'Completed with errors',
-  },
-  failed: { dot: 'bg-destructive', label: 'Failed' },
-  cancelled: { dot: 'bg-muted-foreground/50', label: 'Cancelled' },
+// Only the colour lives here now; the word comes from `import.status.<status>`. The status id is
+// already the natural key, and it kept the label out of a lookup the compiler cannot check.
+const STATUS_DOT: Record<ImportJobStatus, string> = {
+  draft: 'bg-muted-foreground/50',
+  queued: 'bg-muted-foreground',
+  running: 'bg-blue-500 animate-pulse',
+  completed: 'bg-emerald-500',
+  completed_with_errors: 'bg-amber-500',
+  failed: 'bg-destructive',
+  cancelled: 'bg-muted-foreground/50',
 }
 
 /**
@@ -31,11 +32,14 @@ const STATUS_STYLE: Record<ImportJobStatus, { dot: string; label: string }> = {
  * `status.replace('_',' ')`, which is what renders "Completed with_errors" today.
  */
 export function JobStatusBadge({ status }: { status: ImportJobStatus }) {
-  const style = STATUS_STYLE[status]
+  const t = useTranslations()
   return (
     <Badge variant="outline" className="gap-1.5 font-normal">
-      <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} aria-hidden />
-      {style.label}
+      <span
+        className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[status])}
+        aria-hidden
+      />
+      {t(`import.status.${status}`)}
     </Badge>
   )
 }
@@ -55,13 +59,23 @@ export function formatDuration(
   return m > 0 ? `${m}m ${String(s).padStart(2, '0')}s` : `${s}s`
 }
 
+/**
+ * A wall-clock time in the READER's convention.
+ *
+ * Was hand-built as `HH:mm`, which forces 24-hour on every locale and pads in a way `Intl` would
+ * not. No locale argument, so it follows the browser — these are timestamps, not copy, and they
+ * are the same instant whichever language the UI is in.
+ */
 export function formatClock(ts?: number | null): string {
   if (!ts) return '—'
-  const d = new Date(ts)
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(ts))
 }
 
-export const n = (value: number) => value.toLocaleString('en-US')
+/** Counts with the reader's thousands separator: 1,847 or 1.847. Was pinned to en-US. */
+export const n = (value: number) => new Intl.NumberFormat().format(value)
 
 /**
  * The bar shows POSITION (attempted / total). The numbers underneath show OUTCOME.

@@ -1,11 +1,13 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { AlertTriangle, Loader2, Upload } from 'lucide-react'
 
 import { Alert, AlertDescription, Progress } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import type { ImportWizard } from '@/hooks/import/use-import-wizard'
+import { useAppConfig } from '@/contexts/query-context'
 
 /**
  * Limits are stated INSIDE the dropzone rather than in a permanent banner above the wizard.
@@ -25,6 +27,8 @@ export function StepUpload({
   onParsed: () => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const t = useTranslations()
+  const { maxImportFileSizeMB, maxObjectsPerImport } = useAppConfig()
   const [dragging, setDragging] = useState(false)
 
   async function accept(file: File | undefined) {
@@ -35,9 +39,9 @@ export function StepUpload({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-medium">Upload a spreadsheet</h3>
+        <h3 className="font-medium">{t('import.upload.title')}</h3>
         <p className="text-sm text-muted-foreground">
-          Excel or CSV. Nothing is created until you confirm at the end.
+          {t('import.upload.subtitle')}
         </p>
       </div>
 
@@ -78,15 +82,20 @@ export function StepUpload({
         {wizard.parsing ? (
           <>
             <Loader2 className="mb-3 h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="font-medium">Reading your file…</p>
+            <p className="font-medium">{t('import.upload.reading')}</p>
             <Progress value={wizard.progress} className="mt-3 h-1.5 w-48" />
           </>
         ) : (
           <>
             <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="font-medium">Drop a file here, or click to choose</p>
+            <p className="font-medium">{t('import.upload.dropzone')}</p>
+            {/* The caps come from runtime config, like the checks that enforce them — a sentence
+                promising 100 MB while the deployment allows 20 is worse than no sentence. */}
             <p className="mt-1 text-sm text-muted-foreground">
-              .xlsx or .csv — up to 100 MB and 50,000 rows
+              {t('import.upload.limits', {
+                size: maxImportFileSizeMB,
+                objects: maxObjectsPerImport,
+              })}
             </p>
           </>
         )}
@@ -95,7 +104,9 @@ export function StepUpload({
       {wizard.error && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{wizard.error}</AlertDescription>
+          <AlertDescription>
+            {t(wizard.error.key, wizard.error.values)}
+          </AlertDescription>
         </Alert>
       )}
     </div>

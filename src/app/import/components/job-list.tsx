@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import type { ColumnDef } from '@tanstack/react-table'
 import { FileSpreadsheet, Upload } from 'lucide-react'
 
@@ -15,7 +16,6 @@ import {
   OutcomeBar,
   formatClock,
   formatDuration,
-  n,
 } from './job-bits'
 
 /** Matches the node's own list default, so page 1 needs no size round-trip to look right. */
@@ -28,11 +28,13 @@ const PAGE_SIZE = 20
  * anything, which is the reason the accordion existed. Detail then earns a route of its own
  * instead of pushing every other job off the screen.
  */
-function buildColumns(): ColumnDef<ImportJob, unknown>[] {
+type Translate = ReturnType<typeof useTranslations>
+
+function buildColumns(t: Translate): ColumnDef<ImportJob, unknown>[] {
   return [
     {
       id: 'file',
-      header: 'Import',
+      header: t('import.list.columns.file'),
       // Capped, because the filename is the one unbounded value here — a real export arrives
       // called "CONFIDENTIAL - MAECONOMY - GHE - MultiPack Processed - … (1).xlsx", and without
       // a ceiling it pushes Duration off the right-hand edge of a table that clips overflow.
@@ -51,12 +53,12 @@ function buildColumns(): ColumnDef<ImportJob, unknown>[] {
     },
     {
       id: 'status',
-      header: 'Status',
+      header: t('import.list.columns.status'),
       cell: ({ row }) => <JobStatusBadge status={row.original.status} />,
     },
     {
       id: 'outcome',
-      header: 'Outcome',
+      header: t('import.list.columns.outcome'),
       cell: ({ row }) => {
         const job = row.original
         // A draft has not run: showing a 0-of-N outcome bar would read as "nothing worked"
@@ -71,7 +73,10 @@ function buildColumns(): ColumnDef<ImportJob, unknown>[] {
                 />
               </div>
               <p className="text-xs text-muted-foreground tabular-nums">
-                {n(job.staged)} of {n(job.total)} rows uploaded
+                {t('import.run.uploadedOf', {
+                  staged: job.staged,
+                  total: job.total,
+                })}
               </p>
             </div>
           )
@@ -90,23 +95,30 @@ function buildColumns(): ColumnDef<ImportJob, unknown>[] {
     },
     {
       id: 'levels',
-      header: 'Depth',
+      header: t('import.list.columns.depth'),
       cell: ({ row }) => {
         const { levels, currentLevel, status } = row.original
         if (levels <= 1)
-          return <span className="text-muted-foreground">Flat</span>
+          return (
+            <span className="text-muted-foreground">
+              {t('import.list.flat')}
+            </span>
+          )
         return (
           <span className="tabular-nums text-sm">
             {status === 'running'
-              ? `${currentLevel} of ${levels}`
-              : `${levels} levels`}
+              ? t('import.list.levelProgress', {
+                  current: currentLevel,
+                  total: levels,
+                })
+              : t('import.list.levelCount', { count: levels })}
           </span>
         )
       },
     },
     {
       id: 'started',
-      header: 'Started',
+      header: t('import.list.columns.started'),
       cell: ({ row }) => (
         <span className="tabular-nums text-sm text-muted-foreground">
           {formatClock(row.original.startedAt)}
@@ -115,7 +127,7 @@ function buildColumns(): ColumnDef<ImportJob, unknown>[] {
     },
     {
       id: 'duration',
-      header: 'Duration',
+      header: t('import.list.columns.duration'),
       cell: ({ row }) => (
         <span className="tabular-nums text-sm text-muted-foreground">
           {formatDuration(row.original.startedAt, row.original.finishedAt)}
@@ -132,6 +144,7 @@ export function JobList({
   onNew: () => void
   onOpen: (job: ImportJob) => void
 }) {
+  const t = useTranslations()
   const [page, setPage] = useState(1)
   // Owner-scoped on the node — there is no filter to pass, and nothing to share.
   const { data, isLoading } = useImports({ page, size: PAGE_SIZE })
@@ -145,11 +158,11 @@ export function JobList({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Every import you have run. A job keeps running if you close the tab.
+        {t('import.list.subtitle')}
       </p>
 
       <DataTable
-        columns={buildColumns()}
+        columns={buildColumns(t)}
         data={jobs}
         fetching={isLoading}
         getRowId={(job) => job.id}
@@ -172,12 +185,12 @@ export function JobList({
         onNextPage={() => goTo(page + 1)}
         onLastPage={() => goTo(totalPages)}
         emptyIcon={<FileSpreadsheet className="h-12 w-12" />}
-        emptyTitle="No imports yet"
-        emptyDescription="Load objects from a spreadsheet, keeping their hierarchy."
+        emptyTitle={t('import.list.emptyTitle')}
+        emptyDescription={t('import.list.emptyDescription')}
         emptyAction={
           <Button type="button" onClick={onNew} className="gap-2">
             <Upload className="h-4 w-4" />
-            New import
+            {t('import.actions.newImport')}
           </Button>
         }
       />
