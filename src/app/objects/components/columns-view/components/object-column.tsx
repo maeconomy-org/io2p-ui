@@ -98,8 +98,10 @@ export function MillerColumn({
 
   const { data, isLoading, isError } = useObjects().useList(
     {
-      // `undefined`, not `''` — an empty string means "roots only" to the node.
-      parent: parentId || undefined,
+      // Verbatim, including the empty string the first column passes: `?parent=` means ROOTS ONLY
+      // to the node, and `|| undefined` dropped the filter instead — so column one listed every
+      // object at any depth, and expanding a row showed children that were already in it.
+      parent: parentId,
       scope,
       page,
       size: COLUMN_SIZE,

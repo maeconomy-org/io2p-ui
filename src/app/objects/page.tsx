@@ -76,6 +76,13 @@ export default function ObjectsPage() {
       ...listQuery.query,
       size: filters.pageSize,
       scope,
+      // `?parent=` (empty) means ROOTS ONLY. Without it the table listed every object at any
+      // depth, so a building and its rooms sat side by side as peers and the same room appeared
+      // again inside its parent — the hierarchy was invisible and the count meant nothing.
+      //
+      // Search deliberately drops the filter: a match nested three levels down is still a match,
+      // and a root-only search would report "no results" for an object that exists.
+      parent: isSearchMode ? undefined : '',
       q: isSearchMode ? searchQuery : undefined,
       deleted: filters.showDeleted ? 'include' : undefined,
       withChildCounts: true,
