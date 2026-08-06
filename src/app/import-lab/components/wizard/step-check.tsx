@@ -94,6 +94,10 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
         <h3 className="font-medium">Check what will be created</h3>
         <p className="text-sm text-muted-foreground">
           Nothing has been written yet. These are the objects, not the rows.
+          {/* Named here as well as on the mapping step: it decides WHERE the whole tree lands,
+              and this is the last screen before that becomes permanent. */}
+          {wizard.destination &&
+            ' They will be created under the object you chose.'}
         </p>
       </div>
 

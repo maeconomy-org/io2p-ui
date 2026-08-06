@@ -1,6 +1,7 @@
 'use client'
 
-import { Layers, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { FolderTree, Layers, Sparkles, X } from 'lucide-react'
 
 import {
   Badge,
@@ -11,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui'
+import { ObjectPicker } from '@/components/entity-sheet/fields'
 import { cn } from '@/lib/utils'
 import type { ColumnTarget } from '@/lib/import/build-items'
 import { deriveKey } from '@/lib/import/build-items'
@@ -195,6 +197,61 @@ function ColumnRow({
   )
 }
 
+/**
+ * Where the imported tree lands.
+ *
+ * This needs no new protocol surface, which is why it is a picker and not a feature: core's
+ * envelope already accepts a REAL object id in `parents[]` alongside the tempIds from the same
+ * job, so a destination is just that id on every root item. Everything below a root keeps
+ * hanging off its own parent.
+ *
+ * Reuses the same ObjectPicker as the entity sheet and the bulk-parent dialog — one search, one
+ * set of access rules. The node refuses a parent the caller cannot READ, so a picker that
+ * searched differently here could offer something the import would then reject.
+ */
+function DestinationField({ wizard }: { wizard: ImportWizard }) {
+  const [name, setName] = useState<string>()
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-md border px-4 py-3">
+      <FolderTree className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">Import under an existing object</p>
+        <p className="text-xs text-muted-foreground">
+          {wizard.destination
+            ? `Every top-level object will be created inside ${name ?? 'the chosen object'}.`
+            : 'Optional — leave empty to create them at the top level.'}
+        </p>
+      </div>
+      <ObjectPicker
+        value={wizard.destination ?? ''}
+        displayName={name}
+        placeholder="Choose a parent…"
+        className="w-[16rem]"
+        onSelect={(id, picked) => {
+          setName(picked)
+          wizard.setDestination(id)
+        }}
+      />
+      {wizard.destination && (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          aria-label="Clear destination"
+          onClick={() => {
+            setName(undefined)
+            wizard.setDestination(null)
+          }}
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  )
+}
+
 export function StepMap({ wizard }: { wizard: ImportWizard }) {
   const unusedSuggestion = wizard.suggestedLevels.filter(
     (column) => !wizard.levels.includes(column)
@@ -268,6 +325,8 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
           <ColumnRow key={column.index} column={column} wizard={wizard} />
         ))}
       </div>
+
+      <DestinationField wizard={wizard} />
     </div>
   )
 }
