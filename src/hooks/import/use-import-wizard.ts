@@ -25,11 +25,30 @@ import {
   SheetParseError,
 } from '@/lib/import/parse-sheet'
 import { suggestMapping } from '@/lib/import/suggest-mapping'
+import { logger } from '@/lib/observability/logger'
+import { DEFAULT_CLIENT_CONFIG, getCachedConfig } from '@/constants/client'
 
 /** How many rows the preview renders. The full sheet is still what gets built. */
 const PREVIEW_ROWS = 50
 /** Rows the suggester looks at. Enough to judge repetition without walking 50,000 rows. */
 const SAMPLE_ROWS = 200
+
+/**
+ * The caps this deployment advertises, from runtime config.
+ *
+ * Read here rather than imported as constants: both were hardcoded (a 100 MB literal in the parser,
+ * and an unused `MAX_OBJECTS_PER_IMPORT`), so `MAX_IMPORT_FILE_SIZE_MB` and `MAX_OBJECTS_PER_IMPORT`
+ * could be set on a deployment and change nothing — the env var went into `__IOM_CONFIG__` and no
+ * code ever read it back. A limit nobody enforces is worse than no limit: it is a promise the UI
+ * makes and the node breaks.
+ */
+function importLimits() {
+  const config = getCachedConfig() ?? DEFAULT_CLIENT_CONFIG
+  return {
+    maxBytes: config.maxImportFileSizeMB * 1024 * 1024,
+    maxObjects: config.maxObjectsPerImport,
+  }
+}
 
 export interface WizardColumn {
   index: number
@@ -82,6 +101,7 @@ export function useImportWizard() {
       setProgress(0)
       try {
         const parsed = await parseSheetFile(picked, {
+          maxBytes: importLimits().maxBytes,
           onProgress: setProgress,
         })
         const first = parsed[0]!
@@ -93,6 +113,17 @@ export function useImportWizard() {
         seedMapping(first, first.suggestedHeaderRow)
         return true
       } catch (cause) {
+        // A SheetParseError is OUR refusal — too big, wrong extension, no data — and its message
+        // is already on screen. Anything else came out of exceljs or papaparse and is the only
+        // evidence of why a real file failed; without this it became "That file could not be
+        // read" and vanished. Name and size, never the contents.
+        if (!(cause instanceof SheetParseError)) {
+          logger.error('import_parse_failed', {
+            err: cause,
+            fileName: picked.name,
+            fileSize: picked.size,
+          })
+        }
         setError(
           cause instanceof SheetParseError
             ? cause.message
@@ -129,6 +160,20 @@ export function useImportWizard() {
     [sheet, seedMapping]
   )
 
+  /**
+   * Move where the data starts, never above the header.
+   *
+   * The picker offers a "data" button on every row, including rows ABOVE the header, and the raw
+   * setter accepted them: `dataRows` is `rows.slice(dataRow)`, so choosing an earlier row swept the
+   * preamble AND THE HEADER ROW ITSELF into the data — the header line was imported as an object
+   * named `Building`. Clamped here rather than at the one call site, so a second caller cannot
+   * reintroduce it.
+   */
+  const selectDataRow = useCallback(
+    (index: number) => setDataRow(Math.max(index, headerRow + 1)),
+    [headerRow]
+  )
+
   const headers = useMemo(
     () => (sheet?.rows[headerRow] ?? []).map((h) => h.trim()),
     [sheet, headerRow]
@@ -136,6 +181,14 @@ export function useImportWizard() {
 
   const dataRows = useMemo(
     () => sheet?.rows.slice(dataRow) ?? [],
+    [sheet, dataRow]
+  )
+
+  // Sliced with the SAME bound as `dataRows`, because the two are index-aligned and the builder
+  // reads a row's number by its position. Slicing one without the other reports every failure
+  // against the wrong line, and nothing would surface the drift.
+  const dataRowNumbers = useMemo(
+    () => sheet?.rowNumbers.slice(dataRow) ?? [],
     [sheet, dataRow]
   )
 
@@ -166,8 +219,8 @@ export function useImportWizard() {
    * figure keeps claiming the old total after a level is removed.
    */
   const built = useMemo(
-    () => buildItems(dataRows, mapping, headers),
-    [dataRows, mapping, headers]
+    () => buildItems(dataRows, mapping, headers, dataRowNumbers),
+    [dataRows, mapping, headers, dataRowNumbers]
   )
 
   const setColumn = useCallback(
@@ -217,6 +270,12 @@ export function useImportWizard() {
       Object.values(columns ?? {}).some((t) => t.kind === 'name')
     if (!named) return 'Map a column to Name, or pick a hierarchy first'
     if (built.items.length === 0) return 'This mapping would create nothing'
+    // Counted on OBJECTS, not rows: with a hierarchy on, 1,200 rows become 1,847 objects, and the
+    // node's cap is on what gets created. Refused here rather than after staging every item.
+    const { maxObjects } = importLimits()
+    if (built.items.length > maxObjects) {
+      return `That is ${built.items.length.toLocaleString('en-US')} objects — the limit is ${maxObjects.toLocaleString('en-US')} per import`
+    }
     return null
   }, [sheet, levels, columns, built.items.length])
 
@@ -235,7 +294,7 @@ export function useImportWizard() {
     headerRow,
     dataRow,
     selectHeaderRow,
-    setDataRow,
+    selectDataRow,
     headers,
     dataRows,
     previewRows: useMemo(() => dataRows.slice(0, PREVIEW_ROWS), [dataRows]),

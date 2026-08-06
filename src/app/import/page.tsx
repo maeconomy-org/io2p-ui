@@ -50,7 +50,19 @@ export default function ImportPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="wizard" className="mt-0">
+        {/* `forceMount`, so glancing at the status tab does not throw the import away.
+
+            Radix unmounts inactive tab content, and `useImportWizard` lives inside `Wizard` — so
+            switching away destroyed the parsed sheet, the column mapping, the hierarchy and the
+            chosen destination, and coming back showed an empty dropzone. Mapping a 60-column
+            municipal sheet is real work to lose to a curious click, and this is the same failure
+            the redesign notes recorded against the OLD pipeline ("leaving the page destroys the
+            mapping"). Hidden rather than unmounted; nothing here fetches until a file is picked. */}
+        <TabsContent
+          value="wizard"
+          forceMount
+          className="mt-0 data-[state=inactive]:hidden"
+        >
           {/* Finishing the wizard lands on the status list, where the job it just started is the
               top row — the question a user has the moment they press Import. */}
           <Wizard onFinished={() => setTab('status')} />

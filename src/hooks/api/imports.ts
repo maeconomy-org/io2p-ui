@@ -9,7 +9,7 @@
 // only part that needs the tab open, and a RUNNING job must be polled while every other query in
 // the app stays on the app-wide `staleTime: Infinity`.
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ImportItemDTO,
@@ -20,6 +20,7 @@ import type {
 } from 'io2p-client'
 
 import { useIomClient } from '@/lib/io2p'
+import { logger } from '@/lib/observability/logger'
 import { queryKeys } from '@/lib/query-keys'
 
 /**
@@ -51,7 +52,9 @@ const POLL_MS = 2500
 /** One job, polled while it is running and left alone once it is not. */
 export function useImportJob(id: string | null) {
   const client = useIomClient()
-  return useQuery({
+  const queryClient = useQueryClient()
+
+  const query = useQuery({
     queryKey: queryKeys.imports.detail(id ?? ''),
     queryFn: () => client.imports.get(id!),
     enabled: Boolean(id),
@@ -63,6 +66,40 @@ export function useImportJob(id: string | null) {
       return status && isTerminal(status) ? false : POLL_MS
     },
   })
+
+  const status = query.data?.status
+  const seen = useRef<{ id: string; status: string } | null>(null)
+
+  /**
+   * The moment a watched job finishes, everything it touched is stale.
+   *
+   * Polling merely STOPPED before, invalidating nothing: the per-row report still held the
+   * mid-run rows, the jobs list still said "running", and — the one users notice — the objects
+   * list had never heard of the objects just created, so "View objects" landed on a page that did
+   * not contain them.
+   *
+   * Keyed on the TRANSITION, not on the status: opening a job that finished yesterday changed
+   * nothing, and invalidating `objects.all` on every such open would refetch the whole list for
+   * no reason. Nothing is invalidated on a normal poll either, only on the edge.
+   */
+  useEffect(() => {
+    if (!id || !status) return
+    const previous = seen.current
+    seen.current = { id, status }
+    if (!previous || previous.id !== id) return
+    if (isTerminal(previous.status) || !isTerminal(status)) return
+
+    logger.info('import_finished', { jobId: id, status })
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.imports.detail(id),
+    })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.imports.lists() })
+    // The objects the job created. Broad on purpose — the import can land anywhere in the tree,
+    // so there is no narrower key that is guaranteed to cover it.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.objects.all })
+  }, [id, status, queryClient])
+
+  return query
 }
 
 /** The caller's own imports, newest first. Owner-only — there is nothing to share. */
@@ -145,6 +182,16 @@ export function useRunImport() {
       if (!dryRun.ok) {
         // Refuse BEFORE anything is written. The job stays a draft, so the user can fix the
         // mapping and submit again with nothing to clean up.
+        //
+        // Recorded because it is otherwise invisible: a whole import rejected after every item
+        // was uploaded produced no server-side trace at all, so a deployment where this happens
+        // routinely (a sheet shape the mapper handles badly) looks exactly like one where it
+        // never happens. The COUNT only — a problem message quotes the user's own data.
+        logger.warn('import_refused', {
+          jobId: job.id,
+          items: items.length,
+          problems: dryRun.problems.length,
+        })
         setProgress((p) => ({ ...p, phase: 'error' }))
         return { job, problems: dryRun.problems, started: false as const }
       }
@@ -152,6 +199,7 @@ export function useRunImport() {
       setProgress((p) => ({ ...p, phase: 'starting' }))
       const started = await client.imports.start(job.id)
       setProgress((p) => ({ ...p, phase: 'started' }))
+      logger.info('import_started', { jobId: job.id, items: items.length })
       return { job: started, problems: [], started: true as const }
     },
     onSuccess: (result) => {

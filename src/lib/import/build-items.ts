@@ -61,6 +61,26 @@ export interface BuildResult {
   problems: { row: number; message: string }[]
 }
 
+/**
+ * Joins the segments of a level path into a tempId.
+ *
+ * U+0000, not `/`. A path is identity here — `Northgate House/EG/A` addresses one object — so a
+ * separator that can appear IN a cell lets two different paths collide: a building literally named
+ * `Blok A/B` with floor `C` produced the same tempId as building `Blok A` with floor `B/C`, and
+ * the two objects silently MERGED into one. No spreadsheet cell contains a NUL.
+ */
+const PATH_SEP = '\u0000'
+
+/**
+ * Does this parent reference name an object that already exists, rather than a row in this sheet?
+ *
+ * Core's envelope takes either in `parents[]`, so a sheet whose parent column holds real object
+ * ids is legitimate — it is the same mechanism `destination` uses. Without this check every one of
+ * those rows was reported as naming a parent "no row declares".
+ */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // A cell can arrive as a string, a number, or a Date (ExcelJS). Anything empty is ABSENT, not
 // an empty value: core requires a value to carry `data`, so `{ data: '' }` is rejected per row.
 function cellText(value: unknown): string {
@@ -102,6 +122,14 @@ interface Draft {
   name: string
   level: number
   parentTempId: string | null
+  /**
+   * The sheet row this draft was FIRST seen on.
+   *
+   * Carried so a problem found after the row loop — an unresolvable parent — can still name a line
+   * the operator can open. Without it those were reported as row 0, i.e. no row at all, in the one
+   * report whose only job is saying where to look.
+   */
+  sourceRow: number
   description?: string
   address: Record<string, string>
   properties: Map<string, { label: string; values: string[] }>
@@ -112,13 +140,15 @@ function emptyDraft(
   tempId: string,
   name: string,
   level: number,
-  parentTempId: string | null
+  parentTempId: string | null,
+  sourceRow: number
 ): Draft {
   return {
     tempId,
     name,
     level,
     parentTempId,
+    sourceRow,
     address: {},
     properties: new Map(),
     files: [],
@@ -225,7 +255,16 @@ function toItem(draft: Draft, destination: string | null): ImportItemInput {
 export function buildItems(
   rows: readonly unknown[][],
   mapping: BuildMapping,
-  headers: readonly string[] = []
+  headers: readonly string[] = [],
+  /**
+   * The real file line for each row, from the parser. Index-aligned with `rows`.
+   *
+   * Optional so the pure tests can pass rows alone, but the app always supplies it: `rows` here is
+   * already a slice starting at the DATA row, so counting `index + 1` reports "row 1" for what the
+   * operator sees as row 7, and every number in the failure report is off by the header and any
+   * preamble above it.
+   */
+  rowNumbers: readonly number[] = []
 ): BuildResult {
   const problems: BuildResult['problems'] = []
   const drafts = new Map<string, Draft>()
@@ -239,9 +278,9 @@ export function buildItems(
   const useLevels = mapping.levels.length > 0
 
   rows.forEach((row, index) => {
-    // 1-based, and past the header — this is the number printed in the operator's spreadsheet,
-    // which is the only address they can act on when a row fails.
-    const sheetRow = index + 1
+    // The number printed in the operator's spreadsheet — the only address they can act on when a
+    // row fails. From the parser when we have it; `index + 1` is a fallback for direct callers.
+    const sheetRow = rowNumbers[index] ?? index + 1
 
     if (useLevels) {
       // Walk the levels outermost-first, creating or reusing a draft per distinct path prefix.
@@ -261,10 +300,10 @@ export function buildItems(
           break
         }
         segments.push(name)
-        const path = segments.join('/')
+        const path = segments.join(PATH_SEP)
         let draft = drafts.get(path)
         if (!draft) {
-          draft = emptyDraft(path, name, level, parentTempId)
+          draft = emptyDraft(path, name, level, parentTempId, sheetRow)
           drafts.set(path, draft)
         }
         parentTempId = path
@@ -283,7 +322,8 @@ export function buildItems(
         const owner =
           level === undefined
             ? deepest
-            : (drafts.get(segments.slice(0, level + 1).join('/')) ?? deepest)
+            : (drafts.get(segments.slice(0, level + 1).join(PATH_SEP)) ??
+              deepest)
         applyCell(owner, target, row[column], headers[column] ?? '')
       }
       return
@@ -307,26 +347,35 @@ export function buildItems(
     }
 
     const parent = parentColumn === undefined ? '' : cellText(row[parentColumn])
-    const draft = emptyDraft(key, name, 0, parent || null)
+    const draft = emptyDraft(key, name, 0, parent || null, sheetRow)
     drafts.set(key, draft)
     for (const [column, target] of targets) {
       applyCell(draft, target, row[column], headers[column] ?? '')
     }
   })
 
-  // A parent naming a key no row declared can never resolve. Core would refuse the whole job at
-  // staging anyway; catching it here says WHICH row, which core cannot know.
+  // A parent that resolves to neither a row in this sheet nor an existing object can never be
+  // satisfied, and core refuses the WHOLE job at staging when it sees one. So these rows are
+  // dropped here rather than sent: the alternative is uploading every item and then having the
+  // entire import rejected for a typo the user was already shown.
+  const orphans = new Set<string>()
   for (const draft of drafts.values()) {
-    if (draft.parentTempId && !drafts.has(draft.parentTempId)) {
-      problems.push({
-        row: 0,
-        message: `"${draft.tempId}" names a parent "${draft.parentTempId}" that no row declares`,
-      })
-    }
+    const parent = draft.parentTempId
+    // A UUID is a real object id, which core's envelope accepts alongside tempIds — the same
+    // mechanism `destination` uses. It is not declared by any row and must not be treated as
+    // missing. Whether the caller may actually read it is core's answer to give, not ours.
+    if (!parent || drafts.has(parent) || UUID_RE.test(parent)) continue
+    orphans.add(draft.tempId)
+    problems.push({
+      row: draft.sourceRow,
+      message: `Parent "${parent}" is not a row in this sheet or an object id`,
+    })
   }
 
   return {
-    items: [...drafts.values()].map((d) => toItem(d, mapping.destination)),
+    items: [...drafts.values()]
+      .filter((d) => !orphans.has(d.tempId))
+      .map((d) => toItem(d, mapping.destination)),
     problems,
   }
 }

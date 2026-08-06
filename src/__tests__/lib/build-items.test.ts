@@ -7,6 +7,13 @@ import {
 } from '@/lib/import/build-items'
 
 /**
+ * tempIds are level segments joined by U+0000, not '/'. Spelled once here: a test that hardcodes
+ * the separator is a test that has to be rewritten to change it, which is how the old '/' survived
+ * long enough to start merging objects whose names contained a slash.
+ */
+const path = (...segments: string[]) => segments.join('\u0000')
+
+/**
  * The builder is where a spreadsheet becomes objects, so it is the one place in the flow where a
  * mistake is permanent: the node's store is append-only, and a wrongly-shaped import can only be
  * soft-deleted afterwards, never removed. It is pure, so it is tested directly.
@@ -61,6 +68,22 @@ describe('deriveKey', () => {
 })
 
 describe('buildItems — level columns (rows repeat their ancestors)', () => {
+  it('keeps two objects apart when a name contains the old separator', () => {
+    // Building `Blok A/B` floor `C` vs building `Blok A` floor `B/C`: joined by '/' both become
+    // "Blok A/B/C", so the two DIFFERENT buildings and their floors silently merged into one
+    // object each. Slashes in municipal block names are ordinary.
+    const rows: unknown[][] = [
+      ['Blok A/B', 'C', '1', '', '', ''],
+      ['Blok A', 'B/C', '2', '', '', ''],
+    ]
+    const { items } = buildItems(rows, levelsMapping(), HEADERS)
+
+    // 2 buildings + 2 floors + 2 rooms. Under '/' this collapsed to 4.
+    expect(items).toHaveLength(6)
+    expect(items.map((i) => i.tempId)).toContain(path('Blok A/B', 'C'))
+    expect(items.map((i) => i.tempId)).toContain(path('Blok A', 'B/C'))
+  })
+
   it('de-duplicates each path prefix into one object', () => {
     const { items, problems } = buildItems(ROWS, levelsMapping(), HEADERS)
 
@@ -70,14 +93,14 @@ describe('buildItems — level columns (rows repeat their ancestors)', () => {
     expect(items).toHaveLength(9)
     expect(items.map((i) => i.tempId)).toEqual([
       'Northgate House',
-      'Northgate House/Ground',
-      'Northgate House/Ground/101',
-      'Northgate House/Ground/102',
-      'Northgate House/First',
-      'Northgate House/First/201',
+      path('Northgate House', 'Ground'),
+      path('Northgate House', 'Ground', '101'),
+      path('Northgate House', 'Ground', '102'),
+      path('Northgate House', 'First'),
+      path('Northgate House', 'First', '201'),
       'Riverside Depot',
-      'Riverside Depot/Ground',
-      'Riverside Depot/Ground/101',
+      path('Riverside Depot', 'Ground'),
+      path('Riverside Depot', 'Ground', '101'),
     ])
   })
 
@@ -86,17 +109,19 @@ describe('buildItems — level columns (rows repeat their ancestors)', () => {
     const byId = new Map(items.map((i) => [i.tempId, body(i)]))
 
     expect(byId.get('Northgate House')?.parents).toBeUndefined()
-    expect(byId.get('Northgate House/Ground')?.parents).toEqual([
+    expect(byId.get(path('Northgate House', 'Ground'))?.parents).toEqual([
       'Northgate House',
     ])
-    expect(byId.get('Northgate House/Ground/101')?.parents).toEqual([
-      'Northgate House/Ground',
-    ])
+    expect(byId.get(path('Northgate House', 'Ground', '101'))?.parents).toEqual(
+      [path('Northgate House', 'Ground')]
+    )
   })
 
   it('uses the LAST path segment as the name, not the whole path', () => {
     const { items } = buildItems(ROWS, levelsMapping(), HEADERS)
-    const room = items.find((i) => i.tempId === 'Northgate House/Ground/101')
+    const room = items.find(
+      (i) => i.tempId === path('Northgate House', 'Ground', '101')
+    )
     expect(body(room!).name).toBe('101')
   })
 
@@ -114,7 +139,9 @@ describe('buildItems — level columns (rows repeat their ancestors)', () => {
     expect(byId.get('Northgate House')?.address).toEqual({
       fullAddress: '1200 Harbor Blvd',
     })
-    expect(byId.get('Northgate House/Ground/101')?.address).toBeUndefined()
+    expect(
+      byId.get(path('Northgate House', 'Ground', '101'))?.address
+    ).toBeUndefined()
   })
 
   it('does not repeat a level column as a property', () => {
@@ -134,7 +161,9 @@ describe('buildItems — level columns (rows repeat their ancestors)', () => {
       },
     })
     const { items } = buildItems(ROWS, mapping, HEADERS)
-    const floor = items.find((i) => i.tempId === 'Northgate House/Ground')
+    const floor = items.find(
+      (i) => i.tempId === path('Northgate House', 'Ground')
+    )
 
     const keys = body(floor!).properties?.map((p) => p.key) ?? []
     expect(keys).not.toContain('building')
@@ -142,13 +171,17 @@ describe('buildItems — level columns (rows repeat their ancestors)', () => {
 
     // …while a genuine property is untouched. It lands on the ROOM: with three levels the room
     // is the deepest, and an unassigned column attaches to the deepest level.
-    const room = items.find((i) => i.tempId === 'Northgate House/Ground/101')
+    const room = items.find(
+      (i) => i.tempId === path('Northgate House', 'Ground', '101')
+    )
     expect(body(room!).properties?.map((p) => p.key)).toContain('area')
   })
 
   it('splits a delimited cell into several values', () => {
     const { items } = buildItems(ROWS, levelsMapping(), HEADERS)
-    const room = items.find((i) => i.tempId === 'Northgate House/Ground/101')
+    const room = items.find(
+      (i) => i.tempId === path('Northgate House', 'Ground', '101')
+    )
     const tags = body(room!).properties?.find((p) => p.key === 'tags')
     expect(tags?.values).toEqual([{ data: 'A' }, { data: 'B' }])
   })
@@ -175,7 +208,7 @@ describe('buildItems — level columns (rows repeat their ancestors)', () => {
     expect(byId.get('Northgate House')?.parents).toEqual([id])
     expect(byId.get('Riverside Depot')?.parents).toEqual([id])
     // A child still hangs off its own parent — the destination is not a second parent for all.
-    expect(byId.get('Northgate House/Ground')?.parents).toEqual([
+    expect(byId.get(path('Northgate House', 'Ground'))?.parents).toEqual([
       'Northgate House',
     ])
   })
@@ -218,12 +251,40 @@ describe('buildItems — key/parent columns (the sheet carries ids)', () => {
     })
   })
 
-  it('names the row when a parent key does not exist', () => {
-    // A typo here would be caught by the node at staging, but the node cannot say which ROW —
-    // it never sees the spreadsheet.
+  // These three assert `items` as well as `problems`. The original asserted only `problems`, which
+  // is exactly why nobody noticed the orphan row was being REPORTED as skipped and SENT anyway.
+  it('drops a row whose parent is neither in the sheet nor an object id', () => {
+    // `B-l2` is a typo for `B-12` (letter l for one). Core refuses the whole job over this at
+    // staging, so the row must not be sent — and the operator needs the line to go and fix.
     const rows = [...KEY_ROWS, ['B-99', 'B-l2', 'Anbau', 'gross']]
-    const { problems } = buildItems(rows, keyMapping, KEY_HEADERS)
-    expect(problems[0]?.message).toContain('"B-l2" that no row declares')
+    const { items, problems } = buildItems(rows, keyMapping, KEY_HEADERS)
+
+    expect(problems).toHaveLength(1)
+    expect(problems[0]?.message).toContain('B-l2')
+    expect(problems[0]?.row).toBeGreaterThan(0)
+    expect(items.map((i) => i.tempId)).not.toContain('B-99')
+  })
+
+  it('passes a UUID parent through as a real object id', () => {
+    // Core's envelope takes an existing object id in parents[] beside the job's tempIds — the same
+    // mechanism `destination` uses. A sheet whose parent column holds real ids is legitimate, and
+    // was being refused wholesale.
+    const existing = '0190b3f2-4c1a-7e3b-9a2d-0f1c2b3a4d5e'
+    const rows = [...KEY_ROWS, ['B-99', existing, 'Anbau', 'gross']]
+    const { items, problems } = buildItems(rows, keyMapping, KEY_HEADERS)
+
+    expect(problems).toEqual([])
+    expect(body(items.find((i) => i.tempId === 'B-99')!).parents).toEqual([
+      existing,
+    ])
+  })
+
+  it('reports the real file line, not the position in the data slice', () => {
+    // The builder receives rows ALREADY sliced past the header, so counting them gives "row 1"
+    // for what the operator sees as row 7. The parser's numbers are the answer.
+    const rows = [['', '', '', '']]
+    const { problems } = buildItems(rows, keyMapping, KEY_HEADERS, [7])
+    expect(problems[0]?.row).toBe(7)
   })
 
   it('refuses a duplicate key rather than merging two rows', () => {

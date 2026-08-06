@@ -105,7 +105,7 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
                             </button>
                             <button
                               type="button"
-                              onClick={() => wizard.setDataRow(index)}
+                              onClick={() => wizard.selectDataRow(index)}
                               className="rounded px-1 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
                               data

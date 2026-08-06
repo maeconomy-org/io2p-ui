@@ -22,6 +22,18 @@ export interface ParsedSheet {
   name: string
   /** Every cell trimmed to a string; a blank cell is `''`. */
   rows: string[][]
+  /**
+   * The 1-based line each row occupies IN THE FILE, index-aligned with `rows`.
+   *
+   * Kept as a parallel array rather than folded into the row so `rows` stays a plain string[][] —
+   * the preview, the header detector and the suggester all consume it as one.
+   *
+   * It cannot be derived downstream, which is the whole point: rows are trimmed at the ends here
+   * and sliced again at the data row later, so by the time the builder reports "row 12" it has no
+   * way back to what the operator sees in Excel. Everything before this carried an index and
+   * called it a row.
+   */
+  rowNumbers: number[]
   /** Best guess at the header row, 0-based. The user can override it. */
   suggestedHeaderRow: number
 }
@@ -84,13 +96,24 @@ export function detectHeaderRow(rows: readonly string[][]): number {
   return 0
 }
 
-/** Drop leading and trailing blank rows; keep interior ones (they may be meaningful gaps). */
-function trimBlankRows(rows: string[][]): string[][] {
+/**
+ * Drop leading and trailing blank rows; keep interior ones (they may be meaningful gaps).
+ *
+ * Trims the row NUMBERS in step, which is why they have to arrive here rather than being counted
+ * afterwards — the surviving rows no longer start at line 1.
+ */
+function trimBlankRows(
+  rows: string[][],
+  numbers: number[]
+): { rows: string[][]; rowNumbers: number[] } {
   let start = 0
   let end = rows.length
   while (start < end && isBlankRow(rows[start]!)) start += 1
   while (end > start && isBlankRow(rows[end - 1]!)) end -= 1
-  return rows.slice(start, end)
+  return {
+    rows: rows.slice(start, end),
+    rowNumbers: numbers.slice(start, end),
+  }
 }
 
 async function parseCsv(
@@ -104,17 +127,34 @@ async function parseCsv(
   const Papa = (await import('papaparse')).default
   const result = Papa.parse<string[]>(text, {
     header: false,
-    skipEmptyLines: 'greedy',
+    // NOT `'greedy'`. That drops every all-empty line INCLUDING interior ones, so a gap in the
+    // middle of a CSV shifted every line number below it — while the XLSX path keeps interior
+    // blanks (`includeEmpty: true`) and reported them correctly. The same sheet saved two ways
+    // gave two different answers to "which row failed", in the one file whose entire job is
+    // making the two readers converge. Blanks are trimmed at the ENDS below, for both.
+    skipEmptyLines: false,
     // NO `transform`. The old one coerced numbers, which is both a divergence from the XLSX
     // path and lossy: `007` became `7`.
   })
   onProgress?.(80)
 
-  const rows = trimBlankRows(
-    (result.data as unknown[][]).map((row) => row.map((cell) => toText(cell)))
+  const parsed = (result.data as unknown[][]).map((row) =>
+    row.map((cell) => toText(cell))
+  )
+  // Papa returns lines in file order with nothing skipped, so the index IS the line.
+  const { rows, rowNumbers } = trimBlankRows(
+    parsed,
+    parsed.map((_, index) => index + 1)
   )
   onProgress?.(100)
-  return [{ name: 'Sheet1', rows, suggestedHeaderRow: detectHeaderRow(rows) }]
+  return [
+    {
+      name: 'Sheet1',
+      rows,
+      rowNumbers,
+      suggestedHeaderRow: detectHeaderRow(rows),
+    },
+  ]
 }
 
 async function parseXlsx(
@@ -133,6 +173,10 @@ async function parseXlsx(
   const sheets: ParsedSheet[] = []
   workbook.eachSheet((worksheet) => {
     const raw: string[][] = []
+    // ExcelJS hands us the real spreadsheet row, which is the number in the operator's row
+    // gutter. Taken rather than counted: `eachRow` can skip rows a workbook never materialised,
+    // so a running counter would drift from what Excel shows.
+    const numbers: number[] = []
     worksheet.eachRow({ includeEmpty: true }, (row) => {
       const cells: string[] = []
       row.eachCell({ includeEmpty: true }, (cell, columnNumber) => {
@@ -148,12 +192,14 @@ async function parseXlsx(
       // means a different thing on different rows.
       for (let i = 0; i < cells.length; i += 1) cells[i] ??= ''
       raw.push(cells)
+      numbers.push(row.number)
     })
-    const rows = trimBlankRows(raw)
+    const { rows, rowNumbers } = trimBlankRows(raw, numbers)
     if (rows.length > 0) {
       sheets.push({
         name: worksheet.name,
         rows,
+        rowNumbers,
         suggestedHeaderRow: detectHeaderRow(rows),
       })
     }
