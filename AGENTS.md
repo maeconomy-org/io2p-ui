@@ -146,7 +146,7 @@ Providers (providers.tsx)
 ### Error Handling
 
 - Wrap async operations in try/catch.
-- **Never use `console.log/warn/error`** — always use `logger` from `@/lib` instead.
+- **Never use `console.log/warn/error`** — always use `logger` from `@/lib/observability/logger` instead.
 - Show user-friendly translated error messages via `Alert` or `toast`.
 - Every route segment must have an `error.tsx` error boundary — copy from `src/app/error.tsx`.
 - Error boundaries catch React render errors and show a retry UI with Sentry integration.
@@ -157,8 +157,9 @@ Providers (providers.tsx)
 - **Server** (API routes, RSC): NDJSON to stdout, always on, gated by `LOG_LEVEL` (default `info` in prod, `debug` in dev). When `OTEL_ENABLED=true` the same records also flow as OTel log records.
 - **Browser, dev**: console at `LOG_LEVEL` (via `__IOM_CONFIG__`), ship sink off by default.
 - **Browser, production**: console OFF by design (the `localStorage['iom:log-level']` override re-enables it on a live session, or silences with `'off'`); records at/above `LOG_SHIP_LEVEL` ship to `/api/telemetry`; error-level records go to Sentry with the real exception.
-- Use `logger.security(event, details)` for auth/security events.
-- Use `logger.import(event, details)` for import pipeline events.
+- There are four levels and no categories. `logger.security()` / `logger.import()` were removed — the
+  import pipeline they served is gone, and one call site does not earn a bespoke level. A notable
+  event is `logger.warn('snake_case_event', { …fields })`; the event name is the message.
 
 ### Observability (spans, metrics, telemetry)
 
@@ -167,9 +168,9 @@ Logging semantics are above; these rules cover everything else new code instrume
 - **Log vs span vs metric**: log = a fact about one request you'll read later; span = timing/causality in a trace waterfall (wrap meaningful async operations, join the active trace); metric = an aggregate you'd alert or dashboard on (counter for events, histogram for durations, observable gauge for depths/pools).
 - **Naming & cardinality**: never an id or unbounded value in a span name or metric label — ids go in span attributes namespaced `io2p.*`; metric names are `io2p.<domain>.<thing>` with closed-set attribute values; use OTel semconv names for standard things (prebuilt dashboards key on them).
 - **Server OTel** boots in `src/instrumentation.node.ts` (manual NodeSDK). `OTEL_ENABLED` defaults to false — telemetry must never break boot or tests; a start failure logs once, exporter errors never throw; endpoint/headers via the standard `OTEL_EXPORTER_OTLP_*` envs. New server spans/metrics use `@opentelemetry/api` (`trace.getTracer` / `metrics.getMeter`) — no-ops when the SDK is off.
-- **The browser has NO OTel SDK** (still experimental) — the browser signal is the logger. Records ship to `/api/telemetry` as `{ records: [...] }` (io2p-auth-ui's route takes a bare array — don't cross wire formats). A new browser destination is one more sink behind the interface in `src/lib/logger` — never a new logging path.
+- **The browser has NO OTel SDK** (still experimental) — the browser signal is the logger. Records ship to `/api/telemetry` as `{ records: [...] }` (io2p-auth-ui's route takes a bare array — don't cross wire formats). A new browser destination is one more sink behind the interface in `src/lib/observability/logger` — never a new logging path.
 - **Sentry is BROWSER-ONLY, errors-only.** Never add server-side Sentry or any tracing option — `tracesSampleRate: 0` still boots the tracing machinery; omit, don't zero.
-- **Scrubbing lives in `src/lib/redact.ts` and applies to ALL sinks** (ship, Sentry, NDJSON). Key-based redaction cannot see a secret inside a string VALUE — presigned URLs and query strings are sanitized at the call site (`redactPresignedUrlString`); a query string is a credential until proven otherwise. Never tokens, cookies or full URLs in span attributes or metric labels.
+- **Scrubbing lives in `src/lib/observability/redact.ts` and applies to ALL sinks** (ship, Sentry, NDJSON). Key-based redaction cannot see a secret inside a string VALUE — presigned URLs and query strings are sanitized at the call site (`redactPresignedUrlString`); a query string is a credential until proven otherwise. Never tokens, cookies or full URLs in span attributes or metric labels.
 - **New browser-visible config goes through `__IOM_CONFIG__` / `buildRuntimeConfig()`** (`src/constants/client.ts`) — a bare `process.env` read compiles away in the browser bundle and becomes a silent no-op.
 
 ### Dynamic Imports & Code Splitting
@@ -183,7 +184,24 @@ Logging semantics are above; these rules cover everything else new code instrume
 
 ### API Routes & Security
 
-- **All `/api/*` routes** must validate the JWT via `requireAuth(req)` from `@/lib/api-auth`. The one deliberate exception is `/api/telemetry`, which accepts anonymous records on purpose — a crash on the login page is exactly the one worth having, and there is no session to authenticate yet. It pays for that with the controls an authenticated route gets for free: a rate limit keyed on the client identifier, a declared-length requirement, a payload cap, a per-batch record cap and a server-side re-scrub. Do not "fix" it by adding `requireAuth`; if you add another anonymous route, it owes the same five.
+- **`/api/*` routes fall into three tiers, and the tier is a design decision — not a default.**
+  - **Public by design** — `/api/config`, `/api/health`, and `/api/telemetry`. Telemetry accepts
+    anonymous records on purpose: a crash on the login page is exactly the one worth having, and
+    there is no session yet. It pays for that with the controls an authenticated route gets free —
+    a rate limit on the client identifier, a declared-length requirement, a payload cap, a per-batch
+    record cap, and a server-side re-scrub. Another anonymous route owes the same five.
+  - **Abuse-bounded** — `/api/address` and `/api/passport/[uuid]/pdf`, behind `tripwire(req)` from
+    `@/lib/http/tripwire` plus an IP-keyed limit from `@/lib/http/rate-limit`. **The tripwire is not
+    authentication**: it decodes without verifying, so anyone can forge one. It filters non-UI
+    traffic and emits a signal; the rate limit is what bounds abuse. Both routes qualify
+    structurally, not by promise — address proxies a public geocoder, and the PDF route renders the
+    request body, so a caller only gets back data they already had.
+  - **Private data** — none today. A route that reads a user's records does NOT get the tripwire. It
+    verifies against the issuer's JWKS, or it proxies to io2p-core and lets core verify the token it
+    forwards. Do not extend the tripwire to cover it.
+- Protection limits key on `getClientIp` (IP only). `getClientIdentifier` mixes in the user-agent and
+  is for TELEMETRY fairness — a caller picks their own user-agent, so using it to protect hands them
+  a free way to mint fresh buckets.
 - **Client-side calls to `/api/*`** must use `authFetch()` from `@/lib/auth-fetch` — it attaches the JWT from localStorage automatically.
 - Never expose JWT tokens in URLs (query params). Use `Authorization: Bearer` header only.
 - File downloads use `fetch` + `Blob` + `URL.createObjectURL()` — never `window.open(url?token=...)`.
@@ -204,7 +222,26 @@ src/
 
 **Feature co-location**: feature-specific components, hooks, and utils live inside the feature folder (e.g., `src/components/groups/{components,hooks,utils}/`), not in `src/lib/`. Each feature has a barrel `index.ts`.
 
-**`src/lib/` is for cross-cutting utilities used by 3+ unrelated features only**: `utils.ts` (`cn()`, formatters), `logger.ts`, `sdk-client.ts`, `error-utils.ts`, `auth-fetch.ts`, `validations/`, plus server-only helpers (`api-auth.ts`). If a util is used by one feature only, move it to that feature's `utils/`.
+**`src/lib/` is for cross-cutting utilities used by 3+ unrelated features only.** If a util is used by one feature only, move it to that feature's folder. Four groups plus a small flat tier:
+
+```
+src/lib/
+├── auth/            client.ts (better-auth + core-token minting), fetch.ts (authFetch),
+│                    schemas.ts (zod for the auth forms). Real authentication only —
+│                    the API-route tripwire is NOT auth and lives in http/.
+├── http/            tripwire.ts + rate-limit.ts — inbound request gates (SERVER ONLY).
+│                    No barrel: tripwire pulls `next/server`, and a barrel would drag it
+│                    into any client component reaching for something else here.
+├── entity/          the app's WRITE MODEL, behind one barrel: draft.ts (EntityDraft, the
+│                    diffs, upload resolution) + object/process/template/duplicate built on it.
+├── observability/   logger/ (the only logging path), redact.ts (all sinks), sentry-config.ts,
+│                    web-vitals.ts.
+├── import/          parse-sheet, suggest-mapping, build-items — pure, no React, no client.
+└── io2p.ts · io2p-errors.ts · query-keys.ts · utils.ts · upload-queue.ts ·
+    formula-expression.ts · validations/
+```
+
+`upload-queue.ts` and `formula-expression.ts` sit at the root deliberately: each has only two consumers, but co-locating either would invert a dependency (`lib/entity` imports `UploadTask`; `formula-expression` is shared by a route and a shared component).
 
 ## Naming Conventions
 

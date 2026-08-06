@@ -8,10 +8,10 @@ import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import { cn } from '@/lib/utils'
 import { useAuth, useAppConfig } from '@/contexts'
-import { loginSchema, type LoginFormData } from '@/lib/validations/auth'
+import { loginSchema, type LoginFormData } from '@/lib/auth/schemas'
 import {
   Badge,
   Button,

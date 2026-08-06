@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 
 import { CreateForm } from '@/components/entity-sheet/create-form'
-import type { EntityDraft } from '@/lib/entity-body'
+import type { EntityDraft } from '@/lib/entity'
 
 const templates = { list: vi.fn(), get: vi.fn() }
 const objects = { list: vi.fn(), get: vi.fn() }

@@ -9,12 +9,12 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 
-import { logger } from '@/lib/logger'
-import { authClient } from '@/lib/auth-client'
+import { logger } from '@/lib/observability/logger'
+import { authClient } from '@/lib/auth/client'
 import {
   resetPasswordSchema,
   type ResetPasswordFormData,
-} from '@/lib/validations/auth'
+} from '@/lib/auth/schemas'
 import {
   Button,
   Card,

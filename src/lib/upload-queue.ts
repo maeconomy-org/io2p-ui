@@ -2,7 +2,7 @@
 
 import type { FileTarget, Io2pClient, UploadInput } from 'io2p-client'
 
-import { logger } from './logger'
+import { logger } from './observability/logger'
 
 /**
  * The background upload queue, on io2p.

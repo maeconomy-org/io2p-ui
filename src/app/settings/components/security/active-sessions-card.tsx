@@ -6,10 +6,10 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Loader2, Monitor, X, LogOut } from 'lucide-react'
 
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import { cn } from '@/lib/utils'
 import { queryKeys } from '@/lib/query-keys'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth/client'
 import { Card, CardContent, Button, Badge } from '@/components/ui'
 
 interface SessionRow {

@@ -10,11 +10,11 @@ import {
 const authFetch = vi.fn()
 const loggerWarn = vi.fn()
 
-vi.mock('@/lib/auth-fetch', () => ({
+vi.mock('@/lib/auth/fetch', () => ({
   authFetch: (url: string) => authFetch(url),
 }))
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@/lib/observability/logger', () => ({
   logger: {
     error: vi.fn(),
     warn: (...args: unknown[]) => loggerWarn(...args),

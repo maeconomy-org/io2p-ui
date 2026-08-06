@@ -3,7 +3,7 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
 import { useAuth } from '@/contexts/auth-context'
-import type { DraftFile, EntityDraft } from '@/lib/entity-body'
+import type { DraftFile, EntityDraft } from '@/lib/entity'
 
 const ROOT = 'iom-drafts:objects'
 

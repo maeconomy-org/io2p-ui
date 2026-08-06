@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Download, Loader2, Printer, X } from 'lucide-react'
+import { Download, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import {
@@ -13,7 +13,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui'
-import { authFetch } from '@/lib/auth-fetch'
+import { authFetch } from '@/lib/auth/fetch'
 import { buildQrCodeConfig } from '@/components/modals/qr-code-config'
 
 import { useObjects } from '@/hooks/api/entities'
@@ -135,38 +135,24 @@ export function ProductPassportSheet({
           data-testid="passport-footer"
         >
           {uuid && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadPdf}
-                disabled={isDownloading}
-                data-testid="passport-download-pdf-button"
-              >
-                {isDownloading ? (
-                  <Loader2
-                    className="h-3.5 w-3.5 mr-1.5 animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Download className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                )}
-                {t('objects.passport.downloadPdf')}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  window.open(`/objects/${uuid}/passport/print`, '_blank')
-                }
-                data-testid="passport-print-button"
-              >
-                <Printer className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-                {t('objects.passport.print')}
-              </Button>
-            </>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPdf}
+              disabled={isDownloading}
+              data-testid="passport-download-pdf-button"
+            >
+              {isDownloading ? (
+                <Loader2
+                  className="h-3.5 w-3.5 mr-1.5 animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Download className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+              )}
+              {t('objects.passport.downloadPdf')}
+            </Button>
           )}
           <Button
             type="button"

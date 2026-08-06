@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NetworkError, TimeoutError, type ClientOptions } from 'io2p-client'
 
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import { createIo2pClient, DEFAULT_IO2P_TIMEOUT_MS } from '@/lib/io2p'
 import {
   isNodeUnreachable,
@@ -18,7 +18,7 @@ vi.mock('io2p-client', async (importOriginal) => {
   return { ...actual, createClient: createClientMock }
 })
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@/lib/observability/logger', () => ({
   logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock('@/lib/logger', () => ({
   },
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/auth/client', () => ({
   getCoreToken: vi.fn(async () => 'jwt'),
 }))
 

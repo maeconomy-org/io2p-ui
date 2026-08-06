@@ -10,7 +10,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import type { DraftFile } from '@/lib/entity-body'
+import type { DraftFile } from '@/lib/entity'
 
 import { isPreviewable } from './file-helpers'
 import { FilePreview } from './file-preview'

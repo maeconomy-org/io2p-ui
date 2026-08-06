@@ -6,8 +6,8 @@ import type { UseFormReturn } from 'react-hook-form'
 
 import { Label, Separator } from '@/components/ui'
 import { anchor } from '@/constants'
-import type { EntityDraft } from '@/lib/entity-body'
-import { templatePresetToDraftProperties } from '@/lib/template-body'
+import type { EntityDraft } from '@/lib/entity'
+import { templatePresetToDraftProperties } from '@/lib/entity'
 
 import {
   AddressField,

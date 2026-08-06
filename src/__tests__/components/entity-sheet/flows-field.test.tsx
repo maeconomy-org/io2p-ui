@@ -5,8 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 
 import { FlowsField } from '@/components/entity-sheet/fields'
-import type { EntityDraft } from '@/lib/entity-body'
-import { QUANTITY_KEY } from '@/lib/process-body'
+import type { EntityDraft } from '@/lib/entity'
+import { QUANTITY_KEY } from '@/lib/entity'
 
 const objects = { list: vi.fn(), get: vi.fn() }
 const files = { preview: vi.fn(), download: vi.fn(), get: vi.fn() }

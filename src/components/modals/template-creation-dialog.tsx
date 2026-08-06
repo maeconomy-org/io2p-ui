@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { FileText, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import {
   Dialog,
   DialogContent,

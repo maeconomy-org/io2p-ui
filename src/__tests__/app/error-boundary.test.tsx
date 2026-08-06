@@ -12,7 +12,7 @@ import ErrorBoundary from '@/app/error'
 vi.mock('next-intl', () => ({ useTranslations: () => (k: string) => k }))
 
 const mockError = vi.fn()
-vi.mock('@/lib/logger', () => ({
+vi.mock('@/lib/observability/logger', () => ({
   logger: { error: (...args: unknown[]) => mockError(...args) },
 }))
 

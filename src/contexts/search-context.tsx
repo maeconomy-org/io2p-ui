@@ -3,8 +3,8 @@
 import React, { createContext, useContext, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
-import type { ParsedSearch } from '@/lib/search-parser'
-import { parseSearchQuery } from '@/lib/search-parser'
+import type { ParsedSearch } from '@/components/global-search/search-parser'
+import { parseSearchQuery } from '@/components/global-search/search-parser'
 
 interface SearchContextType {
   searchQuery: string

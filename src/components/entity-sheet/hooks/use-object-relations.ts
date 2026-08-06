@@ -11,8 +11,8 @@ import { useQuery } from '@tanstack/react-query'
 import type { Io2pClient, ProcessListItem } from 'io2p-client'
 
 import { useIomClient } from '@/lib/io2p'
-import { logger } from '@/lib/logger'
-import { QUANTITY_KEY } from '@/lib/process-body'
+import { logger } from '@/lib/observability/logger'
+import { QUANTITY_KEY } from '@/lib/entity'
 import { queryKeys } from '@/lib/query-keys'
 
 const RELATIONS_PAGE_SIZE = 25

@@ -29,7 +29,9 @@ vi.mock('next-intl', () => ({
 }))
 
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn(), warn: vi.fn() } }))
+vi.mock('@/lib/observability/logger', () => ({
+  logger: { error: vi.fn(), warn: vi.fn() },
+}))
 vi.mock('@/contexts', () => ({ useAuth: () => ({ userId: 'me' }) }))
 // No `useUserDirectory` — the sheet must not reach for one. Every name it renders now arrives
 // resolved on the grant, so mocking a directory here would hide a regression back to the old

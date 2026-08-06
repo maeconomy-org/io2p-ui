@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 interface GlobalErrorProps {
   error: Error & { digest?: string }

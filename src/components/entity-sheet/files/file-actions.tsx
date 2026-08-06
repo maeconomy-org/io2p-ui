@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import type { DraftFile } from '@/lib/entity-body'
+import type { DraftFile } from '@/lib/entity'
 
 import { isImageFile } from './file-helpers'
 import type { FileState } from './use-file-state'

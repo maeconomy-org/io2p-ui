@@ -4,7 +4,7 @@ import { useForm, type UseFormReturn } from 'react-hook-form'
 
 import { AddressField } from '@/components/entity-sheet/fields'
 import type { AddressComponents } from '@/components/ui/here-address-autocomplete'
-import type { EntityDraft } from '@/lib/entity-body'
+import type { EntityDraft } from '@/lib/entity'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,

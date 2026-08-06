@@ -11,7 +11,7 @@ import {
 
 import type { ClientConfig } from '@/constants'
 import { isCallerAbort, wasErrorReported } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 // Dev-only, and lazy so the devtools bundle never enters the module graph of
 // the provider that wraps every route.

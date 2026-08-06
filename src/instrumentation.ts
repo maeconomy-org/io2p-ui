@@ -28,7 +28,7 @@ export async function onRequestError(
   context: { routerKind: string; routePath: string; routeType: string }
 ): Promise<void> {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
-  const { logger } = await import('@/lib/logger')
+  const { logger } = await import('@/lib/observability/logger')
   const digest = (err as { digest?: string } | null)?.digest
   logger.error('Unhandled server request error', {
     err,

@@ -11,7 +11,7 @@ import { BulkActionBar, EntityTable } from '@/components/tables'
 import { DeleteConfirmationDialog } from '@/components/modals'
 import { useGrants } from '@/hooks/api/access'
 import { saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
 import { buildSharedByMeColumns } from './shared-by-me-columns'

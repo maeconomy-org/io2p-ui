@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 import { buildQrCodeConfig } from './qr-code-config'
 

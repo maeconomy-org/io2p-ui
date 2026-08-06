@@ -8,7 +8,7 @@ import type { CreateTemplateInput, TemplateDTO } from 'io2p-client'
 
 import { useTemplates } from '@/hooks/api/entities'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import {
   type TemplateDraft,
   EMPTY_TEMPLATE_DRAFT,
@@ -16,7 +16,7 @@ import {
   templateToDraft,
   buildCreateTemplateInput,
   buildUpdateTemplateBody,
-} from '@/lib/template-body'
+} from '@/lib/entity'
 
 /**
  * The starting draft per kind. A process template opens with one slot on each side; an object

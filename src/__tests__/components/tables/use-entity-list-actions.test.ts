@@ -18,7 +18,7 @@ vi.mock('sonner', () => ({
     error: (...args: unknown[]) => failure(...args),
   },
 }))
-vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn() } }))
+vi.mock('@/lib/observability/logger', () => ({ logger: { error: vi.fn() } }))
 
 interface Row {
   id: string

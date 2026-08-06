@@ -6,8 +6,8 @@ import { toast } from 'sonner'
 
 import { Badge, Label } from '@/components/ui'
 import { useProcesses } from '@/hooks/api/entities'
-import type { EntityDraft, ValueProvenance } from '@/lib/entity-body'
-import { templatePresetToDraftProperties } from '@/lib/template-body'
+import type { EntityDraft, ValueProvenance } from '@/lib/entity'
+import { templatePresetToDraftProperties } from '@/lib/entity'
 import { anchor } from '@/constants'
 
 import { useProcessForm } from './hooks/use-process-form'

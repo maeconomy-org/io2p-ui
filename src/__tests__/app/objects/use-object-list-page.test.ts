@@ -30,7 +30,7 @@ vi.mock('@/app/objects/components/use-create-template-from-object', () => ({
   }),
 }))
 
-vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn() } }))
+vi.mock('@/lib/observability/logger', () => ({ logger: { error: vi.fn() } }))
 
 const row = (id: string, deleted = false) =>
   ({ id, name: `Object ${id}`, deleted }) as unknown as ObjectListItem

@@ -7,17 +7,18 @@ import { POST } from '@/app/api/telemetry/route'
 // await. An async mock here would hand the route a Promise to destructure and every request
 // would read as rate-limited.
 const rateLimit = vi.fn(() => ({ allowed: true, current: 1 }))
-vi.mock('@/lib/security-utils', () => ({
+vi.mock('@/lib/http/rate-limit', () => ({
   checkSimpleRateLimit: () => rateLimit(),
   getClientIdentifier: () => 'client-hash',
+  getClientIp: () => '10.0.0.1',
 }))
 
 const ndjsonWrite = vi.fn()
-vi.mock('@/lib/logger/server', () => ({
+vi.mock('@/lib/observability/logger/server', () => ({
   ndjsonSink: { write: (rec: unknown) => ndjsonWrite(rec) },
 }))
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@/lib/observability/logger', () => ({
   logger: { warn: vi.fn(), error: vi.fn() },
 }))
 

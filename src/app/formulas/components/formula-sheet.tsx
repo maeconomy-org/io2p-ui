@@ -22,7 +22,7 @@ import {
 import { useFormulas } from '@/hooks/api/leaves'
 import { isValidExpression } from '@/lib/formula-expression'
 import { saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 import { FormulaExpressionField } from './formula-expression-field'
 import { anchor } from '@/constants'

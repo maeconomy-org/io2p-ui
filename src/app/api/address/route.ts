@@ -1,10 +1,21 @@
-import { logger } from '@/lib/logger'
-import { requireAuth } from '@/lib/api-auth'
+import { logger } from '@/lib/observability/logger'
+import { tripwire } from '@/lib/http/tripwire'
+import { checkSimpleRateLimit, getClientIp } from '@/lib/http/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
 
 const AUTOCOMPLETE_URL =
   'https://autocomplete.search.hereapi.com/v1/autocomplete'
 const LOOKUP_URL = 'https://lookup.search.hereapi.com/v1/lookup'
+
+const WINDOW_SECONDS = 60
+/** Generous on purpose: keyed on IP, so one office NAT is one bucket and several people typing
+ *  addresses at once must still fit. A script blows through it in seconds. */
+const PER_IP_PER_MINUTE = 300
+/** The per-IP limit slows ONE source; it does not bound the bill, because N sources cost N × the
+ *  limit. This does. Sized well above any plausible real load so it only ever trips on abuse. */
+const GLOBAL_PER_MINUTE = 3000
+/** HERE ignores anything longer, and the value is forwarded verbatim. */
+const MAX_QUERY_LENGTH = 100
 
 /**
  * Proxy for HERE, so the API key never reaches the client. Two modes:
@@ -15,14 +26,36 @@ const LOOKUP_URL = 'https://lookup.search.hereapi.com/v1/lookup'
  * They are separate endpoints at HERE, not a flag: `/autocomplete` is tuned for per-keystroke
  * latency and omits geometry entirely (`show=position` is rejected with a 400). The `id` it returns
  * is the handoff token to `/lookup`. So coordinates cost one request per address SELECTED.
+ *
+ * Serves no private data — HERE's index is public. The thing being protected is the API key's
+ * QUOTA, which is why both a per-caller and a global limit sit in front of it.
  */
 export async function GET(request: NextRequest) {
-  const auth = requireAuth(request)
-  if (auth.error) return auth.error
+  const blocked = tripwire(request)
+  if (blocked) return blocked
+
+  const ip = getClientIp(request)
+  if (
+    !checkSimpleRateLimit('address', ip, PER_IP_PER_MINUTE, WINDOW_SECONDS)
+      .allowed
+  ) {
+    return tooManyRequests()
+  }
+  if (
+    !checkSimpleRateLimit(
+      'address-global',
+      '*',
+      GLOBAL_PER_MINUTE,
+      WINDOW_SECONDS
+    ).allowed
+  ) {
+    logger.warn('address_global_rate_limit', { ip })
+    return tooManyRequests()
+  }
 
   const searchParams = request.nextUrl.searchParams
   const id = searchParams.get('id')
-  const query = searchParams.get('q')
+  const query = searchParams.get('q')?.slice(0, MAX_QUERY_LENGTH)
 
   if (!id && (!query || query.length < 2)) {
     return NextResponse.json({ items: [] })
@@ -70,4 +103,11 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function tooManyRequests(): NextResponse {
+  return NextResponse.json(
+    { error: 'Too many requests' },
+    { status: 429, headers: { 'Retry-After': String(WINDOW_SECONDS) } }
+  )
 }

@@ -377,7 +377,6 @@
     "passport": {
       "untitled": "Untitled object",
       "sheetDescription": "A read-only product overview built from this object's properties, address, and files.",
-      "print": "Print",
       "lifecycle": "Lifecycle",
       "warranty": "Warranty",
       "active": "Active",

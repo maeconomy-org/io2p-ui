@@ -19,7 +19,7 @@ import type { Io2pClient, ProcessListItem } from 'io2p-client'
 
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 import {
   buildProcessGraph,

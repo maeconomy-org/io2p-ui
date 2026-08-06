@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { DraftFile } from '@/lib/entity-body'
+import type { DraftFile } from '@/lib/entity'
 
 import { canBeCover } from '@/components/entity-sheet/files/file-actions'
 

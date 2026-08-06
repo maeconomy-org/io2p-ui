@@ -6,7 +6,7 @@ import type { RowSelectionState } from '@tanstack/react-table'
 import type { ObjectListItem, Page } from 'io2p-client'
 
 import { useObjects } from '@/hooks/api/entities'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 import { buildObjectColumns } from './object-columns'
 import { useCreateTemplateFromObject } from './use-create-template-from-object'

@@ -16,7 +16,7 @@
 
 import type { ProcessListItem } from 'io2p-client'
 
-import { QUANTITY_KEY } from '@/lib/process-body'
+import { QUANTITY_KEY } from '@/lib/entity'
 
 type ReadFlow = ProcessListItem['inputs'][number]
 

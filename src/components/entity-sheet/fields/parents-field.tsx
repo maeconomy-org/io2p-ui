@@ -21,7 +21,7 @@ import {
 } from '@/components/ui'
 import { useObjects } from '@/hooks/api/entities'
 import { cn } from '@/lib/utils'
-import type { EntityDraft } from '@/lib/entity-body'
+import type { EntityDraft } from '@/lib/entity'
 
 const SEARCH_SIZE = 8
 

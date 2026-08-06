@@ -24,7 +24,7 @@ const mockSignInEmail = vi.fn(async (_input?: any) => ({ error: null }) as any)
 const mockSignOut = vi.fn()
 const mockGetSession = vi.fn()
 
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/auth/client', () => ({
   useSession: () => sessionState,
   clearCoreToken: () => {},
   authClient: {

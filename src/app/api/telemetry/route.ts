@@ -6,11 +6,14 @@ import {
   normalizeLevel,
   type LogLevel,
   type LogRecord,
-} from '@/lib/logger/core'
-import { ndjsonSink } from '@/lib/logger/server'
-import { logger } from '@/lib/logger'
-import { redactValue } from '@/lib/redact'
-import { checkSimpleRateLimit, getClientIdentifier } from '@/lib/security-utils'
+} from '@/lib/observability/logger/core'
+import { ndjsonSink } from '@/lib/observability/logger/server'
+import { logger } from '@/lib/observability/logger'
+import { redactValue } from '@/lib/observability/redact'
+import {
+  checkSimpleRateLimit,
+  getClientIdentifier,
+} from '@/lib/http/rate-limit'
 
 // Same-origin telemetry ingest for the browser ship sink (observability plan
 // §1.6): ad-blocker-proof, the OTLP ingest key stays server-side, and this is

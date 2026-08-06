@@ -19,7 +19,7 @@ import {
 import { ObjectPicker } from '@/components/entity-sheet/fields/object-picker'
 import { useObjects } from '@/hooks/api/entities'
 import { saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 /**
  * Move several objects under one parent.

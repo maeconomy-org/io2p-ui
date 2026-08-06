@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import type { RowSelectionState } from '@tanstack/react-table'
 import type { Page } from 'io2p-client'
 
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 /** The least a row must be for this hook to act on it. */
 interface ListRow {

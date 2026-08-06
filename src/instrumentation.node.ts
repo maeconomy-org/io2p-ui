@@ -20,9 +20,12 @@ import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs'
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 
-import type { LogLevel, LogRecord } from '@/lib/logger/core'
-import { FATAL_FLUSH, registerFatalHandlers } from '@/lib/logger/fatal'
-import { OTEL_LOG_SINK } from '@/lib/logger/server'
+import type { LogLevel, LogRecord } from '@/lib/observability/logger/core'
+import {
+  FATAL_FLUSH,
+  registerFatalHandlers,
+} from '@/lib/observability/logger/fatal'
+import { OTEL_LOG_SINK } from '@/lib/observability/logger/server'
 
 // Local traffic that must not become tracing noise (plan §2 noise-drop list).
 const IGNORED_PATHS = [

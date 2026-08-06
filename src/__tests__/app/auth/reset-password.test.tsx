@@ -19,10 +19,10 @@ vi.mock('next/navigation', () => ({
 const mockResetPassword = vi.fn(
   async (_input?: any) => ({ error: null }) as any
 )
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/auth/client', () => ({
   authClient: { resetPassword: (input: any) => mockResetPassword(input) },
 }))
-vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn() } }))
+vi.mock('@/lib/observability/logger', () => ({ logger: { error: vi.fn() } }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), info: vi.fn() } }))
 
 beforeEach(() => {

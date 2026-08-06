@@ -11,7 +11,7 @@ import {
   useSignedUrlPrefetch,
 } from '@/hooks/api/files'
 import { useIomClient } from '@/lib/io2p'
-import type { DraftFile } from '@/lib/entity-body'
+import type { DraftFile } from '@/lib/entity'
 
 import {
   fileDisplayName,

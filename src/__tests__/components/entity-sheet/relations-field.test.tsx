@@ -11,7 +11,7 @@ vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({ processes: { list } }),
 }))
 
-vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn() } }))
+vi.mock('@/lib/observability/logger', () => ({ logger: { warn: vi.fn() } }))
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>

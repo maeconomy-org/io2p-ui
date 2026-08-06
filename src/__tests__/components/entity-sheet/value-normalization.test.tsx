@@ -6,7 +6,7 @@ import {
   ValueNormalization,
   formulaBoundValueIds,
 } from '@/components/entity-sheet/fields/value-normalization'
-import type { DraftValue, ValueProvenance } from '@/lib/entity-body'
+import type { DraftValue, ValueProvenance } from '@/lib/entity'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,

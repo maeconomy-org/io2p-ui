@@ -10,14 +10,12 @@ import { useProcesses } from '@/hooks/api/entities'
 import { useOptionalUploadQueue } from '@/contexts/upload-queue-context'
 import { useIomClient } from '@/lib/io2p'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import {
   type EntityDraft,
   findEmptyPropertyKey,
   hasPendingUploads,
   uploadTasksFrom,
-} from '@/lib/entity-body'
-import {
   EMPTY_PROCESS_DRAFT,
   processToDraft,
   buildCreateProcessInput,
@@ -25,7 +23,7 @@ import {
   findEmptiedDirection,
   findFlowWithoutRef,
   resolveProcessUploadTargets,
-} from '@/lib/process-body'
+} from '@/lib/entity'
 
 export interface UseProcessFormOptions {
   onSaved?: (id: string) => void

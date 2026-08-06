@@ -6,7 +6,7 @@ import { FileText, Link as LinkIcon, Loader2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import type { DraftFile } from '@/lib/entity-body'
+import type { DraftFile } from '@/lib/entity'
 
 import { isImageFile } from './file-helpers'
 import { FileActions, primaryAction } from './file-actions'

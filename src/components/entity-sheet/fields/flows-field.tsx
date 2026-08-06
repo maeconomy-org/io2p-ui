@@ -13,8 +13,8 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import type { EntityDraft } from '@/lib/entity-body'
-import { QUANTITY_KEY } from '@/lib/process-body'
+import type { EntityDraft } from '@/lib/entity'
+import { QUANTITY_KEY } from '@/lib/entity'
 
 import type { DerivedValues } from './value-provenance'
 

@@ -35,7 +35,7 @@ import { useAuth } from '@/contexts'
 import { useShares } from '@/hooks/api/access'
 import { useUserSearch } from '@/hooks/api/users'
 import { saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 import { anchor } from '@/constants'
 

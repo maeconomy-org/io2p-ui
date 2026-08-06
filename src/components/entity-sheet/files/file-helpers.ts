@@ -1,5 +1,5 @@
-import { detectMimeType, detectPreviewKind } from '@/lib/mime-type'
-import type { DraftFile } from '@/lib/entity-body'
+import { detectMimeType, detectPreviewKind } from './mime-type'
+import type { DraftFile } from '@/lib/entity'
 
 // A picked file → a pending upload draft (bytes ride the draft until Save; see plan §18).
 export function newUploadDraft(file: File): DraftFile {

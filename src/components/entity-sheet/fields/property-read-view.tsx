@@ -13,7 +13,7 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { usePreference } from '@/hooks/ui/use-preference'
-import type { DraftProperty, DraftFile, DraftValue } from '@/lib/entity-body'
+import type { DraftProperty, DraftFile, DraftValue } from '@/lib/entity'
 
 import { FilesDisclosure } from '../files'
 import { DeletedRow } from './deleted-row'

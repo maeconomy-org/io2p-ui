@@ -14,7 +14,7 @@ import {
 import { Badge, Button, ViewToggle } from '@/components/ui'
 import { usePreference } from '@/hooks/ui/use-preference'
 import { cn } from '@/lib/utils'
-import type { DraftFile } from '@/lib/entity-body'
+import type { DraftFile } from '@/lib/entity'
 
 import { isImageFile, isPreviewable } from './file-helpers'
 import { FileActions, primaryAction } from './file-actions'

@@ -2,5 +2,4 @@
 // (io2p-core ids are plain server-minted UUIDv7 strings).
 export type UUID = string
 
-export * from './files'
 export * from './object'

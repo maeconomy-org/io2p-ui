@@ -12,7 +12,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('sonner', () => ({ toast: { error: (m: string) => toastError(m) } }))
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@/lib/observability/logger', () => ({
   logger: {
     error: (...args: unknown[]) => loggerError(...args),
   },

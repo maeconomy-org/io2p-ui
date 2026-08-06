@@ -46,7 +46,7 @@ import { useGrants, useShares } from '@/hooks/api/access'
 import { useUserSearch } from '@/hooks/api/users'
 import { UnsavedBar } from '@/components/entity-sheet/sheet-lifecycle-footer'
 import { saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import { cn } from '@/lib/utils'
 
 import { PermissionSelect, type Permission } from './permission-select'

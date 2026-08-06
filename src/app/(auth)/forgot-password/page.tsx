@@ -13,12 +13,12 @@ import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import { logger } from '@/lib/logger'
-import { authClient } from '@/lib/auth-client'
+import { logger } from '@/lib/observability/logger'
+import { authClient } from '@/lib/auth/client'
 import {
   forgotPasswordSchema,
   type ForgotPasswordFormData,
-} from '@/lib/validations/auth'
+} from '@/lib/auth/schemas'
 import {
   Button,
   Card,

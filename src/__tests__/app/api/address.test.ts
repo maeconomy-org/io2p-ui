@@ -3,13 +3,19 @@ import { NextRequest } from 'next/server'
 
 import { GET } from '@/app/api/address/route'
 
-const requireAuth = vi.fn()
+const tripwire = vi.fn()
+const rateLimit = vi.fn()
 
-vi.mock('@/lib/api-auth', () => ({
-  requireAuth: (req: NextRequest) => requireAuth(req),
+vi.mock('@/lib/http/tripwire', () => ({
+  tripwire: (req: NextRequest) => tripwire(req),
 }))
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@/lib/http/rate-limit', () => ({
+  checkSimpleRateLimit: (scope: string) => rateLimit(scope),
+  getClientIp: () => '10.0.0.1',
+}))
+
+vi.mock('@/lib/observability/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn() },
 }))
 
@@ -38,19 +44,48 @@ const request = (query: string) =>
 describe('GET /api/address', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    requireAuth.mockReturnValue({ valid: true })
+    tripwire.mockReturnValue(null)
+    rateLimit.mockReturnValue({ allowed: true, current: 1 })
     vi.stubGlobal('fetch', fetchMock)
     process.env.HERE_API_KEY = 'test-key'
   })
 
   afterEach(() => vi.unstubAllGlobals())
 
-  it('refuses an unauthenticated request before calling out', async () => {
-    const error = new Response('nope', { status: 401 })
-    requireAuth.mockReturnValue({ valid: false, error })
+  it('refuses a request the tripwire rejected, before calling out', async () => {
+    const blocked = new Response('nope', { status: 401 })
+    tripwire.mockReturnValue(blocked)
 
-    expect(await GET(request('?q=amersfoort'))).toBe(error)
+    expect(await GET(request('?q=amersfoort'))).toBe(blocked)
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  // Both limits guard the same thing — HERE's quota — but at different scopes: per-IP stops one
+  // caller, global stops the bill when the callers are many.
+  it.each(['address', 'address-global'])(
+    'returns 429 with Retry-After when the %s limit trips, without calling HERE',
+    async (tripped) => {
+      rateLimit.mockImplementation((scope: string) => ({
+        allowed: scope !== tripped,
+        current: 1,
+      }))
+
+      const response = await GET(request('?q=amersfoort'))
+
+      expect(response.status).toBe(429)
+      expect(response.headers.get('Retry-After')).toBe('60')
+      expect(fetchMock).not.toHaveBeenCalled()
+    }
+  )
+
+  it('clamps an overlong query before forwarding it', async () => {
+    fetchMock.mockResolvedValue(ok({ items: [] }))
+
+    await GET(request(`?q=${'a'.repeat(500)}`))
+
+    const url = String(fetchMock.mock.calls[0][0])
+    expect(url).toContain(`q=${'a'.repeat(100)}&`)
+    expect(url).not.toContain('a'.repeat(101))
   })
 
   describe('?q= autocomplete', () => {

@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import type {
   DraftProperty,
   ValueProvenance as ValueProvenanceData,
-} from '@/lib/entity-body'
+} from '@/lib/entity'
 
 /**
  * Derived values of the loaded entity, keyed by value id. Presence means the value is derived; the

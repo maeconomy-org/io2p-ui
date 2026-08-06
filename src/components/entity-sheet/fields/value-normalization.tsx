@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import type { DraftValue, ValueParse } from '@/lib/entity-body'
+import type { DraftValue, ValueParse } from '@/lib/entity'
 import type { DerivedValues } from './value-provenance'
 
 /**

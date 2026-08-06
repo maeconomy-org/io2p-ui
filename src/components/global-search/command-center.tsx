@@ -27,7 +27,7 @@ import {
   type SearchFilter,
   type FilterSuggestion,
   type ParsedSearch,
-} from '@/lib/search-parser'
+} from './search-parser'
 import {
   Badge,
   Dialog,

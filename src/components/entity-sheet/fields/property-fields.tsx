@@ -33,7 +33,7 @@ import {
   type EntityDraft,
   type DraftValue,
   type DraftFile,
-} from '@/lib/entity-body'
+} from '@/lib/entity'
 
 import {
   FormulaSelect,

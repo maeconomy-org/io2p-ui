@@ -4,10 +4,10 @@ import { createClient, type ClientLogger, type Io2pClient } from 'io2p-client'
 
 import { getCachedConfig } from '@/constants/client'
 
-import { getCoreToken } from './auth-client'
+import { getCoreToken } from './auth/client'
 import { isCallerAbort, markErrorReported } from './io2p-errors'
-import { logger } from './logger'
-import { redactPresignedUrlString } from './redact'
+import { logger } from './observability/logger'
+import { redactPresignedUrlString } from './observability/redact'
 
 // Default per-request timeout. Mirrors the legacy SDK's 30s and the
 // `ClientConfig` per-service timeout convention; `nodeTimeout` (the
@@ -15,7 +15,7 @@ import { redactPresignedUrlString } from './redact'
 export const DEFAULT_IO2P_TIMEOUT_MS = 30_000
 
 /**
- * The SDK's diagnostics logger, adapted onto `@/lib/logger`. Namespaces every
+ * The SDK's diagnostics logger, adapted onto `@/lib/observability/logger`. Namespaces every
  * record with `scope: 'io2p-client'` and scrubs presigned-URL credentials out
  * of string values — the SDK logs upload URLs on cleanup failures, and an
  * `X-Amz-Signature` in any sink is short-lived write access to the bucket.

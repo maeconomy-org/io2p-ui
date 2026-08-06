@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { X, Loader2, ChevronsUpDown, Users, Check, Plus } from 'lucide-react'
 
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import {
   Button,
   Badge,

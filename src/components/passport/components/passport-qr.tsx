@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import QRCodeStyling from 'qr-code-styling'
 
 import { buildQrCodeConfig } from '@/components/modals/qr-code-config'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import { cn } from '@/lib/utils'
 
 interface PassportQrProps {

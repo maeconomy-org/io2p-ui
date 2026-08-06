@@ -32,11 +32,11 @@ import {
   detectMimeType,
   detectPreviewKind,
   type PreviewKind,
-} from '@/lib/mime-type'
+} from './mime-type'
 import { cn, formatBytes } from '@/lib/utils'
 import { signedFileUrlQuery, useFileDownload } from '@/hooks/api/files'
 import { useIomClient } from '@/lib/io2p'
-import type { DraftFile } from '@/lib/entity-body'
+import type { DraftFile } from '@/lib/entity'
 
 import { fileDisplayName, isPreviewable } from './file-helpers'
 

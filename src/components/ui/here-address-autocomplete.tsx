@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { MapPin, Loader2 } from 'lucide-react'
 
-import { logger } from '@/lib/logger'
-import { authFetch } from '@/lib/auth-fetch'
+import { logger } from '@/lib/observability/logger'
+import { authFetch } from '@/lib/auth/fetch'
 import { Input } from '@/components/ui'
 import { ALPHA3_TO_ALPHA2 } from '@/constants/country-codes'
 

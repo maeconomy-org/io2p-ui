@@ -20,7 +20,7 @@ import {
   type GraphLink,
   type ProcessGraph,
 } from '@/app/processes/utils/process-graph'
-import { QUANTITY_KEY } from '@/lib/process-body'
+import { QUANTITY_KEY } from '@/lib/entity'
 
 // ── fixtures ──────────────────────────────────────────────────────────────────
 

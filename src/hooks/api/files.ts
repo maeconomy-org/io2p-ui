@@ -19,7 +19,7 @@ import type {
 
 import { useIomClient } from '@/lib/io2p'
 import { iomStatus } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 import { queryKeys } from '@/lib/query-keys'
 
 export type SignedUrlKind = 'preview' | 'download'

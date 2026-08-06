@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { useTemplates } from '@/hooks/api/entities'
-import type { TemplatePresetProperty } from '@/lib/template-body'
+import type { TemplatePresetProperty } from '@/lib/entity'
 import { cn } from '@/lib/utils'
 
 /** A flow preset on a process template. `ref` is a SUGGESTED default — often absent. */

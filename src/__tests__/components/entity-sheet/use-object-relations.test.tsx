@@ -12,7 +12,7 @@ vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({ processes: { list } }),
 }))
 
-vi.mock('@/lib/logger', () => ({
+vi.mock('@/lib/observability/logger', () => ({
   logger: { warn: (...args: unknown[]) => loggerWarn(...args) },
 }))
 

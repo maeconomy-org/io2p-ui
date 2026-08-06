@@ -10,8 +10,8 @@ import {
   ArrowRight,
   Check,
 } from 'lucide-react'
-import { logger } from '@/lib/logger'
-import { authClient, useSession } from '@/lib/auth-client'
+import { logger } from '@/lib/observability/logger'
+import { authClient, useSession } from '@/lib/auth/client'
 import { buildQrCodeConfig } from '@/components/modals/qr-code-config'
 import {
   Card,

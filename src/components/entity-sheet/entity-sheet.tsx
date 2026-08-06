@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { Badge, Label } from '@/components/ui'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useObjectDrafts } from '@/hooks/drafts'
-import { hasPendingUploads, type ValueProvenance } from '@/lib/entity-body'
+import { hasPendingUploads, type ValueProvenance } from '@/lib/entity'
 
 import { useEntityForm } from './hooks/use-entity-form'
 import { useEntityLifecycle } from './hooks/use-entity-lifecycle'

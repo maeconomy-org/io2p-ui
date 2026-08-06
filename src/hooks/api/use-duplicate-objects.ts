@@ -6,7 +6,7 @@ import type { Io2pClient } from 'io2p-client'
 
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
-import { objectToDuplicateInput } from '@/lib/duplicate-body'
+import { objectToDuplicateInput } from '@/lib/entity'
 
 export interface DuplicateObjectsParams {
   sourceIds: string[]

@@ -6,7 +6,7 @@ import type { UseFormReturn } from 'react-hook-form'
 import { HereAddressAutocomplete, Label } from '@/components/ui'
 import type { AddressComponents } from '@/components/ui/here-address-autocomplete'
 import { countryLabel } from '@/constants/country-codes'
-import type { EntityDraft } from '@/lib/entity-body'
+import type { EntityDraft } from '@/lib/entity'
 
 import { ReadOnlyField } from './read-only-field'
 

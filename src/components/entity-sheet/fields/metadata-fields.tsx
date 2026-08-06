@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import type { UseFormReturn } from 'react-hook-form'
 
 import { Button, Input, Label, Textarea } from '@/components/ui'
-import type { EntityDraft } from '@/lib/entity-body'
+import type { EntityDraft } from '@/lib/entity'
 
 import { ReadOnlyField } from './read-only-field'
 

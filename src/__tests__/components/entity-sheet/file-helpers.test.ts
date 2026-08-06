@@ -7,7 +7,7 @@ import {
   newUploadDraft,
 } from '@/components/entity-sheet/files'
 import { splitFileName } from '@/components/entity-sheet/files/file-helpers'
-import type { DraftFile } from '@/lib/entity-body'
+import type { DraftFile } from '@/lib/entity'
 
 describe('file-helpers', () => {
   it('newUploadDraft maps a File to a pending upload draft', () => {

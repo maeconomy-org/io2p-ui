@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/observability/logger'
 
 /** The slice of a React Query mutation this hook drives — kept structural so any resource fits. */
 interface LifecycleMutation {

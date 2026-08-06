@@ -2,9 +2,12 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from '@sentry/nextjs'
-import { sharedSentryOptions, beforeSend } from '@/lib/sentry-config'
+import {
+  sharedSentryOptions,
+  beforeSend,
+} from '@/lib/observability/sentry-config'
 import { getCachedConfig } from '@/constants/client'
-import { initWebVitals } from '@/lib/web-vitals'
+import { initWebVitals } from '@/lib/observability/web-vitals'
 
 // Read the DSN from the inline __IOM_CONFIG__ script rather than fetching
 // /api/config. The script runs in <head> before this module, so the config is

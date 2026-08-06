@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 
-import type { DraftFile, EntityDraft } from '@/lib/entity-body'
+import type { DraftFile, EntityDraft } from '@/lib/entity'
 
 import { AttachmentModal, ObjectFilesSection } from '../files'
 

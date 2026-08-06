@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { PUBLIC_PAGES_SET, getCachedConfig } from '@/constants'
 import { clearLegacyDrafts } from '@/hooks/drafts/use-object-drafts'
-import { authClient, clearCoreToken, useSession } from '@/lib/auth-client'
+import { authClient, clearCoreToken, useSession } from '@/lib/auth/client'
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
 

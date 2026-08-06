@@ -9,7 +9,7 @@ import {
   clearLegacyDrafts,
   MAX_DRAFTS,
 } from '@/hooks/drafts/use-object-drafts'
-import type { EntityDraft } from '@/lib/entity-body'
+import type { EntityDraft } from '@/lib/entity'
 
 const USER_A = 'user-a-uuid'
 const USER_B = 'user-b-uuid'

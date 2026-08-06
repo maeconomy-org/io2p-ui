@@ -19,7 +19,7 @@ import { useAppConfig } from '@/contexts'
 import { isAllowedExternalFileReference } from '@/lib/validations'
 import { formatBytes } from '@/lib/utils'
 import { MAX_FILES_PER_DROP } from '@/constants/limits'
-import type { DraftFile } from '@/lib/entity-body'
+import type { DraftFile } from '@/lib/entity'
 
 import {
   fileDisplayName,

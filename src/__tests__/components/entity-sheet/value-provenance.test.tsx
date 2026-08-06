@@ -6,7 +6,7 @@ import {
   ValueProvenanceDisplay,
   labelForValueId,
 } from '@/components/entity-sheet/fields/value-provenance'
-import type { DraftProperty, ValueProvenance } from '@/lib/entity-body'
+import type { DraftProperty, ValueProvenance } from '@/lib/entity'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
