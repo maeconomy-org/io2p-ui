@@ -84,6 +84,22 @@ export interface BuildResult {
 const PATH_SEP = '\u0000'
 
 /**
+ * A tempId as a HUMAN reads it. Every screen that shows one must go through this.
+ *
+ * U+0000 is right for identity and travels to core intact, but a browser renders it as NOTHING —
+ * so `Northgate House<NUL>EG<NUL>A` displayed as `Northgate HouseEGA`, and the same raw bytes went
+ * into a CSV beside the BOM added so Excel would behave. The separator exists to stop two distinct
+ * paths colliding; unrendered, the collision came straight back at the display layer.
+ *
+ * ` / ` reintroduces exactly that ambiguity for a building literally named `Blok A/B`. Accepted
+ * HERE and only here: this string is read, never compared and never sent. Identity keeps the NUL.
+ */
+export function formatTempId(tempId: string | undefined): string {
+  // Optional on the DTO, so the callers do not each need their own guard.
+  return (tempId ?? '').split(PATH_SEP).join(' / ')
+}
+
+/**
  * Does this parent reference name an object that already exists, rather than a row in this sheet?
  *
  * Core's envelope takes either in `parents[]`, so a sheet whose parent column holds real object
@@ -375,19 +391,42 @@ export function buildItems(
   // satisfied, and core refuses the WHOLE job at staging when it sees one. So these rows are
   // dropped here rather than sent: the alternative is uploading every item and then having the
   // entire import rejected for a typo the user was already shown.
+  //
+  // A FIXPOINT, not one pass. Dropping a row orphans its children, and theirs, to unbounded
+  // depth — and a single pass tested `drafts.has(parent)` against the map it was not removing
+  // from, so a child of a dropped row still looked satisfied and shipped with a parent tempId
+  // that was no longer in `items`. Core then refused the whole job, which is the exact outcome
+  // this block exists to prevent.
+  //
+  // KEYS MODE ONLY, in practice: a levels-mode parent is a path prefix created earlier in the
+  // same walk, so it is in `drafts` by construction and can never be missing.
   const orphans = new Set<string>()
-  for (const draft of drafts.values()) {
-    const parent = draft.parentTempId
-    // A UUID is a real object id, which core's envelope accepts alongside tempIds — the same
-    // mechanism `destination` uses. It is not declared by any row and must not be treated as
-    // missing. Whether the caller may actually read it is core's answer to give, not ours.
-    if (!parent || drafts.has(parent) || UUID_RE.test(parent)) continue
-    orphans.add(draft.tempId)
-    problems.push({
-      row: draft.sourceRow,
-      key: 'import.problem.parentUnresolved',
-      values: { parent },
-    })
+  for (let changed = true; changed; ) {
+    changed = false
+    for (const draft of drafts.values()) {
+      if (orphans.has(draft.tempId)) continue
+      const parent = draft.parentTempId
+      // A UUID is a real object id, which core's envelope accepts alongside tempIds — the same
+      // mechanism `destination` uses. It is not declared by any row and must not be treated as
+      // missing. Whether the caller may actually read it is core's answer to give, not ours.
+      if (!parent || UUID_RE.test(parent)) continue
+
+      const missing = !drafts.has(parent)
+      if (!missing && !orphans.has(parent)) continue
+
+      orphans.add(draft.tempId)
+      changed = true
+      // Two different facts, so two different sentences. Telling the user their parent "is not a
+      // row in this sheet" when it plainly is — it was just refused itself — sends them looking
+      // for a typo that is not there.
+      problems.push({
+        row: draft.sourceRow,
+        key: missing
+          ? 'import.problem.parentUnresolved'
+          : 'import.problem.parentDropped',
+        values: { parent },
+      })
+    }
   }
 
   return {

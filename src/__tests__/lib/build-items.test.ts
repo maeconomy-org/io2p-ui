@@ -266,6 +266,45 @@ describe('buildItems — key/parent columns (the sheet carries ids)', () => {
     expect(items.map((i) => i.tempId)).not.toContain('B-99')
   })
 
+  // KEYS MODE deliberately. In levels mode a parent is a path prefix created earlier in the same
+  // walk, so it is in `drafts` by construction and this can never happen — a levels-shaped fixture
+  // passes no matter what the orphan pass does.
+  it('drops the whole chain below a refused parent, not just the first row', () => {
+    // A → a typo (dropped). B → A. C → B. The single pass tested `drafts.has('A')`, which was
+    // still true because nothing was removed from the map, so B and C shipped with parents that
+    // were not in `items` — and core refused the entire job, the outcome this exists to prevent.
+    const rows = [
+      ['A', 'B-l2', 'Anbau', 'gross'],
+      ['B', 'A', 'Etage', 'gross'],
+      ['C', 'B', 'Raum', 'gross'],
+    ]
+    const { items, problems } = buildItems(rows, keyMapping, KEY_HEADERS)
+
+    expect(items).toEqual([])
+    expect(problems.map((p) => p.key)).toEqual([
+      'import.problem.parentUnresolved',
+      'import.problem.parentDropped',
+      'import.problem.parentDropped',
+    ])
+    // Each names its OWN row, so all three are actionable.
+    expect(problems.map((p) => p.row)).toEqual([1, 2, 3])
+  })
+
+  it('says the parent was refused, not that it is missing, for a cascaded row', () => {
+    // B's parent WAS declared. Reporting "not a row in this sheet" would send the operator
+    // looking for a typo that is not there.
+    const rows = [
+      ['A', 'nope', 'Anbau', 'gross'],
+      ['B', 'A', 'Etage', 'gross'],
+    ]
+    const { problems } = buildItems(rows, keyMapping, KEY_HEADERS)
+    expect(problems[1]).toEqual({
+      row: 2,
+      key: 'import.problem.parentDropped',
+      values: { parent: 'A' },
+    })
+  })
+
   it('passes a UUID parent through as a real object id', () => {
     // Core's envelope takes an existing object id in parents[] beside the job's tempIds — the same
     // mechanism `destination` uses. A sheet whose parent column holds real ids is legitimate, and

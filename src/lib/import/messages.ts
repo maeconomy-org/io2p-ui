@@ -27,6 +27,9 @@ export type ImportMessageKey =
   | 'import.problem.nameBlank'
   | 'import.problem.duplicateKey'
   | 'import.problem.parentUnresolved'
+  // Distinct from the above: the parent WAS declared, it was just refused itself. Sending the
+  // operator to look for a typo that is not there is worse than saying nothing.
+  | 'import.problem.parentDropped'
   // wizard preconditions
   | 'import.blocked.noFile'
   | 'import.blocked.noName'

@@ -1233,7 +1233,8 @@
       "keyBlank": "Sleutelkolom is leeg",
       "nameBlank": "Naam is leeg",
       "duplicateKey": "Dubbele sleutel \"{key}\"",
-      "parentUnresolved": "Bovenliggend \"{parent}\" is geen rij in dit blad en geen object-id"
+      "parentUnresolved": "Bovenliggend \"{parent}\" is geen rij in dit blad en geen object-id",
+      "parentDropped": "Bovenliggend \"{parent}\" is zelf geweigerd, dus deze rij kan ook niet worden aangemaakt"
     },
     "blocked": {
       "noFile": "Kies eerst een bestand",
@@ -1377,7 +1378,7 @@
       "stalledUpload": "Deze upload is gestopt na {staged, number} van {total, number} rijen en kan niet worden overgedragen. Er is niets aangemaakt — importeer het bestand opnieuw.",
       "creatingLevel": "Niveau {current, number} van {total, number} wordt aangemaakt — onderliggende objecten wachten op hun bovenliggende.",
       "problemsTitle": "Wat niet is geïmporteerd",
-      "problemsSubtitle": "Corrigeer deze rijen in je blad en importeer alleen die opnieuw.",
+      "problemsSubtitle": "Corrigeer deze rijen in je blad en importeer alleen die opnieuw. De tabel toont de eerste pagina — de CSV bevat alle rijen.",
       "downloadCsv": "{count, number} rijen downloaden als CSV",
       "tabs": {
         "failed": "Mislukt",

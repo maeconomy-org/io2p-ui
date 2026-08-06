@@ -94,7 +94,12 @@ function Stepper({
   )
 }
 
-export function Wizard({ onFinished }: { onFinished?: () => void }) {
+export function Wizard({
+  onFinished,
+}: {
+  /** Carries the job id so the page can WATCH it — see the comment on `watchJobId` there. */
+  onFinished?: (jobId: string) => void
+}) {
   const t = useTranslations()
   const [step, setStep] = useState(0)
   const wizard = useImportWizard()
@@ -146,7 +151,7 @@ export function Wizard({ onFinished }: { onFinished?: () => void }) {
                 setStep(2)
                 return
               }
-              onFinished?.()
+              if (run.data?.started) onFinished?.(run.data.job.id)
             }}
           />
         )}

@@ -7,6 +7,7 @@ import { AlertTriangle, CheckCircle2, Loader2, Upload } from 'lucide-react'
 import { Alert, AlertDescription, Button, Progress } from '@/components/ui'
 import type { ImportProgress } from '@/hooks/api/imports'
 import type { ImportProblem } from 'io2p-client'
+import { formatTempId } from '@/lib/import/build-items'
 import type { ImportWizard } from '@/hooks/import/use-import-wizard'
 
 /**
@@ -54,7 +55,8 @@ export function StepImport({
                   <span className="tabular-nums">
                     {t('import.run.itemPrefix', { item: problem.seq + 1 })}
                   </span>
-                  {problem.tempId && ` (${problem.tempId})`}: {problem.message}
+                  {problem.tempId && ` (${formatTempId(problem.tempId)})`}:{' '}
+                  {problem.message}
                 </li>
               ))}
             </ul>

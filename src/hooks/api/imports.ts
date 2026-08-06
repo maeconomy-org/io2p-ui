@@ -207,9 +207,18 @@ export function useRunImport() {
         queryKey: queryKeys.imports.lists(),
       })
       if (result.started) {
-        void queryClient.invalidateQueries({
-          queryKey: queryKeys.imports.detail(result.job.id),
-        })
+        // SEEDED, not invalidated. `useImportJob` fires its invalidation on the TRANSITION to a
+        // terminal status, and deliberately ignores its first observation — so a job that
+        // finishes inside one 2.5s poll was only ever seen finished, and the edge never
+        // happened. Writing the 202's `queued` into the cache makes the watcher's first
+        // observation a fact rather than a race: the transition is then always observable.
+        //
+        // Invalidating `objects.all` HERE instead would not work either. `start` returns a 202
+        // and the job is queued — zero objects exist yet, so the refetch would be just as stale.
+        queryClient.setQueryData(
+          queryKeys.imports.detail(result.job.id),
+          result.job
+        )
       }
     },
   })

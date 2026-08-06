@@ -1233,7 +1233,8 @@
       "keyBlank": "Key column is blank",
       "nameBlank": "Name is blank",
       "duplicateKey": "Duplicate key \"{key}\"",
-      "parentUnresolved": "Parent \"{parent}\" is not a row in this sheet or an object id"
+      "parentUnresolved": "Parent \"{parent}\" is not a row in this sheet or an object id",
+      "parentDropped": "Parent \"{parent}\" was refused itself, so this row cannot be created either"
     },
     "blocked": {
       "noFile": "Choose a file first",
@@ -1377,7 +1378,7 @@
       "stalledUpload": "This upload stopped after {staged, number} of {total, number} rows, so it cannot be handed over. Nothing was created — import the file again to start over.",
       "creatingLevel": "Creating level {current, number} of {total, number} — children wait for their parents.",
       "problemsTitle": "What did not import",
-      "problemsSubtitle": "Fix these rows in your sheet and import just them again.",
+      "problemsSubtitle": "Fix these rows in your sheet and import just them again. The table shows the first page — the CSV has every row.",
       "downloadCsv": "Download {count, number} rows as CSV",
       "tabs": {
         "failed": "Failed",

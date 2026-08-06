@@ -41,6 +41,9 @@ import {
   useStartImport,
 } from '@/hooks/api/imports'
 
+import { formatTempId } from '@/lib/import/build-items'
+import { useIomClient } from '@/lib/io2p'
+
 import type { ImportItem, ImportJob } from '../types'
 import {
   JobStatusBadge,
@@ -110,34 +113,35 @@ function csvField(value: unknown): string {
 }
 
 /**
- * The failure report as a file, built from what is already on screen.
+ * The failure report as a file — EVERY row, not the page on screen.
  *
- * No request: the rows were fetched to render the table, so re-asking for them would be a second
- * answer to a question already answered. It is also the only way to get the WHOLE list — the
- * screen shows a page of it, and "fix these rows" is not something anyone can do 20 at a time.
+ * It was built from `failedPage.data`, which is one page of the node's default size, so a job with
+ * 5,000 failures produced a 20-row CSV. That is the failure mode this button exists to prevent:
+ * the table is paged because a screen has to be, and the download is the way out of that.
+ *
+ * `paginateItems` is an async generator that walks every page, so this is async and the button is
+ * disabled while it runs — a large report is several round trips.
  */
-function downloadReport(
-  jobId: string,
-  failed: ImportItem[],
-  skipped: ImportItem[]
-): void {
-  const rows = [
-    ['outcome', 'item', 'key', 'code', 'reason'],
-    ...failed.map((item) => [
-      'failed',
-      item.seq,
-      item.tempId,
-      item.error?.code ?? '',
-      item.error?.detail ?? '',
-    ]),
-    ...skipped.map((item) => [
-      'skipped',
-      item.seq,
-      item.tempId,
-      item.error?.code ?? '',
-      item.error?.detail ?? '',
-    ]),
-  ]
+async function buildReport(
+  client: ReturnType<typeof useIomClient>,
+  jobId: string
+): Promise<string[][]> {
+  const rows: string[][] = [['outcome', 'item', 'key', 'code', 'reason']]
+  for (const status of ['failed', 'skipped'] as const) {
+    for await (const item of client.imports.paginateItems(jobId, { status })) {
+      rows.push([
+        status,
+        String(item.seq),
+        formatTempId(item.tempId),
+        item.error?.code ?? '',
+        item.error?.detail ?? '',
+      ])
+    }
+  }
+  return rows
+}
+
+function writeCsv(jobId: string, rows: string[][]): void {
   // BOM so Excel opens it as UTF-8 — without it a German or Dutch reason renders as mojibake in
   // the one application the operator is certain to use.
   const csv = '﻿' + rows.map((row) => row.map(csvField).join(',')).join('\r\n')
@@ -197,7 +201,7 @@ function ItemsTable({
               </TableCell>
               <TableCell>
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                  {item.tempId}
+                  {formatTempId(item.tempId)}
                 </code>
               </TableCell>
               <TableCell>
@@ -229,7 +233,9 @@ export function JobDetail({
   onBack: () => void
 }) {
   const t = useTranslations()
+  const client = useIomClient()
   const [tab, setTab] = useState('failed')
+  const [downloading, setDownloading] = useState(false)
   // POLLS while the job is live and stops once it is not — the counters on this screen are the
   // only place a running import reports itself. The row from the list is the initial value, so
   // the page paints immediately instead of flashing empty.
@@ -382,7 +388,7 @@ export function JobDetail({
         </Alert>
       )}
 
-      {failed.length + skipped.length > 0 && (
+      {job.failed + job.skipped > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
@@ -398,11 +404,21 @@ export function JobDetail({
               variant="outline"
               size="sm"
               className="gap-2"
-              onClick={() => downloadReport(job.id, failed, skipped)}
+              disabled={downloading}
+              onClick={async () => {
+                setDownloading(true)
+                try {
+                  writeCsv(job.id, await buildReport(client, job.id))
+                } finally {
+                  setDownloading(false)
+                }
+              }}
             >
               <Download className="h-4 w-4" />
+              {/* Counted from the JOB, not from the page on screen: `failed.length` is 20 for a
+                  job with 5,000 failures, and the button would promise 20. */}
               {t('import.detail.downloadCsv', {
-                count: failed.length + skipped.length,
+                count: job.failed + job.skipped,
               })}
             </Button>
           </div>
@@ -416,14 +432,14 @@ export function JobDetail({
                 {t('import.detail.tabs.failed')}
                 <Badge
                   variant="outline"
-                  className={cn(failed.length > 0 && 'text-destructive')}
+                  className={cn(job.failed > 0 && 'text-destructive')}
                 >
-                  {failed.length}
+                  {job.failed}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="skipped" className="gap-2">
                 {t('import.detail.tabs.skipped')}
-                <Badge variant="outline">{skipped.length}</Badge>
+                <Badge variant="outline">{job.skipped}</Badge>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="failed" className="mt-3">
