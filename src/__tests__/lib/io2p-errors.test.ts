@@ -9,7 +9,14 @@ import {
   ValidationError,
 } from 'io2p-client'
 
-import { iomDetail, iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
+import {
+  iomDetail,
+  iomStatus,
+  isCallerAbort,
+  markErrorReported,
+  saveErrorMessage,
+  wasErrorReported,
+} from '@/lib/io2p-errors'
 
 function problem(status: number, detail?: string) {
   return { type: 'about:blank', title: 'Error', status, detail }
@@ -97,5 +104,70 @@ describe('saveErrorMessage', () => {
     expect(saveErrorMessage(new Error('Failed to fetch')).key).toBe(
       'common.saveFailed'
     )
+  })
+})
+
+describe('isCallerAbort', () => {
+  it('treats a raw AbortError as a cancellation', () => {
+    expect(
+      isCallerAbort(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+    ).toBe(true)
+  })
+
+  it('unwraps an AbortError carried as the SDK wrapper error cause', () => {
+    const wrapped = Object.assign(new Error('request failed'), {
+      cause: Object.assign(new Error('aborted'), { name: 'AbortError' }),
+    })
+    expect(isCallerAbort(wrapped)).toBe(true)
+  })
+
+  // A request that ran out of its budget is a real failure. TimeoutError is a
+  // NetworkError subclass and shares status 0 with aborts, so only the name
+  // separates them — getting this backwards silences genuine node trouble.
+  it('does NOT treat a timeout as a cancellation', () => {
+    expect(
+      isCallerAbort(
+        Object.assign(new Error('timed out'), { name: 'TimeoutError' })
+      )
+    ).toBe(false)
+  })
+
+  it('says no for ordinary errors and non-objects', () => {
+    expect(isCallerAbort(new Error('boom'))).toBe(false)
+    expect(isCallerAbort('AbortError')).toBe(false)
+    expect(isCallerAbort(null)).toBe(false)
+    expect(isCallerAbort(undefined)).toBe(false)
+  })
+})
+
+describe('error reported marker', () => {
+  it('reports false until marked', () => {
+    const err = new Error('boom')
+    expect(wasErrorReported(err)).toBe(false)
+    markErrorReported(err)
+    expect(wasErrorReported(err)).toBe(true)
+  })
+
+  // The mark must never reach a sink: the ship/NDJSON paths serialize with
+  // JSON.stringify, and the log record is assembled by spreading context.
+  it('stays invisible to JSON.stringify, spreads and key enumeration', () => {
+    const err: Record<string, unknown> = { name: 'Error', message: 'boom' }
+    markErrorReported(err)
+    expect(JSON.stringify(err)).toBe('{"name":"Error","message":"boom"}')
+    expect(Object.keys(err)).toEqual(['name', 'message'])
+    expect(wasErrorReported({ ...err })).toBe(false)
+  })
+
+  it('survives a frozen error without throwing', () => {
+    const frozen = Object.freeze(new Error('boom'))
+    expect(() => markErrorReported(frozen)).not.toThrow()
+    // Worst case the failure is logged twice — never a crash in a log path.
+    expect(wasErrorReported(frozen)).toBe(false)
+  })
+
+  it('ignores non-objects', () => {
+    expect(() => markErrorReported('boom')).not.toThrow()
+    expect(wasErrorReported('boom')).toBe(false)
+    expect(wasErrorReported(null)).toBe(false)
   })
 })

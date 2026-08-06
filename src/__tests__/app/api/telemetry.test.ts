@@ -149,6 +149,70 @@ describe('POST /api/telemetry', () => {
     expect(rec.token).toBe('[REDACTED]')
   })
 
+  // Regression: the route scrubbed the record and then copied the RAW client
+  // `msg` back over the scrubbed one, defeating the re-scrub in the single
+  // field most likely to carry a credential — a presigned URL reaches a log
+  // through interpolation far more often than through a named key.
+  it('scrubs a presigned URL interpolated into msg, not just into context', async () => {
+    await POST(
+      post({
+        records: [
+          {
+            level: 'error',
+            time: '2026-08-05T10:00:00.000Z',
+            msg: 'upload failed for https://b.s3.amazonaws.com/k?X-Amz-Signature=deadbeef&X-Amz-Credential=AKIA',
+          },
+        ],
+      })
+    )
+    const rec = ndjsonWrite.mock.calls[0][0] as Record<string, unknown>
+    expect(rec.msg).not.toContain('deadbeef')
+    expect(rec.msg).not.toContain('AKIA')
+    expect(rec.msg).toContain('X-Amz-Signature=REDACTED')
+  })
+
+  // The clamp used to walk only the top level, so the longest strings a record
+  // carries (err.stack above all) skipped it entirely and the 64KB payload cap
+  // was their only bound.
+  it('clamps oversized strings nested inside err, not only top-level fields', async () => {
+    await POST(
+      post({
+        records: [
+          {
+            level: 'error',
+            time: '2026-08-05T10:00:00.000Z',
+            msg: 'boom',
+            err: {
+              name: 'Error',
+              message: 'm',
+              stack: 'x'.repeat(10_000),
+              cause: { name: 'Error', message: 'y'.repeat(10_000) },
+            },
+          },
+        ],
+      })
+    )
+    const rec = ndjsonWrite.mock.calls[0][0] as Record<string, unknown>
+    const err = rec.err as Record<string, unknown>
+    expect((err.stack as string).length).toBe(4 * 1024)
+    const cause = err.cause as Record<string, unknown>
+    expect((cause.message as string).length).toBe(4 * 1024)
+  })
+
+  it('tells a throttled caller when the window rolls over', async () => {
+    rateLimit.mockResolvedValueOnce({ allowed: false, current: 61 })
+    const res = await POST(
+      post({
+        records: [
+          { level: 'info', time: new Date().toISOString(), msg: 'dropped' },
+        ],
+      })
+    )
+    expect(res.status).toBe(429)
+    expect(res.headers.get('Retry-After')).toBe('60')
+    expect(ndjsonWrite).not.toHaveBeenCalled()
+  })
+
   it('forwards as OTLP logs when an endpoint is configured', async () => {
     process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'https://collector.test'
     const res = await POST(

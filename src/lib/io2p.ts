@@ -5,6 +5,7 @@ import { createClient, type ClientLogger, type Io2pClient } from 'io2p-client'
 import { getCachedConfig } from '@/constants/client'
 
 import { getCoreToken } from './auth-client'
+import { isCallerAbort, markErrorReported } from './io2p-errors'
 import { logger } from './logger'
 import { redactPresignedUrlString } from './redact'
 
@@ -28,26 +29,6 @@ function io2pFields(ctx?: Record<string, unknown>): Record<string, unknown> {
     }
   }
   return fields
-}
-
-/**
- * A caller cancellation, not a failure: the SDK fires onError for aborts too,
- * and React Query aborts in-flight queries on unmount — ordinary navigation
- * would otherwise manufacture error-level telemetry (shipped AND
- * Sentry-captured). AbortError may arrive raw (DOMException) or as the
- * `cause` of the SDK's wrapper error. TimeoutError is NOT an abort — a
- * request that ran out of budget is a real failure and stays at error.
- */
-function isCallerAbort(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false
-  const name = (err as { name?: unknown }).name
-  if (name === 'AbortError') return true
-  if (name === 'TimeoutError') return false
-  const cause = (err as { cause?: unknown }).cause
-  if (cause && typeof cause === 'object') {
-    return (cause as { name?: unknown }).name === 'AbortError'
-  }
-  return false
 }
 
 const sdkLogger: ClientLogger = {
@@ -163,6 +144,9 @@ export function createIo2pClient(
         return
       }
       logger.error('io2p request failed', fields)
+      // This failure now HAS an error record. React Query's global handlers
+      // see the same object and check this mark rather than logging it twice.
+      markErrorReported(err)
     },
     traceHeaders,
   })

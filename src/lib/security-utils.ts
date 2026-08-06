@@ -25,6 +25,16 @@ if (typeof setInterval !== 'undefined') {
   ;(cleanupTimer as { unref?: () => void }).unref?.()
 }
 
+/**
+ * How many proxies in front of this app append to `x-forwarded-for`.
+ * `TRUSTED_PROXY_HOPS`, default 1. Invalid or below 1 falls back to 1 rather
+ * than trusting more of the header than intended.
+ */
+function trustedProxyHops(): number {
+  const parsed = parseInt(process.env.TRUSTED_PROXY_HOPS ?? '', 10)
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1
+}
+
 export interface SecurityValidationResult {
   allowed: boolean
   warning?: string
@@ -371,16 +381,26 @@ export function getClientIdentifier(req: Request): string {
   const realIP = req.headers.get('x-real-ip')
   const userAgent = req.headers.get('user-agent') || ''
 
-  // Take the LAST x-forwarded-for hop, not the first: each proxy appends the
-  // peer address it accepted the connection from, so the last entry is the
-  // one written by OUR edge proxy. The first entry is client-supplied and
-  // trivially spoofable — keying a rate limit on it lets an attacker rotate
-  // identities (or pin someone else's) with a header.
+  // Read x-forwarded-for from the RIGHT, by trusted-hop count. Each proxy
+  // appends the peer address it accepted the connection from, so entries to
+  // the left of our own infrastructure are client-supplied and trivially
+  // spoofable — keying a rate limit on the first entry lets an attacker
+  // rotate identities (or pin someone else's) with a header.
+  //
+  // Both directions fail, so this is configuration, not a constant:
+  //   too few hops → you read a proxy's address, and EVERY client behind it
+  //     collapses into one rate-limit bucket (one noisy tab throttles all)
+  //   too many hops → you read a spoofable client-supplied entry
+  // Default 1 = a single trusted proxy in front of the app. Raise it to 2
+  // when nginx fronts a platform ingress that also appends.
   const hops = forwardedFor
     ?.split(',')
     .map((h) => h.trim())
     .filter(Boolean)
-  const clientIP = (hops && hops[hops.length - 1]) || realIP
+  const index = hops ? hops.length - trustedProxyHops() : -1
+  // Below zero means fewer hops arrived than configured (a direct request, a
+  // misconfigured count): the leftmost entry is the best available answer.
+  const clientIP = (hops && (hops[index] ?? hops[0])) || realIP
 
   if (clientIP && clientIP !== 'unknown') {
     // Create a hash for rate limiting without storing actual IP

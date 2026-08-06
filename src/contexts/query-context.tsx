@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-query'
 
 import type { ClientConfig } from '@/constants'
+import { isCallerAbort, wasErrorReported } from '@/lib/io2p-errors'
 import { logger } from '@/lib/logger'
 
 // Dev-only, and lazy so the devtools bundle never enters the module graph of
@@ -55,8 +56,23 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
         // cost two requests before doing so). Logging ONLY — toasts stay a
         // per-hook decision, or every background refetch failure becomes a
         // popup.
+        //
+        // These are a SAFETY NET, not the primary record. Anything that went
+        // through io2p-client was already logged at error level by the SDK's
+        // own onError hook, with method/path/status/duration — richer than a
+        // query key. Logging it again would double the shipped records and
+        // the Sentry captures for a single failure, so a reported error is
+        // skipped here and only the un-reported ones (a raw fetch in a
+        // queryFn, a throw inside a select) produce a record.
+        //
+        // The abort guard is defensive: TanStack v5 handles its own unmount
+        // cancellations internally and cancelled queries revert rather than
+        // error, so this should not fire on the standard path — but an
+        // AbortError that DID reach here would otherwise be re-inflated to
+        // error level after io2p.ts deliberately demoted it.
         queryCache: new QueryCache({
           onError: (error, query) => {
+            if (isCallerAbort(error) || wasErrorReported(error)) return
             logger.error('Query failed', {
               err: error,
               queryKey: query.queryKey,
@@ -65,6 +81,7 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
         }),
         mutationCache: new MutationCache({
           onError: (error, _variables, _context, mutation) => {
+            if (isCallerAbort(error) || wasErrorReported(error)) return
             logger.error('Mutation failed', {
               err: error,
               mutationKey: mutation.options.mutationKey,

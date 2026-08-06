@@ -37,11 +37,28 @@ const SEVERITY_NUMBER: Record<LogLevel, number> = {
   error: 17,
 }
 
-function clampString(value: unknown): unknown {
-  if (typeof value === 'string' && value.length > MAX_FIELD_STRING) {
-    return value.slice(0, MAX_FIELD_STRING)
+// Clamp EVERY string leaf, not just top-level fields. The longest strings a
+// record carries — `err.stack`, `err.message`, a nested ctx blob — are never
+// at depth 0, so a top-level-only pass left the 64KB payload cap as their
+// only bound. The browser clamps too, but this function exists precisely
+// because the browser is not trusted. Runs on the output of `redactValue`,
+// which is already an acyclic copy, so no cycle guard is needed here.
+const CLAMP_DEPTH = 6
+
+function clampDeep(value: unknown, depth = CLAMP_DEPTH): unknown {
+  if (typeof value === 'string') {
+    return value.length > MAX_FIELD_STRING
+      ? value.slice(0, MAX_FIELD_STRING)
+      : value
   }
-  return value
+  if (value === null || typeof value !== 'object') return value
+  if (depth <= 0) return undefined
+  if (Array.isArray(value)) return value.map((v) => clampDeep(v, depth - 1))
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    out[k] = clampDeep(v, depth - 1)
+  }
+  return out
 }
 
 function sanitizeRecord(raw: unknown): LogRecord | null {
@@ -54,13 +71,14 @@ function sanitizeRecord(raw: unknown): LogRecord | null {
 
   // Re-scrub server-side: the browser scrubbed at record build time, but the
   // proxy must not trust its callers.
-  const scrubbed = redactValue(rec) as Record<string, unknown>
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(scrubbed)) {
-    out[k] = clampString(v)
-  }
+  const out = clampDeep(redactValue(rec)) as Record<string, unknown>
+
+  // Overwrite ONLY the fields this route owns. `msg` is deliberately left as
+  // the scrubbed value — taking `rec.msg` back would defeat the re-scrub in
+  // the one field most likely to carry a secret, because a presigned URL
+  // reaches a log through interpolation (`upload failed for ${url}`) far more
+  // often than through a named context key.
   out.level = rec.level
-  out.msg = clampString(rec.msg)
   // `time` is client-supplied and therefore attacker-controlled: clamp it to
   // now ± 1h so a hostile batch cannot backdate or future-date log lines
   // (which would poison time-ordered queries in the collector).
@@ -215,7 +233,13 @@ export async function POST(request: NextRequest) {
       RATE_LIMIT_WINDOW_SECONDS
     )
     if (!allowed) {
-      return new NextResponse(null, { status: 429 })
+      // Retry-After tells a well-behaved client when the fixed window rolls
+      // over; the ship sink drops rather than retries, but proxies and any
+      // future caller read it.
+      return new NextResponse(null, {
+        status: 429,
+        headers: { 'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS) },
+      })
     }
 
     const text = await request.text()

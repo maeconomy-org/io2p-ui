@@ -3,7 +3,11 @@ import { NetworkError, TimeoutError, type ClientOptions } from 'io2p-client'
 
 import { logger } from '@/lib/logger'
 import { createIo2pClient, DEFAULT_IO2P_TIMEOUT_MS } from '@/lib/io2p'
-import { isNodeUnreachable, isTimeout } from '@/lib/io2p-errors'
+import {
+  isNodeUnreachable,
+  isTimeout,
+  wasErrorReported,
+} from '@/lib/io2p-errors'
 
 const createClientMock = vi.hoisted(() =>
   vi.fn((_options: unknown) => ({}) as unknown)
@@ -172,6 +176,24 @@ describe('onError', () => {
       'io2p request failed',
       expect.objectContaining({ status: 0 })
     )
+  })
+
+  // React Query's global handlers see the same error object again. Marking it
+  // here is what stops one failure producing two error records — and two
+  // Sentry captures — from two layers.
+  it('marks a logged failure as reported', () => {
+    const opts = buildOptions()
+    const err = new Error('boom')
+    expect(wasErrorReported(err)).toBe(false)
+    opts.onError!(err, info)
+    expect(wasErrorReported(err)).toBe(true)
+  })
+
+  it('does NOT mark an abort — it was never reported at error level', () => {
+    const opts = buildOptions()
+    const abort = Object.assign(new Error('aborted'), { name: 'AbortError' })
+    opts.onError!(abort, { ...info, status: 0 })
+    expect(wasErrorReported(abort)).toBe(false)
   })
 })
 
