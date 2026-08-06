@@ -1,0 +1,335 @@
+/**
+ * The BUILDER: mapped spreadsheet rows → the node's import envelope.
+ *
+ * This is where the whole feature is decided. Everything upstream is a picker; everything
+ * downstream is transport. Core keeps its envelope deliberately dumb — an item is a `tempId`, a
+ * type and an ordinary create body, with `parents` naming either a tempId from the same job or a
+ * real object id — so every spreadsheet concept has to be resolved HERE. "Levels", "repeating
+ * columns", "the deepest row wins" are vocabulary the node has never heard of and must not.
+ *
+ * Pure and synchronous: no React, no client, no IO. That is what lets it be unit-tested against
+ * awkward sheets directly, which matters more here than anywhere else in the flow — a mistake
+ * lands as objects in an append-only store, where it can only ever be soft-deleted.
+ */
+
+import type { ImportItemInput } from 'io2p-client'
+
+/** Where a column's value goes. `null` means the column is not mapped. */
+export type ColumnTarget =
+  | { kind: 'name' }
+  | { kind: 'description' }
+  | { kind: 'address' }
+  | { kind: 'addressPart'; part: AddressPart }
+  | { kind: 'fileUrl' }
+  | { kind: 'key' }
+  | { kind: 'parent' }
+  | { kind: 'property'; key: string; label: string; split: string | null }
+
+export type AddressPart =
+  | 'street'
+  | 'houseNumber'
+  | 'postalCode'
+  | 'city'
+  | 'state'
+  | 'country'
+
+export interface BuildMapping {
+  /** Column index → what it becomes. */
+  columns: Record<number, ColumnTarget>
+  /**
+   * Hierarchy from REPEATING columns, outermost first: `[Building, Floor, Room]`.
+   *
+   * The commoner municipal shape. Every row is a leaf and repeats its ancestors, so the rows
+   * must be de-duplicated by path prefix into one object per distinct value.
+   */
+  levels: number[]
+  /**
+   * Which hierarchy level a column's value attaches to.
+   *
+   * Without this, a value lands on the DEEPEST level, which is right for a room's area and wrong
+   * for the building's address — that repeats identically on every one of its rows, so it would
+   * be written onto every room and the building would have none.
+   */
+  attachTo: Record<number, number>
+  /** An existing object every ROOT item hangs under. */
+  destination: string | null
+}
+
+export interface BuildResult {
+  items: ImportItemInput[]
+  /** Rows the builder refused, with the reason. Never silently dropped. */
+  problems: { row: number; message: string }[]
+}
+
+// A cell can arrive as a string, a number, or a Date (ExcelJS). Anything empty is ABSENT, not
+// an empty value: core requires a value to carry `data`, so `{ data: '' }` is rejected per row.
+function cellText(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (value instanceof Date) return value.toISOString()
+  return String(value).trim()
+}
+
+/** Split one cell into many values on a delimiter — `NH-1 | NH-2` is two values, not one string. */
+function splitValues(text: string, split: string | null): string[] {
+  if (!split) return text ? [text] : []
+  return text
+    .split(split)
+    .map((part) => part.trim())
+    .filter(Boolean)
+}
+
+/**
+ * A key that keeps every letter and digit, in ANY script.
+ *
+ * `\p{L}\p{N}` with the `u` flag, never `\w` — `\w` is `[A-Za-z0-9_]`, so it silently drops
+ * accented letters: a German header `Größe` becomes `grse` and `Fläche m²` becomes `flche_m`.
+ * The label keeps the original either way, so the UI looks correct while search and templates key
+ * off a string nobody has ever seen.
+ */
+export function deriveKey(header: string): string {
+  return (
+    header
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^\p{L}\p{N}_]/gu, '') || 'column'
+  )
+}
+
+/** The body under construction — accumulated across the rows that share a hierarchy path. */
+interface Draft {
+  tempId: string
+  name: string
+  level: number
+  parentTempId: string | null
+  description?: string
+  address: Record<string, string>
+  properties: Map<string, { label: string; values: string[] }>
+  files: { kind: 'reference'; label: string; reference: { url: string } }[]
+}
+
+function emptyDraft(
+  tempId: string,
+  name: string,
+  level: number,
+  parentTempId: string | null
+): Draft {
+  return {
+    tempId,
+    name,
+    level,
+    parentTempId,
+    address: {},
+    properties: new Map(),
+    files: [],
+  }
+}
+
+/** Merge one cell into a draft. Repeated identical values collapse; genuinely new ones append. */
+function applyCell(
+  draft: Draft,
+  target: ColumnTarget,
+  raw: unknown,
+  header: string
+): void {
+  const text = cellText(raw)
+  if (!text) return // absent, not empty — see cellText
+
+  switch (target.kind) {
+    case 'name':
+    case 'key':
+    case 'parent':
+      return // identity columns are consumed by the hierarchy pass, not written as data
+    case 'description': {
+      draft.description ??= text
+      return
+    }
+    case 'address': {
+      draft.address.fullAddress = text
+      return
+    }
+    case 'addressPart': {
+      draft.address[target.part] = text
+      return
+    }
+    case 'fileUrl': {
+      // De-dupe: a building's plan repeats on every one of its rows, so without this a building
+      // built from 40 rows would carry the same link 40 times.
+      if (!draft.files.some((f) => f.reference.url === text)) {
+        draft.files.push({
+          kind: 'reference',
+          label: header || 'File',
+          reference: { url: text },
+        })
+      }
+      return
+    }
+    case 'property': {
+      const existing = draft.properties.get(target.key) ?? {
+        label: target.label,
+        values: [],
+      }
+      for (const value of splitValues(text, target.split)) {
+        if (!existing.values.includes(value)) existing.values.push(value)
+      }
+      draft.properties.set(target.key, existing)
+      return
+    }
+  }
+}
+
+function toItem(draft: Draft, destination: string | null): ImportItemInput {
+  const parents: string[] = []
+  if (draft.parentTempId) {
+    parents.push(draft.parentTempId)
+  } else if (destination) {
+    // A real object id alongside tempIds is exactly what core's envelope allows, so "import
+    // everything under this object" needs no new surface — it is a parent on every root.
+    parents.push(destination)
+  }
+
+  const properties = [...draft.properties.entries()].map(([key, prop]) => ({
+    key,
+    label: prop.label,
+    values: prop.values.map((data) => ({ data })),
+  }))
+
+  return {
+    tempId: draft.tempId,
+    type: 'object',
+    body: {
+      name: draft.name,
+      ...(draft.description ? { description: draft.description } : {}),
+      ...(parents.length > 0 ? { parents } : {}),
+      ...(Object.keys(draft.address).length > 0
+        ? { address: draft.address }
+        : {}),
+      ...(properties.length > 0 ? { properties } : {}),
+      ...(draft.files.length > 0 ? { files: draft.files } : {}),
+    },
+  } as ImportItemInput
+}
+
+/**
+ * Build the envelope.
+ *
+ * Two hierarchy shapes, one output. Core sees only the item list either way, and has no notion of
+ * which shape produced it:
+ *
+ *   • LEVELS — repeating columns. Rows are de-duplicated by path prefix, so 3 rows over
+ *     `Building/Floor/Room` become 1 + 2 + 3 = 6 objects.
+ *   • KEYS — the sheet already carries ids. One row is one object; the parent column names
+ *     another row's key.
+ *   • Neither — one row, one object, flat.
+ */
+export function buildItems(
+  rows: readonly unknown[][],
+  mapping: BuildMapping,
+  headers: readonly string[] = []
+): BuildResult {
+  const problems: BuildResult['problems'] = []
+  const drafts = new Map<string, Draft>()
+
+  const targets = Object.entries(mapping.columns).map(
+    ([index, target]) => [Number(index), target] as const
+  )
+  const keyColumn = targets.find(([, t]) => t.kind === 'key')?.[0]
+  const parentColumn = targets.find(([, t]) => t.kind === 'parent')?.[0]
+  const nameColumn = targets.find(([, t]) => t.kind === 'name')?.[0]
+  const useLevels = mapping.levels.length > 0
+
+  rows.forEach((row, index) => {
+    // 1-based, and past the header — this is the number printed in the operator's spreadsheet,
+    // which is the only address they can act on when a row fails.
+    const sheetRow = index + 1
+
+    if (useLevels) {
+      // Walk the levels outermost-first, creating or reusing a draft per distinct path prefix.
+      const segments: string[] = []
+      let parentTempId: string | null = null
+      let deepest: Draft | null = null
+
+      for (const [level, column] of mapping.levels.entries()) {
+        const name = cellText(row[column])
+        if (!name) {
+          // A blank mid-level would silently re-parent everything below it to the wrong node.
+          problems.push({
+            row: sheetRow,
+            message: `Level ${level + 1} is blank — every level must have a value`,
+          })
+          deepest = null
+          break
+        }
+        segments.push(name)
+        const path = segments.join('/')
+        let draft = drafts.get(path)
+        if (!draft) {
+          draft = emptyDraft(path, name, level, parentTempId)
+          drafts.set(path, draft)
+        }
+        parentTempId = path
+        deepest = draft
+      }
+      if (!deepest) return
+
+      // Non-hierarchy columns land on the level they were assigned, defaulting to the deepest.
+      for (const [column, target] of targets) {
+        const level = mapping.attachTo[column]
+        const owner =
+          level === undefined
+            ? deepest
+            : (drafts.get(segments.slice(0, level + 1).join('/')) ?? deepest)
+        applyCell(owner, target, row[column], headers[column] ?? '')
+      }
+      return
+    }
+
+    // ── one row, one object ──────────────────────────────────────────────────
+    const name = nameColumn === undefined ? '' : cellText(row[nameColumn])
+    const key =
+      keyColumn === undefined ? `row-${sheetRow}` : cellText(row[keyColumn])
+    if (!key) {
+      problems.push({ row: sheetRow, message: 'Key column is blank' })
+      return
+    }
+    if (!name) {
+      problems.push({ row: sheetRow, message: 'Name is blank' })
+      return
+    }
+    if (drafts.has(key)) {
+      problems.push({ row: sheetRow, message: `Duplicate key "${key}"` })
+      return
+    }
+
+    const parent = parentColumn === undefined ? '' : cellText(row[parentColumn])
+    const draft = emptyDraft(key, name, 0, parent || null)
+    drafts.set(key, draft)
+    for (const [column, target] of targets) {
+      applyCell(draft, target, row[column], headers[column] ?? '')
+    }
+  })
+
+  // A parent naming a key no row declared can never resolve. Core would refuse the whole job at
+  // staging anyway; catching it here says WHICH row, which core cannot know.
+  for (const draft of drafts.values()) {
+    if (draft.parentTempId && !drafts.has(draft.parentTempId)) {
+      problems.push({
+        row: 0,
+        message: `"${draft.tempId}" names a parent "${draft.parentTempId}" that no row declares`,
+      })
+    }
+  }
+
+  return {
+    items: [...drafts.values()].map((d) => toItem(d, mapping.destination)),
+    problems,
+  }
+}
+
+/** How many objects a mapping would create — computed, never guessed. */
+export function countItems(
+  rows: readonly unknown[][],
+  mapping: BuildMapping
+): number {
+  return buildItems(rows, mapping).items.length
+}
