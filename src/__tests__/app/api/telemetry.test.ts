@@ -3,7 +3,10 @@ import { NextRequest } from 'next/server'
 
 import { POST } from '@/app/api/telemetry/route'
 
-const rateLimit = vi.fn(async () => ({ allowed: true, current: 1 }))
+// Synchronous, like the real limiter: it counts in process memory, so there is nothing to
+// await. An async mock here would hand the route a Promise to destructure and every request
+// would read as rate-limited.
+const rateLimit = vi.fn(() => ({ allowed: true, current: 1 }))
 vi.mock('@/lib/security-utils', () => ({
   checkSimpleRateLimit: () => rateLimit(),
   getClientIdentifier: () => 'client-hash',

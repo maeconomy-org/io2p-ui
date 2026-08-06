@@ -1,29 +1,14 @@
-// Pins the FIXED-window semantics of the Redis rate limiters: the expiry is
-// set only when INCR creates the key (or a crash left it TTL-less). The old
-// behavior ran EXPIRE on every request, which slid the window forever —
-// sustained traffic (the ship sink flushes every 5s) accumulated to the cap
-// and was then 429'd permanently.
+// Pins the FIXED-window semantics of the telemetry rate limiter: an entry keeps its original
+// reset time as the count rises. A sliding window would push the expiry out on every hit, so
+// sustained traffic (the ship sink flushes every 5s) would accumulate to the cap and then be
+// 429'd permanently.
+//
+// These cases were written against a Redis-backed limiter with an in-memory fallback. Redis went
+// with the old import pipeline, and that fallback — already the path taken whenever Redis was
+// unavailable — is now the only one. The PROPERTY under test is unchanged; only the store is, so
+// the assertions moved from "did we call EXPIRE?" to the behaviour EXPIRE existed to produce.
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-
-const incrMock = vi.fn()
-const ttlMock = vi.fn()
-const expireMock = vi.fn(async () => 1)
-
-type PipelineResult = [null, number][]
-
-let pipelineResults: PipelineResult
-
-vi.mock('@/lib/redis', () => ({
-  getRedis: () => ({
-    pipeline: () => ({
-      incr: incrMock,
-      ttl: ttlMock,
-      exec: async () => pipelineResults,
-    }),
-    expire: (...args: unknown[]) => expireMock(...(args as [])),
-  }),
-}))
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/logger', () => ({
   logger: { security: vi.fn() },
@@ -32,48 +17,74 @@ vi.mock('@/lib/logger', () => ({
 
 import { checkSimpleRateLimit } from '@/lib/security-utils'
 
+// A fresh identifier per case: the counter lives in a module-level Map, so a shared one would
+// leak state between tests.
+let seq = 0
+const id = () => `client-${(seq += 1)}`
+
 describe('checkSimpleRateLimit (fixed window)', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
-  it('sets the expiry when INCR creates the key', async () => {
-    pipelineResults = [
-      [null, 1], // INCR → first hit
-      [null, -1], // TTL → none yet
-    ]
-    const res = await checkSimpleRateLimit('telemetry', 'c1', 60, 60)
-    expect(res).toEqual({ allowed: true, current: 1 })
-    expect(expireMock).toHaveBeenCalledTimes(1)
-    expect(expireMock).toHaveBeenCalledWith('rate_limit:telemetry:c1', 60)
+  it('counts up within the window', () => {
+    const client = id()
+    expect(checkSimpleRateLimit('telemetry', client, 3, 60)).toEqual({
+      allowed: true,
+      current: 1,
+    })
+    expect(checkSimpleRateLimit('telemetry', client, 3, 60)).toEqual({
+      allowed: true,
+      current: 2,
+    })
   })
 
-  it('does NOT refresh the expiry on subsequent hits — the window must not slide', async () => {
-    pipelineResults = [
-      [null, 17], // INCR → established window
-      [null, 42], // TTL → still counting down
-    ]
-    const res = await checkSimpleRateLimit('telemetry', 'c1', 60, 60)
-    expect(res.allowed).toBe(true)
-    expect(expireMock).not.toHaveBeenCalled()
+  it('denies above the cap', () => {
+    const client = id()
+    checkSimpleRateLimit('telemetry', client, 2, 60)
+    checkSimpleRateLimit('telemetry', client, 2, 60)
+    expect(checkSimpleRateLimit('telemetry', client, 2, 60)).toEqual({
+      allowed: false,
+      current: 3,
+    })
   })
 
-  it('repairs a missing TTL (crash between INCR and EXPIRE)', async () => {
-    pipelineResults = [
-      [null, 17],
-      [null, -1], // key exists but has no expiry — would live forever
-    ]
-    await checkSimpleRateLimit('telemetry', 'c1', 60, 60)
-    expect(expireMock).toHaveBeenCalledTimes(1)
+  it('does NOT slide the window — a late hit does not extend it', () => {
+    const client = id()
+    checkSimpleRateLimit('telemetry', client, 5, 60)
+    vi.advanceTimersByTime(59_000)
+    checkSimpleRateLimit('telemetry', client, 5, 60) // would push the expiry out if sliding
+    vi.advanceTimersByTime(2_000) // past the ORIGINAL 60s
+
+    // A fresh window, not a continuation of the old count.
+    expect(checkSimpleRateLimit('telemetry', client, 5, 60)).toEqual({
+      allowed: true,
+      current: 1,
+    })
   })
 
-  it('denies above the cap without touching the expiry', async () => {
-    pipelineResults = [
-      [null, 61],
-      [null, 30],
-    ]
-    const res = await checkSimpleRateLimit('telemetry', 'c1', 60, 60)
-    expect(res.allowed).toBe(false)
-    expect(expireMock).not.toHaveBeenCalled()
+  it('starts a new window once the old one expires', () => {
+    const client = id()
+    checkSimpleRateLimit('telemetry', client, 1, 60)
+    expect(checkSimpleRateLimit('telemetry', client, 1, 60).allowed).toBe(false)
+
+    vi.advanceTimersByTime(61_000)
+    expect(checkSimpleRateLimit('telemetry', client, 1, 60)).toEqual({
+      allowed: true,
+      current: 1,
+    })
+  })
+
+  it('keeps separate counters per scope and per identifier', () => {
+    const a = id()
+    const b = id()
+    checkSimpleRateLimit('telemetry', a, 1, 60)
+    // A different client is unaffected…
+    expect(checkSimpleRateLimit('telemetry', b, 1, 60).allowed).toBe(true)
+    // …and so is the same client under a different scope.
+    expect(checkSimpleRateLimit('other', a, 1, 60).allowed).toBe(true)
   })
 })

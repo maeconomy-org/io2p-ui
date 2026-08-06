@@ -1,291 +1,64 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
-import { toast } from 'sonner'
+import { useState } from 'react'
+import { FileSpreadsheet } from 'lucide-react'
 
-import { FileUpload } from './components/file-upload'
-import { ColumnMapper } from './components/column-mapper'
-import { ImportPreview } from './components/import-preview'
-import { Steps, Step } from './components/steps'
-import { useBulkImport } from '@/hooks/import/use-bulk-import'
-import type { SheetData } from '@/hooks/import/use-file-processor'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  ImportLimitsInfo,
-} from '@/components/ui'
-import {
-  IMPORT_HEADER_ROW_KEY,
-  IMPORT_START_ROW_KEY,
-  IMPORT_COLUMN_MAPPING_KEY,
-} from '@/constants'
-import { logger } from '@/lib/logger'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui'
 import { PageHelp } from '@/components/onboarding/page-help'
 
-type ImportStep = 'upload' | 'map-columns' | 'preview'
+import { JobList } from './components/job-list'
+import { JobDetail } from './components/job-detail'
+import { Wizard } from './components/wizard/wizard'
+import type { ImportJob } from './types'
 
 /**
- * Wipes the in-progress mapping. Module scope, not a component closure: it reads nothing from
- * render, and as a closure it was referenced by the effect above its own declaration.
+ * Bulk import: load many objects from a spreadsheet, with their parent/child links intact.
+ *
+ * Status and the wizard are TABS rather than two routes, because they are two views of one task —
+ * you import, then you watch what happened to it, and the second question follows the first
+ * immediately. The predecessor split them across `/import` and `/import-status`, so finishing an
+ * import navigated somewhere else and coming back meant starting over.
+ *
+ * Strings are hardcoded English for now; the translation keys land with the rest of the page's
+ * copy rather than mid-migration.
  */
-function clearSessionStorage() {
-  sessionStorage.removeItem(IMPORT_HEADER_ROW_KEY)
-  sessionStorage.removeItem(IMPORT_START_ROW_KEY)
-  sessionStorage.removeItem(IMPORT_COLUMN_MAPPING_KEY)
-  // Legacy localStorage mappings, cleared too so a stale one cannot resurface.
-  localStorage.removeItem('import_last_column_mapping')
-}
-
 export default function ImportPage() {
-  const t = useTranslations()
-  const [step, setStep] = useState<ImportStep>('upload')
-  const [sheets, setSheets] = useState<SheetData[]>([])
-  const [selectedSheet, setSelectedSheet] = useState<string>('')
-  const [selectedSheetData, setSelectedSheetData] = useState<any[]>([])
-  const [suggestedStartRow, setSuggestedStartRow] = useState<number>(0)
-  const [mappedData, setMappedData] = useState<any[]>([])
-
-  // Use the new bulk import hook
-  const { isImporting, startBulkImport } = useBulkImport({
-    onImportStarted: (jobId: string) => {
-      logger.import(`Bulk import job started: ${jobId}`, { jobId })
-    },
-    onImportError: (jobId: string, error: string) => {
-      logger.error(`Bulk import failed: ${jobId}`, { jobId, err: error })
-    },
-  })
-
-  // Clear session storage when component unmounts or when returning to upload step
-  useEffect(() => {
-    if (step === 'upload') {
-      clearSessionStorage()
-    }
-
-    return () => {
-      clearSessionStorage()
-    }
-  }, [step])
-
-  const handleFileSelected = (
-    selectedFile: File,
-    parsedSheets: SheetData[]
-  ) => {
-    setSheets(parsedSheets)
-
-    // If there's only one sheet, select it automatically
-    if (parsedSheets.length === 1) {
-      const sheet = parsedSheets[0]
-
-      // Set the sheet data directly instead of calling handleSheetChange to avoid timing issues
-      setSelectedSheet(sheet.name)
-      setSelectedSheetData(sheet.data)
-      setSuggestedStartRow(sheet.suggestedStartRow || 0)
-    } else if (parsedSheets.length > 0) {
-      // Don't auto-select first sheet, leave it empty for user to select
-      setSelectedSheet('')
-      setSelectedSheetData([])
-      setSuggestedStartRow(0)
-    }
-
-    setStep('map-columns')
-  }
-
-  const handleSheetChange = (sheetName: string) => {
-    setSelectedSheet(sheetName)
-
-    // Find the selected sheet data
-    const selectedSheetInfo = sheets.find((s) => s.name === sheetName)
-    if (!selectedSheetInfo) {
-      return
-    }
-
-    // Set the sheet data and suggested start row
-    setSelectedSheetData(selectedSheetInfo.data)
-    setSuggestedStartRow(selectedSheetInfo.suggestedStartRow || 0)
-  }
-
-  const handleColumnMapped = (mapping: Record<string, string>, data: any[]) => {
-    // setColumnMapping(mapping)
-    setMappedData(data)
-    setStep('preview')
-  }
-
-  const handleImport = async () => {
-    if (mappedData.length === 0) {
-      toast.error(t('import.errors.noData'))
-      return
-    }
-
-    // Start bulk import using new API
-    const result = await startBulkImport(mappedData)
-
-    if (result.success) {
-      // Reset form after successful import
-      setStep('upload')
-      setSheets([])
-      setSelectedSheet('')
-      setSelectedSheetData([])
-      setMappedData([])
-      clearSessionStorage()
-    }
-  }
-
-  const handleBack = () => {
-    switch (step) {
-      case 'map-columns':
-        setStep('upload')
-        break
-      case 'preview':
-        setStep('map-columns')
-        break
-    }
-  }
-
-  const getStepTitle = () => {
-    switch (step) {
-      case 'upload':
-        return t('import.steps.upload')
-      case 'map-columns':
-        return t('import.steps.map')
-      case 'preview':
-        return t('import.preview.title')
-    }
-  }
-
-  const getStepDescription = () => {
-    switch (step) {
-      case 'upload':
-        return t('import.subtitle')
-      case 'map-columns':
-        return t('import.map.description')
-      case 'preview':
-        return t('import.preview.description')
-    }
-  }
+  const [openJob, setOpenJob] = useState<ImportJob | null>(null)
+  const [tab, setTab] = useState('status')
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <div className="mb-8">
-        <div className="flex items-center gap-1.5">
-          <h1 className="text-2xl font-semibold">{t('import.title')}</h1>
+      <div className="mb-6">
+        <h1 className="flex items-center gap-2 text-2xl font-semibold">
+          <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
+          Import
           <PageHelp concept="import" />
-        </div>
-        <p className="text-muted-foreground mt-2">
-          {t('import.subtitle')}
-          {selectedSheet && (
-            <span className="ml-2">
-              • <span className="font-medium">{selectedSheet}</span>
-              {selectedSheetData.length > 0 && (
-                <span>
-                  {' '}
-                  ({t('import.rows', { count: selectedSheetData.length })})
-                </span>
-              )}
-            </span>
-          )}
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          Load objects from a spreadsheet, keeping their hierarchy.
         </p>
       </div>
 
-      <div className="mb-8">
-        <Steps
-          currentStep={step === 'upload' ? 0 : step === 'map-columns' ? 1 : 2}
-        >
-          <Step title={t('import.steps.upload')} />
-          <Step title={t('import.steps.map')} />
-          <Step title={t('import.steps.preview')} />
-        </Steps>
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="status">Your imports</TabsTrigger>
+          <TabsTrigger value="wizard">New import</TabsTrigger>
+        </TabsList>
 
-      {/* Show import limits info */}
-      <div className="mb-6">
-        <ImportLimitsInfo
-          currentObjectCount={mappedData.length}
-          currentSizeMB={
-            mappedData.length > 0
-              ? JSON.stringify(mappedData).length / (1024 * 1024)
-              : 0
-          }
-          showContactForLarge={true}
-        />
-      </div>
+        <TabsContent value="status" className="mt-6">
+          {openJob ? (
+            <JobDetail job={openJob} onBack={() => setOpenJob(null)} />
+          ) : (
+            <JobList onOpen={setOpenJob} />
+          )}
+        </TabsContent>
 
-      <div className="pt-6">
-        {step === 'upload' && (
-          <FileUpload
-            onFileSelected={handleFileSelected}
-            title={getStepTitle()}
-            description={getStepDescription()}
-          />
-        )}
-
-        {step === 'map-columns' && (
-          <div className="space-y-4">
-            {sheets.length > 1 && (
-              <div className="mb-6">
-                <label className="text-sm font-medium mb-1 block">
-                  {t('import.sheet.select')}
-                </label>
-                <div className="flex gap-4 items-center">
-                  <Select
-                    value={selectedSheet}
-                    onValueChange={handleSheetChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={t('import.sheet.placeholder')}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sheets.map((sheet) => (
-                        <SelectItem key={sheet.name} value={sheet.name}>
-                          {sheet.name} (
-                          {t('import.rows', { count: sheet.data.length })})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {selectedSheetData.length > 0 ? (
-              <ColumnMapper
-                sheetData={selectedSheetData}
-                onColumnsMapped={handleColumnMapped}
-                onBack={handleBack}
-                suggestedStartRow={suggestedStartRow}
-                title={t('import.map.title')}
-                description={t('import.map.description')}
-              />
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  {sheets.length === 0
-                    ? t('import.sheet.noSheets')
-                    : selectedSheet
-                      ? t('import.sheet.noData', { sheet: selectedSheet })
-                      : t('import.sheet.selectPrompt')}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {step === 'preview' && (
-          <ImportPreview
-            data={mappedData}
-            onImport={handleImport}
-            onBack={handleBack}
-            isImporting={isImporting}
-            title={t('import.preview.title')}
-            description={t('import.preview.description')}
-          />
-        )}
-      </div>
+        <TabsContent value="wizard" className="mt-6">
+          {/* Finishing the wizard lands on the status list, where the job it just started is the
+              top row — the question a user has the moment they press Import. */}
+          <Wizard onFinished={() => setTab('status')} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

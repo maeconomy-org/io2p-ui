@@ -8,14 +8,14 @@ import { DataTable } from '@/components/tables'
 
 import { useImports } from '@/hooks/api/imports'
 
-import type { LabJob } from '../fixtures'
+import type { ImportJob } from '../types'
 import {
   JobStatusBadge,
   OutcomeBar,
   formatClock,
   formatDuration,
   n,
-} from './lab-bits'
+} from './job-bits'
 
 /**
  * The job list as a DataTable rather than a hand-rolled accordion.
@@ -24,7 +24,7 @@ import {
  * anything, which is the reason the accordion existed. Detail then earns a route of its own
  * instead of pushing every other job off the screen.
  */
-function buildColumns(): ColumnDef<LabJob, unknown>[] {
+function buildColumns(): ColumnDef<ImportJob, unknown>[] {
   return [
     {
       id: 'file',
@@ -117,7 +117,7 @@ function buildColumns(): ColumnDef<LabJob, unknown>[] {
   ]
 }
 
-export function JobList({ onOpen }: { onOpen: (job: LabJob) => void }) {
+export function JobList({ onOpen }: { onOpen: (job: ImportJob) => void }) {
   // Owner-scoped on the node — there is no filter to pass, and nothing to share.
   const { data, isLoading } = useImports()
   const jobs = data?.data ?? []

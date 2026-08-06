@@ -1,13 +1,7 @@
-import { getRedis } from './redis'
-import {
-  MAX_IMPORT_PAYLOAD_MB,
-  MAX_OBJECTS_PER_IMPORT,
-  MAX_CONCURRENT_JOBS_PER_USER,
-  RATE_LIMIT_WINDOW_MINUTES,
-  RATE_LIMIT_MAX_REQUESTS,
-  RATE_LIMIT_WARNING_THRESHOLD,
-} from '@/constants'
-
+// Everything here now serves ONE caller: the telemetry ingest route. The import half of this
+// file — payload validation, the import rate limiter, the per-user job cap and its tracking —
+// went with the pipeline that used it; the node runs bulk imports now and enforces its own caps.
+//
 // In-memory fallback rate limiter when Redis is unavailable
 const memoryRateLimit = new Map<string, { count: number; resetAt: number }>()
 
@@ -47,329 +41,42 @@ export interface SecurityValidationResult {
   }
 }
 
-export interface PayloadValidationResult {
-  valid: boolean
-  error?: string
-  size?: number
-  objectCount?: number
-}
-
-// `logSecurityEvent` lives with the logger, not here — this file used to carry a byte-identical copy
-// that also just delegated to `logger.security`.
-import { logSecurityEvent } from './logger'
-
 /**
- * Generic fixed-window rate limiter (Redis INCR/EXPIRE with the same
- * in-memory fallback the import limiter uses). Deliberately does NOT log:
- * the telemetry route is a caller, and a security-event log per throttled
- * telemetry batch would feed the very pipeline being throttled.
+ * Generic fixed-window rate limiter, in process memory.
+ *
+ * This was Redis-backed with an in-memory fallback, because Redis was already here for the old
+ * import pipeline. That pipeline is gone and the node runs bulk imports now, so the only caller
+ * left is the telemetry ingest route — and keeping a Redis container alive to throttle it would
+ * be the tail wagging the dog. The fallback path was already the one that ran whenever Redis was
+ * unavailable; it is now the only path.
+ *
+ * The window is FIXED, not sliding: an entry keeps its original `resetAt` as the count rises.
+ * Refreshing the expiry on every hit would slide the window forever — sustained traffic (the ship
+ * sink flushes every 5s) would accumulate to the cap and then be 429'd permanently.
+ *
+ * The trade this makes: the counter is per PROCESS, so N replicas allow N × the cap between them.
+ * That is the same behaviour the fallback always had, and the deployment runs a single UI
+ * container. Revisit if the UI is ever scaled out.
+ *
+ * Deliberately does NOT log: the telemetry route is a caller, and a security-event log per
+ * throttled telemetry batch would feed the very pipeline being throttled.
  */
-export async function checkSimpleRateLimit(
+export function checkSimpleRateLimit(
   scope: string,
   identifier: string,
   maxRequests: number,
   windowSeconds: number
-): Promise<{ allowed: boolean; current: number }> {
+): { allowed: boolean; current: number } {
   const key = `rate_limit:${scope}:${identifier}`
-  try {
-    const redis = getRedis()
-    const pipeline = redis.pipeline()
-    pipeline.incr(key)
-    pipeline.ttl(key)
-    const results = await pipeline.exec()
-    const current = (results?.[0]?.[1] as number) ?? 1
-    const ttl = (results?.[1]?.[1] as number) ?? -1
-    // FIXED window: set the expiry only when this INCR created the key (or a
-    // crash between INCR and EXPIRE left it without a TTL). Refreshing the
-    // TTL on every request would slide the window forever — sustained
-    // traffic (the ship sink flushes every 5s) would accumulate to the cap
-    // and then be 429'd permanently.
-    if (current === 1 || ttl === -1) {
-      await redis.expire(key, windowSeconds)
-    }
-    return { allowed: current <= maxRequests, current }
-  } catch {
-    const now = Date.now()
-    const entry = memoryRateLimit.get(key)
-    if (entry && now < entry.resetAt) {
-      entry.count += 1
-      return { allowed: entry.count <= maxRequests, current: entry.count }
-    }
-    memoryRateLimit.set(key, {
-      count: 1,
-      resetAt: now + windowSeconds * 1000,
-    })
-    return { allowed: true, current: 1 }
+  const now = Date.now()
+  const entry = memoryRateLimit.get(key)
+
+  if (entry && now < entry.resetAt) {
+    entry.count += 1
+    return { allowed: entry.count <= maxRequests, current: entry.count }
   }
-}
-
-/**
- * Validate import payload size and object count
- */
-export function validateImportPayload(
-  aggregateEntityList: any[],
-  requestSize?: number
-): PayloadValidationResult {
-  const objectCount = aggregateEntityList.length
-  const estimatedSize =
-    requestSize || JSON.stringify(aggregateEntityList).length
-  const sizeMB = estimatedSize / (1024 * 1024)
-
-  // Check payload size
-  if (sizeMB > MAX_IMPORT_PAYLOAD_MB) {
-    logSecurityEvent('payload_size_exceeded', {
-      sizeMB: sizeMB.toFixed(2),
-      maxSizeMB: MAX_IMPORT_PAYLOAD_MB,
-    })
-    return {
-      valid: false,
-      error: `Payload size (${sizeMB.toFixed(2)}MB) exceeds maximum allowed size (${MAX_IMPORT_PAYLOAD_MB}MB)`,
-      size: sizeMB,
-      objectCount,
-    }
-  }
-
-  // Check object count
-  if (objectCount > MAX_OBJECTS_PER_IMPORT) {
-    logSecurityEvent('object_count_exceeded', {
-      maxObjects: MAX_OBJECTS_PER_IMPORT,
-    })
-    return {
-      valid: false,
-      error: `Object count (${objectCount}) exceeds maximum allowed objects (${MAX_OBJECTS_PER_IMPORT})`,
-      size: sizeMB,
-      objectCount,
-    }
-  }
-
-  // Log large imports for monitoring
-  if (sizeMB > 50 || objectCount > 10000) {
-    logSecurityEvent('large_import_detected', {}, 'info')
-  }
-
-  return {
-    valid: true,
-    size: sizeMB,
-    objectCount,
-  }
-}
-
-/**
- * Check rate limiting for import operations
- * Returns soft warnings instead of hard blocks
- */
-export async function checkImportRateLimit(
-  identifier: string, // Could be IP, userUUID, or session ID
-  userUUID?: string
-): Promise<SecurityValidationResult> {
-  const redis = getRedis()
-  const rateLimitKey = `rate_limit:import:${identifier}`
-  const windowSeconds = RATE_LIMIT_WINDOW_MINUTES * 60
-
-  try {
-    // Get current count and increment
-    const pipeline = redis.pipeline()
-    pipeline.incr(rateLimitKey)
-    pipeline.ttl(rateLimitKey)
-
-    const results = await pipeline.exec()
-    const currentCount = results?.[0]?.[1] as number
-    let ttl = results?.[1]?.[1] as number
-
-    // FIXED window: expiry only on key creation (or a missing TTL after a
-    // crash) — an EXPIRE on every request slides the window forever and
-    // permanently blocks sustained traffic once it reaches the cap.
-    if (currentCount === 1 || ttl === -1) {
-      await redis.expire(rateLimitKey, windowSeconds)
-      ttl = windowSeconds
-    }
-
-    const resetTime = Date.now() + ttl * 1000
-
-    const rateLimitInfo = {
-      current: currentCount,
-      max: RATE_LIMIT_MAX_REQUESTS,
-      windowMinutes: RATE_LIMIT_WINDOW_MINUTES,
-      resetTime,
-    }
-
-    // Hard limit exceeded - return error
-    if (currentCount > RATE_LIMIT_MAX_REQUESTS) {
-      logSecurityEvent('rate_limit_exceeded', {
-        maxRequests: RATE_LIMIT_MAX_REQUESTS,
-        windowMinutes: RATE_LIMIT_WINDOW_MINUTES,
-      })
-
-      return {
-        allowed: false,
-        error: `Rate limit exceeded. Please wait ${Math.ceil(ttl / 60)} minutes before trying again.`,
-        rateLimitInfo,
-      }
-    }
-
-    // Warning threshold reached - return warning but allow
-    if (currentCount >= RATE_LIMIT_WARNING_THRESHOLD) {
-      logSecurityEvent('rate_limit_warning', {
-        warningThreshold: RATE_LIMIT_WARNING_THRESHOLD,
-        maxRequests: RATE_LIMIT_MAX_REQUESTS,
-      })
-
-      return {
-        allowed: true,
-        warning: `You are approaching the rate limit (${currentCount}/${RATE_LIMIT_MAX_REQUESTS} requests). Please slow down to avoid being temporarily blocked.`,
-        rateLimitInfo,
-      }
-    }
-
-    return {
-      allowed: true,
-      rateLimitInfo,
-    }
-  } catch (error) {
-    // Redis unavailable — fall back to in-memory rate limiting
-    logSecurityEvent(
-      'rate_limit_redis_fallback',
-      {
-        identifier,
-        userUUID,
-        err: error,
-      },
-      'error'
-    )
-
-    const now = Date.now()
-    const windowMs = RATE_LIMIT_WINDOW_MINUTES * 60 * 1000
-    const entry = memoryRateLimit.get(identifier)
-
-    if (entry && now < entry.resetAt) {
-      entry.count += 1
-      if (entry.count > RATE_LIMIT_MAX_REQUESTS) {
-        return {
-          allowed: false,
-          error: 'Rate limit exceeded. Please try again later.',
-          rateLimitInfo: {
-            current: entry.count,
-            max: RATE_LIMIT_MAX_REQUESTS,
-            windowMinutes: RATE_LIMIT_WINDOW_MINUTES,
-            resetTime: entry.resetAt,
-          },
-        }
-      }
-    } else {
-      memoryRateLimit.set(identifier, {
-        count: 1,
-        resetAt: now + windowMs,
-      })
-    }
-
-    return {
-      allowed: true,
-      warning: 'Rate limiting using fallback mode',
-    }
-  }
-}
-
-/**
- * Check concurrent job limits for a user
- */
-export async function checkConcurrentJobLimit(
-  userUUID: string
-): Promise<SecurityValidationResult> {
-  const redis = getRedis()
-  const userJobsKey = `user_jobs:${userUUID}`
-
-  try {
-    const currentJobCount = await redis.scard(userJobsKey)
-
-    if (currentJobCount >= MAX_CONCURRENT_JOBS_PER_USER) {
-      logSecurityEvent('concurrent_job_limit_exceeded', {
-        userUUID,
-        currentJobs: currentJobCount,
-        maxJobs: MAX_CONCURRENT_JOBS_PER_USER,
-      })
-
-      return {
-        allowed: false,
-        error: `Maximum concurrent imports (${MAX_CONCURRENT_JOBS_PER_USER}) reached. Please wait for existing imports to complete.`,
-      }
-    }
-
-    // Warning at 80% of limit
-    const warningThreshold = Math.floor(MAX_CONCURRENT_JOBS_PER_USER * 0.8)
-    if (currentJobCount >= warningThreshold) {
-      return {
-        allowed: true,
-        warning: `You have ${currentJobCount} active imports. Consider waiting for some to complete before starting new ones.`,
-      }
-    }
-
-    return { allowed: true }
-  } catch (error) {
-    logSecurityEvent(
-      'concurrent_job_check_failed',
-      {
-        userUUID,
-        err: error,
-      },
-      'error'
-    )
-
-    return {
-      allowed: true,
-      warning: 'Job limit checking temporarily unavailable',
-    }
-  }
-}
-
-/**
- * Track a new job for a user
- */
-export async function trackUserJob(
-  userUUID: string,
-  jobId: string
-): Promise<void> {
-  const redis = getRedis()
-  const userJobsKey = `user_jobs:${userUUID}`
-
-  try {
-    await redis.sadd(userJobsKey, jobId)
-    await redis.expire(userJobsKey, 86400) // 24 hours
-  } catch (error) {
-    logSecurityEvent(
-      'job_tracking_failed',
-      {
-        userUUID,
-        jobId,
-        err: error,
-      },
-      'error'
-    )
-  }
-}
-
-/**
- * Remove a completed job from user tracking
- */
-export async function untrackUserJob(
-  userUUID: string,
-  jobId: string
-): Promise<void> {
-  const redis = getRedis()
-  const userJobsKey = `user_jobs:${userUUID}`
-
-  try {
-    await redis.srem(userJobsKey, jobId)
-  } catch (error) {
-    logSecurityEvent(
-      'job_untracking_failed',
-      {
-        userUUID,
-        jobId,
-        err: error,
-      },
-      'error'
-    )
-  }
+  memoryRateLimit.set(key, { count: 1, resetAt: now + windowSeconds * 1000 })
+  return { allowed: 1 <= maxRequests, current: 1 }
 }
 
 /**
@@ -413,34 +120,4 @@ export function getClientIdentifier(req: Request): string {
   }
 
   return 'anonymous'
-}
-
-/**
- * Validate request content type and size
- */
-export function validateRequestBasics(req: Request): {
-  valid: boolean
-  error?: string
-} {
-  const contentType = req.headers.get('content-type') || ''
-
-  if (!contentType.includes('application/json')) {
-    return {
-      valid: false,
-      error: 'Content type must be application/json',
-    }
-  }
-
-  const contentLength = req.headers.get('content-length')
-  if (contentLength) {
-    const sizeMB = parseInt(contentLength) / (1024 * 1024)
-    if (sizeMB > MAX_IMPORT_PAYLOAD_MB) {
-      return {
-        valid: false,
-        error: `Request size (${sizeMB.toFixed(2)}MB) exceeds maximum allowed size (${MAX_IMPORT_PAYLOAD_MB}MB)`,
-      }
-    }
-  }
-
-  return { valid: true }
 }

@@ -14,7 +14,7 @@ const TourRunner = dynamic(() => import('./onboarding/tour-runner'), {
   ssr: false,
 })
 // Mounted here rather than on /objects: the tour points at the navbar, which is on every page, and
-// a first login that lands on a deep link or /import-status used to get no onboarding at all.
+// a first login that lands on a deep link used to get no onboarding at all.
 const InitialLoginTour = dynamic(
   () => import('./onboarding/initial-login-tour'),
   { ssr: false }

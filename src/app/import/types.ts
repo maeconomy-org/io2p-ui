@@ -10,11 +10,11 @@
 import type { ImportItemDTO, ImportJobDTO } from 'io2p-client'
 
 /** The seven states a job can be in — from the SDK, so it cannot fall behind the node. */
-export type LabJobStatus = ImportJobDTO['status']
-export type LabJob = ImportJobDTO
-export type LabItem = ImportItemDTO
+export type ImportJobStatus = ImportJobDTO['status']
+export type ImportJob = ImportJobDTO
+export type ImportItem = ImportItemDTO
 
-export const LAB_JOBS: LabJob[] = [
+export const LAB_JOBS: ImportJob[] = [
   {
     id: 'a3f91c7e-4b2d-4e11-9c8a-1f0e5d7b2a34',
     filename: 'northgate-rooms.xlsx',
@@ -113,7 +113,7 @@ export const LAB_JOBS: LabJob[] = [
 ]
 
 /** The per-row report — the thing today's page cannot show at all. */
-export const LAB_ITEMS: Record<string, LabItem[]> = {
+export const LAB_ITEMS: Record<string, ImportItem[]> = {
   'b1c47f02-88ae-4d63-bb10-6c2e9a4f7d51': [
     {
       id: 'item-47',

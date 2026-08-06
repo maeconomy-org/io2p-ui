@@ -33,21 +33,21 @@ import {
 
 import { useImportItems, useImportJob } from '@/hooks/api/imports'
 
-import type { LabItem, LabJob } from '../fixtures'
+import type { ImportItem, ImportJob } from '../types'
 import {
   JobStatusBadge,
   OutcomeBar,
   formatClock,
   formatDuration,
   n,
-} from './lab-bits'
+} from './job-bits'
 
 /**
  * The number that answers "did it work?" — deliberately bigger than the percentage, which only
  * answers "how far along is it?". Today's page leads with the percentage and computes success as
  * `processed - failed`, which silently counts skipped rows as created.
  */
-function Headline({ job }: { job: LabJob }) {
+function Headline({ job }: { job: ImportJob }) {
   if (job.status === 'draft') {
     return (
       <div className="space-y-1">
@@ -94,7 +94,7 @@ function ItemsTable({
   items,
   kind,
 }: {
-  items: LabItem[]
+  items: ImportItem[]
   kind: 'failed' | 'skipped'
 }) {
   if (items.length === 0) {
@@ -152,7 +152,7 @@ export function JobDetail({
   job: initial,
   onBack,
 }: {
-  job: LabJob
+  job: ImportJob
   onBack: () => void
 }) {
   const [tab, setTab] = useState('failed')
@@ -167,8 +167,8 @@ export function JobDetail({
   // is the collateral behind it.
   const { data: failedPage } = useImportItems(job.id, { status: 'failed' })
   const { data: skippedPage } = useImportItems(job.id, { status: 'skipped' })
-  const failed: LabItem[] = failedPage?.data ?? []
-  const skipped: LabItem[] = skippedPage?.data ?? []
+  const failed: ImportItem[] = failedPage?.data ?? []
+  const skipped: ImportItem[] = skippedPage?.data ?? []
 
   const isDraft = job.status === 'draft'
   const isRunning = job.status === 'running'

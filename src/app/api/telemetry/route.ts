@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
     }
 
     const identifier = getClientIdentifier(request)
-    const { allowed } = await checkSimpleRateLimit(
+    const { allowed } = checkSimpleRateLimit(
       'telemetry',
       identifier,
       RATE_LIMIT_MAX_BATCHES,

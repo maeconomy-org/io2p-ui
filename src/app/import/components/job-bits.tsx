@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui'
 
-import type { LabJobStatus } from '../fixtures'
+import type { ImportJobStatus } from '../types'
 
 /**
  * Status colours are LOCAL to the lab on purpose.
@@ -13,7 +13,7 @@ import type { LabJobStatus } from '../fixtures'
  * make a running import look like a `write` grant on a screen that shows both. A third dimension
  * needs its own decision, so this is where that decision gets tried out rather than assumed.
  */
-const STATUS_STYLE: Record<LabJobStatus, { dot: string; label: string }> = {
+const STATUS_STYLE: Record<ImportJobStatus, { dot: string; label: string }> = {
   draft: { dot: 'bg-muted-foreground/50', label: 'Draft' },
   queued: { dot: 'bg-muted-foreground', label: 'Queued' },
   running: { dot: 'bg-blue-500 animate-pulse', label: 'Running' },
@@ -30,7 +30,7 @@ const STATUS_STYLE: Record<LabJobStatus, { dot: string; label: string }> = {
  * A dot plus a word, never colour alone — and the label is a lookup, not
  * `status.replace('_',' ')`, which is what renders "Completed with_errors" today.
  */
-export function JobStatusBadge({ status }: { status: LabJobStatus }) {
+export function JobStatusBadge({ status }: { status: ImportJobStatus }) {
   const style = STATUS_STYLE[status]
   return (
     <Badge variant="outline" className="gap-1.5 font-normal">

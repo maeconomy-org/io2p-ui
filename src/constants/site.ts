@@ -40,10 +40,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
 ]
 
 // Footer links
-export const FOOTER_LINKS = [
-  { key: 'importStatus', path: '/import-status' },
-  { key: 'help', path: '/help' },
-] as const
+export const FOOTER_LINKS = [{ key: 'help', path: '/help' }] as const
 
 // Process types (based on actual API model)
 export const PROCESS_TYPES = [
