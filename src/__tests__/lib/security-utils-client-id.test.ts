@@ -8,7 +8,6 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-vi.mock('@/lib/redis', () => ({ getRedis: () => ({}) }))
 vi.mock('@/lib/logger', () => ({
   logger: { security: vi.fn() },
   logSecurityEvent: vi.fn(),

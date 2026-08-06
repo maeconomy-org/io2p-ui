@@ -14,7 +14,6 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-proto'
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http'
-import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis'
 import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node'
 import { resourceFromAttributes } from '@opentelemetry/resources'
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs'
@@ -115,7 +114,6 @@ export function registerOtel(): void {
             return IGNORED_PATHS.some((p) => url.startsWith(p))
           },
         }),
-        new IORedisInstrumentation(),
         new RuntimeNodeInstrumentation(),
       ],
     })
