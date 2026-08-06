@@ -95,9 +95,14 @@ function FieldRow({
  * The address preview is the whole argument for parsing rather than asking for five columns.
  *
  * A sheet almost always carries one address cell. Splitting it is OUR job, and it has to be
- * visible because the risky part is silent: io2p stores a 2-letter ISO country code, and
- * "United States" is not one. Translating it in the mapper is the difference between an import
- * that works and 1,200 rows failing on `address.country`.
+ * visible because it is a GUESS: the split is heuristic, so the user should see what we made of
+ * their cell before anything is written.
+ *
+ * It is visible for that reason and not, as an earlier note here claimed, because core rejects a
+ * country that is not a 2-letter ISO code. Checked against the core: `AddressShape.country` is a
+ * plain optional string — no pattern, no length, no enum — so "United States" imports fine.
+ * Normalising it to "US" is still worth doing (one spelling per country keeps the field
+ * searchable), but nothing fails without it.
  */
 function AddressPreview({ sample }: { sample: string }) {
   const parsed = parseAddress(sample)

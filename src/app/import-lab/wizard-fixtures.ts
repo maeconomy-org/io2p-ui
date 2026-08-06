@@ -295,9 +295,13 @@ const COUNTRY_NAMES: Record<string, string> = {
  * A stand-in for the real parse. The point of the lab is the SHAPE — one cell in, structured
  * address out, shown before anything is written.
  *
- * The country arm is the load-bearing part: io2p stores a 2-letter ISO code, and a sheet says
- * "United States". Translating it here is the difference between an import that works and 1,200
- * rows failing on `address.country must be a 2-letter ISO code`.
+ * The country arm is a DATA-QUALITY nicety, not a requirement. An earlier note here claimed core
+ * rejects anything but a 2-letter ISO code, so translating "United States" was the difference
+ * between a working import and 1,200 failed rows. That was wrong, and checked against the core:
+ * `AddressShape.country` is a plain optional string with no pattern, no length and no enum, so
+ * "United States" imports fine. Still worth translating — one spelling per country makes the
+ * field searchable and groupable — but nothing fails without it, and it must not be treated as
+ * blocking.
  */
 export function parseAddress(raw: string): ParsedAddress {
   const parts = raw.split(',').map((p) => p.trim())
