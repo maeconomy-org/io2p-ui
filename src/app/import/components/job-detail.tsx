@@ -33,8 +33,10 @@ import {
 } from '@/components/ui'
 
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 import {
+  ITEMS_PAGE_SIZE,
   useCancelImport,
   useImportItems,
   useImportJob,
@@ -43,6 +45,7 @@ import {
 
 import { formatTempId } from '@/lib/import/build-items'
 import { useIomClient } from '@/lib/io2p'
+import { logger } from '@/lib/observability/logger'
 
 import type { ImportItem, ImportJob } from '../types'
 import {
@@ -126,11 +129,17 @@ async function buildReport(
   client: ReturnType<typeof useIomClient>,
   jobId: string
 ): Promise<string[][]> {
-  const rows: string[][] = [['outcome', 'item', 'key', 'code', 'reason']]
+  // Both columns, unlike the screen: jobs predating `sourceRef` have none, and a single column
+  // would have to fall back to `seq` under a heading that says "row".
+  const rows: string[][] = [['outcome', 'row', 'item', 'key', 'code', 'reason']]
   for (const status of ['failed', 'skipped'] as const) {
-    for await (const item of client.imports.paginateItems(jobId, { status })) {
+    for await (const item of client.imports.paginateItems(jobId, {
+      status,
+      size: ITEMS_PAGE_SIZE,
+    })) {
       rows.push([
         status,
+        item.sourceRef ?? '',
         String(item.seq),
         formatTempId(item.tempId),
         item.error?.code ?? '',
@@ -158,9 +167,12 @@ function writeCsv(jobId: string, rows: string[][]): void {
 
 function ItemsTable({
   items,
+  total,
   kind,
 }: {
   items: ImportItem[]
+  /** Every row matching the filter, not the page. From the response envelope. */
+  total: number
   kind: 'failed' | 'skipped'
 }) {
   const t = useTranslations()
@@ -172,55 +184,66 @@ function ItemsTable({
     )
   }
 
-  return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {/* NOT the sheet row, though it was labelled that. `seq` is the item's position in
-                the envelope, and with a hierarchy on those are different things — 4 rows become 9
-                items, so item 7 is no line in anyone's spreadsheet. The KEY column is what leads
-                back to the data; for a level import it is the object's path.
+  // Jobs predating `sourceRef` have none, so the heading cannot be "Row" unconditionally.
+  const isRowNumber = items.every((item) => item.sourceRef)
 
-                A real row reference would have to travel on the envelope, which is core's call.
-                Until then, saying "item" is the honest version. */}
-            <TableHead className="w-[6rem]">
-              {t('import.detail.columns.item')}
-            </TableHead>
-            <TableHead className="w-[12rem]">
-              {t('import.detail.columns.key')}
-            </TableHead>
-            <TableHead>{t('import.detail.columns.reason')}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => (
-            <TableRow key={item.seq}>
-              <TableCell className="tabular-nums font-medium">
-                {item.seq}
-              </TableCell>
-              <TableCell>
-                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                  {formatTempId(item.tempId)}
-                </code>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-start gap-2">
-                  <Badge
-                    variant="outline"
-                    className="shrink-0 font-mono text-[10px]"
-                  >
-                    {item.error?.code ?? '—'}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {item.error?.detail ?? ''}
-                  </span>
-                </div>
-              </TableCell>
+  return (
+    <div className="space-y-2">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[6rem]">
+                {isRowNumber
+                  ? t('import.detail.columns.row')
+                  : t('import.detail.columns.item')}
+              </TableHead>
+              <TableHead className="w-[12rem]">
+                {t('import.detail.columns.key')}
+              </TableHead>
+              <TableHead>{t('import.detail.columns.reason')}</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => (
+              <TableRow key={item.seq}>
+                <TableCell className="tabular-nums font-medium">
+                  {item.sourceRef ?? item.seq}
+                </TableCell>
+                <TableCell>
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                    {formatTempId(item.tempId)}
+                  </code>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-start gap-2">
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 font-mono text-[10px]"
+                    >
+                      {item.error?.code ?? '—'}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {item.error?.detail ?? ''}
+                    </span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* The tab badge counts the whole job, so without this a page of 100 sits under a badge
+          reading 5,000 with nothing reconciling them. */}
+      {total > items.length && (
+        <p className="text-xs text-muted-foreground">
+          {t('import.detail.showingFirst', {
+            shown: n(items.length),
+            total: n(total),
+          })}
+        </p>
+      )}
     </div>
   )
 }
@@ -245,10 +268,21 @@ export function JobDetail({
   // Two queries rather than one filtered client-side: the report can be thousands of rows, and
   // the two tabs answer different questions — `failed` is the operator's own mistake, `skipped`
   // is the collateral behind it.
-  const { data: failedPage } = useImportItems(job.id, { status: 'failed' })
-  const { data: skippedPage } = useImportItems(job.id, { status: 'skipped' })
+  const { data: failedPage } = useImportItems(job.id, {
+    status: 'failed',
+    page: 1,
+    size: ITEMS_PAGE_SIZE,
+  })
+  const { data: skippedPage } = useImportItems(job.id, {
+    status: 'skipped',
+    page: 1,
+    size: ITEMS_PAGE_SIZE,
+  })
   const failed: ImportItem[] = failedPage?.data ?? []
   const skipped: ImportItem[] = skippedPage?.data ?? []
+  // `totalElements`, not `data.length` — the page is one page.
+  const failedTotal = failedPage?.page.totalElements ?? failed.length
+  const skippedTotal = skippedPage?.page.totalElements ?? skipped.length
 
   const router = useRouter()
   const cancel = useCancelImport()
@@ -282,8 +316,10 @@ export function JobDetail({
               <JobStatusBadge status={job.status} />
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">
-              Started {formatClock(job.startedAt)} ·{' '}
-              {formatDuration(job.startedAt, job.finishedAt)}
+              {t('import.detail.startedAt', {
+                time: formatClock(job.startedAt),
+              })}{' '}
+              · {formatDuration(job.startedAt, job.finishedAt)}
               {job.levels > 1 && (
                 <> · {t('import.list.levelCount', { count: job.levels })}</>
               )}
@@ -409,6 +445,12 @@ export function JobDetail({
                 setDownloading(true)
                 try {
                   writeCsv(job.id, await buildReport(client, job.id))
+                } catch (error) {
+                  logger.error('Import report download failed', {
+                    jobId: job.id,
+                    err: error,
+                  })
+                  toast.error(t('import.detail.downloadFailed'))
                 } finally {
                   setDownloading(false)
                 }
@@ -443,13 +485,13 @@ export function JobDetail({
               </TabsTrigger>
             </TabsList>
             <TabsContent value="failed" className="mt-3">
-              <ItemsTable items={failed} kind="failed" />
+              <ItemsTable items={failed} total={failedTotal} kind="failed" />
             </TabsContent>
             <TabsContent value="skipped" className="mt-3">
               <p className="mb-3 text-sm text-muted-foreground">
                 {t('import.detail.skippedExplainer')}
               </p>
-              <ItemsTable items={skipped} kind="skipped" />
+              <ItemsTable items={skipped} total={skippedTotal} kind="skipped" />
             </TabsContent>
           </Tabs>
         </div>

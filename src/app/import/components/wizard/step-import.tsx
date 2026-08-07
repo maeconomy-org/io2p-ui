@@ -48,17 +48,24 @@ export function StepImport({
           <AlertDescription>
             <p className="font-medium">{t('import.run.refused')}</p>
             <ul className="mt-1 space-y-0.5 text-sm">
-              {problems.slice(0, 8).map((problem, index) => (
-                <li key={index}>
-                  {/* The node's own detail, in whatever language it speaks — relayed, not
-                      translated. Only the frame around it is ours. */}
-                  <span className="tabular-nums">
-                    {t('import.run.itemPrefix', { item: problem.seq + 1 })}
-                  </span>
-                  {problem.tempId && ` (${formatTempId(problem.tempId)})`}:{' '}
-                  {problem.message}
-                </li>
-              ))}
+              {problems.slice(0, 8).map((problem, index) => {
+                // `ImportProblem` carries only `seq`. It indexes the array the browser just
+                // submitted, so the file row can be resolved here without the node sending it.
+                const sourceRef = wizard.items[problem.seq]?.sourceRef
+                return (
+                  <li key={index}>
+                    {/* The node's own detail, in whatever language it speaks — relayed, not
+                        translated. Only the frame around it is ours. */}
+                    <span className="tabular-nums">
+                      {sourceRef
+                        ? t('import.run.rowPrefix', { row: sourceRef })
+                        : t('import.run.itemPrefix', { item: problem.seq + 1 })}
+                    </span>
+                    {problem.tempId && ` (${formatTempId(problem.tempId)})`}:{' '}
+                    {problem.message}
+                  </li>
+                )
+              })}
             </ul>
           </AlertDescription>
         </Alert>

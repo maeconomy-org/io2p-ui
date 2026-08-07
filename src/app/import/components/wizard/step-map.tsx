@@ -17,7 +17,7 @@ import {
 import { ObjectPicker } from '@/components/entity-sheet/fields'
 import { cn } from '@/lib/utils'
 import type { ColumnTarget } from '@/lib/import/build-items'
-import { countItems, deriveKey } from '@/lib/import/build-items'
+import { columnLabel, countItems, deriveKey } from '@/lib/import/build-items'
 import type {
   ImportWizard,
   WizardColumn,
@@ -98,12 +98,8 @@ function toTarget(value: string, column: WizardColumn): ColumnTarget | null {
     }
   }
   if (value === 'property') {
-    return {
-      kind: 'property',
-      key: deriveKey(column.header),
-      label: column.header,
-      split: null,
-    }
+    const label = columnLabel(column.header, column.index)
+    return { kind: 'property', key: deriveKey(label), label, split: null }
   }
   return { kind: value as 'name' }
 }
@@ -152,7 +148,10 @@ function ColumnRow({
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 px-4 py-3">
       <div className="min-w-0 space-y-1">
         <div className="flex items-center gap-2">
-          <span className="truncate font-medium">{column.header}</span>
+          <span className="truncate font-medium">
+            {column.header ||
+              t('import.map.unnamedColumn', { index: column.index + 1 })}
+          </span>
           {isLevel && (
             <Badge variant="outline" className="gap-1 font-normal">
               <Layers className="h-3 w-3" />

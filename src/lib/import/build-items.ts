@@ -134,6 +134,14 @@ function splitValues(text: string, split: string | null): string[] {
  * The label keeps the original either way, so the UI looks correct while search and templates key
  * off a string nobody has ever seen.
  */
+/**
+ * The property label PERSISTED to the node. Never translated — running the wizard in Dutch would
+ * write `Kolom 3` into an append-only store. The on-screen name is `import.map.unnamedColumn`.
+ */
+export function columnLabel(header: string, index: number): string {
+  return header.trim() || `Column ${index + 1}`
+}
+
 export function deriveKey(header: string): string {
   return (
     header
@@ -255,6 +263,8 @@ function toItem(draft: Draft, destination: string | null): ImportItemInput {
   return {
     tempId: draft.tempId,
     type: 'object',
+    // `seq` is the item's position in the envelope, not a sheet row: 4 rows become 9 items.
+    sourceRef: String(draft.sourceRow),
     body: {
       name: draft.name,
       ...(draft.description ? { description: draft.description } : {}),
@@ -400,6 +410,9 @@ export function buildItems(
   //
   // KEYS MODE ONLY, in practice: a levels-mode parent is a path prefix created earlier in the
   // same walk, so it is in `drafts` by construction and can never be missing.
+  //
+  // O(n²) accepted: a row is only recognised once its parent is marked, so a sheet listing children
+  // ABOVE their parents resolves one per scan. A children index would make it linear.
   const orphans = new Set<string>()
   for (let changed = true; changed; ) {
     changed = false

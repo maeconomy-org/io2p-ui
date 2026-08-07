@@ -1351,9 +1351,17 @@
       "empty": "empty",
       "editsAreLocal": "Edits here are not sent yet — this view exists to judge the interaction."
     },
+    "outcome": {
+      "created": "{count} created",
+      "failed": "{count} failed",
+      "skipped": "{count} skipped",
+      "of": "of {count}",
+      "summary": "{ok} created, {failed} failed, {skipped} skipped of {total}"
+    },
     "run": {
       "refused": "The import was refused — nothing was created",
       "itemPrefix": "Item {item, number}",
+      "rowPrefix": "Row {row}",
       "backToMapping": "Back to the mapping",
       "handedOver": "Handed over to the server",
       "handedOverDetail": "{count, number} objects are being created. You can close this tab — the job keeps running, and the status page shows what happened to every row.",
@@ -1387,6 +1395,7 @@
     },
     "detail": {
       "back": "Back to imports",
+      "startedAt": "Started {time}",
       "ofRowsUploaded": "of {total, number} rows uploaded",
       "draftHint": "Nothing has been created yet. Uploading picks up where it stopped.",
       "objectsCreated": "{count, plural, one {object} other {objects}} created",
@@ -1399,8 +1408,10 @@
       "stalledUpload": "This upload stopped after {staged, number} of {total, number} rows, so it cannot be handed over. Nothing was created — import the file again to start over.",
       "creatingLevel": "Creating level {current, number} of {total, number} — children wait for their parents.",
       "problemsTitle": "What did not import",
-      "problemsSubtitle": "Fix these rows in your sheet and import just them again. The table shows the first page — the CSV has every row.",
+      "problemsSubtitle": "Fix these rows in your sheet and import just them again.",
       "downloadCsv": "Download {count, number} rows as CSV",
+      "downloadFailed": "The report could not be downloaded. Please try again.",
+      "showingFirst": "Showing the first {shown} of {total}. Download the report for every row.",
       "tabs": {
         "failed": "Failed",
         "skipped": "Skipped"
@@ -1412,6 +1423,7 @@
       },
       "columns": {
         "item": "Item",
+        "row": "Row",
         "key": "Key",
         "reason": "Reason"
       },

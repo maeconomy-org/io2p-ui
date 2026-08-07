@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   type BuildMapping,
   buildItems,
+  columnLabel,
   deriveKey,
 } from '@/lib/import/build-items'
 
@@ -51,6 +52,27 @@ const body = (item: { body: unknown }) =>
     properties?: { key: string; label: string; values: { data: string }[] }[]
     files?: { reference: { url: string } }[]
   }
+
+describe('columnLabel', () => {
+  it('uses the header when there is one', () => {
+    expect(columnLabel('Fläche m²', 4)).toBe('Fläche m²')
+    expect(columnLabel('  Area  ', 0)).toBe('Area')
+  })
+
+  it('falls back to a 1-based position for a blank header', () => {
+    expect(columnLabel('', 2)).toBe('Column 3')
+    expect(columnLabel('   ', 2)).toBe('Column 3')
+  })
+
+  it('gives two blank columns DISTINCT property keys', () => {
+    const first = deriveKey(columnLabel('', 2))
+    const second = deriveKey(columnLabel('', 3))
+
+    expect(first).toBe('column_3')
+    expect(second).toBe('column_4')
+    expect(first).not.toBe(second)
+  })
+})
 
 describe('deriveKey', () => {
   it('keeps letters and digits in ANY script', () => {
@@ -431,5 +453,42 @@ describe('buildItems — cell handling', () => {
   it('omits every optional section rather than sending empty arrays', () => {
     const built = one([['Just a name', '', '']], simple)
     expect(built).toEqual({ name: 'Just a name' })
+  })
+})
+
+describe('buildItems — sourceRef', () => {
+  const keyHeaders = ['Key', 'Parent', 'Name']
+  const keyMapping: BuildMapping = {
+    columns: {
+      0: { kind: 'key' },
+      1: { kind: 'parent' },
+      2: { kind: 'name' },
+    },
+    levels: [],
+    attachTo: {},
+    destination: null,
+  }
+
+  it('names the real file line, which is not the item position', () => {
+    const rows = [
+      ['B-1', '', 'Anbau'],
+      ['B-2', '', 'Etage'],
+    ]
+    // The parser reports rows 7 and 8: a header at 6, and five lines of preamble above it.
+    const { items } = buildItems(rows, keyMapping, keyHeaders, [7, 8])
+
+    expect(items.map((i) => i.sourceRef)).toEqual(['7', '8'])
+  })
+
+  it('names the row a level object was FIRST seen on, not the last', () => {
+    const { items } = buildItems(
+      ROWS,
+      levelsMapping(),
+      HEADERS,
+      [10, 11, 12, 13]
+    )
+    const northgate = items.find((i) => i.tempId === 'Northgate House')
+
+    expect(northgate?.sourceRef).toBe('10')
   })
 })

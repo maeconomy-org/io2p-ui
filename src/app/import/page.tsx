@@ -6,8 +6,6 @@ import { useTranslations } from 'next-intl'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui'
 import { PageHelp } from '@/components/onboarding/page-help'
 
-import { useImportJob } from '@/hooks/api/imports'
-
 import { JobList } from './components/job-list'
 import { JobDetail } from './components/job-detail'
 import { Wizard } from './components/wizard/wizard'
@@ -29,19 +27,6 @@ export default function ImportPage() {
   const t = useTranslations()
   const [openJob, setOpenJob] = useState<ImportJob | null>(null)
   const [tab, setTab] = useState('status')
-  const [watchJobId, setWatchJobId] = useState<string | null>(null)
-
-  /**
-   * Poll the job the wizard just started, from HERE.
-   *
-   * `useImportJob` is what invalidates the objects list when a job finishes, and it only runs
-   * where it is mounted. Finishing the wizard lands on the STATUS LIST — `openJob` is null, so
-   * `JobDetail` never mounts — which meant the watcher never ran on the one path every successful
-   * import takes, and "View objects" showed a list that had never heard of them.
-   *
-   * Mounted at the page so it survives the tab switch and the list/detail swap underneath it.
-   */
-  useImportJob(watchJobId)
 
   return (
     <div className="container mx-auto flex-1 p-4">
@@ -80,14 +65,7 @@ export default function ImportPage() {
           forceMount
           className="mt-0 data-[state=inactive]:hidden"
         >
-          {/* Finishing the wizard lands on the status list, where the job it just started is the
-              top row — the question a user has the moment they press Import. */}
-          <Wizard
-            onFinished={(jobId) => {
-              setWatchJobId(jobId)
-              setTab('status')
-            }}
-          />
+          <Wizard onFinished={() => setTab('status')} />
         </TabsContent>
       </Tabs>
     </div>

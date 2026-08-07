@@ -85,6 +85,22 @@ function columnOf(problem: BuildProblem, wizard: ImportWizard): number | null {
   }
 }
 
+/**
+ * Changed, NOT non-blank: a duplicate key and an unresolvable parent both hold text already, so
+ * "has a value" hid every fault this step exists to show.
+ *
+ * Optimistic — any different value clears it, because edits feed nothing and `buildItems` cannot
+ * be re-run against them.
+ */
+export function faultStands(
+  original: string,
+  edited: string | undefined
+): boolean {
+  if (edited === undefined) return true // untouched
+  const next = edited.trim()
+  return !next || next === original.trim()
+}
+
 export function StepCheckEditable({ wizard }: { wizard: ImportWizard }) {
   const t = useTranslations()
   const [view, setView] = useState<View>('all')
@@ -109,15 +125,13 @@ export function StepCheckEditable({ wizard }: { wizard: ImportWizard }) {
     edits[cellId(row, column)] ?? original
 
   /**
-   * A fault survives only until its cell is given a value.
-   *
-   * DERIVED, never stored: validity that is written down drifts out of step with what is on
-   * screen the moment an edit is undone, and the row then reads green while still empty.
+   * DERIVED, never stored: validity that is written down drifts out of step with what is on screen
+   * the moment an edit is undone, and the row then reads green while still empty.
    */
   const faultOf = (row: number, column: number, original: string) => {
     const fault = faults.get(cellId(row, column))
     if (!fault) return undefined
-    return valueOf(row, column, original).trim() ? undefined : fault
+    return faultStands(original, edits[cellId(row, column)]) ? fault : undefined
   }
 
   const rows = wizard.dataRows.map((cells, index) => ({

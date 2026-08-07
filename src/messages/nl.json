@@ -1351,9 +1351,17 @@
       "empty": "leeg",
       "editsAreLocal": "Wijzigingen hier worden nog niet verzonden — deze weergave bestaat om de interactie te beoordelen."
     },
+    "outcome": {
+      "created": "{count} aangemaakt",
+      "failed": "{count} mislukt",
+      "skipped": "{count} overgeslagen",
+      "of": "van {count}",
+      "summary": "{ok} aangemaakt, {failed} mislukt, {skipped} overgeslagen van {total}"
+    },
     "run": {
       "refused": "De import is geweigerd — er is niets aangemaakt",
       "itemPrefix": "Item {item, number}",
+      "rowPrefix": "Rij {row}",
       "backToMapping": "Terug naar de koppeling",
       "handedOver": "Overgedragen aan de server",
       "handedOverDetail": "{count, number} objecten worden aangemaakt. Je kunt dit tabblad sluiten — de taak loopt door, en de statuspagina laat zien wat er met elke rij is gebeurd.",
@@ -1387,6 +1395,7 @@
     },
     "detail": {
       "back": "Terug naar imports",
+      "startedAt": "Gestart {time}",
       "ofRowsUploaded": "van {total, number} rijen geüpload",
       "draftHint": "Er is nog niets aangemaakt. Uploaden gaat verder waar het gestopt is.",
       "objectsCreated": "{count, plural, one {object} other {objecten}} aangemaakt",
@@ -1399,8 +1408,10 @@
       "stalledUpload": "Deze upload is gestopt na {staged, number} van {total, number} rijen en kan niet worden overgedragen. Er is niets aangemaakt — importeer het bestand opnieuw.",
       "creatingLevel": "Niveau {current, number} van {total, number} wordt aangemaakt — onderliggende objecten wachten op hun bovenliggende.",
       "problemsTitle": "Wat niet is geïmporteerd",
-      "problemsSubtitle": "Corrigeer deze rijen in je blad en importeer alleen die opnieuw. De tabel toont de eerste pagina — de CSV bevat alle rijen.",
+      "problemsSubtitle": "Corrigeer deze rijen in je blad en importeer alleen die opnieuw.",
       "downloadCsv": "{count, number} rijen downloaden als CSV",
+      "downloadFailed": "Het rapport kon niet worden gedownload. Probeer het opnieuw.",
+      "showingFirst": "De eerste {shown} van {total} worden getoond. Download het rapport voor alle rijen.",
       "tabs": {
         "failed": "Mislukt",
         "skipped": "Overgeslagen"
@@ -1412,6 +1423,7 @@
       },
       "columns": {
         "item": "Item",
+        "row": "Rij",
         "key": "Sleutel",
         "reason": "Reden"
       },

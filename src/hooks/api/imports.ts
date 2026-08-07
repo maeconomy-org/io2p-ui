@@ -19,6 +19,7 @@ import type {
   ListImportsQuery,
 } from 'io2p-client'
 
+import { useOptionalImportWatch } from '@/contexts/import-watch-context'
 import { useIomClient } from '@/lib/io2p'
 import { logger } from '@/lib/observability/logger'
 import { queryKeys } from '@/lib/query-keys'
@@ -48,6 +49,12 @@ export function isTerminal(status: string): boolean {
  * that runs for minutes.
  */
 const POLL_MS = 2500
+
+/**
+ * The spec's maximum. `page`/`size` are REQUIRED on this route, but `ListImportItemsQuery` is a
+ * `Partial<>` — so omitting them compiles and silently takes an undocumented server default.
+ */
+export const ITEMS_PAGE_SIZE = 100
 
 /** One job, polled while it is running and left alone once it is not. */
 export function useImportJob(id: string | null) {
@@ -155,6 +162,7 @@ export interface ImportProgress {
 export function useRunImport() {
   const client = useIomClient()
   const queryClient = useQueryClient()
+  const watcher = useOptionalImportWatch()
   const [progress, setProgress] = useState<ImportProgress>({
     phase: 'idle',
     staged: 0,
@@ -219,6 +227,8 @@ export function useRunImport() {
           queryKeys.imports.detail(result.job.id),
           result.job
         )
+        // Armed here, not from a UI click: the user can navigate away the instant a run starts.
+        watcher?.watch(result.job.id)
       }
     },
   })

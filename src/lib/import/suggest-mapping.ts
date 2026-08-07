@@ -10,7 +10,7 @@
  */
 
 import type { ColumnTarget } from './build-items'
-import { deriveKey } from './build-items'
+import { columnLabel, deriveKey } from './build-items'
 
 /** Header words that name a field rather than a property. Lower-case, accent-free comparison. */
 const NAME_WORDS = ['name', 'bezeichnung', 'naam', 'titel', 'title', 'label']
@@ -235,10 +235,12 @@ export function suggestMapping(
     // Everything else becomes a PROPERTY rather than nothing. A column left unmapped is data the
     // operator brought and the import silently discarded; a property they did not want is one
     // click to remove and visible while they decide.
+    // Keyed off the LABEL: `deriveKey('')` is the literal `'column'`, so two blank headers collide.
+    const label = columnLabel(header, index)
     columns[index] = {
       kind: 'property',
-      key: deriveKey(header),
-      label: header.trim() || `Column ${index + 1}`,
+      key: deriveKey(label),
+      label,
       split: suggestSplit(samples),
     }
   })

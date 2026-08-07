@@ -197,7 +197,9 @@ export function useImportWizard() {
     () =>
       headers.map((header, index) => ({
         index,
-        header: header || `Column ${index + 1}`,
+        // Raw and possibly empty: a blank header has one answer on screen (translated) and another
+        // in the data (`columnLabel`). A fallback baked in here can only serve one of them.
+        header,
         samples: dataRows
           .slice(0, 20)
           .map((row) => row[index] ?? '')
