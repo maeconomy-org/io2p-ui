@@ -223,7 +223,13 @@ export function PropertyFields({
     // property wants its NAME first. Suppress that and let the row focus its own name input.
     append({ key: '', label: '', values: [newValue()] }, { shouldFocus: false })
   const addButton = (
-    <Button type="button" variant="outline" size="sm" onClick={addProperty}>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      data-testid="add-property"
+      onClick={addProperty}
+    >
       <Plus className="mr-2 h-4 w-4" />
       {t('objects.propertyEditor.addProperty')}
     </Button>
@@ -368,6 +374,7 @@ function PropertyRow({
       <DeletedRow
         label={propLabel || propKey || t('objects.propertyEditor.name')}
         onRestore={onRestore}
+        testId={`property-deleted-${index}`}
       />
     )
   }
@@ -377,9 +384,13 @@ function PropertyRow({
       open={open}
       onOpenChange={setOpen}
       className={cn('rounded-md border', open && 'shadow-sm')}
+      data-testid={`property-row-${index}`}
     >
       <div className="flex items-center gap-1 px-3 py-1.5">
-        <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+        <CollapsibleTrigger
+          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+          data-testid={`property-toggle-${index}`}
+        >
           <ChevronRight
             className={cn(
               'h-3.5 w-3.5 shrink-0 transition-transform',
@@ -409,6 +420,7 @@ function PropertyRow({
             variant="ghost"
             size="sm"
             className="h-6 shrink-0 px-2 text-xs text-destructive hover:text-destructive"
+            data-testid={`property-remove-confirm-${index}`}
             onClick={() => {
               setConfirmDelete(false)
               onRemove()
@@ -424,6 +436,7 @@ function PropertyRow({
             size="icon"
             className="h-6 w-6 shrink-0"
             aria-label={t('common.remove')}
+            data-testid={`property-remove-${index}`}
             onClick={() => (hasContent ? setConfirmDelete(true) : onRemove())}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -441,6 +454,7 @@ function PropertyRow({
                 ref={nameRef}
                 className="h-8 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 placeholder={t('objects.propertyEditor.namePlaceholder')}
+                data-testid={`property-name-${index}`}
                 value={propKey ?? ''}
                 onChange={(key, label) => {
                   form.setValue(`${basePath}.${index}.key`, key, {
@@ -457,6 +471,7 @@ function PropertyRow({
                   onClick={() => setModalTarget({ kind: 'property' })}
                   title={t('objects.files.attach')}
                   aria-label={t('objects.files.attach')}
+                  data-testid={`property-attach-${index}`}
                   className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Paperclip className="h-4 w-4" />
@@ -490,6 +505,7 @@ function PropertyRow({
                   <DeletedRow
                     key={field.id}
                     label={value.data || t('objects.propertyEditor.value')}
+                    testId={`value-deleted-${index}-${vIndex}`}
                     onRestore={() =>
                       form.setValue(`${base}.deleted`, false, {
                         shouldDirty: true,
@@ -518,7 +534,10 @@ function PropertyRow({
                   : null
                 return (
                   <div key={field.id} className="space-y-1">
-                    <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                    <div
+                      className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                      data-testid={`derived-value-${index}-${vIndex}`}
+                    >
                       <span className="min-w-0 flex-1 truncate">
                         {value?.data || '—'}
                       </span>
@@ -541,6 +560,7 @@ function PropertyRow({
                         className="h-7 w-7 shrink-0"
                         disabled={!hydration?.ok}
                         aria-label={t('objects.formulaEditor.editFormula')}
+                        data-testid={`derived-value-edit-${index}-${vIndex}`}
                         title={
                           hydration?.ok || !hydration
                             ? t('objects.formulaEditor.editFormula')
@@ -606,6 +626,7 @@ function PropertyRow({
                         <input
                           className="h-8 min-w-0 flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground"
                           placeholder={valuePlaceholder}
+                          data-testid={`property-value-${index}-${vIndex}`}
                           {...form.register(`${base}.data`)}
                         />
                       )}
@@ -617,6 +638,7 @@ function PropertyRow({
                           }
                           title={t('objects.files.attach')}
                           aria-label={t('objects.files.attach')}
+                          data-testid={`value-attach-${index}-${vIndex}`}
                           className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
                         >
                           <Paperclip className="h-4 w-4" />
@@ -633,6 +655,10 @@ function PropertyRow({
                         }
                         title={toggleLabel}
                         aria-label={toggleLabel}
+                        data-testid={`value-mode-${index}-${vIndex}`}
+                        // The MODE, not the icon: an assertion on the lucide glyph breaks when the
+                        // icon changes and says nothing about which mode the value is actually in.
+                        data-mode={isFormula ? 'formula' : 'text'}
                         className={cn(
                           'flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground',
                           isFormula && 'text-primary'
@@ -659,6 +685,7 @@ function PropertyRow({
                       size="icon"
                       className="h-8 w-8 shrink-0"
                       aria-label={t('common.remove')}
+                      data-testid={`value-remove-${index}-${vIndex}`}
                       onClick={() =>
                         value?.id
                           ? form.setValue(`${base}.deleted`, true, {
@@ -702,6 +729,7 @@ function PropertyRow({
               type="button"
               variant="ghost"
               size="sm"
+              data-testid={`property-add-value-${index}`}
               onClick={() => append(newValue())}
             >
               <Plus className="mr-2 h-4 w-4" />

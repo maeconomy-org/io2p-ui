@@ -46,7 +46,7 @@ export function UnsavedChangesDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent data-testid="unsaved-dialog">
         <AlertDialogHeader>
           <AlertDialogTitle>
             {onSaveDraft
@@ -65,19 +65,24 @@ export function UnsavedChangesDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex w-full gap-2">
-          <AlertDialogCancel className="flex-1">
+          <AlertDialogCancel className="flex-1" data-testid="unsaved-cancel">
             {t('common.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             // `hover:` too — buttonVariants() ships `hover:bg-primary/90`, so setting only the base
             // colour leaves the button turning blue under the cursor.
             className="flex-1 bg-destructive text-white hover:bg-destructive/90"
+            data-testid="unsaved-discard"
             onClick={onDiscard}
           >
             {t('objects.drafts.actions.discard')}
           </AlertDialogAction>
           {onSaveDraft && (
-            <AlertDialogAction className="flex-1" onClick={onSaveDraft}>
+            <AlertDialogAction
+              className="flex-1"
+              data-testid="unsaved-save-draft"
+              onClick={onSaveDraft}
+            >
               {t('objects.drafts.unsaved.saveDraft')}
             </AlertDialogAction>
           )}

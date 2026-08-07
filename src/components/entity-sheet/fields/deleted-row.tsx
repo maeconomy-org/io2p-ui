@@ -16,14 +16,20 @@ import { Badge, Button } from '@/components/ui'
 export function DeletedRow({
   label,
   onRestore,
+  testId = 'deleted-row',
 }: {
   label: string
   onRestore?: () => void
+  /** Callers pass an indexed id so a spec can name WHICH row it means. */
+  testId?: string
 }) {
   const t = useTranslations()
 
   return (
-    <div className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-1.5">
+    <div
+      className="flex items-center gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-1.5"
+      data-testid={testId}
+    >
       <span className="min-w-0 flex-1 truncate text-sm text-destructive line-through">
         {label}
       </span>
@@ -40,6 +46,7 @@ export function DeletedRow({
           size="sm"
           className="h-6 shrink-0 px-2 text-xs"
           aria-label={`${t('common.restore')} ${label}`}
+          data-testid={`${testId}-restore`}
           onClick={onRestore}
         >
           <RotateCcw className="mr-1 h-3 w-3" />

@@ -114,7 +114,10 @@ export function AttachmentModal({
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="sm:max-w-[560px]">
+      <DialogContent
+        className="sm:max-w-[560px]"
+        data-testid="attachment-modal"
+      >
         <DialogHeader>
           <DialogTitle>{t('objects.files.addFiles')}</DialogTitle>
           <DialogDescription className="sr-only">

@@ -135,7 +135,10 @@ export function EntitySheetShell({
         open={open}
         onOpenChange={(next) => (next ? onOpenChange(true) : requestClose())}
       >
-        <SheetContent className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-xl">
+        <SheetContent
+          className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-xl"
+          data-testid="entity-sheet"
+        >
           <SheetHeader className="border-b px-6 py-4 pr-12">
             <SheetTitle className="flex items-center gap-2">
               <span className="min-w-0 truncate">{title}</span>
@@ -172,7 +175,11 @@ export function EntitySheetShell({
                         )}
                       >
                         {tabs.map((tab) => (
-                          <TabsTrigger key={tab.value} value={tab.value}>
+                          <TabsTrigger
+                            key={tab.value}
+                            value={tab.value}
+                            data-testid={`sheet-tab-${tab.value}`}
+                          >
                             {tab.label}
                             <DirtyDot show={tab.dirty} />
                           </TabsTrigger>

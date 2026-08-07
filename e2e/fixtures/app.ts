@@ -51,24 +51,47 @@ export class ApiRecorder {
   }
 }
 
+/**
+ * Console output the guard ignores. Deliberately SHORT and each entry justified — a guard that
+ * fails on environment noise gets switched off, and a switched-off guard is worse than none.
+ *
+ * Nothing here may match app code. If a future entry would, the fix belongs in the app.
+ */
+const IGNORED_CONSOLE = [
+  // A transport failure, not the app: behind a proxy or a DNS blocker the dev server's own chunk
+  // requests fail before any application code runs.
+  /net::ERR_/,
+  // Follows the above. `next dev` code-splits per module, so one blocked fetch surfaces as a
+  // ChunkLoadError for whatever was lazy at that moment. A production build serves these
+  // statically and does not produce it.
+  /ChunkLoadError/,
+  // The React Query devtools are dev-only and are not in the shipped bundle at all.
+  /query-devtools/,
+]
+
 export const test = base.extend<{ consoleGuard: void; api: ApiRecorder }>({
   consoleGuard: [
     async ({ page }, use, testInfo) => {
       const errors: string[] = []
+      const keep = (text: string) =>
+        !IGNORED_CONSOLE.some((pattern) => pattern.test(text))
 
       page.on('console', (message) => {
         const text = message.text()
         // `MISSING_MESSAGE` is a next-intl warning, not an error, so the type check alone misses
         // the single most likely i18n failure — a key that exists in en.json and not in nl.json.
-        if (message.type() === 'error' || /MISSING_MESSAGE/.test(text)) {
+        if (
+          (message.type() === 'error' || /MISSING_MESSAGE/.test(text)) &&
+          keep(text)
+        ) {
           errors.push(text)
         }
       })
 
       // A page error is an uncaught exception; the console listener above never sees it.
-      page.on('pageerror', (error) =>
-        errors.push(`pageerror: ${error.message}`)
-      )
+      page.on('pageerror', (error) => {
+        if (keep(error.message)) errors.push(`pageerror: ${error.message}`)
+      })
 
       await use()
 

@@ -60,6 +60,7 @@ export function SheetLifecycleFooter({
           variant="outline"
           className="flex-1"
           disabled={lifecycleBusy}
+          data-testid="sheet-restore"
           onClick={onRestore}
         >
           {lifecycleBusy ? (
@@ -71,7 +72,12 @@ export function SheetLifecycleFooter({
         </Button>
       ) : !editing ? (
         <>
-          <Button type="button" className="flex-1" onClick={onEdit}>
+          <Button
+            type="button"
+            className="flex-1"
+            data-testid="sheet-edit"
+            onClick={onEdit}
+          >
             <Pencil className="mr-2 h-4 w-4" />
             {t('common.edit')}
           </Button>
@@ -81,6 +87,7 @@ export function SheetLifecycleFooter({
               variant="outline"
               className="text-destructive hover:text-destructive"
               disabled={lifecycleBusy}
+              data-testid="sheet-delete"
               onClick={() => setConfirmDelete(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -94,6 +101,7 @@ export function SheetLifecycleFooter({
             type="button"
             variant="outline"
             className="flex-1"
+            data-testid="sheet-cancel"
             onClick={onCancel}
           >
             {t('common.cancel')}
@@ -102,6 +110,7 @@ export function SheetLifecycleFooter({
             type="submit"
             className="flex-1"
             disabled={isSubmitting || !isDirty}
+            data-testid="sheet-save"
             {...anchor('sheetSubmit')}
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -128,7 +137,10 @@ export function SheetLifecycleFooter({
 export function DirtyDot({ show }: { show: boolean }) {
   if (!show) return null
   return (
-    <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+    <span
+      className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-primary"
+      data-testid="sheet-tab-dirty"
+    />
   )
 }
 
@@ -155,7 +167,10 @@ export function countDirtyLeaves(node: unknown): number {
 export function UnsavedBar({ count }: { count: number }) {
   const t = useTranslations()
   return (
-    <div className="flex items-center gap-2 border-t bg-muted/40 px-6 py-2 text-sm">
+    <div
+      className="flex items-center gap-2 border-t bg-muted/40 px-6 py-2 text-sm"
+      data-testid="unsaved-bar"
+    >
       <span className="font-medium">
         {t('objects.detailsSheet.unsavedChanges', { count })}
       </span>
