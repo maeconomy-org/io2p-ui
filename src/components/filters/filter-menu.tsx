@@ -88,6 +88,7 @@ export function FilterMenu({
           type="button"
           variant="outline"
           size="sm"
+          data-testid="filter-menu"
           data-tour={dataTour}
           className={cn(
             'h-8 border-dashed',
@@ -123,6 +124,8 @@ export function FilterMenu({
                     return (
                       <CommandItem
                         key={option.value}
+                        data-testid={`filter-option-${option.value}`}
+                        data-selected-state={isSelected ? 'on' : 'off'}
                         onSelect={() => toggle(section, option.value)}
                         className="cursor-pointer"
                       >
@@ -149,6 +152,7 @@ export function FilterMenu({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
+                    data-testid="filter-clear"
                     onSelect={clearAll}
                     className="cursor-pointer justify-center text-center"
                   >

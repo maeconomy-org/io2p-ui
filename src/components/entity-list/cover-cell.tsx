@@ -46,6 +46,7 @@ export function CoverCell({
         // Not `alt`-equivalent noise on every row: the placeholder says nothing a screen reader
         // needs, and the name is in the very next cell.
         aria-hidden="true"
+        data-testid="cover-placeholder"
       >
         <ImageIcon className="h-3 w-3 text-muted-foreground/40" />
       </div>
@@ -65,6 +66,7 @@ export function CoverCell({
             className
           )}
           aria-label={t('objects.cover.previewOf', { name: name ?? '' })}
+          data-testid="cover-thumb"
         >
           <img
             src={cover.thumbnailUrl}
@@ -80,6 +82,7 @@ export function CoverCell({
           Radix flips on collision, which is what puts it above the header near the top of a list. */}
       <HoverCardMediaContent side="right" align="center">
         <img
+          data-testid="cover-preview"
           src={cover.thumbnailUrl}
           alt={name ?? ''}
           // The source dimensions come with the ref, so the card opens at the picture's shape

@@ -58,8 +58,12 @@ export function BulkActionBar({
   const t = useTranslations()
 
   return (
-    <FloatingActionBar open={count > 0} label={t('common.bulk.label')}>
-      <span className="px-2 text-sm font-medium">
+    <FloatingActionBar
+      open={count > 0}
+      label={t('common.bulk.label')}
+      data-testid="bulk-bar"
+    >
+      <span className="px-2 text-sm font-medium" data-testid="bulk-count">
         {t('common.bulk.selected', { count })}
       </span>
       <FloatingActionBarSeparator />
@@ -68,6 +72,7 @@ export function BulkActionBar({
         <Button
           key={action.key}
           type="button"
+          data-testid={`bulk-${action.key}`}
           variant="ghost"
           size="sm"
           className="whitespace-nowrap rounded-full"
@@ -85,6 +90,7 @@ export function BulkActionBar({
           variant="ghost"
           size="sm"
           className="whitespace-nowrap rounded-full"
+          data-testid="bulk-restore"
           disabled={busy}
           onClick={onRestore}
         >
@@ -99,6 +105,7 @@ export function BulkActionBar({
           variant="ghost"
           size="sm"
           className="whitespace-nowrap rounded-full text-destructive hover:text-destructive"
+          data-testid="bulk-delete"
           disabled={busy}
           onClick={onDelete}
         >
@@ -115,6 +122,7 @@ export function BulkActionBar({
         size="sm"
         className="whitespace-nowrap rounded-full"
         aria-label={t('common.clearSelection')}
+        data-testid="bulk-clear"
         onClick={onClear}
       >
         <X className="h-3.5 w-3.5" />

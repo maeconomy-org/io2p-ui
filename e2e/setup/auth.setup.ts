@@ -24,7 +24,11 @@ setup('authenticate', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign in with Email' }).click()
 
   await page.waitForURL('**/objects')
-  await expect(page.getByRole('heading', { name: /objects/i })).toBeVisible()
+  // `.first()` — the columns view adds an "All objects" column heading, so an unscoped match is
+  // ambiguous depending on which view the account was last left in.
+  await expect(
+    page.getByRole('heading', { name: /objects/i }).first()
+  ).toBeVisible()
 
   // Onboarding is STATE, not a flow to click past. Seeding the key keeps the tour overlay off the
   // first click of every downstream spec; `15-onboarding` clears it and drives the tours
@@ -32,6 +36,21 @@ setup('authenticate', async ({ page }) => {
   await page.evaluate(() =>
     localStorage.setItem('onboarding:initial-login:v1', 'done')
   )
+
+  // Normalise the list view.
+  //
+  // View preferences are stored PER ACCOUNT on the node, not in this browser — so they outlive the
+  // run, and one spec leaving the account in the columns view means the next run's table specs
+  // find no table. That is not hypothetical: it happened, and it took out four parallel specs at
+  // once because they share this login. A suite has to start from a state it chose.
+  await page.getByTestId('view-option-table').click()
+  await expect(page.getByTestId('data-table')).toBeVisible()
+
+  // Reload and re-check: the click renders the table immediately from local state, but the write
+  // is a PATCH to the node that can still be in flight when this context closes — which aborts it
+  // and leaves the account on whatever it was. Surviving a reload is the only proof it landed.
+  await page.reload()
+  await expect(page.getByTestId('data-table')).toBeVisible()
 
   await page.context().storageState({ path: AUTH_STATE })
 })

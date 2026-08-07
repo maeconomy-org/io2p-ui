@@ -46,6 +46,7 @@ export function ViewSelector<T extends string>({
           <button
             key={option.value}
             type="button"
+            data-testid={`view-option-${option.value}`}
             onClick={() => onChange(option.value as T)}
             aria-pressed={active}
             className={cn(

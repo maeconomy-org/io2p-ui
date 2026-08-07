@@ -34,6 +34,8 @@ interface FloatingActionBarProps {
   level?: FloatingActionBarLevel
   children: ReactNode
   className?: string
+  /** Names WHICH bar, so a spec can tell selection from search when both are stacked. */
+  'data-testid'?: string
 }
 
 /**
@@ -60,6 +62,7 @@ export function FloatingActionBar({
   level = 'base',
   children,
   className,
+  'data-testid': dataTestId,
 }: FloatingActionBarProps) {
   if (!open) return null
 
@@ -73,6 +76,7 @@ export function FloatingActionBar({
       )}
     >
       <div
+        data-testid={dataTestId}
         className={cn(
           'pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-border',
           'bg-card px-2 py-2 shadow-lg sm:gap-2 sm:px-3',

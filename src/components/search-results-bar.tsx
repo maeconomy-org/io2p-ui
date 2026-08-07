@@ -39,13 +39,18 @@ export function SearchResultsBar({
       open={!!searchQuery}
       label={t('objects.searchResults', { query: searchQuery })}
       level={raised ? 'raised' : 'base'}
+      data-testid="search-results-bar"
     >
       <div className="flex min-w-0 items-center gap-2 px-1 sm:pl-2">
         <Search className="h-4 w-4 shrink-0 text-primary" />
         <span className="max-w-[12rem] truncate text-sm font-medium sm:max-w-xs">
           {searchQuery}
         </span>
-        <Badge variant="secondary" className="shrink-0 whitespace-nowrap">
+        <Badge
+          variant="secondary"
+          className="shrink-0 whitespace-nowrap"
+          data-testid="search-results-count"
+        >
           {t('objects.results', { count: resultsCount })}
         </Badge>
       </div>
@@ -57,6 +62,7 @@ export function SearchResultsBar({
         variant="ghost"
         size="sm"
         className="h-8 shrink-0 rounded-full"
+        data-testid="search-clear"
         onClick={onClearSearch}
       >
         <X className="mr-1 h-4 w-4" />

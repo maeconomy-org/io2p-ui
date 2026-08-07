@@ -69,17 +69,33 @@ const IGNORED_CONSOLE = [
   /query-devtools/,
 ]
 
-export const test = base.extend<{ consoleGuard: void; api: ApiRecorder }>({
+/**
+ * Lets a test declare an error it EXPECTS.
+ *
+ * Some correct behaviour logs to the console: navigating to a route that does not exist should
+ * produce a 404. Without this the only ways to keep such a test green are to widen the module-level
+ * ignore list — which then hides real 404s everywhere — or to drop the guard for that file. Both
+ * trade a permanent hole for a local problem.
+ */
+export interface ConsoleGuard {
+  expectError(pattern: RegExp): void
+}
+
+export const test = base.extend<{
+  consoleGuard: ConsoleGuard
+  api: ApiRecorder
+}>({
   consoleGuard: [
     async ({ page }, use, testInfo) => {
       const errors: string[] = []
+      const expected: RegExp[] = []
       const keep = (text: string) =>
         !IGNORED_CONSOLE.some((pattern) => pattern.test(text))
 
       page.on('console', (message) => {
         const text = message.text()
         // `MISSING_MESSAGE` is a next-intl warning, not an error, so the type check alone misses
-        // the single most likely i18n failure — a key that exists in en.json and not in nl.json.
+        // the single most likely i18n failure — a key in en.json and not in nl.json.
         if (
           (message.type() === 'error' || /MISSING_MESSAGE/.test(text)) &&
           keep(text)
@@ -93,9 +109,16 @@ export const test = base.extend<{ consoleGuard: void; api: ApiRecorder }>({
         if (keep(error.message)) errors.push(`pageerror: ${error.message}`)
       })
 
-      await use()
+      await use({
+        expectError: (pattern) => expected.push(pattern),
+      })
 
-      expect(errors, `console errors during "${testInfo.title}"`).toEqual([])
+      const unexpected = errors.filter(
+        (text) => !expected.some((pattern) => pattern.test(text))
+      )
+      expect(unexpected, `console errors during "${testInfo.title}"`).toEqual(
+        []
+      )
     },
     { auto: true },
   ],

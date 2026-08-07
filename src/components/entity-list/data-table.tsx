@@ -203,7 +203,12 @@ export function DataTableColumnToggle({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8"
+          data-testid="column-toggle"
+        >
           {t('objects.bulk.columns')}
           <ChevronDown className="ml-2 h-3 w-3" />
         </Button>
@@ -213,6 +218,7 @@ export function DataTableColumnToggle({
           {columns.map((col) => (
             <DropdownMenuCheckboxItem
               key={col.id}
+              data-testid={`column-option-${col.id}`}
               checked={columnVisibility[col.id] !== false}
               onCheckedChange={(value) =>
                 onColumnVisibilityChange({
@@ -316,7 +322,7 @@ export function DataTable<TData>({
   return (
     <div className="flex flex-col">
       <div className="overflow-hidden rounded-md border">
-        <Table>
+        <Table data-testid="data-table">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -392,6 +398,7 @@ export function DataTable<TData>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
+                  data-testid="data-table-row"
                   data-state={row.getIsSelected() && 'selected'}
                   onClick={() => onRowClick?.(row.original)}
                   onPointerEnter={() => scheduleHover(row.original)}
