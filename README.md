@@ -96,9 +96,9 @@ their equivalent `pnpm verify`.
 
 > **CI is currently dormant here.** `.github/workflows/ci.yml` is `workflow_dispatch` only, because
 > `io2p-client` is consumed as a `file:` dependency that a GitHub runner cannot resolve. The steps
-> are correct and ready; only the triggers are withheld. Until that is fixed, running `pnpm
-fullcheck` locally is not optional. CodeQL and dependency review do run on every PR — neither
-> needs a dependency install.
+> are correct and ready; only the triggers are withheld. Until that is fixed, the local gate is the
+> only gate, so running it is not optional. CodeQL and dependency review do run on every PR —
+> neither needs a dependency install.
 
 ## Project structure
 

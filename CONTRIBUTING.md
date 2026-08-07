@@ -47,10 +47,10 @@ pnpm test:e2e       # Playwright; needs the dev server running
 the two files have identical key sets, so a key added to one and not the other fails CI. Never
 hardcode English in a component.
 
-**One of those keys is not covered by that test.** The footer resolves its labels with
-`t(\`nav.${link.key}\`)`— a template literal, so the checker cannot see which key is actually
-needed. A missing`nav.\*` entry for a new footer link fails at render, in the browser, not in CI.
-Add it deliberately.
+**One of those keys is not covered by that test.** The footer builds its labels from a template
+literal rather than a string constant, so the checker cannot see which key is actually needed. A
+missing `nav.*` entry for a new footer link fails at render, in the browser, not in CI. Add it
+deliberately.
 
 **Every route segment needs `loading.tsx` and `error.tsx`.** Copy `error.tsx` verbatim from
 `src/app/error.tsx` — `src/app/settings/error.tsx` is a byte-identical copy and that is the

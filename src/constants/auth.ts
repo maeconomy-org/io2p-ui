@@ -22,6 +22,7 @@ import {
 export const PUBLIC_PAGES: string[] = [
   '/',
   '/help',
+  '/security',
   '/terms',
   '/privacy',
   '/forgot-password',

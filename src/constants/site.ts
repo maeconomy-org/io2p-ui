@@ -39,8 +39,17 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'import', path: '/import', dataTour: TOUR_ANCHORS.navImport },
 ]
 
-// Footer links
-export const FOOTER_LINKS = [{ key: 'help', path: '/help' }] as const
+// Where to disclose a vulnerability. NOT `config.supportEmail` — that one is
+// per-deployment and defaults to a support desk; this address must match SECURITY.md,
+// security.txt and io2p.org/security, and does not vary by who is hosting.
+export const SECURITY_CONTACT_EMAIL = 'info@maeconomy.org'
+
+// Footer links. The label comes from `nav.<key>` — added dynamically, so the i18n
+// test cannot see it and a missing key fails in the browser, not in CI.
+export const FOOTER_LINKS = [
+  { key: 'help', path: '/help' },
+  { key: 'security', path: '/security' },
+] as const
 
 // Process types (based on actual API model)
 export const PROCESS_TYPES = [

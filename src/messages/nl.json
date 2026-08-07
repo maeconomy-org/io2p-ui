@@ -20,6 +20,7 @@
     "models": "Sjablonen",
     "import": "Importeren",
     "help": "Help",
+    "security": "Beveiliging",
     "signOut": "Afmelden",
     "user": "Gebruiker",
     "certificateAuthenticated": "Certificaat geverifieerd",
@@ -932,6 +933,69 @@
       "Controleer certificaatvervaldatum",
       "Neem contact op met beheerder als problemen aanhouden"
     ]
+  },
+  "security": {
+    "back": "Terug",
+    "title": "Beveiliging",
+    "intro": "Denkt u een beveiligingslek te hebben gevonden, dan horen wij dat graag. Deze pagina legt uit hoe u ons bereikt, wat binnen de reikwijdte valt en wat u kunt verwachten nadat u iets heeft gemeld.",
+    "canonical": "De canonieke, altijd actuele versie van dit beleid staat op",
+    "noPublicIssue": {
+      "title": "Meld een kwetsbaarheid nooit openbaar",
+      "description": "Een openbare melding informeert iedereen — ook wie het zou misbruiken — voordat er een oplossing is om naar te upgraden. Gebruik een van de privékanalen hieronder."
+    },
+    "status": {
+      "title": "Status van het project",
+      "description": "io2p is pre-1.0 en volop in ontwikkeling. Het heeft nog geen externe beveiligingsaudit ondergaan en de API’s en opslagformaten kunnen tussen releases nog veranderen. Draai het achter uw eigen authenticatie- en netwerkgrens en ga er niet van uit dat het gehard is voor productiegebruik."
+    },
+    "report": {
+      "title": "Hoe u meldt",
+      "description": "Twee privékanalen, in volgorde van voorkeur.",
+      "items": [
+        "GitHub private vulnerability reporting — open een concept-advisory op de betreffende repository via github.com/maeconomy-org. Dit heeft de voorkeur: het blijft privé, geeft ons een plek om de oplossing te ontwikkelen en te testen, en regelt de CVE-uitgifte.",
+        "Stuur een e-mail naar {email} als u geen GitHub-account heeft of liever e-mailt. Zet \"security\" in het onderwerp.",
+        "Machineleesbare contactgegevens staan op io2p.org/.well-known/security.txt, conform RFC 9116."
+      ]
+    },
+    "include": {
+      "title": "Wat u meestuurt",
+      "description": "Hoe meer hiervan u kunt geven, hoe sneller wij het kunnen bevestigen en oplossen.",
+      "items": [
+        "Wat het probleem is en wat een aanvaller ermee zou kunnen bereiken",
+        "Stappen om het te reproduceren — bij voorkeur een minimale proof of concept",
+        "De betrokken versie, commit of URL",
+        "Relevante configuratie, logs of verzoeken, met geheimen weggelaten"
+      ]
+    },
+    "expect": {
+      "title": "Wat u van ons kunt verwachten",
+      "description": "Wij zijn een klein team. Heeft u binnen de bevestigingstermijn niets gehoord, stuur dan een herinnering in plaats van aan te nemen dat u genegeerd bent.",
+      "items": [
+        "Binnen 3 werkdagen een bevestiging dat uw melding ons heeft bereikt",
+        "Binnen 10 werkdagen een eerste beoordeling — of wij het kunnen reproduceren en hoe ernstig wij het inschatten",
+        "Voortgangsupdates terwijl wij aan een oplossing werken, en bericht voordat wij iets publiceren",
+        "Vermelding in de advisory, tenzij u liever anoniem blijft — laat ons weten wat u wilt"
+      ]
+    },
+    "scope": {
+      "title": "Reikwijdte",
+      "description": "Binnen de reikwijdte: deze applicatie en de io2p-diensten erachter. Het volgende valt erbuiten.",
+      "items": [
+        "Externe afhankelijkheden — meld die bij het bronproject. Is een probleem in een afhankelijkheid via io2p bereikbaar op een manier die het bronproject niet als kwetsbaarheid ziet, dan valt dat deel wél binnen de reikwijdte.",
+        "Elke installatie die wij niet zelf beheren. io2p is self-hosted software; een specifieke installatie is van wie hem draait.",
+        "Bevindingen van geautomatiseerde scanners zonder aangetoonde impact, ontbrekende hardening-headers zonder aanvalspad, en meldingen die een reeds gecompromitteerde host of fysieke toegang vereisen."
+      ]
+    },
+    "harbour": {
+      "title": "Safe harbour",
+      "description": "Wij ondernemen of ondersteunen geen juridische stappen tegen wie te goeder trouw een kwetsbaarheid meldt en dit beleid volgt. Twijfelt u of iets dat u wilt testen binnen deze lijnen valt, vraag het ons eerst via {email}.",
+      "items": [
+        "Meld privé via een van de bovenstaande kanalen en geef ons redelijke tijd om te reageren",
+        "Test alleen tegen uw eigen installatie of testgegevens — niet die van anderen",
+        "Benader, wijzig of vernietig geen gegevens die niet van u zijn",
+        "Doe geen afbreuk aan de beschikbaarheid van enige dienst",
+        "Maak niets openbaar voordat wij een oplossing hebben kunnen uitbrengen"
+      ]
+    }
   },
   "search": {
     "filters": {
