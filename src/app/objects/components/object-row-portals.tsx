@@ -18,10 +18,6 @@ const DuplicateObjectsSheet = dynamic(
     ),
   { ssr: false }
 )
-const ProductPassportSheet = dynamic(
-  () => import('@/components/passport').then((mod) => mod.ProductPassportSheet),
-  { ssr: false }
-)
 const QRCodeDialog = dynamic(
   () =>
     import('@/components/dialogs/qr-code-dialog').then(
@@ -47,7 +43,7 @@ const ShareEditorSheet = dynamic(
 )
 
 /**
- * The overlays both object lists open from a row or from the selection: details, QR, passport,
+ * The overlays both object lists open from a row or from the selection: details, QR,
  * duplicate, create-template, delete confirms, set-parent and bundle-share.
  *
  * Every one is `dynamic(..., { ssr: false })` and gated on its own state, so nothing here is in the
@@ -75,15 +71,6 @@ export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
           onClose={() => state.setQrTarget(null)}
           uuid={state.qrTarget.id}
           objectName={state.qrTarget.name}
-        />
-      )}
-
-      {state.passportTarget && (
-        <ProductPassportSheet
-          isOpen
-          onClose={() => state.setPassportTarget(null)}
-          uuid={state.passportTarget.id}
-          object={state.passportTarget}
         />
       )}
 

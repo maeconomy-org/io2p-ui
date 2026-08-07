@@ -217,12 +217,12 @@ Logging semantics are above; these rules cover everything else new code instrume
     there is no session yet. It pays for that with the controls an authenticated route gets free —
     a rate limit on the client identifier, a declared-length requirement, a payload cap, a per-batch
     record cap, and a server-side re-scrub. Another anonymous route owes the same five.
-  - **Abuse-bounded** — `/api/address` and `/api/passport/[uuid]/pdf`, behind `tripwire(req)` from
-    `@/lib/http/tripwire` plus an IP-keyed limit from `@/lib/http/rate-limit`. **The tripwire is not
-    authentication**: it decodes without verifying, so anyone can forge one. It filters non-UI
-    traffic and emits a signal; the rate limit is what bounds abuse. Both routes qualify
-    structurally, not by promise — address proxies a public geocoder, and the PDF route renders the
-    request body, so a caller only gets back data they already had.
+  - **Abuse-bounded** — `/api/address`, behind `tripwire(req)` from `@/lib/http/tripwire` plus an
+    IP-keyed limit from `@/lib/http/rate-limit`. **The tripwire is not authentication**: it decodes
+    without verifying, so anyone can forge one. It filters non-UI traffic and emits a signal; the
+    rate limit is what bounds abuse. The route qualifies structurally, not by promise — it proxies a
+    public geocoder, so a caller only gets back data they already had. A new route joins this tier
+    only if it can make the same claim.
   - **Private data** — none today. A route that reads a user's records does NOT get the tripwire. It
     verifies against the issuer's JWKS, or it proxies to io2p-core and lets core verify the token it
     forwards. Do not extend the tripwire to cover it.
@@ -240,7 +240,7 @@ src/
 ├── app/         # Next.js routes — each owns page.tsx, optional loading/error/layout, and components/ (+ hooks/ and lib/ when the logic is route-only, as /import does)
 ├── components/  # Shared UI: ui/ (shadcn primitives) · shell/ (the app frame the layout mounts once) ·
 │              # entity-list/ (list-page kit) · entity-sheet/ · dialogs/ · filters/ · skeletons/ ·
-│              # navbar/ · access/ · passport/ · drafts/ · onboarding/ · global-search/ · upload-center/
+│              # navbar/ · access/ · drafts/ · onboarding/ · global-search/ · upload-center/
 ├── constants/   # Static config, nav items, enums (barrel: index.ts)
 ├── contexts/    # React context providers (barrel: index.ts)
 ├── hooks/       # api/ (io2p + React Query), data/, drafts/, ui/ — barrel per subfolder

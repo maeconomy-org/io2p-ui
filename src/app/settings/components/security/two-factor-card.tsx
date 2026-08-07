@@ -34,7 +34,7 @@ import {
 
 const OTP_SLOT = 'h-11 w-10 text-lg font-semibold'
 
-/** Renders an otpauth:// URI as a QR code (canvas), mirroring passport-qr. */
+/** Renders an otpauth:// URI as a QR code (canvas). */
 function TotpQr({ uri }: { uri: string }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {

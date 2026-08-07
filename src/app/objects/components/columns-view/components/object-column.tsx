@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Copy,
   FileText,
-  IdCard,
   MoreHorizontal,
   QrCode,
   RotateCcw,
@@ -36,7 +35,6 @@ export interface MillerColumnActions {
   onDelete?: (o: ObjectListItem) => void
   onDuplicate?: (o: ObjectListItem) => void
   onShowQRCode?: (o: ObjectListItem) => void
-  onViewPassport?: (o: ObjectListItem) => void
   onCreateTemplate?: (o: ObjectListItem) => void
   onRestore?: (o: ObjectListItem) => void
 }
@@ -76,7 +74,6 @@ export function MillerColumn({
   onDelete,
   onDuplicate,
   onShowQRCode,
-  onViewPassport,
   onCreateTemplate,
   onRestore,
 }: MillerColumnProps) {
@@ -219,14 +216,6 @@ export function MillerColumn({
                           <Copy className="mr-2 h-4 w-4" />
                           {t('objects.actions.copyUuid')}
                         </DropdownMenuItem>
-                        {onViewPassport && (
-                          <DropdownMenuItem
-                            onClick={() => onViewPassport(item)}
-                          >
-                            <IdCard className="mr-2 h-4 w-4" />
-                            {t('objects.actions.viewPassport')}
-                          </DropdownMenuItem>
-                        )}
                         {onShowQRCode && (
                           <DropdownMenuItem onClick={() => onShowQRCode(item)}>
                             <QrCode className="mr-2 h-4 w-4" />

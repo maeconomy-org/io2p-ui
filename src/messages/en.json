@@ -376,45 +376,6 @@
     "results": "{count} result{count, plural, one {} other {s}}",
     "clearSearch": "Clear Search",
     "restoreTitle": "Restore object",
-    "passport": {
-      "untitled": "Untitled object",
-      "sheetDescription": "A read-only product overview built from this object's properties, address, and files.",
-      "lifecycle": "Lifecycle",
-      "warranty": "Warranty",
-      "active": "Active",
-      "expired": "Expired",
-      "expiresIn": "Expires in {days} days",
-      "percentElapsed": "{percent}% elapsed",
-      "inService": "In service",
-      "produced": "Produced",
-      "lastInspection": "Last inspection",
-      "nextMaintenance": "Next maintenance",
-      "expectedLifespan": "Expected lifespan",
-      "documents": "Documents ({count})",
-      "serialTooltip": "Serial number",
-      "days": "{count} {count, plural, one {day} other {days}}",
-      "months": "{count} {count, plural, one {month} other {months}}",
-      "years": "{count} {count, plural, one {year} other {years}}",
-      "emptyTitle": "No passport data yet",
-      "emptyDescription": "Add properties like manufacturer, dimensions or warranty to populate the product passport.",
-      "categories": {
-        "product": "Product",
-        "classification": "Classification",
-        "dimensions": "Dimensions",
-        "composition": "Composition",
-        "appearance": "Appearance",
-        "sustainability": "Sustainability",
-        "commerce": "Commerce",
-        "ownership": "Ownership",
-        "state": "Status",
-        "contact": "Contact",
-        "location": "Location",
-        "meta": "Other",
-        "other": "Other"
-      },
-      "downloadPdf": "Download PDF",
-      "pdfError": "Failed to generate PDF. Please try again."
-    },
     "fields": {
       "uuid": "UUID",
       "name": "Name",
@@ -526,8 +487,7 @@
     },
     "actions": {
       "copyUuid": "Copy UUID",
-      "showQrCode": "QR Code",
-      "viewPassport": "View Passport"
+      "showQrCode": "QR Code"
     },
     "bulk": {
       "setParent": "Set parent",
@@ -591,7 +551,7 @@
     },
     "properties": {
       "detailedView": "Detailed View",
-      "passportView": "Passport Overview",
+      "gridView": "Grid Overview",
       "formula": "Formula",
       "formulaError": "Could not be calculated",
       "showFormula": "Show formula details",

@@ -219,7 +219,6 @@ export default function ObjectsPage() {
             onDelete={state.setObjectToDelete}
             onDuplicate={state.setDuplicateTarget}
             onShowQRCode={state.setQrTarget}
-            onViewPassport={state.setPassportTarget}
             onCreateTemplate={state.templateFromObject.setSource}
             onRestore={state.handleRestore}
           />

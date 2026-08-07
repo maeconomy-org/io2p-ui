@@ -15,7 +15,6 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
 const nextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['@react-pdf/renderer'],
   logging: {
     // Do not forward browser console output to the dev terminal: forwarded
     // lines are annotated with the console CALL SITE, which for a wrapped

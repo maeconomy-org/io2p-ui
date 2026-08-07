@@ -14,7 +14,7 @@ import { logger } from '@/lib/observability/logger'
  *
  * THE RULE: a route behind this may serve NO private data. Both current callers satisfy that
  * structurally rather than by promise — /api/address proxies a public geocoder with a server-held
- * key, and /api/passport/[uuid]/pdf renders a document out of the request body, so the caller can
+ * key, so the caller can
  * only ever get back data they already had. Neither reads a user's records.
  *
  * A future route that touches private data does NOT get this. It gets real JWKS verification

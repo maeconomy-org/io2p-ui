@@ -3,7 +3,7 @@
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Shield, AlertTriangle, Mail } from 'lucide-react'
+import { ArrowRight, Shield, AlertTriangle, Loader2, Mail } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,7 +25,6 @@ import {
   FormControl,
   PasswordInput,
 } from '@/components/ui'
-import { BrickLoader } from '@/components/brick-loader'
 
 /** Remembers which sign-in the user reached for last, so that path is highlighted next time. */
 const LAST_AUTH_METHOD_KEY = 'iom-last-auth-method'
@@ -173,13 +172,12 @@ export default function LoginPage() {
               : 'pointer-events-none opacity-0'
           )}
         >
-          <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
-            <div className="relative">
-              <BrickLoader />
-              {/* <div className="h-16 w-16 rounded-full border-4 border-primary/0" /> */}
-              {/* <Loader2 className="absolute top-0 h-16 w-16 animate-spin text-primary" /> */}
-            </div>
-            <p className="text-sm font-medium animate-pulse text-muted-foreground">
+          <div className="flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300">
+            <Loader2
+              className="h-10 w-10 animate-spin text-primary motion-reduce:animate-none"
+              aria-hidden
+            />
+            <p className="text-sm font-medium text-muted-foreground">
               {t('auth.loading')}
             </p>
           </div>

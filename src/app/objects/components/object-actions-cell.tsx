@@ -1,15 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import {
-  Copy,
-  FileText,
-  IdCard,
-  QrCode,
-  RotateCcw,
-  Share2,
-  Trash2,
-} from 'lucide-react'
+import { Copy, FileText, QrCode, RotateCcw, Share2, Trash2 } from 'lucide-react'
 import type { ObjectListItem } from 'io2p-client'
 
 import {
@@ -21,7 +13,6 @@ import { useAuth } from '@/contexts'
 export interface ObjectRowActions {
   onViewDetails: (object: ObjectListItem) => void
   onShowQRCode: (object: ObjectListItem) => void
-  onViewPassport?: (object: ObjectListItem) => void
   onDuplicate: (object: ObjectListItem) => void
   onCreateTemplate: (object: ObjectListItem) => void
   /** Omitted where sharing has nowhere to open, e.g. an embedded picker. */
@@ -60,14 +51,6 @@ export function ObjectActionsCell({
   const rowActions: EntityRowAction[] = []
 
   if (!readOnly) {
-    if (actions.onViewPassport) {
-      rowActions.push({
-        key: 'view-passport',
-        label: t('objects.actions.viewPassport'),
-        icon: IdCard,
-        onSelect: () => actions.onViewPassport?.(object),
-      })
-    }
     rowActions.push({
       key: 'show-qr',
       label: t('objects.actions.showQrCode'),

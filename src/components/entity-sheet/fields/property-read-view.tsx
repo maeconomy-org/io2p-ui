@@ -105,7 +105,7 @@ export function PropertyReadView({
               {
                 value: 'grid',
                 icon: LayoutGrid,
-                label: t('objects.properties.passportView'),
+                label: t('objects.properties.gridView'),
               },
             ]}
           />

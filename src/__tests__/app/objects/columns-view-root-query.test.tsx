@@ -36,7 +36,6 @@ function renderColumn(parentId: string) {
       onDelete={vi.fn()}
       onDuplicate={vi.fn()}
       onShowQRCode={vi.fn()}
-      onViewPassport={vi.fn()}
       onCreateTemplate={vi.fn()}
       onRestore={vi.fn()}
     />

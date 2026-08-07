@@ -377,45 +377,6 @@
     "clearSearch": "Zoekopdracht wissen",
     "childrenTooltip": "{count} {count, plural, one {kind} other {kinderen}} - dubbelklik om te bekijken",
     "restoreTitle": "Object herstellen",
-    "passport": {
-      "untitled": "Naamloos object",
-      "sheetDescription": "Een alleen-lezen productoverzicht opgebouwd uit de eigenschappen, het adres en de bestanden van dit object.",
-      "lifecycle": "Levenscyclus",
-      "warranty": "Garantie",
-      "active": "Actief",
-      "expired": "Verlopen",
-      "expiresIn": "Verloopt over {days} dagen",
-      "percentElapsed": "{percent}% verstreken",
-      "inService": "In gebruik",
-      "produced": "Geproduceerd",
-      "lastInspection": "Laatste inspectie",
-      "nextMaintenance": "Volgend onderhoud",
-      "expectedLifespan": "Verwachte levensduur",
-      "documents": "Documenten ({count})",
-      "serialTooltip": "Serienummer",
-      "days": "{count} {count, plural, one {dag} other {dagen}}",
-      "months": "{count} {count, plural, one {maand} other {maanden}}",
-      "years": "{count} {count, plural, one {jaar} other {jaar}}",
-      "emptyTitle": "Nog geen paspoortgegevens",
-      "emptyDescription": "Voeg eigenschappen toe zoals fabrikant, afmetingen of garantie om het productpaspoort te vullen.",
-      "categories": {
-        "product": "Product",
-        "classification": "Classificatie",
-        "dimensions": "Afmetingen",
-        "composition": "Samenstelling",
-        "appearance": "Uiterlijk",
-        "sustainability": "Duurzaamheid",
-        "commerce": "Handel",
-        "ownership": "Eigendom",
-        "state": "Status",
-        "contact": "Contact",
-        "location": "Locatie",
-        "meta": "Overig",
-        "other": "Overig"
-      },
-      "downloadPdf": "PDF downloaden",
-      "pdfError": "PDF genereren mislukt. Probeer het opnieuw."
-    },
     "fields": {
       "uuid": "UUID",
       "name": "Naam",
@@ -500,8 +461,7 @@
     },
     "actions": {
       "copyUuid": "UUID kopiëren",
-      "showQrCode": "QR-code tonen",
-      "viewPassport": "Paspoort bekijken"
+      "showQrCode": "QR-code tonen"
     },
     "bulk": {
       "setParent": "Bovenliggend instellen",
@@ -591,7 +551,7 @@
     },
     "properties": {
       "detailedView": "Gedetailleerde weergave",
-      "passportView": "Paspoort overzicht",
+      "gridView": "Rasteroverzicht",
       "formula": "Formule",
       "formulaError": "Kon niet worden berekend",
       "showFormula": "Formuledetails tonen",

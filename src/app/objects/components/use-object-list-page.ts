@@ -40,9 +40,6 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
   )
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [qrTarget, setQrTarget] = useState<ObjectListItem | null>(null)
-  const [passportTarget, setPassportTarget] = useState<ObjectListItem | null>(
-    null
-  )
   const [duplicateTarget, setDuplicateTarget] = useState<ObjectListItem | null>(
     null
   )
@@ -137,7 +134,6 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
         actions: {
           onViewDetails: openDetails,
           onShowQRCode: setQrTarget,
-          onViewPassport: setPassportTarget,
           onDuplicate: setDuplicateTarget,
           onCreateTemplate: setTemplateSource,
           onShare,
@@ -181,8 +177,6 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
     setIsDetailsOpen,
     qrTarget,
     setQrTarget,
-    passportTarget,
-    setPassportTarget,
     duplicateTarget,
     setDuplicateTarget,
     objectToDelete,

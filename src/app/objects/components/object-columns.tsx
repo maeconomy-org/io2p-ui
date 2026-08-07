@@ -18,7 +18,6 @@ import { ObjectActionsCell } from './object-actions-cell'
 export interface ObjectColumnActions {
   onViewDetails: (object: ObjectListItem) => void
   onShowQRCode: (object: ObjectListItem) => void
-  onViewPassport: (object: ObjectListItem) => void
   onDuplicate: (object: ObjectListItem) => void
   onCreateTemplate: (object: ObjectListItem) => void
   onShare?: (object: ObjectListItem) => void
