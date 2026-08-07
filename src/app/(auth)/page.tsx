@@ -211,17 +211,21 @@ export default function LoginPage() {
                     render={({ field }) => (
                       <FormItem className="text-left">
                         <FormLabel>{t('auth.email.label')}</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        {/* The icon wrapper sits OUTSIDE FormControl: it is a Radix Slot, so it
+                            puts `id` on its immediate child — with the div inside, the id landed
+                            there and FormLabel's `htmlFor` pointed at a div, leaving the input
+                            with no label at all. */}
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <FormControl>
                             <Input
                               placeholder={t('auth.email.placeholder')}
                               className="pl-10"
                               disabled={isLoading}
                               {...field}
                             />
-                          </div>
-                        </FormControl>
+                          </FormControl>
+                        </div>
                         <p className="text-red-500 text-sm">
                           {form.formState.errors.email?.message &&
                             (form.formState.errors.email.message.startsWith(

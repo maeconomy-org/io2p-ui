@@ -106,17 +106,19 @@ export default function ForgotPasswordPage() {
                   render={({ field }) => (
                     <FormItem className="text-left">
                       <FormLabel>{t('auth.email.label')}</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      {/* Wrapper outside FormControl — it is a Radix Slot and puts `id` on its
+                          immediate child, so a div here leaves the input unlabelled. */}
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <FormControl>
                           <Input
                             placeholder={t('auth.email.placeholder')}
                             className="pl-10"
                             disabled={submitting}
                             {...field}
                           />
-                        </div>
-                      </FormControl>
+                        </FormControl>
+                      </div>
                       {emailError && (
                         <p className="text-red-500 text-sm">{t(emailError)}</p>
                       )}
