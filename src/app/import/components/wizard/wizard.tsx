@@ -7,7 +7,7 @@ import { Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui'
 
-import { useRunImport } from '@/hooks/api/imports'
+import { useCancelImport, useRunImport } from '@/hooks/api/imports'
 import { useImportWizard } from '@/hooks/import/use-import-wizard'
 
 import { StepUpload } from './step-upload'
@@ -104,6 +104,7 @@ export function Wizard({
   const [step, setStep] = useState(0)
   const wizard = useImportWizard()
   const run = useRunImport()
+  const discard = useCancelImport()
 
   const back = () => setStep((s) => Math.max(0, s - 1))
   const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1))
@@ -145,8 +146,12 @@ export function Wizard({
             }
             onDone={() => {
               if (problems.length > 0) {
-                // Refused: nothing was written, so send them back to the mapping rather than
-                // out of the wizard.
+                // Refused: nothing was written, so send them back to the mapping rather than out
+                // of the wizard. Retire the draft on the way — the next attempt has to `create` a
+                // fresh job, because chunk keys are positional (`${id}:${index}`) and re-staging a
+                // changed mapping into this one would no-op against keys the node has seen. Left
+                // alone it lingers as a fully-staged draft the list offers a doomed Start on.
+                if (run.data?.started === false) discard.mutate(run.data.job.id)
                 run.reset()
                 setStep(2)
                 return

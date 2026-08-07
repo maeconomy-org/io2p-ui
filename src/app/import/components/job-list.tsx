@@ -43,7 +43,9 @@ function buildColumns(t: Translate): ColumnDef<ImportJob, unknown>[] {
         <div className="min-w-0">
           <div className="flex items-center gap-2 font-medium">
             <FileSpreadsheet className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate">{row.original.filename}</span>
+            <span className="truncate">
+              {row.original.filename || t('import.list.untitled')}
+            </span>
           </div>
           <code className="text-xs text-muted-foreground">
             {row.original.id.slice(0, 8)}

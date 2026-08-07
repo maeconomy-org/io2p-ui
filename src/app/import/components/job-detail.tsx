@@ -11,6 +11,7 @@ import {
   Layers,
   Play,
   RotateCcw,
+  Trash2,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -31,6 +32,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui'
+import { DeleteConfirmationDialog } from '@/components/modals/delete-confirmation-dialog'
 
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -259,6 +261,7 @@ export function JobDetail({
   const client = useIomClient()
   const [tab, setTab] = useState('failed')
   const [downloading, setDownloading] = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
   // POLLS while the job is live and stops once it is not — the counters on this screen are the
   // only place a running import reports itself. The row from the list is the initial value, so
   // the page paints immediately instead of flashing empty.
@@ -295,6 +298,8 @@ export function JobDetail({
   // A draft whose rows all landed can still be handed over — the node has them. One that stopped
   // part-way cannot, because resuming needs the original file and the browser no longer has it.
   const isStartable = isDraft && job.staged === job.total && job.total > 0
+  // `filename` is optional on the DTO — a job created without one still has to be nameable.
+  const fileLabel = job.filename || job.id.slice(0, 8)
 
   return (
     <div className="space-y-6">
@@ -312,7 +317,7 @@ export function JobDetail({
           <div>
             <div className="flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-lg font-medium">{job.filename}</h2>
+              <h2 className="text-lg font-medium">{fileLabel}</h2>
               <JobStatusBadge status={job.status} />
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">
@@ -328,6 +333,21 @@ export function JobDetail({
         </div>
 
         <div className="flex shrink-0 gap-2">
+          {/* A draft is the one state with no natural end: core's reaper only sweeps `queued` and
+              `running`, and there is no DELETE — so without this every refused import and every
+              dropped upload sits in the list for good. `cancel` on a draft marks it `cancelled`. */}
+          {isDraft && (
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              disabled={cancel.isPending}
+              onClick={() => setConfirmDiscard(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              {t('import.detail.discard')}
+            </Button>
+          )}
           {isStartable && (
             <Button
               type="button"
@@ -511,6 +531,25 @@ export function JobDetail({
           </span>
         )}
       </div>
+
+      {/* Confirmed because it cannot be undone: a cancelled job can never be started, so a fully
+          staged draft discarded by mistake means uploading the file again. */}
+      <DeleteConfirmationDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        objectName={fileLabel}
+        title={t('import.detail.discardConfirmTitle')}
+        description={t('import.detail.discardConfirmDescription', {
+          file: fileLabel,
+        })}
+        confirmLabel={t('import.detail.discard')}
+        disabled={cancel.isPending}
+        onDelete={() => {
+          cancel.mutate(job.id)
+          setConfirmDiscard(false)
+          onBack()
+        }}
+      />
     </div>
   )
 }

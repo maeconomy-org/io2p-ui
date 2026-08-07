@@ -17,6 +17,7 @@ const imports = {
   validate: vi.fn(),
   start: vi.fn(),
   get: vi.fn(),
+  cancel: vi.fn(),
 }
 
 vi.mock('@/lib/io2p', () => ({
@@ -31,6 +32,7 @@ function primeHappyPath() {
   imports.validate.mockResolvedValue({ ok: true, problems: [] })
   imports.start.mockResolvedValue(JOB)
   imports.get.mockResolvedValue(JOB)
+  imports.cancel.mockResolvedValue({ ...JOB, status: 'cancelled' })
 }
 
 // Published from an effect: assigning a module binding during render is a render side effect.
@@ -93,6 +95,24 @@ describe('import watching', () => {
     })
 
     await waitFor(() => expect(watched.ids).toEqual(['j1']))
+  })
+
+  it('does not watch a run the dry-run refused', async () => {
+    // Nothing was handed over, so there is no job to poll — and the draft it left behind is
+    // retired by the wizard rather than followed to a terminal status that never comes.
+    imports.validate.mockResolvedValue({
+      ok: false,
+      problems: [{ seq: 0, message: 'no such parent' }],
+    })
+    const { result } = renderHook(() => useRunImport(), { wrapper })
+
+    await act(async () => {
+      result.current.mutate({ items: [], filename: 'sheet.xlsx' })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(imports.start).not.toHaveBeenCalled()
+    expect(watched.ids).toEqual([])
   })
 
   it('invalidates the objects list after the import page has unmounted', async () => {

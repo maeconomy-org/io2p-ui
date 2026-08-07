@@ -11,6 +11,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import type {
   ImportItemDTO,
   ImportItemInput,
@@ -21,6 +23,7 @@ import type {
 
 import { useOptionalImportWatch } from '@/contexts/import-watch-context'
 import { useIomClient } from '@/lib/io2p'
+import { iomDetail } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 import { queryKeys } from '@/lib/query-keys'
 
@@ -247,10 +250,16 @@ export function useRunImport() {
  * Only meaningful for a DRAFT that is fully staged — the wizard normally stages and starts in one
  * mutation, so a draft here means the browser closed between the two. The rows are already on the
  * node, which is exactly why this is one call and not a re-upload.
+ *
+ * `start` re-runs the same planner `validate` does and refuses with a 422 naming every bad row, so
+ * a draft that cannot be started says why. Nothing is written before that check: there is no
+ * stored "was this validated" flag to consult, and there should not be — it would be a cached
+ * predicate over rows that further staging can change.
  */
 export function useStartImport() {
   const client = useIomClient()
   const queryClient = useQueryClient()
+  const t = useTranslations()
   return useMutation({
     mutationFn: (id: string) => client.imports.start(id),
     onSuccess: (job: ImportJobDTO) => {
@@ -261,14 +270,25 @@ export function useStartImport() {
         queryKey: queryKeys.imports.lists(),
       })
     },
+    onError: (error, id) => {
+      logger.error('Import start refused', { jobId: id, err: error })
+      const detail = iomDetail(error)
+      toast.error(
+        detail
+          ? t('import.detail.startRefused', { reason: detail })
+          : t('import.detail.startFailed')
+      )
+    },
   })
 }
 
 /**
- * Ask the worker to stop.
+ * Ask the worker to stop — and the only way to retire a DRAFT.
  *
- * Cooperative, and it does NOT undo: objects already created stay, because an append-only store
- * cannot take them back. The item list is how the user finds them.
+ * Cooperative for a running job, and it does NOT undo: objects already created stay, because an
+ * append-only store cannot take them back. On a draft nothing is running, so core marks it
+ * `cancelled` at once and it can never be started. That is the sole disposal route: there is no
+ * DELETE on `/imports/{id}`, and core's reaper only sweeps `queued` and `running`.
  */
 export function useCancelImport() {
   const client = useIomClient()
@@ -282,6 +302,9 @@ export function useCancelImport() {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.imports.lists(),
       })
+    },
+    onError: (error, id) => {
+      logger.error('Import cancel failed', { jobId: id, err: error })
     },
   })
 }
