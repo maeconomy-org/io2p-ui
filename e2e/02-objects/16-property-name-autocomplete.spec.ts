@@ -4,7 +4,6 @@ import {
   openObject,
   goToPropertiesTab,
   enterPropertyEditMode,
-  savePropertyEdits,
   closeSheet,
   getDialog,
 } from '../utils/test-helpers'

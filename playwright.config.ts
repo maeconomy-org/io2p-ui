@@ -2,7 +2,11 @@ import { defineConfig, devices } from '@playwright/test'
 import * as dotenv from 'dotenv'
 import path from 'path'
 
+import { AUTH_STATE } from './e2e/setup/credentials'
+
 dotenv.config({ path: '.env.local' })
+
+const viewport = { width: 1800, height: 1169 }
 
 // Resolve certificate paths to absolute paths
 const certsDir = './certs'
@@ -55,13 +59,26 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        storageState: 'e2e/.auth/user.json',
-        viewport: { width: 1800, height: 1169 },
-      },
+      // Naming a spec `*.read.spec.ts` is an ASSERTION that it creates nothing on the node, which
+      // is what makes running four at once safe. Smoke, i18n, a11y, navigation and empty-state
+      // specs all qualify — roughly a third of the suite.
+      name: 'read',
+      testMatch: /.*\.read\.spec\.ts/,
+      fullyParallel: true,
+      workers: 4,
       dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE, viewport },
+    },
+    {
+      // Everything else mutates shared server state, so it stays serial. Runs after `read` so a
+      // failure in the cheap parallel third reports before the slow half starts.
+      name: 'write',
+      testMatch: /.*\.spec\.ts/,
+      testIgnore: /.*\.read\.spec\.ts/,
+      fullyParallel: false,
+      workers: 1,
+      dependencies: ['setup', 'read'],
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE, viewport },
     },
   ],
   webServer: {

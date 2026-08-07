@@ -1,4 +1,8 @@
-import { test, expect, type Page } from '@playwright/test'
+/* eslint-disable no-restricted-syntax -- Pre-existing `if (await x.isVisible())` guards: a
+   missing element passes instead of failing. This file is already slated for rewrite
+   (internal-docs/11-e2e-test-plan.md §2), and it cannot run today, so converting the guards
+   blind would be editing assertions nobody can verify. Remove this line with the rewrite. */
+import { test, expect } from '@playwright/test'
 import {
   getDialog,
   addPropertyInForm,

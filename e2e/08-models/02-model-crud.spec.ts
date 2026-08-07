@@ -1,3 +1,7 @@
+/* eslint-disable no-restricted-syntax -- Pre-existing `if (await x.isVisible())` guards: a
+   missing element passes instead of failing. This file is already slated for rewrite
+   (internal-docs/11-e2e-test-plan.md §2), and it cannot run today, so converting the guards
+   blind would be editing assertions nobody can verify. Remove this line with the rewrite. */
 import { test, expect } from '@playwright/test'
 
 /**
@@ -201,10 +205,6 @@ test.describe('08 - Model CRUD', () => {
     await page.waitForTimeout(1000)
 
     // Either the row is hidden or shows as deleted with badge
-    const deletedBadge = page
-      .locator('table tbody tr')
-      .filter({ hasText: templateName })
-      .locator('.bg-red-50')
     const rowGone = page
       .locator('table tbody tr')
       .filter({ hasText: templateName })

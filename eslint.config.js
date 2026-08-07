@@ -153,6 +153,52 @@ export default [
     },
   },
   {
+    // E2E specs. Deliberately stricter than `src/__tests__` above, which this
+    // block overrides by coming after it.
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    rules: {
+      // Playwright's fixture signature is `async ({ page }, use) => { await use(x) }`. The rule
+      // reads that parameter as React 19's `use` hook and reports every fixture.
+      'react-hooks/rules-of-hooks': 'off',
+      // An unused import is how a deleted helper announces itself. With this
+      // off, `mock-file-storage` kept importing a hook that no longer existed
+      // and nothing said so for months.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      'no-restricted-syntax': [
+        // Ratchet, per the block above: 30 existing violations, all in specs
+        // that §2 already marks PORT or REWRITE. Promote to 'error' once
+        // `pnpm run lint` reports zero.
+        //
+        // 'warn' is what the repo-wide `lint` sees. lint-staged runs
+        // `--max-warnings 0`, so a file must be clean to be COMMITTED — which
+        // is the ratchet working: legacy files carry a file-level disable
+        // naming the reason, and anything touched from here on has to be
+        // clean.
+        'warn',
+        {
+          // `if (await x.isVisible())` turns a missing element from a failure
+          // into a pass, so the test reports green having asserted nothing —
+          // three of the four import specs never ran a single assertion.
+          // `expect(x).toBeVisible()` auto-retries AND fails on absence.
+          selector:
+            'IfStatement > AwaitExpression CallExpression[callee.property.name=/^(isVisible|isHidden|isEnabled|isDisabled|isChecked|isEditable)$/]',
+          message:
+            'Do not branch on a Playwright state check — the test passes while asserting nothing. Use expect(locator).toBeVisible() etc., which retries and fails on absence. See internal-docs/11-e2e-test-plan.md §2.7.',
+        },
+        {
+          // Same failure, one indirection away.
+          selector:
+            'VariableDeclarator > AwaitExpression CallExpression[callee.property.name=/^(isVisible|isHidden|isEnabled|isDisabled|isChecked|isEditable)$/]',
+          message:
+            'Assigning a Playwright state check to a variable is the same silent-pass pattern as branching on it directly. See internal-docs/11-e2e-test-plan.md §2.7.',
+        },
+      ],
+    },
+  },
+  {
     ignores: [
       'node_modules/**',
       '.next/**',

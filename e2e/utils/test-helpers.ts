@@ -1,3 +1,7 @@
+/* eslint-disable no-restricted-syntax -- Pre-existing `if (await x.isVisible())` guards: a
+   missing element passes instead of failing. This file is already slated for rewrite
+   (internal-docs/11-e2e-test-plan.md §2), and it cannot run today, so converting the guards
+   blind would be editing assertions nobody can verify. Remove this line with the rewrite. */
 import { Page, Locator, expect } from '@playwright/test'
 
 /**
@@ -403,76 +407,6 @@ export async function addExternalReferenceInModal(
 }
 
 /**
- * Find a group card by name, paginating through all pages on `/groups`
- * if needed. The groups page uses server-side pagination (12 per page) with
- * client-side search/filter that only operates on the *current* page, so
- * simply searching does not help when the target group lives on a later page.
- *
- * Returns the visible GroupCard locator. Throws if the group is not found
- * after visiting all pages.
- */
-export async function findGroupCard(
-  page: Page,
-  groupName: string
-): Promise<Locator> {
-  const buildCard = () =>
-    page
-      .locator('[data-testid^="group-card-"]')
-      .filter({ hasText: groupName })
-      .first()
-
-  const isVisible = async () =>
-    buildCard()
-      .isVisible({ timeout: 2000 })
-      .catch(() => false)
-
-  // Wait for at least one card (or empty state) before checking — avoids
-  // racing the initial fetch.
-  await page
-    .locator('[data-testid^="group-card-"]')
-    .first()
-    .waitFor({ state: 'attached', timeout: 10_000 })
-    .catch(() => {})
-
-  if (await isVisible()) return buildCard()
-
-  const nextButton = page.getByRole('button', { name: /^next$/i }).first()
-  // Walk forward until next is disabled or absent.
-  for (let i = 0; i < 20; i++) {
-    const visible = await nextButton.isVisible().catch(() => false)
-    if (!visible) break
-    // Wait for isFetching to clear (button re-enabled) before clicking.
-    await expect(nextButton)
-      .toBeEnabled({ timeout: 10_000 })
-      .catch(() => {})
-    if (await nextButton.isDisabled().catch(() => true)) break
-    await nextButton.click()
-    await page.waitForLoadState('networkidle')
-    if (await isVisible()) return buildCard()
-  }
-
-  // Fallback: reload and try once more from the start (cache may have been
-  // stale on first pass after a mutation in a previous test).
-  await page.reload()
-  await page.waitForLoadState('networkidle')
-  if (await isVisible()) return buildCard()
-  for (let i = 0; i < 20; i++) {
-    const visible = await nextButton.isVisible().catch(() => false)
-    if (!visible) break
-    await expect(nextButton)
-      .toBeEnabled({ timeout: 10_000 })
-      .catch(() => {})
-    if (await nextButton.isDisabled().catch(() => true)) break
-    await nextButton.click()
-    await page.waitForLoadState('networkidle')
-    if (await isVisible()) return buildCard()
-  }
-
-  await expect(buildCard()).toBeVisible({ timeout: 5000 })
-  return buildCard()
-}
-
-/**
  * Add a property during object creation (in the sheet form).
  * Handles both first property ("Add Property") and subsequent
  * properties ("Add Another Property") with scroll support.
@@ -486,7 +420,6 @@ export async function addPropertyInForm(
   // (only emitted when the row is expanded). Adding a new row collapses the
   // existing ones, so counting name inputs sees the count drop transiently.
   const propertyItems = sheet.locator('[data-testid^="property-item-"]')
-  const propertyNameInputs = sheet.locator('[data-testid^="property-name-"]')
   const beforeRows = await propertyItems.count()
 
   if (beforeRows === 0) {

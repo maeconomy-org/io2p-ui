@@ -29,7 +29,8 @@
     "test:e2e:ui": "playwright test --ui",
     "analyze": "ANALYZE=true next build",
     "typecheck": "tsc --noEmit",
-    "fullcheck": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test:run && pnpm run build",
+    "typecheck:e2e": "tsc -p tsconfig.e2e.json",
+    "fullcheck": "pnpm run typecheck && pnpm run typecheck:e2e && pnpm run lint && pnpm run format:check && pnpm run test:run && pnpm run build",
     "prepare": "husky"
   },
   "dependencies": {
