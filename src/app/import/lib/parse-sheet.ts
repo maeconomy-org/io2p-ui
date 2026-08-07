@@ -1,21 +1,13 @@
 /**
  * Read an XLSX or CSV file into rows of TEXT.
  *
- * The old parser produced subtly different rows for the same sheet depending on how it was
- * saved, in three ways, and every one of them reached the import:
+ * THE TWO READERS MUST CONVERGE: every cell is a trimmed string and a blank is `''`, or the same
+ * sheet saved two ways imports differently — a difference nobody sees until the data is written.
+ * Numbers are never coerced: the node stores a value's authored text and derives `num`/`unit`
+ * itself, so coercing here turns `007` into `7` before the normalizer ever sees it.
  *
- *   • a blank cell was `''` from CSV and `null` from XLSX;
- *   • a number was coerced by CSV (`'1974'` → `1974`) and left alone by XLSX;
- *   • a date cell became an ISO timestamp from XLSX and stayed `1974` in CSV.
- *
- * So "the same sheet saved two ways imports differently" — the kind of difference nobody sees
- * until the data is already written. Both readers here converge on ONE normalized shape: every
- * cell is a trimmed string, and a blank is `''`. Numbers are not coerced, because the node stores
- * a value's authored text and derives `num`/`unit` itself — coercing here would turn `007` into
- * `7` and `1.0` into `1` before it ever reached the normalizer.
- *
- * Both parsers are imported dynamically: exceljs and papaparse together are large, and nobody
- * pays for them until they pick a file.
+ * Both parsers load dynamically — exceljs and papaparse are large, and nobody pays until they
+ * pick a file.
  */
 
 import type { ImportMessage, ImportMessageKey } from './messages'
@@ -25,15 +17,9 @@ export interface ParsedSheet {
   /** Every cell trimmed to a string; a blank cell is `''`. */
   rows: string[][]
   /**
-   * The 1-based line each row occupies IN THE FILE, index-aligned with `rows`.
-   *
-   * Kept as a parallel array rather than folded into the row so `rows` stays a plain string[][] —
-   * the preview, the header detector and the suggester all consume it as one.
-   *
-   * It cannot be derived downstream, which is the whole point: rows are trimmed at the ends here
-   * and sliced again at the data row later, so by the time the builder reports "row 12" it has no
-   * way back to what the operator sees in Excel. Everything before this carried an index and
-   * called it a row.
+   * The 1-based line each row occupies IN THE FILE, index-aligned with `rows`. It cannot be
+   * derived downstream — rows are trimmed at the ends here and sliced again at the data row
+   * later, so by then "row 12" has no way back to what the operator sees in Excel.
    */
   rowNumbers: number[]
   /** Best guess at the header row, 0-based. The user can override it. */
@@ -46,10 +32,8 @@ export interface ParseOptions {
 }
 
 /**
- * A refusal the USER is meant to read, carrying a key rather than a sentence.
- *
- * `Error.message` keeps the key so a stack trace and a log line still say which refusal it was;
- * the component renders `t(key, values)`.
+ * A refusal the USER is meant to read. `Error.message` keeps the key so a stack trace still says
+ * which refusal it was; the component renders `t(key, values)`.
  */
 export class SheetParseError extends Error {
   constructor(
@@ -61,21 +45,15 @@ export class SheetParseError extends Error {
   }
 }
 
-/**
- * Fallback ceiling, used only when a caller passes no `maxBytes`.
- *
- * The app always passes one, from runtime config. This exists for direct callers and tests.
- */
+/** Fallback ceiling. The app always passes `maxBytes` from runtime config; this is for tests. */
 const DEFAULT_MAX_BYTES = 100 * 1024 * 1024
 
-// One cell → text. This is the single place the two parsers converge, so a difference between
-// them has one place to be fixed rather than two to be kept in step.
+// The single place the two parsers converge.
 function toText(value: unknown): string {
   if (value === null || value === undefined) return ''
   if (value instanceof Date) return value.toISOString().slice(0, 10)
   if (typeof value === 'object') {
-    // ExcelJS rich text: `{ richText: [{ text }] }`. Also covers a hyperlink cell, whose `text`
-    // is what the operator actually sees in the sheet.
+    // ExcelJS rich text and hyperlink cells both carry what the operator sees under `text`.
     const rich = value as { richText?: { text: string }[]; text?: string }
     if (Array.isArray(rich.richText)) {
       return rich.richText
@@ -92,12 +70,9 @@ function toText(value: unknown): string {
 const isBlankRow = (row: string[]) => row.every((cell) => cell === '')
 
 /**
- * Guess which row holds the headers.
- *
- * Real exports open with a title, a blank line and an "as of" line before the actual header, so
- * assuming row 0 is wrong more often than not. A header row looks like: several non-empty cells,
- * all text, followed by a row of similar width. Only a SUGGESTION — the picker lets the user
- * correct it, because no heuristic survives every sheet.
+ * Guess which row holds the headers: several non-empty text cells followed by a row of similar
+ * width. Real exports open with a title and an "as of" line, so row 0 is wrong more often than
+ * not. A SUGGESTION only — the picker lets the user correct it.
  */
 export function detectHeaderRow(rows: readonly string[][]): number {
   const limit = Math.min(20, rows.length - 1)
@@ -108,8 +83,7 @@ export function detectHeaderRow(rows: readonly string[][]): number {
 
     const filled = row.filter((cell) => cell !== '').length
     if (filled < 2) continue
-    // A header is text; the row under it is the data. If the next row is about as wide, this row
-    // is a header rather than a stray title cell.
+    // If the next row is about as wide, this is a header rather than a stray title cell.
     const nextFilled = next.filter((cell) => cell !== '').length
     if (nextFilled >= Math.max(2, Math.floor(filled * 0.6))) return i
   }
@@ -117,10 +91,8 @@ export function detectHeaderRow(rows: readonly string[][]): number {
 }
 
 /**
- * Drop leading and trailing blank rows; keep interior ones (they may be meaningful gaps).
- *
- * Trims the row NUMBERS in step, which is why they have to arrive here rather than being counted
- * afterwards — the surviving rows no longer start at line 1.
+ * Drop leading and trailing blank rows; keep interior ones. Trims the row NUMBERS in step — the
+ * surviving rows no longer start at line 1.
  */
 function trimBlankRows(
   rows: string[][],
@@ -147,14 +119,10 @@ async function parseCsv(
   const Papa = (await import('papaparse')).default
   const result = Papa.parse<string[]>(text, {
     header: false,
-    // NOT `'greedy'`. That drops every all-empty line INCLUDING interior ones, so a gap in the
-    // middle of a CSV shifted every line number below it — while the XLSX path keeps interior
-    // blanks (`includeEmpty: true`) and reported them correctly. The same sheet saved two ways
-    // gave two different answers to "which row failed", in the one file whose entire job is
-    // making the two readers converge. Blanks are trimmed at the ENDS below, for both.
+    // NOT `'greedy'`: that drops interior blank lines too, shifting every line number below a
+    // gap, while the XLSX path keeps them. Blanks are trimmed at the ENDS below, for both.
     skipEmptyLines: false,
-    // NO `transform`. The old one coerced numbers, which is both a divergence from the XLSX
-    // path and lossy: `007` became `7`.
+    // NO `transform`: coercing numbers diverges from the XLSX path and is lossy — `007` → `7`.
   })
   onProgress?.(80)
 
@@ -193,23 +161,22 @@ async function parseXlsx(
   const sheets: ParsedSheet[] = []
   workbook.eachSheet((worksheet) => {
     const raw: string[][] = []
-    // ExcelJS hands us the real spreadsheet row, which is the number in the operator's row
-    // gutter. Taken rather than counted: `eachRow` can skip rows a workbook never materialised,
-    // so a running counter would drift from what Excel shows.
+    // Taken, not counted: `eachRow` skips rows a workbook never materialised, so a running
+    // counter drifts from the number in the operator's row gutter.
     const numbers: number[] = []
     worksheet.eachRow({ includeEmpty: true }, (row) => {
       const cells: string[] = []
       row.eachCell({ includeEmpty: true }, (cell, columnNumber) => {
-        // A formula cell carries both the formula and its last computed result; the result is
-        // what the operator sees, and the only part that means anything here.
+        // A formula cell carries both the formula and its last result; the result is what the
+        // operator sees.
         const value =
           cell.type === 6 && cell.result !== undefined
             ? cell.result
             : cell.value
         cells[columnNumber - 1] = toText(value)
       })
-      // `eachCell` skips trailing empties, so pad to a rectangle — otherwise a column index
-      // means a different thing on different rows.
+      // `eachCell` skips trailing empties: pad to a rectangle, or a column index means different
+      // things on different rows.
       for (let i = 0; i < cells.length; i += 1) cells[i] ??= ''
       raw.push(cells)
       numbers.push(row.number)

@@ -1,15 +1,10 @@
 /**
- * The BUILDER: mapped spreadsheet rows → the node's import envelope.
+ * Mapped spreadsheet rows → the node's import envelope.
  *
- * This is where the whole feature is decided. Everything upstream is a picker; everything
- * downstream is transport. Core keeps its envelope deliberately dumb — an item is a `tempId`, a
- * type and an ordinary create body, with `parents` naming either a tempId from the same job or a
- * real object id — so every spreadsheet concept has to be resolved HERE. "Levels", "repeating
- * columns", "the deepest row wins" are vocabulary the node has never heard of and must not.
- *
- * Pure and synchronous: no React, no client, no IO. That is what lets it be unit-tested against
- * awkward sheets directly, which matters more here than anywhere else in the flow — a mistake
- * lands as objects in an append-only store, where it can only ever be soft-deleted.
+ * Core's envelope is deliberately dumb — an item is a `tempId`, a type and an ordinary create
+ * body, with `parents` naming either a tempId from the same job or a real object id. So every
+ * spreadsheet concept resolves HERE: "levels", "repeating columns" and "the deepest row wins" are
+ * vocabulary the node has never heard of and must not.
  */
 
 import type { ImportItemInput } from 'io2p-client'
@@ -39,30 +34,20 @@ export interface BuildMapping {
   /** Column index → what it becomes. */
   columns: Record<number, ColumnTarget>
   /**
-   * Hierarchy from REPEATING columns, outermost first: `[Building, Floor, Room]`.
-   *
-   * The commoner municipal shape. Every row is a leaf and repeats its ancestors, so the rows
-   * must be de-duplicated by path prefix into one object per distinct value.
+   * Hierarchy from REPEATING columns, outermost first: `[Building, Floor, Room]`. Every row is a
+   * leaf repeating its ancestors, so rows de-duplicate by path prefix into one object per value.
    */
   levels: number[]
   /**
-   * Which hierarchy level a column's value attaches to.
-   *
-   * Without this, a value lands on the DEEPEST level, which is right for a room's area and wrong
-   * for the building's address — that repeats identically on every one of its rows, so it would
-   * be written onto every room and the building would have none.
+   * Which hierarchy level a column's value attaches to. The default is the DEEPEST — right for a
+   * room's area, wrong for the building's address, which would land on every room and no building.
    */
   attachTo: Record<number, number>
   /** An existing object every ROOT item hangs under. */
   destination: string | null
 }
 
-/**
- * A row the builder refused, addressed by its line in the file.
- *
- * The reason is a KEY, not a sentence: this module is pure and must not reach for a locale, and a
- * test that asserts `problem.key` survives a copy edit that one asserting prose does not.
- */
+/** A row the builder refused, addressed by its line in the file. */
 export interface BuildProblem extends ImportMessage {
   row: number
 }
@@ -74,43 +59,32 @@ export interface BuildResult {
 }
 
 /**
- * Joins the segments of a level path into a tempId.
- *
- * U+0000, not `/`. A path is identity here — `Northgate House/EG/A` addresses one object — so a
- * separator that can appear IN a cell lets two different paths collide: a building literally named
- * `Blok A/B` with floor `C` produced the same tempId as building `Blok A` with floor `B/C`, and
- * the two objects silently MERGED into one. No spreadsheet cell contains a NUL.
+ * Level-path separator. U+0000, never `/`: a path is identity, so a separator that can appear IN a
+ * cell lets two paths collide — building `Blok A/B` + floor `C` and building `Blok A` + floor
+ * `B/C` produce one tempId and the objects merge. No spreadsheet cell contains a NUL.
  */
 const PATH_SEP = '\u0000'
 
 /**
- * A tempId as a HUMAN reads it. Every screen that shows one must go through this.
+ * A tempId as a HUMAN reads it. EVERY screen showing one must go through this — a browser renders
+ * U+0000 as zero pixels, so the raw id displays as `Northgate HouseEGA`.
  *
- * U+0000 is right for identity and travels to core intact, but a browser renders it as NOTHING —
- * so `Northgate House<NUL>EG<NUL>A` displayed as `Northgate HouseEGA`, and the same raw bytes went
- * into a CSV beside the BOM added so Excel would behave. The separator exists to stop two distinct
- * paths colliding; unrendered, the collision came straight back at the display layer.
- *
- * ` / ` reintroduces exactly that ambiguity for a building literally named `Blok A/B`. Accepted
- * HERE and only here: this string is read, never compared and never sent. Identity keeps the NUL.
+ * ` / ` reintroduces the ambiguity the NUL exists to prevent. Accepted here and only here: this
+ * string is read, never compared and never sent. Identity keeps the NUL.
  */
 export function formatTempId(tempId: string | undefined): string {
-  // Optional on the DTO, so the callers do not each need their own guard.
   return (tempId ?? '').split(PATH_SEP).join(' / ')
 }
 
 /**
- * Does this parent reference name an object that already exists, rather than a row in this sheet?
- *
- * Core's envelope takes either in `parents[]`, so a sheet whose parent column holds real object
- * ids is legitimate — it is the same mechanism `destination` uses. Without this check every one of
- * those rows was reported as naming a parent "no row declares".
+ * A parent reference may name an object that already exists rather than a row in this sheet —
+ * core's `parents[]` takes either, so a parent column holding real ids is legitimate.
  */
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-// A cell can arrive as a string, a number, or a Date (ExcelJS). Anything empty is ABSENT, not
-// an empty value: core requires a value to carry `data`, so `{ data: '' }` is rejected per row.
+// A cell arrives as a string, a number, or a Date (ExcelJS). Empty means ABSENT, not an empty
+// value: core rejects `{ data: '' }` per row.
 function cellText(value: unknown): string {
   if (value === null || value === undefined) return ''
   if (value instanceof Date) return value.toISOString()
@@ -159,11 +133,8 @@ interface Draft {
   level: number
   parentTempId: string | null
   /**
-   * The sheet row this draft was FIRST seen on.
-   *
-   * Carried so a problem found after the row loop — an unresolvable parent — can still name a line
-   * the operator can open. Without it those were reported as row 0, i.e. no row at all, in the one
-   * report whose only job is saying where to look.
+   * The sheet row this draft was FIRST seen on, so a problem found after the row loop — an
+   * unresolvable parent — can still name a line the operator can open.
    */
   sourceRow: number
   description?: string
@@ -219,8 +190,8 @@ function applyCell(
       return
     }
     case 'fileUrl': {
-      // De-dupe: a building's plan repeats on every one of its rows, so without this a building
-      // built from 40 rows would carry the same link 40 times.
+      // A building's plan repeats on every one of its rows: without de-duping, a building built
+      // from 40 rows carries the same link 40 times.
       if (!draft.files.some((f) => f.reference.url === text)) {
         draft.files.push({
           kind: 'reference',
@@ -249,8 +220,6 @@ function toItem(draft: Draft, destination: string | null): ImportItemInput {
   if (draft.parentTempId) {
     parents.push(draft.parentTempId)
   } else if (destination) {
-    // A real object id alongside tempIds is exactly what core's envelope allows, so "import
-    // everything under this object" needs no new surface — it is a parent on every root.
     parents.push(destination)
   }
 
@@ -279,15 +248,11 @@ function toItem(draft: Draft, destination: string | null): ImportItemInput {
 }
 
 /**
- * Build the envelope.
+ * Build the envelope. Two hierarchy shapes, one output — core sees only the item list either way:
  *
- * Two hierarchy shapes, one output. Core sees only the item list either way, and has no notion of
- * which shape produced it:
- *
- *   • LEVELS — repeating columns. Rows are de-duplicated by path prefix, so 3 rows over
+ *   • LEVELS — repeating columns, de-duplicated by path prefix, so 3 rows over
  *     `Building/Floor/Room` become 1 + 2 + 3 = 6 objects.
- *   • KEYS — the sheet already carries ids. One row is one object; the parent column names
- *     another row's key.
+ *   • KEYS — the sheet carries ids; the parent column names another row's key. One row, one object.
  *   • Neither — one row, one object, flat.
  */
 export function buildItems(
@@ -295,12 +260,9 @@ export function buildItems(
   mapping: BuildMapping,
   headers: readonly string[] = [],
   /**
-   * The real file line for each row, from the parser. Index-aligned with `rows`.
-   *
-   * Optional so the pure tests can pass rows alone, but the app always supplies it: `rows` here is
-   * already a slice starting at the DATA row, so counting `index + 1` reports "row 1" for what the
-   * operator sees as row 7, and every number in the failure report is off by the header and any
-   * preamble above it.
+   * The real file line for each row, index-aligned with `rows`. Optional so tests can pass rows
+   * alone, but the app must supply it: `rows` is already sliced to the DATA row, so `index + 1`
+   * reports "row 1" for what the operator sees as row 7.
    */
   rowNumbers: readonly number[] = []
 ): BuildResult {
@@ -316,12 +278,9 @@ export function buildItems(
   const useLevels = mapping.levels.length > 0
 
   rows.forEach((row, index) => {
-    // The number printed in the operator's spreadsheet — the only address they can act on when a
-    // row fails. From the parser when we have it; `index + 1` is a fallback for direct callers.
     const sheetRow = rowNumbers[index] ?? index + 1
 
     if (useLevels) {
-      // Walk the levels outermost-first, creating or reusing a draft per distinct path prefix.
       const segments: string[] = []
       let parentTempId: string | null = null
       let deepest: Draft | null = null
@@ -352,10 +311,8 @@ export function buildItems(
 
       // Non-hierarchy columns land on the level they were assigned, defaulting to the deepest.
       for (const [column, target] of targets) {
-        // A LEVEL column is already expressed as the object's name and its place in the tree.
-        // Writing it as a property too gives every floor a `gebäude: Northgate House` beside a
-        // parent link that says the same thing, and a `geschoss: Erdgeschoss` beside its own
-        // name — noise on every imported object, in the section the operator reads first.
+        // A level column is already the object's name and its place in the tree; writing it as a
+        // property too gives every floor a `gebäude: Northgate House` beside its own parent link.
         if (mapping.levels.includes(column)) continue
         const level = mapping.attachTo[column]
         const owner =
@@ -397,31 +354,23 @@ export function buildItems(
     }
   })
 
-  // A parent that resolves to neither a row in this sheet nor an existing object can never be
-  // satisfied, and core refuses the WHOLE job at staging when it sees one. So these rows are
-  // dropped here rather than sent: the alternative is uploading every item and then having the
-  // entire import rejected for a typo the user was already shown.
+  // An unsatisfiable parent makes core refuse the WHOLE job at staging, so these rows are dropped
+  // here rather than sent.
   //
-  // A FIXPOINT, not one pass. Dropping a row orphans its children, and theirs, to unbounded
-  // depth — and a single pass tested `drafts.has(parent)` against the map it was not removing
-  // from, so a child of a dropped row still looked satisfied and shipped with a parent tempId
-  // that was no longer in `items`. Core then refused the whole job, which is the exact outcome
-  // this block exists to prevent.
+  // A FIXPOINT, not one pass: dropping a row orphans its children, and theirs, to unbounded depth.
+  // Testing `drafts.has(parent)` in a single pass reads a map this loop never deletes from, so a
+  // child of a dropped row still looks satisfied and ships with a dangling parent.
   //
-  // KEYS MODE ONLY, in practice: a levels-mode parent is a path prefix created earlier in the
-  // same walk, so it is in `drafts` by construction and can never be missing.
-  //
-  // O(n²) accepted: a row is only recognised once its parent is marked, so a sheet listing children
-  // ABOVE their parents resolves one per scan. A children index would make it linear.
+  // O(n²) accepted: a row is recognised only once its parent is marked, so a sheet listing children
+  // above their parents resolves one per scan. A children index would make it linear.
   const orphans = new Set<string>()
   for (let changed = true; changed; ) {
     changed = false
     for (const draft of drafts.values()) {
       if (orphans.has(draft.tempId)) continue
       const parent = draft.parentTempId
-      // A UUID is a real object id, which core's envelope accepts alongside tempIds — the same
-      // mechanism `destination` uses. It is not declared by any row and must not be treated as
-      // missing. Whether the caller may actually read it is core's answer to give, not ours.
+      // A UUID is a real object id, not declared by any row — never missing. Whether the caller
+      // may read it is core's answer, not ours.
       if (!parent || UUID_RE.test(parent)) continue
 
       const missing = !drafts.has(parent)
@@ -429,9 +378,6 @@ export function buildItems(
 
       orphans.add(draft.tempId)
       changed = true
-      // Two different facts, so two different sentences. Telling the user their parent "is not a
-      // row in this sheet" when it plainly is — it was just refused itself — sends them looking
-      // for a typo that is not there.
       problems.push({
         row: draft.sourceRow,
         key: missing

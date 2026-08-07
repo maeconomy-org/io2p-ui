@@ -28,21 +28,14 @@ import type {
 } from '@/app/import/hooks/use-import-wizard'
 
 /**
- * One screen, one decision per column: what does this column become?
+ * One screen, one decision per column. Every column is a row carrying its own header, its real
+ * sample values and its target, so the question and the evidence sit on the same line.
  *
- * The old mapper split this across a Select above the table and two number inputs inside it, so
- * you set a value in one place and checked the result in another. Here every column is a row
- * carrying its own header, its real sample values and its target — the question and the evidence
- * for answering it are in the same line.
- *
- * A column is never silently dropped. Anything not claimed by a field falls through to a
- * property, which is one click to remove and visible while you decide; an unmapped column is data
- * the operator brought and the import threw away without saying so.
+ * A column is never silently dropped: anything no field claims falls through to a property.
  */
 
-// One list: the `value` is what the mapping stores AND what names the label. Module scope cannot
-// call `t`, and a parallel label array inside the component would be a second place to keep in
-// step.
+// The `value` is what the mapping stores AND what names the label — module scope cannot call `t`,
+// and a parallel label array would be a second place to keep in step.
 const TARGETS = [
   'skip',
   'name',
@@ -53,8 +46,6 @@ const TARGETS = [
   'address.houseNumber',
   'address.postalCode',
   'address.city',
-  // `state` is part of the address model and was the one part with no way to map it: a sheet with
-  // a province or Bundesland column had to drop it or file it as an ordinary property.
   'address.state',
   'address.country',
   'fileUrl',
@@ -71,15 +62,10 @@ const SPLITS = [
 ]
 
 /**
- * The message key for a target's label.
- *
- * NOT just `targets.<value>`. next-intl reserves `.` for nesting, so `targets['address.street']`
- * is an invalid KEY and it refuses the whole message file at provider construction — the app fails
- * to render, not just this select. The address parts therefore live under their own `addressPart`
- * group, which they cannot share with `address`: that is already a leaf ("Address (whole cell)"),
- * and a key cannot be both a string and an object.
- *
- * `addressPart` is not invented for this — it is the `ColumnTarget.kind` these values become.
+ * NOT just `targets.<value>`: next-intl reserves `.` for nesting, so `targets['address.street']`
+ * is an invalid KEY and it refuses the whole message file at provider construction — the APP fails
+ * to render, not just this select. Address parts live under their own `addressPart` group, which
+ * they cannot share with `address`: that is already a leaf, and a key cannot be both.
  */
 function targetLabelKey(value: string): string {
   return value.startsWith('address.')
@@ -109,11 +95,10 @@ function toTarget(value: string, column: WizardColumn): ColumnTarget | null {
 }
 
 /**
- * Why this column's target will do nothing, or `null` when it is fine.
+ * Why this column's target will do nothing, or `null`.
  *
- * `key` and `parent` are the two targets that can be mapped and then silently ignored, and the
- * builder gives no sign of it: `applyCell` returns early for identity columns, so the value is not
- * written as a property either — it simply disappears.
+ * `key` and `parent` can be mapped and then silently ignored: `applyCell` returns early for
+ * identity columns, so the value is not written as a property either — it disappears.
  *
  *  • With LEVELS on, the hierarchy comes from the level columns and both are discarded outright.
  *  • With no levels and no `parent` column, a `key` names the row's tempId and nothing ever
@@ -163,8 +148,6 @@ function ColumnRow({
             </Badge>
           )}
         </div>
-        {/* The real first values, not a placeholder. A mapping decision is impossible without
-            seeing what is actually in the column. */}
         <p className="truncate text-xs text-muted-foreground">
           {column.samples.join(' · ') || t('import.map.noValues')}
         </p>
@@ -199,8 +182,6 @@ function ColumnRow({
           </Select>
         )}
 
-        {/* Which level a value belongs to. Only meaningful once a hierarchy exists, and only for
-            a column that is not itself a level. */}
         {wizard.levels.length > 0 && !isLevel && target && (
           <Select
             value={String(wizard.attachTo[column.index] ?? 'deepest')}
@@ -329,22 +310,16 @@ function DestinationField({ wizard }: { wizard: ImportWizard }) {
 export function StepMap({ wizard }: { wizard: ImportWizard }) {
   const t = useTranslations()
   /**
-   * ASKED FOR, never volunteered.
+   * ASKED FOR, never volunteered — and NOT a tuning problem, so do not make it automatic again.
    *
-   * This used to appear on its own the moment a sheet had two repeating columns, and on a real
-   * municipal asset register — 16 sheets of trees, hedges, pipes, street lights — it fired on TEN
-   * of them, every time wrongly. It proposed turning 200 grass areas into 3 objects, 200 street
-   * lights into 3, and one sheet of paving into 466 objects from 200 rows.
+   * Volunteered, it fired on TEN of 16 sheets of a real municipal asset register and was wrong
+   * every time: 200 grass areas → 3 objects, one paving sheet → 466 objects from 200 rows. The
+   * test asks "do these columns partition the rows?", which data can answer; the question is "is
+   * this value a CONTAINER for that one?", which it cannot. `Gebouw › Verdieping` and
+   * `BEHEERGROEP › AANLEGJAAR` are identical in the numbers. Three discriminators were tried.
    *
-   * The cause is not a tuning problem. The test behind it asks "do these columns partition the
-   * rows?", which is answerable from data; the real question is "is this column's value a
-   * CONTAINER for that one's?", which is not. `Gebouw › Verdieping` and `BEHEERGROEP › AANLEGJAAR`
-   * are identical in the numbers, and only one of them is a hierarchy. Excluding measurements,
-   * capping the depth and requiring a minimum group size were all tried and none separates them.
-   *
-   * So it is behind a button. A wrong suggestion carries the system's authority and is destructive
-   * when accepted — every non-level column folds onto the deepest level, so 200 rows collapsing to
-   * 3 objects silently merges 197 rows' data away.
+   * Accepting a wrong one is destructive: every non-level column folds onto the deepest level, so
+   * 200 rows collapsing to 3 silently merges 197 rows' data away.
    */
   const [asked, setAsked] = useState(false)
 
@@ -385,8 +360,7 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
         </p>
       </div>
 
-      {/* ASKED FOR. A quiet line explaining what a level IS, and a button — never a proposal
-          that arrives on its own. See the note on `asked` for the evidence behind that. */}
+      {/* ASKED FOR, never a proposal that arrives on its own — see the note on `asked`. */}
       {canAsk && (
         <div className="flex items-start gap-3 rounded-md border bg-muted/30 p-3">
           <Layers className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -399,8 +373,8 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
                     {unusedSuggestion.map((c) => columnName(c)).join(' › ')}
                   </span>
                 </p>
-                {/* The number is the point. Naming columns tells nobody anything; "200 rows would
-                    become 3 objects" is wrong at a glance. */}
+                {/* The COUNT is the point: "200 rows would become 3 objects" is wrong at a
+                    glance, where a list of column names is not. */}
                 <p className="text-xs tabular-nums text-muted-foreground">
                   {t('import.map.suggestionEffect', {
                     rows: wizard.dataRows.length,

@@ -3,13 +3,10 @@
 /**
  * The wizard's state: file → sheet → header row → mapping → items.
  *
- * One hook rather than state spread across five steps, because every value downstream depends on
- * one upstream: changing the header row re-reads the columns, which re-suggests the mapping,
- * which changes what gets built. Held in a single place, that cascade is a `useMemo` chain; held
- * per step it is a set of effects that fire in an order nobody can predict.
+ * ONE hook, not state per step: every value downstream depends on one upstream, so held together
+ * the cascade is a `useMemo` chain and held apart it is effects firing in an unpredictable order.
  *
- * Nothing here talks to the network. The hook produces `ImportItemInput[]`; `useRunImport` sends
- * them.
+ * Nothing here talks to the network — it produces `ImportItemInput[]`; `useRunImport` sends them.
  */
 
 import { useCallback, useMemo, useState } from 'react'
@@ -35,13 +32,8 @@ const PREVIEW_ROWS = 50
 const SAMPLE_ROWS = 200
 
 /**
- * The caps this deployment advertises, from runtime config.
- *
- * Read here rather than imported as constants: both were hardcoded (a 100 MB literal in the parser,
- * and an unused `MAX_OBJECTS_PER_IMPORT`), so `MAX_IMPORT_FILE_SIZE_MB` and `MAX_OBJECTS_PER_IMPORT`
- * could be set on a deployment and change nothing — the env var went into `__IOM_CONFIG__` and no
- * code ever read it back. A limit nobody enforces is worse than no limit: it is a promise the UI
- * makes and the node breaks.
+ * The caps this deployment advertises, from runtime config — never constants. A limit nobody reads
+ * back is worse than no limit: a promise the UI makes and the node breaks.
  */
 function importLimits() {
   const config = getCachedConfig() ?? DEFAULT_CLIENT_CONFIG
@@ -114,10 +106,9 @@ export function useImportWizard() {
         seedMapping(first, first.suggestedHeaderRow)
         return true
       } catch (cause) {
-        // A SheetParseError is OUR refusal — too big, wrong extension, no data — and its message
-        // is already on screen. Anything else came out of exceljs or papaparse and is the only
-        // evidence of why a real file failed; without this it became "That file could not be
-        // read" and vanished. Name and size, never the contents.
+        // A SheetParseError is OUR refusal and already on screen. Anything else came from exceljs
+        // or papaparse and is the only evidence of why a real file failed. Name and size, never
+        // the contents.
         if (!(cause instanceof SheetParseError)) {
           logger.error('import_parse_failed', {
             err: cause,
@@ -162,13 +153,9 @@ export function useImportWizard() {
   )
 
   /**
-   * Move where the data starts, never above the header.
-   *
-   * The picker offers a "data" button on every row, including rows ABOVE the header, and the raw
-   * setter accepted them: `dataRows` is `rows.slice(dataRow)`, so choosing an earlier row swept the
-   * preamble AND THE HEADER ROW ITSELF into the data — the header line was imported as an object
-   * named `Building`. Clamped here rather than at the one call site, so a second caller cannot
-   * reintroduce it.
+   * Move where the data starts, never above the header. `dataRows` is `rows.slice(dataRow)`, so an
+   * earlier row sweeps the preamble AND THE HEADER into the data and imports an object named
+   * `Building`. Clamped here, not at the call site, so a second caller cannot reintroduce it.
    */
   const selectDataRow = useCallback(
     (index: number) => setDataRow(Math.max(index, headerRow + 1)),
@@ -185,9 +172,8 @@ export function useImportWizard() {
     [sheet, dataRow]
   )
 
-  // Sliced with the SAME bound as `dataRows`, because the two are index-aligned and the builder
-  // reads a row's number by its position. Slicing one without the other reports every failure
-  // against the wrong line, and nothing would surface the drift.
+  // SAME bound as `dataRows`: the two are index-aligned and the builder reads a row's number by
+  // position, so slicing one without the other reports every failure against the wrong line.
   const dataRowNumbers = useMemo(
     () => sheet?.rowNumbers.slice(dataRow) ?? [],
     [sheet, dataRow]
@@ -197,8 +183,8 @@ export function useImportWizard() {
     () =>
       headers.map((header, index) => ({
         index,
-        // Raw and possibly empty: a blank header has one answer on screen (translated) and another
-        // in the data (`columnLabel`). A fallback baked in here can only serve one of them.
+        // Raw and possibly empty: a blank header reads one way on screen (translated) and another
+        // in the data (`columnLabel`), and a fallback here can only serve one.
         header,
         samples: dataRows
           .slice(0, 20)
@@ -215,11 +201,8 @@ export function useImportWizard() {
   )
 
   /**
-   * The built envelope — recomputed from the WHOLE sheet, not the preview.
-   *
-   * This is the number the wizard shows ("import 1,847 objects"), so it has to be derived rather
-   * than estimated: with hierarchy on, the object count is not the row count, and a hardcoded
-   * figure keeps claiming the old total after a level is removed.
+   * The built envelope, from the WHOLE sheet rather than the preview. This is the number the
+   * wizard shows, and with a hierarchy on the object count is not the row count.
    */
   const built = useMemo(
     () => buildItems(dataRows, mapping, headers, dataRowNumbers),
@@ -260,12 +243,7 @@ export function useImportWizard() {
     setProgress(0)
   }, [])
 
-  /**
-   * Why the wizard cannot continue yet, or `null`.
-   *
-   * A REASON rather than a boolean, so it can be shown next to the disabled button instead of
-   * left to be guessed at.
-   */
+  /** Why the wizard cannot continue, or `null` — a REASON, so it can sit beside the dead button. */
   const blockedBecause = useMemo((): ImportMessage | null => {
     if (!sheet) return { key: 'import.blocked.noFile' }
     const named =
@@ -274,14 +252,13 @@ export function useImportWizard() {
     if (!named) return { key: 'import.blocked.noName' }
     if (built.items.length === 0)
       return { key: 'import.blocked.createsNothing' }
-    // Counted on OBJECTS, not rows: with a hierarchy on, 1,200 rows become 1,847 objects, and the
-    // node's cap is on what gets created. Refused here rather than after staging every item.
+    // Counted on OBJECTS, not rows: the node's cap is on what gets created, and with a hierarchy
+    // on 1,200 rows become 1,847 objects.
     const { maxObjects } = importLimits()
     if (built.items.length > maxObjects) {
       return {
         key: 'import.blocked.tooManyObjects',
-        // Numbers stay NUMBERS: next-intl formats them for the active locale, so a Dutch user
-        // sees 1.847 rather than the 1,847 a `toLocaleString('en-US')` here would have forced.
+        // Numbers stay NUMBERS so next-intl formats them for the active locale.
         values: { count: built.items.length, limit: maxObjects },
       }
     }

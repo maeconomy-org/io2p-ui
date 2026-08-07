@@ -1,18 +1,10 @@
 /**
- * What the import's pure layers say, as DATA rather than sentences.
+ * The pure layers emit a key and its values; the component calls `t(key, values)`. Keeps
+ * `parse-sheet`, `build-items` and `use-import-wizard` free of a locale, and keeps their tests
+ * asserting `problem.key` rather than prose any copy edit breaks.
  *
- * `parse-sheet`, `build-items` and `use-import-wizard` all produce text a user reads, and all
- * three are logic: no React, no `next-intl`, unit-tested against awkward sheets directly. Emitting
- * an English string there would either drag a locale into a pure module or leave the feature
- * permanently monolingual below the component line — which is what it did.
- *
- * So they emit a key and its values, and the component calls `t(key, values)`. Same shape as
- * `saveErrorMessage` in `lib/io2p-errors.ts`, for the same reason: the message stays comparable in
- * a test (`expect(problem.key).toBe(…)`) instead of being asserted as prose that any copy edit
- * breaks.
- *
- * The union is explicit so a key that no longer exists in the message files is a type error rather
- * than a "import.problem.whatever" rendered raw on screen.
+ * The union is explicit so a key missing from the message files is a type error rather than
+ * "import.problem.whatever" rendered raw on screen.
  */
 
 export type ImportMessageKey =
@@ -27,8 +19,8 @@ export type ImportMessageKey =
   | 'import.problem.nameBlank'
   | 'import.problem.duplicateKey'
   | 'import.problem.parentUnresolved'
-  // Distinct from the above: the parent WAS declared, it was just refused itself. Sending the
-  // operator to look for a typo that is not there is worse than saying nothing.
+  // Distinct: the parent WAS declared, it was just refused itself. Sending the operator hunting a
+  // typo that is not there is worse than saying nothing.
   | 'import.problem.parentDropped'
   // wizard preconditions
   | 'import.blocked.noFile'

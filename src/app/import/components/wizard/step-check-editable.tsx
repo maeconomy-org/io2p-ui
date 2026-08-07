@@ -21,42 +21,25 @@ import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
 import type { BuildProblem } from '@/app/import/lib/build-items'
 
 /**
- * NOT WIRED IN. An alternative Check step, kept so the fix-in-place interaction can be judged
- * against the read-only one that ships — swap it for `StepCheck` in `wizard.tsx` to try it.
+ * NOT WIRED IN. An alternative Check step, kept so fix-in-place can be judged against the
+ * read-only one that ships — swap it for `StepCheck` in `wizard.tsx` to try it.
  *
- * ── What this is a copy of ────────────────────────────────────────────────────────────────────
- * The original lived in `/import-lab` (1f0f9e2) and was a MOCK: it read a five-row fixture, its
- * faults were two hardcoded entries in a `SEEDED` map, and its edits lived in local state that fed
- * nothing. When the wizard was wired to the real node, the editing went and the step became the
- * read-only report that ships today.
+ * THE FORK: this edits ROWS, the shipped step shows OBJECTS. With a hierarchy on those differ —
+ * `buildItems` folds every row sharing a path prefix into one object, so a building built from 40
+ * rows has no single cell to edit. A row is the only unit where "click the cell and fix it" has
+ * one meaning.
  *
- * ── What is different here ────────────────────────────────────────────────────────────────────
- * The faults are REAL — `wizard.problems`, from the same `buildItems` that produces the payload —
- * and each is mapped back to the column that caused it, so "fix this cell" points somewhere true.
- * That mapping is the part the mock never had to solve, and it is what makes this worth judging.
- *
- * ── The design fork, stated so it is decided rather than discovered ───────────────────────────
- * This edits ROWS. The shipped step shows OBJECTS, and with a hierarchy on those are different
- * things: `buildItems` folds every row sharing a path prefix into one object, so a building built
- * from 40 rows has no single cell to edit. A row is the only unit where "click the cell and fix
- * it" has one unambiguous meaning — which is also why the sheet, not the tree, is what you see.
- *
- * ── Why it is still a demo ────────────────────────────────────────────────────────────────────
- * Edits are local and feed NOTHING. Making them real means an overlay keyed by (row, column),
- * applied to the parsed rows before `buildItems` and invalidated when the header row moves — a
- * second source of truth beside the file, with its own lifecycle. That is the decision this
- * component exists to inform, not one it makes.
+ * STILL A DEMO: edits are local and feed nothing. Making them real means an overlay keyed by
+ * (row, column), applied before `buildItems` and invalidated when the header row moves — a second
+ * source of truth beside the file. That is the decision this component exists to inform.
  */
 
 type View = 'all' | 'valid' | 'invalid'
 
 /**
- * Which column is a problem ABOUT?
- *
- * `BuildProblem` names a row and a reason, not a cell — the builder has no reason to care. But an
- * editable grid must put the marker somewhere, and putting it on the whole row is what makes a
- * 60-column sheet unfixable. Each reason has exactly one responsible column, and the mapping
- * already says which one it is.
+ * Which column is a problem ABOUT? `BuildProblem` names a row and a reason, not a cell, but an
+ * editable grid has to put the marker somewhere — and on the whole row a 60-column sheet is
+ * unfixable. Each reason has exactly one responsible column.
  */
 function columnOf(problem: BuildProblem, wizard: ImportWizard): number | null {
   const kindOf = (kind: 'name' | 'key' | 'parent') => {

@@ -16,17 +16,9 @@ import { StepMap } from './step-map'
 import { StepCheck } from './step-check'
 import { StepImport } from './step-import'
 
-/**
- * Five steps, not six.
- *
- * `Structure` was a separate step while hierarchy was chosen apart from mapping. Once a level is
- * just another thing a column can be, declaring it belongs with every other column decision — and
- * the tree it produces is already visible in Check, where the rows are the objects themselves.
- */
-// Labels come from `import.steps.<id>`, built from the id — so a prune that only greps for a
-// literal translator call will not see them. Do not delete that namespace by name search.
-// (Written without an example call on purpose: the usage collector in the messages test would
-// read one in a comment as a real key, which is exactly the false positive it just caught.)
+// Labels come from `import.steps.<id>`, built from the id — a prune that greps for a literal
+// translator call will not see them. Do not delete that namespace by name search. (No example
+// call written here on purpose: the messages test's collector would read one as a real key.)
 const STEPS = [
   { id: 'upload' },
   { id: 'sheet' },
@@ -35,13 +27,7 @@ const STEPS = [
   { id: 'import' },
 ] as const
 
-/**
- * Clickable back to any step already visited, never forward.
- *
- * Today's stepper is decoration — the only way back is a Back button at the bottom of the page,
- * so correcting the header row from the preview means two blind clicks. A step you have completed
- * is a place you can return to; a step you have not is not yet meaningful.
- */
+/** Clickable back to any step already visited, never forward. */
 function Stepper({
   current,
   onJump,
@@ -110,12 +96,9 @@ export function Wizard({
   const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1))
 
   /**
-   * Why Continue is unavailable, per step — and `null` when it is fine.
-   *
-   * The condition has to be scoped to the step that owns it. A single shared `disabled` blocked
-   * the Sheet step too, which has nothing to say about names: a dead button on a screen with no
-   * visible problem. Returning the REASON rather than a boolean also forces it to be sayable, so
-   * it can be shown next to the button instead of left to be guessed at.
+   * Why Continue is unavailable, per step. Scoped to the step that OWNS the condition — one shared
+   * `disabled` also blocked Sheet, which has nothing to say about names. A reason rather than a
+   * boolean, so it can sit beside the button.
    */
   const blockedBecause = step === 2 ? wizard.blockedBecause : null
 
@@ -146,11 +129,10 @@ export function Wizard({
             }
             onDone={() => {
               if (problems.length > 0) {
-                // Refused: nothing was written, so send them back to the mapping rather than out
-                // of the wizard. Retire the draft on the way — the next attempt has to `create` a
-                // fresh job, because chunk keys are positional (`${id}:${index}`) and re-staging a
-                // changed mapping into this one would no-op against keys the node has seen. Left
-                // alone it lingers as a fully-staged draft the list offers a doomed Start on.
+                // Nothing was written, so go back to the mapping, not out of the wizard. Retire
+                // the draft on the way: chunk keys are positional (`${id}:${index}`), so
+                // re-staging a changed mapping into this job would no-op against keys the node has
+                // already seen.
                 if (run.data?.started === false) discard.mutate(run.data.job.id)
                 run.reset()
                 setStep(2)
