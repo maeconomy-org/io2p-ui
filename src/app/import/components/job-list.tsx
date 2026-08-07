@@ -11,12 +11,9 @@ import { DataTable } from '@/components/entity-list'
 import { endedWithoutRunning, useImports } from '@/hooks/api/imports'
 
 import type { ImportJob } from '../types'
-import {
-  JobStatusBadge,
-  OutcomeBar,
-  formatClock,
-  formatDuration,
-} from './job-bits'
+import { formatClock, formatDuration } from './format'
+import { JobStatusBadge } from './job-status-badge'
+import { OutcomeBar } from './outcome-bar'
 
 /** Matches the node's own list default, so page 1 needs no size round-trip to look right. */
 const PAGE_SIZE = 20

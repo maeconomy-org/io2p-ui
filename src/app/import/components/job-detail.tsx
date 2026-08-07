@@ -51,13 +51,9 @@ import { useIomClient } from '@/lib/io2p'
 import { logger } from '@/lib/observability/logger'
 
 import type { ImportItem, ImportJob } from '../types'
-import {
-  JobStatusBadge,
-  OutcomeBar,
-  formatClock,
-  formatDuration,
-  n,
-} from './job-bits'
+import { formatClock, formatDuration, n } from './format'
+import { JobStatusBadge } from './job-status-badge'
+import { OutcomeBar } from './outcome-bar'
 
 /**
  * The number that answers "did it work?" — deliberately bigger than the percentage, which only
