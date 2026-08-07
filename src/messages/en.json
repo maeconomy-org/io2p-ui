@@ -1271,7 +1271,6 @@
       "makeLevel": "Make level",
       "attachDeepest": "on the deepest level",
       "attachTo": "on {level}",
-      "suggestion": "These columns repeat down the sheet, so they may describe a hierarchy:",
       "useHierarchy": "Use as hierarchy",
       "clearHierarchy": "Clear hierarchy",
       "rowsBecomeObjects": "{rows, number} rows become {objects, number} objects",
@@ -1309,7 +1308,11 @@
       "inert": {
         "levelsWin": "Ignored — the hierarchy comes from the level columns, so this value is not imported.",
         "noParent": "Does nothing on its own — map another column to “Parent key” for this to link rows."
-      }
+      },
+      "levelsExplainer": "Does a column repeat down the sheet — a building named on every one of its rooms? Mark those columns as levels and each repeated value becomes a parent.",
+      "askForSuggestion": "Suggest a hierarchy",
+      "proposal": "These columns repeat and each one splits the rows further:",
+      "noneFound": "No column repeats in a way that looks like a hierarchy. Mark one yourself if you know better."
     },
     "check": {
       "title": "Check what will be created",

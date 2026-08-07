@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 
 import { useMemo, useState } from 'react'
-import { FolderTree, Layers, Sparkles, X } from 'lucide-react'
+import { FolderTree, Layers, X } from 'lucide-react'
 
 import {
   Badge,
@@ -325,34 +325,52 @@ function DestinationField({ wizard }: { wizard: ImportWizard }) {
 
 export function StepMap({ wizard }: { wizard: ImportWizard }) {
   const t = useTranslations()
+  /**
+   * ASKED FOR, never volunteered.
+   *
+   * This used to appear on its own the moment a sheet had two repeating columns, and on a real
+   * municipal asset register — 16 sheets of trees, hedges, pipes, street lights — it fired on TEN
+   * of them, every time wrongly. It proposed turning 200 grass areas into 3 objects, 200 street
+   * lights into 3, and one sheet of paving into 466 objects from 200 rows.
+   *
+   * The cause is not a tuning problem. The test behind it asks "do these columns partition the
+   * rows?", which is answerable from data; the real question is "is this column's value a
+   * CONTAINER for that one's?", which is not. `Gebouw › Verdieping` and `BEHEERGROEP › AANLEGJAAR`
+   * are identical in the numbers, and only one of them is a hierarchy. Excluding measurements,
+   * capping the depth and requiring a minimum group size were all tried and none separates them.
+   *
+   * So it is behind a button. A wrong suggestion carries the system's authority and is destructive
+   * when accepted — every non-level column folds onto the deepest level, so 200 rows collapsing to
+   * 3 objects silently merges 197 rows' data away.
+   */
+  const [asked, setAsked] = useState(false)
+
   const unusedSuggestion = wizard.suggestedLevels.filter(
     (column) => !wizard.levels.includes(column)
   )
-  const hasSuggestion =
-    wizard.levels.length === 0 && unusedSuggestion.length > 0
+  const canAsk = wizard.levels.length === 0
+  const showProposal = asked && canAsk && unusedSuggestion.length > 0
+  const askedAndFoundNothing = asked && canAsk && unusedSuggestion.length === 0
+
   /** A column with a blank header still has to be nameable in a sentence. */
   const columnName = (index: number) =>
     wizard.headers[index] || t('import.map.unnamedColumn', { index: index + 1 })
 
   /**
-   * What accepting the suggestion would actually produce.
+   * What accepting would actually produce — the one part of this a person can judge.
    *
-   * The banner used to name columns and stop there, which is not something anyone can judge: two
-   * columns that partition the rows look identical to a hierarchy and to two unrelated
-   * categories, and no test on the DATA can tell them apart — a management group is not inside a
-   * planting decade, but the numbers say it could be. The object COUNT is the thing a person can
-   * evaluate at a glance. 60 beds becoming 12 objects is obviously wrong; 1,200 rows becoming
-   * 1,847 is obviously right.
+   * Naming columns tells you nothing: the numbers behind a real hierarchy and a pair of unrelated
+   * categories are the same. "200 rows would become 3 objects" is instantly, obviously wrong.
    */
   const suggestedCount = useMemo(
     () =>
-      hasSuggestion
+      showProposal
         ? countItems(wizard.dataRows, {
             ...wizard.mapping,
             levels: unusedSuggestion,
           })
         : 0,
-    [hasSuggestion, wizard.dataRows, wizard.mapping, unusedSuggestion]
+    [showProposal, wizard.dataRows, wizard.mapping, unusedSuggestion]
   )
 
   return (
@@ -364,32 +382,66 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
         </p>
       </div>
 
-      {/* OFFERED, never applied. Accepting this changes how many objects get created, which is
-          too consequential to arrive as a decision already made. */}
-      {hasSuggestion && (
+      {/* ASKED FOR. A quiet line explaining what a level IS, and a button — never a proposal
+          that arrives on its own. See the note on `asked` for the evidence behind that. */}
+      {canAsk && (
         <div className="flex items-start gap-3 rounded-md border bg-muted/30 p-3">
-          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <Layers className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1 space-y-2">
-            <p className="text-sm">
-              {t('import.map.suggestion')}{' '}
-              <span className="font-medium">
-                {unusedSuggestion.map((c) => columnName(c)).join(' › ')}
-              </span>
-            </p>
-            <p className="text-xs tabular-nums text-muted-foreground">
-              {t('import.map.suggestionEffect', {
-                rows: wizard.dataRows.length,
-                objects: suggestedCount,
-              })}
-            </p>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => wizard.setLevels(unusedSuggestion)}
-            >
-              {t('import.map.useHierarchy')}
-            </Button>
+            {showProposal ? (
+              <>
+                <p className="text-sm">
+                  {t('import.map.proposal')}{' '}
+                  <span className="font-medium">
+                    {unusedSuggestion.map((c) => columnName(c)).join(' › ')}
+                  </span>
+                </p>
+                {/* The number is the point. Naming columns tells nobody anything; "200 rows would
+                    become 3 objects" is wrong at a glance. */}
+                <p className="text-xs tabular-nums text-muted-foreground">
+                  {t('import.map.suggestionEffect', {
+                    rows: wizard.dataRows.length,
+                    objects: suggestedCount,
+                  })}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => wizard.setLevels(unusedSuggestion)}
+                  >
+                    {t('import.map.useHierarchy')}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setAsked(false)}
+                  >
+                    {t('common.cancel')}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm">{t('import.map.levelsExplainer')}</p>
+                {askedAndFoundNothing ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t('import.map.noneFound')}
+                  </p>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAsked(true)}
+                  >
+                    {t('import.map.askForSuggestion')}
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

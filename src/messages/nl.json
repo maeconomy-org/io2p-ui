@@ -1271,7 +1271,6 @@
       "makeLevel": "Maak niveau",
       "attachDeepest": "op het diepste niveau",
       "attachTo": "op {level}",
-      "suggestion": "Deze kolommen herhalen zich in het blad, dus ze beschrijven mogelijk een hiërarchie:",
       "useHierarchy": "Gebruik als hiërarchie",
       "clearHierarchy": "Hiërarchie wissen",
       "rowsBecomeObjects": "{rows, number} rijen worden {objects, number} objecten",
@@ -1309,7 +1308,11 @@
       "inert": {
         "levelsWin": "Genegeerd — de hiërarchie komt uit de niveaukolommen, dus deze waarde wordt niet geïmporteerd.",
         "noParent": "Doet op zichzelf niets — koppel een andere kolom aan “Sleutel bovenliggend” om rijen te verbinden."
-      }
+      },
+      "levelsExplainer": "Herhaalt een kolom zich door het blad — een gebouw dat bij elk van zijn ruimtes staat? Markeer die kolommen als niveaus; elke herhaalde waarde wordt dan een bovenliggend object.",
+      "askForSuggestion": "Stel een hiërarchie voor",
+      "proposal": "Deze kolommen herhalen zich en splitsen de rijen telkens verder op:",
+      "noneFound": "Geen kolom herhaalt zich op een manier die op een hiërarchie lijkt. Markeer er zelf een als jij het beter weet."
     },
     "check": {
       "title": "Controleer wat er wordt aangemaakt",
