@@ -8,7 +8,7 @@ import { FileSpreadsheet, Upload } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { DataTable } from '@/components/entity-list'
 
-import { useImports } from '@/hooks/api/imports'
+import { endedWithoutRunning, useImports } from '@/hooks/api/imports'
 
 import type { ImportJob } from '../types'
 import {
@@ -81,6 +81,15 @@ function buildColumns(t: Translate): ColumnDef<ImportJob, unknown>[] {
                 })}
               </p>
             </div>
+          )
+        }
+        // Same reason as the draft branch above, for a job that ended without running: an
+        // OutcomeBar reading "0 created … of 500" says every row failed, not that none were tried.
+        if (endedWithoutRunning(job)) {
+          return (
+            <span className="text-sm text-muted-foreground">
+              {t('import.list.nothingAttempted')}
+            </span>
           )
         }
         return (

@@ -314,4 +314,15 @@ export function importSuccessRate(job: ImportJobDTO): number {
   return job.total === 0 ? 0 : Math.round((job.ok / job.total) * 100)
 }
 
+/**
+ * Over, having attempted nothing — so it has counters but no outcome.
+ *
+ * Discarding a draft made this reachable: core keeps `total` as the history entry and deletes the
+ * staged rows, leaving `cancelled` with every counter at zero. Read as an outcome that is "all
+ * zero, no failures", which reports as total success.
+ */
+export function endedWithoutRunning(job: ImportJobDTO): boolean {
+  return isTerminal(job.status) && job.processed === 0
+}
+
 export type { ImportItemDTO, ImportJobDTO, ImportItemInput }

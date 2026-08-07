@@ -1340,6 +1340,7 @@
     "list": {
       "subtitle": "Every import you have run. A job keeps running if you close the tab.",
       "untitled": "Untitled import",
+      "nothingAttempted": "Nothing attempted",
       "emptyTitle": "No imports yet",
       "emptyDescription": "Load objects from a spreadsheet, keeping their hierarchy.",
       "flat": "Flat",
@@ -1364,6 +1365,9 @@
       "failedOnly": "{failed, number} {failed, plural, one {row} other {rows}} could not be created.",
       "failedAndSkipped": "{failed, number} {failed, plural, one {row} other {rows}} could not be created and {skipped, number} were skipped because a parent failed.",
       "startImport": "Start import",
+      "nothingCreated": "Nothing was created",
+      "discardedHint": "This import was discarded before it ran. Its {total, number} staged rows were removed; the entry stays as a record that it happened.",
+      "neverRanHint": "This import ended before it attempted a single row.",
       "startRefused": "This import cannot be started: {reason}",
       "startFailed": "This import could not be started. Please try again.",
       "discard": "Discard",

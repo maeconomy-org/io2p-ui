@@ -1340,6 +1340,7 @@
     "list": {
       "subtitle": "Elke import die je hebt uitgevoerd. Een taak loopt door als je het tabblad sluit.",
       "untitled": "Naamloze import",
+      "nothingAttempted": "Niets geprobeerd",
       "emptyTitle": "Nog geen imports",
       "emptyDescription": "Laad objecten uit een spreadsheet, met hun hiërarchie intact.",
       "flat": "Vlak",
@@ -1364,6 +1365,9 @@
       "failedOnly": "{failed, number} {failed, plural, one {rij kon} other {rijen konden}} niet worden aangemaakt.",
       "failedAndSkipped": "{failed, number} {failed, plural, one {rij kon} other {rijen konden}} niet worden aangemaakt en {skipped, number} zijn overgeslagen omdat een bovenliggend object mislukte.",
       "startImport": "Import starten",
+      "nothingCreated": "Er is niets aangemaakt",
+      "discardedHint": "Deze import is verworpen voordat hij liep. De {total, number} geüploade rijen zijn verwijderd; de vermelding blijft staan als bewijs dat het gebeurd is.",
+      "neverRanHint": "Deze import is geëindigd voordat er ook maar één rij is geprobeerd.",
       "startRefused": "Deze import kan niet worden gestart: {reason}",
       "startFailed": "Deze import kon niet worden gestart. Probeer het opnieuw.",
       "discard": "Verwerpen",

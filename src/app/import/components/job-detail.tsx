@@ -39,6 +39,7 @@ import { toast } from 'sonner'
 
 import {
   ITEMS_PAGE_SIZE,
+  endedWithoutRunning,
   useCancelImport,
   useImportItems,
   useImportJob,
@@ -77,6 +78,24 @@ function Headline({ job }: { job: ImportJob }) {
         </p>
         <p className="text-sm text-muted-foreground">
           {t('import.detail.draftHint')}
+        </p>
+      </div>
+    )
+  }
+
+  // A terminal job that never attempted a row has no outcome to report, and the branch below
+  // would tell the operator every row of a discarded import was created. Reachable since
+  // discarding a draft became possible: it keeps `total` as history but never runs.
+  if (endedWithoutRunning(job)) {
+    return (
+      <div className="space-y-1">
+        <p className="text-3xl font-semibold">
+          {t('import.detail.nothingCreated')}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {job.status === 'cancelled'
+            ? t('import.detail.discardedHint', { total: job.total })
+            : t('import.detail.neverRanHint')}
         </p>
       </div>
     )
