@@ -18,7 +18,7 @@ import {
   detectHeaderRow,
   parseSheetFile,
   SheetParseError,
-} from '@/lib/import/parse-sheet'
+} from '@/app/import/lib/parse-sheet'
 
 function csv(text: string): File {
   return new File([text], 'export.csv', { type: 'text/csv' })

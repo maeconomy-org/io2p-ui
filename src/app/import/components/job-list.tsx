@@ -6,7 +6,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { FileSpreadsheet, Upload } from 'lucide-react'
 
 import { Button } from '@/components/ui'
-import { DataTable } from '@/components/tables'
+import { DataTable } from '@/components/entity-list'
 
 import { useImports } from '@/hooks/api/imports'
 

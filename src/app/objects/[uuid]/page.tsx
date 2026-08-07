@@ -16,7 +16,7 @@ import {
   EntityTable,
   useEntityListFilters,
   useEntityListQuery,
-} from '@/components/tables'
+} from '@/components/entity-list'
 import { ContentSkeleton } from '@/components/skeletons'
 
 import { ObjectBulkBar } from '../components/object-bulk-bar'

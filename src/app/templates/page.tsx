@@ -25,11 +25,11 @@ import {
   useEntityListActions,
   useEntityListFilters,
   useEntityListQuery,
-} from '@/components/tables'
+} from '@/components/entity-list'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { useTemplates } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
-import { DeleteConfirmationDialog } from '@/components/modals'
+import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { anchor } from '@/constants'
 import { PageHelp } from '@/components/onboarding/page-help'
 import {

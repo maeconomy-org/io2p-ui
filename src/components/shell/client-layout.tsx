@@ -4,19 +4,22 @@ import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
 import Navbar from '@/components/navbar'
-import Footer from '@/components/footer'
+import Footer from '@/components/shell/footer'
 import { useKeyboardShortcuts } from '@/hooks/use-theme-shortcut'
 import { PUBLIC_PAGES } from '@/constants'
 
 // client-layout wraps EVERY route, so a static import here put driver.js + its CSS in the shared
 // bundle for pages that never run a tour.
-const TourRunner = dynamic(() => import('./onboarding/tour-runner'), {
-  ssr: false,
-})
+const TourRunner = dynamic(
+  () => import('@/components/onboarding/tour-runner'),
+  {
+    ssr: false,
+  }
+)
 // Mounted here rather than on /objects: the tour points at the navbar, which is on every page, and
 // a first login that lands on a deep link used to get no onboarding at all.
 const InitialLoginTour = dynamic(
-  () => import('./onboarding/initial-login-tour'),
+  () => import('@/components/onboarding/initial-login-tour'),
   { ssr: false }
 )
 

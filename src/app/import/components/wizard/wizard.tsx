@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui'
 
 import { useCancelImport, useRunImport } from '@/hooks/api/imports'
-import { useImportWizard } from '@/hooks/import/use-import-wizard'
+import { useImportWizard } from '@/app/import/hooks/use-import-wizard'
 
 import { StepUpload } from './step-upload'
 import { StepSheet } from './step-sheet'

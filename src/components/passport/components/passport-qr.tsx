@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import QRCodeStyling from 'qr-code-styling'
 
-import { buildQrCodeConfig } from '@/components/modals/qr-code-config'
+import { buildQrCodeConfig } from '@/lib/qr-code'
 import { logger } from '@/lib/observability/logger'
 import { cn } from '@/lib/utils'
 

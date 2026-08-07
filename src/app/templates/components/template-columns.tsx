@@ -13,7 +13,7 @@ import {
   OwnerCell,
   textColumn,
   timestampColumn,
-} from '@/components/tables'
+} from '@/components/entity-list'
 
 import {
   TemplateActionsCell,

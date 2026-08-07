@@ -19,7 +19,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui'
-import { OwnerCell } from '@/components/tables'
+import { OwnerCell } from '@/components/entity-list'
 import { useConstants } from '@/hooks/api/leaves'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'

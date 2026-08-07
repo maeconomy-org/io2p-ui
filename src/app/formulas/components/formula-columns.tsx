@@ -16,7 +16,7 @@ import {
   selectColumn,
   textColumn,
   timestampColumn,
-} from '@/components/tables'
+} from '@/components/entity-list'
 
 export interface FormulaColumnActions {
   onViewDetails: (formula: FormulaDTO) => void

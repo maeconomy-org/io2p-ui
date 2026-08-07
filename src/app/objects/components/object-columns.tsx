@@ -11,7 +11,7 @@ import {
   nameColumn,
   selectColumn,
   timestampColumn,
-} from '@/components/tables'
+} from '@/components/entity-list'
 
 import { ObjectActionsCell } from './object-actions-cell'
 

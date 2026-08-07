@@ -19,7 +19,7 @@ vi.mock('@/hooks/api/leaves', () => ({
   }),
 }))
 
-vi.mock('@/components/tables', () => ({
+vi.mock('@/components/entity-list', () => ({
   OwnerCell: () => <span>owner</span>,
 }))
 

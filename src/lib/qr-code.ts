@@ -7,11 +7,6 @@ import type {
 
 const LOGO_SRC = '/maeconomy-logo-short.svg'
 
-export function buildObjectQrUrl(uuid: string): string {
-  if (typeof window === 'undefined') return uuid
-  return `${window.location.origin}/objects/${uuid}`
-}
-
 interface BuildQrConfigArgs {
   data: string
   size?: number

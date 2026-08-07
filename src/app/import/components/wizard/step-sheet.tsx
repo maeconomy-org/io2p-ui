@@ -6,7 +6,7 @@ import { Sparkles } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Badge, Table, TableBody, TableCell, TableRow } from '@/components/ui'
-import type { ImportWizard } from '@/hooks/import/use-import-wizard'
+import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
 
 /** Rows of the raw grid to show. Enough to find a header past any preamble. */
 const GRID_ROWS = 12

@@ -5,7 +5,7 @@ import {
   buildItems,
   columnLabel,
   deriveKey,
-} from '@/lib/import/build-items'
+} from '@/app/import/lib/build-items'
 
 /**
  * tempIds are level segments joined by U+0000, not '/'. Spelled once here: a test that hardcodes

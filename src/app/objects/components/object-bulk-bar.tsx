@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { FolderTree, Share2 } from 'lucide-react'
 
-import { BulkActionBar } from '@/components/tables'
+import { BulkActionBar } from '@/components/entity-list'
 
 import type { ObjectListPageState } from './use-object-list-page'
 

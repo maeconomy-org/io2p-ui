@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 
-import { DeleteConfirmationDialog } from '@/components/modals'
+import { DeleteConfirmationDialog } from '@/components/dialogs'
 
 import type { ObjectListPageState } from './use-object-list-page'
 
@@ -22,13 +22,16 @@ const ProductPassportSheet = dynamic(
   () => import('@/components/passport').then((mod) => mod.ProductPassportSheet),
   { ssr: false }
 )
-const QRCodeModal = dynamic(
+const QRCodeDialog = dynamic(
   () =>
-    import('@/components/modals/qr-code-modal').then((mod) => mod.QRCodeModal),
+    import('@/components/dialogs/qr-code-dialog').then(
+      (mod) => mod.QRCodeDialog
+    ),
   { ssr: false }
 )
 const TemplateCreationDialog = dynamic(
-  () => import('@/components/modals').then((mod) => mod.TemplateCreationDialog),
+  () =>
+    import('@/components/dialogs').then((mod) => mod.TemplateCreationDialog),
   { ssr: false }
 )
 const BulkParentDialog = dynamic(
@@ -67,7 +70,7 @@ export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
       )}
 
       {state.qrTarget && (
-        <QRCodeModal
+        <QRCodeDialog
           isOpen
           onClose={() => state.setQrTarget(null)}
           uuid={state.qrTarget.id}

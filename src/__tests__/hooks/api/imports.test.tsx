@@ -8,7 +8,7 @@ import {
   ImportWatchProvider,
   useOptionalImportWatch,
 } from '@/contexts/import-watch-context'
-import { ImportWatchers } from '@/components/import-watchers'
+import { ImportWatchers } from '@/components/shell/import-watchers'
 import { queryKeys } from '@/lib/query-keys'
 
 const imports = {

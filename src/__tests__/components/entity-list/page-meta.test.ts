@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Page } from 'io2p-client'
 
-import { pageMeta } from '@/components/tables/page-meta'
+import { pageMeta } from '@/components/entity-list/page-meta'
 
 const page = (over: Partial<Page<unknown>['page']>): Page<unknown> => ({
   data: [],

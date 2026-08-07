@@ -12,7 +12,10 @@ import {
 } from 'lucide-react'
 import type { ObjectListItem } from 'io2p-client'
 
-import { EntityActionsCell, type EntityRowAction } from '@/components/tables'
+import {
+  EntityActionsCell,
+  type EntityRowAction,
+} from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 
 export interface ObjectRowActions {

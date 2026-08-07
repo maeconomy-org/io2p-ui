@@ -6,7 +6,7 @@ import { AlertTriangle, Loader2, Upload } from 'lucide-react'
 
 import { Alert, AlertDescription, Progress } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import type { ImportWizard } from '@/hooks/import/use-import-wizard'
+import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
 import { useAppConfig } from '@/contexts/query-context'
 
 /**

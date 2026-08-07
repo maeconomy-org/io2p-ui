@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
-import { useEntityListQuery } from '@/components/tables/use-entity-list-query'
+import { useEntityListQuery } from '@/components/entity-list/use-entity-list-query'
 
 describe('useEntityListQuery', () => {
   it('starts from defaults', () => {

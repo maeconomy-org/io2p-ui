@@ -16,21 +16,21 @@ import {
 } from '@/components/ui'
 import { logger } from '@/lib/observability/logger'
 
-import { buildQrCodeConfig } from './qr-code-config'
+import { buildQrCodeConfig } from '@/lib/qr-code'
 
-interface QRCodeModalProps {
+interface QRCodeDialogProps {
   isOpen: boolean
   onClose: () => void
   uuid: string
   objectName: string
 }
 
-export function QRCodeModal({
+export function QRCodeDialog({
   isOpen,
   onClose,
   uuid,
   objectName,
-}: QRCodeModalProps) {
+}: QRCodeDialogProps) {
   const qrCodeRef = useRef<HTMLDivElement>(null)
   const qrCodeInstanceRef = useRef<QRCodeStyling | null>(null)
   const [qrRendered, setQrRendered] = useState(false)

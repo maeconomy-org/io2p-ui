@@ -16,7 +16,7 @@ import {
   selectColumn,
   textColumn,
   timestampColumn,
-} from '@/components/tables'
+} from '@/components/entity-list'
 
 export interface ConstantColumnActions {
   onViewDetails: (constant: ConstantDTO) => void

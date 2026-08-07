@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { logger } from '@/lib/observability/logger'
 import { authClient, useSession } from '@/lib/auth/client'
-import { buildQrCodeConfig } from '@/components/modals/qr-code-config'
+import { buildQrCodeConfig } from '@/lib/qr-code'
 import {
   Card,
   CardContent,

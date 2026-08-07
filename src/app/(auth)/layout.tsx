@@ -5,7 +5,7 @@ import { Building2, HelpCircle, Shield } from 'lucide-react'
 import Link from 'next/link'
 
 import { useAppConfig } from '@/contexts'
-import { AuthCarousel, AuthPattern } from '@/components/auth'
+import { AuthCarousel, AuthPattern } from './components'
 
 export default function AuthLayout({
   children,

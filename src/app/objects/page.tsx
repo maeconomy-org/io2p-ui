@@ -25,7 +25,7 @@ import {
   EntityTable,
   useEntityListFilters,
   useEntityListQuery,
-} from '@/components/tables'
+} from '@/components/entity-list'
 import { DraftRows } from '@/components/drafts'
 import { useObjectDrafts } from '@/hooks/drafts'
 

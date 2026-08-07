@@ -16,12 +16,16 @@ import {
 } from '@/components/ui'
 import { ObjectPicker } from '@/components/entity-sheet/fields'
 import { cn } from '@/lib/utils'
-import type { ColumnTarget } from '@/lib/import/build-items'
-import { columnLabel, countItems, deriveKey } from '@/lib/import/build-items'
+import type { ColumnTarget } from '@/app/import/lib/build-items'
+import {
+  columnLabel,
+  countItems,
+  deriveKey,
+} from '@/app/import/lib/build-items'
 import type {
   ImportWizard,
   WizardColumn,
-} from '@/hooks/import/use-import-wizard'
+} from '@/app/import/hooks/use-import-wizard'
 
 /**
  * One screen, one decision per column: what does this column become?

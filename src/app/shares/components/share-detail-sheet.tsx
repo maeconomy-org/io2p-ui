@@ -21,7 +21,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui'
-import { OwnerCell, formatTimestamp } from '@/components/tables'
+import { OwnerCell, formatTimestamp } from '@/components/entity-list'
 import { SheetLifecycleFooter } from '@/components/entity-sheet/sheet-lifecycle-footer'
 
 /** Small enough that a page fits the sheet without scrolling far, and bounds the name lookups. */

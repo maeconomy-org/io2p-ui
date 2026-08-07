@@ -19,9 +19,9 @@ import {
   useEntityListActions,
   useEntityListFilters,
   useEntityListQuery,
-} from '@/components/tables'
+} from '@/components/entity-list'
 import { SearchResultsBar } from '@/components/search-results-bar'
-import { DeleteConfirmationDialog } from '@/components/modals'
+import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useConstants } from '@/hooks/api/leaves'
 import { useAuth, useSearch } from '@/contexts'
 import { anchor } from '@/constants'

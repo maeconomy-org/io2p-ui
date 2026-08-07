@@ -32,7 +32,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui'
-import { DeleteConfirmationDialog } from '@/components/modals/delete-confirmation-dialog'
+import { DeleteConfirmationDialog } from '@/components/dialogs/delete-confirmation-dialog'
 
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -45,7 +45,7 @@ import {
   useStartImport,
 } from '@/hooks/api/imports'
 
-import { formatTempId } from '@/lib/import/build-items'
+import { formatTempId } from '@/app/import/lib/build-items'
 import { useIomClient } from '@/lib/io2p'
 import { logger } from '@/lib/observability/logger'
 

@@ -17,7 +17,7 @@ import {
   actionsColumn,
   selectColumn,
   textColumn,
-} from '@/components/tables'
+} from '@/components/entity-list'
 
 type Grant = SharedByMeItem['grants'][number]
 

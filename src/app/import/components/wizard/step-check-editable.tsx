@@ -17,8 +17,8 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@/components/ui'
-import type { ImportWizard } from '@/hooks/import/use-import-wizard'
-import type { BuildProblem } from '@/lib/import/build-items'
+import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
+import type { BuildProblem } from '@/app/import/lib/build-items'
 
 /**
  * NOT WIRED IN. An alternative Check step, kept so the fix-in-place interaction can be judged

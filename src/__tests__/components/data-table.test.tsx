@@ -6,7 +6,7 @@ import {
   getSelectColumn,
   DataTableColumnToggle,
   DataTable,
-} from '@/components/tables/data-table'
+} from '@/components/entity-list/data-table'
 
 // Declare mock fns via vi.hoisted so they're available inside vi.mock factories
 const { mockT } = vi.hoisted(() => ({

@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Trash2 } from 'lucide-react'
 
-import { DeleteConfirmationDialog } from '@/components/modals/delete-confirmation-dialog'
-import { formatTimestamp } from '@/components/tables/columns'
-import { EntityActionsCell } from '@/components/tables/entity-actions-cell'
+import { DeleteConfirmationDialog } from '@/components/dialogs/delete-confirmation-dialog'
+import { formatTimestamp } from '@/components/entity-list/columns'
+import { EntityActionsCell } from '@/components/entity-list/entity-actions-cell'
 import { TableCell, TableRow } from '@/components/ui'
 import type { DraftIndexEntry } from '@/hooks/drafts'
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 
-import { AuthCarousel } from '@/components/auth/auth-carousel'
+import { AuthCarousel } from '@/app/(auth)/components/auth-carousel'
 import { AUTH_SCENES } from '@/constants'
 
 vi.mock('next-intl', () => ({

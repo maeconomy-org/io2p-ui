@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Loader2, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 
 import { Button, SheetFooter } from '@/components/ui'
-import { DeleteConfirmationDialog } from '@/components/modals'
+import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { anchor } from '@/constants'
 
 /**

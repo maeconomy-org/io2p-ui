@@ -3,8 +3,8 @@ import { Geist } from 'next/font/google'
 import './globals.css'
 import { getMessages, getLocale } from 'next-intl/server'
 
-import { Providers } from '@/components/providers'
-import ClientLayout from '@/components/client-layout'
+import { Providers } from '@/components/shell/providers'
+import ClientLayout from '@/components/shell/client-layout'
 import { buildInlineConfigScript, buildRuntimeConfig } from '@/constants/client'
 
 export const metadata: Metadata = {

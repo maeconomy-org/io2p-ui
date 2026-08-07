@@ -14,7 +14,7 @@ import {
   SheetTitle,
 } from '@/components/ui'
 import { authFetch } from '@/lib/auth/fetch'
-import { buildQrCodeConfig } from '@/components/modals/qr-code-config'
+import { buildQrCodeConfig } from '@/lib/qr-code'
 
 import { useObjects } from '@/hooks/api/entities'
 import { PassportView } from './passport-view'

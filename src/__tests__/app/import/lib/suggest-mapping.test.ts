@@ -4,7 +4,7 @@ import {
   suggestLevels,
   suggestMapping,
   suggestSplit,
-} from '@/lib/import/suggest-mapping'
+} from '@/app/import/lib/suggest-mapping'
 
 /**
  * The suggester exists because the old wizard opened with every column set to "Don't Import" —

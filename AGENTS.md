@@ -71,7 +71,7 @@ pnpm vitest run src/__tests__/lib/search-parser.test.ts
 
 ### Provider Architecture
 
-All client-side providers are consolidated in `src/components/providers.tsx`:
+All client-side providers are consolidated in `src/components/shell/providers.tsx`:
 
 ```
 Providers (providers.tsx)
@@ -84,7 +84,7 @@ Providers (providers.tsx)
 ```
 
 - `layout.tsx` passes server-fetched `messages` to `Providers`
-- `client-layout.tsx` is the layout shell (navbar, footer, keyboard shortcuts)
+- `shell/client-layout.tsx` is the layout frame (navbar, footer, keyboard shortcuts)
 - `Toaster` lives inside `Providers`
 
 ## Rules
@@ -124,6 +124,33 @@ Providers (providers.tsx)
 - Keep components focused — extract sub-components when a file exceeds ~200 lines.
 - Use `lucide-react` for icons.
 - **Always add `type="button"`** to `<Button>` and `<button>` elements inside forms that are NOT the submit button. Without it, buttons default to `type="submit"` and trigger form submission on click.
+
+### Comments
+
+**Default to no comment.** The house rate is 2–9% comment lines; anything much above that is a
+file explaining itself instead of reading clearly.
+
+A comment earns its place only by answering **"why not the obvious thing?"**, where the answer is a
+constraint still true today and invisible at the call site. Three that qualify:
+
+```ts
+// `n()` uses the BROWSER locale, next-intl's ICU uses the APP locale — mixing them prints
+// "1,847 created" beside "of 1.847" on one line.
+// `seq` is the item's position in the envelope, not a sheet row: 4 rows become 9 items.
+// Level segments join on U+0000 — a `/` merged `Blok A/B`+`C` with `Blok A`+`B/C`.
+```
+
+Cut on sight:
+
+- **History** — "was hardcoded English", "this was a fixed literal while the page ran on fixtures",
+  "the old pipeline drove one bar off `processed`". A reader cannot see the past and does not need
+  it. **That belongs in the commit message**, which is where someone bisecting will look.
+- **Design-debate transcripts** — several lines on why an alternative was rejected. If the decision
+  is load-bearing it goes in `internal-docs/`; if it isn't, it goes nowhere.
+- **Restating the line below**, section banners, and file-header essays.
+
+Same test for the docblock on an exported function: it says what a caller cannot infer from the
+signature, or it is not written.
 
 ### Constants
 
@@ -210,17 +237,21 @@ Logging semantics are above; these rules cover everything else new code instrume
 
 ```
 src/
-├── app/         # Next.js routes — each has page.tsx, optional loading.tsx/error.tsx/layout.tsx, and components/ for route-specific UI
-├── components/  # Shared components: ui/ (shadcn primitives), skeletons/, navbar/, modals/, tables/, object-sheets/, properties/, processes/, groups/, onboarding/
+├── app/         # Next.js routes — each owns page.tsx, optional loading/error/layout, and components/ (+ hooks/ and lib/ when the logic is route-only, as /import does)
+├── components/  # Shared UI: ui/ (shadcn primitives) · shell/ (the app frame the layout mounts once) ·
+│              # entity-list/ (list-page kit) · entity-sheet/ · dialogs/ · filters/ · skeletons/ ·
+│              # navbar/ · access/ · passport/ · drafts/ · onboarding/ · global-search/ · upload-center/
 ├── constants/   # Static config, nav items, enums (barrel: index.ts)
 ├── contexts/    # React context providers (barrel: index.ts)
-├── hooks/       # api/ (SDK + React Query), data/, import/, process/, ui/ — barrel per subfolder
+├── hooks/       # api/ (io2p + React Query), data/, drafts/, ui/ — barrel per subfolder
 ├── lib/         # Cross-cutting utilities only (see below)
 ├── messages/    # i18n translation files (en.json, nl.json)
 └── types/       # Shared TypeScript types
 ```
 
-**Feature co-location**: feature-specific components, hooks, and utils live inside the feature folder (e.g., `src/components/groups/{components,hooks,utils}/`), not in `src/lib/`. Each feature has a barrel `index.ts`.
+**Feature co-location**: feature-specific components, hooks, and utils live inside the feature folder, not in `src/lib/`. For a single-route feature that means the route folder — `/import` owns `components/`, `hooks/` and `lib/`, so the whole feature is one deletable directory. A pure module stays pure wherever it lives: `app/import/lib/` has no React and no `'use client'`.
+
+**Placement follows LIFETIME, not topic.** A component only `/import` can render belongs to the route however import-flavoured it is; `ImportWatchers` polls jobs after you navigate away, so it is mounted in `providers.tsx` and lives in `src/components/`. The test for `src/components/`: more than one route consumes it, or the app shell mounts it.
 
 **`src/lib/` is for cross-cutting utilities used by 3+ unrelated features only.** If a util is used by one feature only, move it to that feature's folder. Four groups plus a small flat tier:
 
@@ -236,9 +267,8 @@ src/lib/
 │                    diffs, upload resolution) + object/process/template/duplicate built on it.
 ├── observability/   logger/ (the only logging path), redact.ts (all sinks), sentry-config.ts,
 │                    web-vitals.ts.
-├── import/          parse-sheet, suggest-mapping, build-items — pure, no React, no client.
 └── io2p.ts · io2p-errors.ts · query-keys.ts · utils.ts · upload-queue.ts ·
-    formula-expression.ts · validations/
+    formula-expression.ts · qr-code.ts · validations/
 ```
 
 `upload-queue.ts` and `formula-expression.ts` sit at the root deliberately: each has only two consumers, but co-locating either would invert a dependency (`lib/entity` imports `UploadTask`; `formula-expression` is shared by a route and a shared component).
@@ -263,7 +293,7 @@ src/lib/
 
 ## DataTable
 
-Use `DataTable` from `src/components/tables/data-table.tsx` for all tabular data. Server-side pagination is the default (`manualPagination: true`). Never build custom table markup — extend `DataTable`. Column toggle via `DataTableColumnToggle`. See the component's prop types for the full API.
+Use `DataTable` from `src/components/entity-list/data-table.tsx` for all tabular data. Server-side pagination is the default (`manualPagination: true`). Never build custom table markup — extend `DataTable`. Column toggle via `DataTableColumnToggle`. See the component's prop types for the full API.
 
 ## Testing
 

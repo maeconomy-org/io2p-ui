@@ -40,7 +40,7 @@ import {
   SheetTitle,
   Skeleton,
 } from '@/components/ui'
-import { DeleteConfirmationDialog } from '@/components/modals'
+import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useAuth } from '@/contexts'
 import { useGrants, useShares } from '@/hooks/api/access'
 import { useUserSearch } from '@/hooks/api/users'

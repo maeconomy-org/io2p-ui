@@ -11,17 +11,17 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 
 const parseSheetFile = vi.fn()
 
-vi.mock('@/lib/import/parse-sheet', async () => {
+vi.mock('@/app/import/lib/parse-sheet', async () => {
   const actual = await vi.importActual<
-    typeof import('@/lib/import/parse-sheet')
-  >('@/lib/import/parse-sheet')
+    typeof import('@/app/import/lib/parse-sheet')
+  >('@/app/import/lib/parse-sheet')
   return {
     ...actual,
     parseSheetFile: (...args: unknown[]) => parseSheetFile(...args),
   }
 })
 
-import { useImportWizard } from '@/hooks/import/use-import-wizard'
+import { useImportWizard } from '@/app/import/hooks/use-import-wizard'
 
 // Two preamble lines, then the header, then data — the shape every municipal export has, and the
 // one that makes "which row failed?" a real question.

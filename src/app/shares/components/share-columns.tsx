@@ -14,7 +14,7 @@ import {
   selectColumn,
   textColumn,
   timestampColumn,
-} from '@/components/tables'
+} from '@/components/entity-list'
 
 export interface ShareColumnActions {
   onView: (share: ShareDTO) => void

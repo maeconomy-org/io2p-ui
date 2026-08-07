@@ -15,7 +15,7 @@ import {
   selectColumn,
   textColumn,
   timestampColumn,
-} from '@/components/tables'
+} from '@/components/entity-list'
 
 export interface ProcessColumnActions {
   onViewDetails: (process: ProcessListItem) => void

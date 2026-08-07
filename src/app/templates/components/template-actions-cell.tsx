@@ -4,7 +4,10 @@ import { useTranslations } from 'next-intl'
 import { Pencil, RotateCcw, Trash2, Share2 } from 'lucide-react'
 import type { TemplateListItem } from 'io2p-client'
 
-import { EntityActionsCell, type EntityRowAction } from '@/components/tables'
+import {
+  EntityActionsCell,
+  type EntityRowAction,
+} from '@/components/entity-list'
 
 export interface TemplateRowActions {
   onViewDetails: (template: TemplateListItem) => void

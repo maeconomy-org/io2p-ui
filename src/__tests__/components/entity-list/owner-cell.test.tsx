@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
-import { OwnerCell } from '@/components/tables/owner-cell'
+import { OwnerCell } from '@/components/entity-list/owner-cell'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,

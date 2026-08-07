@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import type { ObjectListItem, Page } from 'io2p-client'
 
-import { useEntityListFilters } from '@/components/tables/use-entity-list-filters'
+import { useEntityListFilters } from '@/components/entity-list/use-entity-list-filters'
 import { useObjectListPage } from '@/app/objects/components/use-object-list-page'
 
 const remove = vi.fn().mockResolvedValue({})

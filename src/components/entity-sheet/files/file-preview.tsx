@@ -27,7 +27,10 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui'
-import { ImageViewer, UnsupportedFallback } from '@/components/file-viewers'
+import {
+  ImageViewer,
+  UnsupportedFallback,
+} from '@/components/entity-sheet/file-viewers'
 import {
   detectMimeType,
   detectPreviewKind,
@@ -42,16 +45,23 @@ import { fileDisplayName, isPreviewable } from './file-helpers'
 
 const MediaViewer = dynamic(
   () =>
-    import('@/components/file-viewers/media-viewer').then((m) => m.MediaViewer),
+    import('@/components/entity-sheet/file-viewers/media-viewer').then(
+      (m) => m.MediaViewer
+    ),
   { ssr: false, loading: () => <LoadingPlaceholder /> }
 )
 const PdfViewer = dynamic(
-  () => import('@/components/file-viewers/pdf-viewer').then((m) => m.PdfViewer),
+  () =>
+    import('@/components/entity-sheet/file-viewers/pdf-viewer').then(
+      (m) => m.PdfViewer
+    ),
   { ssr: false, loading: () => <LoadingPlaceholder /> }
 )
 const TextViewer = dynamic(
   () =>
-    import('@/components/file-viewers/text-viewer').then((m) => m.TextViewer),
+    import('@/components/entity-sheet/file-viewers/text-viewer').then(
+      (m) => m.TextViewer
+    ),
   { ssr: false, loading: () => <LoadingPlaceholder /> }
 )
 

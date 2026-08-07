@@ -20,9 +20,9 @@ import {
   useEntityListActions,
   useEntityListFilters,
   useEntityListQuery,
-} from '@/components/tables'
+} from '@/components/entity-list'
 import { SearchResultsBar } from '@/components/search-results-bar'
-import { DeleteConfirmationDialog } from '@/components/modals'
+import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { ViewSelector } from '@/components/view-selector'
 import { ContentSkeleton } from '@/components/skeletons'
 import { useProcesses } from '@/hooks/api/entities'

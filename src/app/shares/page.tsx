@@ -20,9 +20,9 @@ import {
   BulkActionBar,
   EntityTable,
   useEntityListQuery,
-} from '@/components/tables'
+} from '@/components/entity-list'
 import { SearchResultsBar } from '@/components/search-results-bar'
-import { DeleteConfirmationDialog } from '@/components/modals'
+import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useShares } from '@/hooks/api/access'
 import { useSearch } from '@/contexts'
 import { DEFAULT_TABLE_PAGE_SIZE, anchor } from '@/constants'

@@ -12,7 +12,7 @@ import { QueryProvider, AuthEffects, SearchProvider } from '@/contexts'
 import { UploadCenter } from '@/components/upload-center'
 import { UploadQueueProvider } from '@/contexts/upload-queue-context'
 import { ImportWatchProvider } from '@/contexts/import-watch-context'
-import { ImportWatchers } from '@/components/import-watchers'
+import { ImportWatchers } from '@/components/shell/import-watchers'
 
 interface ProvidersProps {
   children: ReactNode

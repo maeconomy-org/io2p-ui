@@ -18,14 +18,14 @@ import {
   type BuildMapping,
   buildItems,
   type ColumnTarget,
-} from '@/lib/import/build-items'
+} from '@/app/import/lib/build-items'
 import {
   type ParsedSheet,
   parseSheetFile,
   SheetParseError,
-} from '@/lib/import/parse-sheet'
-import { suggestMapping } from '@/lib/import/suggest-mapping'
-import type { ImportMessage } from '@/lib/import/messages'
+} from '@/app/import/lib/parse-sheet'
+import { suggestMapping } from '@/app/import/lib/suggest-mapping'
+import type { ImportMessage } from '@/app/import/lib/messages'
 import { logger } from '@/lib/observability/logger'
 import { DEFAULT_CLIENT_CONFIG, getCachedConfig } from '@/constants/client'
 

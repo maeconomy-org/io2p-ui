@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 
 import type { CoverImage } from 'io2p-client'
 
-import { CoverCell } from '@/components/tables/cover-cell'
+import { CoverCell } from '@/components/entity-list/cover-cell'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>

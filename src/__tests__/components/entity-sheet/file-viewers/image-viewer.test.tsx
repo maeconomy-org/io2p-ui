@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
-import { ImageViewer } from '@/components/file-viewers/image-viewer'
+import { ImageViewer } from '@/components/entity-sheet/file-viewers/image-viewer'
 
 function setup(
   overrides: Partial<React.ComponentProps<typeof ImageViewer>> = {}

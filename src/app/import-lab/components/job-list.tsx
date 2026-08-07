@@ -4,7 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { FileSpreadsheet, Upload } from 'lucide-react'
 
 import { Button } from '@/components/ui'
-import { DataTable } from '@/components/tables'
+import { DataTable } from '@/components/entity-list'
 
 import type { LabJob } from '../fixtures'
 import { LAB_JOBS } from '../fixtures'

@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui'
-import type { ImportWizard } from '@/hooks/import/use-import-wizard'
+import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
 
 /**
  * The last screen before anything is written, and the reason it exists: the node's store is
