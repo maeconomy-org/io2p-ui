@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FolderTree, Layers, Sparkles, X } from 'lucide-react'
 
 import {
@@ -17,7 +17,7 @@ import {
 import { ObjectPicker } from '@/components/entity-sheet/fields'
 import { cn } from '@/lib/utils'
 import type { ColumnTarget } from '@/lib/import/build-items'
-import { deriveKey } from '@/lib/import/build-items'
+import { countItems, deriveKey } from '@/lib/import/build-items'
 import type {
   ImportWizard,
   WizardColumn,
@@ -36,9 +36,9 @@ import type {
  * the operator brought and the import threw away without saying so.
  */
 
-// `value` is the wire value AND the translation suffix (`import.map.targets.<value>`). Module
-// scope cannot call `t`, and a parallel label list inside the component would be a second place
-// to keep in step. Dots in the value nest the key, which is what we want.
+// One list: the `value` is what the mapping stores AND what names the label. Module scope cannot
+// call `t`, and a parallel label array inside the component would be a second place to keep in
+// step.
 const TARGETS = [
   'skip',
   'name',
@@ -66,6 +66,23 @@ const SPLITS = [
   { value: '|', labelKey: 'import.map.split.on', char: '|' },
 ]
 
+/**
+ * The message key for a target's label.
+ *
+ * NOT just `targets.<value>`. next-intl reserves `.` for nesting, so `targets['address.street']`
+ * is an invalid KEY and it refuses the whole message file at provider construction — the app fails
+ * to render, not just this select. The address parts therefore live under their own `addressPart`
+ * group, which they cannot share with `address`: that is already a leaf ("Address (whole cell)"),
+ * and a key cannot be both a string and an object.
+ *
+ * `addressPart` is not invented for this — it is the `ColumnTarget.kind` these values become.
+ */
+function targetLabelKey(value: string): string {
+  return value.startsWith('address.')
+    ? `import.map.targets.addressPart.${value.slice('address.'.length)}`
+    : `import.map.targets.${value}`
+}
+
 function targetValue(target: ColumnTarget | undefined): string {
   if (!target) return 'skip'
   if (target.kind === 'addressPart') return `address.${target.part}`
@@ -91,6 +108,33 @@ function toTarget(value: string, column: WizardColumn): ColumnTarget | null {
   return { kind: value as 'name' }
 }
 
+/**
+ * Why this column's target will do nothing, or `null` when it is fine.
+ *
+ * `key` and `parent` are the two targets that can be mapped and then silently ignored, and the
+ * builder gives no sign of it: `applyCell` returns early for identity columns, so the value is not
+ * written as a property either — it simply disappears.
+ *
+ *  • With LEVELS on, the hierarchy comes from the level columns and both are discarded outright.
+ *  • With no levels and no `parent` column, a `key` names the row's tempId and nothing ever
+ *    references it, so it changes nothing about what is created.
+ *
+ * Said on the row rather than hiding the option: hiding it would make the id/parent shape
+ * undiscoverable for the sheets that DO carry one.
+ */
+function inertBecause(
+  target: ColumnTarget | undefined,
+  wizard: ImportWizard
+): 'levelsWin' | 'noParent' | null {
+  if (target?.kind !== 'key' && target?.kind !== 'parent') return null
+  if (wizard.levels.length > 0) return 'levelsWin'
+  if (target.kind !== 'key') return null
+  const hasParent = Object.values(wizard.mapping.columns).some(
+    (t) => t.kind === 'parent'
+  )
+  return hasParent ? null : 'noParent'
+}
+
 function ColumnRow({
   column,
   wizard,
@@ -102,6 +146,7 @@ function ColumnRow({
   const target = wizard.mapping.columns[column.index]
   const isLevel = wizard.levels.includes(column.index)
   const levelIndex = wizard.levels.indexOf(column.index)
+  const inert = inertBecause(target, wizard)
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 px-4 py-3">
@@ -120,6 +165,11 @@ function ColumnRow({
         <p className="truncate text-xs text-muted-foreground">
           {column.samples.join(' · ') || t('import.map.noValues')}
         </p>
+        {inert && (
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            {t(`import.map.inert.${inert}`)}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
@@ -203,7 +253,7 @@ function ColumnRow({
           <SelectContent>
             {TARGETS.map((option) => (
               <SelectItem key={option} value={option}>
-                {t(`import.map.targets.${option}`)}
+                {t(targetLabelKey(option))}
               </SelectItem>
             ))}
           </SelectContent>
@@ -284,6 +334,27 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
   const columnName = (index: number) =>
     wizard.headers[index] || t('import.map.unnamedColumn', { index: index + 1 })
 
+  /**
+   * What accepting the suggestion would actually produce.
+   *
+   * The banner used to name columns and stop there, which is not something anyone can judge: two
+   * columns that partition the rows look identical to a hierarchy and to two unrelated
+   * categories, and no test on the DATA can tell them apart — a management group is not inside a
+   * planting decade, but the numbers say it could be. The object COUNT is the thing a person can
+   * evaluate at a glance. 60 beds becoming 12 objects is obviously wrong; 1,200 rows becoming
+   * 1,847 is obviously right.
+   */
+  const suggestedCount = useMemo(
+    () =>
+      hasSuggestion
+        ? countItems(wizard.dataRows, {
+            ...wizard.mapping,
+            levels: unusedSuggestion,
+          })
+        : 0,
+    [hasSuggestion, wizard.dataRows, wizard.mapping, unusedSuggestion]
+  )
+
   return (
     <div className="space-y-6">
       <div>
@@ -304,6 +375,12 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
               <span className="font-medium">
                 {unusedSuggestion.map((c) => columnName(c)).join(' › ')}
               </span>
+            </p>
+            <p className="text-xs tabular-nums text-muted-foreground">
+              {t('import.map.suggestionEffect', {
+                rows: wizard.dataRows.length,
+                objects: suggestedCount,
+              })}
             </p>
             <Button
               type="button"

@@ -34,9 +34,20 @@ const ADDRESS_PARTS: Record<string, ColumnTarget> = {
   street: { kind: 'addressPart', part: 'street' },
   strasse: { kind: 'addressPart', part: 'street' },
   straße: { kind: 'addressPart', part: 'street' },
+  // Dutch was claimed by this module's docstring and half-missing in it: `straat` and `plaats` are
+  // the two commonest columns in a Dutch register and neither was here, so both fell through to
+  // ordinary properties and the address came out empty. `postcode` only worked by spelling the
+  // same in both languages. `woonplaats` is the town on Dutch address records.
+  //
+  // `gemeente` is deliberately NOT city — a municipality is a different administrative level, and
+  // guessing it into `city` would put the wrong value in a field that looks right.
+  straat: { kind: 'addressPart', part: 'street' },
+  straatnaam: { kind: 'addressPart', part: 'street' },
   city: { kind: 'addressPart', part: 'city' },
   stadt: { kind: 'addressPart', part: 'city' },
   ort: { kind: 'addressPart', part: 'city' },
+  plaats: { kind: 'addressPart', part: 'city' },
+  woonplaats: { kind: 'addressPart', part: 'city' },
   postcode: { kind: 'addressPart', part: 'postalCode' },
   postalcode: { kind: 'addressPart', part: 'postalCode' },
   plz: { kind: 'addressPart', part: 'postalCode' },
@@ -73,6 +84,28 @@ const matches = (header: string, words: string[]) => {
 
 /** A cell that looks like a link — the signal for a file-reference column. */
 const looksLikeUrl = (value: string) => /^https?:\/\//i.test(value.trim())
+
+/**
+ * A measurement, not a category — so never a hierarchy level.
+ *
+ * A level is a THING other things sit inside: a building, a floor, a management group. A quantity
+ * is never an ancestor of anything. Without this, a column of metres whose value is mostly `0`
+ * looks exactly like a category to a distinct-count test: on a real municipal green-space register
+ * `WATERRANDLENGTE` (water edge length) had 7 distinct values across 60 rows and was proposed as
+ * the third level of the hierarchy, between a management group and a planting decade.
+ *
+ * Deliberately not applied to the MAPPING — a number is a perfectly good property value. Only the
+ * level suggester needs this, because only it is trying to infer meaning from shape.
+ *
+ * A comma decimal (`19,91`) counts as numeric: the sheets this exists for are European.
+ */
+const looksNumeric = (value: string) => /^-?\d+([.,]\d+)?$/.test(value.trim())
+
+function isMeasurement(values: readonly string[]): boolean {
+  if (values.length === 0) return false
+  const numeric = values.filter(looksNumeric).length
+  return numeric >= values.length * 0.9
+}
 
 /**
  * U+0000 as an escape, never the literal byte.
@@ -122,6 +155,7 @@ export function suggestLevels(
   for (let column = 0; column < columnCount; column += 1) {
     const values = rows.map((row) => row[column] ?? '').filter(Boolean)
     if (values.length < rows.length * 0.9) continue // a sparse column is not a level
+    if (isMeasurement(values)) continue // a quantity is never an ancestor
     const distinct = new Set(values).size
     // Repeats a lot, but is not a single constant (that describes the document, not a level) and
     // is not near-unique (that is the row's own identity).

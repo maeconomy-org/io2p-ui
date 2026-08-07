@@ -109,6 +109,30 @@ function collectUsage(): Usage {
  * Written after a prune of ~540 keys removed five that a constant enumerated at runtime.
  */
 describe('messages', () => {
+  /**
+   * next-intl reserves `.` for nesting, so a key containing one is REFUSED — and not quietly:
+   * `NextIntlClientProvider` throws `INVALID_KEY` while constructing, so the whole app fails to
+   * render, not just the screen that reads it.
+   *
+   * This is checked separately from "does every key resolve" because the two catch different
+   * things. The resolver test only sees keys written as literals; the offender here was built as
+   * `t(\`import.map.targets.${option}\`)` where `option` was `address.street`, so the collector
+   * skipped it as dynamic and the message file looked fine to every gate. The file's SHAPE has to
+   * be checked on its own terms.
+   */
+  it('has no key containing a dot, in either locale', () => {
+    const dotted = (tree: Tree, path: string[] = []): string[] =>
+      Object.entries(tree).flatMap(([key, value]) => [
+        ...(key.includes('.') ? [[...path, key].join(' → ')] : []),
+        ...(value && typeof value === 'object'
+          ? dotted(value as Tree, [...path, key])
+          : []),
+      ])
+
+    expect(dotted(en as Tree)).toEqual([])
+    expect(dotted(nl as Tree)).toEqual([])
+  })
+
   it('has the same keys in en and nl', () => {
     const e = flatten(en as Tree)
     const n = flatten(nl as Tree)

@@ -1285,15 +1285,17 @@
         "description": "Description",
         "property": "Property",
         "address": "Address (whole cell)",
-        "address.street": "Address — street",
-        "address.houseNumber": "Address — number",
-        "address.postalCode": "Address — postcode",
-        "address.city": "Address — city",
-        "address.state": "Address — state / province",
-        "address.country": "Address — country",
         "fileUrl": "File link",
         "key": "Key (this row's id)",
-        "parent": "Parent key"
+        "parent": "Parent key",
+        "addressPart": {
+          "street": "Address — street",
+          "houseNumber": "Address — number",
+          "postalCode": "Address — postcode",
+          "city": "Address — city",
+          "state": "Address — state / province",
+          "country": "Address — country"
+        }
       },
       "destination": {
         "title": "Import under an existing object",
@@ -1302,6 +1304,11 @@
         "fallbackName": "the chosen object",
         "placeholder": "Choose a parent…",
         "clear": "Clear destination"
+      },
+      "suggestionEffect": "Accepting this would create {objects, number} objects from {rows, number} rows.",
+      "inert": {
+        "levelsWin": "Ignored — the hierarchy comes from the level columns, so this value is not imported.",
+        "noParent": "Does nothing on its own — map another column to “Parent key” for this to link rows."
       }
     },
     "check": {

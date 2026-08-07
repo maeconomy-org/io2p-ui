@@ -1285,15 +1285,17 @@
         "description": "Omschrijving",
         "property": "Eigenschap",
         "address": "Adres (hele cel)",
-        "address.street": "Adres — straat",
-        "address.houseNumber": "Adres — huisnummer",
-        "address.postalCode": "Adres — postcode",
-        "address.city": "Adres — plaats",
-        "address.state": "Adres — provincie",
-        "address.country": "Adres — land",
         "fileUrl": "Bestandslink",
         "key": "Sleutel (id van deze rij)",
-        "parent": "Sleutel bovenliggend"
+        "parent": "Sleutel bovenliggend",
+        "addressPart": {
+          "street": "Adres — straat",
+          "houseNumber": "Adres — huisnummer",
+          "postalCode": "Adres — postcode",
+          "city": "Adres — plaats",
+          "state": "Adres — provincie",
+          "country": "Adres — land"
+        }
       },
       "destination": {
         "title": "Importeren onder een bestaand object",
@@ -1302,6 +1304,11 @@
         "fallbackName": "het gekozen object",
         "placeholder": "Kies een bovenliggend object…",
         "clear": "Bestemming wissen"
+      },
+      "suggestionEffect": "Als je dit accepteert worden er {objects, number} objecten gemaakt uit {rows, number} rijen.",
+      "inert": {
+        "levelsWin": "Genegeerd — de hiërarchie komt uit de niveaukolommen, dus deze waarde wordt niet geïmporteerd.",
+        "noParent": "Doet op zichzelf niets — koppel een andere kolom aan “Sleutel bovenliggend” om rijen te verbinden."
       }
     },
     "check": {

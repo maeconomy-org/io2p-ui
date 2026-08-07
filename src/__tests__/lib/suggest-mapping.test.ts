@@ -67,16 +67,45 @@ describe('suggestMapping', () => {
     expect(columns[1]).toEqual({ kind: 'description' })
   })
 
-  it('recognises German and Dutch headers, not only English', () => {
+  // Split into one test per language, because the single test that used to cover both was named
+  // "German and Dutch" and every header in it was GERMAN. `straat` and `plaats` were missing from
+  // the word list for months behind a green assertion that never looked at them — a test name is
+  // not coverage.
+  it('recognises German headers, not only English', () => {
     // The data this feature exists for is municipal, and rarely in English.
     const { columns } = suggestMapping(
-      ['Bezeichnung', 'Straße', 'PLZ', 'Ort'],
-      [['Haus', 'Hauptstrasse', '8001', 'Zurich']]
+      ['Bezeichnung', 'Straße', 'Hausnummer', 'PLZ', 'Ort', 'Bundesland'],
+      [['Haus', 'Hauptstrasse', '8', '8001', 'Zurich', 'Zürich']]
     )
     expect(columns[0]).toEqual({ kind: 'name' })
     expect(columns[1]).toEqual({ kind: 'addressPart', part: 'street' })
-    expect(columns[2]).toEqual({ kind: 'addressPart', part: 'postalCode' })
-    expect(columns[3]).toEqual({ kind: 'addressPart', part: 'city' })
+    expect(columns[2]).toEqual({ kind: 'addressPart', part: 'houseNumber' })
+    expect(columns[3]).toEqual({ kind: 'addressPart', part: 'postalCode' })
+    expect(columns[4]).toEqual({ kind: 'addressPart', part: 'city' })
+    expect(columns[5]).toEqual({ kind: 'addressPart', part: 'state' })
+  })
+
+  it('recognises Dutch headers', () => {
+    const { columns } = suggestMapping(
+      ['Naam', 'Straat', 'Huisnummer', 'Postcode', 'Plaats', 'Provincie'],
+      [['Pand', 'Harborlaan', '12', '3811 LM', 'Amersfoort', 'Utrecht']]
+    )
+    expect(columns[0]).toEqual({ kind: 'name' })
+    expect(columns[1]).toEqual({ kind: 'addressPart', part: 'street' })
+    expect(columns[2]).toEqual({ kind: 'addressPart', part: 'houseNumber' })
+    expect(columns[3]).toEqual({ kind: 'addressPart', part: 'postalCode' })
+    expect(columns[4]).toEqual({ kind: 'addressPart', part: 'city' })
+    expect(columns[5]).toEqual({ kind: 'addressPart', part: 'state' })
+  })
+
+  it('does not guess a municipality into the city field', () => {
+    // `gemeente` is a different administrative level from the town. Mapping it to `city` would put
+    // a wrong value in a field that then looks perfectly filled in.
+    const { columns } = suggestMapping(
+      ['Naam', 'Gemeente'],
+      [['Pand', 'Amersfoort']]
+    )
+    expect(columns[1]).not.toEqual({ kind: 'addressPart', part: 'city' })
   })
 
   it('trusts the DATA over the header for links', () => {
@@ -120,6 +149,39 @@ describe('suggestLevels', () => {
     // That ordering IS the nesting.
     const levels = suggestLevels(ROWS, HEADERS.length)
     expect(levels.indexOf(0)).toBeLessThan(levels.indexOf(1))
+  })
+
+  it('never proposes a MEASUREMENT as a level, however much it repeats', () => {
+    // From a real Dutch green-space register. `WATERRANDLENGTE` is a water-edge length in metres
+    // and is `0` on most rows, so its distinct count looks exactly like a category's — it was
+    // proposed as the third level, between a management group and a planting decade. A quantity
+    // is never an ancestor of anything.
+    const rows = Array.from({ length: 60 }, (_, i) => [
+      ['Bodembedekkers', 'Hagen', 'Bosplantsoen'][i % 3]!,
+      i % 10 === 0 ? String((i * 1.1).toFixed(2)) : '0', // WATERRANDLENGTE
+    ])
+    expect(suggestLevels(rows, 2)).not.toContain(1)
+  })
+
+  it('treats a comma decimal as a number too — these sheets are European', () => {
+    const rows = Array.from({ length: 60 }, (_, i) => [
+      ['A', 'B', 'C'][i % 3]!,
+      i % 10 === 0 ? `${i},5` : '0',
+    ])
+    expect(suggestLevels(rows, 2)).not.toContain(1)
+  })
+
+  it('still finds a real hierarchy of names', () => {
+    // The guard must not cost the case the feature exists for.
+    const rows = [
+      ['Noordpoort', 'BG', '101'],
+      ['Noordpoort', 'BG', '102'],
+      ['Noordpoort', '1e', '201'],
+      ['Zuidhaven', 'BG', '101'],
+      ['Zuidhaven', '1e', '201'],
+    ]
+    expect(suggestLevels(rows, 3)).toContain(0)
+    expect(suggestLevels(rows, 3)).toContain(1)
   })
 
   it('ignores a near-unique column — that is identity, not a level', () => {
