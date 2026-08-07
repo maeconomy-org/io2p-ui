@@ -5,9 +5,9 @@
   "description": "IoM UI",
   "repository": {
     "type": "git",
-    "url": "https://github.com/maeconomy-org/iom-ui.git"
+    "url": "https://github.com/maeconomy-org/io2p-ui.git"
   },
-  "author": "ReCheck B.V.",
+  "author": "Maeconomy B.V.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.20.0",
