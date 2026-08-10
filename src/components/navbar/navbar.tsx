@@ -84,11 +84,26 @@ export default function Navbar() {
                     active ? 'text-primary' : 'text-muted-foreground'
                   )
 
+                  /**
+                   * `prefetch` explicitly, not the default.
+                   *
+                   * Every route here is DYNAMIC (the root layout reads cookies
+                   * for the locale and the preference mirror). On a dynamic
+                   * route the default `auto` prefetches only "down to the
+                   * nearest `loading.js` boundary" — i.e. it fetches the
+                   * SKELETON and nothing else, so the click still waits for the
+                   * page and you see that skeleton every single time, in
+                   * production too. `true` prefetches the whole route, so the
+                   * heading, filters and table frame are already on the client
+                   * and only the ROWS wait, in `DataTable`'s own `fetching`
+                   * state.
+                   */
                   if (!item.children) {
                     return (
                       <Link
                         key={item.key}
                         href={item.path}
+                        prefetch
                         data-tour={item.dataTour}
                         className={className}
                       >
@@ -118,7 +133,7 @@ export default function Navbar() {
                       <DropdownMenuContent align="start">
                         {item.children.map((child) => (
                           <DropdownMenuItem key={child.key} asChild>
-                            <Link href={child.path}>
+                            <Link href={child.path} prefetch>
                               {t(`nav.${child.key}`)}
                             </Link>
                           </DropdownMenuItem>
