@@ -58,7 +58,7 @@ test.describe('15 - onboarding / tours stay repeatable', () => {
    * 429. The RULE is covered by unit tests; this is the end-to-end confirmation
    * and is still owed.
    */
-  test.fixme('the same tour can be started twice', async ({ page }) => {
+  test('the same tour can be started twice', async ({ page }) => {
     await page.goto('/objects')
     await expect(page.getByTestId('data-table')).toBeVisible()
 

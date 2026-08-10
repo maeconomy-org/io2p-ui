@@ -73,16 +73,28 @@ test.describe('01 - navigation', () => {
   }) => {
     await page.goto('/objects')
 
+    // Open the menu and PROVE it, before asking about its contents. Radix mounts the items and then
+    // animates the panel, so an item can resolve in the DOM while the menu is still closed — which
+    // reads as "element not visible" and looks like a missing item. The trigger's own
+    // `aria-expanded` is the unambiguous signal.
     await tour(page, 'navLibrary').click()
+    await expect(tour(page, 'navLibrary')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    )
+
+    // Scoped to the open menu, so a hidden mobile-nav copy of the same link cannot satisfy it.
+    const menu = page.getByRole('menu')
+    await expect(menu.getByRole('menuitem')).toHaveCount(3)
     await expect(
-      page.getByRole('menuitem', { name: /template/i })
+      menu.getByRole('menuitem', { name: /template/i })
     ).toBeVisible()
-    await expect(page.getByRole('menuitem', { name: /formula/i })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: /formula/i })).toBeVisible()
     await expect(
-      page.getByRole('menuitem', { name: /constant/i })
+      menu.getByRole('menuitem', { name: /constant/i })
     ).toBeVisible()
 
-    await page.getByRole('menuitem', { name: /formula/i }).click()
+    await menu.getByRole('menuitem', { name: /formula/i }).click()
     await expect(page).toHaveURL(/\/formulas/)
 
     // N3: the group-active rule — a child route keeps the PARENT marked, or the user loses their

@@ -67,6 +67,21 @@ const IGNORED_CONSOLE = [
   /ChunkLoadError/,
   // The React Query devtools are dev-only and are not in the shipped bundle at all.
   /query-devtools/,
+  // A request CANCELLED by navigation, not a request that failed.
+  //
+  // `page.reload()` and `page.goto()` abort whatever was in flight, and the browser reports that to
+  // the caller as `TypeError: Failed to fetch` / `NetworkError` with no status — which io2p-client
+  // logs at error level. Any spec that reloads therefore manufactures its own console errors, and
+  // three already did.
+  //
+  // Safe to ignore here because it is not the signal these tests rely on: a node that is genuinely
+  // unreachable fails them on missing content long before the log matters. It is narrow — it
+  // requires io2p-client's own prefix AND a status-less failure, so a real 4xx or 5xx still fails
+  // the guard.
+  //
+  // Worth noting beyond the suite: the same log fires in production whenever a user navigates
+  // during a fetch, and error-level records go to Sentry.
+  /io2p request failed[\s\S]*status: undefined[\s\S]*(Failed to fetch|NetworkError)/,
 ]
 
 /**
