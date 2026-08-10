@@ -51,7 +51,7 @@ test.describe('01 - navigation', () => {
     await expect(page).not.toHaveURL(/this-route-does-not-exist/)
   })
 
-  test('N2/N3: the Library dropdown exposes three children and stays active on them', async ({
+  test('N2/N3: the Library dropdown exposes its children and stays active on them', async ({
     page,
   }) => {
     await page.goto('/objects')
@@ -63,8 +63,9 @@ test.describe('01 - navigation', () => {
       'true'
     )
 
+    // Each child by NAME rather than an exact count: dropping one still fails, and the menu is
+    // where new Library pages land while they are being built.
     const menu = page.getByRole('menu')
-    await expect(menu.getByRole('menuitem')).toHaveCount(3)
     await expect(
       menu.getByRole('menuitem', { name: /template/i })
     ).toBeVisible()
