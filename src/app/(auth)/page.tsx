@@ -192,7 +192,11 @@ export default function LoginPage() {
           )}
         >
           {error && (
-            <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive animate-in slide-in-from-top-2 duration-300">
+            <div
+              data-testid="auth-error"
+              role="alert"
+              className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive animate-in slide-in-from-top-2 duration-300"
+            >
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -226,7 +230,10 @@ export default function LoginPage() {
                             />
                           </FormControl>
                         </div>
-                        <p className="text-red-500 text-sm">
+                        <p
+                          data-testid="auth-email-error"
+                          className="text-red-500 text-sm"
+                        >
                           {form.formState.errors.email?.message &&
                             (form.formState.errors.email.message.startsWith(
                               'auth.'
@@ -259,7 +266,10 @@ export default function LoginPage() {
                             {...field}
                           />
                         </FormControl>
-                        <p className="text-red-500 text-sm">
+                        <p
+                          data-testid="auth-password-error"
+                          className="text-red-500 text-sm"
+                        >
                           {form.formState.errors.password?.message &&
                             (form.formState.errors.password.message.startsWith(
                               'auth.'
@@ -274,6 +284,7 @@ export default function LoginPage() {
                   <div className="relative">
                     <Button
                       type="submit"
+                      data-testid="auth-email-submit"
                       className="w-full py-6 text-base"
                       disabled={isLoading}
                     >
@@ -284,6 +295,7 @@ export default function LoginPage() {
                     {lastAuthMethod === 'email' && (
                       <Badge
                         variant="outline"
+                        data-testid="auth-last-used-email"
                         className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
                       >
                         {t('auth.lastUsed')}
@@ -308,6 +320,7 @@ export default function LoginPage() {
           <div className="relative">
             <Button
               onClick={handleCertificateAuth}
+              data-testid="auth-certificate"
               variant={
                 config.emailLoginEnabled === 'true' ? 'outline' : 'default'
               }
@@ -320,6 +333,7 @@ export default function LoginPage() {
             {lastAuthMethod === 'certificate' && (
               <Badge
                 variant="outline"
+                data-testid="auth-last-used-certificate"
                 className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
               >
                 {t('auth.lastUsed')}

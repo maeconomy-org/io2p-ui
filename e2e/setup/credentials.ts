@@ -29,5 +29,18 @@ export function requireCredentials(): Credentials {
   return { email, password }
 }
 
+/**
+ * A SECOND account, for the cases one account cannot express: a share needs a member, and
+ * "read-only for the grantee" needs the grantee.
+ *
+ * Optional, and `null` rather than a throw — the specs that need it skip on a condition and print
+ * the reason, so a machine without it still runs the rest of the suite instead of failing at setup.
+ */
+export function secondCredentials(): Credentials | null {
+  const email = process.env.E2E_EMAIL_2
+  const password = process.env.E2E_PASSWORD_2
+  return email && password ? { email, password } : null
+}
+
 /** Where the authenticated browser state is cached between runs. Gitignored. */
 export const AUTH_STATE = 'e2e/.auth/user.json'

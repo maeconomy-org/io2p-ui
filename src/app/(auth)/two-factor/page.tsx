@@ -141,6 +141,7 @@ export default function TwoFactorPage() {
 
           <Button
             type="submit"
+            data-testid="two-factor-verify"
             className="w-full"
             disabled={submitting || !valid}
           >
@@ -155,6 +156,7 @@ export default function TwoFactorPage() {
           <div className="flex items-center justify-between text-sm">
             <button
               type="button"
+              data-testid="two-factor-toggle-backup"
               className="text-primary transition-colors hover:text-primary/80"
               onClick={() => {
                 setUseBackup((v) => !v)

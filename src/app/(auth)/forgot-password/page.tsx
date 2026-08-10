@@ -77,7 +77,10 @@ export default function ForgotPasswordPage() {
 
       <Card className="p-6 shadow-lg mt-8">
         {sent ? (
-          <div className="space-y-4 text-center">
+          <div
+            data-testid="forgot-password-sent"
+            className="space-y-4 text-center"
+          >
             <CheckCircle2 className="mx-auto h-10 w-10 text-primary" />
             <p className="text-sm text-muted-foreground">
               {t('auth.forgotPassword.success')}
@@ -120,7 +123,12 @@ export default function ForgotPasswordPage() {
                         </FormControl>
                       </div>
                       {emailError && (
-                        <p className="text-red-500 text-sm">{t(emailError)}</p>
+                        <p
+                          data-testid="forgot-password-email-error"
+                          className="text-red-500 text-sm"
+                        >
+                          {t(emailError)}
+                        </p>
                       )}
                     </FormItem>
                   )}
@@ -128,6 +136,7 @@ export default function ForgotPasswordPage() {
 
                 <Button
                   type="submit"
+                  data-testid="forgot-password-submit"
                   className="w-full py-6 text-base"
                   disabled={submitting}
                 >

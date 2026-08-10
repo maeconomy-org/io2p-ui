@@ -85,7 +85,10 @@ function ResetPasswordForm() {
       <Card className="p-6 shadow-lg mt-8">
         {invalidToken ? (
           <div className="space-y-4 text-center">
-            <AlertTriangle className="mx-auto h-10 w-10 text-destructive" />
+            <AlertTriangle
+              data-testid="reset-password-invalid-token"
+              className="mx-auto h-10 w-10 text-destructive"
+            />
             <p className="text-sm text-muted-foreground">
               {t('auth.resetPassword.invalidToken')}
             </p>
@@ -151,7 +154,10 @@ function ResetPasswordForm() {
                         />
                       </FormControl>
                       {confirmError && (
-                        <p className="text-red-500 text-sm">
+                        <p
+                          data-testid="reset-password-confirm-error"
+                          className="text-red-500 text-sm"
+                        >
                           {t(confirmError)}
                         </p>
                       )}
@@ -161,6 +167,7 @@ function ResetPasswordForm() {
 
                 <Button
                   type="submit"
+                  data-testid="reset-password-submit"
                   className="w-full py-6 text-base"
                   disabled={submitting}
                 >
