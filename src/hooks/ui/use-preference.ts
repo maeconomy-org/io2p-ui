@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Preferences, UserDTO } from 'io2p-client'
 
@@ -40,6 +40,8 @@ function resolve<K extends PreferenceKey>(
   return spec.validate(stored) ? stored : spec.default
 }
 
+const emptySubscribe = () => () => {}
+
 /**
  * Returns `[value, setValue, resolved]` — `useState` plus a readiness flag.
  *
@@ -48,6 +50,18 @@ function resolve<K extends PreferenceKey>(
  * flip on every cold load. Wait on `resolved` and you get one loading state
  * instead. It follows `authLoading`, so a logged-out or failed auth still
  * resolves (to the defaults) rather than waiting forever.
+ *
+ * Both returns are HYDRATION-SAFE, and they have to be. A preference lives on
+ * the node, so the server cannot know it: it renders the default and reports
+ * `resolved: false`. The browser restores auth from localStorage synchronously,
+ * so without this its very first render already had the stored value and
+ * `resolved: true` — a guaranteed mismatch on every load of a page that reads
+ * one. It showed up as "Hydration failed" on `/objects` and `/processes`, the
+ * only two pages that gate on `resolved`, while pages that do not were clean.
+ *
+ * `useSyncExternalStore` with a distinct server snapshot is the fix: React uses
+ * that snapshot for SSR *and* for the hydrating render, then re-renders with the
+ * client value. Same trick the navbar uses to decide ⌘ vs Ctrl.
  */
 export function usePreference<K extends PreferenceKey>(
   key: K
@@ -56,7 +70,15 @@ export function usePreference<K extends PreferenceKey>(
   const iom = useIomClient()
   const queryClient = useQueryClient()
 
-  const value = useMemo(() => resolve(preferences, key), [preferences, key])
+  const hydrated = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  )
+
+  const stored = useMemo(() => resolve(preferences, key), [preferences, key])
+  // The default until hydration, so the first client render matches the server.
+  const value = hydrated ? stored : PREFERENCES[key].default
 
   const { mutate } = useMutation({
     mutationFn: (next: PreferenceValues[K]) =>
@@ -98,7 +120,7 @@ export function usePreference<K extends PreferenceKey>(
     [mutate]
   )
 
-  return [value, setValue, !authLoading]
+  return [value, setValue, hydrated && !authLoading]
 }
 
 // Test surface.

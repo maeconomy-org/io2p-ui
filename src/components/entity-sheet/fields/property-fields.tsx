@@ -11,7 +11,7 @@ import {
   Trash2,
   TextInitial,
 } from 'lucide-react'
-import { useFieldArray, type UseFormReturn } from 'react-hook-form'
+import { useFieldArray, useWatch, type UseFormReturn } from 'react-hook-form'
 
 import {
   Badge,
@@ -322,14 +322,30 @@ function PropertyRow({
     [derivedValues]
   )
 
-  const propKey = form.watch(`${basePath}.${index}.key`)
-  const propLabel = form.watch(`${basePath}.${index}.label`)
-  const propDeleted = form.watch(`${basePath}.${index}.deleted`) ?? false
+  /**
+   * `useWatch`, NOT `form.watch` — this component does not own the `useForm`, it receives it.
+   *
+   * `form.watch(name)` called in a child only reads: the subscription it registers re-renders the
+   * component that CALLED useForm, and this one re-rendered merely because its parent did. That
+   * cascade is invisible in development and disappears the moment the row is memoized — which is
+   * exactly what the React Compiler does, and it runs in production only. The symptom was that
+   * soft-deleting a property did nothing at all in a production build: `setValue` fired, the row
+   * never re-rendered, and the struck-through row never appeared.
+   *
+   * One subscription for the whole row rather than one per field, because the per-value read below
+   * sits inside a `.map()` where a hook cannot go.
+   */
+  const row = useWatch({ control: form.control, name: `${basePath}.${index}` })
+  const ownProperties =
+    useWatch({ control: form.control, name: basePath }) ?? []
+
+  const propKey = row?.key
+  const propLabel = row?.label
+  const propDeleted = row?.deleted ?? false
   const valuePlaceholder =
     getValuePlaceholder(propKey, locale) ?? t('objects.propertyEditor.value')
-  const ownProperties = form.watch(basePath) ?? []
-  const propFiles = form.watch(`${basePath}.${index}.files`) ?? []
-  const rowValues = ownProperties[index]?.values ?? []
+  const propFiles = row?.files ?? []
+  const rowValues = row?.values ?? []
   const fileTotal = allowFiles
     ? propFiles.length +
       rowValues.reduce((n, v) => n + (v.files?.length ?? 0), 0)
@@ -497,7 +513,8 @@ function PropertyRow({
           <div className="space-y-2">
             {fields.map((field, vIndex) => {
               const base = `${basePath}.${index}.values.${vIndex}` as const
-              const value = form.watch(base)
+              // From the row subscription above — a hook cannot be called inside this map.
+              const value = rowValues[vIndex]
 
               // Same rule as properties: a stored value is marked, a never-stored one just goes.
               if (value?.deleted) {

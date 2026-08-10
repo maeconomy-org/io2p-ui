@@ -44,13 +44,19 @@ setup('authenticate', async ({ page }) => {
   // find no table. That is not hypothetical: it happened, and it took out four parallel specs at
   // once because they share this login. A suite has to start from a state it chose.
   await page.getByTestId('view-option-table').click()
-  await expect(page.getByTestId('data-table')).toBeVisible()
+
+  // A generous timeout ONLY here. The list renders behind `viewResolved`, which follows the `/me`
+  // request that carries the account's preferences — and this is the cold path: a token minted
+  // seconds ago, nothing cached, retries in play. Warm, the table paints in under a second; on
+  // this first load it has taken over ten. Every other spec inherits a warm context and the
+  // default 10s, so raising it globally would only hide slowness that matters.
+  await expect(page.getByTestId('data-table')).toBeVisible({ timeout: 60_000 })
 
   // Reload and re-check: the click renders the table immediately from local state, but the write
   // is a PATCH to the node that can still be in flight when this context closes — which aborts it
   // and leaves the account on whatever it was. Surviving a reload is the only proof it landed.
   await page.reload()
-  await expect(page.getByTestId('data-table')).toBeVisible()
+  await expect(page.getByTestId('data-table')).toBeVisible({ timeout: 30_000 })
 
   await page.context().storageState({ path: AUTH_STATE })
 })

@@ -56,6 +56,10 @@ export default defineConfig({
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
+      // Retried even locally, where everything else is not. Setup is one cheap idempotent step
+      // that every other project declares a dependency on, so a single transient network blip
+      // here does not fail one test — it cancels the entire run.
+      retries: 2,
       use: { ...devices['Desktop Chrome'] },
     },
     {
@@ -84,6 +88,10 @@ export default defineConfig({
   webServer: {
     command: 'pnpm dev',
     url: 'http://localhost:3000',
+    // Reuses whatever is already on :3000. If that is a PRODUCTION build, it must have been made
+    // with `E2E_KEEP_TEST_IDS=true` — `next.config.mjs` strips `data-testid` in production, so
+    // every locator silently resolves to nothing. `00-harness/build.read.spec.ts` fails loudly on
+    // that rather than letting 200 specs time out one by one.
     reuseExistingServer: true,
     timeout: 180 * 1000,
   },

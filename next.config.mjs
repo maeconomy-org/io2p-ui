@@ -66,8 +66,18 @@ const nextConfig = {
     ]
   },
   compiler: {
+    // Test hooks are stripped from the shipped bundle, EXCEPT when a build is made to be tested.
+    //
+    // `pnpm test:e2e` against `next start` is otherwise impossible: every locator resolves to
+    // nothing, which is indistinguishable from a broken page. Worth being able to do, because a
+    // production build is not the dev build with different minification — the React Compiler runs
+    // only here, and the note below is explicit that it can change behaviour.
+    //
+    // Opt-in, so the default and every real release still strip. Only `E2E_KEEP_TEST_IDS=true`
+    // keeps them, which is a thing a Dockerfile never sets.
     reactRemoveProperties:
-      process.env.NODE_ENV === 'production'
+      process.env.NODE_ENV === 'production' &&
+      process.env.E2E_KEEP_TEST_IDS !== 'true'
         ? { properties: ['^data-testid$'] }
         : false,
   },
