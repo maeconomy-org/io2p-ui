@@ -147,6 +147,7 @@ function ParentPicker({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          data-testid="parent-picker"
           className="h-9 w-full justify-between font-normal text-muted-foreground"
         >
           {t('objects.parentPicker.search')}
@@ -161,6 +162,7 @@ function ParentPicker({
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={t('objects.parentPicker.search')}
+            data-testid="parent-search"
             value={query}
             onValueChange={setQuery}
           />
@@ -177,6 +179,7 @@ function ParentPicker({
                 <CommandItem
                   key={object.id}
                   value={object.id}
+                  data-testid={`parent-option-${object.id}`}
                   onSelect={() => onToggle(object.id, object.name)}
                 >
                   <Check

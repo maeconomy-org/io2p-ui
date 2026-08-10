@@ -43,14 +43,17 @@ setup('authenticate', async ({ page }) => {
   // run, and one spec leaving the account in the columns view means the next run's table specs
   // find no table. That is not hypothetical: it happened, and it took out four parallel specs at
   // once because they share this login. A suite has to start from a state it chose.
-  await page.getByTestId('view-option-table').click()
-
-  // A generous timeout ONLY here. The list renders behind `viewResolved`, which follows the `/me`
-  // request that carries the account's preferences — and this is the cold path: a token minted
-  // seconds ago, nothing cached, retries in play. Warm, the table paints in under a second; on
-  // this first load it has taken over ten. Every other spec inherits a warm context and the
-  // default 10s, so raising it globally would only hide slowness that matters.
-  await expect(page.getByTestId('data-table')).toBeVisible({ timeout: 60_000 })
+  // `toPass`, not a click followed by an assertion.
+  //
+  // Two things can make a single attempt fail, and both are invisible: the button can be clicked
+  // before hydration attaches its handler, in which case nothing happens at all; and the list
+  // renders behind `viewResolved`, which waits on the `/me` request — cold here, with a token
+  // minted seconds ago and nothing cached. Retrying the whole click-and-check absorbs both
+  // instead of guessing at a timeout, and clicking an already-correct view is a no-op.
+  await expect(async () => {
+    await page.getByTestId('view-option-table').click()
+    await expect(page.getByTestId('data-table')).toBeVisible({ timeout: 5_000 })
+  }).toPass({ timeout: 60_000 })
 
   // Reload and re-check: the click renders the table immediately from local state, but the write
   // is a PATCH to the node that can still be in flight when this context closes — which aborts it
