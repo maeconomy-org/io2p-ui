@@ -10,6 +10,7 @@ import { useConstants } from '@/hooks/api/leaves'
 import { objectToTemplateInput } from '@/lib/entity'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
+import { MAX_LIST_PAGE_SIZE } from '@/constants'
 
 export interface TemplateCreationData {
   name: string
@@ -48,7 +49,7 @@ export function useCreateTemplateFromObject() {
     [full]
   )
   const { data: constants } = useConstants().useList(
-    { page: 1, size: 200 },
+    { page: 1, size: MAX_LIST_PAGE_SIZE },
     { enabled: !!full && usesConstants }
   )
   const constantNames = useMemo(

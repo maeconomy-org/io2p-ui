@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { evaluateExpression } from '@/lib/formula-expression'
+import { MAX_LIST_PAGE_SIZE } from '@/constants'
 
 /**
  * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
@@ -110,7 +111,10 @@ export function FormulaBindings({
 }) {
   const t = useTranslations()
   const { data: formula } = useFormulas().useGet(calc.formulaId)
-  const { data: constantsPage } = useConstants().useList({ page: 1, size: 200 })
+  const { data: constantsPage } = useConstants().useList({
+    page: 1,
+    size: MAX_LIST_PAGE_SIZE,
+  })
   // `?? []` inline would mint a new array each render and re-run the preview memo every time.
   const constants = useMemo(() => constantsPage?.data ?? [], [constantsPage])
 

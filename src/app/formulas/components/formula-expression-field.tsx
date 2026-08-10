@@ -12,6 +12,7 @@ import {
   variablesOf,
 } from '@/lib/formula-expression'
 import { useConstants } from '@/hooks/api/leaves'
+import { MAX_LIST_PAGE_SIZE } from '@/constants'
 
 /**
  * The expression input, plus everything the writer needs to know while typing.
@@ -35,7 +36,10 @@ export function FormulaExpressionField({
   // Caret at the last blur/selection, so a chip inserts where the user was rather than at the end.
   const caret = useRef<{ start: number; end: number } | null>(null)
 
-  const { data: constantsPage } = useConstants().useList({ page: 1, size: 200 })
+  const { data: constantsPage } = useConstants().useList({
+    page: 1,
+    size: MAX_LIST_PAGE_SIZE,
+  })
   const constantNames = useMemo(
     () => (constantsPage?.data ?? []).map((c) => c.name),
     [constantsPage]

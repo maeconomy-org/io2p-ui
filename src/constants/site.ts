@@ -76,6 +76,15 @@ export const DEFAULT_TABLE_PAGE_SIZE = 20
 export const DEFAULT_TABLE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 
 /**
+ * The largest `size` the node accepts on a list. Asking for more is a 400, not a clamp.
+ *
+ * Named because the raw number has now been got wrong twice: `/v1/users` once asked for 200 and
+ * 400'd on every render, and the Owner column showed uuids as if the API had no names. A caller
+ * that wants "all of them" wants THIS, and a caller that needs more than this needs to paginate.
+ */
+export const MAX_LIST_PAGE_SIZE = 100
+
+/**
  * The theme values that may be STORED, which is a superset of the two the
  * toggle offers — next-themes writes `system` whenever the user has never
  * chosen, and that value has to survive a round trip through the node.

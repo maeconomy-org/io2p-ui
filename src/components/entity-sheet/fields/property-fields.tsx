@@ -22,6 +22,7 @@ import {
   Label,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { MAX_LIST_PAGE_SIZE } from '@/constants'
 import { PropertyNameCombobox } from './property-name-combobox'
 import { useConstants } from '@/hooks/api/leaves'
 import {
@@ -157,7 +158,7 @@ export function PropertyFields({
     [derivedValues]
   )
   const { data: constants } = useConstants().useList(
-    { page: 1, size: 200 },
+    { page: 1, size: MAX_LIST_PAGE_SIZE },
     { enabled: editing && usesConstants }
   )
   const constantNames = useMemo(
