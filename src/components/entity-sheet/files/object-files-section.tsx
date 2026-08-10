@@ -114,6 +114,7 @@ export function ObjectFilesSection({
               type="button"
               variant="outline"
               size="sm"
+              data-testid="add-files"
               onClick={onAttach}
             >
               <Paperclip className="mr-2 h-3.5 w-3.5" />

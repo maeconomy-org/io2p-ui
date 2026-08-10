@@ -1,10 +1,3 @@
-/**
- * Driving the process sheet.
- *
- * A process is the one entity whose test data cannot be a name and a value: every case needs at
- * least one input and one output, and several need to know WHICH object a flow points at.
- */
-
 import { expect, type Page } from '@playwright/test'
 
 import { tour } from './selectors'
@@ -12,12 +5,6 @@ import { sheet, switchTab } from './sheet'
 
 export type Bag = 'inputs' | 'outputs'
 
-/**
- * Creates an object through the UI and returns its name and id.
- *
- * The id comes from the URL after opening it, because the list does not print one. Tests that
- * filter by `?ref=` need the id, and inventing one proves nothing — the node resolves it.
- */
 export async function createObjectWithId(
   page: Page,
   name: string
@@ -43,13 +30,6 @@ export async function createObjectWithId(
   return page.url().split('/').pop() as string
 }
 
-/**
- * Adds a flow to `bag` and points it at `objectName`.
- *
- * Searches the picker rather than taking the first option: the first option is whatever the node
- * happened to return, so a spec built on it cannot then assert anything about WHICH object the
- * flow references.
- */
 export async function addFlow(
   page: Page,
   bag: Bag,
@@ -75,13 +55,6 @@ export async function addFlow(
   await page.getByTestId(`flow-quantity-${bag}-${index}`).fill(quantity)
 }
 
-/**
- * Creates a process with the given inputs and one output.
- *
- * `inputNames` is a LIST because the count is load-bearing. The node refuses a process with no
- * inputs, so a case that removes one needs a spare — seeded with a single input, every
- * remove-an-input case fails on a refusal that belongs to PR12 alone.
- */
 export async function createProcess(
   page: Page,
   name: string,
@@ -96,9 +69,6 @@ export async function createProcess(
   await expect(panel).toBeVisible()
   await panel.getByLabel(/name/i).first().fill(name)
 
-  // The process create sheet IS tabbed — `process-sheet.tsx` passes `tabs={tabs}` unconditionally,
-  // where the object sheet passes `tabs={isCreate ? undefined : tabs}`. So the flow controls are
-  // on their own tabs and are not mounted until each is opened.
   await switchTab(page, 'inputs')
   for (const [index, inputName] of inputNames.entries()) {
     await addFlow(page, 'inputs', index, inputName, '10')

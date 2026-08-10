@@ -1,16 +1,6 @@
 import { expect, test } from '../fixtures/app'
 import { createObjectWithId, createProcess } from '../utils/process'
 
-/**
- * §6.11 PR16-PR18 — the `?ref=` filter.
- *
- * A `write` spec, and it has to be. The first version lived in the read file and filtered by an
- * arbitrary object id taken from the list. That object was an input to no process, so the filtered
- * table held ZERO rows — the bar appeared, which is all the spec checked, while the case it meant
- * to make was never exercised. Seeding a process with a known input is the only way the filter can
- * be asserted to select something rather than merely to render.
- */
-
 const stamp = () => `e2e-${Date.now()}`
 
 test.describe('07 - processes / related filter', () => {
@@ -26,14 +16,14 @@ test.describe('07 - processes / related filter', () => {
 
     await page.goto(`/processes?ref=${inputId}`)
 
-    // PR16: the bar names the object AND the table holds the process that uses it. The row is the
-    // half that matters — a bar over an empty table looks identical to a working filter.
+    // Wait for ONE bar before asserting it is visible. A client transition keeps the outgoing page
+    // hidden — Playwright's strict mode then fails on the ambiguity rather than on the app.
+    await expect(page.getByTestId('related-object-bar')).toHaveCount(1)
     await expect(page.getByTestId('related-object-bar')).toBeVisible()
     await expect(
       page.getByTestId('data-table-row').filter({ hasText: processName })
     ).toHaveCount(1)
 
-    // PR17: clearing drops the bar, the param and the filter together.
     await page.getByTestId('related-object-clear').click()
     await expect(page.getByTestId('related-object-bar')).toBeHidden()
     await expect(page).not.toHaveURL(/ref=/)
@@ -51,6 +41,7 @@ test.describe('07 - processes / related filter', () => {
 
     await page.goto(`/processes?ref=${inputId}`)
     const related = page.getByTestId('related-object-bar')
+    await expect(related).toHaveCount(1)
     await expect(related).toBeVisible()
 
     // The SELECTION bar as the second one, not search: search is rate-limited on the node, and
@@ -64,8 +55,6 @@ test.describe('07 - processes / related filter', () => {
     const selection = page.getByTestId('bulk-bar')
     await expect(selection).toBeVisible()
 
-    // `FLOATING_BAR_LEVELS` exists so two bars never sit on top of each other. Comparing the boxes
-    // is the only way to see it: both report "visible" whether they overlap or not.
     const a = await related.boundingBox()
     const b = await selection.boundingBox()
     const disjoint =

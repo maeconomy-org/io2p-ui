@@ -1,14 +1,6 @@
 import { expect, test } from '../fixtures/app'
 import { tour } from '../utils/selectors'
 
-/**
- * §6.12 FM1-FM5 — formulas.
- *
- * The validity indicator is asserted through `aria-invalid`, not a colour and not a testid. It is
- * already on the input, it says the same thing to a screen reader, and it survives the production
- * build's `data-testid` strip (§4.9).
- */
-
 const stamp = () => `e2e-${Date.now()}`
 
 test.describe('09 - formulas', () => {
@@ -25,9 +17,6 @@ test.describe('09 - formulas', () => {
     const expression = page.getByLabel(/expression/i)
     await expect(expression).toBeVisible()
 
-    // Parsed by the SAME expr-eval the node uses, so "valid" here means the create will not 422.
-    // `^` is the case that regressed: a hand-rolled validator rejected it while the server
-    // accepted it, so the form refused a formula that was fine.
     await expression.fill('a ^ 2 + b')
     await expect(expression).toHaveAttribute('aria-invalid', 'false')
 
@@ -43,7 +32,6 @@ test.describe('09 - formulas', () => {
     await row.getByTestId('formula-actions-dropdown').click()
 
     // Formulas are IMMUTABLE — an object that pinned one must keep evaluating to the same number,
-    // so a change is a new formula. An Edit action would promise something the model forbids.
     await expect(page.getByTestId('formula-action-duplicate')).toBeVisible()
     await expect(page.getByTestId('formula-action-edit')).toHaveCount(0)
   })
@@ -69,8 +57,6 @@ test.describe('09 - formulas', () => {
     await page.getByLabel(/name/i).first().fill(name)
     await page.getByLabel(/expression/i).fill('width * height')
 
-    // The exact label. `/create|save/i` also matches the page's own create button, and `.last()`
-    // is a guess about DOM order rather than a statement about which control is meant.
     await page
       .getByRole('button', { name: /create formula/i })
       .last()

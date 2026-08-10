@@ -4,15 +4,8 @@ import { expect, test } from '../fixtures/app'
 import { tour } from '../utils/selectors'
 import { createObjectWithId } from '../utils/process'
 
-/**
- * §6.13 S3-S6 — the share editor.
- *
- * A `write` spec: every case here creates a share on the node.
- */
-
 const stamp = () => `e2e-${Date.now()}`
 
-/** Opens the create editor and names the bundle. */
 async function openEditor(page: Page, name: string) {
   await page.goto('/shares')
   await expect(page.getByTestId('shares-tab-shares')).toBeVisible()
@@ -29,8 +22,6 @@ test.describe('11 - shares / editor', () => {
   }) => {
     await openEditor(page, `${stamp()}-s4`)
 
-    // `disabled={!complete || !dirty}`. A name alone is not a share — it needs a resource and a
-    // member — so the button states that rather than accepting a bundle the node would refuse.
     await expect(page.getByTestId('share-save')).toBeDisabled()
   })
 
@@ -54,8 +45,6 @@ test.describe('11 - shares / editor', () => {
     await expect(option).toBeVisible()
     await option.click()
 
-    // The picked resource is STAGED into the sheet, not written — S4's other half. Nothing has
-    // reached the node yet, which is why the row below only appears after Save.
     await expect(page.locator('[data-testid^="share-resource-"]')).toHaveCount(
       1
     )
@@ -74,8 +63,6 @@ test.describe('11 - shares / editor', () => {
     )
     await row.click()
 
-    // The detail has no name field. Opening straight into the editor would make a click on a row
-    // an edit, which is the difference this case exists to hold.
     await expect(page.getByTestId('share-name')).toHaveCount(0)
   })
 })

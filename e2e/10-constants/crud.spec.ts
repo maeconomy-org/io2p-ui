@@ -2,16 +2,7 @@ import { expect, test } from '../fixtures/app'
 import { tour } from '../utils/selectors'
 
 /**
- * §6.12 CO1-CO2 — constants.
- *
- * Fields are located by their `id`, not by label text. The value field is labelled "Value" on
- * create and "New value" on edit, so one regex cannot name it in both; and the labels are
- * translated, so any text match breaks the moment the account's locale is not English.
- *
  * A constant's versions are APPEND-ONLY: a calc that pinned version 1 must keep evaluating to the
- * number it pinned, forever. That is why editing a value adds a version rather than replacing one,
- * and why CO3 (a new version does not move a bound value) belongs with the formula binding cases
- * rather than here.
  */
 
 const stamp = () => `e2e-${Date.now()}`
@@ -61,18 +52,14 @@ test.describe('10 - constants', () => {
     await page.getByTestId('constant-action-edit').click()
 
     // The name is DISABLED on edit — renaming a constant would orphan every calc that pinned it by
-    // name. Only the value can change, and changing it is what enables the button below.
     await expect(page.locator('#constant-name')).toBeDisabled()
     await page.locator('#constant-data').fill('2')
 
-    // "Add version", not Save or Update. The label is the model: a constant's versions are
     // append-only, so editing one never replaces what a calc already pinned.
     const addVersion = page.getByRole('button', { name: /add version/i }).last()
     await expect(addVersion).toBeEnabled()
     await addVersion.click()
 
-    // Reopening shows a HISTORY, not one mutated row. Version 1 has to still be readable —
-    // anything that pinned it is still evaluating against that number.
     await expect(row).toHaveCount(1)
     await row.getByTestId('constant-actions-dropdown').click()
     await page.getByTestId('constant-action-edit').click()
