@@ -56,10 +56,11 @@ test.describe('13 - preferences / first paint', () => {
 
     let skeletonSeen = false
     await page.goto('/objects', { waitUntil: 'commit' })
-    // Poll from the first byte: the skeleton this replaced was visible for the
-    // whole `/me` round trip, so a single check after load would miss it.
+    // `page-skeleton` is the ROUTE boundary specifically. A bare `.animate-pulse`
+    // would also match DataTable's own loading rows, which are correct and
+    // expected — the point is that nothing covers the heading and the filters.
     for (let i = 0; i < 20; i++) {
-      if ((await page.locator('.animate-pulse').count()) > 0)
+      if ((await page.getByTestId('page-skeleton').count()) > 0)
         skeletonSeen = true
       await page.waitForTimeout(50)
     }
@@ -78,10 +79,15 @@ test.describe('13 - preferences / first paint', () => {
     await page.goto('/objects')
     await expect(page.getByTestId('data-table')).toBeVisible()
 
-    // Asserted on the REQUEST, not on the size Select. The control would read 50
-    // even if the request had asked for 20 and the server had answered 20.
-    const listRequests = api.matching(/\/v1\/objects\?/)
-    expect(listRequests.length).toBeGreaterThan(0)
-    expect(listRequests[0].path).toContain('size=50')
+    // Asserted on the REQUEST, not on the size Select. The control reads its
+    // value back off the response, so it would show 50 even if the request had
+    // asked for 20 and the server had simply echoed what it was given.
+    // `_rsc` filtered out: Next's own route prefetch also hits `/objects?`, and
+    // it arrives FIRST, so an unfiltered match reads the navigation instead of
+    // the list call.
+    const listCalls = () =>
+      api.matching(/\/objects\?/).filter((r) => !r.path.includes('_rsc'))
+    await expect.poll(() => listCalls().length).toBeGreaterThan(0)
+    expect(listCalls()[0].path).toContain('size=50')
   })
 })

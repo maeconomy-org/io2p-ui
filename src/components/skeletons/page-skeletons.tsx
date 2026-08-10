@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui'
  */
 export function ContentSkeleton() {
   return (
-    <div className="container mx-auto p-4 flex-1">
+    <div className="container mx-auto p-4 flex-1" data-testid="page-skeleton">
       {/* Page header area */}
       <div className="flex items-center justify-between mb-6">
         <Skeleton className="h-8 w-44" />
@@ -41,7 +41,7 @@ export function ContentSkeleton() {
  */
 export function TableSkeleton() {
   return (
-    <div className="container mx-auto p-4 flex-1">
+    <div className="container mx-auto p-4 flex-1" data-testid="page-skeleton">
       <div className="mb-6 flex items-center justify-between">
         <Skeleton className="h-8 w-44" />
         <div className="flex items-center gap-3">
