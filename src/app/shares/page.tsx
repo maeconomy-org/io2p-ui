@@ -178,10 +178,10 @@ export default function SharesPage() {
               </div>
               <div className="flex items-center gap-2">
                 <TabsList {...anchor('sharesTabs')}>
-                  <TabsTrigger value="shares">
+                  <TabsTrigger value="shares" data-testid="shares-tab-shares">
                     {t('shares.tabShares')}
                   </TabsTrigger>
-                  <TabsTrigger value="direct">
+                  <TabsTrigger value="direct" data-testid="shares-tab-direct">
                     {t('shares.tabDirect')}
                   </TabsTrigger>
                 </TabsList>

@@ -257,6 +257,7 @@ function ShareForm({
           <Label htmlFor="share-name">{t('shares.fields.name')}</Label>
           <Input
             id="share-name"
+            data-testid="share-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t('shares.namePlaceholder')}
@@ -268,6 +269,7 @@ function ShareForm({
           {resources.map((resource) => (
             <div
               key={resource.id}
+              data-testid={`share-resource-${resource.id}`}
               className="flex items-center gap-2 rounded-md border px-3 py-2"
             >
               <Badge variant={resource.type} className="h-5 shrink-0">
@@ -386,7 +388,12 @@ function ShareForm({
 
           <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
             <PopoverTrigger asChild>
-              <Button type="button" variant="outline" className="w-full">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                data-testid="member-picker"
+              >
                 <UserPlus className="mr-2 h-4 w-4" />
                 {t('access.addPeople')}
               </Button>
@@ -398,6 +405,7 @@ function ShareForm({
               <Command shouldFilter={false}>
                 <CommandInput
                   placeholder={t('access.searchPeople')}
+                  data-testid="member-search"
                   value={peopleQuery}
                   onValueChange={setPeopleQuery}
                 />
@@ -410,6 +418,7 @@ function ShareForm({
                       <CommandItem
                         key={user.id}
                         value={user.id}
+                        data-testid={`member-option-${user.id}`}
                         className="cursor-pointer"
                         onSelect={() => {
                           setPickerOpen(false)
@@ -470,6 +479,7 @@ function ShareForm({
           type="button"
           variant="outline"
           className="flex-1"
+          data-testid="share-cancel"
           onClick={onDone}
         >
           {t('common.cancel')}
@@ -477,6 +487,7 @@ function ShareForm({
         <Button
           type="button"
           className="flex-1"
+          data-testid="share-save"
           disabled={!complete || !dirty || saving}
           onClick={save}
         >

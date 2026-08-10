@@ -157,6 +157,11 @@ test.describe('07 - processes / flows', () => {
     // The node refuses a process with no inputs. What matters is that the refusal reads as a
     // message and the sheet stays open holding the name change — not a raw 422 and a lost edit.
     await expect(sheet(page)).toBeVisible()
+
+    // Back to Details before reading the name. Radix unmounts the inactive panel, so the field is
+    // not merely hidden — it does not exist while the Inputs tab is open, and the assertion fails
+    // with "element not found" as though the edit had been discarded.
+    await switchTab(page, 'details')
     await expect(sheet(page).getByLabel(/name/i).first()).toHaveValue(newName)
   })
 })

@@ -50,6 +50,23 @@ setup('authenticate', async ({ page }) => {
     await normaliseToTableView(page)
   }
 
+  // The LOCALE, for the same reason and with sharper consequences.
+  //
+  // It is an account preference now, so a spec that switches to Dutch and fails before restoring
+  // leaves every later run reading Dutch. Most specs match English — `getByRole('button', { name:
+  // /create/i })`, `getByLabel(/name/i)` — and against `Aanmaken` or `Naam` those do not fail with
+  // "wrong language", they fail with "element not found", which reads as a broken page.
+  await page.goto('/settings')
+  await page.getByTestId('settings-tab-appearance').click()
+  await expect(async () => {
+    await page.getByTestId('appearance-language-en').click()
+    await expect(page.getByTestId('appearance-language-en')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+      { timeout: 3_000 }
+    )
+  }).toPass({ timeout: 30_000 })
+
   await page.context().storageState({ path: AUTH_STATE })
 })
 

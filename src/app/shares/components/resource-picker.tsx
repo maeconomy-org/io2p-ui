@@ -124,7 +124,12 @@ export function ResourcePicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" className="w-full">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          data-testid="resource-picker"
+        >
           <Plus className="mr-2 h-4 w-4" />
           {t('shares.addResources')}
         </Button>
@@ -161,6 +166,7 @@ export function ResourcePicker({
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={t('shares.searchResources')}
+            data-testid="resource-search"
             value={query}
             onValueChange={setQuery}
           />
@@ -173,6 +179,7 @@ export function ResourcePicker({
                 <CommandItem
                   key={resource.id}
                   value={resource.id}
+                  data-testid={`resource-option-${resource.id}`}
                   className="cursor-pointer"
                   onSelect={() => {
                     setOpen(false)

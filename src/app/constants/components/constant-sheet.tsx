@@ -218,7 +218,7 @@ function VersionHistory({ constant }: { constant: ConstantDTO }) {
   const latest = constant.versions.at(-1)?.version
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid="constant-versions">
       <p className="text-xs font-medium text-muted-foreground">
         {t('constants.history')}
       </p>
