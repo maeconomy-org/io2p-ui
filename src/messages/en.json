@@ -96,7 +96,8 @@
         "network": "Network",
         "detailed": "List",
         "grid": "Grid"
-      }
+      },
+      "rowsPerPage": "Rows per page"
     },
     "security": {
       "notAvailable": "Not available yet",
@@ -1154,7 +1155,8 @@
       "share-objects": "Share objects",
       "work-with-drafts": "Work with drafts"
     },
-    "startTour": "Start the walkthrough"
+    "startTour": "Start the walkthrough",
+    "hintUnread": "Not read yet"
   },
   "import": {
     "title": "Import",

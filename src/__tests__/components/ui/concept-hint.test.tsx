@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { ConceptHint } from '@/components/ui/concept-hint'
@@ -112,5 +112,80 @@ describe('concept copy', () => {
       const { label } = (en.concepts as Record<string, { label: string }>)[key]
       expect(label.endsWith('?'), `en.${key}.label: "${label}"`).toBe(true)
     }
+  })
+})
+
+describe('ConceptHint unread dot', () => {
+  it('draws no dot by default', () => {
+    render(<ConceptHint label="What is a share?">A bundle.</ConceptHint>)
+    expect(screen.queryByTestId('concept-hint-unread')).not.toBeInTheDocument()
+  })
+
+  it('draws the dot when unread', () => {
+    render(
+      <ConceptHint label="What is a share?" unread>
+        A bundle.
+      </ConceptHint>
+    )
+    expect(screen.getByTestId('concept-hint-unread')).toBeInTheDocument()
+  })
+
+  /**
+   * The dot is decorative and carries its meaning in the button's NAME instead.
+   * An `sr-only` span inside the button would be silent, because `aria-label`
+   * overrides inner content — and the dot would then be colour-only.
+   */
+  it('carries the unread state in the accessible name, not in colour', () => {
+    render(
+      <ConceptHint label="What is a share?" unread unreadLabel="Not read yet">
+        A bundle.
+      </ConceptHint>
+    )
+
+    expect(screen.getByTestId('concept-hint-unread')).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    )
+    expect(
+      screen.getByRole('button', { name: 'What is a share? — Not read yet' })
+    ).toBeInTheDocument()
+  })
+
+  it('leaves the name alone once read', () => {
+    render(
+      <ConceptHint label="What is a share?" unreadLabel="Not read yet">
+        A bundle.
+      </ConceptHint>
+    )
+    expect(
+      screen.getByRole('button', { name: 'What is a share?' })
+    ).toBeInTheDocument()
+  })
+
+  it('reports opening on hover', async () => {
+    const onOpenChange = vi.fn()
+    render(
+      <ConceptHint label="What is a share?" onOpenChange={onOpenChange}>
+        A bundle.
+      </ConceptHint>
+    )
+
+    await userEvent.hover(screen.getByRole('button'))
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(true))
+  })
+
+  // Keyboard users must be able to clear the dot too.
+  it('reports opening on focus', async () => {
+    const onOpenChange = vi.fn()
+    render(
+      <ConceptHint label="What is a share?" onOpenChange={onOpenChange}>
+        A bundle.
+      </ConceptHint>
+    )
+
+    screen.getByRole('button').focus()
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(true))
   })
 })

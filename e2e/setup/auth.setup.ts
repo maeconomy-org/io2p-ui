@@ -30,12 +30,11 @@ setup('authenticate', async ({ page }) => {
     page.getByRole('heading', { name: /objects/i }).first()
   ).toBeVisible()
 
-  // Onboarding is STATE, not a flow to click past. Seeding the key keeps the tour overlay off the
-  // first click of every downstream spec; `15-onboarding` clears it and drives the tours
-  // deliberately, which is the only place they should run.
-  await page.evaluate(() =>
-    localStorage.setItem('onboarding:initial-login:v1', 'done')
-  )
+  // Onboarding is STATE, not a flow to click past — and that state lives on the ACCOUNT now, so
+  // this cannot seed it from the browser. Assert instead: the shared login has finished the
+  // welcome tour, and if it ever has not, every downstream spec is about to click through an
+  // overlay and this line says so first.
+  await expect(page.locator('.driver-popover')).toHaveCount(0)
 
   // EVERY page that stores a view preference, not just the first one.
   //
@@ -57,12 +56,10 @@ setup('authenticate', async ({ page }) => {
 /**
  * Puts the current page in its table view and proves the choice was stored.
  *
- * `toPass`, not a click followed by an assertion. Two things can make a single attempt fail and
- * both are invisible: the button can be clicked before hydration attaches its handler, in which
- * case nothing happens at all; and the list renders behind `viewResolved`, which waits on the
- * `/me` request — cold here, with a token minted seconds ago and nothing cached. Retrying the
- * whole click-and-check absorbs both instead of guessing at a timeout. Clicking a view that is
- * already correct is a no-op.
+ * `toPass`, not a click followed by an assertion: the button can be clicked before hydration
+ * attaches its handler, in which case nothing happens at all. Retrying the whole click-and-check
+ * absorbs that instead of guessing at a timeout. Clicking a view that is already correct is a
+ * no-op.
  */
 async function normaliseToTableView(page: Page) {
   await expect(async () => {

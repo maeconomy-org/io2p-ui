@@ -18,7 +18,6 @@ import {
   scopeSection,
   type ScopeFilterValue,
 } from '@/components/filters'
-import { ContentSkeleton } from '@/components/skeletons'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
 import { ObjectColumnsView } from '@/app/objects/components/columns-view'
@@ -53,11 +52,7 @@ export default function ObjectsPage() {
   const t = useTranslations()
   const router = useRouter()
 
-  // `viewResolved` — the preference lives on the node, so the server render cannot know it. Without
-  // this gate the server paints the DEFAULT view and the client repaints the stored one, which React
-  // reports as a hydration mismatch on every load for anyone not on the default. /processes has
-  // gated on it since it shipped; this page did not.
-  const [viewType, setViewType, viewResolved] = usePreference('objectsView')
+  const [viewType, setViewType] = usePreference('objectsView')
   const [scope, setScope] = useState<ScopeFilterValue>('all')
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
   const [resumeDraftId, setResumeDraftId] = useState<string | null>(null)
@@ -164,9 +159,7 @@ export default function ObjectsPage() {
           </div>
         </div>
 
-        {!viewResolved && <ContentSkeleton />}
-
-        {viewResolved && isSearchMode && (
+        {isSearchMode && (
           <SearchResultsBar
             searchQuery={searchQuery}
             // The count comes from the SAME io2p response the table below renders, so the bar and
@@ -177,7 +170,7 @@ export default function ObjectsPage() {
           />
         )}
 
-        {viewResolved && viewType === 'table' && (
+        {viewType === 'table' && (
           <EntityTable
             onRowHover={(row) => prefetchDetail(row.id)}
             columns={state.columns}
@@ -191,6 +184,7 @@ export default function ObjectsPage() {
             onSortChange={listQuery.setSort}
             onPageChange={listQuery.setPage}
             onPageSizeChange={filters.handlePageSizeChange}
+            pageSize={filters.pageSize}
             onRowDoubleClick={handleDoubleClick}
             hasPinnedRows={showDrafts && drafts.length > 0}
             pinnedRows={
@@ -219,7 +213,7 @@ export default function ObjectsPage() {
           />
         )}
 
-        {viewResolved && viewType !== 'table' && (
+        {viewType !== 'table' && (
           <ObjectColumnsView
             showDeleted={filters.showDeleted}
             scope={scope}

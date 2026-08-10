@@ -193,6 +193,7 @@ export default function FormulasPage() {
             onRowSelectionChange={list.setRowSelection}
             onPageChange={listQuery.setPage}
             onPageSizeChange={filters.handlePageSizeChange}
+            pageSize={filters.pageSize}
             onRowClick={(formula) => setSheet({ mode: 'view', formula })}
             emptyIcon={
               <FunctionSquare className="h-10 w-10 text-muted-foreground/50" />

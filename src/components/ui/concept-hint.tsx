@@ -22,6 +22,17 @@ interface ConceptHintProps {
    * than one, and the walkthrough is the natural follow-on from the definition.
    */
   footer?: ReactNode
+  /** Draws the dot. The caller owns what "unread" means and where it is stored. */
+  unread?: boolean
+  /**
+   * Appended to the accessible name while `unread`, e.g. "Not read yet".
+   *
+   * A prop rather than an `sr-only` child, because `aria-label` on the button
+   * OVERRIDES its inner content — an sr-only span inside would be silent, and
+   * the dot would then convey its state by colour alone.
+   */
+  unreadLabel?: string
+  onOpenChange?: (open: boolean) => void
   className?: string
 }
 
@@ -41,22 +52,35 @@ export function ConceptHint({
   label,
   children,
   footer,
+  unread = false,
+  unreadLabel,
+  onOpenChange,
   className,
 }: ConceptHintProps) {
   return (
-    <HoverCard openDelay={150} closeDelay={200}>
+    <HoverCard openDelay={150} closeDelay={200} onOpenChange={onOpenChange}>
       <HoverCardTrigger asChild>
         <button
           type="button"
-          aria-label={label}
+          aria-label={
+            unread && unreadLabel ? `${label} — ${unreadLabel}` : label
+          }
           className={cn(
-            'inline-flex shrink-0 items-center justify-center rounded-full',
+            'relative inline-flex shrink-0 items-center justify-center rounded-full',
             'text-muted-foreground/70 transition-colors hover:text-foreground',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             className
           )}
         >
           <HelpCircle className="h-4 w-4" />
+          {/* Absolute, so appearing and clearing never move the heading. */}
+          {unread && (
+            <span
+              aria-hidden="true"
+              data-testid="concept-hint-unread"
+              className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-background"
+            />
+          )}
         </button>
       </HoverCardTrigger>
       <HoverCardContent className="w-80 text-sm leading-relaxed font-normal">

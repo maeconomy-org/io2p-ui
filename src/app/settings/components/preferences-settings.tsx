@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui'
 import {
+  DEFAULT_TABLE_PAGE_SIZE_OPTIONS,
   ENABLED_OBJECT_VIEW_TYPES,
   ENABLED_PROCESS_VIEW_TYPES,
 } from '@/constants'
@@ -43,6 +44,7 @@ export function PreferencesSettings() {
   const [objectsView, setObjectsView] = usePreference('objectsView')
   const [processView, setProcessView] = usePreference('processView')
   const [propertiesView, setPropertiesView] = usePreference('propertiesView')
+  const [pageSize, setPageSize] = usePreference('pageSize')
 
   // A preference saved before a view was retired no longer matches any option, and a segmented
   // control with no match renders nothing selected. Fall back for display without overwriting the
@@ -96,6 +98,18 @@ export function PreferencesSettings() {
               { value: 'detailed', label: tOpt('detailed'), icon: List },
               { value: 'grid', label: tOpt('grid'), icon: LayoutGrid },
             ]}
+          />
+        </Row>
+        <Row label={t('rowsPerPage')} testId="pref-page-size">
+          <SegmentedControl
+            ariaLabel={t('rowsPerPage')}
+            value={String(pageSize)}
+            onChange={(value) => setPageSize(Number(value))}
+            testIdPrefix="pref-page-size"
+            options={DEFAULT_TABLE_PAGE_SIZE_OPTIONS.map((size) => ({
+              value: String(size),
+              label: String(size),
+            }))}
           />
         </Row>
       </CardContent>

@@ -219,6 +219,7 @@ export default function TemplatesPage() {
             onRowSelectionChange={list.setRowSelection}
             onPageChange={listQuery.setPage}
             onPageSizeChange={filters.handlePageSizeChange}
+            pageSize={filters.pageSize}
             emptyIcon={
               <FileText className="h-10 w-10 text-muted-foreground/50" />
             }

@@ -24,7 +24,6 @@ import {
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { ViewSelector } from '@/components/view-selector'
-import { ContentSkeleton } from '@/components/skeletons'
 import { useProcesses } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { usePreference } from '@/hooks/ui/use-preference'
@@ -87,10 +86,7 @@ export default function ProcessesPage() {
   const [toShare, setToShare] = useState<ProcessListItem | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
-  // The stored view is account-keyed, so it cannot be read until `/me` resolves. Rendering the
-  // default meanwhile means showing the table and then swapping to a chart on every cold load —
-  // one skeleton is better than the wrong view followed by a skeleton.
-  const [view, setView, viewResolved] = usePreference('processView')
+  const [view, setView] = usePreference('processView')
   const isTable = view === 'table'
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
   const { userId } = useAuth()
@@ -114,10 +110,8 @@ export default function ProcessesPage() {
       // "everything related", where the Relations tab splits them.
       ref: relatedObjectId ?? undefined,
     },
-    // The flow view sweeps its own pages; a paginated list would be a second, unused request. And
-    // until the stored view is known, `isTable` is only a guess — firing on it would fetch a list
-    // the user may never see.
-    { keepPreviousData: true, enabled: viewResolved && isTable }
+    // The flow view sweeps its own pages; a paginated list would be a second, unused request.
+    { keepPreviousData: true, enabled: isTable }
   )
 
   const openProcess = useCallback((id: string, edit = false) => {
@@ -164,7 +158,7 @@ export default function ProcessesPage() {
   // Three bars can be up together. Each one sits above however many are open beneath it, rather than
   // every caller hardcoding a level and two of them landing on the same one.
   const selectionOpen = isTable && list.selectedRows.length > 0
-  const searchOpen = viewResolved && isTable && isSearchMode
+  const searchOpen = isTable && isSearchMode
   const relatedLevel =
     FLOATING_BAR_LEVELS[(selectionOpen ? 1 : 0) + (searchOpen ? 1 : 0)]
 
@@ -208,9 +202,7 @@ export default function ProcessesPage() {
             </div>
           </div>
 
-          {!viewResolved && <ContentSkeleton />}
-
-          {viewResolved && isTable && isSearchMode && (
+          {isTable && isSearchMode && (
             <SearchResultsBar
               searchQuery={searchQuery}
               resultsCount={processesPage?.page.totalElements ?? 0}
@@ -219,35 +211,35 @@ export default function ProcessesPage() {
             />
           )}
 
-          {viewResolved &&
-            (isTable ? (
-              <EntityTable
-                onRowHover={(row) => prefetchDetail(row.id)}
-                columns={columns}
-                page={processesPage}
-                getRowId={(process) => process.id}
-                fetching={isFetching}
-                sort={listQuery.query.sort}
-                onSortChange={listQuery.setSort}
-                enableRowSelection
-                rowSelection={list.rowSelection}
-                onRowSelectionChange={list.setRowSelection}
-                onPageChange={listQuery.setPage}
-                onPageSizeChange={filters.handlePageSizeChange}
-                onRowClick={(process) => openProcess(process.id)}
-                emptyIcon={
-                  <Workflow className="h-10 w-10 text-muted-foreground/50" />
-                }
-                emptyTitle={t('processes.empty.title')}
-                emptyDescription={t('processes.empty.description')}
-              />
-            ) : (
-              <ProcessFlowView
-                variant={view}
-                onOpenProcess={openProcess}
-                relatedObjectId={relatedObjectId}
-              />
-            ))}
+          {isTable ? (
+            <EntityTable
+              onRowHover={(row) => prefetchDetail(row.id)}
+              columns={columns}
+              page={processesPage}
+              getRowId={(process) => process.id}
+              fetching={isFetching}
+              sort={listQuery.query.sort}
+              onSortChange={listQuery.setSort}
+              enableRowSelection
+              rowSelection={list.rowSelection}
+              onRowSelectionChange={list.setRowSelection}
+              onPageChange={listQuery.setPage}
+              onPageSizeChange={filters.handlePageSizeChange}
+              pageSize={filters.pageSize}
+              onRowClick={(process) => openProcess(process.id)}
+              emptyIcon={
+                <Workflow className="h-10 w-10 text-muted-foreground/50" />
+              }
+              emptyTitle={t('processes.empty.title')}
+              emptyDescription={t('processes.empty.description')}
+            />
+          ) : (
+            <ProcessFlowView
+              variant={view}
+              onOpenProcess={openProcess}
+              relatedObjectId={relatedObjectId}
+            />
+          )}
         </div>
       </div>
 

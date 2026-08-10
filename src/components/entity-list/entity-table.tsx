@@ -24,6 +24,8 @@ export interface EntityTableProps<T> {
   // Pagination — 1-based to the outside; the 0↔1 conversion lives here only.
   onPageChange?: (page: number) => void
   onPageSizeChange?: (size: number) => void
+  /** The chosen size, shown until the first response carries its own. */
+  pageSize?: number
 
   // Sorting — providing onSortChange enables sortable headers (server-side).
   sort?: EntitySort
@@ -59,6 +61,7 @@ export function EntityTable<T>({
   fetching = false,
   onPageChange,
   onPageSizeChange,
+  pageSize,
   sort,
   onSortChange,
   ...rest
@@ -67,7 +70,7 @@ export function EntityTable<T>({
   // `?? []` minted a fresh array on every render while `page` was undefined —
   // i.e. throughout loading, when the table is already doing the most work.
   const data = useMemo(() => page?.data ?? [], [page])
-  const meta = pageMeta(page)
+  const meta = pageMeta(page, pageSize)
 
   const emit = (page1Based: number) => {
     const clamped = Math.min(

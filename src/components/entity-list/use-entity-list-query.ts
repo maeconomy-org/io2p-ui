@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from 'react'
 
+import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
+
 export type EntitySort =
   | 'name'
   | '-name'
@@ -32,7 +34,7 @@ export interface EntityListQueryDefaults {
 export function useEntityListQuery(defaults: EntityListQueryDefaults = {}) {
   const [query, setQuery] = useState<EntityListQuery>(() => ({
     page: 1,
-    size: defaults.size ?? 15,
+    size: defaults.size ?? DEFAULT_TABLE_PAGE_SIZE,
     sort: defaults.sort,
     scope: defaults.scope,
   }))
@@ -40,10 +42,6 @@ export function useEntityListQuery(defaults: EntityListQueryDefaults = {}) {
   // Any change other than paging resets to page 1.
   const setPage = useCallback(
     (page: number) => setQuery((q) => ({ ...q, page })),
-    []
-  )
-  const setSize = useCallback(
-    (size: number) => setQuery((q) => ({ ...q, size, page: 1 })),
     []
   )
   const setSort = useCallback(
@@ -64,5 +62,5 @@ export function useEntityListQuery(defaults: EntityListQueryDefaults = {}) {
     []
   )
 
-  return { query, setPage, setSize, setSort, setSearch, setScope, setDeleted }
+  return { query, setPage, setSort, setSearch, setScope, setDeleted }
 }

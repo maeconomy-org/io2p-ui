@@ -1,11 +1,16 @@
 import type { Page } from 'io2p-client'
 
+import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
+
 import type { DataTablePaginationProps } from './data-table'
 
 // Maps a io2p `Page<T>` (1-based `page.number`) to the DataTable pagination props.
+//
+// `fallbackSize` is what the size Select shows before the first response lands. Pass the CHOSEN
+// size, not the default, or the control reads 20 for a moment on a user who picked 50.
 export function pageMeta(
   page: Page<unknown> | undefined,
-  fallbackSize = 15
+  fallbackSize = DEFAULT_TABLE_PAGE_SIZE
 ): DataTablePaginationProps {
   const p = page?.page
   const number = p?.number ?? 1

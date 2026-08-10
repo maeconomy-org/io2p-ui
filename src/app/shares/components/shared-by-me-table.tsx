@@ -12,7 +12,7 @@ import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useGrants } from '@/hooks/api/access'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
-import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
+import { usePageSize } from '@/hooks/ui/use-page-size'
 
 import { buildSharedByMeColumns } from './shared-by-me-columns'
 import { ManageAccessSheet } from './manage-access-sheet'
@@ -32,7 +32,9 @@ import { ManageAccessSheet } from './manage-access-sheet'
 export function SharedByMeTable() {
   const t = useTranslations()
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
+  const [pageSize, handlePageSizeChange] = usePageSize(
+    useCallback(() => setPage(1), [])
+  )
 
   const [managing, setManaging] = useState<SharedByMeItem | null>(null)
   const [revoking, setRevoking] = useState<SharedByMeItem | null>(null)
@@ -54,11 +56,6 @@ export function SharedByMeTable() {
   const revokeMutation = useRevoke()
 
   const items = useMemo(() => data?.data ?? [], [data])
-
-  const handlePageSizeChange = useCallback((size: number) => {
-    setPageSize(size)
-    setPage(1)
-  }, [])
 
   /**
    * Revoke every grant on this resource — and here that means ALL of them, because the rows are
@@ -130,6 +127,7 @@ export function SharedByMeTable() {
         fetching={isFetching}
         onPageChange={setPage}
         onPageSizeChange={handlePageSizeChange}
+        pageSize={pageSize}
         enableRowSelection
         rowSelection={rowSelection}
         onRowSelectionChange={setRowSelection}

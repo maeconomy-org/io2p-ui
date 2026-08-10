@@ -2,6 +2,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getSessionCookie } from 'better-auth/cookies'
 
 import { PUBLIC_PAGES_SET } from '@/constants/auth'
+import {
+  PREF_COOKIE_NAME,
+  decodePreferenceCookie,
+  encodePreferenceCookie,
+  survivesLogout,
+} from '@/constants/preference-cookie'
 
 /**
  * Next.js 16 Proxy (formerly Middleware) — an OPTIMISTIC auth gate.
@@ -29,7 +35,22 @@ export function proxy(request: NextRequest) {
   if (!sessionCookie) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    // The mirror is not HttpOnly and outlives the session, so a browser reopened
+    // days later would paint the previous person's theme and views before any JS
+    // could clear it. The LANGUAGE is kept — see `survivesLogout`. Scoped to this
+    // redirect only; on the pass-through path the cookie is what we want intact.
+    const kept = survivesLogout(
+      decodePreferenceCookie(request.cookies.get(PREF_COOKIE_NAME)?.value)
+    )
+    if (kept.locale) {
+      response.cookies.set(PREF_COOKIE_NAME, encodePreferenceCookie(kept), {
+        path: '/',
+      })
+    } else {
+      response.cookies.delete(PREF_COOKIE_NAME)
+    }
+    return response
   }
 
   return NextResponse.next()

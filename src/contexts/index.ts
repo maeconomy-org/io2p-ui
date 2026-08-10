@@ -1,4 +1,5 @@
 export * from './auth-context'
+export * from './preference-hints-context'
 export * from './query-context'
 export * from './search-context'
 

@@ -65,3 +65,11 @@ export const UNIT_CATEGORIES = {
 
 export const DEFAULT_TABLE_PAGE_SIZE = 20
 export const DEFAULT_TABLE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
+/**
+ * The theme values that may be STORED, which is a superset of the two the
+ * toggle offers — next-themes writes `system` whenever the user has never
+ * chosen, and that value has to survive a round trip through the node.
+ */
+export const THEME_VALUES = ['light', 'dark', 'system'] as const
+export type ThemePreference = (typeof THEME_VALUES)[number]

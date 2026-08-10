@@ -4,7 +4,11 @@ import { useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { PUBLIC_PAGES_SET, getCachedConfig } from '@/constants'
+import {
+  PUBLIC_PAGES_SET,
+  clearPreferenceMirrors,
+  getCachedConfig,
+} from '@/constants'
 import { clearLegacyDrafts } from '@/hooks/drafts/use-object-drafts'
 import { authClient, clearCoreToken, useSession } from '@/lib/auth/client'
 import { useIomClient } from '@/lib/io2p'
@@ -64,6 +68,16 @@ function mapAccount(user: SessionUser): AuthResponse {
 }
 
 /**
+ * Set for the gap between "the user clicked log out" and "the session is gone".
+ *
+ * Module scope rather than a ref, because `useAuth` is a plain hook every
+ * consumer calls independently — a ref inside it would be one flag per caller,
+ * and the one that matters is whichever instance owns the `/me` query.
+ * `AuthEffects` clears it once the session has actually resolved to nobody.
+ */
+let signingOut = false
+
+/**
  * The single user hook. Combines the two identity sources:
  *  - the better-auth session (personal account: name/email/cert) → `account`
  *  - io2p-core `/v1/me` (operational identity) → `id` (the core userUUID used
@@ -91,15 +105,23 @@ export function useAuth() {
   const { data: coreUser, isPending: mePending } = useQuery({
     queryKey: queryKeys.users.current,
     queryFn: () => iom.users.me(),
-    enabled: isAuthenticated || (isPending && onProtectedRoute),
+    // `!signingOut` is what stops the logout 401. `queryClient.clear()` removes
+    // the cached user, and React Query immediately REFETCHES for any observer
+    // still mounted and enabled — so `/me` fired against a session the issuer
+    // was already tearing down, and the failed token mint surfaced as a console
+    // error on every logout.
+    enabled:
+      !signingOut && (isAuthenticated || (isPending && onProtectedRoute)),
     staleTime: Infinity,
   })
 
   const logout = () => {
     // Clear cached server state synchronously so the login screen can't flash
     // the previous user's data, then sign out at the issuer.
+    signingOut = true
     clearCoreToken()
     queryClient.clear()
+    clearPreferenceMirrors()
     router.push('/')
     void authClient.signOut()
   }
@@ -191,9 +213,16 @@ export function AuthEffects() {
     if (prev && prev !== sessionUserId) {
       clearCoreToken()
       queryClient.clear()
+      // Also covers a USER SWITCH and a session EXPIRY, neither of which goes
+      // through `logout()`. Both are the shared-machine case: without this the
+      // next person's first paint is the previous person's theme and views.
+      clearPreferenceMirrors()
     }
     prevUserIdRef.current = sessionUserId
-  }, [sessionUserId, queryClient])
+    // The teardown is over the moment the session resolves to nobody. Leaving
+    // the flag set would keep `/me` disabled for the NEXT sign-in on this tab.
+    if (!isPending && !sessionUserId) signingOut = false
+  }, [sessionUserId, isPending, queryClient])
 
   const clearedDraftsRef = useRef(false)
   useEffect(() => {

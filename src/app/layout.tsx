@@ -1,11 +1,16 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
 import './globals.css'
+import { cookies } from 'next/headers'
 import { getMessages, getLocale } from 'next-intl/server'
 
 import { Providers } from '@/components/shell/providers'
 import ClientLayout from '@/components/shell/client-layout'
 import { buildInlineConfigScript, buildRuntimeConfig } from '@/constants/client'
+import {
+  PREF_COOKIE_NAME,
+  decodePreferenceCookie,
+} from '@/constants/preference-cookie'
 
 export const metadata: Metadata = {
   title: process.env.APP_NAME || 'Internet of Materials',
@@ -25,6 +30,15 @@ export default async function RootLayout({
   // config on the FIRST render, and serialized into the inline script for the
   // module-scope readers (auth-client, upload-service) that run before React.
   const config = buildRuntimeConfig()
+  // The render-critical slice of the user's node-stored preferences, so the
+  // server paints the view they chose instead of the default.
+  //
+  // This makes the root layout REQUEST-DEPENDENT. `force-static`, ISR or
+  // `cacheComponents` here would bake one account's theme and view into a shell
+  // served to everyone.
+  const preferenceHints = decodePreferenceCookie(
+    (await cookies()).get(PREF_COOKIE_NAME)?.value
+  )
 
   return (
     <html
@@ -44,6 +58,7 @@ export default async function RootLayout({
           locale={locale}
           messages={messages as Record<string, unknown>}
           config={config}
+          preferenceHints={preferenceHints}
         >
           <ClientLayout>{children}</ClientLayout>
         </Providers>

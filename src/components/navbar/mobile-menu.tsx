@@ -30,6 +30,7 @@ import {
   Separator,
 } from '@/components/ui'
 import { useTheme } from '@/hooks/use-theme'
+import { useSetLocale } from '@/hooks/ui/use-set-locale'
 import { cn } from '@/lib/utils'
 import { NAV_ITEMS, type NavItem } from '@/constants'
 import { useAuth, useAppConfig } from '@/contexts'
@@ -57,6 +58,7 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
   const config = useAppConfig()
   const locale = useLocale()
   const { theme, setTheme } = useTheme()
+  const setLocale = useSetLocale()
 
   const displayIdentity =
     userInfo?.username ||
@@ -65,10 +67,10 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
     userInfo?.credentials ||
     t('nav.user')
 
-  const handleLocaleChange = useCallback((value: string) => {
-    document.cookie = `NEXT_LOCALE=${value}; path=/; max-age=${60 * 60 * 24 * 365}`
-    window.location.reload()
-  }, [])
+  const handleLocaleChange = useCallback(
+    (value: string) => setLocale(value as 'en' | 'nl'),
+    [setLocale]
+  )
 
   return (
     <>
@@ -277,6 +279,7 @@ function NavLink({
     <SheetClose asChild>
       <Link
         href={item.path}
+        prefetch
         data-tour={item.dataTour}
         className={cn(
           'flex items-center justify-between py-3 px-4 hover:bg-muted transition-colors',

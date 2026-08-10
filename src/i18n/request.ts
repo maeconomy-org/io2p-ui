@@ -1,6 +1,11 @@
 import { cookies, headers } from 'next/headers'
 import { getRequestConfig } from 'next-intl/server'
 
+import {
+  PREF_COOKIE_NAME,
+  decodePreferenceCookie,
+} from '@/constants/preference-cookie'
+
 import { DEFAULT_TIME_ZONE, routing } from './routing'
 
 type Locale = (typeof routing.locales)[number]
@@ -18,14 +23,20 @@ function resolveHeaderLocale(headerValue: string | null): Locale | undefined {
 
 export default getRequestConfig(async () => {
   const cookieStore = await cookies()
-  const cookieLocale = cookieStore.get('NEXT_LOCALE')?.value as
+  // The account's locale, mirrored into the preference cookie. `NEXT_LOCALE` is
+  // the pre-migration home and stays readable so an existing user does not get
+  // reset to English once before `/me` seeds the new cookie.
+  const storedLocale = decodePreferenceCookie(
+    cookieStore.get(PREF_COOKIE_NAME)?.value
+  ).locale
+  const legacyLocale = cookieStore.get('NEXT_LOCALE')?.value as
     | Locale
     | undefined
-  const resolvedCookieLocale = cookieLocale
-    ? routing.locales.includes(cookieLocale)
-      ? cookieLocale
-      : undefined
-    : undefined
+  const resolvedCookieLocale =
+    storedLocale ??
+    (legacyLocale && routing.locales.includes(legacyLocale)
+      ? legacyLocale
+      : undefined)
   const headerStore = await headers()
   const acceptLanguage = headerStore.get('accept-language')
   const headerLocale = resolveHeaderLocale(acceptLanguage)

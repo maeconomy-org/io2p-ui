@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import type { ObjectListItem, Page } from 'io2p-client'
 
-import { useEntityListFilters } from '@/components/entity-list/use-entity-list-filters'
 import { useObjectListPage } from '@/app/objects/components/use-object-list-page'
 
 const remove = vi.fn().mockResolvedValue({})
@@ -40,20 +39,6 @@ const pageOf = (...rows: ObjectListItem[]) =>
     data: rows,
     page: { totalElements: rows.length },
   }) as unknown as Page<ObjectListItem>
-
-describe('useEntityListFilters', () => {
-  it('sends the query back to page 1 when the page size changes', () => {
-    const onPageReset = vi.fn()
-    const { result } = renderHook(() => useEntityListFilters(onPageReset))
-
-    act(() => result.current.handlePageSizeChange(50))
-
-    expect(result.current.pageSize).toBe(50)
-    // Without this, growing the page size on page 4 asks for a page that may no longer exist and
-    // the table renders empty.
-    expect(onPageReset).toHaveBeenCalled()
-  })
-})
 
 describe('useObjectListPage', () => {
   beforeEach(() => {

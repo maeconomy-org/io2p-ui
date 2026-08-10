@@ -25,7 +25,8 @@ import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useShares } from '@/hooks/api/access'
 import { useSearch } from '@/contexts'
-import { DEFAULT_TABLE_PAGE_SIZE, anchor } from '@/constants'
+import { anchor } from '@/constants'
+import { usePageSize } from '@/hooks/ui/use-page-size'
 import { logger } from '@/lib/observability/logger'
 
 import { buildShareColumns } from './components/share-columns'
@@ -44,7 +45,6 @@ import {
 export default function SharesPage() {
   const t = useTranslations()
 
-  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
   const [toDelete, setToDelete] = useState<ShareDTO | null>(null)
   const [showDeleted, setShowDeleted] = useState(false)
   // Controlled, so the Filters button can be shown only for the tab it filters.
@@ -71,6 +71,10 @@ export default function SharesPage() {
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
 
   const listQuery = useEntityListQuery()
+  const setPage = listQuery.setPage
+  const [pageSize, handlePageSizeChange] = usePageSize(
+    useCallback(() => setPage(1), [setPage])
+  )
   const { useList, useDelete } = useShares()
   const deleteMutation = useDelete()
 
@@ -93,14 +97,6 @@ export default function SharesPage() {
         ? (sharesPage?.data.find((s) => s.id === deepLinkedShareId) ?? null)
         : null,
     [deepLinkedShareId, sharesPage]
-  )
-
-  const handlePageSizeChange = useCallback(
-    (size: number) => {
-      setPageSize(size)
-      listQuery.setPage(1)
-    },
-    [listQuery]
   )
 
   const confirmDelete = useCallback(async () => {
@@ -230,6 +226,7 @@ export default function SharesPage() {
                 onRowSelectionChange={setRowSelection}
                 onPageChange={listQuery.setPage}
                 onPageSizeChange={handlePageSizeChange}
+                pageSize={pageSize}
                 emptyIcon={
                   <Share2 className="h-10 w-10 text-muted-foreground/50" />
                 }

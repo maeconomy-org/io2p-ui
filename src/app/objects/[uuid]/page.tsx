@@ -154,6 +154,7 @@ export default function ObjectChildrenPage() {
           onSortChange={listQuery.setSort}
           onPageChange={listQuery.setPage}
           onPageSizeChange={filters.handlePageSizeChange}
+          pageSize={filters.pageSize}
           onRowDoubleClick={handleDoubleClick}
           emptyIcon={
             <FileText className="h-10 w-10 text-muted-foreground/50" />

@@ -96,7 +96,8 @@
         "network": "Netwerk",
         "detailed": "Lijst",
         "grid": "Raster"
-      }
+      },
+      "rowsPerPage": "Rijen per pagina"
     },
     "security": {
       "notAvailable": "Nog niet beschikbaar",
@@ -1154,7 +1155,8 @@
       "share-objects": "Objecten delen",
       "work-with-drafts": "Werken met concepten"
     },
-    "startTour": "Start de rondleiding"
+    "startTour": "Start de rondleiding",
+    "hintUnread": "Nog niet gelezen"
   },
   "import": {
     "title": "Importeren",

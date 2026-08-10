@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Preferences, UserDTO } from 'io2p-client'
 
 import { useAuth } from '@/contexts/auth-context'
+import { usePreferenceHints } from '@/contexts/preference-hints-context'
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
 import {
@@ -28,19 +29,112 @@ import {
  * clobbering the other.
  */
 
-/** Validated stored value for `key`, else the hardcoded default. */
+/**
+ * Validated stored value for `key`, else `fallback`.
+ *
+ * `fallback` is the cookie hint rather than the hardcoded default, so a value
+ * the node has not answered for yet holds the hint continuously. Falling back to
+ * the default instead would flip twice on every cold load: hint, default, real.
+ */
 function resolve<K extends PreferenceKey>(
   preferences: Preferences | undefined,
-  key: K
+  key: K,
+  fallback: PreferenceValues[K] = PREFERENCES[key].default
 ): PreferenceValues[K] {
   const spec = PREFERENCES[key]
   const stored = (
     preferences?.[spec.ns] as Record<string, unknown> | undefined
-  )?.[key]
-  return spec.validate(stored) ? stored : spec.default
+  )?.[spec.key ?? key]
+  return spec.validate(stored) ? stored : fallback
+}
+
+/** Validated flag read — a flag is set only when the stored value is `true`. */
+function resolveFlag(
+  preferences: Preferences | undefined,
+  ns: string,
+  key: string
+): boolean {
+  return (
+    (preferences?.[ns] as Record<string, unknown> | undefined)?.[key] === true
+  )
 }
 
 const emptySubscribe = () => () => {}
+
+/**
+ * `true` once hydrated, and `false` during SSR and the hydrating render.
+ *
+ * A distinct server snapshot is what keeps the first client render identical to
+ * the server's. Same trick the navbar uses to decide ⌘ vs Ctrl.
+ */
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  )
+}
+
+/** Two-level merge, `null` deletes — mirrors what the node does server-side. */
+function applyPatch(
+  current: Preferences | undefined,
+  patch: Preferences
+): Preferences {
+  const next: Preferences = { ...current }
+  for (const [ns, bag] of Object.entries(patch)) {
+    const merged = { ...next[ns] }
+    for (const [key, value] of Object.entries(bag)) {
+      if (value === null) delete merged[key]
+      else merged[key] = value
+    }
+    next[ns] = merged
+  }
+  return next
+}
+
+/**
+ * The WRITE half of the preference layer: optimistic apply, rollback on error,
+ * the server's merged bag wins on success.
+ *
+ * Takes an arbitrary merge patch so the typed hooks above and below it share one
+ * mutation rather than each carrying a copy of this three-way dance.
+ */
+function usePreferencePatch(): (patch: Preferences) => void {
+  const iom = useIomClient()
+  const queryClient = useQueryClient()
+
+  const { mutate } = useMutation({
+    mutationFn: (patch: Preferences) => iom.users.updatePreferences(patch),
+    // A toggle must flip on click, not a round trip later, so patch the cached
+    // user up front and let the response confirm it.
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.users.current })
+      const previous = queryClient.getQueryData<UserDTO>(
+        queryKeys.users.current
+      )
+      queryClient.setQueryData<UserDTO>(queryKeys.users.current, (user) =>
+        user
+          ? { ...user, preferences: applyPatch(user.preferences, patch) }
+          : user
+      )
+      return { previous }
+    },
+    onError: (_error, _patch, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.users.current, context.previous)
+      }
+    },
+    // The node returns the FULL merged bag, so trust it over the optimistic
+    // guess — another device may have changed a different key meanwhile.
+    onSuccess: (merged) => {
+      queryClient.setQueryData<UserDTO>(queryKeys.users.current, (user) =>
+        user ? { ...user, preferences: merged } : user
+      )
+    },
+  })
+
+  return mutate
+}
 
 /**
  * Returns `[value, setValue, resolved]` — `useState` plus a readiness flag.
@@ -62,66 +156,73 @@ const emptySubscribe = () => () => {}
  * `useSyncExternalStore` with a distinct server snapshot is the fix: React uses
  * that snapshot for SSR *and* for the hydrating render, then re-renders with the
  * client value. Same trick the navbar uses to decide ⌘ vs Ctrl.
+ *
+ * It stays even though the cookie hint now makes both sides agree by
+ * construction. It is what pins the hydrating render to the hint when React
+ * Query already holds `/me` from an earlier mount — without it the design would
+ * rest on "the cache is definitely cold", which is true today and one refactor
+ * from being false.
  */
 export function usePreference<K extends PreferenceKey>(
   key: K
 ): [PreferenceValues[K], (value: PreferenceValues[K]) => void, boolean] {
   const { preferences, authLoading } = useAuth()
-  const iom = useIomClient()
-  const queryClient = useQueryClient()
+  const hints = usePreferenceHints()
+  const hydrated = useHydrated()
+  const patch = usePreferencePatch()
 
-  const hydrated = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
+  const seed = (hints[key as keyof typeof hints] ??
+    PREFERENCES[key].default) as PreferenceValues[K]
+  const stored = useMemo(
+    () => resolve(preferences, key, seed),
+    [preferences, key, seed]
   )
-
-  const stored = useMemo(() => resolve(preferences, key), [preferences, key])
-  // The default until hydration, so the first client render matches the server.
-  const value = hydrated ? stored : PREFERENCES[key].default
-
-  const { mutate } = useMutation({
-    mutationFn: (next: PreferenceValues[K]) =>
-      iom.users.updatePreferences({ [PREFERENCES[key].ns]: { [key]: next } }),
-    // A view toggle must flip on click, not a round trip later, so patch the
-    // cached user up front and let the response confirm it.
-    onMutate: async (next) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.users.current })
-      const previous = queryClient.getQueryData<UserDTO>(
-        queryKeys.users.current
-      )
-      queryClient.setQueryData<UserDTO>(queryKeys.users.current, (user) => {
-        if (!user) return user
-        const ns = PREFERENCES[key].ns
-        const preferences: Preferences = {
-          ...user.preferences,
-          [ns]: { ...user.preferences?.[ns], [key]: next },
-        }
-        return { ...user, preferences }
-      })
-      return { previous }
-    },
-    onError: (_error, _next, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.users.current, context.previous)
-      }
-    },
-    // The node returns the FULL merged bag, so trust it over the optimistic
-    // guess — another device may have changed a different key meanwhile.
-    onSuccess: (merged) => {
-      queryClient.setQueryData<UserDTO>(queryKeys.users.current, (user) =>
-        user ? { ...user, preferences: merged } : user
-      )
-    },
-  })
+  // The seed until hydration, so the first client render matches the server.
+  const value = hydrated ? stored : seed
 
   const setValue = useCallback(
-    (next: PreferenceValues[K]) => mutate(next),
-    [mutate]
+    (next: PreferenceValues[K]) => {
+      const { ns, key: storageKey } = PREFERENCES[key]
+      patch({ [ns]: { [storageKey ?? key]: next } })
+    },
+    [patch, key]
   )
 
   return [value, setValue, hydrated && !authLoading]
 }
 
+/**
+ * One boolean flag under an open key, for a family the registry cannot name
+ * ahead of time — one key per concept hint, rather than one array holding them
+ * all.
+ *
+ * Seven hints means seven independent writers, and the node merges PER KEY: with
+ * an array, two tabs opening two different hints would race and one would lose.
+ * Seven keys cannot.
+ *
+ * The setter takes NO argument. A flag is a one-way latch, so there is no API by
+ * which a caller can clear one by accident.
+ */
+export function useFlagPreference(
+  ns: string,
+  key: string
+): [boolean, () => void, boolean] {
+  const { preferences, authLoading } = useAuth()
+  const hydrated = useHydrated()
+  const patch = usePreferencePatch()
+
+  const stored = resolveFlag(preferences, ns, key)
+  // Never set until hydrated, so the server render and the first client render
+  // agree — a flag is not in the cookie, so the server cannot know it.
+  const value = hydrated ? stored : false
+
+  const mark = useCallback(
+    () => patch({ [ns]: { [key]: true } }),
+    [patch, ns, key]
+  )
+
+  return [value, mark, hydrated && !authLoading]
+}
+
 // Test surface.
-export { resolve }
+export { resolve, resolveFlag, applyPatch }

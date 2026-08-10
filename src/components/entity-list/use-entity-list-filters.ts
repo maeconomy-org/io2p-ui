@@ -1,8 +1,8 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 
-import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
+import { usePageSize } from '@/hooks/ui/use-page-size'
 
 /**
  * The filter state every list page feeds into its query: page size and the deleted toggle.
@@ -12,16 +12,8 @@ import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
  * so the seam follows the data flow rather than the file.
  */
 export function useEntityListFilters(onPageReset: () => void) {
-  const [pageSize, setPageSize] = useState(DEFAULT_TABLE_PAGE_SIZE)
+  const [pageSize, handlePageSizeChange] = usePageSize(onPageReset)
   const [showDeleted, setShowDeleted] = useState(false)
-
-  const handlePageSizeChange = useCallback(
-    (size: number) => {
-      setPageSize(size)
-      onPageReset()
-    },
-    [onPageReset]
-  )
 
   return { pageSize, showDeleted, setShowDeleted, handlePageSizeChange }
 }

@@ -164,6 +164,7 @@ export default function ConstantsPage() {
             onRowSelectionChange={list.setRowSelection}
             onPageChange={listQuery.setPage}
             onPageSizeChange={filters.handlePageSizeChange}
+            pageSize={filters.pageSize}
             onRowClick={(constant) => setSheet({ mode: 'edit', constant })}
             emptyIcon={<Ruler className="h-10 w-10 text-muted-foreground/50" />}
             emptyTitle={t('constants.empty.title')}

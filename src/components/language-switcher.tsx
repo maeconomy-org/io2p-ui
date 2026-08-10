@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Check, Languages } from 'lucide-react'
 
+import { useSetLocale } from '@/hooks/ui/use-set-locale'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,18 +25,15 @@ export const LOCALES = [
 
 export type LocaleValue = (typeof LOCALES)[number]['value']
 
-export function setLocaleCookie(locale: LocaleValue) {
-  document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=${60 * 60 * 24 * 365}`
-}
-
 export function LanguageSelect({ className }: { className?: string }) {
   const t = useTranslations()
   const locale = useLocale() as LocaleValue
+  const setLocale = useSetLocale()
 
-  const handleChange = useCallback((value: string) => {
-    setLocaleCookie(value as LocaleValue)
-    window.location.reload()
-  }, [])
+  const handleChange = useCallback(
+    (value: string) => setLocale(value as LocaleValue),
+    [setLocale]
+  )
 
   return (
     <DropdownMenu>
@@ -68,11 +66,12 @@ export function LanguageSelect({ className }: { className?: string }) {
 export function LanguageDropdownItem() {
   const t = useTranslations()
   const locale = useLocale() as LocaleValue
+  const setLocale = useSetLocale()
 
-  const handleChange = useCallback((value: string) => {
-    setLocaleCookie(value as LocaleValue)
-    window.location.reload()
-  }, [])
+  const handleChange = useCallback(
+    (value: string) => setLocale(value as LocaleValue),
+    [setLocale]
+  )
 
   return (
     <DropdownMenuSub>

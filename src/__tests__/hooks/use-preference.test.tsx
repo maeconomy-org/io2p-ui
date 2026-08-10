@@ -3,7 +3,13 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
-import { usePreference, resolve } from '@/hooks/ui/use-preference'
+import {
+  usePreference,
+  useFlagPreference,
+  resolve,
+  resolveFlag,
+  applyPatch,
+} from '@/hooks/ui/use-preference'
 import { queryKeys } from '@/lib/query-keys'
 
 const USER = { id: 'user-a', identities: [], preferences: {} as never }
@@ -168,5 +174,133 @@ describe('usePreference', () => {
         resolve({ onboarding: { toursSeen: ['a', 'b'] } }, 'toursSeen')
       ).toEqual(['a', 'b'])
     })
+  })
+})
+
+describe('the `key` override', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    authState = { preferences: undefined, authLoading: false }
+    queryClient.setQueryData(queryKeys.users.current, USER)
+    updatePreferences.mockResolvedValue({})
+  })
+
+  // `locale` is stored as `locale.app`, so a patch keyed on the registry name
+  // would write `locale.locale` and the server render would never see it.
+  it('writes locale under its storage key, not its registry key', async () => {
+    const { result } = renderHook(() => usePreference('locale'), { wrapper })
+
+    act(() => result.current[1]('nl'))
+
+    await waitFor(() =>
+      expect(updatePreferences).toHaveBeenCalledWith({ locale: { app: 'nl' } })
+    )
+  })
+
+  it('reads locale back through the same storage key', () => {
+    setStored({ locale: { app: 'nl' } })
+    const { result } = renderHook(() => usePreference('locale'), { wrapper })
+    expect(result.current[0]).toBe('nl')
+  })
+})
+
+describe('useFlagPreference', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    authState = { preferences: undefined, authLoading: false }
+    queryClient.setQueryData(queryKeys.users.current, USER)
+    updatePreferences.mockResolvedValue({})
+  })
+
+  const render = () =>
+    renderHook(() => useFlagPreference('onboarding', 'hint-object'), {
+      wrapper,
+    })
+
+  it('is false when nothing is stored', () => {
+    expect(render().result.current[0]).toBe(false)
+  })
+
+  it('reads a stored true', () => {
+    setStored({ onboarding: { 'hint-object': true } })
+    expect(render().result.current[0]).toBe(true)
+  })
+
+  // A flag is a one-way latch, so anything other than `true` reads as unset.
+  it('treats a stored false or a truthy string as unset', () => {
+    setStored({ onboarding: { 'hint-object': false } })
+    expect(render().result.current[0]).toBe(false)
+    setStored({ onboarding: { 'hint-object': 'yes' } })
+    expect(render().result.current[0]).toBe(false)
+  })
+
+  it('marks exactly its own key, leaving its siblings alone', async () => {
+    const { result } = render()
+
+    act(() => result.current[1]())
+
+    await waitFor(() =>
+      expect(updatePreferences).toHaveBeenCalledWith({
+        onboarding: { 'hint-object': true },
+      })
+    )
+  })
+
+  it('follows authLoading for `resolved`', () => {
+    authState = { preferences: undefined, authLoading: true }
+    expect(render().result.current[2]).toBe(false)
+  })
+})
+
+describe('applyPatch', () => {
+  it('merges one namespace without dropping the others', () => {
+    expect(
+      applyPatch({ ui: { objectsView: 'table' } }, { onboarding: { a: true } })
+    ).toEqual({ ui: { objectsView: 'table' }, onboarding: { a: true } })
+  })
+
+  it('overwrites a present key and keeps its neighbours', () => {
+    expect(
+      applyPatch(
+        { ui: { objectsView: 'table', theme: 'dark' } },
+        { ui: { objectsView: 'columns' } }
+      )
+    ).toEqual({ ui: { objectsView: 'columns', theme: 'dark' } })
+  })
+
+  // `null` is the node's delete sentinel, not a stored value.
+  it('deletes on null', () => {
+    expect(
+      applyPatch({ ui: { theme: 'dark' } }, { ui: { theme: null } })
+    ).toEqual({ ui: {} })
+  })
+
+  it('tolerates an undefined starting bag', () => {
+    expect(applyPatch(undefined, { ui: { theme: 'dark' } })).toEqual({
+      ui: { theme: 'dark' },
+    })
+  })
+})
+
+describe('resolveFlag', () => {
+  it('is true only for a stored true', () => {
+    expect(resolveFlag({ onboarding: { a: true } }, 'onboarding', 'a')).toBe(
+      true
+    )
+    expect(resolveFlag({ onboarding: { a: 1 } }, 'onboarding', 'a')).toBe(false)
+    expect(resolveFlag(undefined, 'onboarding', 'a')).toBe(false)
+    expect(resolveFlag({}, 'onboarding', 'a')).toBe(false)
   })
 })
