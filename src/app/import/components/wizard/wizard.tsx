@@ -37,7 +37,10 @@ function Stepper({
 }) {
   const t = useTranslations()
   return (
-    <ol className="flex flex-wrap items-center gap-1 text-sm">
+    <ol
+      data-testid="wizard-stepper"
+      className="flex flex-wrap items-center gap-1 text-sm"
+    >
       {STEPS.map((step, index) => {
         const done = index < current
         const active = index === current
@@ -45,6 +48,7 @@ function Stepper({
           <li key={step.id} className="flex items-center gap-1">
             <button
               type="button"
+              data-testid={`wizard-step-${step.id}`}
               disabled={!done && !active}
               onClick={() => onJump(index)}
               aria-current={active ? 'step' : undefined}
@@ -148,18 +152,27 @@ export function Wizard({
           is a second thing to look at that never becomes the thing you press. */}
       {step > 0 && (
         <div className="flex items-center justify-between">
-          <Button type="button" variant="outline" onClick={back}>
+          <Button
+            type="button"
+            variant="outline"
+            data-testid="wizard-back"
+            onClick={back}
+          >
             {t('common.back')}
           </Button>
           {step < STEPS.length - 1 && (
             <div className="flex items-center gap-3">
               {blockedBecause && (
-                <p className="text-sm text-muted-foreground">
+                <p
+                  data-testid="wizard-blocked"
+                  className="text-sm text-muted-foreground"
+                >
                   {t(blockedBecause.key, blockedBecause.values)}
                 </p>
               )}
               <Button
                 type="button"
+                data-testid="wizard-next"
                 onClick={next}
                 disabled={Boolean(blockedBecause)}
               >

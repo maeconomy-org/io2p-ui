@@ -10,6 +10,8 @@ import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { generateSheets } from './sheets/generate.mjs'
+
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = resolve(here, 'uploads')
 
@@ -76,11 +78,14 @@ async function ensureFile(name, seed, size, content) {
 
 async function main() {
   await mkdir(outDir, { recursive: true })
-  const results = await Promise.all(
-    fixtures.map(([name, seed, size, content]) =>
-      ensureFile(name, seed, size, content)
-    )
-  )
+  const results = [
+    ...(await Promise.all(
+      fixtures.map(([name, seed, size, content]) =>
+        ensureFile(name, seed, size, content)
+      )
+    )),
+    ...(await generateSheets()),
+  ]
   const written = results.filter((r) => r.status === 'written')
   if (written.length === 0) {
     process.stdout.write('e2e fixtures up to date\n')

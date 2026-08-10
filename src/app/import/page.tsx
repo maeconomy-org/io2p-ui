@@ -38,9 +38,13 @@ export default function ImportPage() {
           </div>
           {/* The tabs ARE this page's control, so they sit where every other page puts its
               controls rather than under the heading in a block of their own. */}
-          <TabsList>
-            <TabsTrigger value="status">{t('import.tabs.status')}</TabsTrigger>
-            <TabsTrigger value="wizard">{t('import.tabs.wizard')}</TabsTrigger>
+          <TabsList data-testid="import-tabs">
+            <TabsTrigger value="status" data-testid="import-tab-status">
+              {t('import.tabs.status')}
+            </TabsTrigger>
+            <TabsTrigger value="wizard" data-testid="import-tab-wizard">
+              {t('import.tabs.wizard')}
+            </TabsTrigger>
           </TabsList>
         </div>
 

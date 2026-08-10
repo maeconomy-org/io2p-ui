@@ -64,7 +64,7 @@ function buildColumns(t: Translate): ColumnDef<ImportJob, unknown>[] {
         // rather than "not started". Staging progress is a different measurement.
         if (job.status === 'draft') {
           return (
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" data-testid="job-staging-progress">
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full bg-blue-500/60"
@@ -84,7 +84,10 @@ function buildColumns(t: Translate): ColumnDef<ImportJob, unknown>[] {
         // OutcomeBar reading "0 created … of 500" says every row failed, not that none were tried.
         if (endedWithoutRunning(job)) {
           return (
-            <span className="text-sm text-muted-foreground">
+            <span
+              data-testid="job-nothing-attempted"
+              className="text-sm text-muted-foreground"
+            >
               {t('import.list.nothingAttempted')}
             </span>
           )
@@ -196,7 +199,12 @@ export function JobList({
         emptyTitle={t('import.list.emptyTitle')}
         emptyDescription={t('import.list.emptyDescription')}
         emptyAction={
-          <Button type="button" onClick={onNew} className="gap-2">
+          <Button
+            type="button"
+            data-testid="import-new"
+            onClick={onNew}
+            className="gap-2"
+          >
             <Upload className="h-4 w-4" />
             {t('import.actions.newImport')}
           </Button>

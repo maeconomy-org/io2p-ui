@@ -48,6 +48,7 @@ export function StepUpload({
       <input
         ref={inputRef}
         type="file"
+        data-testid="import-file-input"
         accept=".xlsx,.csv"
         className="hidden"
         onChange={(event) => {
@@ -60,6 +61,7 @@ export function StepUpload({
 
       <button
         type="button"
+        data-testid="import-dropzone"
         disabled={wizard.parsing}
         onClick={() => inputRef.current?.click()}
         onDragOver={(event) => {
@@ -83,7 +85,11 @@ export function StepUpload({
           <>
             <Loader2 className="mb-3 h-8 w-8 animate-spin text-muted-foreground" />
             <p className="font-medium">{t('import.upload.reading')}</p>
-            <Progress value={wizard.progress} className="mt-3 h-1.5 w-48" />
+            <Progress
+              value={wizard.progress}
+              data-testid="import-parse-progress"
+              className="mt-3 h-1.5 w-48"
+            />
           </>
         ) : (
           <>
@@ -102,7 +108,7 @@ export function StepUpload({
       </button>
 
       {wizard.error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" data-testid="import-parse-error">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             {t(wizard.error.key, wizard.error.values)}

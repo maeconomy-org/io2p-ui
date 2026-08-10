@@ -134,7 +134,10 @@ function ColumnRow({
   const inert = inertBecause(target, wizard)
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 px-4 py-3">
+    <div
+      data-testid={`map-column-${column.index}`}
+      className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 px-4 py-3"
+    >
       <div className="min-w-0 space-y-1">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">
@@ -152,7 +155,11 @@ function ColumnRow({
           {column.samples.join(' · ') || t('import.map.noValues')}
         </p>
         {inert && (
-          <p className="text-xs text-amber-600 dark:text-amber-400">
+          <p
+            data-testid={`map-inert-${column.index}`}
+            data-reason={inert}
+            className="text-xs text-amber-600 dark:text-amber-400"
+          >
             {t(`import.map.inert.${inert}`)}
           </p>
         )}
@@ -169,12 +176,19 @@ function ColumnRow({
               })
             }
           >
-            <SelectTrigger className="h-8 w-[9rem] text-xs">
+            <SelectTrigger
+              data-testid={`map-split-${column.index}`}
+              className="h-8 w-[9rem] text-xs"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {SPLITS.map((split) => (
-                <SelectItem key={split.value} value={split.value}>
+                <SelectItem
+                  key={split.value}
+                  value={split.value}
+                  data-testid={`map-split-option-${split.value}`}
+                >
                   {t(split.labelKey, { char: split.char ?? '' })}
                 </SelectItem>
               ))}
@@ -194,15 +208,25 @@ function ColumnRow({
               })
             }
           >
-            <SelectTrigger className="h-8 w-[10rem] text-xs">
+            <SelectTrigger
+              data-testid={`map-attach-${column.index}`}
+              className="h-8 w-[10rem] text-xs"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="deepest">
+              <SelectItem
+                value="deepest"
+                data-testid="map-attach-option-deepest"
+              >
                 {t('import.map.attachDeepest')}
               </SelectItem>
               {wizard.levels.map((levelColumn, index) => (
-                <SelectItem key={levelColumn} value={String(index)}>
+                <SelectItem
+                  key={levelColumn}
+                  value={String(index)}
+                  data-testid={`map-attach-option-${index}`}
+                >
                   {t('import.map.attachTo', {
                     level:
                       wizard.headers[levelColumn] ||
@@ -218,6 +242,8 @@ function ColumnRow({
           type="button"
           size="sm"
           variant={isLevel ? 'secondary' : 'ghost'}
+          data-testid={`map-level-${column.index}`}
+          data-level={isLevel}
           className="h-8 px-2 text-xs"
           onClick={() => wizard.toggleLevel(column.index)}
         >
@@ -231,12 +257,19 @@ function ColumnRow({
             wizard.setColumn(column.index, toTarget(value, column))
           }
         >
-          <SelectTrigger className="h-8 w-[13rem] text-xs">
+          <SelectTrigger
+            data-testid={`map-target-${column.index}`}
+            className="h-8 w-[13rem] text-xs"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {TARGETS.map((option) => (
-              <SelectItem key={option} value={option}>
+              <SelectItem
+                key={option}
+                value={option}
+                data-testid={`map-target-option-${option}`}
+              >
                 {t(targetLabelKey(option))}
               </SelectItem>
             ))}
@@ -282,6 +315,7 @@ function DestinationField({ wizard }: { wizard: ImportWizard }) {
         value={wizard.destination ?? ''}
         displayName={name}
         placeholder={t('import.map.destination.placeholder')}
+        testId="map-destination"
         className="w-[16rem]"
         onSelect={(id, picked) => {
           setName(picked)
@@ -294,6 +328,7 @@ function DestinationField({ wizard }: { wizard: ImportWizard }) {
           size="icon"
           variant="ghost"
           className="h-8 w-8"
+          data-testid="map-destination-clear"
           aria-label={t('import.map.destination.clear')}
           onClick={() => {
             setName(undefined)
@@ -375,7 +410,10 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
                 </p>
                 {/* The COUNT is the point: "200 rows would become 3 objects" is wrong at a
                     glance, where a list of column names is not. */}
-                <p className="text-xs tabular-nums text-muted-foreground">
+                <p
+                  data-testid="map-suggest-effect"
+                  className="text-xs tabular-nums text-muted-foreground"
+                >
                   {t('import.map.suggestionEffect', {
                     rows: wizard.dataRows.length,
                     objects: suggestedCount,
@@ -386,6 +424,7 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
                     type="button"
                     size="sm"
                     variant="outline"
+                    data-testid="map-suggest-accept"
                     onClick={() => wizard.setLevels(unusedSuggestion)}
                   >
                     {t('import.map.useHierarchy')}
@@ -404,7 +443,10 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
               <>
                 <p className="text-sm">{t('import.map.levelsExplainer')}</p>
                 {askedAndFoundNothing ? (
-                  <p className="text-xs text-muted-foreground">
+                  <p
+                    data-testid="map-suggest-none"
+                    className="text-xs text-muted-foreground"
+                  >
                     {t('import.map.noneFound')}
                   </p>
                 ) : (
@@ -412,6 +454,7 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
                     type="button"
                     size="sm"
                     variant="outline"
+                    data-testid="map-suggest"
                     onClick={() => setAsked(true)}
                   >
                     {t('import.map.askForSuggestion')}
@@ -429,7 +472,10 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
             <p className="text-sm font-medium">
               {wizard.levels.map((c) => columnName(c)).join(' › ')}
             </p>
-            <p className="text-xs text-muted-foreground tabular-nums">
+            <p
+              data-testid="map-level-summary"
+              className="text-xs text-muted-foreground tabular-nums"
+            >
               {t('import.map.rowsBecomeObjects', {
                 rows: wizard.dataRows.length,
                 objects: wizard.items.length,
@@ -440,6 +486,7 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
             type="button"
             size="sm"
             variant="ghost"
+            data-testid="map-clear-levels"
             onClick={() => wizard.setLevels([])}
           >
             {t('import.map.clearHierarchy')}

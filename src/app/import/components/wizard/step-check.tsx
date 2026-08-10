@@ -117,7 +117,12 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((stat) => (
-          <div key={stat.id} className="rounded-md border p-3">
+          <div
+            key={stat.id}
+            data-testid={`check-stat-${stat.id}`}
+            data-value={stat.value}
+            className="rounded-md border p-3"
+          >
             <p className="text-2xl font-semibold tabular-nums">
               {format.number(stat.value)}
             </p>
@@ -132,7 +137,7 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
       {/* Refused rows are named HERE, before the import, because this is the only place the row
           NUMBER is still known — the node never sees the spreadsheet. */}
       {wizard.problems.length > 0 && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" data-testid="check-problems">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             {/* Pluralised by the translation, not by a ternary — Dutch and English agree here,
@@ -181,7 +186,11 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
           </TableHeader>
           <TableBody>
             {shown.map((row) => (
-              <TableRow key={row.tempId}>
+              <TableRow
+                key={row.tempId}
+                data-testid={`check-row-${row.tempId}`}
+                data-depth={row.depth}
+              >
                 <TableCell>
                   {/* Indentation IS the hierarchy. A flat list of 1,847 names says nothing about
                       whether the tree came out the way the operator intended. */}
@@ -229,7 +238,10 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
       </div>
 
       {rows.length > PREVIEW_LIMIT && (
-        <p className="text-xs tabular-nums text-muted-foreground">
+        <p
+          data-testid="check-showing-first"
+          className="text-xs tabular-nums text-muted-foreground"
+        >
           {t('import.check.showingFirst', {
             shown: PREVIEW_LIMIT,
             total: rows.length,

@@ -65,7 +65,7 @@ function Headline({ job }: { job: ImportJob }) {
 
   if (job.status === 'draft') {
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-testid="job-headline">
         <p className="text-3xl font-semibold tabular-nums">
           {n(job.staged)}{' '}
           <span className="text-lg font-normal text-muted-foreground">
@@ -84,7 +84,7 @@ function Headline({ job }: { job: ImportJob }) {
   // discarding a draft became possible: it keeps `total` as history but never runs.
   if (endedWithoutRunning(job)) {
     return (
-      <div className="space-y-1">
+      <div className="space-y-1" data-testid="job-headline">
         <p className="text-3xl font-semibold">
           {t('import.detail.nothingCreated')}
         </p>
@@ -98,7 +98,7 @@ function Headline({ job }: { job: ImportJob }) {
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" data-testid="job-headline">
       <p className="text-3xl font-semibold tabular-nums">
         {n(job.ok)}{' '}
         <span className="text-lg font-normal text-muted-foreground">
@@ -223,7 +223,7 @@ function ItemsTable({
           </TableHeader>
           <TableBody>
             {items.map((item) => (
-              <TableRow key={item.seq}>
+              <TableRow key={item.seq} data-testid={`job-item-${item.seq}`}>
                 <TableCell className="tabular-nums font-medium">
                   {item.sourceRef ?? item.seq}
                 </TableCell>
@@ -324,6 +324,7 @@ export function JobDetail({
             type="button"
             variant="ghost"
             size="icon"
+            data-testid="job-back"
             onClick={onBack}
             aria-label={t('import.detail.back')}
           >
@@ -356,6 +357,7 @@ export function JobDetail({
               type="button"
               variant="outline"
               className="gap-2"
+              data-testid="job-discard"
               disabled={cancel.isPending}
               onClick={() => setConfirmDiscard(true)}
             >
@@ -367,6 +369,7 @@ export function JobDetail({
             <Button
               type="button"
               className="gap-2"
+              data-testid="job-start"
               disabled={start.isPending}
               onClick={() => start.mutate(job.id)}
             >
@@ -384,6 +387,7 @@ export function JobDetail({
               // stays `running` for a moment. Without this the button springs back to "Cancel"
               // and invites a second click at the one moment it looks like nothing happened.
               // (`cancelRequested` is stored on the node but not exposed on the DTO.)
+              data-testid="job-cancel"
               disabled={cancel.isPending || cancel.isSuccess}
               onClick={() => cancel.mutate(job.id)}
             >
@@ -396,7 +400,11 @@ export function JobDetail({
           {isFinished && job.ok > 0 && (
             // The objects list has no deep-link filter, so this goes to the list itself rather
             // than to a view of THIS import's rows. Honest, and still the place they landed.
-            <Button type="button" onClick={() => router.push('/objects')}>
+            <Button
+              type="button"
+              data-testid="job-view-objects"
+              onClick={() => router.push('/objects')}
+            >
               {t('import.detail.viewObjects')}
             </Button>
           )}
@@ -404,7 +412,7 @@ export function JobDetail({
       </div>
 
       {isDraft && !isStartable && (
-        <Alert>
+        <Alert data-testid="job-stalled">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             {t('import.detail.stalledUpload', {
@@ -453,7 +461,7 @@ export function JobDetail({
       </div>
 
       {job.error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" data-testid="job-error">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>{job.error}</AlertDescription>
         </Alert>
@@ -475,6 +483,7 @@ export function JobDetail({
               variant="outline"
               size="sm"
               className="gap-2"
+              data-testid="job-download-csv"
               disabled={downloading}
               onClick={async () => {
                 setDownloading(true)
@@ -505,7 +514,11 @@ export function JobDetail({
               back into one list is what makes a report unactionable. */}
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList>
-              <TabsTrigger value="failed" className="gap-2">
+              <TabsTrigger
+                value="failed"
+                data-testid="job-tab-failed"
+                className="gap-2"
+              >
                 {t('import.detail.tabs.failed')}
                 <Badge
                   variant="outline"
@@ -514,7 +527,11 @@ export function JobDetail({
                   {job.failed}
                 </Badge>
               </TabsTrigger>
-              <TabsTrigger value="skipped" className="gap-2">
+              <TabsTrigger
+                value="skipped"
+                data-testid="job-tab-skipped"
+                className="gap-2"
+              >
                 {t('import.detail.tabs.skipped')}
                 <Badge variant="outline">{job.skipped}</Badge>
               </TabsTrigger>
@@ -540,7 +557,7 @@ export function JobDetail({
           <code className="rounded bg-muted px-1.5 py-0.5">{job.id}</code>
         </span>
         {isRunning && (
-          <span className="flex items-center gap-1.5">
+          <span data-testid="job-polling" className="flex items-center gap-1.5">
             <RotateCcw className="h-3 w-3 animate-spin" aria-hidden />
             {t('import.detail.polling')}
           </span>

@@ -36,6 +36,7 @@ export function ObjectPicker({
   disabled,
   className,
   placeholder,
+  testId = 'object-picker',
 }: {
   value: string
   /** Resolved name for `value`, when the caller knows one. */
@@ -45,6 +46,7 @@ export function ObjectPicker({
   className?: string
   /** Empty-state label. A template flow's target is optional, so "select" would overstate it. */
   placeholder?: string
+  testId?: string
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
@@ -70,7 +72,7 @@ export function ObjectPicker({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          data-testid="object-picker"
+          data-testid={testId}
           className={cn(
             'h-8 justify-between font-normal',
             !value && 'text-muted-foreground',

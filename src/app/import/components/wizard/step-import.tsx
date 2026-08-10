@@ -43,7 +43,7 @@ export function StepImport({
   if (problems.length > 0) {
     return (
       <div className="space-y-4">
-        <Alert variant="destructive">
+        <Alert variant="destructive" data-testid="run-refused">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             <p className="font-medium">{t('import.run.refused')}</p>
@@ -69,7 +69,12 @@ export function StepImport({
             </ul>
           </AlertDescription>
         </Alert>
-        <Button type="button" variant="outline" onClick={onDone}>
+        <Button
+          type="button"
+          variant="outline"
+          data-testid="run-back-to-mapping"
+          onClick={onDone}
+        >
           {t('import.run.backToMapping')}
         </Button>
       </div>
@@ -82,13 +87,15 @@ export function StepImport({
         <div className="flex items-start gap-3">
           <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
           <div>
-            <h3 className="font-medium">{t('import.run.handedOver')}</h3>
+            <h3 className="font-medium" data-testid="run-handed-over">
+              {t('import.run.handedOver')}
+            </h3>
             <p className="text-sm text-muted-foreground">
               {t('import.run.handedOverDetail', { count: total })}
             </p>
           </div>
         </div>
-        <Button type="button" onClick={onDone}>
+        <Button type="button" data-testid="run-see-status" onClick={onDone}>
           {t('import.run.seeStatus')}
         </Button>
       </div>
@@ -114,8 +121,15 @@ export function StepImport({
         </div>
 
         <div className="space-y-2">
-          <Progress value={staging ? percent : 100} className="h-2" />
-          <p className="text-sm tabular-nums text-muted-foreground">
+          <Progress
+            value={staging ? percent : 100}
+            data-testid="run-progress"
+            className="h-2"
+          />
+          <p
+            data-testid="run-staged"
+            className="text-sm tabular-nums text-muted-foreground"
+          >
             {staging ? (
               t('import.run.uploadedOf', {
                 staged: progress.staged,
@@ -148,7 +162,7 @@ export function StepImport({
       </div>
 
       {Boolean(error) && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" data-testid="run-error">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             {error instanceof Error ? error.message : t('import.run.failed')}
@@ -156,7 +170,12 @@ export function StepImport({
         </Alert>
       )}
 
-      <Button type="button" onClick={onStart} className="gap-2">
+      <Button
+        type="button"
+        data-testid="run-start"
+        onClick={onStart}
+        className="gap-2"
+      >
         <Upload className="h-4 w-4" />
         {t('import.actions.importCount', { count: total })}
       </Button>

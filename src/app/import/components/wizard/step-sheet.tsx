@@ -38,6 +38,7 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
           <button
             key={candidate.name}
             type="button"
+            data-testid={`sheet-option-${candidate.name}`}
             onClick={() => wizard.selectSheet(candidate.name)}
             aria-pressed={candidate.name === sheet.name}
             className={cn(
@@ -78,6 +79,7 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
                 return (
                   <TableRow
                     key={index}
+                    data-testid={`sheet-row-${index}`}
                     className={cn(
                       isHeader && 'bg-primary/10',
                       isPreamble && 'opacity-40'
@@ -89,17 +91,26 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
                           {index + 1}
                         </span>
                         {isHeader ? (
-                          <Badge variant="outline" className="font-normal">
+                          <Badge
+                            variant="outline"
+                            data-testid="sheet-header-badge"
+                            className="font-normal"
+                          >
                             {t('import.sheet.headerBadge')}
                           </Badge>
                         ) : isFirstData ? (
-                          <Badge variant="outline" className="font-normal">
+                          <Badge
+                            variant="outline"
+                            data-testid="sheet-data-badge"
+                            className="font-normal"
+                          >
                             {t('import.sheet.dataBadge')}
                           </Badge>
                         ) : (
                           <span className="flex gap-1">
                             <button
                               type="button"
+                              data-testid={`sheet-mark-header-${index}`}
                               onClick={() => wizard.selectHeaderRow(index)}
                               className="rounded px-1 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
@@ -107,6 +118,7 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
                             </button>
                             <button
                               type="button"
+                              data-testid={`sheet-mark-data-${index}`}
                               onClick={() => wizard.selectDataRow(index)}
                               className="rounded px-1 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
@@ -137,7 +149,10 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
           </Table>
         </div>
 
-        <p className="text-xs text-muted-foreground tabular-nums">
+        <p
+          data-testid="sheet-row-summary"
+          className="text-xs text-muted-foreground tabular-nums"
+        >
           {headerRow > 0 &&
             `${t('import.sheet.ignoringAbove', { count: headerRow })} `}
           {t('import.sheet.reading', { count: wizard.dataRows.length })}

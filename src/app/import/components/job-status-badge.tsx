@@ -20,7 +20,12 @@ const STATUS_DOT: Record<ImportJobStatus, string> = {
 export function JobStatusBadge({ status }: { status: ImportJobStatus }) {
   const t = useTranslations()
   return (
-    <Badge variant="outline" className="gap-1.5 font-normal">
+    <Badge
+      variant="outline"
+      data-testid="job-status"
+      data-status={status}
+      className="gap-1.5 font-normal"
+    >
       <span
         className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[status])}
         aria-hidden
