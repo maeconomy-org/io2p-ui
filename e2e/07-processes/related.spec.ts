@@ -41,8 +41,12 @@ test.describe('07 - processes / related filter', () => {
 
     await page.goto(`/processes?ref=${inputId}`)
     const related = page.getByTestId('related-object-bar')
-    await expect(related).toHaveCount(1)
-    await expect(related).toBeVisible()
+    // ONE `toPass`, not two assertions: a client transition keeps the outgoing page mounted, so the
+    // count can settle to 1 and go back to 2 between two separate awaits.
+    await expect(async () => {
+      await expect(related).toHaveCount(1, { timeout: 3_000 })
+      await expect(related).toBeVisible({ timeout: 3_000 })
+    }).toPass({ timeout: 30_000 })
 
     // The SELECTION bar as the second one, not search: search is rate-limited on the node, and
     // four parallel workers across repeated runs get a 429. A checkbox needs no network.
