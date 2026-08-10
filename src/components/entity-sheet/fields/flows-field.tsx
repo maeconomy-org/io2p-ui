@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useFieldArray, type UseFormReturn } from 'react-hook-form'
+import { useFieldArray, useWatch, type UseFormReturn } from 'react-hook-form'
 import { ChevronRight, Package, Plus, Repeat, Trash2 } from 'lucide-react'
 
 import {
@@ -76,7 +76,10 @@ export function FlowsField({
    *
    * Watched once per bag rather than per row — every row asks the same question.
    */
-  const oppositeRefs = form.watch(bag === 'inputs' ? 'outputs' : 'inputs')
+  const oppositeRefs = useWatch({
+    control: form.control,
+    name: bag === 'inputs' ? 'outputs' : 'inputs',
+  })
   const onBothSides = useMemo(
     () =>
       new Set(
@@ -138,7 +141,13 @@ export function FlowsField({
       ))}
 
       {editing && (
-        <Button type="button" variant="outline" size="sm" onClick={addFlow}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          data-testid={`add-${bag.slice(0, -1)}`}
+          onClick={addFlow}
+        >
           <Plus className="mr-2 h-4 w-4" />
           {t(`processes.flows.add.${bag}`)}
         </Button>
@@ -177,7 +186,16 @@ function FlowRow({
   const [open, setOpen] = useState(false)
 
   const base = `${bag}.${index}` as const
-  const flow = form.watch(base)
+  /**
+   * `useWatch`, NOT `form.watch` — this row does not own the `useForm`, it receives it.
+   *
+   * `form.watch` in a child only READS: its subscription re-renders whichever component called
+   * `useForm`, and this one re-rendered merely because its parent did. The React Compiler runs in
+   * production only and memoizes this row on props that never change, so the cascade stops and the
+   * value freezes. The identical defect in `property-fields` made soft-delete do nothing at all in
+   * a production build while every dev run stayed green.
+   */
+  const flow = useWatch({ control: form.control, name: base })
   const properties = flow?.properties ?? []
 
   // A process flow arrives with `refName`; a TEMPLATE flow has no such field, so the id is resolved
@@ -206,6 +224,7 @@ function FlowRow({
       <DeletedRow
         label={refLabel || t('processes.flows.untitled')}
         onRestore={editing ? onRestore : undefined}
+        testId={`flow-deleted-${bag}-${index}`}
       />
     )
   }
@@ -240,6 +259,7 @@ function FlowRow({
       open={open}
       onOpenChange={setOpen}
       className={cn('rounded-md border', open && 'shadow-sm')}
+      data-testid={`flow-row-${bag}-${index}`}
     >
       <div className="flex items-center gap-1.5 px-2 py-1.5">
         {/* Reading mode has nothing else interactive on the row, so the WHOLE row toggles — the same
@@ -247,6 +267,7 @@ function FlowRow({
             cannot be nested inside a trigger, so there the chevron keeps the job. */}
         <CollapsibleTrigger
           aria-label={t('processes.flows.toggleDetails')}
+          data-testid={`flow-toggle-${bag}-${index}`}
           className={cn(
             'flex min-w-0 items-center gap-1.5 text-left',
             editing ? 'shrink-0' : 'flex-1'
@@ -303,6 +324,7 @@ function FlowRow({
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               aria-label={t('processes.flows.quantity')}
+              data-testid={`flow-quantity-${bag}-${index}`}
             />
           </>
         )}
@@ -335,6 +357,7 @@ function FlowRow({
             size="icon"
             className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
             aria-label={t('common.remove')}
+            data-testid={`flow-remove-${bag}-${index}`}
             // One click, no confirm: the removal is a soft delete the row itself offers to undo.
             // The old two-step existed because a flow removal used to be irreversible.
             onClick={onRemove}

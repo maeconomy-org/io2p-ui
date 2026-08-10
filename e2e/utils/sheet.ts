@@ -11,7 +11,20 @@ import { expect, type Locator, type Page } from '@playwright/test'
 
 import { tour } from './selectors'
 
-export type SheetTab = 'properties' | 'files' | 'relations' | 'details'
+/**
+ * Every tab value any sheet renders. Listed rather than widened to `string`, so a renamed tab is a
+ * compile error here instead of a locator that matches nothing.
+ *
+ * Object sheet: properties · files · relations · details.
+ * Process sheet: details · files · inputs · outputs.
+ */
+export type SheetTab =
+  | 'properties'
+  | 'files'
+  | 'relations'
+  | 'details'
+  | 'inputs'
+  | 'outputs'
 
 export function sheet(page: Page): Locator {
   return page.getByTestId('entity-sheet')

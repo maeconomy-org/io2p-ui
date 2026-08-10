@@ -1,4 +1,4 @@
-import { expect, test as setup } from '@playwright/test'
+import { expect, type Page, test as setup } from '@playwright/test'
 
 import { AUTH_STATE, requireCredentials } from './credentials'
 
@@ -37,19 +37,34 @@ setup('authenticate', async ({ page }) => {
     localStorage.setItem('onboarding:initial-login:v1', 'done')
   )
 
-  // Normalise the list view.
+  // EVERY page that stores a view preference, not just the first one.
   //
-  // View preferences are stored PER ACCOUNT on the node, not in this browser — so they outlive the
-  // run, and one spec leaving the account in the columns view means the next run's table specs
-  // find no table. That is not hypothetical: it happened, and it took out four parallel specs at
-  // once because they share this login. A suite has to start from a state it chose.
-  // `toPass`, not a click followed by an assertion.
+  // These live PER ACCOUNT on the node, not in this browser, so they outlive the run. A spec that
+  // leaves `/objects` in the columns view means the next run's table specs find no table — that
+  // took out four parallel specs at once, because they share this login. Adding `/processes` here
+  // is the same lesson learned twice: it was left in the Sankey view and every list spec failed.
   //
-  // Two things can make a single attempt fail, and both are invisible: the button can be clicked
-  // before hydration attaches its handler, in which case nothing happens at all; and the list
-  // renders behind `viewResolved`, which waits on the `/me` request — cold here, with a token
-  // minted seconds ago and nothing cached. Retrying the whole click-and-check absorbs both
-  // instead of guessing at a timeout, and clicking an already-correct view is a no-op.
+  // A suite has to start from a state it chose. Any page that gains a view preference belongs in
+  // this list on the same day.
+  for (const path of ['/objects', '/processes']) {
+    await page.goto(path)
+    await normaliseToTableView(page)
+  }
+
+  await page.context().storageState({ path: AUTH_STATE })
+})
+
+/**
+ * Puts the current page in its table view and proves the choice was stored.
+ *
+ * `toPass`, not a click followed by an assertion. Two things can make a single attempt fail and
+ * both are invisible: the button can be clicked before hydration attaches its handler, in which
+ * case nothing happens at all; and the list renders behind `viewResolved`, which waits on the
+ * `/me` request — cold here, with a token minted seconds ago and nothing cached. Retrying the
+ * whole click-and-check absorbs both instead of guessing at a timeout. Clicking a view that is
+ * already correct is a no-op.
+ */
+async function normaliseToTableView(page: Page) {
   await expect(async () => {
     await page.getByTestId('view-option-table').click()
     await expect(page.getByTestId('data-table')).toBeVisible({ timeout: 5_000 })
@@ -60,6 +75,4 @@ setup('authenticate', async ({ page }) => {
   // and leaves the account on whatever it was. Surviving a reload is the only proof it landed.
   await page.reload()
   await expect(page.getByTestId('data-table')).toBeVisible({ timeout: 30_000 })
-
-  await page.context().storageState({ path: AUTH_STATE })
-})
+}

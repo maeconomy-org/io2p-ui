@@ -45,6 +45,7 @@ export function RelatedObjectBar({
       open
       label={t('processes.relatedTo', { name })}
       level={level}
+      data-testid="related-object-bar"
     >
       <div className="flex min-w-0 items-center gap-2 px-1 sm:pl-2">
         <Package className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
@@ -60,6 +61,7 @@ export function RelatedObjectBar({
         variant="ghost"
         size="sm"
         className="h-8 shrink-0 rounded-full"
+        data-testid="related-object-clear"
         onClick={onClear}
       >
         <X className="mr-1 h-4 w-4" />

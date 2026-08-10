@@ -131,6 +131,7 @@ export function ProcessFlowToolbar({
             onClick={onPrev}
             disabled={depthDisabled || !canPrev}
             aria-label={t('processes.depthWindow.prev')}
+            data-testid="flow-depth-prev"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -141,6 +142,7 @@ export function ProcessFlowToolbar({
             aria-pressed={depthLimited}
             disabled={depthDisabled}
             onClick={() => onDepthLimitedChange(!depthLimited)}
+            data-testid="flow-depth-indicator"
             className="h-8 min-w-[9rem] justify-center gap-1.5 rounded-none border-x tabular-nums"
           >
             <Layers className="h-4 w-4" />
@@ -165,6 +167,7 @@ export function ProcessFlowToolbar({
             onClick={onNext}
             disabled={depthDisabled || !canNext}
             aria-label={t('processes.depthWindow.next')}
+            data-testid="flow-depth-next"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

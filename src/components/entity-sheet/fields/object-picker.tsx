@@ -70,6 +70,7 @@ export function ObjectPicker({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
+          data-testid="object-picker"
           className={cn(
             'h-8 justify-between font-normal',
             !value && 'text-muted-foreground',
@@ -90,6 +91,7 @@ export function ObjectPicker({
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={t('processes.flows.searchObjects')}
+            data-testid="object-picker-search"
             value={query}
             onValueChange={setQuery}
           />
@@ -106,6 +108,7 @@ export function ObjectPicker({
                 <CommandItem
                   key={object.id}
                   value={object.id}
+                  data-testid={`object-option-${object.id}`}
                   onSelect={() => {
                     setPickedName(object.name)
                     onSelect(object.id, object.name)
