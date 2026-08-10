@@ -104,6 +104,16 @@ const nextConfig = {
   // to-do list for widening coverage.
   reactCompiler: process.env.NODE_ENV === 'production',
   experimental: {
+    // Turbopack's build cache became a DEFAULT in 16.3, and it only pays off
+    // when `.next/cache` survives between builds. The Docker builder stage
+    // starts from a clean layer (`FROM node:alpine` then `COPY . .`), so there
+    // it writes a cache nothing will ever read — the doc's own advice is to
+    // switch it off in that case. Local `pnpm build` keeps it and stays warm.
+    //
+    // The dev cache is deliberately untouched: it is what lets 16.3's memory
+    // eviction reload from disk instead of holding everything in RAM, which is
+    // the whole reason `next dev` stopped eating memory.
+    turbopackFileSystemCacheForBuild: process.env.DOCKER_BUILD !== 'true',
     // lucide-react is optimized by default in Next 16 — listing it is a no-op.
     // The Radix entries are near-noise (each package is one small module, not a
     // barrel) but kept until someone measures them.

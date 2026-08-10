@@ -44,6 +44,9 @@ COPY . .
 # Build environment
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# This layer is always cold, so Turbopack's build cache (a default since 16.3)
+# would be written and never read. See next.config.mjs.
+ENV DOCKER_BUILD=true
 
 # Build application (no NEXT_PUBLIC_* needed - config served at runtime)
 RUN npm install -g pnpm@11.5.0
