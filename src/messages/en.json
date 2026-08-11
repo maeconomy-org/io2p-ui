@@ -946,7 +946,7 @@
     },
     "status": {
       "title": "Project status",
-      "description": "io2p is pre-1.0 and under active development. It has not yet been through an external security audit, and its APIs and storage formats can still change between releases. Run it behind your own authentication and network boundary, and do not assume it is hardened for production use."
+      "description": "io2p is at an early stage. APIs and storage formats are still evolving between releases — pin a version and check the release notes before upgrading. An independent security audit has not been carried out yet; until it has, we would rather hear about a problem early than late."
     },
     "report": {
       "title": "How to report",

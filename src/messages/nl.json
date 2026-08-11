@@ -946,7 +946,7 @@
     },
     "status": {
       "title": "Status van het project",
-      "description": "io2p is pre-1.0 en volop in ontwikkeling. Het heeft nog geen externe beveiligingsaudit ondergaan en de API’s en opslagformaten kunnen tussen releases nog veranderen. Draai het achter uw eigen authenticatie- en netwerkgrens en ga er niet van uit dat het gehard is voor productiegebruik."
+      "description": "io2p bevindt zich in een vroeg stadium. De API’s en opslagformaten evolueren nog tussen releases — zet een versie vast en lees de release notes voordat u bijwerkt. Een onafhankelijke beveiligingsaudit is nog niet uitgevoerd; tot die tijd horen wij een probleem liever vroeg dan laat."
     },
     "report": {
       "title": "Hoe u meldt",

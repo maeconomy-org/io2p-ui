@@ -2,12 +2,12 @@
 
 ## Project status
 
-io2p is **pre-1.0 and under active development**. This is the web application users interact with;
-it holds session tokens in the browser and talks to `io2p-core` on the user's behalf. It has not yet
-been through an external security audit, and its interface and APIs can still change between
-releases.
+io2p is at an **early stage**. This is the web application users interact with; it holds session
+tokens in the browser and talks to `io2p-core` on the user's behalf. Its interface and APIs are
+still evolving between releases.
 
-We would rather say that plainly than imply a maturity the project has not reached yet.
+An independent security audit has not been carried out yet. Until it has, we would rather hear
+about a problem early than late, which is what the rest of this document is for.
 
 ## Supported versions
 
@@ -16,7 +16,7 @@ We would rather say that plainly than imply a maturity the project has not reach
 | Latest release | ✅ Security fixes provided |
 | Anything older | ❌ Please upgrade first    |
 
-Before 1.0 we support only the most recent release. If you are on an older version, reproduce the
+We provide security fixes for the most recent release. If you are on an older version, reproduce the
 issue on the latest one where you can — if you cannot upgrade, report it anyway and say so.
 
 ## Reporting a vulnerability
