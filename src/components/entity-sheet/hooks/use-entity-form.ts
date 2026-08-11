@@ -39,7 +39,12 @@ export interface UseEntityFormOptions {
    */
   resumeDraft?: { id: string; draft: EntityDraft } | null
   /** Called after a successful create/update (or a no-op save) with the entity id. */
-  onSaved?: (id: string) => void
+  /**
+   * `addedParents` is empty on create and on any save that did not link a new parent. It exists
+   * because `/objects` lists ROOTS: gaining a parent removes the object from the list the user is
+   * looking at, and this is the only moment anything can say where it went.
+   */
+  onSaved?: (id: string, addedParents: string[]) => void
 }
 
 /**
@@ -156,12 +161,17 @@ export function useEntityForm(
       return
     }
 
+    const knownParents = new Set((entity?.parents ?? []).map((p) => p.id))
+    const addedParents = entity
+      ? draft.parentIds.filter((id) => !knownParents.has(id))
+      : []
+
     attachUploads(committed, draft)
     // Clear the dirty baseline so the tab dot / unsaved bar reset immediately. A body change bumps the
     // version → the load effect re-syncs to the server truth (file ids/thumbnails); a file-only save
     // (no version bump) has no reload, so this reset is what clears the dot.
     form.reset(form.getValues())
-    onSaved?.(committed.id)
+    onSaved?.(committed.id, addedParents)
   })
 
   return {

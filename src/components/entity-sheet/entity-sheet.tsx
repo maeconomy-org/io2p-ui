@@ -84,8 +84,9 @@ export function EntitySheet({
   const { form, submit, isSubmitting } = useEntityForm(entity, {
     defaultParentIds,
     resumeDraft,
-    onSaved: () => {
+    onSaved: (_id, addedParents) => {
       setEditing(false)
+      announceReparent(addedParents)
       if (!isCreate) return
       // The object exists on the server now, so the local copy is no longer a draft of anything.
       if (draftId) drafts.deleteDraft(draftId)
@@ -118,13 +119,46 @@ export function EntitySheet({
     return m
   }, [entity])
 
+  // Held HERE, not in `ParentsField`: a name resolved by the picker has to outlive that component's
+  // render so the post-save toast can name the parent the object just moved under.
+  const [pickedParentNames, setPickedParentNames] = useState<
+    Record<string, string>
+  >({})
+
   const parentNames = useMemo(() => {
     const m = new Map<string, string>(Object.entries(defaultParentNames ?? {}))
     entity?.parents?.forEach((p) => {
       if (p.name) m.set(p.id, p.name)
     })
+    Object.entries(pickedParentNames).forEach(([id, name]) => m.set(id, name))
     return m
-  }, [entity, defaultParentNames])
+  }, [entity, defaultParentNames, pickedParentNames])
+
+  /**
+   * Say where the object went. `/objects` lists ROOTS, so linking a parent removes the row the user
+   * was looking at — correct, and silent without this.
+   */
+  const announceReparent = (addedParents: string[]) => {
+    const first = addedParents[0]
+    if (!first) return
+    const name =
+      parentNames.get(first) ?? t('objects.parents.movedFallbackName')
+    const wasRoot = (entity?.parents?.length ?? 0) === 0
+    toast.success(
+      wasRoot
+        ? t('objects.parents.movedUnder', { name })
+        : t('objects.parents.alsoUnder', { name }),
+      {
+        action: {
+          label: t('objects.parents.openParent'),
+          onClick: () => {
+            onOpenChange(false)
+            router.push(`/objects/${first}`)
+          },
+        },
+      }
+    )
+  }
 
   // Dropping anywhere in the sheet attaches at OBJECT level — the coarsest, least surprising target
   // when the pointer wasn't over a particular property or value.
@@ -213,6 +247,9 @@ export function EntitySheet({
               form={form}
               editing={editing}
               parentNames={parentNames}
+              onParentPicked={(id, name) =>
+                setPickedParentNames((m) => ({ ...m, [id]: name }))
+              }
               selfId={entity?.id}
             />
           </div>

@@ -627,6 +627,12 @@
       "more": "+{count} more not shown",
       "flowCount": "{count} flows",
       "viewAll": "View all in Processes"
+    },
+    "parents": {
+      "movedUnder": "Moved under {name}",
+      "alsoUnder": "Now also under {name}",
+      "openParent": "Open",
+      "movedFallbackName": "its new parent"
     }
   },
   "uploads": {

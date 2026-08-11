@@ -1,9 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
-import type { UseFormReturn } from 'react-hook-form'
+import { useWatch, type UseFormReturn } from 'react-hook-form'
 
 import {
   Badge,
@@ -34,21 +35,27 @@ export function ParentsField({
   form,
   editing,
   parentNames,
+  onParentPicked,
   selfId,
 }: {
   form: UseFormReturn<EntityDraft>
   editing: boolean
   parentNames: Map<string, string>
+  /**
+   * Report a name the picker just resolved. The OWNER holds the map: the loaded entity only knows
+   * the parents it arrived with, and the sheet needs a freshly picked name after Save to say where
+   * the object went.
+   */
+  onParentPicked?: (id: string, name: string) => void
   /** The entity being edited, so it can't be offered as its own parent (the server rejects it too). */
   selfId?: string
 }) {
   const t = useTranslations()
-  const parentIds = form.watch('parentIds')
-  // Names for parents picked in this session; the loaded entity only knows the ones it arrived with.
-  const [pickedNames, setPickedNames] = useState<Map<string, string>>(new Map())
+  // `useWatch`, NOT `form.watch` — this component does not own the `useForm`. Removing a badge
+  // changes no local state, so a plain read leaves the removed parent on screen.
+  const parentIds = useWatch({ control: form.control, name: 'parentIds' }) ?? []
 
-  const nameOf = (id: string) =>
-    parentNames.get(id) ?? pickedNames.get(id) ?? id
+  const nameOf = (id: string) => parentNames.get(id) ?? id
 
   const setParents = (next: string[]) =>
     form.setValue('parentIds', next, { shouldDirty: true })
@@ -56,7 +63,7 @@ export function ParentsField({
   const remove = (id: string) => setParents(parentIds.filter((p) => p !== id))
 
   const toggle = (id: string, name: string) => {
-    setPickedNames((m) => new Map(m).set(id, name))
+    onParentPicked?.(id, name)
     setParents(
       parentIds.includes(id)
         ? parentIds.filter((p) => p !== id)
@@ -91,26 +98,38 @@ export function ParentsField({
               data-testid={`parent-badge-${id}`}
               className="gap-1"
             >
-              {nameOf(id)}
               {editing ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-4 w-4"
-                  aria-label={`${t('common.remove')} ${nameOf(id)}`}
-                  onClick={() => remove(id)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                <>
+                  {nameOf(id)}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4"
+                    aria-label={`${t('common.remove')} ${nameOf(id)}`}
+                    onClick={() => remove(id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </>
               ) : (
-                // The badge shows a name; the id is what you need to paste elsewhere.
-                <CopyButton
-                  text={id}
-                  label={nameOf(id)}
-                  className="h-4 w-4"
-                  iconSize="sm"
-                />
+                <>
+                  {/* A LINK, because `/objects` lists roots only: once this object has a parent it
+                      is no longer in that list, and its parent's page is where it now lives. */}
+                  <Link
+                    href={`/objects/${id}`}
+                    data-testid={`parent-link-${id}`}
+                    className="underline-offset-2 hover:underline"
+                  >
+                    {nameOf(id)}
+                  </Link>
+                  <CopyButton
+                    text={id}
+                    label={nameOf(id)}
+                    className="h-4 w-4"
+                    iconSize="sm"
+                  />
+                </>
               )}
             </Badge>
           ))}

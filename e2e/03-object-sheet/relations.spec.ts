@@ -163,6 +163,40 @@ test.describe('03 - object sheet / parents', () => {
     await expect(page.getByTestId(`parent-badge-${parentId}`)).toHaveCount(1)
   })
 
+  test('PA4: gaining a parent says where the object went, and the badge goes there', async ({
+    page,
+  }) => {
+    const tag = stamp()
+    const parentName = `${tag}-destination`
+    const childName = `${tag}-moving`
+
+    const parentId = await createObjectWithId(page, parentName)
+    await createObjectWithId(page, childName)
+
+    await page.goto('/objects')
+    await openObjectSheet(page, rowFor(page, childName))
+    await enterEditMode(page)
+    await switchTab(page, 'details')
+    await page.getByTestId('parent-picker').click()
+    await page.getByTestId('parent-search').fill(parentName)
+    await page.getByTestId(`parent-option-${parentId}`).click()
+    await page.keyboard.press('Escape')
+    await saveSheet(page)
+
+    // The row it was on has just disappeared — `/objects` lists roots — so this toast is the only
+    // thing that says where it went.
+    // Sonner renders an `<li>` inside `ol[data-sonner-toaster]`; it carries no `status` role.
+    const toast = page
+      .locator('[data-sonner-toaster] li')
+      .filter({ hasText: parentName })
+    await expect(toast).toBeVisible()
+    await expect(toast).toContainText('Moved under')
+
+    await toast.getByRole('button', { name: /open/i }).click()
+    await expect(page).toHaveURL(new RegExp(`/objects/${parentId}`))
+    await expect(rowFor(page, childName)).toBeVisible()
+  })
+
   test('PA3: a parent badge reads as a name, never a bare uuid', async ({
     page,
   }) => {
@@ -196,5 +230,9 @@ test.describe('03 - object sheet / parents', () => {
     const badge = page.getByTestId(`parent-badge-${parentId}`)
     await expect(badge).toContainText(parentName)
     await expect(badge).not.toContainText(parentId)
+
+    // The name is a LINK: the parent's page is where this object now lives.
+    await badge.getByTestId(`parent-link-${parentId}`).click()
+    await expect(page).toHaveURL(new RegExp(`/objects/${parentId}`))
   })
 })

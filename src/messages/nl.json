@@ -627,6 +627,12 @@
       "more": "+{count} meer niet getoond",
       "flowCount": "{count} stromen",
       "viewAll": "Alles bekijken in Processen"
+    },
+    "parents": {
+      "movedUnder": "Verplaatst onder {name}",
+      "alsoUnder": "Nu ook onder {name}",
+      "openParent": "Openen",
+      "movedFallbackName": "de nieuwe bovenliggende"
     }
   },
   "uploads": {

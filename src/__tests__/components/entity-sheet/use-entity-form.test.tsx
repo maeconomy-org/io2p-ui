@@ -108,7 +108,7 @@ describe('useEntityForm', () => {
 
     expect(enqueue).toHaveBeenCalledTimes(1)
     expect(files.uploadAll).not.toHaveBeenCalled()
-    expect(onSaved).toHaveBeenCalledWith('new-3')
+    expect(onSaved).toHaveBeenCalledWith('new-3', [])
   })
 
   it('create: submits buildCreateObjectInput and reports the new id', async () => {
@@ -124,7 +124,7 @@ describe('useEntityForm', () => {
     })
 
     expect(objects.create).toHaveBeenCalledWith({ name: 'Wall A' }, undefined)
-    expect(onSaved).toHaveBeenCalledWith('new-1')
+    expect(onSaved).toHaveBeenCalledWith('new-1', [])
   })
 
   it('create: presets default parent ids', async () => {
@@ -179,7 +179,7 @@ describe('useEntityForm', () => {
       propertyId: 'cp1',
       valueId: 'cv1',
     })
-    expect(onSaved).toHaveBeenCalledWith('new-3')
+    expect(onSaved).toHaveBeenCalledWith('new-3', [])
   })
 
   it('edit with no changes: no update call (empty diff), still reports saved', async () => {
@@ -193,7 +193,31 @@ describe('useEntityForm', () => {
     })
 
     expect(objects.update).not.toHaveBeenCalled()
-    expect(onSaved).toHaveBeenCalledWith('o1')
+    expect(onSaved).toHaveBeenCalledWith('o1', [])
+  })
+
+  // `/objects` lists ROOTS, so linking a parent removes the row the user is looking at. The sheet
+  // needs to know WHICH parent to name in the toast that says where it went.
+  it('edit: reports the parents this save added, and only the new ones', async () => {
+    objects.update.mockResolvedValue(entity({ currentVersion: 4 }))
+    const onSaved = vi.fn()
+    const { result } = renderHook(
+      () =>
+        useEntityForm(
+          entity({ parents: [{ id: 'old', name: 'Old' }] } as never),
+          {
+            onSaved,
+          }
+        ),
+      { wrapper: makeWrapper() }
+    )
+
+    act(() => result.current.form.setValue('parentIds', ['old', 'fresh']))
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(onSaved).toHaveBeenCalledWith('o1', ['fresh'])
   })
 
   it('edit with a change: PATCHes the diff with if-match = currentVersion', async () => {
