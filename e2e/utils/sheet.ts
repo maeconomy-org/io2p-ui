@@ -76,7 +76,12 @@ export async function fillProperty(
  */
 export async function expandProperty(page: Page, index: number): Promise<void> {
   await page.getByTestId(`property-toggle-${index}`).click()
-  await expect(page.getByTestId(`property-value-${index}-0`)).toBeVisible()
+  // A DERIVED value renders no text input, so waiting only for one hangs on every formula row.
+  await expect(
+    page
+      .getByTestId(`property-value-${index}-0`)
+      .or(page.getByTestId(`derived-value-${index}-0`))
+  ).toBeVisible()
 }
 
 /** A property with content needs Trash then Confirm; the confirm state cancels on blur. */

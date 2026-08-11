@@ -533,8 +533,14 @@ function PropertyRow({
                 )
               }
 
+              // `calc === undefined` means "untouched", `null` means "the user just cleared it".
+              // `!value.calc` conflated the two, so switching a server-derived value back to text
+              // set null and bounced straight back to this read-only row — the text input never
+              // appeared and the switch looked like it did nothing.
               const existingDerived =
-                !!value?.id && derivedValues.has(value.id) && !value.calc
+                !!value?.id &&
+                derivedValues.has(value.id) &&
+                value.calc === undefined
               const isFormula = !!value?.calc
               const selfKey = value?.id ?? value?.ref
               const valueFiles = value?.files ?? []

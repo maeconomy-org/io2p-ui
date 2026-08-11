@@ -44,6 +44,7 @@ export function ValueProvenanceDisplay({
       <div className="flex items-center gap-1.5">
         <Badge
           variant="secondary"
+          data-testid="provenance-chip"
           className="h-4 shrink-0 gap-0.5 px-1 text-[10px]"
         >
           <Sigma className="h-2.5 w-2.5" />
@@ -55,6 +56,7 @@ export function ValueProvenanceDisplay({
         {error && (
           <Badge
             variant="outline"
+            data-testid="provenance-error"
             className="h-4 shrink-0 gap-0.5 border-destructive px-1 text-[10px] text-destructive"
           >
             <AlertTriangle className="h-2.5 w-2.5" />

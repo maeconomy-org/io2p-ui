@@ -49,12 +49,19 @@ export function FormulaSelect({
 
   return (
     <Select value={formulaId ?? ''} onValueChange={onSelect}>
-      <SelectTrigger className={cn('h-8', className)}>
+      <SelectTrigger
+        data-testid="formula-select"
+        className={cn('h-8', className)}
+      >
         <SelectValue placeholder={t('objects.formulaEditor.selectFormula')} />
       </SelectTrigger>
       <SelectContent>
         {formulas.map((f) => (
-          <SelectItem key={f.id} value={f.id}>
+          <SelectItem
+            key={f.id}
+            value={f.id}
+            data-testid={`formula-option-${f.name}`}
+          >
             {f.name}
             <span className="ml-2 font-mono text-xs text-muted-foreground">
               {f.expression}
@@ -157,9 +164,15 @@ export function FormulaBindings({
   if (!formula) return null
 
   return (
-    <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+    <div
+      data-testid="formula-bindings"
+      className="space-y-2 rounded-md border bg-muted/30 p-3"
+    >
       {formula.variables.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
+        <p
+          data-testid="formula-no-variables"
+          className="text-xs text-muted-foreground"
+        >
           {t('objects.formulaEditor.noVariables')}
         </p>
       ) : (
@@ -168,7 +181,11 @@ export function FormulaBindings({
             {t('objects.formulaEditor.bindVariables')}
           </Label>
           {formula.variables.map((variable) => (
-            <div key={variable} className="flex items-center gap-2">
+            <div
+              key={variable}
+              data-testid={`formula-var-${variable}`}
+              className="flex items-center gap-2"
+            >
               <code className="w-16 shrink-0 text-sm font-medium">
                 {variable}
               </code>
@@ -176,7 +193,10 @@ export function FormulaBindings({
                 value={bindingFor(variable)}
                 onValueChange={(val) => bindVariable(variable, val)}
               >
-                <SelectTrigger className="h-8">
+                <SelectTrigger
+                  data-testid={`formula-bind-${variable}`}
+                  className="h-8"
+                >
                   <SelectValue
                     placeholder={t('objects.formulaEditor.selectValue')}
                   />
@@ -194,7 +214,11 @@ export function FormulaBindings({
                         {t('objects.formulaEditor.siblingValues')}
                       </SelectLabel>
                       {siblings.map((s) => (
-                        <SelectItem key={s.key} value={`sibling:${s.key}`}>
+                        <SelectItem
+                          key={s.key}
+                          value={`sibling:${s.key}`}
+                          data-testid={`formula-sibling-${s.label}`}
+                        >
                           {s.label}
                           {s.num !== undefined && (
                             <span className="ml-1 text-muted-foreground">
@@ -217,7 +241,11 @@ export function FormulaBindings({
                       {constants.map((c) => {
                         const current = c.versions.at(-1)
                         return (
-                          <SelectItem key={c.id} value={`constant:${c.name}`}>
+                          <SelectItem
+                            key={c.id}
+                            value={`constant:${c.name}`}
+                            data-testid={`formula-constant-${c.name}`}
+                          >
                             {c.name}
                             {current?.data && (
                               <span className="ml-1 text-muted-foreground">
@@ -238,6 +266,8 @@ export function FormulaBindings({
 
       {preview && (
         <div
+          data-testid="formula-preview"
+          data-error={preview.error !== null}
           className={cn(
             'flex items-center gap-1.5 text-sm',
             preview.error ? 'text-destructive' : 'text-emerald-600'
