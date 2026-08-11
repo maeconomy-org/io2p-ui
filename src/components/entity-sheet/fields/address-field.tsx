@@ -40,30 +40,40 @@ export function AddressField({
   if (!editing) {
     // Reading is where the parts earn their keep: the autocomplete resolved them, so show what was
     // actually stored rather than only the single line the user typed into.
-    const parts: [string, string | undefined][] = [
-      [t('objects.address.street'), joinStreet(address)],
-      [t('objects.address.postalCode'), address?.postalCode],
-      [t('objects.address.city'), address?.city],
-      [t('objects.address.state'), address?.state],
+    const parts: [string, string, string | undefined][] = [
+      ['street', t('objects.address.street'), joinStreet(address)],
+      ['postalCode', t('objects.address.postalCode'), address?.postalCode],
+      ['city', t('objects.address.city'), address?.city],
+      ['state', t('objects.address.state'), address?.state],
       // Stored as an ISO code, read back in the CURRENT UI language — so the reader's locale
       // decides the wording, not whatever language the row happened to be created in.
-      [t('objects.address.country'), countryLabel(address?.country, locale)],
+      [
+        'country',
+        t('objects.address.country'),
+        countryLabel(address?.country, locale),
+      ],
       // Shown, labelled, only when present. A coordinate pair means little to an asset manager, but
       // its ABSENCE means nothing either — and without this there is no way to tell a geocoded
       // address from one the lookup silently failed on.
-      [t('objects.address.coordinates'), formatCoordinates(address)],
+      [
+        'coordinates',
+        t('objects.address.coordinates'),
+        formatCoordinates(address),
+      ],
     ]
-    const present = parts.filter(([, value]) => !!value?.trim())
+    const present = parts.filter(([, , value]) => !!value?.trim())
 
     return (
       <ReadOnlyField label={t('objects.fields.address')}>
-        {address?.fullAddress || '—'}
+        <span data-testid="address-full">{address?.fullAddress || '—'}</span>
         {present.length > 0 && (
           <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 border-l pl-3 text-xs">
-            {present.map(([label, value]) => (
-              <div key={label} className="contents">
+            {present.map(([key, label, value]) => (
+              <div key={key} className="contents">
                 <dt className="text-muted-foreground">{label}</dt>
-                <dd className="truncate">{value}</dd>
+                <dd className="truncate" data-testid={`address-part-${key}`}>
+                  {value}
+                </dd>
               </div>
             ))}
           </dl>

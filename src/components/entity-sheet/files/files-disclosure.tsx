@@ -50,7 +50,10 @@ export function FilesDisclosure({
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="space-y-1">
       <div className="flex items-center gap-1">
-        <CollapsibleTrigger className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground">
+        <CollapsibleTrigger
+          data-testid="files-count"
+          className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+        >
           <ChevronRight
             className={cn(
               'h-3.5 w-3.5 transition-transform',

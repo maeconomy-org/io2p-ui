@@ -44,6 +44,7 @@ export function SheetDropzone({
       {...getRootProps()}
       className={cn('relative', className)}
       data-testid="sheet-dropzone"
+      data-disabled={disabled}
     >
       {children}
       {showOverlay && (

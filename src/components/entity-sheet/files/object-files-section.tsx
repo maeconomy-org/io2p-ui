@@ -126,7 +126,10 @@ export function ObjectFilesSection({
 
       {files.length === 0 ? (
         showEmptyState ? (
-          <p className="text-sm text-muted-foreground">
+          <p
+            data-testid="files-empty"
+            className="text-sm text-muted-foreground"
+          >
             {t('objects.files.noFiles')}
           </p>
         ) : null
@@ -188,6 +191,9 @@ function FileCard({
 
   return (
     <div
+      data-testid="file-row"
+      data-deleted={state.deleted}
+      data-name={state.name}
       className={cn(
         'flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm',
         state.deleted ? 'border-destructive/20 bg-destructive/10' : 'bg-card',

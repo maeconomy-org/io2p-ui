@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { UseFormReturn } from 'react-hook-form'
+import { useWatch, type UseFormReturn } from 'react-hook-form'
 
 import type { DraftFile, EntityDraft } from '@/lib/entity'
 
@@ -44,7 +44,12 @@ export function ObjectFilesField({
   basePath?: FilesPath
 }) {
   const [modalOpen, setModalOpen] = useState(false)
-  const files = form.watch(basePath) ?? []
+  // `useWatch`, NOT `form.watch` — this component does not own the `useForm`, it receives it, so
+  // `watch` reads once and never re-subscribes. Under the production-only React Compiler that froze
+  // the list: adding a file marked the sheet dirty and rendered nothing, and a second add dropped
+  // the first from the stale closure below.
+  const files = useWatch({ control: form.control, name: basePath }) ?? []
+  const coverFileId = useWatch({ control: form.control, name: 'coverFileId' })
 
   const addFiles = (added: DraftFile[]) => {
     form.setValue(basePath, [...files, ...added], { shouldDirty: true })
@@ -92,7 +97,7 @@ export function ObjectFilesField({
                 form.setValue('coverFileId', fileId, { shouldDirty: true })
             : undefined
         }
-        coverFileId={form.watch('coverFileId')}
+        coverFileId={coverFileId}
       />
       <AttachmentModal
         open={modalOpen}

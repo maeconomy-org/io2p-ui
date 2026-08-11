@@ -431,7 +431,8 @@
       "city": "City",
       "state": "State",
       "country": "Country",
-      "coordinates": "Coordinates"
+      "coordinates": "Coordinates",
+      "noResults": "No addresses found for \"{query}\""
     },
     "objectUuid": "Object UUID",
     "values": "{count} value{count, plural, one {} other {s}}",

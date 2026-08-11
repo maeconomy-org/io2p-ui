@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { MapPin, Loader2 } from 'lucide-react'
 
 import { logger } from '@/lib/observability/logger'
@@ -96,6 +97,7 @@ export function HereAddressAutocomplete({
   disabled = false,
   className = '',
 }: HereAddressAutocompleteProps) {
+  const t = useTranslations()
   const [query, setQuery] = useState('')
   /**
    * What the user TYPED, which is the only thing worth searching for.
@@ -276,6 +278,7 @@ export function HereAddressAutocomplete({
       <div className="relative">
         <Input
           ref={inputRef}
+          data-testid="address-input"
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -298,11 +301,13 @@ export function HereAddressAutocomplete({
       {isOpen && suggestions.length > 0 && (
         <div
           ref={dropdownRef}
+          data-testid="address-suggestions"
           className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto"
         >
           {suggestions.map((suggestion, index) => (
             <div
               key={suggestion.id}
+              data-testid={`address-suggestion-${index}`}
               className={`px-4 py-3 cursor-pointer hover:bg-muted/50 border-b border-border last:border-b-0 ${
                 index === selectedIndex ? 'bg-muted' : ''
               }`}
@@ -331,10 +336,11 @@ export function HereAddressAutocomplete({
         suggestions.length === 0 && (
           <div
             ref={dropdownRef}
+            data-testid="address-no-results"
             className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg p-4"
           >
             <div className="text-sm text-muted-foreground text-center">
-              No addresses found for "{query}"
+              {t('objects.address.noResults', { query })}
             </div>
           </div>
         )}

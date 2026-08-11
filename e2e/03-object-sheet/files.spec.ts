@@ -1,0 +1,221 @@
+import type { Page } from '@playwright/test'
+
+import { expect, test } from '../fixtures/app'
+import { tour } from '../utils/selectors'
+import {
+  addProperty,
+  enterEditMode,
+  expandProperty,
+  fillProperty,
+  openObjectSheet,
+  saveSheet,
+  sheet,
+  switchTab,
+} from '../utils/sheet'
+
+/**
+ * The FILE MODEL rather than the transport — `05-uploads` already covers the presigned PUT. What is
+ * here is where a file can be attached, what happens to it when it is deleted, and which affordances
+ * exist in which mode.
+ */
+
+const stamp = () => `e2e-${Date.now()}`
+const TINY = 'e2e/fixtures/uploads/tiny-1kb.txt'
+
+function rowFor(page: Page, name: string) {
+  return page.getByTestId('data-table-row').filter({ hasText: name }).first()
+}
+
+async function createObject(page: Page, tag: string): Promise<string> {
+  const name = `${stamp()}-${tag}`
+  await page.goto('/objects')
+  await expect(page.getByTestId('data-table')).toBeVisible()
+  await tour(page, 'createObject').click()
+  await expect(sheet(page)).toBeVisible()
+  await sheet(page).getByLabel(/name/i).first().fill(name)
+  await page.getByTestId('sheet-save').click()
+  await expect(sheet(page)).toBeHidden()
+  return name
+}
+
+/** Attach an external reference — authored in the entity body, so no upload is involved. */
+async function addReference(page: Page, url: string, label: string) {
+  await page.getByTestId('add-files').click()
+  await expect(page.getByTestId('attachment-modal')).toBeVisible()
+  await page.getByTestId('attachment-modal-url').fill(url)
+  await page.getByTestId('attachment-modal-label').fill(label)
+  await page.getByTestId('attachment-modal-add-reference').click()
+  await page.getByTestId('attachment-modal-done').click()
+}
+
+test.describe('03 - object sheet / files', () => {
+  test('FI3: an external reference is authored, never uploaded', async ({
+    page,
+    api,
+  }) => {
+    const name = await createObject(page, 'fi3')
+    await openObjectSheet(page, rowFor(page, name))
+    await enterEditMode(page)
+    await switchTab(page, 'files')
+
+    api.clear()
+    await addReference(page, 'https://example.org/plan.pdf', 'Site plan')
+    await saveSheet(page)
+
+    const row = page.getByTestId('file-row').filter({ hasText: 'Site plan' })
+    await expect(row).toHaveCount(1)
+    await expect(row.getByTestId('file-open-external')).toBeVisible()
+    // A reference travels in the object body; asking S3 to store it would be storing a string.
+    expect(api.count(/\/v1\/files$/)).toBe(0)
+  })
+
+  test('FI2: a file can be attached to a property and to a single value', async ({
+    page,
+  }) => {
+    const name = await createObject(page, 'fi2')
+    await openObjectSheet(page, rowFor(page, name))
+    await enterEditMode(page)
+
+    await addProperty(page, 0)
+    await fillProperty(page, 0, 'Datasheet', '12 kg')
+
+    // Three targets exist — object, property, value — and the two narrow ones are what distinguish
+    // this model from a flat attachment list.
+    await expect(page.getByTestId('property-attach-0')).toBeVisible()
+    await expect(page.getByTestId('value-attach-0-0')).toBeVisible()
+
+    await page.getByTestId('property-attach-0').click()
+    await expect(page.getByTestId('attachment-modal')).toBeVisible()
+    await page.getByTestId('attachment-modal-url').fill('https://example.org/a')
+    await page.getByTestId('attachment-modal-label').fill('On the property')
+    await page.getByTestId('attachment-modal-add-reference').click()
+    await page.getByTestId('attachment-modal-done').click()
+
+    await page.getByTestId('value-attach-0-0').click()
+    await expect(page.getByTestId('attachment-modal')).toBeVisible()
+    await page.getByTestId('attachment-modal-url').fill('https://example.org/b')
+    await page.getByTestId('attachment-modal-label').fill('On the value')
+    await page.getByTestId('attachment-modal-add-reference').click()
+    await page.getByTestId('attachment-modal-done').click()
+
+    // Each lands under its own container, not in the object's Files tab — a disclosure per target
+    // is what makes the three levels legible. The COUNT on the trigger is the assertable part; the
+    // rows themselves sit inside a Collapsible that Radix unmounts while closed.
+    const row = page.getByTestId('property-row-0')
+    await expect(row.getByTestId('files-count')).toHaveCount(2)
+
+    await saveSheet(page)
+    await page.goto('/objects')
+    await openObjectSheet(page, rowFor(page, name))
+    // The editable rows only exist in edit mode — read mode renders `PropertyReadView`, which has
+    // no toggle and no per-target disclosure.
+    await enterEditMode(page)
+    await expandProperty(page, 0)
+
+    await expect(
+      page.getByTestId('property-row-0').getByTestId('files-count')
+    ).toHaveCount(2)
+  })
+
+  test('FI5: the whole-sheet dropzone is armed only in edit mode', async ({
+    page,
+  }) => {
+    const name = await createObject(page, 'fi5')
+    await openObjectSheet(page, rowFor(page, name))
+
+    const dropzone = page.getByTestId('sheet-dropzone')
+    await expect(dropzone).toHaveAttribute('data-disabled', 'true')
+
+    await enterEditMode(page)
+    await expect(dropzone).toHaveAttribute('data-disabled', 'false')
+  })
+
+  test('FI6: a template sheet mounts no dropzone at all', async ({ page }) => {
+    await page.goto('/templates')
+    await expect(page.getByTestId('data-table')).toBeVisible()
+    // The button is a dropdown trigger: one list holds object and process templates.
+    await tour(page, 'templatesCreate').click()
+    await tour(page, 'templatesCreateObject').click()
+    await expect(sheet(page)).toBeVisible()
+
+    // io2p routes an attach target through the engine registry, which knows objects and processes
+    // only. A dropzone that silently discards what it catches is worse than none.
+    await expect(page.getByTestId('sheet-dropzone')).toHaveCount(0)
+    await expect(page.getByTestId('add-files')).toHaveCount(0)
+  })
+
+  test('FI7: the preview dialog opens, walks its siblings, and closes on Escape', async ({
+    page,
+  }) => {
+    const name = await createObject(page, 'fi7')
+    await openObjectSheet(page, rowFor(page, name))
+    await enterEditMode(page)
+    await switchTab(page, 'files')
+
+    await page.getByTestId('add-files').click()
+    await page.locator('input[type=file]').first().setInputFiles([TINY, TINY])
+    await page.getByTestId('attachment-modal-done').click()
+    await saveSheet(page)
+    await expect(page.getByTestId('upload-center-idle')).toBeAttached({
+      timeout: 30_000,
+    })
+
+    await page.getByTestId('file-preview').first().click()
+    const dialog = page.getByTestId('file-preview-dialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByTestId('file-preview-next')).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+  })
+
+  test('FI10: deleting a file strikes it through and offers Restore', async ({
+    page,
+  }) => {
+    const name = await createObject(page, 'fi10')
+    await openObjectSheet(page, rowFor(page, name))
+    await enterEditMode(page)
+    await switchTab(page, 'files')
+    await addReference(page, 'https://example.org/doomed.pdf', 'Doomed')
+    await saveSheet(page)
+
+    const row = page.getByTestId('file-row').filter({ hasText: 'Doomed' })
+    await row.getByTestId('file-delete').click()
+    await row.getByTestId('file-delete-confirm').click()
+
+    // SOFT: the bytes survive and the row stays, struck through, offering the way back. A file that
+    // disappears is indistinguishable from one that was never there.
+    await expect(row).toHaveAttribute('data-deleted', 'true')
+    await expect(row.getByTestId('file-restore')).toBeVisible()
+
+    await row.getByTestId('file-restore').click()
+    await expect(row).toHaveAttribute('data-deleted', 'false')
+  })
+
+  test('FI11/FI12: the cover star is an edit-mode decision, and not offered for a reference', async ({
+    page,
+  }) => {
+    const name = await createObject(page, 'fi11')
+    await openObjectSheet(page, rowFor(page, name))
+    await enterEditMode(page)
+    await switchTab(page, 'files')
+
+    await page.getByTestId('add-files').click()
+    await page.locator('input[type=file]').first().setInputFiles(TINY)
+    await page.getByTestId('attachment-modal-done').click()
+    await addReference(page, 'https://example.org/link.pdf', 'A link')
+    await saveSheet(page)
+    await expect(page.getByTestId('upload-center-idle')).toBeAttached({
+      timeout: 30_000,
+    })
+
+    // A .txt is not an image, and neither is a reference — a cover has to be something renderable.
+    const reference = page.getByTestId('file-row').filter({ hasText: 'A link' })
+    await expect(reference.getByTestId('file-cover-toggle')).toHaveCount(0)
+
+    await enterEditMode(page)
+    await expect(
+      page.getByTestId('file-row').first().getByTestId('file-cover-toggle')
+    ).toHaveCount(0)
+  })
+})

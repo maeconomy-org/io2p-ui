@@ -1,6 +1,8 @@
-import React from 'react'
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+
+import messages from '@/messages/en.json'
 
 import {
   HereAddressAutocomplete,
@@ -49,10 +51,9 @@ type OnSelect = (full: string, components: AddressComponents) => void
 
 async function pick(onAddressSelect: Mock<OnSelect>) {
   render(
-    React.createElement(HereAddressAutocomplete, {
-      onAddressSelect,
-      value: '',
-    })
+    <NextIntlClientProvider locale="en" messages={messages}>
+      <HereAddressAutocomplete onAddressSelect={onAddressSelect} value="" />
+    </NextIntlClientProvider>
   )
   fireEvent.change(screen.getByRole('textbox'), {
     target: { value: 'stadhuisplein' },

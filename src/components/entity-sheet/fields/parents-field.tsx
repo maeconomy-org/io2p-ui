@@ -66,7 +66,7 @@ export function ParentsField({
 
   if (!editing && parentIds.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p data-testid="parents-empty" className="text-sm text-muted-foreground">
         {t('objects.detailsSheet.noParents')}
       </p>
     )
@@ -85,7 +85,12 @@ export function ParentsField({
       {parentIds.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {parentIds.map((id) => (
-            <Badge key={id} variant="secondary" className="gap-1">
+            <Badge
+              key={id}
+              variant="secondary"
+              data-testid={`parent-badge-${id}`}
+              className="gap-1"
+            >
               {nameOf(id)}
               {editing ? (
                 <Button

@@ -93,6 +93,7 @@ export function FileActions({
           href={file.reference.url}
           target="_blank"
           rel="noopener noreferrer"
+          data-testid="file-open-external"
           aria-label={`${t('objects.files.openExternal')} ${state.name}`}
           title={t('objects.files.openExternal')}
           className={cn(ACTION, 'hover:text-foreground')}
@@ -104,6 +105,7 @@ export function FileActions({
       {canPreview && (
         <button
           type="button"
+          data-testid="file-preview"
           aria-label={`${t('objects.files.preview')} ${state.name}`}
           title={t('objects.files.preview')}
           onClick={() => onPreview?.(state.file)}
@@ -116,6 +118,7 @@ export function FileActions({
       {state.downloadable && (
         <button
           type="button"
+          data-testid="file-download"
           aria-label={`${t('common.download')} ${state.name}`}
           title={t('common.download')}
           onClick={onDownload}
@@ -134,6 +137,7 @@ export function FileActions({
           Edit — it just cannot be changed there. */}
       {isCover && !editing && (
         <span
+          data-testid="file-cover-current"
           className={cn(ACTION, 'text-amber-500')}
           title={t('objects.cover.current')}
           aria-label={`${t('objects.cover.current')}: ${state.name}`}
@@ -152,6 +156,7 @@ export function FileActions({
               ? `${t('objects.cover.clear')} ${state.name}`
               : `${t('objects.cover.set')} ${state.name}`
           }
+          data-testid="file-cover-toggle"
           title={isCover ? t('objects.cover.clear') : t('objects.cover.set')}
           aria-pressed={!!isCover}
           onClick={() => onSetCover(isCover ? null : (state.file.id ?? null))}
@@ -208,6 +213,7 @@ function RemoveAction({
     return (
       <button
         type="button"
+        data-testid="file-restore"
         aria-label={`${t('objects.files.restore')} ${state.name}`}
         title={t('objects.files.restore')}
         onClick={state.restore}
@@ -227,6 +233,7 @@ function RemoveAction({
     return confirming ? (
       <button
         type="button"
+        data-testid="file-delete-confirm"
         onClick={() => {
           setConfirming(false)
           state.softDelete()
@@ -240,6 +247,7 @@ function RemoveAction({
     ) : (
       <button
         type="button"
+        data-testid="file-delete"
         aria-label={`${t('objects.files.delete')} ${state.name}`}
         title={t('objects.files.delete')}
         onClick={() => setConfirming(true)}
@@ -256,6 +264,7 @@ function RemoveAction({
   return (
     <button
       type="button"
+      data-testid="file-remove"
       aria-label={`${t('common.remove')} ${state.name}`}
       title={t('common.remove')}
       onClick={() => onRemove(localId)}

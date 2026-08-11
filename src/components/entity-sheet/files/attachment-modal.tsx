@@ -145,12 +145,14 @@ export function AttachmentModal({
 
           <div className="flex items-end gap-2">
             <Input
+              data-testid="attachment-modal-url"
               placeholder={t('objects.attachments.externalUrl')}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="flex-1"
             />
             <Input
+              data-testid="attachment-modal-label"
               placeholder={t('objects.attachments.labelOptional')}
               value={label}
               onChange={(e) => setLabel(e.target.value)}

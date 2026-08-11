@@ -51,6 +51,9 @@ export function FileRow({
 
   return (
     <div
+      data-testid="file-row"
+      data-deleted={state.deleted}
+      data-name={state.name}
       className={cn(
         'flex items-center gap-2 rounded-md border px-2 py-1 text-sm',
         state.deleted ? 'border-destructive/20 bg-destructive/10' : 'bg-card',

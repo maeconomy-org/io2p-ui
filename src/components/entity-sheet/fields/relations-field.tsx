@@ -65,7 +65,10 @@ export function RelationsField({
 
   if (empty) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p
+        data-testid="relations-empty"
+        className="text-sm text-muted-foreground"
+      >
         {t('objects.relations.empty')}
       </p>
     )
@@ -79,6 +82,7 @@ export function RelationsField({
           variant="outline"
           size="sm"
           className="w-full"
+          data-testid="relations-view-all"
           onClick={onViewAll}
         >
           <ExternalLink className="mr-2 h-4 w-4" />
@@ -87,6 +91,7 @@ export function RelationsField({
       )}
 
       <RelationList
+        testId="consumed-by"
         title={t('objects.relations.consumedBy')}
         hint={t('objects.relations.consumedByHint')}
         icon={
@@ -98,6 +103,7 @@ export function RelationsField({
         group={consumedBy}
       />
       <RelationList
+        testId="produced-by"
         title={t('objects.relations.producedBy')}
         hint={t('objects.relations.producedByHint')}
         icon={
@@ -113,11 +119,13 @@ export function RelationsField({
 }
 
 function RelationList({
+  testId,
   title,
   hint,
   icon,
   group,
 }: {
+  testId: string
   title: string
   hint: string
   icon: ReactNode
@@ -132,11 +140,15 @@ function RelationList({
   const hidden = group.total - group.relations.length
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-2" data-testid={`relations-${testId}`}>
       <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {icon}
         <span>{title}</span>
-        <Badge variant="secondary" className="h-5 px-1.5">
+        <Badge
+          variant="secondary"
+          data-testid={`relations-${testId}-count`}
+          className="h-5 px-1.5"
+        >
           {group.total}
         </Badge>
       </div>
@@ -144,7 +156,11 @@ function RelationList({
 
       <div className="space-y-1.5">
         {group.relations.map((relation) => (
-          <RelationRow key={relation.process.id} relation={relation} />
+          <RelationRow
+            key={relation.process.id}
+            testId={`relation-${relation.process.id}`}
+            relation={relation}
+          />
         ))}
       </div>
 
@@ -157,7 +173,13 @@ function RelationList({
   )
 }
 
-function RelationRow({ relation }: { relation: ProcessRelation }) {
+function RelationRow({
+  testId,
+  relation,
+}: {
+  testId: string
+  relation: ProcessRelation
+}) {
   const t = useTranslations()
   const format = useFormatter()
   const { process, flows } = relation
@@ -167,7 +189,10 @@ function RelationRow({ relation }: { relation: ProcessRelation }) {
   const quantities = flows.map((f) => f.quantity).filter(Boolean)
 
   return (
-    <div className="flex items-center gap-2 rounded-md border px-2 py-1.5">
+    <div
+      data-testid={testId}
+      className="flex items-center gap-2 rounded-md border px-2 py-1.5"
+    >
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{process.name}</p>
         <p className="text-xs text-muted-foreground">
@@ -182,7 +207,10 @@ function RelationRow({ relation }: { relation: ProcessRelation }) {
           )}
         </p>
       </div>
-      <span className="shrink-0 text-sm text-muted-foreground">
+      <span
+        data-testid="relation-quantity"
+        className="shrink-0 text-sm text-muted-foreground"
+      >
         {quantities.length > 0 ? quantities.join(', ') : '—'}
       </span>
     </div>

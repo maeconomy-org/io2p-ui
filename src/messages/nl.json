@@ -432,7 +432,8 @@
       "city": "Plaats",
       "state": "Provincie",
       "country": "Land",
-      "coordinates": "Coördinaten"
+      "coordinates": "Coördinaten",
+      "noResults": "Geen adressen gevonden voor \"{query}\""
     },
     "objectUuid": "Object-UUID",
     "values": "{count} waarde{count, plural, one {} other {s}}",
