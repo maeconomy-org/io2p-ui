@@ -77,8 +77,9 @@ export const objectDraftsStore = {
     }
   },
 
-  save(userId: string, id: string, draft: EntityDraft, name: string) {
-    if (typeof window === 'undefined') return
+  /** `false` when nothing was written, so the caller can avoid claiming a save that did not happen. */
+  save(userId: string, id: string, draft: EntityDraft, name: string): boolean {
+    if (typeof window === 'undefined') return false
     try {
       localStorage.setItem(
         draftKeyFor(userId, id),
@@ -97,9 +98,11 @@ export const objectDraftsStore = {
         JSON.stringify(next.slice(0, MAX_DRAFTS))
       )
       listeners.forEach((l) => l())
+      return true
     } catch {
       // A quota error must not take the sheet down with it — the user's real move is Save, and the
-      // draft is a convenience. The count in the table is the feedback that it did not stick.
+      // draft is a convenience.
+      return false
     }
   },
 
@@ -177,10 +180,13 @@ export function useObjectDrafts() {
     [userId]
   )
 
+  /**
+   * `false` when there is no signed-in id yet. Drafts key on the user, so a save fired before `/me`
+   * resolves has nowhere to go — it used to no-op while the sheet still reported success.
+   */
   const saveDraft = useCallback(
-    (id: string, draft: EntityDraft, name: string) => {
-      if (userId) objectDraftsStore.save(userId, id, draft, name)
-    },
+    (id: string, draft: EntityDraft, name: string): boolean =>
+      userId ? objectDraftsStore.save(userId, id, draft, name) : false,
     [userId]
   )
 

@@ -486,7 +486,8 @@
         "title": "Discard draft?",
         "description": "This will permanently remove the draft. This action cannot be undone.",
         "confirm": "Discard"
-      }
+      },
+      "saveFailed": "Could not save the draft — try again in a moment"
     },
     "actions": {
       "copyUuid": "Copy UUID",

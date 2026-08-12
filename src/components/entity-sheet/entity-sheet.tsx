@@ -94,17 +94,27 @@ export function EntitySheet({
     },
   })
 
-  const { dirtyFields, isDirty } = form.formState
+  const { dirtyFields, isDirty: formIsDirty } = form.formState
+  /**
+   * A RESUMED draft is unsaved work by definition, even before it is touched.
+   *
+   * It loads as the form's own defaults, so RHF reports it clean — and Save is gated on dirtiness,
+   * which left a resumed draft unsavable until the user edited something arbitrary.
+   */
+  const isDirty = formIsDirty || !!resumeDraft
 
   const saveAsDraft = () => {
     const values = form.getValues()
     const id = draftId ?? drafts.newDraftId()
-    drafts.saveDraft(
+    const saved = drafts.saveDraft(
       id,
       values,
       values.name.trim() || t('objects.drafts.untitled')
     )
-    toast.success(t('objects.drafts.saved'))
+    // A draft keys on the signed-in id, so one saved before `/me` resolves has nowhere to go. It
+    // used to report success either way, and the work was simply not there afterwards.
+    if (saved) toast.success(t('objects.drafts.saved'))
+    else toast.error(t('objects.drafts.saveFailed'))
   }
 
   // Keyed by value id: presence means the value is derived, the payload is the node's evaluation

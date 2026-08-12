@@ -460,7 +460,8 @@
         "title": "Concept verwerpen?",
         "description": "Hierdoor wordt het concept permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.",
         "confirm": "Verwerpen"
-      }
+      },
+      "saveFailed": "Kon het concept niet opslaan — probeer het zo opnieuw"
     },
     "actions": {
       "copyUuid": "UUID kopiëren",
