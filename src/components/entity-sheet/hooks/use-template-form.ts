@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
@@ -52,27 +52,40 @@ export function useTemplateForm(
   const { onSaved, type = 'object' } = options
   const t = useTranslations()
 
-  const form = useForm<TemplateDraft>({
-    defaultValues: template ? templateToDraft(template) : EMPTY_DRAFTS[type],
-  })
-
-  const { useCreate, useUpdate } = useTemplates()
-  const createMutation = useCreate()
-  const updateMutation = useUpdate()
-
   // What the draft is OF. `type` belongs here because switching kinds changes the empty shape, and a
   // create sheet reopened for the other kind must not keep the first one's flow slots.
   const loadedKey = template
     ? `${template.id}:${template.currentVersion}`
     : `new:${type}`
 
-  useEffect(() => {
-    form.reset(template ? templateToDraft(template) : EMPTY_DRAFTS[type])
-    // Deliberately keyed on WHICH template is loaded, not on the identities of `form`/`template`.
-    // RHF returns a new `form` object every render and a refetch returns a new `template` object, so
-    // an exhaustive list would reset the draft mid-edit and discard what the user had typed.
+  /**
+   * `values`, not a `reset` in an effect.
+   *
+   * The sheet renders a skeleton while the fetch is in flight, so opening a template straight in
+   * EDIT mode mounts its inputs in the same commit the data arrives — and a reset fired from an
+   * effect never reached them. Name and Description came up blank on a template that has both, and
+   * saving then wrote the blanks back. RHF applies `values` as part of the render that introduces
+   * them, which is the ordering this needs.
+   *
+   * MEMOISED on `loadedKey`: `templateToDraft` mints a new object every render, and `values`
+   * re-syncs whenever the reference changes — unmemoised it would wipe the draft on every keystroke.
+   */
+  const values = useMemo(
+    () => (template ? templateToDraft(template) : EMPTY_DRAFTS[type]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadedKey])
+    [loadedKey]
+  )
+
+  const form = useForm<TemplateDraft>({
+    defaultValues: EMPTY_DRAFTS[type],
+    values,
+    // A refetch mid-edit must not discard what the user has typed.
+    resetOptions: { keepDirtyValues: true },
+  })
+
+  const { useCreate, useUpdate } = useTemplates()
+  const createMutation = useCreate()
+  const updateMutation = useUpdate()
 
   const submit = form.handleSubmit(async (draft) => {
     if (!draft.name.trim()) {
