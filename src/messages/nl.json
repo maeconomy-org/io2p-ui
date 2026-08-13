@@ -40,7 +40,8 @@
     "library": "Bibliotheek",
     "formulas": "Formules",
     "constants": "Constanten",
-    "shares": "Delen"
+    "shares": "Delen",
+    "rollupRules": "Rollup-regels"
   },
   "theme": {
     "toggle": "Thema",
@@ -210,7 +211,8 @@
     "no": "Nee",
     "back": "Terug",
     "continue": "Doorgaan",
-    "yes": "Ja"
+    "yes": "Ja",
+    "sharedReadOnly": "Met jou gedeeld — alleen-lezen"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -396,8 +398,18 @@
       "switchToFormula": "Formule gebruiken",
       "switchToText": "Vaste waarde gebruiken",
       "selectFormula": "Kies een formule",
+      "searchFormulas": "Zoek formules…",
+      "noFormulas": "Geen formules gevonden",
+      "searchValues": "Zoek waarden en constanten…",
+      "filterBindings": "Toon",
+      "scope": {
+        "all": "Alle",
+        "siblings": "Waarden",
+        "constants": "Constanten"
+      },
       "noVariables": "Deze formule heeft geen variabelen",
       "noNumericValues": "Geen numerieke waarden om te koppelen",
+      "noConstants": "Geen constanten gevonden",
       "expressionPlaceholder": "bijv. b * h",
       "bindVariables": "Variabelen koppelen",
       "selectValue": "Kies een waarde",
@@ -849,9 +861,9 @@
     },
     "variables": "Variabelen",
     "variablesDerived": "Variabelen die deze formule je laat koppelen:",
-    "matchesConstant": "Er bestaat al een constante met deze naam — koppelen kost één klik.",
-    "constantShort": "constante",
     "insertHint": "Klik om in te voegen:",
+    "filterInserts": "Filter constanten en functies",
+    "noInsertMatches": "Niets komt overeen met dit filter",
     "expressionHint": "Een rekenkundige expressie over vrije variabelen, bijv. volume * co2_factor",
     "duplicate": "Dupliceren",
     "duplicateTitle": "Formule dupliceren",
@@ -1096,6 +1108,10 @@
     "saved": "Delen bijgewerkt",
     "redundantRead": "Zij hebben al leestoegang via algemene toegang. Deze toekenning werkt pas als algemene toegang wordt uitgezet.",
     "readShareOnly": "Dit kan alleen ter inzage worden gedeeld — de eigenaar behoudt bewerkrechten.",
+    "shareDependencies": "Deel ook {count, plural, one {de formule of constante} other {de formules en constanten}} die dit sjabloon gebruikt ({names}). Zonder {count, plural, one {deze} other {deze}} werken de berekeningen niet voor de personen met wie u het deelt.",
+    "dependenciesDeleted": "Dit sjabloon gebruikt items die niet meer bestaan ({names}). De berekeningen werken voor niemand totdat ze zijn hersteld.",
+    "dependenciesNotYours": "Dit sjabloon gebruikt ook items van iemand anders ({names}). Alleen de eigenaar kan deze delen.",
+    "dependenciesFailed": "Het sjabloon is gedeeld, maar deze niet: {names}. De berekeningen werken pas als dat wel is gebeurd.",
     "bulkShareTitle": "{count, plural, =1 {# item} other {# items}} delen",
     "bulkShareDescription": "Iedereen die je hier toevoegt, krijgt toegang tot alle geselecteerde items.",
     "bulkShareAdditive": "Dit voegt alleen toegang toe. Niemand verliest toegang en bestaande deelinstellingen blijven ongewijzigd.",
@@ -1216,6 +1232,10 @@
     "import": {
       "label": "Hoe werkt importeren?",
       "body": "Haal objecten in bulk binnen uit een CSV- of Excel-bestand. Je koppelt je kolommen één keer aan objectvelden, daarna draait de taak op de achtergrond en rapporteert per rij het resultaat."
+    },
+    "rollupRule": {
+      "label": "Wat is een rollup-regel?",
+      "body": "Een regel die één eigenschap optelt over alles wat onder een object in de hiërarchie hangt. Elke afzonderlijke afstammeling telt één keer mee, hoeveel paden er ook naartoe leiden. Ingebouwde regels gelden voor iedereen; de regels die je zelf maakt gelden voor je eigen objecten."
     }
   },
   "onboarding": {
@@ -1474,5 +1494,48 @@
       "jobLabel": "Taak",
       "polling": "Elke 2 seconden bijgewerkt"
     }
+  },
+  "rollupRules": {
+    "title": "Rollup-regels",
+    "propertyKey": "Eigenschapssleutel",
+    "propertyKeys": "Eigenschapssleutels",
+    "aggregation": "Aggregatie",
+    "aggregations": {
+      "sum": "Som"
+    },
+    "create": "{count, plural, =0 {Regels maken} one {1 regel maken} other {# regels maken}}",
+    "createTitle": "Rollup-regels maken",
+    "createDescription": "Een regel telt één eigenschap op over de afstammelingen van een object. Voeg meerdere sleutels toe om ze in één keer te maken.",
+    "addKey": "Toevoegen",
+    "removeKey": "{key} verwijderen",
+    "queued": "{count, plural, one {# sleutel in wachtrij} other {# sleutels in wachtrij}}",
+    "alreadyQueued": "Die sleutel staat al in de lijst.",
+    "duplicateKey": "Je hebt al een regel voor deze sleutel.",
+    "normalizedAs": "Wordt opgeslagen als {key}",
+    "propertyKeyHint": "Sleutels worden in kleine letters opgeslagen, dus Massa en massa zijn dezelfde sleutel.",
+    "aggregationHint": "Geldt voor elke sleutel in de lijst.",
+    "created": "{count, plural, one {Rollup-regel gemaakt} other {# rollup-regels gemaakt}}",
+    "createdPartial": "{created} gemaakt, {failed} mislukt.",
+    "deleted": "Rollup-regel verwijderd",
+    "deleteFailed": "Verwijderen van rollup-regel mislukt",
+    "restored": "Rollup-regel hersteld",
+    "restoreFailed": "Herstellen van rollup-regel mislukt",
+    "keyImmutable": "De sleutel is de identiteit van de regel en kan niet wijzigen.",
+    "replaceToChange": "Verwijder deze regel en maak een nieuwe om een sleutel te wijzigen.",
+    "systemReadOnly": "Ingebouwde regels horen bij de node en kunnen niet worden gewijzigd of verwijderd.",
+    "placeholders": {
+      "propertyKey": "bijv. gewicht"
+    },
+    "empty": {
+      "title": "Nog geen rollup-regels",
+      "description": "Een rollup-regel telt één eigenschap op over de afstammelingen van een object."
+    },
+    "errors": {
+      "notFound": "Deze rollup-regel bestaat niet meer.",
+      "systemReadOnly": "Ingebouwde regels kunnen niet worden gewijzigd.",
+      "keyTaken": "Er bestaat al een regel voor deze sleutel — mogelijk een verwijderde. Zet \"Verwijderde tonen\" aan om deze te vinden.",
+      "invalid": "Afgewezen: {detail}"
+    },
+    "property": "Eigenschap"
   }
 }

@@ -11,12 +11,14 @@ import {
   type EntityRowAction,
   OwnerCell,
   actionsColumn,
+  canWriteLibraryItem,
   idColumn,
   nameColumn,
   selectColumn,
   textColumn,
   timestampColumn,
 } from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 
 export interface FormulaColumnActions {
   onViewDetails: (formula: FormulaDTO) => void
@@ -93,15 +95,41 @@ export function buildFormulaColumns({
     ),
     actionsColumn<FormulaDTO>(
       (f): ReactNode => (
-        <EntityActionsCell
-          testIdPrefix="formula"
-          onViewDetails={() => actions.onViewDetails(f)}
-          actions={rowActions(f, t, actions)}
-        />
+        <FormulaActionsCell formula={f} t={t} actions={actions} />
       ),
       t('common.actions')
     ),
   ]
+}
+
+/**
+ * A component rather than a call to `rowActions`, so the viewer's id can come from the auth context
+ * the way `OwnerCell` takes it — the builder is called once per page and would otherwise have to
+ * thread an id that every row already has a hook for.
+ */
+function FormulaActionsCell({
+  formula,
+  t,
+  actions,
+}: {
+  formula: FormulaDTO
+  t: (key: string) => string
+  actions: FormulaColumnActions
+}) {
+  const { userId } = useAuth()
+
+  return (
+    <EntityActionsCell
+      testIdPrefix="formula"
+      onViewDetails={() => actions.onViewDetails(formula)}
+      actions={rowActions(
+        formula,
+        t,
+        actions,
+        canWriteLibraryItem(formula, userId)
+      )}
+    />
+  )
 }
 
 /**
@@ -112,22 +140,26 @@ export function buildFormulaColumns({
  * would name something the API cannot do and quietly leave existing objects on the old formula.
  * Duplicate says what actually happens.
  *
- * A built-in belongs to the node, so it can be copied but not deleted.
+ * A built-in belongs to the node, and one shared with you is shared read-only — either way it can be
+ * copied but not deleted. Duplicate stays on offer in both cases, because the copy is YOURS.
  */
 function rowActions(
   formula: FormulaDTO,
   t: (key: string) => string,
-  actions: FormulaColumnActions
+  actions: FormulaColumnActions,
+  canWrite: boolean
 ): EntityRowAction[] {
   if (formula.deleted) {
-    return [
-      {
-        key: 'restore',
-        label: t('common.restore'),
-        icon: RotateCcw,
-        onSelect: () => actions.onRestore(formula),
-      },
-    ]
+    return canWrite
+      ? [
+          {
+            key: 'restore',
+            label: t('common.restore'),
+            icon: RotateCcw,
+            onSelect: () => actions.onRestore(formula),
+          },
+        ]
+      : []
   }
 
   const rows: EntityRowAction[] = [
@@ -139,7 +171,7 @@ function rowActions(
     },
   ]
 
-  if (!formula.system) {
+  if (canWrite) {
     rows.push({
       key: 'share',
       label: t('access.share'),

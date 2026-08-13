@@ -5,7 +5,9 @@ import { useTranslations } from 'next-intl'
 import type { CreateTemplateInput } from 'io2p-client'
 
 import { Badge, Input, Label, Separator } from '@/components/ui'
+import { canWriteLibraryItem } from '@/components/entity-list'
 import { useTemplates } from '@/hooks/api/entities'
+import { useAuth } from '@/contexts'
 
 import { useTemplateForm } from './hooks/use-template-form'
 import { useEntityLifecycle } from './hooks/use-entity-lifecycle'
@@ -48,6 +50,7 @@ export function TemplateSheet({
   type = 'object',
 }: TemplateSheetProps) {
   const t = useTranslations()
+  const { userId } = useAuth()
   const isCreate = !templateId
 
   const templates = useTemplates()
@@ -63,8 +66,12 @@ export function TemplateSheet({
   )
 
   const isDeleted = !!template?.deleted
-  // Built-in templates belong to the node, not the user; editing one would be rejected anyway.
   const isSystem = !!template?.system
+  // A template is shared READ-ONLY — the node accepts no other permission on one — so the owner is
+  // the only writer, and a built-in has no owner. Until the template loads there is nothing to
+  // decide against, and a create has no owner yet.
+  const canWrite =
+    isCreate || !template || canWriteLibraryItem(template, userId)
 
   // The loaded template's own type is authoritative; `type` only decides what a CREATE will be.
   const templateType = template?.type ?? type
@@ -193,7 +200,13 @@ export function TemplateSheet({
           isDirty={isDirty}
           isSubmitting={isSubmitting}
           lifecycleBusy={lifecycle.isBusy}
-          canDelete={!!template && !isSystem}
+          canEdit={canWrite}
+          readOnlyNote={
+            isSystem
+              ? t('templates.systemReadOnly')
+              : t('common.sharedReadOnly')
+          }
+          canDelete={!!template && canWrite}
           entityName={template?.name}
           onEdit={() => setEditing(true)}
           onCancel={() => guardUnsaved(cancel)}

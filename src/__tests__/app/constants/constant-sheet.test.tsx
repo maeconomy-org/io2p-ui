@@ -19,9 +19,14 @@ vi.mock('@/hooks/api/leaves', () => ({
   }),
 }))
 
-vi.mock('@/components/entity-list', () => ({
-  OwnerCell: () => <span>owner</span>,
-}))
+vi.mock('@/components/entity-list', async () => {
+  const { canWriteLibraryItem } =
+    await import('@/components/entity-list/ownership')
+  return { OwnerCell: () => <span>owner</span>, canWriteLibraryItem }
+})
+
+const VIEWER = 'u-1'
+vi.mock('@/contexts', () => ({ useAuth: () => ({ userId: VIEWER }) }))
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -191,6 +196,22 @@ describe('ConstantSheet', () => {
         onOpenChange={vi.fn()}
         mode="edit"
         constant={{ ...CONSTANT, system: true } as ConstantDTO}
+      />
+    )
+
+    expect(valueInput()).toBeDisabled()
+    expect(
+      screen.queryByRole('button', { name: 'constants.addVersion' })
+    ).toBeNull()
+  })
+
+  it('is read-only for a constant someone else owns, which is shared read-only', () => {
+    render(
+      <ConstantSheet
+        open
+        onOpenChange={vi.fn()}
+        mode="edit"
+        constant={{ ...CONSTANT, ownerUserId: 'someone-else' } as ConstantDTO}
       />
     )
 

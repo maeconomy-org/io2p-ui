@@ -19,7 +19,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui'
-import { OwnerCell } from '@/components/entity-list'
+import { OwnerCell, canWriteLibraryItem } from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 import { useConstants } from '@/hooks/api/leaves'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
@@ -82,13 +83,15 @@ function ConstantForm({
   onDone: () => void
 }) {
   const t = useTranslations()
+  const { userId } = useAuth()
   const { useCreate, useAppendVersion } = useConstants()
   const createMutation = useCreate()
   const appendMutation = useAppendVersion()
 
   const isEdit = mode === 'edit' && !!constant
-  // Built-ins belong to the node: seeded, shared, and rejected on write anyway.
-  const readOnly = !!constant?.system
+  // Built-ins belong to the node, and a constant shared with you is shared read-only — appending a
+  // version to either is rejected on write anyway.
+  const readOnly = !!constant && !canWriteLibraryItem(constant, userId)
 
   const current = constant?.versions.at(-1)
   const [name, setName] = useState(constant?.name ?? '')

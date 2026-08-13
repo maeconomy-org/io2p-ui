@@ -27,6 +27,8 @@ export function SheetLifecycleFooter({
   isDirty,
   isSubmitting,
   lifecycleBusy,
+  canEdit = true,
+  readOnlyNote,
   canDelete,
   entityName,
   onEdit,
@@ -40,6 +42,14 @@ export function SheetLifecycleFooter({
   isDirty: boolean
   isSubmitting: boolean
   lifecycleBusy: boolean
+  /**
+   * False when the viewer may read the entity but not write it — a built-in, or one shared with
+   * them read-only. Omitting Edit rather than disabling it matches the row menus, and an enabled
+   * control whose only outcome is a 403 on save is the failure this exists to prevent.
+   */
+  canEdit?: boolean
+  /** Why the sheet is read-only, when `canEdit` is false. Defaults to the shared-with-you wording. */
+  readOnlyNote?: string
   /** False while the entity has no id yet, or the caller has no delete for it. */
   canDelete: boolean
   /** Named in the confirmation, so the dialog says what it is about to delete. */
@@ -51,6 +61,21 @@ export function SheetLifecycleFooter({
 }) {
   const t = useTranslations()
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Nothing this viewer can do to the entity — say so, rather than leaving an empty bar that reads
+  // as a rendering fault.
+  if (!canEdit) {
+    return (
+      <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="sheet-read-only"
+        >
+          {readOnlyNote ?? t('common.sharedReadOnly')}
+        </p>
+      </SheetFooter>
+    )
+  }
 
   return (
     <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
@@ -72,15 +97,17 @@ export function SheetLifecycleFooter({
         </Button>
       ) : !editing ? (
         <>
-          <Button
-            type="button"
-            className="flex-1"
-            data-testid="sheet-edit"
-            onClick={onEdit}
-          >
-            <Pencil className="mr-2 h-4 w-4" />
-            {t('common.edit')}
-          </Button>
+          {canEdit && (
+            <Button
+              type="button"
+              className="flex-1"
+              data-testid="sheet-edit"
+              onClick={onEdit}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              {t('common.edit')}
+            </Button>
+          )}
           {!isCreate && canDelete && (
             <Button
               type="button"

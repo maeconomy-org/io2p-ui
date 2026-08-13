@@ -6,8 +6,10 @@ import type { TemplateListItem } from 'io2p-client'
 
 import {
   EntityActionsCell,
+  canWriteLibraryItem,
   type EntityRowAction,
 } from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 
 export interface TemplateRowActions {
   onViewDetails: (template: TemplateListItem) => void
@@ -21,8 +23,10 @@ export interface TemplateRowActions {
 /**
  * Row actions for the templates table.
  *
- * System templates belong to the node, so they offer nothing but Details — the write actions are
- * omitted rather than shown disabled, since the server rejects them with a 403 anyway.
+ * A template the viewer does not own offers nothing but Details — the write actions are omitted
+ * rather than shown disabled, since the server rejects them with a 403 anyway. That covers two
+ * cases: a system template, which belongs to the node, and one SHARED with the viewer, which is
+ * shared read-only because the node accepts no other permission on a template.
  */
 export function TemplateActionsCell({
   template,
@@ -32,8 +36,9 @@ export function TemplateActionsCell({
   actions: TemplateRowActions
 }) {
   const t = useTranslations()
+  const { userId } = useAuth()
   const isDeleted = !!template.deleted
-  const canWrite = !template.system
+  const canWrite = canWriteLibraryItem(template, userId)
 
   const rowActions: EntityRowAction[] = []
   if (canWrite && isDeleted) {
@@ -73,7 +78,11 @@ export function TemplateActionsCell({
       testIdPrefix="template"
       onViewDetails={() => actions.onViewDetails(template)}
       actions={rowActions}
-      emptyMenuLabel={t('templates.systemReadOnly')}
+      emptyMenuLabel={
+        template.system
+          ? t('templates.systemReadOnly')
+          : t('common.sharedReadOnly')
+      }
     />
   )
 }

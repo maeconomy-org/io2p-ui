@@ -40,7 +40,8 @@
     "library": "Library",
     "formulas": "Formulas",
     "constants": "Constants",
-    "shares": "Shares"
+    "shares": "Shares",
+    "rollupRules": "Rollup rules"
   },
   "theme": {
     "toggle": "Theme",
@@ -210,7 +211,8 @@
     "no": "No",
     "back": "Back",
     "continue": "Continue",
-    "yes": "Yes"
+    "yes": "Yes",
+    "sharedReadOnly": "Shared with you — read only"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -395,8 +397,18 @@
       "switchToFormula": "Use a formula",
       "switchToText": "Use a plain value",
       "selectFormula": "Select a formula",
+      "searchFormulas": "Search formulas…",
+      "noFormulas": "No formulas found",
+      "searchValues": "Search values and constants…",
+      "filterBindings": "Show",
+      "scope": {
+        "all": "All",
+        "siblings": "Values",
+        "constants": "Constants"
+      },
       "noVariables": "This formula has no variables",
       "noNumericValues": "No numeric values to bind",
+      "noConstants": "No constants found",
       "expressionPlaceholder": "e.g. w * h",
       "bindVariables": "Bind variables",
       "selectValue": "Select a value",
@@ -849,9 +861,9 @@
     },
     "variables": "Variables",
     "variablesDerived": "Variables this formula will ask you to bind:",
-    "matchesConstant": "A constant with this name already exists — binding it is one click.",
-    "constantShort": "constant",
     "insertHint": "Click to insert:",
+    "filterInserts": "Filter constants and functions",
+    "noInsertMatches": "Nothing matches that filter",
     "expressionHint": "A math expression over free variables, e.g. volume * co2_factor",
     "duplicate": "Duplicate",
     "duplicateTitle": "Duplicate formula",
@@ -1096,6 +1108,10 @@
     "saved": "Sharing updated",
     "redundantRead": "They already have read access through general access. This grant only takes effect if general access is turned off.",
     "readShareOnly": "This can only be shared for reading — the owner keeps editing rights.",
+    "shareDependencies": "Also share the {count, plural, one {formula or constant} other {formulas and constants}} this template uses ({names}). Without {count, plural, one {it} other {them}}, its calculations will not work for the people you share it with.",
+    "dependenciesDeleted": "This template uses items that no longer exist ({names}). Its calculations will not work for anyone until they are restored.",
+    "dependenciesNotYours": "This template also uses items owned by someone else ({names}). Only their owner can share them.",
+    "dependenciesFailed": "The template was shared, but these could not be: {names}. Its calculations will not work until they are.",
     "bulkShareTitle": "Share {count, plural, =1 {# item} other {# items}}",
     "bulkShareDescription": "Everyone you add here gets access to all of the selected items.",
     "bulkShareAdditive": "This only adds access. Nobody loses access, and existing sharing is left as it is.",
@@ -1216,6 +1232,10 @@
     "import": {
       "label": "How does importing work?",
       "body": "Bring objects in from a CSV or Excel file in bulk. You map your columns onto object fields once, then the job runs in the background and reports per-row results."
+    },
+    "rollupRule": {
+      "label": "What is a rollup rule?",
+      "body": "A rule that totals one property across everything below an object in the hierarchy. Each distinct descendant counts once, however many paths reach it. Built-in rules apply to everyone; the ones you create apply to your own objects."
     }
   },
   "onboarding": {
@@ -1474,5 +1494,48 @@
       "jobLabel": "Job",
       "polling": "Updating every 2 seconds"
     }
+  },
+  "rollupRules": {
+    "title": "Rollup rules",
+    "propertyKey": "Property key",
+    "propertyKeys": "Property keys",
+    "aggregation": "Aggregation",
+    "aggregations": {
+      "sum": "Sum"
+    },
+    "create": "{count, plural, =0 {Create rules} one {Create 1 rule} other {Create # rules}}",
+    "createTitle": "Create rollup rules",
+    "createDescription": "A rule totals one property across an object's descendants. Add several keys to create them in one pass.",
+    "addKey": "Add",
+    "removeKey": "Remove {key}",
+    "queued": "{count, plural, one {# key queued} other {# keys queued}}",
+    "alreadyQueued": "That key is already in the list.",
+    "duplicateKey": "You already have a rule for this key.",
+    "normalizedAs": "Saved as {key}",
+    "propertyKeyHint": "Keys are stored lowercase, so Mass and mass are the same key.",
+    "aggregationHint": "Applies to every key in the list.",
+    "created": "{count, plural, one {Rollup rule created} other {# rollup rules created}}",
+    "createdPartial": "{created} created, {failed} failed.",
+    "deleted": "Rollup rule deleted",
+    "deleteFailed": "Failed to delete rollup rule",
+    "restored": "Rollup rule restored",
+    "restoreFailed": "Failed to restore rollup rule",
+    "keyImmutable": "The key is the rule's identity and cannot change.",
+    "replaceToChange": "To change a key, delete this rule and create a new one.",
+    "systemReadOnly": "Built-in rules belong to the node and cannot be changed or deleted.",
+    "placeholders": {
+      "propertyKey": "e.g. weight"
+    },
+    "empty": {
+      "title": "No rollup rules yet",
+      "description": "A rollup rule totals one property across an object's descendants."
+    },
+    "errors": {
+      "notFound": "This rollup rule no longer exists.",
+      "systemReadOnly": "Built-in rules cannot be changed.",
+      "keyTaken": "A rule for this key already exists — possibly a deleted one. Turn on Show deleted to find it.",
+      "invalid": "Rejected: {detail}"
+    },
+    "property": "Property"
   }
 }

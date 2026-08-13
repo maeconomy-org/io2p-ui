@@ -35,6 +35,12 @@ interface UseEntityListActionsOptions<T extends ListRow> {
   messages: ListActionMessages
   /** Names the log line when a bulk run fails. */
   entityName: string
+  /**
+   * Which selected rows this viewer may delete or restore. Library items are shared read-only, so a
+   * selection can hold rows whose owner is someone else; without this the bulk bar offers a verb
+   * that 403s partway through and leaves the rest of the selection untouched.
+   */
+  canAct?: (row: T) => boolean
 }
 
 /**
@@ -54,6 +60,7 @@ export function useEntityListActions<T extends ListRow>({
   restore,
   messages,
   entityName,
+  canAct,
 }: UseEntityListActionsOptions<T>) {
   const t = useTranslations()
 
@@ -66,6 +73,12 @@ export function useEntityListActions<T extends ListRow>({
   const selectedRows = useMemo(
     () => (page?.data ?? []).filter((row) => rowSelection[row.id]),
     [page, rowSelection]
+  )
+  // The subset the verbs apply to. Selection itself stays whole, because Share works on rows this
+  // viewer cannot write.
+  const actionableRows = useMemo(
+    () => (canAct ? selectedRows.filter(canAct) : selectedRows),
+    [selectedRows, canAct]
   )
   const clearSelection = useCallback(() => setRowSelection({}), [])
 
@@ -106,7 +119,7 @@ export function useEntityListActions<T extends ListRow>({
   const runBulk = useCallback(
     async (action: 'delete' | 'restore') => {
       const mutation = action === 'delete' ? remove : restore
-      const targets = selectedRows.filter((row) =>
+      const targets = actionableRows.filter((row) =>
         action === 'delete' ? !row.deleted : row.deleted
       )
       try {
@@ -128,7 +141,7 @@ export function useEntityListActions<T extends ListRow>({
         clearSelection()
       }
     },
-    [selectedRows, remove, restore, clearSelection, t, messages, entityName]
+    [actionableRows, remove, restore, clearSelection, t, messages, entityName]
   )
 
   return {
@@ -136,9 +149,9 @@ export function useEntityListActions<T extends ListRow>({
     setRowSelection,
     selectedRows,
     clearSelection,
-    anyDeleted: selectedRows.some((row) => row.deleted),
-    anyLive: selectedRows.some((row) => !row.deleted),
-    deletableCount: selectedRows.filter((row) => !row.deleted).length,
+    anyDeleted: actionableRows.some((row) => row.deleted),
+    anyLive: actionableRows.some((row) => !row.deleted),
+    deletableCount: actionableRows.filter((row) => !row.deleted).length,
 
     toDelete,
     setToDelete,

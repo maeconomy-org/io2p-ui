@@ -11,12 +11,14 @@ import {
   type EntityRowAction,
   OwnerCell,
   actionsColumn,
+  canWriteLibraryItem,
   idColumn,
   nameColumn,
   selectColumn,
   textColumn,
   timestampColumn,
 } from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 
 export interface ConstantColumnActions {
   onViewDetails: (constant: ConstantDTO) => void
@@ -94,27 +96,52 @@ export function buildConstantColumns({
     ),
     actionsColumn<ConstantDTO>(
       (c): ReactNode => (
-        <EntityActionsCell
-          testIdPrefix="constant"
-          onViewDetails={() => actions.onViewDetails(c)}
-          actions={rowActions(c, t, actions)}
-        />
+        <ConstantActionsCell constant={c} t={t} actions={actions} />
       ),
       t('common.actions')
     ),
   ]
 }
 
+/** A component, so the viewer's id comes from the auth context — as it does in `OwnerCell`. */
+function ConstantActionsCell({
+  constant,
+  t,
+  actions,
+}: {
+  constant: ConstantDTO
+  t: (key: string) => string
+  actions: ConstantColumnActions
+}) {
+  const { userId } = useAuth()
+  const canWrite = canWriteLibraryItem(constant, userId)
+
+  return (
+    <EntityActionsCell
+      testIdPrefix="constant"
+      onViewDetails={() => actions.onViewDetails(constant)}
+      actions={rowActions(constant, t, actions, canWrite)}
+      // A built-in already drops the menu entirely; only a shared row needs to say why it is bare.
+      emptyMenuLabel={
+        !canWrite && !constant.system ? t('common.sharedReadOnly') : undefined
+      }
+    />
+  )
+}
+
 /**
  * "Edit" opens the same sheet as Details, because editing a constant is APPENDING a version — the
- * sheet has to show the history for that to make sense. A built-in belongs to the node, so it can be
- * read but not changed or deleted.
+ * sheet has to show the history for that to make sense. A built-in belongs to the node and one
+ * shared with you is shared read-only, so both can be read but not changed or deleted.
  */
 function rowActions(
   constant: ConstantDTO,
   t: (key: string) => string,
-  actions: ConstantColumnActions
+  actions: ConstantColumnActions,
+  canWrite: boolean
 ): EntityRowAction[] {
+  if (!canWrite) return []
+
   if (constant.deleted) {
     return [
       {
@@ -125,8 +152,6 @@ function rowActions(
       },
     ]
   }
-
-  if (constant.system) return []
 
   return [
     {

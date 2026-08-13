@@ -115,6 +115,57 @@ test.describe('08 - templates', () => {
     await expect.poll(() => api.count(/system=false/)).toBeGreaterThan(0)
   })
 
+  test('TP9: a template owned by someone else offers no Edit anywhere', async ({
+    page,
+  }) => {
+    // The owner is rewritten on the way in. A template is shared READ-ONLY, so the only way to see
+    // one you cannot write is for another account to own it — and this account cannot create a
+    // template it does not own. Same justification as the F7 provenance mock.
+    const foreign = 'someone-else'
+    const reown = async (payload: Record<string, unknown>) =>
+      Array.isArray(payload.data)
+        ? {
+            ...payload,
+            data: payload.data.map((item) => ({
+              ...(item as object),
+              ownerUserId: foreign,
+            })),
+          }
+        : { ...payload, ownerUserId: foreign }
+
+    // RegExp, not a glob: Playwright reads `?` in a URL glob as a one-character wildcard, so
+    // `templates?**` also matches `templates/<id>`.
+    for (const pattern of [
+      /\/api\/v1\/templates(\?|$)/,
+      /\/api\/v1\/templates\/[0-9a-f-]{8,}/i,
+    ]) {
+      await page.route(pattern, async (route) => {
+        const response = await route.fetch()
+        await route.fulfill({
+          response,
+          json: await reown(await response.json()),
+        })
+      })
+    }
+
+    await page.goto('/templates')
+    await expect(page.getByTestId('data-table-row').first()).toBeVisible()
+
+    const row = page.getByTestId('data-table-row').first()
+    await row.getByTestId('template-actions-dropdown').click()
+    await expect(page.getByTestId('template-action-edit')).toHaveCount(0)
+    await expect(page.getByTestId('template-action-delete')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+
+    // The SHEET is the half that was broken: its footer rendered Edit for every entity, so the
+    // read-only path was one click from a 403 on save.
+    await row.getByTestId('template-details-button').click()
+    await expect(sheet(page)).toBeVisible()
+    await expect(page.getByTestId('sheet-read-only')).toBeVisible()
+    await expect(page.getByTestId('sheet-edit')).toHaveCount(0)
+    await expect(page.getByTestId('sheet-delete')).toHaveCount(0)
+  })
+
   test('TP5: metadata edits save, an empty name blocks, and delete confirms', async ({
     page,
   }) => {
