@@ -128,6 +128,10 @@ export const queryKeys = {
       [...queryKeys.templates.lists(), query] as const,
     details: () => [...queryKeys.templates.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.templates.details(), id] as const,
+    // Under `detail` so invalidating one template drops its dependency list too — the two answer
+    // for the same thing, and an edit that rebinds a formula changes both.
+    shareDependencies: (id: string) =>
+      [...queryKeys.templates.detail(id), 'shareDependencies'] as const,
   },
 
   // ─── Constants (io2p-client leaf resource) ───────────────
@@ -138,6 +142,18 @@ export const queryKeys = {
       [...queryKeys.constants.lists(), query] as const,
     details: () => [...queryKeys.constants.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.constants.details(), id] as const,
+  },
+
+  // ─── Rollup rules (library resource) ─────────────────────
+  rollupRules: {
+    all: ['rollupRules'] as const,
+    lists: () => [...queryKeys.rollupRules.all, 'list'] as const,
+    // `unknown` until io2p-client ships the resource: the query type lives in the route today, and
+    // importing it here would point `lib/` at a feature folder.
+    list: (query?: unknown) =>
+      [...queryKeys.rollupRules.lists(), query] as const,
+    details: () => [...queryKeys.rollupRules.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.rollupRules.details(), id] as const,
   },
 
   // ─── Access (grants + shares; replaces groups) ───────────

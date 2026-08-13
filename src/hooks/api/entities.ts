@@ -6,6 +6,7 @@
 
 import {
   useQuery,
+  useQueries,
   useMutation,
   useQueryClient,
   keepPreviousData,
@@ -13,6 +14,7 @@ import {
 
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
+import type { TemplateShareDependency } from '@/types'
 import type {
   ObjectDTO,
   ObjectListItem,
@@ -198,6 +200,53 @@ function useTemplateRestore() {
   })
 }
 
+/**
+ * The formulas and constants a template's recipes bind, and the caller's relation to each.
+ *
+ * Server-side because the walk is not shallow — a process template's flows are property containers
+ * too — and because a list row carries no properties to walk in the first place. Reports only what
+ * the template needs; it never reads a prospective recipient's grants.
+ */
+function useTemplateShareDependencies(
+  id: string | undefined,
+  options?: { enabled?: boolean }
+) {
+  const client = useIomClient()
+  return useQuery({
+    queryKey: queryKeys.templates.shareDependencies(id ?? ''),
+    queryFn: () => client.templates.shareDependencies(id!),
+    enabled: !!id && options?.enabled !== false,
+  })
+}
+
+/**
+ * The same question for a SELECTION of templates, merged into one answer.
+ *
+ * Two templates commonly bind the same formula, so the merge dedupes by id — otherwise a bulk share
+ * would offer the same item twice and grant it twice.
+ */
+function useTemplateShareDependenciesFor(ids: readonly string[]) {
+  const client = useIomClient()
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: queryKeys.templates.shareDependencies(id),
+      queryFn: () => client.templates.shareDependencies(id),
+    })),
+    combine: (results) => {
+      const formulas = new Map<string, TemplateShareDependency>()
+      const constants = new Map<string, TemplateShareDependency>()
+      for (const { data } of results) {
+        data?.formulas.forEach((f) => formulas.set(f.id, f))
+        data?.constants.forEach((c) => constants.set(c.id, c))
+      }
+      return {
+        formulas: [...formulas.values()],
+        constants: [...constants.values()],
+      }
+    },
+  })
+}
+
 const templateBundle = {
   useList: useTemplateList,
   useGet: useTemplateGet,
@@ -205,6 +254,8 @@ const templateBundle = {
   useUpdate: useTemplateUpdate,
   useRemove: useTemplateRemove,
   useRestore: useTemplateRestore,
+  useShareDependencies: useTemplateShareDependencies,
+  useShareDependenciesFor: useTemplateShareDependenciesFor,
 }
 
 export function useTemplates() {

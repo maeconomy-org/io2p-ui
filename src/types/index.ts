@@ -3,3 +3,4 @@
 export type UUID = string
 
 export * from './object'
+export * from './share-dependency'

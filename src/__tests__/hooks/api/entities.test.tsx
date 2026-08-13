@@ -87,7 +87,7 @@ describe('entities hooks', () => {
     expect(result.current.data).toEqual(page)
   })
 
-  it('useTemplates exposes the entity verbs (no hierarchy)', () => {
+  it('useTemplates exposes the entity verbs (no hierarchy) plus share deps', () => {
     const api = useTemplates()
     expect(Object.keys(api).sort()).toEqual(
       [
@@ -96,6 +96,8 @@ describe('entities hooks', () => {
         'useList',
         'useRemove',
         'useRestore',
+        'useShareDependencies',
+        'useShareDependenciesFor',
         'useUpdate',
       ].sort()
     )

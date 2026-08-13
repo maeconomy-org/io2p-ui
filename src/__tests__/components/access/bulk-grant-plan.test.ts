@@ -79,4 +79,89 @@ describe('bulkGrantPlan', () => {
   it('plans nothing when there is no one to share with', () => {
     expect(bulkGrantPlan([target('formula', 'f1')], [], 'read')).toEqual([])
   })
+
+  describe('template dependencies', () => {
+    const dep = (id: string, type: 'formula' | 'constant') => ({
+      id,
+      type,
+      name: id,
+      deleted: false,
+      system: false,
+      owned: true,
+    })
+
+    it('grants each dependency to each recipient, after the selection', () => {
+      const plan = bulkGrantPlan(
+        [target('template', 't1')],
+        [anna, bo],
+        'read',
+        [dep('f1', 'formula'), dep('c1', 'constant')]
+      )
+
+      // The selection first: a dependency failure must not cost the share it came with.
+      expect(plan.slice(0, 2).every((g) => g.resource.id === 't1')).toBe(true)
+      expect(plan).toHaveLength(6)
+    })
+
+    it('pins a dependency to read even when the selection is writable', () => {
+      // The node accepts no other permission on a library item, so a `write` selection cannot drag
+      // its formulas up with it.
+      const plan = bulkGrantPlan([target('object', 'o1')], [anna], 'write', [
+        dep('f1', 'formula'),
+      ])
+
+      expect(plan.find((g) => g.resource.id === 'o1')?.permission).toBe('write')
+      expect(plan.find((g) => g.resource.id === 'f1')?.permission).toBe('read')
+    })
+
+    it('carries each dependency type onto its own grant', () => {
+      const plan = bulkGrantPlan([target('template', 't1')], [anna], 'read', [
+        dep('f1', 'formula'),
+        dep('c1', 'constant'),
+      ])
+
+      expect(plan.find((g) => g.resource.id === 'f1')?.resource.type).toBe(
+        'formula'
+      )
+      expect(plan.find((g) => g.resource.id === 'c1')?.resource.type).toBe(
+        'constant'
+      )
+    })
+
+    it('adds nothing when the user left the box unticked', () => {
+      expect(
+        bulkGrantPlan([target('template', 't1')], [anna], 'read')
+      ).toHaveLength(1)
+    })
+
+    // Sharing a template with everyone is not a decision to publish the library behind it. The
+    // template itself still goes public — only the dependencies stop at named users.
+    it('never grants a dependency to the public subject', () => {
+      const plan = bulkGrantPlan(
+        [target('template', 't1')],
+        [everyone, anna],
+        'read',
+        [dep('f1', 'formula')]
+      )
+
+      const deps = plan.filter((g) => g.resource.id === 'f1')
+      expect(deps).toHaveLength(1)
+      expect(deps[0].subject).toEqual({ kind: 'user', userId: 'anna' })
+      // The template itself is still shared publicly.
+      expect(
+        plan.some((g) => g.resource.id === 't1' && g.subject.kind === 'public')
+      ).toBe(true)
+    })
+
+    it('plans no dependency grants when only the public subject is picked', () => {
+      const plan = bulkGrantPlan(
+        [target('template', 't1')],
+        [everyone],
+        'read',
+        [dep('f1', 'formula')]
+      )
+
+      expect(plan.filter((g) => g.resource.id === 'f1')).toEqual([])
+    })
+  })
 })

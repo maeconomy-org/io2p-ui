@@ -43,6 +43,7 @@ import {
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useAuth } from '@/contexts'
 import { useGrants, useShares } from '@/hooks/api/access'
+import { useTemplates } from '@/hooks/api/entities'
 import { useUserSearch } from '@/hooks/api/users'
 import { UnsavedBar } from '@/components/entity-sheet/sheet-lifecycle-footer'
 import { saveErrorMessage } from '@/lib/io2p-errors'
@@ -50,6 +51,7 @@ import { logger } from '@/lib/observability/logger'
 import { cn } from '@/lib/utils'
 
 import { PermissionSelect, type Permission } from './permission-select'
+import { ShareDependencies, splitDependencies } from './share-dependencies'
 
 /** What a Share sheet can be opened on — all five, since who-can-access widened to match grant. */
 export type ShareResourceType =
@@ -255,6 +257,13 @@ function ShareForm({
   const grantMutation = useGrant()
   const revokeMutation = useRevoke()
 
+  // Only a template has a recipe to walk. Asked for once per sheet rather than per member: the
+  // answer is about the TEMPLATE, and deliberately says nothing about who is receiving it.
+  const { data: dependencies } = useTemplates().useShareDependencies(
+    target.type === 'template' ? target.id : undefined
+  )
+  const [shareDependencies, setShareDependencies] = useState(false)
+
   const memberIds = Object.keys(draft).filter((key) => key !== PUBLIC_KEY)
 
   // No directory here any more: every name on screen either arrived resolved on its grant or was
@@ -437,6 +446,8 @@ function ShareForm({
   const save = async () => {
     setSaving(true)
     const failed: { key: string; error: unknown }[] = []
+    // Kept apart from `failed`, which is keyed by MEMBER and rolls their row back.
+    const failedDependencies: string[] = []
 
     const attempt = async (key: string, run: () => Promise<unknown>) => {
       try {
@@ -475,6 +486,44 @@ function ShareForm({
           })
         )
       }
+
+      /**
+       * The template's formulas and constants, to everyone who can hold a grant on one.
+       *
+       * AFTER the members, so a failure here cannot cost someone the share itself — and tracked
+       * SEPARATELY from them, because `failed` drives a draft rollback: a member whose share landed
+       * but whose formula did not would otherwise be snapped back to "not shared" on screen.
+       *
+       * Always `read` (the node accepts nothing else on a library item), and `grant` upserts, so a
+       * member who already holds one costs a no-op rather than a pre-check.
+       */
+      if (shareDependencies) {
+        const targets = splitDependencies(dependencies).grantable
+        // `public` is skipped: making a template public does not make the whole library public, and
+        // that is a decision to take on each item rather than a side effect of sharing one template.
+        const recipients = Object.values(draft).filter(
+          (m) => m.subject.kind === 'user'
+        )
+        for (const member of recipients) {
+          for (const dep of targets) {
+            try {
+              await grantMutation.mutateAsync({
+                body: {
+                  resource: { type: dep.type, id: dep.id },
+                  subject: member.subject,
+                  permission: 'read',
+                },
+              })
+            } catch (error) {
+              logger.error('Dependency grant failed', {
+                err: error,
+                resourceId: dep.id,
+              })
+              failedDependencies.push(dep.name || dep.id)
+            }
+          }
+        }
+      }
     } finally {
       // In `finally` because there is more than one way out now: anything unexpected outside
       // `attempt` would otherwise leave Save spinning and disabled with no way to retry.
@@ -482,7 +531,17 @@ function ShareForm({
     }
 
     if (failed.length === 0) {
-      toast.success(t('access.saved'))
+      // The share landed either way — but a template whose formulas did not follow will not compute
+      // for the people who just received it, and saying only "Saved" would hide that.
+      if (failedDependencies.length > 0) {
+        toast.warning(t('access.saved'), {
+          description: t('access.dependenciesFailed', {
+            names: failedDependencies.join(', '),
+          }),
+        })
+      } else {
+        toast.success(t('access.saved'))
+      }
       onDone()
       return
     }
@@ -544,6 +603,12 @@ function ShareForm({
             <span>{t('access.readShareOnly')}</span>
           </p>
         )}
+
+        <ShareDependencies
+          deps={dependencies}
+          checked={shareDependencies}
+          onCheckedChange={setShareDependencies}
+        />
 
         <div className="space-y-2">
           <Label>{t('access.peopleWithAccess')}</Label>

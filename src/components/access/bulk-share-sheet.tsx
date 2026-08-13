@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Globe, Info, Loader2, UserPlus, X } from 'lucide-react'
 import type { GrantDTO } from 'io2p-client'
+
+import type { ShareDependency } from '@/types'
 
 import {
   Button,
@@ -29,11 +31,13 @@ import {
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
 import { useGrants } from '@/hooks/api/access'
+import { useTemplates } from '@/hooks/api/entities'
 import { useUserSearch } from '@/hooks/api/users'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 
 import { PermissionSelect, type Permission } from './permission-select'
+import { ShareDependencies, splitDependencies } from './share-dependencies'
 import {
   isReadOnlyResource,
   type ShareResourceType,
@@ -58,7 +62,13 @@ interface Recipient {
 export function bulkGrantPlan(
   resources: ShareTarget[],
   recipients: Recipient[],
-  permission: Permission
+  permission: Permission,
+  /**
+   * Formulas and constants the selected templates bind, already filtered to the grantable ones.
+   * They ride along at `read` whatever the selection's own permission is — the node accepts nothing
+   * else on a library item — and are deduped by the caller, since two templates commonly share one.
+   */
+  dependencies: ShareDependency[] = []
 ) {
   const effective: Permission = resources.some((r) =>
     isReadOnlyResource(r.type)
@@ -66,12 +76,28 @@ export function bulkGrantPlan(
     ? 'read'
     : permission
 
-  return resources.flatMap((resource) =>
+  const plan = resources.flatMap((resource) =>
     recipients.map((recipient) => ({
       resource: { type: resource.type, id: resource.id },
       subject: recipient.subject,
       permission: effective,
     }))
+  )
+
+  // Last, so a dependency failure cannot cost the selection itself — the grants run in order and
+  // stop on the first error.
+  //
+  // `public` is skipped: sharing a template with everyone is not a decision to publish the whole
+  // library behind it, and that one is taken per item rather than as a side effect here.
+  const named = recipients.filter((r) => r.subject.kind === 'user')
+  return plan.concat(
+    dependencies.flatMap((dep) =>
+      named.map((recipient) => ({
+        resource: { type: dep.type, id: dep.id },
+        subject: recipient.subject,
+        permission: 'read' as Permission,
+      }))
+    )
   )
 }
 
@@ -110,6 +136,15 @@ export function BulkShareSheet({
   const { useGrant } = useGrants()
   const grantMutation = useGrant()
 
+  // Only the templates in the selection have recipes to walk, and two of them commonly bind the
+  // same formula — the hook merges by id so it is offered once and granted once.
+  const templateIds = useMemo(
+    () => resources.filter((r) => r.type === 'template').map((r) => r.id),
+    [resources]
+  )
+  const dependencies = useTemplates().useShareDependenciesFor(templateIds)
+  const [shareDependencies, setShareDependencies] = useState(false)
+
   // Recipients are STAGED, never read back, so the name is whatever the picker showed when it was
   // picked — and the picker searches the server, so it reaches users no directory page would hold.
   // This used to prefer a cached-directory lookup that never returns falsy, which made the staged
@@ -140,7 +175,8 @@ export function BulkShareSheet({
       for (const body of bulkGrantPlan(
         resources,
         Object.values(recipients),
-        permission
+        permission,
+        shareDependencies ? splitDependencies(dependencies).grantable : []
       )) {
         await grantMutation.mutateAsync({ body })
       }
@@ -181,6 +217,12 @@ export function BulkShareSheet({
                 : t('access.bulkShareAdditive')}
             </span>
           </p>
+
+          <ShareDependencies
+            deps={dependencies}
+            checked={shareDependencies}
+            onCheckedChange={setShareDependencies}
+          />
 
           <div className="space-y-2">
             <Label>{t('access.peopleWithAccess')}</Label>
