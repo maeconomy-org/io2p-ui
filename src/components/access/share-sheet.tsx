@@ -604,12 +604,6 @@ function ShareForm({
           </p>
         )}
 
-        <ShareDependencies
-          deps={dependencies}
-          checked={shareDependencies}
-          onCheckedChange={setShareDependencies}
-        />
-
         <div className="space-y-2">
           <Label>{t('access.peopleWithAccess')}</Label>
 
@@ -870,6 +864,15 @@ function ShareForm({
             )}
           </div>
         )}
+
+        {/* Last in the body, next to Save: it modifies the write rather than describing the
+            entity, so it belongs beside the button that performs it — above the member list it
+            read as a property of the template. */}
+        <ShareDependencies
+          deps={dependencies}
+          checked={shareDependencies}
+          onCheckedChange={setShareDependencies}
+        />
       </SheetBody>
 
       {removingFrom && (

@@ -218,12 +218,6 @@ export function BulkShareSheet({
             </span>
           </p>
 
-          <ShareDependencies
-            deps={dependencies}
-            checked={shareDependencies}
-            onCheckedChange={setShareDependencies}
-          />
-
           <div className="space-y-2">
             <Label>{t('access.peopleWithAccess')}</Label>
 
@@ -350,6 +344,14 @@ export function BulkShareSheet({
               </span>
             </label>
           </div>
+
+          {/* Last in the body, beside Save — it modifies the write rather than describing the
+              selection. */}
+          <ShareDependencies
+            deps={dependencies}
+            checked={shareDependencies}
+            onCheckedChange={setShareDependencies}
+          />
         </SheetBody>
 
         <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
