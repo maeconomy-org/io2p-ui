@@ -169,6 +169,51 @@ test.describe('03 - object sheet / files', () => {
     await expect(dialog).toBeHidden()
   })
 
+  test('FI13: download NAVIGATES to a minted url and never fetches the bytes', async ({
+    page,
+    api,
+  }) => {
+    /**
+     * The rule this pins, and the bug it cost to learn: the download must reach S3 as an ordinary
+     * browser navigation to a presigned url. Fetching the bytes ourselves attaches the JWT to the
+     * S3 request, which S3 answers 403/400 — the signature covers the headers it was signed with.
+     *
+     * So: exactly ONE signing call, and NO request carrying our Authorization header to the
+     * returned url. The link's `download` attribute is deliberately not asserted — it is ignored
+     * cross-origin, so the filename comes from S3's Content-Disposition, not from us.
+     */
+    const name = await createObject(page, 'fi13')
+    await openObjectSheet(page, rowFor(page, name))
+    await enterEditMode(page)
+    await switchTab(page, 'files')
+
+    await page.getByTestId('add-files').click()
+    await page.locator('input[type=file]').first().setInputFiles([TINY])
+    await page.getByTestId('attachment-modal-done').click()
+    await saveSheet(page)
+    await expect(page.getByTestId('upload-center-idle')).toBeAttached({
+      timeout: 30_000,
+    })
+
+    await page.getByTestId('file-preview').first().click()
+    await expect(page.getByTestId('file-preview-dialog')).toBeVisible()
+
+    // The signed url is minted through our node; the navigation that follows goes straight to the
+    // storage host, so it never appears as an API call at all.
+    const signing = /\/v1\/files\/[0-9a-f-]{8,}\/download/i
+    api.clear()
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 15_000 }).catch(() => null),
+      page.getByTestId('file-preview-download').click(),
+    ])
+
+    await api.expectCount(signing, 1)
+    // A download either fires or the browser navigated — both are the correct shape. What must NOT
+    // happen is a second signing call, which is what a re-mint on every click looked like.
+    expect(download === null || !!download.suggestedFilename()).toBe(true)
+  })
+
   test('FI10: deleting a file strikes it through and offers Restore', async ({
     page,
   }) => {

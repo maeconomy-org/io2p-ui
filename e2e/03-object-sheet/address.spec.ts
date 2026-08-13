@@ -51,6 +51,8 @@ interface GeocoderOptions {
   lookupFails?: boolean
   /** Milliseconds to hold each `?id=` lookup, so A6 can overtake one. */
   lookupDelayMs?: number
+  /** Return an empty suggestion list — a query the geocoder simply does not know. */
+  noSuggestions?: boolean
 }
 
 async function serveGeocoder(
@@ -64,7 +66,9 @@ async function serveGeocoder(
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ items: SUGGESTIONS }),
+        body: JSON.stringify({
+          items: options.noSuggestions ? [] : SUGGESTIONS,
+        }),
       })
     }
     if (options.lookupDelayMs) {
@@ -227,5 +231,23 @@ test.describe('03 - object sheet / address', () => {
     // would be worse.
     await expect(page.getByTestId('address-input')).toBeVisible()
     await expect(page.getByTestId('address-part-city')).toHaveCount(0)
+  })
+
+  test('A7: a query the geocoder does not know says so, in the app language', async ({
+    page,
+  }) => {
+    // This message was HARDCODED ENGLISH (plan bug #8) — it read "No addresses found" under a
+    // Dutch UI. The parity unit test pins the translation exists; only this pins that the
+    // component reaches for it rather than carrying its own string.
+    await serveGeocoder(page, { noSuggestions: true })
+    await openCreateSheet(page)
+    await page.getByTestId('address-input').fill('XYZ123NonExistentPlace999')
+
+    // The QUERY, not the English wording: asserting the sentence would pass just as happily
+    // against a hardcoded literal, which is the bug itself. Interpolation is the proof it went
+    // through `t()`.
+    const empty = page.getByTestId('address-no-results')
+    await expect(empty).toBeVisible()
+    await expect(empty).toContainText('XYZ123NonExistentPlace999')
   })
 })
