@@ -91,6 +91,10 @@ test.describe('12 - import / check', () => {
     await page.getByTestId('wizard-next').click()
 
     const objects = await statValue(page, 'objects')
-    await expect(page.getByTestId('wizard-next')).toContainText(String(objects))
+    // Check's own button only navigates, so it says Continue. The count belongs to the button that
+    // writes, one step on.
+    await expect(page.getByTestId('wizard-next')).toContainText('Continue')
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('run-start')).toContainText(String(objects))
   })
 })

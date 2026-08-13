@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 
-import { AlertTriangle, CheckCircle2, Loader2, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 
-import { Alert, AlertDescription, Button, Progress } from '@/components/ui'
+import { Alert, AlertDescription, Progress } from '@/components/ui'
 import type { ImportProgress } from '@/hooks/api/imports'
 import type { ImportProblem } from 'io2p-client'
 import { formatTempId } from '@/app/import/lib/build-items'
@@ -17,92 +17,98 @@ import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
  * to stay open, and a dropped connection resumes rather than restarts. Once the node has them the
  * job is durable and the tab is free. The old UI showed one spinner for both and then navigated
  * away, so nobody learned which half they were in — or that closing the tab early lost the work.
+ *
+ * The step's ACTION is not here — it sits in the wizard footer with every other step's, keyed off
+ * the phase below.
  */
+
+export type RunPhase = 'refused' | 'handedOver' | 'working' | 'ready'
+
+/**
+ * Which of the four screens this is. Exported because the footer button switches on the SAME
+ * value: two independent reads of `problems`/`progress`/`isPending` drift into a body with no
+ * button, or a button for a body nobody is looking at.
+ */
+export function runPhase({
+  problems,
+  progress,
+  isPending,
+}: {
+  problems: readonly ImportProblem[]
+  progress: ImportProgress
+  isPending: boolean
+}): RunPhase {
+  if (problems.length > 0) return 'refused'
+  if (progress.phase === 'started') return 'handedOver'
+  return isPending ? 'working' : 'ready'
+}
+
 export function StepImport({
   wizard,
+  phase,
   progress,
   problems,
-  isPending,
   error,
-  onStart,
-  onDone,
 }: {
   wizard: ImportWizard
+  phase: RunPhase
   progress: ImportProgress
   problems: ImportProblem[]
-  isPending: boolean
   error: unknown
-  onStart: () => void
-  onDone: () => void
 }) {
   const t = useTranslations()
   const total = wizard.items.length
 
   // The node refused the envelope. Nothing was written — the job is still a draft — so this is a
   // "go back and fix the mapping", not a partial import to clean up.
-  if (problems.length > 0) {
+  if (phase === 'refused') {
     return (
-      <div className="space-y-4">
-        <Alert variant="destructive" data-testid="run-refused">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <p className="font-medium">{t('import.run.refused')}</p>
-            <ul className="mt-1 space-y-0.5 text-sm">
-              {problems.slice(0, 8).map((problem, index) => {
-                // `ImportProblem` carries only `seq`. It indexes the array the browser just
-                // submitted, so the file row can be resolved here without the node sending it.
-                const sourceRef = wizard.items[problem.seq]?.sourceRef
-                return (
-                  <li key={index}>
-                    {/* The node's own detail, in whatever language it speaks — relayed, not
-                        translated. Only the frame around it is ours. */}
-                    <span className="tabular-nums">
-                      {sourceRef
-                        ? t('import.run.rowPrefix', { row: sourceRef })
-                        : t('import.run.itemPrefix', { item: problem.seq + 1 })}
-                    </span>
-                    {problem.tempId && ` (${formatTempId(problem.tempId)})`}:{' '}
-                    {problem.message}
-                  </li>
-                )
-              })}
-            </ul>
-          </AlertDescription>
-        </Alert>
-        <Button
-          type="button"
-          variant="outline"
-          data-testid="run-back-to-mapping"
-          onClick={onDone}
-        >
-          {t('import.run.backToMapping')}
-        </Button>
-      </div>
+      <Alert variant="destructive" data-testid="run-refused">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          <p className="font-medium">{t('import.run.refused')}</p>
+          <ul className="mt-1 space-y-0.5 text-sm">
+            {problems.slice(0, 8).map((problem, index) => {
+              // `ImportProblem` carries only `seq`. It indexes the array the browser just
+              // submitted, so the file row can be resolved here without the node sending it.
+              const sourceRef = wizard.items[problem.seq]?.sourceRef
+              return (
+                <li key={index}>
+                  {/* The node's own detail, in whatever language it speaks — relayed, not
+                      translated. Only the frame around it is ours. */}
+                  <span className="tabular-nums">
+                    {sourceRef
+                      ? t('import.run.rowPrefix', { row: sourceRef })
+                      : t('import.run.itemPrefix', { item: problem.seq + 1 })}
+                  </span>
+                  {problem.tempId && ` (${formatTempId(problem.tempId)})`}:{' '}
+                  {problem.message}
+                </li>
+              )
+            })}
+          </ul>
+        </AlertDescription>
+      </Alert>
     )
   }
 
-  if (progress.phase === 'started') {
+  if (phase === 'handedOver') {
     return (
-      <div className="space-y-6">
-        <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
-          <div>
-            <h3 className="font-medium" data-testid="run-handed-over">
-              {t('import.run.handedOver')}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t('import.run.handedOverDetail', { count: total })}
-            </p>
-          </div>
+      <div className="flex items-start gap-3">
+        <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
+        <div>
+          <h3 className="font-medium" data-testid="run-handed-over">
+            {t('import.run.handedOver')}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {t('import.run.handedOverDetail', { count: total })}
+          </p>
         </div>
-        <Button type="button" data-testid="run-see-status" onClick={onDone}>
-          {t('import.run.seeStatus')}
-        </Button>
       </div>
     )
   }
 
-  if (isPending) {
+  if (phase === 'working') {
     const staging = progress.phase === 'staging'
     const percent =
       progress.total === 0 ? 0 : (progress.staged / progress.total) * 100
@@ -148,7 +154,7 @@ export function StepImport({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h3 className="font-medium">{t('import.run.ready')}</h3>
         <p className="text-sm text-muted-foreground">
@@ -169,16 +175,6 @@ export function StepImport({
           </AlertDescription>
         </Alert>
       )}
-
-      <Button
-        type="button"
-        data-testid="run-start"
-        onClick={onStart}
-        className="gap-2"
-      >
-        <Upload className="h-4 w-4" />
-        {t('import.actions.importCount', { count: total })}
-      </Button>
     </div>
   )
 }

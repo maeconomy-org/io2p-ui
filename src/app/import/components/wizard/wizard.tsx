@@ -1,8 +1,9 @@
 'use client'
 
+import type { ComponentType } from 'react'
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Check, ChevronRight } from 'lucide-react'
+import { Check, ChevronRight, Upload } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui'
@@ -14,7 +15,7 @@ import { StepUpload } from './step-upload'
 import { StepSheet } from './step-sheet'
 import { StepMap } from './step-map'
 import { StepCheck } from './step-check'
-import { StepImport } from './step-import'
+import { StepImport, runPhase } from './step-import'
 
 // Labels come from `import.steps.<id>`, built from the id — a prune that greps for a literal
 // translator call will not see them. Do not delete that namespace by name search. (No example
@@ -26,6 +27,20 @@ const STEPS = [
   { id: 'check' },
   { id: 'import' },
 ] as const
+
+/**
+ * The one button on the right of the footer. Every step contributes one, including the last —
+ * before, the run's three buttons lived inside the card and the footer went empty there, so the
+ * place you press moved on the only screen whose press cannot be undone.
+ */
+interface FooterAction {
+  testId: string
+  label: string
+  onClick: () => void
+  variant?: 'outline'
+  icon?: ComponentType<{ className?: string }>
+  disabled?: boolean
+}
 
 /** Clickable back to any step already visited, never forward. */
 function Stepper({
@@ -108,6 +123,73 @@ export function Wizard({
 
   // The node's dry-run problems, kept only while the run is on this screen.
   const problems = run.data?.started === false ? run.data.problems : []
+  const last = STEPS.length - 1
+  const phase = runPhase({
+    problems,
+    progress: run.progress,
+    isPending: run.isPending,
+  })
+
+  const leaveRun = () => {
+    if (problems.length > 0) {
+      // Nothing was written, so go back to the mapping, not out of the wizard. Retire the draft on
+      // the way: chunk keys are positional (`${id}:${index}`), so re-staging a changed mapping
+      // into this job would no-op against keys the node has already seen.
+      if (run.data?.started === false) discard.mutate(run.data.job.id)
+      run.reset()
+      setStep(2)
+      return
+    }
+    if (run.data?.started) onFinished?.()
+  }
+
+  const runAction = (): FooterAction | null => {
+    switch (phase) {
+      case 'refused':
+        return {
+          testId: 'run-back-to-mapping',
+          label: t('import.run.backToMapping'),
+          variant: 'outline',
+          onClick: leaveRun,
+        }
+      case 'handedOver':
+        return {
+          testId: 'run-see-status',
+          label: t('import.run.seeStatus'),
+          onClick: leaveRun,
+        }
+      case 'ready':
+        return {
+          testId: 'run-start',
+          label: t('import.actions.importCount', {
+            count: wizard.items.length,
+          }),
+          icon: Upload,
+          onClick: () =>
+            run.mutate({
+              items: wizard.items,
+              ...(wizard.file ? { filename: wizard.file.name } : {}),
+            }),
+        }
+      // Rows in flight: nothing to press, and a disabled button reads as a broken one.
+      case 'working':
+        return null
+    }
+  }
+
+  /**
+   * Continue says CONTINUE on every step it appears, including Check. It used to read "Import 1,847
+   * objects" there and import nothing — the identical button one screen later did the writing.
+   */
+  const action: FooterAction | null =
+    step === last
+      ? runAction()
+      : {
+          testId: 'wizard-next',
+          label: t('common.continue'),
+          onClick: next,
+          disabled: Boolean(blockedBecause),
+        }
 
   return (
     <div className="space-y-6">
@@ -121,29 +203,10 @@ export function Wizard({
         {step === 4 && (
           <StepImport
             wizard={wizard}
+            phase={phase}
             progress={run.progress}
             problems={problems}
-            isPending={run.isPending}
             error={run.error}
-            onStart={() =>
-              run.mutate({
-                items: wizard.items,
-                ...(wizard.file ? { filename: wizard.file.name } : {}),
-              })
-            }
-            onDone={() => {
-              if (problems.length > 0) {
-                // Nothing was written, so go back to the mapping, not out of the wizard. Retire
-                // the draft on the way: chunk keys are positional (`${id}:${index}`), so
-                // re-staging a changed mapping into this job would no-op against keys the node has
-                // already seen.
-                if (run.data?.started === false) discard.mutate(run.data.job.id)
-                run.reset()
-                setStep(2)
-                return
-              }
-              if (run.data?.started) onFinished?.()
-            }}
           />
         )}
       </div>
@@ -157,33 +220,35 @@ export function Wizard({
             variant="outline"
             data-testid="wizard-back"
             onClick={back}
+            // Leaving mid-upload does not stop the upload, and the rows already staged keep their
+            // positional chunk keys — coming back with a changed mapping would silently no-op.
+            disabled={step === last && phase === 'working'}
           >
             {t('common.back')}
           </Button>
-          {step < STEPS.length - 1 && (
-            <div className="flex items-center gap-3">
-              {blockedBecause && (
-                <p
-                  data-testid="wizard-blocked"
-                  className="text-sm text-muted-foreground"
-                >
-                  {t(blockedBecause.key, blockedBecause.values)}
-                </p>
-              )}
+          <div className="flex items-center gap-3">
+            {blockedBecause && (
+              <p
+                data-testid="wizard-blocked"
+                className="text-sm text-muted-foreground"
+              >
+                {t(blockedBecause.key, blockedBecause.values)}
+              </p>
+            )}
+            {action && (
               <Button
                 type="button"
-                data-testid="wizard-next"
-                onClick={next}
-                disabled={Boolean(blockedBecause)}
+                data-testid={action.testId}
+                variant={action.variant}
+                onClick={action.onClick}
+                disabled={action.disabled}
+                className={cn(action.icon && 'gap-2')}
               >
-                {step === 3
-                  ? t('import.actions.importCount', {
-                      count: wizard.items.length,
-                    })
-                  : t('common.continue')}
+                {action.icon && <action.icon className="h-4 w-4" />}
+                {action.label}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>
