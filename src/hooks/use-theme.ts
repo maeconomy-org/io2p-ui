@@ -6,6 +6,11 @@ import { useTheme as useNextTheme } from 'next-themes'
 import type { ThemePreference } from '@/constants'
 import { usePreference } from '@/hooks/ui/use-preference'
 
+// Module scope, not a ref: the browser runs ONE view transition at a time, and
+// the two callers that collide are two different components.
+let pending: string | null = null
+let running = 0
+
 /**
  * Wraps next-themes' setTheme with a View Transition (columns-slide).
  * Falls back to instant set on unsupported browsers or when the user has
@@ -26,6 +31,13 @@ export function useTheme() {
 
   const applyTheme = useCallback(
     (value: string) => {
+      // `PreferenceSync` reconciles against the account, and the optimistic
+      // cache write lands BEFORE the transition callback reaches next-themes.
+      // So it reads the new theme beside the old one, calls this a second time,
+      // and that second transition skips the first — `AbortError` in the
+      // overlay and a slide that never plays.
+      if (value === pending) return
+
       const reducedMotion =
         typeof window !== 'undefined' &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -43,9 +55,25 @@ export function useTheme() {
       const transition = document.startViewTransition(() =>
         nativeSetTheme(value)
       )
-      transition.finished.finally(() => {
-        document.documentElement.classList.remove('columns-slide-transition')
-      })
+      pending = value
+      running += 1
+
+      // Two clicks on two DIFFERENT themes still skip a transition, and a
+      // skipped one rejects `ready`. That is a fast user, not an error.
+      transition.ready.catch(() => {})
+      transition.finished
+        .catch(() => {})
+        .finally(() => {
+          if (pending === value) pending = null
+          running -= 1
+          // The last transition owns the class. An earlier one removing it
+          // mid-animation leaves the newer slide with no clip-path.
+          if (running === 0) {
+            document.documentElement.classList.remove(
+              'columns-slide-transition'
+            )
+          }
+        })
     },
     [nativeSetTheme]
   )
@@ -59,4 +87,10 @@ export function useTheme() {
   )
 
   return { theme, setTheme, applyTheme, ...rest }
+}
+
+/** Test surface — the module state above outlives one test otherwise. */
+export function resetThemeTransition() {
+  pending = null
+  running = 0
 }
