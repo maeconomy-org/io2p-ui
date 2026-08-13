@@ -31,7 +31,15 @@ const CONSTANT = {
 
 vi.mock('@/hooks/api/leaves', () => ({
   useFormulas: () => ({ useGet: () => ({ data: FORMULA }) }),
-  useConstants: () => ({ useList: () => ({ data: { data: [CONSTANT] } }) }),
+  useConstants: () => ({
+    useList: () => ({ data: { data: [CONSTANT] } }),
+    // A bound constant is resolved BY ID, not found in the search page — that is what keeps its
+    // label and its preview number correct while the user searches for something else.
+    useByIds: (ids: readonly string[]) =>
+      new Map(
+        ids.filter((id) => id === CONSTANT.id).map((id) => [id, CONSTANT])
+      ),
+  }),
 }))
 
 const SIBLINGS = [
@@ -68,7 +76,7 @@ describe('FormulaBindings', () => {
     // when it is in fact bound — the bug this replaced.
     renderBindings({
       formulaId: 'f-1',
-      args: [{ var: 'volume', constant: 'co2_factor' }],
+      args: [{ var: 'volume', constantId: 'c-1' }],
     })
 
     expect(screen.getAllByRole('combobox')[0]).toHaveTextContent('co2_factor')
@@ -86,7 +94,7 @@ describe('FormulaBindings', () => {
       formulaId: 'f-1',
       args: [
         { var: 'volume', ref: 'v-1' },
-        { var: 'co2_factor', constant: 'co2_factor' },
+        { var: 'co2_factor', constantId: 'c-1' },
       ],
     })
 
@@ -108,7 +116,7 @@ describe('FormulaBindings', () => {
           formulaId: 'f-1',
           args: [
             { var: 'volume', ref: 'v-3' },
-            { var: 'co2_factor', constant: 'co2_factor' },
+            { var: 'co2_factor', constantId: 'c-1' },
           ],
         }}
         siblings={[{ key: 'v-3', label: 'Empty' }]}
@@ -124,10 +132,10 @@ describe('FormulaBindings', () => {
 // in jsdom, so the exclusivity is asserted on the pure functions behind it — which is where it lives.
 describe('binding choice', () => {
   it('writes a constant binding with no ref', () => {
-    // `ref` XOR `constant`: a stray `ref` alongside would be an arg the server rejects.
-    expect(argFromChoice('v', 'constant:co2_factor')).toEqual({
+    // `ref` XOR `constantId`: a stray `ref` alongside would be an arg the server rejects.
+    expect(argFromChoice('v', 'constant:c-1')).toEqual({
       var: 'v',
-      constant: 'co2_factor',
+      constantId: 'c-1',
     })
   })
 
@@ -139,30 +147,29 @@ describe('binding choice', () => {
   })
 
   it('switching kind replaces the binding rather than merging the two', () => {
-    const asConstant = argFromChoice('v', 'constant:co2_factor')!
+    const asConstant = argFromChoice('v', 'constant:c-1')!
     const asSibling = argFromChoice('v', 'sibling:val-1')!
 
     expect(asConstant).not.toHaveProperty('ref')
-    expect(asSibling).not.toHaveProperty('constant')
+    expect(asSibling).not.toHaveProperty('constantId')
   })
 
   it('clears the binding for an empty choice', () => {
     expect(argFromChoice('v', '')).toBeNull()
   })
 
-  it('keeps a name containing a colon intact', () => {
-    // Only the FIRST separator delimits; splitting on every one would truncate the name.
-    expect(argFromChoice('v', 'constant:ns:co2')).toEqual({
+  it('keeps an id containing a colon intact', () => {
+    // Ids carry no colon today, so this guards the SPLIT rather than a real value: only the first
+    // separator delimits, and splitting on every one would truncate whatever came after.
+    expect(argFromChoice('v', 'constant:ns:c-1')).toEqual({
       var: 'v',
-      constant: 'ns:co2',
+      constantId: 'ns:c-1',
     })
   })
 
   it('round-trips a constant back to its own option value', () => {
     // What makes a bound constant render as SELECTED instead of blank.
-    expect(choiceOf({ var: 'v', constant: 'co2_factor' })).toBe(
-      'constant:co2_factor'
-    )
+    expect(choiceOf({ var: 'v', constantId: 'c-1' })).toBe('constant:c-1')
   })
 
   it('round-trips a sibling back to its own option value', () => {

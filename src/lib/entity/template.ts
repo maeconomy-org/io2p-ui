@@ -189,13 +189,12 @@ export function placeholderValue(data: string | undefined): string {
  * resolves against. Minting new refs would require rewriting every arg in lockstep.
  *
  * A derived value contributes its RECIPE, not its computed result — the template recomputes when it
- * is applied. A recipe we cannot express (an inline expression, or a constant whose name we could not
- * resolve) is skipped entirely rather than downgraded to a stale number pretending to be authored.
+ * is applied. A recipe we cannot express (an inline expression) is skipped entirely rather than
+ * downgraded to a stale number pretending to be authored.
  */
 export function objectToTemplateInput(
   source: ObjectDTO,
-  meta: { name: string; description?: string; version?: string },
-  constantNames: ReadonlyMap<string, string> = new Map()
+  meta: { name: string; description?: string; version?: string }
 ): CreateTemplateInput {
   const body: CreateTemplateInput = { type: 'object', name: meta.name }
   if (meta.description) body.description = meta.description
@@ -209,7 +208,7 @@ export function objectToTemplateInput(
         .map((v) => {
           if (v.source === 'derived') {
             if (!v.provenance) return null
-            const hydrated = calcFromProvenance(v.provenance, constantNames)
+            const hydrated = calcFromProvenance(v.provenance)
             return hydrated.ok
               ? { ref: v.id, calc: hydrated.calc }
               : // Can't be expressed as a recipe, and its result belongs to the source object.

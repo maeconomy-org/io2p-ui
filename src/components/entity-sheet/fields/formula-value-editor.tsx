@@ -1,24 +1,32 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { AlertCircle, CheckCircle2 } from 'lucide-react'
-import type { CalcArgInput, CalcInput } from 'io2p-client'
-
-import { Label } from '@/components/ui'
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
+  AlertCircle,
+  CheckCircle2,
+  ChevronsUpDown,
+  Loader2,
+} from 'lucide-react'
+import type { CalcArgInput, CalcInput, ConstantDTO } from 'io2p-client'
+
+import {
+  Button,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  Label,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { evaluateExpression } from '@/lib/formula-expression'
-import { MAX_LIST_PAGE_SIZE } from '@/constants'
+import { SEARCH_SIZE } from '@/constants'
 
 /**
  * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
@@ -44,47 +52,99 @@ export function FormulaSelect({
   className?: string
 }) {
   const t = useTranslations()
-  const { data } = useFormulas().useList({ page: 1, size: 100 })
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+
+  const { data, isFetching } = useFormulas().useList(
+    { page: 1, size: SEARCH_SIZE, q: query.trim() || undefined },
+    { enabled: open, keepPreviousData: true }
+  )
   const formulas = data?.data ?? []
 
+  // The label cannot come from the list above: `q` narrows it, so the selected formula leaves the
+  // page as soon as the user searches for anything else.
+  const { data: selected } = useFormulas().useGet(formulaId)
+
   return (
-    <Select value={formulaId ?? ''} onValueChange={onSelect}>
-      <SelectTrigger
-        data-testid="formula-select"
-        className={cn('h-8', className)}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          data-testid="formula-select"
+          className={cn(
+            'h-8 w-full justify-between font-normal',
+            !selected && 'text-muted-foreground',
+            className
+          )}
+        >
+          <span className="truncate">
+            {selected?.name ?? t('objects.formulaEditor.selectFormula')}
+          </span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
       >
-        <SelectValue placeholder={t('objects.formulaEditor.selectFormula')} />
-      </SelectTrigger>
-      <SelectContent>
-        {formulas.map((f) => (
-          <SelectItem
-            key={f.id}
-            value={f.id}
-            data-testid={`formula-option-${f.name}`}
-          >
-            {f.name}
-            <span className="ml-2 font-mono text-xs text-muted-foreground">
-              {f.expression}
-            </span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        {/* The node filters server-side, so let Command show whatever came back. */}
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={t('objects.formulaEditor.searchFormulas')}
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CommandList>
+            {isFetching && formulas.length === 0 ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <CommandEmpty>
+                {t('objects.formulaEditor.noFormulas')}
+              </CommandEmpty>
+            )}
+            <CommandGroup>
+              {formulas.map((f) => (
+                <CommandItem
+                  key={f.id}
+                  value={f.id}
+                  data-testid={`formula-option-${f.name}`}
+                  onSelect={() => {
+                    onSelect(f.id)
+                    setOpen(false)
+                  }}
+                >
+                  <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                  <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
+                    {f.expression}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
 
 /**
  * One control, two kinds of binding.
  *
- * A calc arg binds a variable to a sibling value (`ref`) XOR a constant (`constant`, by NAME) —
- * never both, never neither. So the picker prefixes each option with its kind instead of putting a
- * mode switch beside it: choosing is one gesture, and the exclusivity is structural rather than
- * something the UI has to remember to enforce.
+ * A calc arg binds a variable to a sibling value (`ref`) XOR a constant (`constantId`) — never both,
+ * never neither. So the picker prefixes each option with its kind instead of putting a mode switch
+ * beside it: choosing is one gesture, and the exclusivity is structural rather than something the UI
+ * has to remember to enforce.
  *
- * A name may contain `:`, so only the FIRST separator is a delimiter.
+ * Both sides are ids, which contain no `:` — but splitting on the FIRST separator costs nothing and
+ * keeps this correct if either ever carries one.
  */
 export function choiceOf(arg?: CalcArgInput): string {
-  if (arg?.constant) return `constant:${arg.constant}`
+  if (arg?.constantId) return `constant:${arg.constantId}`
   if (arg?.ref) return `sibling:${arg.ref}`
   return ''
 }
@@ -102,7 +162,7 @@ export function argFromChoice(
   if (!value) return null
 
   return kind === 'constant'
-    ? { var: variable, constant: value }
+    ? { var: variable, constantId: value }
     : { var: variable, ref: value }
 }
 
@@ -118,12 +178,20 @@ export function FormulaBindings({
 }) {
   const t = useTranslations()
   const { data: formula } = useFormulas().useGet(calc.formulaId)
-  const { data: constantsPage } = useConstants().useList({
-    page: 1,
-    size: MAX_LIST_PAGE_SIZE,
-  })
-  // `?? []` inline would mint a new array each render and re-run the preview memo every time.
-  const constants = useMemo(() => constantsPage?.data ?? [], [constantsPage])
+
+  // Every constant this recipe already binds, fetched BY ID rather than looked up in the picker's
+  // search page — a bound constant has to keep its label and its preview number whatever the user
+  // last typed into the search box, and it may not be on that page at all.
+  const boundIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          calc.args.map((a) => a.constantId).filter((id): id is string => !!id)
+        )
+      ),
+    [calc.args]
+  )
+  const boundConstants = useConstants().useByIds(boundIds)
 
   const bindingFor = (variable: string) =>
     choiceOf(calc.args.find((a) => a.var === variable))
@@ -141,8 +209,8 @@ export function FormulaBindings({
       const arg = calc.args.find((a) => a.var === v)
       // A constant resolves to its CURRENT version here. The server pins the version at bind time,
       // so once saved this value is fixed — the preview shows what binding now would produce.
-      const num = arg?.constant
-        ? constants.find((c) => c.name === arg.constant)?.versions.at(-1)?.num
+      const num = arg?.constantId
+        ? boundConstants.get(arg.constantId)?.versions.at(-1)?.num
         : siblings.find((s) => s.key === arg?.ref)?.num
       // Unbound, or bound to a value the user hasn't filled in yet — either way there is nothing
       // honest to preview.
@@ -159,7 +227,7 @@ export function FormulaBindings({
     } catch (e) {
       return { result: null, error: (e as Error).message }
     }
-  }, [formula, calc.args, siblings, constants])
+  }, [formula, calc.args, siblings, boundConstants])
 
   if (!formula) return null
 
@@ -189,76 +257,13 @@ export function FormulaBindings({
               <code className="w-16 shrink-0 text-sm font-medium">
                 {variable}
               </code>
-              <Select
+              <BindingPicker
+                variable={variable}
                 value={bindingFor(variable)}
-                onValueChange={(val) => bindVariable(variable, val)}
-              >
-                <SelectTrigger
-                  data-testid={`formula-bind-${variable}`}
-                  className="h-8"
-                >
-                  <SelectValue
-                    placeholder={t('objects.formulaEditor.selectValue')}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {siblings.length === 0 && constants.length === 0 && (
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                      {t('objects.formulaEditor.noNumericValues')}
-                    </div>
-                  )}
-
-                  {siblings.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel>
-                        {t('objects.formulaEditor.siblingValues')}
-                      </SelectLabel>
-                      {siblings.map((s) => (
-                        <SelectItem
-                          key={s.key}
-                          value={`sibling:${s.key}`}
-                          data-testid={`formula-sibling-${s.label}`}
-                        >
-                          {s.label}
-                          {s.num !== undefined && (
-                            <span className="ml-1 text-muted-foreground">
-                              ({s.num})
-                            </span>
-                          )}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  )}
-
-                  {/* Constants are shared, versioned numbers — a CO2 factor rather than something
-                      on this entity. The server pins the version at bind time, so the value shown
-                      is what this binding will freeze. */}
-                  {constants.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel>
-                        {t('objects.formulaEditor.constants')}
-                      </SelectLabel>
-                      {constants.map((c) => {
-                        const current = c.versions.at(-1)
-                        return (
-                          <SelectItem
-                            key={c.id}
-                            value={`constant:${c.name}`}
-                            data-testid={`formula-constant-${c.name}`}
-                          >
-                            {c.name}
-                            {current?.data && (
-                              <span className="ml-1 text-muted-foreground">
-                                ({current.data})
-                              </span>
-                            )}
-                          </SelectItem>
-                        )
-                      })}
-                    </SelectGroup>
-                  )}
-                </SelectContent>
-              </Select>
+                siblings={siblings}
+                boundConstants={boundConstants}
+                onChange={(choice) => bindVariable(variable, choice)}
+              />
             </div>
           ))}
         </>
@@ -293,6 +298,198 @@ export function FormulaBindings({
 }
 
 /**
+ * One variable's binding: a sibling value XOR a constant.
+ *
+ * The two halves search differently on purpose. Siblings are this entity's own values, already in
+ * memory and never more than a handful, so they filter locally. Constants come from the node and
+ * there is no ceiling on how many exist, so the search term goes to `q` — which is why the trigger's
+ * label comes from `boundConstants` (fetched by id) rather than from the page on screen.
+ */
+/**
+ * Which side of the picker to show. `all` is the default because most bindings are a value on this
+ * entity and the rest are a constant — the filter exists for the case where one side has enough
+ * entries to push the other off screen.
+ */
+type BindingScope = 'all' | 'siblings' | 'constants'
+
+const BINDING_SCOPES: BindingScope[] = ['all', 'siblings', 'constants']
+
+function BindingPicker({
+  variable,
+  value,
+  siblings,
+  boundConstants,
+  onChange,
+}: {
+  variable: string
+  value: string
+  siblings: FormulaSibling[]
+  boundConstants: ReadonlyMap<string, ConstantDTO>
+  onChange: (choice: string) => void
+}) {
+  const t = useTranslations()
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [scope, setScope] = useState<BindingScope>('all')
+
+  const needle = query.trim()
+  // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
+  // constants would be a request for something nothing renders.
+  const { data: constantsPage, isFetching } = useConstants().useList(
+    { page: 1, size: SEARCH_SIZE, q: needle || undefined },
+    { enabled: open && scope !== 'siblings', keepPreviousData: true }
+  )
+  const constants = scope === 'siblings' ? [] : (constantsPage?.data ?? [])
+  const shownSiblings =
+    scope === 'constants'
+      ? []
+      : siblings.filter((s) =>
+          s.label.toLowerCase().includes(needle.toLowerCase())
+        )
+
+  const [kind, ...rest] = value.split(':')
+  const boundId = rest.join(':')
+  const label = value
+    ? kind === 'constant'
+      ? boundConstants.get(boundId)?.name
+      : siblings.find((s) => s.key === boundId)?.label
+    : undefined
+
+  const choose = (choice: string) => {
+    onChange(choice)
+    setOpen(false)
+    setQuery('')
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          data-testid={`formula-bind-${variable}`}
+          className={cn(
+            'h-8 w-full justify-between font-normal',
+            !label && 'text-muted-foreground'
+          )}
+        >
+          <span className="truncate">
+            {label ?? t('objects.formulaEditor.selectValue')}
+          </span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={t('objects.formulaEditor.searchValues')}
+            value={query}
+            onValueChange={setQuery}
+          />
+
+          {/* A radiogroup, not three buttons: the options are mutually exclusive and a screen
+              reader should hear which one is on. */}
+          <div
+            role="radiogroup"
+            aria-label={t('objects.formulaEditor.filterBindings')}
+            className="flex gap-1 border-b px-2 py-1.5"
+          >
+            {BINDING_SCOPES.map((option) => (
+              <button
+                key={option}
+                type="button"
+                role="radio"
+                aria-checked={scope === option}
+                data-testid={`binding-scope-${option}`}
+                onClick={() => setScope(option)}
+                className={cn(
+                  'rounded px-2 py-0.5 text-xs transition-colors',
+                  scope === option
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted'
+                )}
+              >
+                {t(`objects.formulaEditor.scope.${option}`)}
+              </button>
+            ))}
+          </div>
+
+          <CommandList>
+            {/* Only when there is nothing at all to show. Gating the spinner on the CONSTANTS
+                alone hid the sibling group on every first open — they are already in memory, and
+                a failed constants fetch left "nothing to bind" on screen beside them. */}
+            {isFetching && !shownSiblings.length && !constants.length ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <CommandEmpty>
+                {/* Naming the filter, not the data: "no numeric values" beside a Constants-only
+                    list describes something the user is not looking at. */}
+                {scope === 'constants'
+                  ? t('objects.formulaEditor.noConstants')
+                  : t('objects.formulaEditor.noNumericValues')}
+              </CommandEmpty>
+            )}
+
+            {shownSiblings.length > 0 && (
+              <CommandGroup heading={t('objects.formulaEditor.siblingValues')}>
+                {shownSiblings.map((s) => (
+                  <CommandItem
+                    key={s.key}
+                    value={`sibling:${s.key}`}
+                    data-testid={`formula-sibling-${s.label}`}
+                    onSelect={choose}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{s.label}</span>
+                    {s.num !== undefined && (
+                      <span className="ml-1 shrink-0 text-muted-foreground">
+                        ({s.num})
+                      </span>
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {/* Constants are shared, versioned numbers — a CO2 factor rather than something on
+                this entity. The server pins the version at bind time, so the value shown is what
+                this binding will freeze. */}
+            {constants.length > 0 && (
+              <CommandGroup heading={t('objects.formulaEditor.constants')}>
+                {constants.map((c) => {
+                  const current = c.versions.at(-1)
+                  return (
+                    <CommandItem
+                      key={c.id}
+                      value={`constant:${c.id}`}
+                      data-testid={`formula-constant-${c.name}`}
+                      onSelect={choose}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                      {current?.data && (
+                        <span className="ml-1 shrink-0 text-muted-foreground">
+                          ({current.data})
+                        </span>
+                      )}
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/**
  * A bound recipe, read-only: which formula, and what each variable is bound to.
  *
  * This is what a TEMPLATE formula looks like. A template stores its recipe INERT — `source:'derived'`
@@ -310,9 +507,23 @@ export function FormulaSummary({
   const t = useTranslations()
   const { data: formula } = useFormulas().useGet(calc.formulaId)
 
+  // A calc carries the constant's id, not its name, so the name has to be fetched — otherwise this
+  // read-only summary would print a uuid where the author wrote `co2_factor`.
+  const boundIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          calc.args.map((a) => a.constantId).filter((id): id is string => !!id)
+        )
+      ),
+    [calc.args]
+  )
+  const boundConstants = useConstants().useByIds(boundIds)
+
   const bindingLabel = (variable: string): string => {
     const arg = calc.args.find((a) => a.var === variable)
-    if (arg?.constant) return arg.constant
+    if (arg?.constantId)
+      return boundConstants.get(arg.constantId)?.name ?? t('common.unknown')
     if (arg?.ref) return labelForValue?.(arg.ref) ?? t('common.unknown')
     return t('objects.formulaEditor.unbound')
   }

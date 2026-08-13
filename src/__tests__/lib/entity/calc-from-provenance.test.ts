@@ -3,8 +3,6 @@ import { describe, it, expect } from 'vitest'
 import { calcFromProvenance } from '@/lib/entity'
 import type { ValueProvenance } from '@/lib/entity'
 
-const NO_CONSTANTS = new Map<string, string>()
-
 function provenance(over: Partial<ValueProvenance> = {}): ValueProvenance {
   return {
     expression: 'a * b',
@@ -22,7 +20,7 @@ describe('calcFromProvenance', () => {
   // The node seeds every existing value id as its own ref, so a resolved valueId round-trips
   // straight back into an editable binding.
   it('binds sibling values by their existing id', () => {
-    const result = calcFromProvenance(provenance(), NO_CONSTANTS)
+    const result = calcFromProvenance(provenance())
 
     expect(result).toEqual({
       ok: true,
@@ -36,7 +34,9 @@ describe('calcFromProvenance', () => {
     })
   })
 
-  it('binds a constant by name once the directory resolves it', () => {
+  // The trace and the recipe both address a constant by id, so this needs no directory and cannot
+  // fail to resolve one — the whole `unknownConstant` failure went with the name binding.
+  it('binds a constant by its id', () => {
     const result = calcFromProvenance(
       provenance({
         args: [
@@ -46,41 +46,37 @@ describe('calcFromProvenance', () => {
             value: 0.5,
           },
         ],
-      }),
-      new Map([['c1', 'co2_factor']])
+      })
     )
 
     expect(result).toEqual({
       ok: true,
-      calc: { formulaId: 'f1', args: [{ var: 'a', constant: 'co2_factor' }] },
+      calc: { formulaId: 'f1', args: [{ var: 'a', constantId: 'c1' }] },
     })
   })
 
-  // Dropping the binding would 422 on the missing variable, or — worse — save a recipe bound to
-  // fewer inputs than the one the user was looking at.
-  it('refuses rather than drop a constant it cannot name', () => {
+  // A version pin is the SERVER's business: it re-pins at bind time, so carrying the old version
+  // into an editable recipe would freeze a value the user never chose.
+  it('carries no version pin into the editable recipe', () => {
     const result = calcFromProvenance(
       provenance({
         args: [
           {
             var: 'a',
-            source: { kind: 'constant', constantId: 'c-unknown', version: 1 },
+            source: { kind: 'constant', constantId: 'c1', version: 7 },
+            value: 0.5,
           },
         ],
-      }),
-      NO_CONSTANTS
+      })
     )
 
-    expect(result).toEqual({ ok: false, reason: 'unknownConstant' })
+    expect(result.ok && result.calc.args[0]).not.toHaveProperty('version')
   })
 
   // The editor picks stored formulas; it has no expression input, so an inline recipe would come
   // back as an empty picker and be lost on save.
   it('refuses an inline expression it has no editor for', () => {
-    const result = calcFromProvenance(
-      provenance({ formulaId: undefined }),
-      NO_CONSTANTS
-    )
+    const result = calcFromProvenance(provenance({ formulaId: undefined }))
 
     expect(result).toEqual({ ok: false, reason: 'inlineExpression' })
   })

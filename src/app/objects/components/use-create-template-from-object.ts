@@ -6,11 +6,9 @@ import { toast } from 'sonner'
 import type { ObjectListItem } from 'io2p-client'
 
 import { useObjects, useTemplates } from '@/hooks/api/entities'
-import { useConstants } from '@/hooks/api/leaves'
 import { objectToTemplateInput } from '@/lib/entity'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
-import { MAX_LIST_PAGE_SIZE } from '@/constants'
 
 export interface TemplateCreationData {
   name: string
@@ -39,24 +37,6 @@ export function useCreateTemplateFromObject() {
   const { data: full } = useObjects().useGet(source?.id)
   const createMutation = useTemplates().useCreate()
 
-  const usesConstants = useMemo(
-    () =>
-      (full?.properties ?? []).some((p) =>
-        p.values.some((v) =>
-          v.provenance?.args.some((a) => a.source.kind === 'constant')
-        )
-      ),
-    [full]
-  )
-  const { data: constants } = useConstants().useList(
-    { page: 1, size: MAX_LIST_PAGE_SIZE },
-    { enabled: !!full && usesConstants }
-  )
-  const constantNames = useMemo(
-    () => new Map((constants?.data ?? []).map((c) => [c.id, c.name])),
-    [constants]
-  )
-
   const initialData = useMemo(
     (): TemplateCreationData => ({
       name: source ? t('objects.templateNameFrom', { name: source.name }) : '',
@@ -72,15 +52,11 @@ export function useCreateTemplateFromObject() {
       if (!full) return
       try {
         await createMutation.mutateAsync({
-          body: objectToTemplateInput(
-            full,
-            {
-              name: data.name.trim() || full.name,
-              description: data.description.trim() || undefined,
-              version: data.version.trim() || undefined,
-            },
-            constantNames
-          ),
+          body: objectToTemplateInput(full, {
+            name: data.name.trim() || full.name,
+            description: data.description.trim() || undefined,
+            version: data.version.trim() || undefined,
+          }),
         })
         toast.success(t('objects.templateCreatedSuccess'))
         setSource(null)
@@ -93,7 +69,7 @@ export function useCreateTemplateFromObject() {
         toast.error(t(saveErrorMessage(error).key))
       }
     },
-    [full, createMutation, constantNames, t]
+    [full, createMutation, t]
   )
 
   return {

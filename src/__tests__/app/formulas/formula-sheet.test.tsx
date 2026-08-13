@@ -157,15 +157,16 @@ describe('FormulaSheet', () => {
     expect(screen.getAllByText('co2_factor')).toHaveLength(2)
   })
 
-  it('marks a variable that matches an existing constant', () => {
-    // The whole reason the constant list is fetched here: naming a variable after a constant makes
-    // the later binding a single click, and this is what says so.
+  it('does NOT mark a variable that shares a constant name', () => {
+    // A formula references nothing — `co2_factor` is bound at USE time to a constant, a sibling
+    // value or neither, exactly like `volume`. Marking it as a constant here asserted a link the
+    // model does not have, and read as though the formula had already resolved it.
     render(<FormulaSheet open onOpenChange={vi.fn()} mode="create" />)
     fireEvent.change(expressionInput(), {
       target: { value: 'volume * co2_factor' },
     })
 
-    expect(screen.getByText(/formulas.constantShort/)).toBeInTheDocument()
+    expect(screen.queryByText(/formulas.constantShort/)).toBeNull()
   })
 
   it('excludes builtins from the variable list', () => {

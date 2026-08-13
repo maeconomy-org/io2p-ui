@@ -22,9 +22,7 @@ import {
   Label,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { MAX_LIST_PAGE_SIZE } from '@/constants'
 import { PropertyNameCombobox } from './property-name-combobox'
-import { useConstants } from '@/hooks/api/leaves'
 import {
   getValuePlaceholder,
   type PropertyDictionaryLocale,
@@ -148,24 +146,6 @@ export function PropertyFields({
     name: basePath,
   })
 
-  // A trace names constants by id, but an editable recipe binds them by name. Only objects that
-  // actually use one pay for the lookup — most formulas bind sibling values only.
-  const usesConstants = useMemo(
-    () =>
-      [...derivedValues.values()].some((p) =>
-        p?.args.some((a) => a.source.kind === 'constant')
-      ),
-    [derivedValues]
-  )
-  const { data: constants } = useConstants().useList(
-    { page: 1, size: MAX_LIST_PAGE_SIZE },
-    { enabled: editing && usesConstants }
-  )
-  const constantNames = useMemo(
-    () => new Map((constants?.data ?? []).map((c) => [c.id, c.name])),
-    [constants]
-  )
-
   /**
    * Patch one file anywhere under the properties tree, found by its `_localId` (unique across the
    * draft). Soft delete / restore already happened server-side, so this only catches the draft up —
@@ -250,7 +230,6 @@ export function PropertyFields({
           form={form}
           index={index}
           derivedValues={derivedValues}
-          constantNames={constantNames}
           entityId={entityId}
           onFileChange={patchFile}
           onRemove={() => removeProperty(index)}
@@ -272,7 +251,6 @@ function PropertyRow({
   form,
   index,
   derivedValues,
-  constantNames,
   entityId,
   onFileChange,
   onRemove,
@@ -284,7 +262,6 @@ function PropertyRow({
   form: UseFormReturn<EntityDraft>
   index: number
   derivedValues: DerivedValues
-  constantNames: ReadonlyMap<string, string>
   entityId?: string
   onFileChange: (localId: string, patch: Partial<DraftFile>) => void
   onRemove: () => void
@@ -554,7 +531,7 @@ function PropertyRow({
               if (existingDerived) {
                 const provenance = derivedValues.get(value.id as string)
                 const hydration = provenance
-                  ? calcFromProvenance(provenance, constantNames)
+                  ? calcFromProvenance(provenance)
                   : null
                 return (
                   <div key={field.id} className="space-y-1">

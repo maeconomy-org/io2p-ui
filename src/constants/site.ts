@@ -34,6 +34,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
       { key: 'models', path: '/templates' },
       { key: 'formulas', path: '/formulas' },
       { key: 'constants', path: '/constants' },
+      // `/rollup-rules` is built and reachable by url, but stays out of the menu until io2p-core
+      // ships the resource — the page runs against a contract the node does not implement yet.
     ],
   },
   { key: 'import', path: '/import', dataTour: TOUR_ANCHORS.navImport },
@@ -83,6 +85,15 @@ export const DEFAULT_TABLE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
  * that wants "all of them" wants THIS, and a caller that needs more than this needs to paginate.
  */
 export const MAX_LIST_PAGE_SIZE = 100
+
+/**
+ * How many rows a type-to-search picker fetches per keystroke.
+ *
+ * Small on purpose: the picker reaches the rest through `q` at the node, so a bigger page only
+ * costs a longer list to scroll before the user types. A picker WITHOUT `q` must not use this —
+ * it would silently cap what is reachable at all.
+ */
+export const SEARCH_SIZE = 20
 
 /**
  * The theme values that may be STORED, which is a superset of the two the

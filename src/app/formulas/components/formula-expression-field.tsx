@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { AlertCircle, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Search } from 'lucide-react'
 
 import { Badge, Input, Label } from '@/components/ui'
 import { cn } from '@/lib/utils'
@@ -12,7 +12,7 @@ import {
   variablesOf,
 } from '@/lib/formula-expression'
 import { useConstants } from '@/hooks/api/leaves'
-import { MAX_LIST_PAGE_SIZE } from '@/constants'
+import { SEARCH_SIZE } from '@/constants'
 
 /**
  * The expression input, plus everything the writer needs to know while typing.
@@ -35,11 +35,18 @@ export function FormulaExpressionField({
   const inputRef = useRef<HTMLInputElement>(null)
   // Caret at the last blur/selection, so a chip inserts where the user was rather than at the end.
   const caret = useRef<{ start: number; end: number } | null>(null)
+  const [chipQuery, setChipQuery] = useState('')
 
-  const { data: constantsPage } = useConstants().useList({
-    page: 1,
-    size: MAX_LIST_PAGE_SIZE,
-  })
+  // Searched at the node. These names are only ever INSERTED into the expression, so the list needs
+  // to reach the constant you are looking for, not hold every constant that exists.
+  const { data: constantsPage } = useConstants().useList(
+    {
+      page: 1,
+      size: SEARCH_SIZE,
+      q: chipQuery.trim() || undefined,
+    },
+    { keepPreviousData: true }
+  )
   const constantNames = useMemo(
     () => (constantsPage?.data ?? []).map((c) => c.name),
     [constantsPage]
@@ -60,6 +67,17 @@ export function FormulaExpressionField({
     () => builtinNames(),
     []
   )
+
+  // Builtins and functions come from the parser, not the node, so they filter here — the constants
+  // arrive already narrowed and re-filtering them would drop rows the server matched.
+  const { shownBuiltins, shownFunctions } = useMemo(() => {
+    const needle = chipQuery.trim().toLowerCase()
+    const match = (name: string) => name.toLowerCase().includes(needle)
+    return {
+      shownBuiltins: builtinConstants.filter(match),
+      shownFunctions: functions.filter(match),
+    }
+  }, [chipQuery, builtinConstants, functions])
 
   const rememberCaret = () => {
     const el = inputRef.current
@@ -136,27 +154,20 @@ export function FormulaExpressionField({
           <p className="text-xs text-muted-foreground">
             {t('formulas.variablesDerived')}
           </p>
+          {/* Every variable renders the same, deliberately. A name matching an existing constant
+              used to be marked as one, which asserted a link the model does not have: a formula
+              references nothing, and `co2_factor` is bound at USE time to a constant, a sibling
+              value, or neither — exactly like `a`. */}
           <div className="flex flex-wrap gap-1.5">
-            {parsed.variables.map((variable) => {
-              // A variable named after an existing constant is one the user can bind in a click.
-              // Saying so here is the whole reason the constant list is fetched.
-              const matches = constantNames.includes(variable)
-              return (
-                <Badge
-                  key={variable}
-                  variant={matches ? 'default' : 'secondary'}
-                  className="h-5 gap-1 font-mono text-[10px]"
-                  title={matches ? t('formulas.matchesConstant') : undefined}
-                >
-                  {variable}
-                  {matches && (
-                    <span className="not-italic">
-                      · {t('formulas.constantShort')}
-                    </span>
-                  )}
-                </Badge>
-              )
-            })}
+            {parsed.variables.map((variable) => (
+              <Badge
+                key={variable}
+                variant="secondary"
+                className="h-5 font-mono text-[10px]"
+              >
+                {variable}
+              </Badge>
+            ))}
           </div>
         </div>
       )}
@@ -166,6 +177,20 @@ export function FormulaExpressionField({
           <p className="text-xs text-muted-foreground">
             {t('formulas.insertHint')}
           </p>
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              value={chipQuery}
+              onChange={(e) => setChipQuery(e.target.value)}
+              placeholder={t('formulas.filterInserts')}
+              aria-label={t('formulas.filterInserts')}
+              data-testid="formula-insert-filter"
+              className="h-7 pl-7 text-xs"
+            />
+          </div>
           <div className="flex flex-wrap gap-1">
             {constantNames.map((name) => (
               <InsertChip
@@ -174,14 +199,14 @@ export function FormulaExpressionField({
                 onInsert={() => insert(name)}
               />
             ))}
-            {builtinConstants.map((name) => (
+            {shownBuiltins.map((name) => (
               <InsertChip
                 key={`k-${name}`}
                 label={name}
                 onInsert={() => insert(name)}
               />
             ))}
-            {functions.map((name) => (
+            {shownFunctions.map((name) => (
               <InsertChip
                 key={`f-${name}`}
                 label={`${name}()`}
@@ -189,6 +214,13 @@ export function FormulaExpressionField({
                 onInsert={() => insert(`${name}(`)}
               />
             ))}
+            {constantNames.length === 0 &&
+              shownBuiltins.length === 0 &&
+              shownFunctions.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {t('formulas.noInsertMatches')}
+                </p>
+              )}
           </div>
         </div>
       )}

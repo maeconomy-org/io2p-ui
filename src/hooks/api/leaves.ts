@@ -6,11 +6,13 @@
 
 import {
   useQuery,
+  useQueries,
   useMutation,
   useQueryClient,
   keepPreviousData,
 } from '@tanstack/react-query'
 import type {
+  ConstantDTO,
   CreateFormulaBody,
   CreateConstantBody,
   AppendConstantVersionBody,
@@ -130,6 +132,34 @@ function useConstantGet(
   })
 }
 
+/**
+ * Several constants by id, as a Map — for a screen that must show constants it did not search for.
+ *
+ * A calc names its constants by id, so the picker's search page is the wrong place to resolve them:
+ * the bound one leaves that page the moment the user types. Each id is its own cached query, so a
+ * constant already fetched by the picker or another binding costs nothing here.
+ */
+function useConstantsByIds(ids: readonly string[]) {
+  const client = useIomClient()
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: queryKeys.constants.detail(id),
+      queryFn: () => client.constants.get(id),
+      staleTime: LEAF_STALE_TIME,
+    })),
+    // Combined here rather than in the caller: `useQueries` gives this the same identity while the
+    // underlying results are unchanged, so a consumer can depend on it without re-running on
+    // every render.
+    combine: (results) => {
+      const byId = new Map<string, ConstantDTO>()
+      for (const { data } of results) {
+        if (data) byId.set(data.id, data)
+      }
+      return byId
+    },
+  })
+}
+
 function useConstantCreate() {
   const client = useIomClient()
   const qc = useQueryClient()
@@ -184,6 +214,7 @@ function useConstantRestore() {
 const constantBundle = {
   useList: useConstantList,
   useGet: useConstantGet,
+  useByIds: useConstantsByIds,
   useCreate: useConstantCreate,
   useAppendVersion: useConstantAppendVersion,
   useRemove: useConstantRemove,

@@ -526,14 +526,10 @@ describe('objectToTemplateInput', () => {
         },
       ],
     } as unknown as ObjectDTO
-    const props = objectToTemplateInput(
-      withConstant,
-      { name: 'T' },
-      new Map([['c1', 'PI']])
-    ).properties!
+    const props = objectToTemplateInput(withConstant, { name: 'T' }).properties!
     expect(props[0].values![0].calc?.args[0]).toEqual({
       var: 'k',
-      constant: 'PI',
+      constantId: 'c1',
     })
   })
 

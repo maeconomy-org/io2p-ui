@@ -71,11 +71,12 @@ describe('leaf hooks', () => {
     expect(formulas.delete).toHaveBeenCalledWith('f1', undefined)
   })
 
-  it('useConstants exposes list/get/create/appendVersion/remove/restore', () => {
+  it('useConstants exposes list/get/byIds/create/appendVersion/remove/restore', () => {
     const api = useConstants()
     expect(Object.keys(api).sort()).toEqual(
       [
         'useAppendVersion',
+        'useByIds',
         'useCreate',
         'useGet',
         'useList',
@@ -83,6 +84,30 @@ describe('leaf hooks', () => {
         'useRestore',
       ].sort()
     )
+  })
+
+  // A calc names its constants by id, and the picker's search page may hold none of them — so this
+  // fetches each one directly and keys the result by id for the caller to look up.
+  it('useConstants().useByIds resolves each id into a map', async () => {
+    constants.get.mockImplementation((id: string) =>
+      Promise.resolve({ id, name: `name-${id}`, versions: [] })
+    )
+    const { result } = renderHook(() => useConstants().useByIds(['c1', 'c2']), {
+      wrapper: makeWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.size).toBe(2))
+    expect(result.current.get('c1')?.name).toBe('name-c1')
+    expect(constants.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('useConstants().useByIds asks for nothing when there is nothing bound', () => {
+    const { result } = renderHook(() => useConstants().useByIds([]), {
+      wrapper: makeWrapper(),
+    })
+
+    expect(result.current.size).toBe(0)
+    expect(constants.get).not.toHaveBeenCalled()
   })
 
   it('useConstants().useRestore brings a deleted constant back', async () => {

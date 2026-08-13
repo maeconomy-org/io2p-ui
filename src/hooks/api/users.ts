@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 
 import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
+import { SEARCH_SIZE } from '@/constants'
 
-const SEARCH_SIZE = 20
 // The user list changes far more slowly than the things it annotates.
 const SEARCH_STALE_TIME = 10 * 60 * 1000
 
