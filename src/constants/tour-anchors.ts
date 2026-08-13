@@ -58,6 +58,7 @@ export const TOUR_ANCHORS = {
   formulasReference: 'formulas-reference',
   formulaExpression: 'formula-expression',
   constantsCreate: 'constants-create',
+  rollupRulesCreate: 'rollup-rules-create',
 
   // Shares
   sharesCreate: 'shares-create',
