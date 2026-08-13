@@ -260,7 +260,10 @@ export function DuplicateObjectsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-lg flex flex-col">
+      <SheetContent
+        className="sm:max-w-lg flex flex-col"
+        data-testid="duplicate-sheet"
+      >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Copy className="h-5 w-5" />
@@ -288,6 +291,7 @@ export function DuplicateObjectsSheet({
                   aria-controls="copy-source-listbox"
                   className="w-full justify-between"
                   disabled={isCopying}
+                  data-testid="duplicate-source-trigger"
                 >
                   {selectedObjects.length > 0 ? (
                     <div className="flex items-center gap-2">
@@ -417,7 +421,7 @@ export function DuplicateObjectsSheet({
           {/* Target parent — hidden when locked via defaultParentUuid */}
           {!isParentLocked && (
             <>
-              <div className="grid gap-2">
+              <div className="grid gap-2" data-testid="duplicate-target-parent">
                 <Label>{t('objects.duplicate.targetParent')}</Label>
                 <ParentSelector
                   initialParentUuids={targetParentUuids}
@@ -475,6 +479,7 @@ export function DuplicateObjectsSheet({
                   checked={includeChildren}
                   onCheckedChange={setIncludeChildren}
                   disabled={isCopying}
+                  data-testid="duplicate-include-children"
                 />
               </div>
             )}
@@ -549,6 +554,7 @@ export function DuplicateObjectsSheet({
             onClick={handleConfirm}
             disabled={isCopying || selectedObjects.length === 0}
             className="flex-1"
+            data-testid="duplicate-confirm"
           >
             {isCopying ? (
               <>

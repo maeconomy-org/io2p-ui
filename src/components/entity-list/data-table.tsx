@@ -271,11 +271,6 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const t = useTranslations()
 
-  // Informational, not a defect: TanStack Table returns functions the React
-  // Compiler cannot memoize safely, so it skips compiling this component.
-  // Nothing to change short of replacing the library, and leaving it live would
-  // block every future commit that touches this file.
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

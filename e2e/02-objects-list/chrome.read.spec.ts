@@ -9,7 +9,9 @@ import { tour } from '../utils/selectors'
 test.describe('02 - objects list / chrome', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/objects')
-    await expect(page.getByTestId('data-table')).toBeVisible()
+    // A ROW, not the table: skeleton rows carry no testid, so the table is visible — and its header
+    // buttons are clickable — while the page is still unhydrated. A click there is swallowed.
+    await expect(page.getByTestId('data-table-row').first()).toBeVisible()
   })
 
   test('L1: the table renders rows and its pagination meta', async ({
@@ -102,5 +104,76 @@ test.describe('02 - objects list / chrome', () => {
     await expect(rows.first()).toBeVisible()
     const total = (await thumbs.count()) + (await placeholders.count())
     expect(total).toBe(await rows.count())
+  })
+
+  test('L18: hovering a thumbnail enlarges the SAME image, minting nothing', async ({
+    page,
+  }) => {
+    const thumb = page.getByTestId('cover-thumb').first()
+    test.skip(
+      (await thumb.count()) === 0,
+      'no object on page 1 has a cover image'
+    )
+
+    const src = await thumb.locator('img').getAttribute('src')
+    await thumb.hover()
+
+    const preview = page.getByTestId('cover-preview')
+    await expect(preview).toBeVisible()
+    // One 320px thumbnail serves the row AND the card. A different src here means the preview
+    // reaches for a full-size file, which costs a signed URL per hovered row.
+    await expect(preview).toHaveAttribute('src', src ?? '')
+  })
+
+  test('L4: sorting by name round-trips through the server', async ({
+    page,
+    api,
+  }) => {
+    await page
+      .getByRole('button', { name: /^name$/i })
+      .first()
+      .click()
+    await expect.poll(() => api.count(/[?&]sort=name/)).toBeGreaterThan(0)
+
+    await page
+      .getByRole('button', { name: /^name$/i })
+      .first()
+      .click()
+    await expect.poll(() => api.count(/[?&]sort=-name/)).toBeGreaterThan(0)
+  })
+
+  test('L8: hover prefetches the detail, and opening it makes no second request', async ({
+    page,
+    api,
+  }) => {
+    const detail = /\/objects\/[0-9a-f-]{8,}/i
+    const row = page.getByTestId('data-table-row').first()
+
+    await row.hover()
+    await expect.poll(() => api.count(detail)).toBe(1)
+
+    await row.getByTestId('object-details-button').click()
+    await expect(page.getByTestId('entity-sheet')).toBeVisible()
+
+    // The point of the prefetch is that the sheet opens populated. A second GET here means the
+    // cache was warmed under a key the sheet does not read.
+    await expect(page.getByTestId('sheet-edit')).toBeVisible()
+    expect(api.count(detail)).toBe(1)
+  })
+
+  test('L21: a search that matches nothing renders the empty state, not a blank table', async ({
+    page,
+  }) => {
+    await tour(page, 'searchButton').click()
+    const dialog = page.getByRole('dialog')
+    await dialog
+      .getByRole('combobox')
+      .or(dialog.getByRole('textbox'))
+      .first()
+      .fill('zzz-no-such-object-zzz')
+    await page.keyboard.press('Enter')
+
+    await expect(page.getByTestId('empty-state')).toBeVisible()
+    await expect(page.getByTestId('data-table-row')).toHaveCount(0)
   })
 })

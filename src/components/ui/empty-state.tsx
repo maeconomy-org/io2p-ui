@@ -40,6 +40,7 @@ export function EmptyState({
         'flex flex-col items-center justify-center py-12 text-center',
         className
       )}
+      data-testid="empty-state"
     >
       {icon && <div className="mb-4 text-muted-foreground/60">{icon}</div>}
       <h3 className="text-lg font-medium">{title}</h3>
