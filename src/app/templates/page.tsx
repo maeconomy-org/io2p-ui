@@ -22,6 +22,7 @@ import {
 import {
   BulkActionBar,
   EntityTable,
+  canWriteLibraryItem,
   useEntityListActions,
   useEntityListFilters,
   useEntityListQuery,
@@ -131,6 +132,7 @@ export default function TemplatesPage() {
     remove: removeMutation,
     restore: restoreMutation,
     entityName: 'template',
+    canAct: (row) => canWriteLibraryItem(row, userId),
     messages: TEMPLATE_MESSAGES,
   })
 

@@ -16,6 +16,7 @@ import {
 import {
   BulkActionBar,
   EntityTable,
+  canWriteLibraryItem,
   useEntityListActions,
   useEntityListFilters,
   useEntityListQuery,
@@ -112,6 +113,7 @@ export default function FormulasPage() {
     remove: removeMutation,
     restore: restoreMutation,
     entityName: 'formula',
+    canAct: (row) => canWriteLibraryItem(row, userId),
     messages: FORMULA_MESSAGES,
   })
 

@@ -16,6 +16,7 @@ import {
 import {
   BulkActionBar,
   EntityTable,
+  canWriteLibraryItem,
   useEntityListActions,
   useEntityListFilters,
   useEntityListQuery,
@@ -94,6 +95,7 @@ export default function ConstantsPage() {
     remove: removeMutation,
     restore: restoreMutation,
     entityName: 'constant',
+    canAct: (row) => canWriteLibraryItem(row, userId),
     messages: CONSTANT_MESSAGES,
   })
 
