@@ -146,6 +146,12 @@ export function PropertyFields({
     name: basePath,
   })
 
+  // `useWatch`, NOT `form.watch` — this component receives `form`, it does not own the `useForm`,
+  // so a `watch` here subscribes the OWNER and leaves the read view rendering a stale tree until
+  // something else happens to re-render it. Declared before the early return so the hook order
+  // does not change with `editing`.
+  const readProperties = useWatch({ control: form.control, name: basePath })
+
   /**
    * Patch one file anywhere under the properties tree, found by its `_localId` (unique across the
    * draft). Soft delete / restore already happened server-side, so this only catches the draft up —
@@ -189,7 +195,7 @@ export function PropertyFields({
   if (!editing) {
     return (
       <PropertyReadView
-        properties={form.watch(basePath) ?? []}
+        properties={readProperties ?? []}
         derivedValues={derivedValues}
         entityId={entityId}
         onFileChange={patchFile}

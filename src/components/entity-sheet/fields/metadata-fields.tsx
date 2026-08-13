@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import type { UseFormReturn } from 'react-hook-form'
+import { useWatch, type UseFormReturn } from 'react-hook-form'
 
 import { Button, Input, Label, Textarea } from '@/components/ui'
 import type { EntityDraft } from '@/lib/entity'
@@ -54,9 +54,14 @@ export function MetadataFields({
 }) {
   const t = useTranslations()
 
+  // `useWatch`, NOT `form.watch` — this component receives `form` rather than owning the `useForm`,
+  // so a `watch` subscribes the OWNER and this view would keep rendering the value it first saw.
+  // Unconditional, because a hook inside the `!editing` branch would change the hook order the
+  // moment the sheet enters edit mode.
+  const name = useWatch({ control: form.control, name: 'name' })
+  const description = useWatch({ control: form.control, name: 'description' })
+
   if (!editing) {
-    const name = form.watch('name')
-    const description = form.watch('description')
     return (
       <dl className="space-y-4">
         <ReadOnlyField label={t('objects.fields.name')}>

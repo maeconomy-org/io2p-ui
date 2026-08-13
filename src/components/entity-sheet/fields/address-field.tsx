@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale, useTranslations } from 'next-intl'
-import type { UseFormReturn } from 'react-hook-form'
+import { useWatch, type UseFormReturn } from 'react-hook-form'
 
 import { HereAddressAutocomplete, Label } from '@/components/ui'
 import type { AddressComponents } from '@/components/ui/here-address-autocomplete'
@@ -35,7 +35,9 @@ export function AddressField({
 }) {
   const t = useTranslations()
   const locale = useLocale()
-  const address = form.watch('address')
+  // `useWatch`, NOT `form.watch` — `form` arrives as a prop, so a `watch` here subscribes the OWNER
+  // and this field would keep showing the address it first rendered.
+  const address = useWatch({ control: form.control, name: 'address' })
 
   if (!editing) {
     // Reading is where the parts earn their keep: the autocomplete resolved them, so show what was

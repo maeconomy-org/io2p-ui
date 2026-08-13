@@ -97,6 +97,31 @@ export default [
     },
   },
   {
+    // The entity sheet's field components, which all take `form` as a PROP.
+    files: ['src/components/entity-sheet/fields/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          // FOUR shipped bugs were this one line, and every one of them was
+          // invisible in dev: `form.watch()` registers a subscription that
+          // re-renders whoever OWNS the `useForm`, not the component that
+          // called it. A reader that receives `form` therefore updates only
+          // when something else happens to re-render it — and under the
+          // production-only React Compiler, nothing does. Soft-deleting a
+          // property did nothing at all in a shipped build while every dev run
+          // stayed green.
+          //
+          // `useWatch({ control: form.control, name })` subscribes the READER.
+          selector:
+            "MemberExpression[object.name='form'][property.name='watch']",
+          message:
+            'A component that receives `form` as a prop must use useWatch({ control: form.control, name }) — form.watch() subscribes the form OWNER, so this component will render stale values in a production build.',
+        },
+      ],
+    },
+  },
+  {
     // Configuration files
     files: [
       '**/*.config.{js,ts,mjs}',
