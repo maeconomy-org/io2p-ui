@@ -12,6 +12,7 @@
 import { useCallback, useMemo, useState } from 'react'
 
 import {
+  ATTACH_EVERY_LEVEL,
   type BuildMapping,
   buildItems,
   type ColumnTarget,
@@ -221,14 +222,45 @@ export function useImportWizard() {
     []
   )
 
+  /**
+   * The ONE way the hierarchy changes — the toggle and the suggestion prompt both come through
+   * here, because accepting a hierarchy carries a decision about the address columns with it and a
+   * second entry point would silently skip it.
+   */
+  const applyLevels = useCallback(
+    (next: number[]) => {
+      setLevels(next)
+
+      // The row asserts its address for the whole path it names, so it belongs on every object on
+      // that path — the default owner is the DEEPEST level alone, which gives the rooms an address
+      // and the building none. Seeded only for a column the user has not placed, so the
+      // per-column selector still wins.
+      if (next.length === 0) return
+      setAttachTo((chosen) => {
+        const seeded = { ...chosen }
+        for (const [key, target] of Object.entries(columns ?? {})) {
+          const column = Number(key)
+          const isAddress =
+            target.kind === 'address' || target.kind === 'addressPart'
+          if (!isAddress || next.includes(column) || column in seeded) continue
+          seeded[column] = ATTACH_EVERY_LEVEL
+        }
+        return seeded
+      })
+    },
+    [columns]
+  )
+
   /** Toggle a column in or out of the hierarchy. Order is the nesting, so it is preserved. */
-  const toggleLevel = useCallback((index: number) => {
-    setLevels((current) =>
-      current.includes(index)
-        ? current.filter((c) => c !== index)
-        : [...current, index]
-    )
-  }, [])
+  const toggleLevel = useCallback(
+    (index: number) =>
+      applyLevels(
+        levels.includes(index)
+          ? levels.filter((c) => c !== index)
+          : [...levels, index]
+      ),
+    [levels, applyLevels]
+  )
 
   const reset = useCallback(() => {
     setFile(null)
@@ -293,7 +325,7 @@ export function useImportWizard() {
     levels,
     suggestedLevels,
     toggleLevel,
-    setLevels,
+    setLevels: applyLevels,
     attachTo,
     setAttachTo,
     destination,

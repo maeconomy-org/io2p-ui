@@ -98,6 +98,7 @@ test.describe('12 - import / mapping', () => {
     page,
   }) => {
     await loadAndMap(page, 'flat.csv')
+    await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('map-destination-clear')).toHaveCount(0)
 
     await page.getByTestId('map-destination').click()

@@ -1,6 +1,7 @@
 'use client'
 
-import { AlertTriangle, CornerDownRight } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, CornerDownRight, FolderTree, X } from 'lucide-react'
 
 import { useFormatter, useTranslations } from 'next-intl'
 
@@ -8,6 +9,7 @@ import {
   Alert,
   AlertDescription,
   Badge,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -15,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui'
+import { ObjectPicker } from '@/components/entity-sheet/fields'
 import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
 
 /**
@@ -109,11 +112,10 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
         <h3 className="font-medium">{t('import.check.title')}</h3>
         <p className="text-sm text-muted-foreground">
           {t('import.check.subtitle')}
-          {/* Named here as well as on the mapping step: it decides WHERE the whole tree lands,
-              and this is the last screen before that becomes permanent. */}
-          {wizard.destination && ` ${t('import.check.underDestination')}`}
         </p>
       </div>
+
+      <DestinationField wizard={wizard} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((stat) => (
@@ -247,6 +249,68 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
             total: rows.length,
           })}
         </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Where the imported tree lands.
+ *
+ * This needs no new protocol surface, which is why it is a picker and not a feature: core's
+ * envelope already accepts a REAL object id in `parents[]` alongside the tempIds from the same
+ * job, so a destination is just that id on every root item. Everything below a root keeps
+ * hanging off its own parent.
+ *
+ * Reuses the same ObjectPicker as the entity sheet and the bulk-parent dialog — one search, one
+ * set of access rules. The node refuses a parent the caller cannot READ, so a picker that
+ * searched differently here could offer something the import would then reject.
+ */
+function DestinationField({ wizard }: { wizard: ImportWizard }) {
+  const t = useTranslations()
+  const [name, setName] = useState<string>()
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-md border px-4 py-3">
+      <FolderTree className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">
+          {t('import.check.destination.title')}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {wizard.destination
+            ? t('import.check.destination.chosen', {
+                name: name ?? t('import.check.destination.fallbackName'),
+              })
+            : t('import.check.destination.optional')}
+        </p>
+      </div>
+      <ObjectPicker
+        value={wizard.destination ?? ''}
+        displayName={name}
+        placeholder={t('import.check.destination.placeholder')}
+        testId="map-destination"
+        className="w-[16rem]"
+        onSelect={(id, picked) => {
+          setName(picked)
+          wizard.setDestination(id)
+        }}
+      />
+      {wizard.destination && (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          data-testid="map-destination-clear"
+          aria-label={t('import.check.destination.clear')}
+          onClick={() => {
+            setName(undefined)
+            wizard.setDestination(null)
+          }}
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
       )}
     </div>
   )

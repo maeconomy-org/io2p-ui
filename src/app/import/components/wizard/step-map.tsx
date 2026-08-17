@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 
 import { useMemo, useState } from 'react'
-import { FolderTree, Layers, X } from 'lucide-react'
+import { Layers } from 'lucide-react'
 
 import {
   Badge,
@@ -14,10 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui'
-import { ObjectPicker } from '@/components/entity-sheet/fields'
 import { cn } from '@/lib/utils'
 import type { ColumnTarget } from '@/app/import/lib/build-items'
 import {
+  ATTACH_EVERY_LEVEL,
   columnLabel,
   countItems,
   deriveKey,
@@ -221,6 +221,12 @@ function ColumnRow({
               >
                 {t('import.map.attachDeepest')}
               </SelectItem>
+              <SelectItem
+                value={String(ATTACH_EVERY_LEVEL)}
+                data-testid="map-attach-option-every"
+              >
+                {t('import.map.attachEvery')}
+              </SelectItem>
               {wizard.levels.map((levelColumn, index) => (
                 <SelectItem
                   key={levelColumn}
@@ -276,68 +282,6 @@ function ColumnRow({
           </SelectContent>
         </Select>
       </div>
-    </div>
-  )
-}
-
-/**
- * Where the imported tree lands.
- *
- * This needs no new protocol surface, which is why it is a picker and not a feature: core's
- * envelope already accepts a REAL object id in `parents[]` alongside the tempIds from the same
- * job, so a destination is just that id on every root item. Everything below a root keeps
- * hanging off its own parent.
- *
- * Reuses the same ObjectPicker as the entity sheet and the bulk-parent dialog — one search, one
- * set of access rules. The node refuses a parent the caller cannot READ, so a picker that
- * searched differently here could offer something the import would then reject.
- */
-function DestinationField({ wizard }: { wizard: ImportWizard }) {
-  const t = useTranslations()
-  const [name, setName] = useState<string>()
-
-  return (
-    <div className="flex flex-wrap items-center gap-3 rounded-md border px-4 py-3">
-      <FolderTree className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">
-          {t('import.map.destination.title')}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {wizard.destination
-            ? t('import.map.destination.chosen', {
-                name: name ?? t('import.map.destination.fallbackName'),
-              })
-            : t('import.map.destination.optional')}
-        </p>
-      </div>
-      <ObjectPicker
-        value={wizard.destination ?? ''}
-        displayName={name}
-        placeholder={t('import.map.destination.placeholder')}
-        testId="map-destination"
-        className="w-[16rem]"
-        onSelect={(id, picked) => {
-          setName(picked)
-          wizard.setDestination(id)
-        }}
-      />
-      {wizard.destination && (
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8"
-          data-testid="map-destination-clear"
-          aria-label={t('import.map.destination.clear')}
-          onClick={() => {
-            setName(undefined)
-            wizard.setDestination(null)
-          }}
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      )}
     </div>
   )
 }
@@ -499,8 +443,6 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
           <ColumnRow key={column.index} column={column} wizard={wizard} />
         ))}
       </div>
-
-      <DestinationField wizard={wizard} />
     </div>
   )
 }

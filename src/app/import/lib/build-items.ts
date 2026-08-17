@@ -40,12 +40,16 @@ export interface BuildMapping {
   levels: number[]
   /**
    * Which hierarchy level a column's value attaches to. The default is the DEEPEST — right for a
-   * room's area, wrong for the building's address, which would land on every room and no building.
+   * room's area, wrong for an address, which the row asserts for every object on the path it
+   * names. `ATTACH_EVERY_LEVEL` writes it to all of them.
    */
   attachTo: Record<number, number>
   /** An existing object every ROOT item hangs under. */
   destination: string | null
 }
+
+/** An `attachTo` level meaning "every object on the row's path", not one of them. */
+export const ATTACH_EVERY_LEVEL = -1
 
 /** A row the builder refused, addressed by its line in the file. */
 export interface BuildProblem extends ImportMessage {
@@ -315,6 +319,19 @@ export function buildItems(
         // property too gives every floor a `gebäude: Northgate House` beside its own parent link.
         if (mapping.levels.includes(column)) continue
         const level = mapping.attachTo[column]
+        if (level === ATTACH_EVERY_LEVEL) {
+          // The row asserts this value for the whole path it names, so every object on that path
+          // carries it: a room found on its own still says where it physically is, without
+          // walking up its parents.
+          for (let depth = 0; depth < segments.length; depth++) {
+            const owner = drafts.get(
+              segments.slice(0, depth + 1).join(PATH_SEP)
+            )
+            if (owner)
+              applyCell(owner, target, row[column], headers[column] ?? '')
+          }
+          continue
+        }
         const owner =
           level === undefined
             ? deepest
