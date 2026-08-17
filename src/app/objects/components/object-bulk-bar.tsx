@@ -35,7 +35,7 @@ export function ObjectBulkBar({
           key: 'share',
           label: t('access.share'),
           icon: Share2,
-          onSelect: () => state.setBulkShareOpen(true),
+          onSelect: () => state.setShareBundleOpen(true),
         },
         {
           key: 'set-parent',

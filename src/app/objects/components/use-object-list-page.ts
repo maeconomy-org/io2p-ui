@@ -50,7 +50,7 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
   const [bulkParentOpen, setBulkParentOpen] = useState(false)
-  const [bulkShareOpen, setBulkShareOpen] = useState(false)
+  const [shareBundleOpen, setShareBundleOpen] = useState(false)
 
   const { useRemove, useRestore } = useObjects()
   const removeMutation = useRemove()
@@ -185,8 +185,8 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
     setConfirmBulkDelete,
     bulkParentOpen,
     setBulkParentOpen,
-    bulkShareOpen,
-    setBulkShareOpen,
+    shareBundleOpen,
+    setShareBundleOpen,
 
     templateFromObject,
   }

@@ -84,7 +84,7 @@ export default function ProcessesPage() {
   const [openInEditMode, setOpenInEditMode] = useState(false)
   const [scope, setScope] = useState<ScopeFilterValue>('all')
   const [toShare, setToShare] = useState<ProcessListItem | null>(null)
-  const [bulkShareOpen, setBulkShareOpen] = useState(false)
+  const [shareBundleOpen, setShareBundleOpen] = useState(false)
 
   const [view, setView] = usePreference('processView')
   const isTable = view === 'table'
@@ -273,15 +273,15 @@ export default function ProcessesPage() {
             key: 'share',
             label: t('access.share'),
             icon: Share2,
-            onSelect: () => setBulkShareOpen(true),
+            onSelect: () => setShareBundleOpen(true),
           },
         ]}
       />
 
-      {bulkShareOpen && (
+      {shareBundleOpen && (
         <ShareEditorSheet
           open
-          onOpenChange={(open) => !open && setBulkShareOpen(false)}
+          onOpenChange={(open) => !open && setShareBundleOpen(false)}
           mode="create"
           seedResources={list.selectedRows.map((p) => ({
             type: 'process' as const,

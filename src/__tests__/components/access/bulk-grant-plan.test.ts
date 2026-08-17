@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { bulkGrantPlan } from '@/components/access/bulk-share-sheet'
+import { bulkGrantPlan } from '@/components/access/library-bulk-share-sheet'
 import type { ShareTarget } from '@/components/access/share-sheet'
 
 const target = (type: ShareTarget['type'], id: string): ShareTarget => ({

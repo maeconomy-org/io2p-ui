@@ -49,8 +49,8 @@ const ShareSheet = dynamic(
   () => import('@/components/access').then((mod) => mod.ShareSheet),
   { ssr: false }
 )
-const BulkShareSheet = dynamic(
-  () => import('@/components/access').then((mod) => mod.BulkShareSheet),
+const LibraryBulkShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.LibraryBulkShareSheet),
   { ssr: false }
 )
 const TemplateSheet = dynamic(
@@ -279,7 +279,7 @@ export default function TemplatesPage() {
       />
 
       {bulkShareOpen && (
-        <BulkShareSheet
+        <LibraryBulkShareSheet
           open
           onOpenChange={(open) => !open && setBulkShareOpen(false)}
           resources={list.selectedRows.map((row) => ({

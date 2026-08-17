@@ -110,10 +110,10 @@ export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
 
       {/* Bundling a selection is exactly what a Share IS, so the editor opens seeded with it and
           the user can add more before saving. */}
-      {state.bulkShareOpen && (
+      {state.shareBundleOpen && (
         <ShareEditorSheet
           open
-          onOpenChange={(open) => !open && state.setBulkShareOpen(false)}
+          onOpenChange={(open) => !open && state.setShareBundleOpen(false)}
           mode="create"
           seedResources={state.selectedObjects.map((o) => ({
             type: 'object' as const,

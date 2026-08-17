@@ -112,7 +112,7 @@ export function bulkGrantPlan(
  * N requests just to open) and therefore cannot show or revoke them. Adding someone here never takes
  * access away from anyone; removing is still per-entity, where the full picture is on screen.
  */
-export function BulkShareSheet({
+export function LibraryBulkShareSheet({
   open,
   onOpenChange,
   resources,
