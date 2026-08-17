@@ -5,7 +5,7 @@ import { createClient, type ClientLogger, type Io2pClient } from 'io2p-client'
 import { getCachedConfig } from '@/constants/client'
 
 import { getCoreToken } from './auth/client'
-import { isCallerAbort, markErrorReported } from './io2p-errors'
+import { isCallerAbort, isUnreadable, markErrorReported } from './io2p-errors'
 import { logger } from './observability/logger'
 import { redactPresignedUrlString } from './observability/redact'
 
@@ -141,6 +141,16 @@ export function createIo2pClient(
         // Debug, not error: aborts are the caller's own doing (unmounts,
         // superseded queries) and must not reach Sentry or the ship sink.
         logger.debug('io2p request aborted', fields)
+        return
+      }
+      if (isUnreadable(info.method, info.status)) {
+        // A read the caller is not entitled to — a formula bound by a shared
+        // template but never granted, or a row deleted while the page was open.
+        // The node answers 403 or 404 for both, and either is an expected state
+        // the UI renders around. Only a WRITE that 404s is a real defect: the
+        // caller held a reference and acted on it.
+        logger.info('io2p resource unreadable', fields)
+        markErrorReported(err)
         return
       }
       logger.error('io2p request failed', fields)

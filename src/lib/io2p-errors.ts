@@ -64,6 +64,23 @@ export function isCallerAbort(error: unknown): boolean {
   return false
 }
 
+const READ_METHODS = new Set(['GET', 'HEAD'])
+
+/**
+ * A read the caller is not entitled to, or of something no longer there — routine in a shared
+ * workspace, not a defect. A template shares the formulas it binds only if the sharer opted in, so
+ * the bound ids resolve to 403/404 for everyone else; a row can also be deleted while a page holds
+ * its id. The node uses both statuses for this (404 avoids leaking existence), so neither alone is
+ * a reliable signal.
+ *
+ * Restricted to reads on purpose: a WRITE that 404s means the caller held a reference and acted on
+ * it, which stays at error level.
+ */
+export function isUnreadable(method: string, status?: number): boolean {
+  if (!READ_METHODS.has(method.toUpperCase())) return false
+  return status === 403 || status === 404
+}
+
 // Marks an error the SDK's own onError hook has ALREADY logged at error level (with method, path,
 // status and duration). React Query's global handlers see the same object again and would produce
 // a second error record for one failure — doubling ship volume and Sentry captures.

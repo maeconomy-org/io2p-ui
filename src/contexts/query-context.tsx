@@ -10,7 +10,7 @@ import {
 } from '@tanstack/react-query'
 
 import type { ClientConfig } from '@/constants'
-import { isCallerAbort, wasErrorReported } from '@/lib/io2p-errors'
+import { iomStatus, isCallerAbort, wasErrorReported } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 
 // Dev-only, and lazy so the devtools bundle never enters the module graph of
@@ -47,15 +47,30 @@ interface QueryProviderProps {
   config: ClientConfig
 }
 
+/**
+ * A 4xx is the node's verdict, not a blip: retrying only doubles the requests and the error
+ * records, and the read a caller is not entitled to is the common case in a shared workspace.
+ * 408 and 429 are the exceptions — both explicitly invite a second try.
+ */
+export function retryQuery(failureCount: number, error: unknown): boolean {
+  const status = iomStatus(error)
+  const permanent =
+    status !== undefined &&
+    status >= 400 &&
+    status < 500 &&
+    status !== 408 &&
+    status !== 429
+  return permanent ? false : failureCount < 1
+}
+
 export function QueryProvider({ children, config }: QueryProviderProps) {
   const queryClient = useMemo(
     () =>
       new QueryClient({
         // Global error handlers: every failed query/mutation not hand-caught
-        // by a component used to disappear silently (and `retry: 1` meant it
-        // cost two requests before doing so). Logging ONLY — toasts stay a
-        // per-hook decision, or every background refetch failure becomes a
-        // popup.
+        // by a component used to disappear silently. Logging ONLY — toasts
+        // stay a per-hook decision, or every background refetch failure
+        // becomes a popup.
         //
         // These are a SAFETY NET, not the primary record. Anything that went
         // through io2p-client was already logged at error level by the SDK's
@@ -104,7 +119,7 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
             // Every create or delete performed from another page had the same hole.
             refetchOnMount: true,
             refetchOnWindowFocus: false,
-            retry: 1,
+            retry: retryQuery,
           },
         },
       }),

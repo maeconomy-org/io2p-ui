@@ -13,6 +13,7 @@ import {
   iomDetail,
   iomStatus,
   isCallerAbort,
+  isUnreadable,
   markErrorReported,
   saveErrorMessage,
   wasErrorReported,
@@ -169,5 +170,30 @@ describe('error reported marker', () => {
     expect(() => markErrorReported('boom')).not.toThrow()
     expect(wasErrorReported('boom')).toBe(false)
     expect(wasErrorReported(null)).toBe(false)
+  })
+})
+
+describe('isUnreadable', () => {
+  it('treats a forbidden or missing GET as an expected outcome', () => {
+    expect(isUnreadable('GET', 403)).toBe(true)
+    expect(isUnreadable('GET', 404)).toBe(true)
+    expect(isUnreadable('HEAD', 404)).toBe(true)
+  })
+
+  it('is case-insensitive about the method', () => {
+    expect(isUnreadable('get', 404)).toBe(true)
+  })
+
+  it('keeps a failed WRITE at error level', () => {
+    expect(isUnreadable('PATCH', 404)).toBe(false)
+    expect(isUnreadable('DELETE', 404)).toBe(false)
+    expect(isUnreadable('POST', 403)).toBe(false)
+  })
+
+  it('does not swallow other read failures', () => {
+    expect(isUnreadable('GET', 500)).toBe(false)
+    expect(isUnreadable('GET', 401)).toBe(false)
+    expect(isUnreadable('GET', 0)).toBe(false)
+    expect(isUnreadable('GET', undefined)).toBe(false)
   })
 })
