@@ -23,10 +23,11 @@ let sessionState: { data: any; isPending: boolean } = {
 const mockSignInEmail = vi.fn(async (_input?: any) => ({ error: null }) as any)
 const mockSignOut = vi.fn()
 const mockGetSession = vi.fn()
+const mockClearCoreToken = vi.fn()
 
 vi.mock('@/lib/auth/client', () => ({
   useSession: () => sessionState,
-  clearCoreToken: () => {},
+  clearCoreToken: () => mockClearCoreToken(),
   authClient: {
     signIn: { email: (input: any) => mockSignInEmail(input) },
     signOut: () => mockSignOut(),
@@ -49,10 +50,17 @@ vi.mock('@/hooks/drafts/use-object-drafts', () => ({
   clearLegacyDrafts: vi.fn(),
 }))
 
+// jsdom's `location` is non-configurable and its assign() throws "not implemented".
+const mockAssign = vi.fn()
+Object.defineProperty(window, 'location', {
+  configurable: true,
+  value: { ...window.location, assign: mockAssign },
+})
+
+let queryClient: QueryClient
+let cancelSpy: ReturnType<typeof vi.spyOn>
+
 function wrapper({ children }: { children: React.ReactNode }) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  })
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
@@ -62,6 +70,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockPathname = '/'
   sessionState = { data: null, isPending: false }
+  queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  cancelSpy = vi.spyOn(queryClient, 'cancelQueries')
 })
 
 describe('useAuth', () => {
@@ -100,12 +112,25 @@ describe('useAuth', () => {
     await waitFor(() => expect(result.current.authLoading).toBe(false))
   })
 
-  it('logout signs out at the issuer and redirects home', () => {
+  it('logout signs out at the issuer and leaves via a full document load', async () => {
     sessionState = { data: { user: { id: 'issuer-1' } }, isPending: false }
     const { result } = renderHook(() => useAuth(), { wrapper })
-    result.current.logout()
-    expect(mockPush).toHaveBeenCalledWith('/')
+    await result.current.logout()
     expect(mockSignOut).toHaveBeenCalled()
+    // A client-side push would leave the protected page mounted, and every query
+    // on it refetches against the session being torn down.
+    expect(mockPush).not.toHaveBeenCalled()
+    expect(mockAssign).toHaveBeenCalledWith('/')
+  })
+
+  it('logout cancels in-flight queries before dropping the token', async () => {
+    sessionState = { data: { user: { id: 'issuer-1' } }, isPending: false }
+    const { result } = renderHook(() => useAuth(), { wrapper })
+    await result.current.logout()
+    expect(cancelSpy).toHaveBeenCalled()
+    expect(cancelSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      mockClearCoreToken.mock.invocationCallOrder[0]
+    )
   })
 
   it('handleEmailLogin delegates to authClient.signIn.email', async () => {

@@ -12,6 +12,7 @@ import {
 import { clearLegacyDrafts } from '@/hooks/drafts/use-object-drafts'
 import { authClient, clearCoreToken, useSession } from '@/lib/auth/client'
 import { useIomClient } from '@/lib/io2p'
+import { logger } from '@/lib/observability/logger'
 import { queryKeys } from '@/lib/query-keys'
 
 export interface CertificateInfo {
@@ -86,7 +87,6 @@ let signingOut = false
  * New code should prefer better-auth's `useSession`/`authClient` directly.
  */
 export function useAuth() {
-  const router = useRouter()
   const pathname = usePathname()
   const queryClient = useQueryClient()
   const iom = useIomClient()
@@ -115,15 +115,25 @@ export function useAuth() {
     staleTime: Infinity,
   })
 
-  const logout = () => {
+  const logout = async () => {
     // Clear cached server state synchronously so the login screen can't flash
     // the previous user's data, then sign out at the issuer.
     signingOut = true
+    // `clear()` drops the DATA but leaves observers subscribed, so every mounted
+    // query on the page refetches against the session being torn down. Cancelling
+    // first, and leaving via a full document load rather than `router.push`, means
+    // there is nothing mounted to refetch — the `signingOut` guard only ever
+    // covered `/me`, and each new protected query would need its own.
+    await queryClient.cancelQueries()
     clearCoreToken()
     queryClient.clear()
     clearPreferenceMirrors()
-    router.push('/')
-    void authClient.signOut()
+    try {
+      await authClient.signOut()
+    } catch (err) {
+      logger.warn('logout_signout_failed', { err })
+    }
+    window.location.assign('/')
   }
 
   const handleEmailLogin = async (email: string, password: string) => {
