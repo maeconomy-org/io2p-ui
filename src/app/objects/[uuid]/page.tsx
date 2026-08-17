@@ -60,6 +60,9 @@ export default function ObjectChildrenPage() {
       ...listQuery.query,
       parent: parentUuid,
       size: filters.pageSize,
+      // The node defaults objects to `scope: 'mine'`, which drops children of a
+      // shared parent — the row's childCount honours access, so it still counts them.
+      scope: 'all',
       deleted: filters.showDeleted ? 'include' : undefined,
       withChildCounts: true,
     },
