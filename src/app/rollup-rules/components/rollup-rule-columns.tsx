@@ -70,6 +70,7 @@ export function buildRollupRuleColumns({
         </Badge>
       )
     ),
+    idColumn<RollupRuleDTO>((rule) => rule.id, t('objects.fields.uuid')),
     textColumn<RollupRuleDTO>(
       'owner',
       t('common.owner'),
@@ -81,7 +82,6 @@ export function buildRollupRuleColumns({
         />
       )
     ),
-    idColumn<RollupRuleDTO>((rule) => rule.id, t('objects.fields.uuid')),
     timestampColumn<RollupRuleDTO>(
       'createdAt',
       t('objects.fields.created'),

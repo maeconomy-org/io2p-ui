@@ -192,7 +192,9 @@
     "showMore": "Meer tonen",
     "showLess": "Minder tonen",
     "unknown": "Onbekend",
-    "owner": "Eigenaar",
+    "owner": "Gemaakt door",
+    "tier": "Type",
+    "sharedWithYou": "Met u gedeeld",
     "builtIn": "Ingebouwd",
     "userCreated": "Door gebruiker",
     "me": "Ik",
@@ -387,7 +389,7 @@
       "version": "Versie",
       "revision": "Revisie",
       "description": "Beschrijving",
-      "created": "Aangemaakt",
+      "created": "Aangemaakt op",
       "updated": "Bijgewerkt",
       "address": "Adres",
       "properties": "Eigenschappen",
@@ -1324,6 +1326,7 @@
       "isLevel": "Niveau",
       "makeLevel": "Maak niveau",
       "attachDeepest": "op het diepste niveau",
+      "attachEvery": "op elk niveau",
       "attachTo": "op {level}",
       "useHierarchy": "Gebruik als hiërarchie",
       "clearHierarchy": "Hiërarchie wissen",
@@ -1350,14 +1353,6 @@
           "country": "Adres — land"
         }
       },
-      "destination": {
-        "title": "Importeren onder een bestaand object",
-        "optional": "Optioneel — laat leeg om ze op het hoogste niveau aan te maken.",
-        "chosen": "Elk object op het hoogste niveau wordt aangemaakt in {name}.",
-        "fallbackName": "het gekozen object",
-        "placeholder": "Kies een bovenliggend object…",
-        "clear": "Bestemming wissen"
-      },
       "suggestionEffect": "Als je dit accepteert worden er {objects, number} objecten gemaakt uit {rows, number} rijen.",
       "inert": {
         "levelsWin": "Genegeerd — de hiërarchie komt uit de niveaukolommen, dus deze waarde wordt niet geïmporteerd.",
@@ -1371,7 +1366,6 @@
     "check": {
       "title": "Controleer wat er wordt aangemaakt",
       "subtitle": "Er is nog niets weggeschreven. Dit zijn de objecten, niet de rijen.",
-      "underDestination": "Ze worden aangemaakt onder het object dat je hebt gekozen.",
       "stats": {
         "objects": "{count, plural, one {object} other {objecten}}",
         "depth": "niveaus diep",
@@ -1403,7 +1397,15 @@
       "fixOrSkip": "Vul de gemarkeerde cellen in, of laat deze {count, number} rijen buiten de import.",
       "skipRows": "{count, number} rijen overslaan",
       "empty": "leeg",
-      "editsAreLocal": "Wijzigingen hier worden nog niet verzonden — deze weergave bestaat om de interactie te beoordelen."
+      "editsAreLocal": "Wijzigingen hier worden nog niet verzonden — deze weergave bestaat om de interactie te beoordelen.",
+      "destination": {
+        "title": "Importeren onder een bestaand object",
+        "optional": "Optioneel — laat leeg om ze op het hoogste niveau aan te maken.",
+        "chosen": "Elk object op het hoogste niveau wordt aangemaakt in {name}.",
+        "fallbackName": "het gekozen object",
+        "placeholder": "Kies een bovenliggend object…",
+        "clear": "Bestemming wissen"
+      }
     },
     "outcome": {
       "created": "{count} aangemaakt",

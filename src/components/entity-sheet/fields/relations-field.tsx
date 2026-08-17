@@ -11,6 +11,7 @@ import {
   Button,
   Skeleton,
 } from '@/components/ui'
+import { OwnerHint } from '@/components/entity-list'
 
 import {
   useObjectRelations,
@@ -194,7 +195,13 @@ function RelationRow({
       className="flex items-center gap-2 rounded-md border px-2 py-1.5"
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{process.name}</p>
+        <p className="truncate text-sm font-medium">
+          {process.name}
+          <OwnerHint
+            ownerUserId={process.createdBy}
+            ownerName={process.createdByName}
+          />
+        </p>
         <p className="text-xs text-muted-foreground">
           {format.dateTime(new Date(process.createdAt), {
             dateStyle: 'medium',

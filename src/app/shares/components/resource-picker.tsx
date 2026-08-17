@@ -17,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui'
+import { OwnerHint } from '@/components/entity-list'
 import type { ShareResourceType } from '@/components/access'
 import { useObjects, useProcesses, useTemplates } from '@/hooks/api/entities'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
@@ -30,6 +31,9 @@ export interface ShareResource {
   type: ShareResourceType
   id: string
   name: string
+  system?: boolean
+  ownerUserId?: string
+  ownerName?: string
 }
 
 /**
@@ -90,11 +94,15 @@ export function ResourcePicker({
             type: 'object' as const,
             id: o.id,
             name: o.name,
+            ownerUserId: o.createdBy,
+            ownerName: o.createdByName,
           })),
           ...(processes?.data ?? []).map((p) => ({
             type: 'process' as const,
             id: p.id,
             name: p.name,
+            ownerUserId: p.createdBy,
+            ownerName: p.createdByName,
           })),
         ]
       : [
@@ -102,16 +110,25 @@ export function ResourcePicker({
             type: 'formula' as const,
             id: f.id,
             name: f.name,
+            system: f.system,
+            ownerUserId: f.ownerUserId,
+            ownerName: f.ownerName,
           })),
           ...(constants?.data ?? []).map((c) => ({
             type: 'constant' as const,
             id: c.id,
             name: c.name,
+            system: c.system,
+            ownerUserId: c.ownerUserId,
+            ownerName: c.ownerName,
           })),
           ...(templates?.data ?? []).map((tpl) => ({
             type: 'template' as const,
             id: tpl.id,
             name: tpl.name,
+            system: tpl.system,
+            ownerUserId: tpl.ownerUserId,
+            ownerName: tpl.ownerName,
           })),
         ]
   ).filter((r) => !selectedIds.has(r.id))
@@ -191,6 +208,11 @@ export function ResourcePicker({
                     {t(`shares.resourceType.${resource.type}`)}
                   </Badge>
                   <span className="truncate">{resource.name}</span>
+                  <OwnerHint
+                    system={resource.system}
+                    ownerUserId={resource.ownerUserId}
+                    ownerName={resource.ownerName}
+                  />
                 </CommandItem>
               ))}
             </CommandGroup>

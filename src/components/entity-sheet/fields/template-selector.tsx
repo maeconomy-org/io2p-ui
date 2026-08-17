@@ -17,6 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui'
+import { OwnerHint } from '@/components/entity-list'
 import { useTemplates } from '@/hooks/api/entities'
 import type { TemplatePresetProperty } from '@/lib/entity'
 import { cn } from '@/lib/utils'
@@ -147,6 +148,11 @@ export function TemplateSelector({
                   <span className="min-w-0 flex-1 truncate">
                     {template.name}
                   </span>
+                  <OwnerHint
+                    system={template.system}
+                    ownerUserId={template.ownerUserId}
+                    ownerName={template.ownerName}
+                  />
                   {(template.properties?.length ?? 0) > 0 && (
                     <span className="ml-2 shrink-0 text-xs text-muted-foreground">
                       {t('objects.templateSelector.propertyCount', {

@@ -192,7 +192,9 @@
     "showMore": "Show more",
     "showLess": "Show less",
     "unknown": "Unknown",
-    "owner": "Owner",
+    "owner": "Created by",
+    "tier": "Type",
+    "sharedWithYou": "Shared with you",
     "builtIn": "Built-in",
     "userCreated": "User-created",
     "me": "Me",
@@ -386,7 +388,7 @@
       "version": "Version",
       "revision": "Revision",
       "description": "Description",
-      "created": "Created",
+      "created": "Created at",
       "updated": "Updated",
       "address": "Address",
       "properties": "Properties",
@@ -1324,6 +1326,7 @@
       "isLevel": "Level",
       "makeLevel": "Make level",
       "attachDeepest": "on the deepest level",
+      "attachEvery": "on every level",
       "attachTo": "on {level}",
       "useHierarchy": "Use as hierarchy",
       "clearHierarchy": "Clear hierarchy",
@@ -1350,14 +1353,6 @@
           "country": "Address — country"
         }
       },
-      "destination": {
-        "title": "Import under an existing object",
-        "optional": "Optional — leave empty to create them at the top level.",
-        "chosen": "Every top-level object will be created inside {name}.",
-        "fallbackName": "the chosen object",
-        "placeholder": "Choose a parent…",
-        "clear": "Clear destination"
-      },
       "suggestionEffect": "Accepting this would create {objects, number} objects from {rows, number} rows.",
       "inert": {
         "levelsWin": "Ignored — the hierarchy comes from the level columns, so this value is not imported.",
@@ -1371,7 +1366,6 @@
     "check": {
       "title": "Check what will be created",
       "subtitle": "Nothing has been written yet. These are the objects, not the rows.",
-      "underDestination": "They will be created under the object you chose.",
       "stats": {
         "objects": "{count, plural, one {object} other {objects}}",
         "depth": "levels deep",
@@ -1403,7 +1397,15 @@
       "fixOrSkip": "Fill the highlighted cells, or leave these {count, number} rows out of the import.",
       "skipRows": "Skip {count, number} rows",
       "empty": "empty",
-      "editsAreLocal": "Edits here are not sent yet — this view exists to judge the interaction."
+      "editsAreLocal": "Edits here are not sent yet — this view exists to judge the interaction.",
+      "destination": {
+        "title": "Import under an existing object",
+        "optional": "Optional — leave empty to create them at the top level.",
+        "chosen": "Every top-level object will be created inside {name}.",
+        "fallbackName": "the chosen object",
+        "placeholder": "Choose a parent…",
+        "clear": "Clear destination"
+      }
     },
     "outcome": {
       "created": "{count} created",

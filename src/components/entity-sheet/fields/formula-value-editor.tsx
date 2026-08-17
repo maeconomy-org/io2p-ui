@@ -24,6 +24,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { OwnerHint } from '@/components/entity-list'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { evaluateExpression } from '@/lib/formula-expression'
 import { SEARCH_SIZE } from '@/constants'
@@ -119,6 +120,11 @@ export function FormulaSelect({
                   }}
                 >
                   <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                  <OwnerHint
+                    system={f.system}
+                    ownerUserId={f.ownerUserId}
+                    ownerName={f.ownerName}
+                  />
                   <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
                     {f.expression}
                   </span>
@@ -472,6 +478,11 @@ function BindingPicker({
                       onSelect={choose}
                     >
                       <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                      <OwnerHint
+                        system={c.system}
+                        ownerUserId={c.ownerUserId}
+                        ownerName={c.ownerName}
+                      />
                       {current?.data && (
                         <span className="ml-1 shrink-0 text-muted-foreground">
                           ({current.data})

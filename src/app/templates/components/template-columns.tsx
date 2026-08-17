@@ -46,6 +46,15 @@ export function buildTemplateColumns({
         </Badge>
       )
     ),
+    textColumn<TemplateListItem>(
+      'version',
+      t('objects.fields.version'),
+      (template) => template.version ?? '—'
+    ),
+    idColumn<TemplateListItem>(
+      (template) => template.id,
+      t('objects.fields.uuid')
+    ),
     // Who owns the template decides what can be done to it, so it earns its own column rather than
     // riding along as a badge that only appears for one of the two cases.
     textColumn<TemplateListItem>(
@@ -58,15 +67,6 @@ export function buildTemplateColumns({
           ownerName={template.ownerName}
         />
       )
-    ),
-    textColumn<TemplateListItem>(
-      'version',
-      t('objects.fields.version'),
-      (template) => template.version ?? '—'
-    ),
-    idColumn<TemplateListItem>(
-      (template) => template.id,
-      t('objects.fields.uuid')
     ),
     // Sortable because the node sorts on createdAt server-side, like it does for objects.
     timestampColumn<TemplateListItem>(

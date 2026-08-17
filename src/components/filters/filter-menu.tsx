@@ -242,7 +242,7 @@ export function ownerSection(
 ): FilterSection {
   return {
     key: 'owner',
-    label: t('common.owner'),
+    label: t('common.tier'),
     options: [
       { value: 'system', label: t('common.builtIn') },
       { value: 'user', label: t('common.userCreated') },

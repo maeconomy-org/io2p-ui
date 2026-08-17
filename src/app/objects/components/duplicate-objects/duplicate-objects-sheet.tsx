@@ -35,6 +35,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui'
+import { OwnerHint } from '@/components/entity-list'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/observability/logger'
 import { useIomClient } from '@/lib/io2p'
@@ -361,6 +362,10 @@ export function DuplicateObjectsSheet({
                               <span className="font-medium truncate">
                                 {object.name || object.uuid}
                               </span>
+                              <OwnerHint
+                                ownerUserId={object.createdBy}
+                                ownerName={object.createdByName}
+                              />
                               {(object.hasChildren ||
                                 (object.children &&
                                   object.children.length > 0)) && (

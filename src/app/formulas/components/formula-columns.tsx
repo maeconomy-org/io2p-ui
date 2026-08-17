@@ -75,6 +75,7 @@ export function buildFormulaColumns({
           </span>
         )
     ),
+    idColumn<FormulaDTO>((f) => f.id, t('objects.fields.uuid')),
     textColumn<FormulaDTO>(
       'owner',
       t('common.owner'),
@@ -86,7 +87,6 @@ export function buildFormulaColumns({
         />
       )
     ),
-    idColumn<FormulaDTO>((f) => f.id, t('objects.fields.uuid')),
     timestampColumn<FormulaDTO>(
       'createdAt',
       t('objects.fields.created'),

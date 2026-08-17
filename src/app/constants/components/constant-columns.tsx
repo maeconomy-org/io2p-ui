@@ -75,6 +75,7 @@ export function buildConstantColumns({
         </Badge>
       )
     ),
+    idColumn<ConstantDTO>((c) => c.id, t('objects.fields.uuid')),
     textColumn<ConstantDTO>(
       'owner',
       t('common.owner'),
@@ -86,7 +87,6 @@ export function buildConstantColumns({
         />
       )
     ),
-    idColumn<ConstantDTO>((c) => c.id, t('objects.fields.uuid')),
     timestampColumn<ConstantDTO>(
       'createdAt',
       t('objects.fields.created'),

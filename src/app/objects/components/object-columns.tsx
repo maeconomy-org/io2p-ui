@@ -5,11 +5,13 @@ import type { ColumnDef } from '@tanstack/react-table'
 import type { ObjectListItem } from 'io2p-client'
 
 import {
+  OwnerCell,
   actionsColumn,
   coverColumn,
   idColumn,
   nameColumn,
   selectColumn,
+  textColumn,
   timestampColumn,
 } from '@/components/entity-list'
 
@@ -65,6 +67,13 @@ export function buildObjectColumns({
       childrenTooltip: (count) => t('objects.childrenTooltip', { count }),
     }),
     idColumn<ObjectListItem>((o) => o.id, t('objects.fields.uuid')),
+    textColumn<ObjectListItem>(
+      'createdBy',
+      t('common.owner'),
+      (o): ReactNode => (
+        <OwnerCell ownerUserId={o.createdBy} ownerName={o.createdByName} />
+      )
+    ),
     timestampColumn<ObjectListItem>(
       'createdAt',
       t('objects.fields.created'),

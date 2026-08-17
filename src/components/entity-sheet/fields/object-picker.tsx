@@ -16,6 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui'
+import { OwnerHint } from '@/components/entity-list'
 import { useObjects } from '@/hooks/api/entities'
 import { cn } from '@/lib/utils'
 
@@ -118,6 +119,10 @@ export function ObjectPicker({
                   }}
                 >
                   <span className="min-w-0 flex-1 truncate">{object.name}</span>
+                  <OwnerHint
+                    ownerUserId={object.createdBy}
+                    ownerName={object.createdByName}
+                  />
                 </CommandItem>
               ))}
             </CommandGroup>

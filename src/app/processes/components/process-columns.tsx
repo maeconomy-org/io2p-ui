@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui'
 import {
   EntityActionsCell,
   type EntityRowAction,
+  OwnerCell,
   actionsColumn,
   idColumn,
   nameColumn,
@@ -63,6 +64,13 @@ export function buildProcessColumns({
       )
     ),
     idColumn<ProcessListItem>((p) => p.id, t('objects.fields.uuid')),
+    textColumn<ProcessListItem>(
+      'createdBy',
+      t('common.owner'),
+      (p): ReactNode => (
+        <OwnerCell ownerUserId={p.createdBy} ownerName={p.createdByName} />
+      )
+    ),
     timestampColumn<ProcessListItem>(
       'createdAt',
       t('objects.fields.created'),

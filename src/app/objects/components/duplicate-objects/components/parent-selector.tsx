@@ -20,6 +20,7 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui'
+import { OwnerHint } from '@/components/entity-list'
 import { cn, truncateText } from '@/lib/utils'
 import { useIomClient } from '@/lib/io2p'
 import type { ParentObject } from '@/types'
@@ -308,6 +309,10 @@ export function ParentSelector({
                       <div className="flex flex-col min-w-0">
                         <span className="font-medium truncate">
                           {object.name || object.uuid}
+                          <OwnerHint
+                            ownerUserId={object.createdBy}
+                            ownerName={object.createdByName}
+                          />
                         </span>
                         <span className="text-xs text-muted-foreground font-mono truncate">
                           {truncateText(object.uuid, 30, true)}

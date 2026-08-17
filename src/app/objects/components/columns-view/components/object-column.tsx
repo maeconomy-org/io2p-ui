@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui'
+import { OwnerHint } from '@/components/entity-list'
 import { cn, truncateText } from '@/lib/utils'
 import { useObjects } from '@/hooks/api/entities'
 
@@ -181,6 +182,10 @@ export function MillerColumn({
                         true
                       )}
                     </span>
+                    <OwnerHint
+                      ownerUserId={item.createdBy}
+                      ownerName={item.createdByName}
+                    />
                     {hasChildren && (
                       <span className="inline-flex shrink-0 items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700">
                         {childCount}
