@@ -249,7 +249,9 @@ describe('InitialLoginTour', () => {
     authState.isAuthenticated = true
     authState.authLoading = false
     authState.userId = USER
-    authState.preferences = undefined
+    // An account whose preferences HAVE loaded and carry no tour state. `undefined` is the
+    // in-flight state, where the tour must not start — see the first-login case below.
+    authState.preferences = {}
     updatePreferences.mockResolvedValue({})
     queryClient = new QueryClient({
       defaultOptions: {
@@ -347,5 +349,35 @@ describe('InitialLoginTour', () => {
     // yet — was judged missing and the tour ended one step early.
     expect(lastConfig().skipMissingElement).toBe(false)
     expect(lastConfig().allowClose).toBe(true)
+  })
+
+  it('waits for the record before deciding the tour has not been seen', async () => {
+    authState.preferences = undefined
+
+    await mount()
+
+    expect(driverMock).not.toHaveBeenCalled()
+  })
+
+  it('starts on first login, once the record arrives after auth settles', async () => {
+    // The reported bug: `/me` resolves one commit AFTER authLoading clears, and the tour was
+    // starting against the defaults, being cancelled by the resulting dependency change, and
+    // latching itself off for the rest of the mount. It only appeared on a second reload,
+    // where React Query already held `/me`.
+    authState.preferences = undefined
+    const { default: InitialLoginTour } =
+      await import('@/components/onboarding/initial-login-tour')
+    let rendered: ReturnType<typeof render>
+    await act(async () => {
+      rendered = render(<InitialLoginTour />, { wrapper })
+    })
+    expect(driverMock).not.toHaveBeenCalled()
+
+    authState.preferences = { onboarding: {} }
+    await act(async () => {
+      rendered.rerender(<InitialLoginTour />)
+    })
+
+    expect(driverMock).toHaveBeenCalledTimes(1)
   })
 })

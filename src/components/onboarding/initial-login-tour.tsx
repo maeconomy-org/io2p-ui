@@ -121,8 +121,9 @@ export default function InitialLoginTour() {
   }, [markSeen])
 
   useEffect(() => {
-    // `resolved` gates on auth settling: the seen-flag lives in an
-    // account-scoped blob, so before it lands `seen` is false for everyone.
+    // `resolved` gates on the `/me` payload having ARRIVED, not merely on auth
+    // settling: the seen-flag lives in an account-scoped blob with no cookie
+    // hint, so before it lands `seen` is false for everyone.
     if (
       authLoading ||
       !isAuthenticated ||
@@ -136,11 +137,14 @@ export default function InitialLoginTour() {
     let cancelled = false
 
     const startTour = async () => {
-      hasStartedRef.current = true
       // Tour copy is fetched here rather than bundled with the page — see
       // tour-messages. One await before driver() starts; nothing is on screen yet.
       const steps = getSteps(await loadTourMessages(locale))
+      // Marked only once the attempt survives the await. Set before it, a
+      // dependency change during the fetch cancels this run while leaving the
+      // guard latched, and the tour never runs again for this mount.
       if (cancelled) return
+      hasStartedRef.current = true
 
       const onboardingDriver = driver({
         nextBtnText: t('common.next'),

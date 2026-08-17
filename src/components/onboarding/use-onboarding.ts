@@ -30,6 +30,9 @@ export function useTourSeen(tourId: string) {
   const seen = !stale && toursSeen.includes(tourId)
 
   const markSeen = useCallback(() => {
+    // Unresolved preferences read as epoch 0, which takes the `stale` branch below and REPLACES
+    // the list — writing before `/me` lands would drop every other tour the account has seen.
+    if (!resolved) return
     setToursSeen(stale ? [tourId] : [...new Set([...toursSeen, tourId])])
     if (stale) {
       // Ordered after the list write: both go through the same
@@ -37,7 +40,7 @@ export function useTourSeen(tourId: string) {
       // new list rather than overwriting it.
       setEpoch(ONBOARDING_EPOCH)
     }
-  }, [stale, tourId, toursSeen, setToursSeen, setEpoch])
+  }, [resolved, stale, tourId, toursSeen, setToursSeen, setEpoch])
 
   return { seen, markSeen, resolved }
 }

@@ -188,7 +188,10 @@ export function usePreference<K extends PreferenceKey>(
     [patch, key]
   )
 
-  return [value, setValue, hydrated && !authLoading]
+  // `!!preferences` and not just `!authLoading`: a re-created `/me` observer reports settled one
+  // commit before its data lands, and a key with no cookie hint reads as its hardcoded default in
+  // that gap. `onboarding.toursSeen` is the one that matters — an empty list means "never seen".
+  return [value, setValue, hydrated && !authLoading && !!preferences]
 }
 
 /**
