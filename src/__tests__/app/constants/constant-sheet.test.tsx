@@ -199,7 +199,8 @@ describe('ConstantSheet', () => {
       />
     )
 
-    expect(valueInput()).toBeDisabled()
+    // Omitted, not greyed: a disabled input still offers a control the viewer cannot use.
+    expect(screen.queryByLabelText(/constants\.(new)?[Vv]alue/)).toBeNull()
     expect(
       screen.queryByRole('button', { name: 'constants.addVersion' })
     ).toBeNull()
@@ -215,7 +216,8 @@ describe('ConstantSheet', () => {
       />
     )
 
-    expect(valueInput()).toBeDisabled()
+    // Omitted, not greyed: a disabled input still offers a control the viewer cannot use.
+    expect(screen.queryByLabelText(/constants\.(new)?[Vv]alue/)).toBeNull()
     expect(
       screen.queryByRole('button', { name: 'constants.addVersion' })
     ).toBeNull()

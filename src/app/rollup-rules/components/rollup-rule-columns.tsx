@@ -9,6 +9,7 @@ import {
   EntityActionsCell,
   type EntityRowAction,
   OwnerCell,
+  canWriteLibraryItem,
   actionsColumn,
   idColumn,
   nameColumn,
@@ -21,6 +22,7 @@ import {
   type PropertyDictionaryLocale,
 } from '@/constants/property-dictionary'
 
+import { useAuth } from '@/contexts'
 import type { RollupRuleDTO } from '../lib/rollup-rule'
 
 export interface RollupRuleColumnActions {
@@ -90,15 +92,31 @@ export function buildRollupRuleColumns({
     ),
     actionsColumn<RollupRuleDTO>(
       (rule): ReactNode => (
-        <EntityActionsCell
-          testIdPrefix="rollup-rule"
-          onViewDetails={() => actions.onViewDetails(rule)}
-          actions={rowActions(rule, t, actions)}
-        />
+        <RollupRuleActionsCell rule={rule} t={t} actions={actions} />
       ),
       t('common.actions')
     ),
   ]
+}
+
+function RollupRuleActionsCell({
+  rule,
+  t,
+  actions,
+}: {
+  rule: RollupRuleDTO
+  t: (key: string) => string
+  actions: RollupRuleColumnActions
+}) {
+  const { userId } = useAuth()
+
+  return (
+    <EntityActionsCell
+      testIdPrefix="rollup-rule"
+      onViewDetails={() => actions.onViewDetails(rule)}
+      actions={rowActions(rule, t, actions, userId)}
+    />
+  )
 }
 
 /**
@@ -111,8 +129,13 @@ export function buildRollupRuleColumns({
 function rowActions(
   rule: RollupRuleDTO,
   t: (key: string) => string,
-  actions: RollupRuleColumnActions
+  actions: RollupRuleColumnActions,
+  viewerId?: string
 ): EntityRowAction[] {
+  // Before the lifecycle branches, not after: restoring is as much a write as deleting, and the
+  // node's own rules are nobody's to touch.
+  if (!canWriteLibraryItem(rule, viewerId)) return []
+
   if (rule.deleted) {
     return [
       {
@@ -123,8 +146,6 @@ function rowActions(
       },
     ]
   }
-
-  if (rule.system) return []
 
   return [
     {

@@ -15,11 +15,13 @@ import {
 import {
   BulkActionBar,
   EntityTable,
+  canWriteLibraryItem,
   useEntityListActions,
   useEntityListFilters,
   useEntityListQuery,
 } from '@/components/entity-list'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
+import { useAuth } from '@/contexts'
 import { PageHelp } from '@/components/onboarding/page-help'
 import { anchor, type PropertyDictionaryLocale } from '@/constants'
 
@@ -46,6 +48,7 @@ const ROLLUP_RULE_MESSAGES = {
 
 export default function RollupRulesPage() {
   const t = useTranslations()
+  const { userId } = useAuth()
   const locale = useLocale() as PropertyDictionaryLocale
 
   const [sheet, setSheet] = useState<SheetState | null>(null)
@@ -82,6 +85,7 @@ export default function RollupRulesPage() {
     restore: restoreMutation,
     entityName: 'rollup rule',
     messages: ROLLUP_RULE_MESSAGES,
+    canAct: (rule) => canWriteLibraryItem(rule, userId),
   })
 
   const actions: RollupRuleColumnActions = useMemo(

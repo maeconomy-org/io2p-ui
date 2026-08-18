@@ -138,38 +138,50 @@ function ConstantForm({
       className="-mx-1 flex min-h-0 flex-1 flex-col overflow-hidden px-1"
     >
       <SheetBody className="space-y-5">
-        <div className="space-y-2">
-          <Label htmlFor="constant-name">{t('constants.name')}</Label>
-          <Input
-            id="constant-name"
-            value={name}
-            // The name is what a binding records, so renaming would orphan every calc using it.
-            disabled={isEdit || readOnly}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t('constants.placeholders.name')}
-          />
-          {isEdit && (
-            <p className="text-xs text-muted-foreground">
-              {t('constants.nameImmutable')}
+        {readOnly ? (
+          // A greyed input offers something the viewer cannot use. `disabled` stays below for
+          // the name's IMMUTABILITY, which is a rule about the field and applies to the owner too.
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">
+              {t('constants.name')}
             </p>
-          )}
-        </div>
+            <p className="text-sm">{name}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label htmlFor="constant-name">{t('constants.name')}</Label>
+            <Input
+              id="constant-name"
+              value={name}
+              // The name is what a binding records, so renaming would orphan every calc using it.
+              disabled={isEdit}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('constants.placeholders.name')}
+            />
+            {isEdit && (
+              <p className="text-xs text-muted-foreground">
+                {t('constants.nameImmutable')}
+              </p>
+            )}
+          </div>
+        )}
 
-        <div className="space-y-2">
-          <Label htmlFor="constant-data">
-            {isEdit ? t('constants.newValue') : t('constants.value')}
-          </Label>
-          <Input
-            id="constant-data"
-            value={data}
-            disabled={readOnly}
-            onChange={(e) => setData(e.target.value)}
-            placeholder={t('constants.placeholders.value')}
-          />
-          <p className="text-xs text-muted-foreground">
-            {t('constants.valueHint')}
-          </p>
-        </div>
+        {!readOnly && (
+          <div className="space-y-2">
+            <Label htmlFor="constant-data">
+              {isEdit ? t('constants.newValue') : t('constants.value')}
+            </Label>
+            <Input
+              id="constant-data"
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+              placeholder={t('constants.placeholders.value')}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('constants.valueHint')}
+            </p>
+          </div>
+        )}
 
         {constant && (
           <div className="space-y-1.5">

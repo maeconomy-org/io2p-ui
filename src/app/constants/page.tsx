@@ -208,8 +208,12 @@ export default function ConstantsPage() {
         actions={[
           {
             key: 'share',
+            // A bundle needs `share` on EVERY resource or the node refuses the whole call, so a
+            // selection mixing yours with someone else's would fail as a unit.
             label: t('access.share'),
             icon: Share2,
+            hidden: list.actionableRows.length === 0,
+            actionable: list.actionableRows.length,
             onSelect: () => setBulkShareOpen(true),
           },
         ]}
@@ -219,7 +223,7 @@ export default function ConstantsPage() {
         <LibraryBulkShareSheet
           open
           onOpenChange={(open) => !open && setBulkShareOpen(false)}
-          resources={list.selectedRows.map((row) => ({
+          resources={list.actionableRows.map((row) => ({
             type: 'constant' as const,
             id: row.id,
             name: row.name,
