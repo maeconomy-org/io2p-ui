@@ -30,6 +30,7 @@ vi.mock('@/app/objects/components/use-create-template-from-object', () => ({
 }))
 
 vi.mock('@/lib/observability/logger', () => ({ logger: { error: vi.fn() } }))
+vi.mock('@/contexts', () => ({ useAuth: () => ({ userId: 'me' }) }))
 
 const row = (id: string, deleted = false) =>
   ({ id, name: `Object ${id}`, deleted }) as unknown as ObjectListItem
@@ -142,6 +143,25 @@ describe('useObjectListPage', () => {
       expect(remove).toHaveBeenCalledWith({ id: 'b' })
       expect(result.current.confirmBulkDelete).toBe(false)
       expect(result.current.selectedIds).toEqual([])
+    })
+
+    it('sends only the rows the viewer may delete, not the whole selection', async () => {
+      // The button appears because ONE row is actionable; sending the rest would 403 each of them,
+      // and Promise.all turns that into a single logged line the user never sees.
+      const { result } = renderWith(
+        pageOf(
+          { ...row('mine'), permission: 'admin' } as ObjectListItem,
+          { ...row('theirs'), permission: 'read' } as ObjectListItem
+        )
+      )
+
+      act(() => result.current.setRowSelection({ mine: true, theirs: true }))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      expect(remove).toHaveBeenCalledTimes(1)
+      expect(remove).toHaveBeenCalledWith({ id: 'mine' })
     })
 
     it('restores every selected id and clears', async () => {

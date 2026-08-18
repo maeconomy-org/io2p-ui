@@ -31,7 +31,6 @@ interface BuildObjectColumnsOptions {
   t: (key: string, values?: Record<string, string | number | Date>) => string
   actions: ObjectColumnActions
   enableSelection?: boolean
-  readOnly?: boolean
   isDeleting?: boolean
   isRestoring?: boolean
 }
@@ -40,7 +39,6 @@ export function buildObjectColumns({
   t,
   actions,
   enableSelection = false,
-  readOnly = false,
   isDeleting = false,
   isRestoring = false,
 }: BuildObjectColumnsOptions): ColumnDef<ObjectListItem, unknown>[] {
@@ -87,7 +85,6 @@ export function buildObjectColumns({
           actions={actions}
           isDeleting={isDeleting}
           isRestoring={isRestoring}
-          readOnly={readOnly}
         />
       ),
       t('common.actions')

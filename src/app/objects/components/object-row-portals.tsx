@@ -115,7 +115,7 @@ export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
           open
           onOpenChange={(open) => !open && state.setShareBundleOpen(false)}
           mode="create"
-          seedResources={state.selectedObjects.map((o) => ({
+          seedResources={state.shareableObjects.map((o) => ({
             type: 'object' as const,
             id: o.id,
             name: o.name,

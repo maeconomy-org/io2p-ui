@@ -23,7 +23,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui'
-import { OwnerHint } from '@/components/entity-list'
+import {
+  OwnerHint,
+  canDelete,
+  permissionWhenKnown,
+} from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 import { cn, truncateText } from '@/lib/utils'
 import { useObjects } from '@/hooks/api/entities'
 
@@ -79,6 +84,7 @@ export function MillerColumn({
   onRestore,
 }: MillerColumnProps) {
   const t = useTranslations()
+  const { userId, authLoading } = useAuth()
   const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -157,6 +163,9 @@ export function MillerColumn({
               const childCount = item.childCount ?? 0
               const hasChildren = childCount > 0
               const isDeleted = item.deleted
+              // Delete and restore are guarded at `admin`. This column lists at `scope: 'all'`,
+              // so shared rows sit beside the viewer's own.
+              const permission = permissionWhenKnown(item, userId, authLoading)
 
               return (
                 <div
@@ -241,7 +250,7 @@ export function MillerColumn({
                             {t('objects.createTemplate')}
                           </DropdownMenuItem>
                         )}
-                        {(onDelete || onRestore) && (
+                        {(onDelete || onRestore) && canDelete(permission) && (
                           <>
                             <DropdownMenuSeparator />
                             {isDeleted

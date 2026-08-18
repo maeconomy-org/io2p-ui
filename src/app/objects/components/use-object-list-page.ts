@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl'
 import type { RowSelectionState } from '@tanstack/react-table'
 import type { ObjectListItem, Page } from 'io2p-client'
 
+import { canDelete, canReshare, permissionOf } from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 import { useObjects } from '@/hooks/api/entities'
 import { logger } from '@/lib/observability/logger'
 
@@ -32,6 +34,7 @@ interface UseObjectListPageOptions {
  */
 export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
   const t = useTranslations()
+  const { userId } = useAuth()
 
   // Row-action targets. Each is its own state rather than one tagged union because they are
   // independent — a QR modal and a delete confirm can be open over the same row without conflict.
@@ -66,6 +69,19 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
   const selectedObjects = useMemo(
     () => (page?.data ?? []).filter((o) => rowSelection[o.id]),
     [page, rowSelection]
+  )
+  // The rows a lifecycle verb may actually touch. Selection itself stays whole — the user picked
+  // those rows — but sending the rest would 403 each one, and Promise.all swallows that into a
+  // single logged line the user never sees.
+  const deletableObjects = useMemo(
+    () => selectedObjects.filter((o) => canDelete(permissionOf(o, userId))),
+    [selectedObjects, userId]
+  )
+  // Its own rung, not `deletableObjects`: a bundle needs `share` on EVERY resource or the node
+  // refuses the whole call, and `share` sits below `admin`.
+  const shareableObjects = useMemo(
+    () => selectedObjects.filter((o) => canReshare(permissionOf(o, userId))),
+    [selectedObjects, userId]
   )
   const clearSelection = useCallback(() => setRowSelection({}), [])
 
@@ -102,7 +118,9 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
   const runBulkDelete = useCallback(async () => {
     try {
       await Promise.all(
-        selectedIds.map((id) => removeMutation.mutateAsync({ id }))
+        deletableObjects
+          .filter((o) => !o.deleted)
+          .map((o) => removeMutation.mutateAsync({ id: o.id }))
       )
     } catch (error) {
       logger.error('Bulk delete error:', { err: error })
@@ -110,19 +128,21 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
       setConfirmBulkDelete(false)
       clearSelection()
     }
-  }, [selectedIds, removeMutation, clearSelection])
+  }, [deletableObjects, removeMutation, clearSelection])
 
   const runBulkRestore = useCallback(async () => {
     try {
       await Promise.all(
-        selectedIds.map((id) => restoreMutation.mutateAsync({ id }))
+        deletableObjects
+          .filter((o) => o.deleted)
+          .map((o) => restoreMutation.mutateAsync({ id: o.id }))
       )
     } catch (error) {
       logger.error('Bulk restore error:', { err: error })
     } finally {
       clearSelection()
     }
-  }, [selectedIds, restoreMutation, clearSelection])
+  }, [deletableObjects, restoreMutation, clearSelection])
 
   const columns = useMemo(
     () =>
@@ -158,8 +178,12 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
     setRowSelection,
     selectedIds,
     selectedObjects,
-    anySelectedDeleted: selectedObjects.some((o) => o.deleted),
-    canDeleteSelection: selectedObjects.some((o) => !o.deleted),
+    // Both verbs are guarded at `admin`, so a selection is actionable only where the viewer holds
+    // it — deleted-ness alone would offer the button and 403 on the rows it cannot touch.
+    anySelectedDeleted: deletableObjects.some((o) => o.deleted),
+    canDeleteSelection: deletableObjects.some((o) => !o.deleted),
+    deletableObjects,
+    shareableObjects,
     clearSelection,
 
     isDeleting: removeMutation.isPending,

@@ -35,6 +35,9 @@ export function ObjectBulkBar({
           key: 'share',
           label: t('access.share'),
           icon: Share2,
+          // A bundle needs `share` on EVERY resource or the node refuses the whole call.
+          hidden: state.shareableObjects.length === 0,
+          actionable: state.shareableObjects.length,
           onSelect: () => state.setShareBundleOpen(true),
         },
         {

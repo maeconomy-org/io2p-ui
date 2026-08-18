@@ -7,6 +7,9 @@ import type { ObjectListItem } from 'io2p-client'
 import {
   EntityActionsCell,
   type EntityRowAction,
+  canDelete,
+  canReshare,
+  permissionWhenKnown,
 } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 
@@ -25,64 +28,70 @@ export interface ObjectRowActions {
  * Row actions for the objects table.
  *
  * A soft-deleted object offers Restore instead of the edit-shaped actions — duplicating or
- * templating from something the user has thrown away is never what they meant. `readOnly` drops the
- * menu entirely, leaving just Details.
+ * templating from something the user has thrown away is never what they meant.
+ *
+ * Each action is gated at the rung the node guards it with, so the menu narrows to what this
+ * viewer can actually do rather than being present or absent as a whole.
  */
 export function ObjectActionsCell({
   object,
   actions,
   isDeleting,
   isRestoring,
-  readOnly,
 }: {
   object: ObjectListItem
   actions: ObjectRowActions
   isDeleting?: boolean
   isRestoring?: boolean
-  readOnly?: boolean
 }) {
   const t = useTranslations()
-  const { userId } = useAuth()
+  const { userId, authLoading } = useAuth()
   const isDeleted = !!object.deleted
-  // Only the owner may read a resource's grant list — the node 403s anyone else — so offering the
-  // action to a sharee would open a sheet that can only fail.
-  const canShare = !!actions.onShare && object.createdBy === userId
+  // The node's verdict, falling back to the owner — objects have no separate owner, so their author
+  // holds `admin` on them.
+  const permission = permissionWhenKnown(object, userId, authLoading)
+  // Reading the grant list needs `share`; the node 403s anything less, so offering it to a plain
+  // reader would open a sheet that can only fail.
+  const canShare = !!actions.onShare && canReshare(permission)
 
   const rowActions: EntityRowAction[] = []
 
-  if (!readOnly) {
-    rowActions.push({
-      key: 'show-qr',
-      label: t('objects.actions.showQrCode'),
-      icon: QrCode,
-      onSelect: () => actions.onShowQRCode(object),
-    })
+  rowActions.push({
+    key: 'show-qr',
+    label: t('objects.actions.showQrCode'),
+    icon: QrCode,
+    onSelect: () => actions.onShowQRCode(object),
+  })
 
-    if (!isDeleted) {
-      rowActions.push(
-        {
-          key: 'duplicate',
-          label: t('objects.duplicate.action'),
-          icon: Copy,
-          onSelect: () => actions.onDuplicate(object),
-        },
-        {
-          key: 'create-template',
-          label: t('objects.createTemplate'),
-          icon: FileText,
-          onSelect: () => actions.onCreateTemplate(object),
-        }
-      )
-      if (canShare) {
-        rowActions.push({
-          key: 'share',
-          label: t('access.share'),
-          icon: Share2,
-          onSelect: () => actions.onShare?.(object),
-        })
+  if (!isDeleted) {
+    // Duplicate and Create-template READ this object and write a new one the viewer will own, so
+    // they are offered to anyone who can see it.
+    rowActions.push(
+      {
+        key: 'duplicate',
+        label: t('objects.duplicate.action'),
+        icon: Copy,
+        onSelect: () => actions.onDuplicate(object),
+      },
+      {
+        key: 'create-template',
+        label: t('objects.createTemplate'),
+        icon: FileText,
+        onSelect: () => actions.onCreateTemplate(object),
       }
+    )
+    if (canShare) {
+      rowActions.push({
+        key: 'share',
+        label: t('access.share'),
+        icon: Share2,
+        onSelect: () => actions.onShare?.(object),
+      })
     }
+  }
 
+  // Both are guarded at `admin`, not `write`.
+  if (canDelete(permission)) {
     rowActions.push(
       isDeleted
         ? {

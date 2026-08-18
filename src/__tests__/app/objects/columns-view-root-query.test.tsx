@@ -17,6 +17,8 @@ vi.mock('@/hooks/api/entities', () => ({
   useObjects: () => ({ useList }),
 }))
 
+vi.mock('@/contexts', () => ({ useAuth: () => ({ userId: 'me' }) }))
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useFormatter: () => ({ dateTime: () => '' }),
