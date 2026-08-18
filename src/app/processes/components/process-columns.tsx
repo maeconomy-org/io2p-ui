@@ -6,11 +6,17 @@ import type { ProcessListItem } from 'io2p-client'
 import { ArrowRight, Pencil, RotateCcw, Share2, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
+import { useAuth } from '@/contexts'
 import {
   EntityActionsCell,
   type EntityRowAction,
   OwnerCell,
+  type Permission,
   actionsColumn,
+  canDelete,
+  canEdit,
+  canReshare,
+  permissionWhenKnown,
   idColumn,
   nameColumn,
   selectColumn,
@@ -29,7 +35,7 @@ export interface ProcessColumnActions {
 interface BuildProcessColumnsOptions {
   t: (key: string) => string
   actions: ProcessColumnActions
-  /** Sharing is owner-only — the node 403s a non-owner reading the grant list. */
+  /** Resolves each row's permission when the node sent none — an author owns what they created. */
   currentUserId?: string
 }
 
@@ -79,10 +85,11 @@ export function buildProcessColumns({
     ),
     actionsColumn<ProcessListItem>(
       (p): ReactNode => (
-        <EntityActionsCell
-          testIdPrefix="process"
-          onViewDetails={() => actions.onViewDetails(p)}
-          actions={rowActions(p, t, actions, currentUserId)}
+        <ProcessActionsCell
+          process={p}
+          t={t}
+          actions={actions}
+          currentUserId={currentUserId}
         />
       ),
       t('common.actions')
@@ -90,31 +97,64 @@ export function buildProcessColumns({
   ]
 }
 
+// A component rather than an inline cell, so it can read auth — `buildProcessColumns` runs inside
+// a `useMemo`, where a hook would be a violation.
+function ProcessActionsCell({
+  process,
+  t,
+  actions,
+  currentUserId,
+}: {
+  process: ProcessListItem
+  t: (key: string) => string
+  actions: ProcessColumnActions
+  currentUserId?: string
+}) {
+  const { authLoading } = useAuth()
+  const permission = permissionWhenKnown(process, currentUserId, authLoading)
+
+  return (
+    <EntityActionsCell
+      testIdPrefix="process"
+      onViewDetails={() => actions.onViewDetails(process)}
+      actions={rowActions(process, t, actions, permission)}
+    />
+  )
+}
+
 // A deleted process can only be restored — editing or re-deleting it would be rejected anyway.
 function rowActions(
   process: ProcessListItem,
   t: (key: string) => string,
   actions: ProcessColumnActions,
-  currentUserId?: string
+  permission: Permission | undefined
 ): EntityRowAction[] {
   if (process.deleted) {
-    return [
-      {
-        key: 'restore',
-        label: t('common.restore'),
-        icon: RotateCcw,
-        onSelect: () => actions.onRestore(process),
-      },
-    ]
+    return canDelete(permission)
+      ? [
+          {
+            key: 'restore',
+            label: t('common.restore'),
+            icon: RotateCcw,
+            onSelect: () => actions.onRestore(process),
+          },
+        ]
+      : []
   }
   return [
-    {
-      key: 'edit',
-      label: t('common.edit'),
-      icon: Pencil,
-      onSelect: () => actions.onEdit(process),
-    },
-    ...(process.createdBy === currentUserId
+    ...(canEdit(permission)
+      ? [
+          {
+            key: 'edit',
+            label: t('common.edit'),
+            icon: Pencil,
+            onSelect: () => actions.onEdit(process),
+          },
+        ]
+      : []),
+    // Reading the grant list needs `share`, which an ADMIN grantee also holds — `createdBy` denied
+    // them a control the node would have allowed.
+    ...(canReshare(permission)
       ? [
           {
             key: 'share',
@@ -124,13 +164,18 @@ function rowActions(
           },
         ]
       : []),
-    {
-      key: 'delete',
-      label: t('common.delete'),
-      icon: Trash2,
-      destructive: true,
-      separated: true,
-      onSelect: () => actions.onDelete(process),
-    },
+    // Its own rung: the node guards soft-delete at `admin`, not `write`.
+    ...(canDelete(permission)
+      ? [
+          {
+            key: 'delete',
+            label: t('common.delete'),
+            icon: Trash2,
+            destructive: true,
+            separated: true,
+            onSelect: () => actions.onDelete(process),
+          },
+        ]
+      : []),
   ]
 }
