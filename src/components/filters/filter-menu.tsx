@@ -38,6 +38,14 @@ export interface FilterSection {
    * one clears it — for a filter whose options are mutually exclusive (a type is one or the other).
    */
   single?: boolean
+  /**
+   * A word for the section's CURRENT state, shown on the trigger even when nothing is selected.
+   *
+   * For a filter whose unselected state is itself meaningful: access defaults to showing everyone's
+   * items, and a user who never opens this menu has no way to learn that. The badge cannot say it —
+   * counting the default as active would put a permanent `1` on every list.
+   */
+  summary?: string
 }
 
 /**
@@ -64,6 +72,9 @@ export function FilterMenu({
 
   const activeCount = sections.reduce((n, s) => n + s.selected.length, 0)
   const hasActive = activeCount > 0
+  const summaries = sections
+    .map((s) => s.summary)
+    .filter((v): v is string => !!v)
 
   const toggle = (section: FilterSection, value: string) => {
     const selected = new Set(section.selected)
@@ -98,6 +109,14 @@ export function FilterMenu({
         >
           <SlidersHorizontal className="mr-2 h-4 w-4" />
           {t('common.filters')}
+          {summaries.length > 0 && (
+            <span
+              className="ml-1.5 text-muted-foreground"
+              data-testid="filter-summary"
+            >
+              {summaries.join(' · ')}
+            </span>
+          )}
           {hasActive && (
             <>
               <Separator orientation="vertical" className="mx-2 h-4" />
@@ -200,15 +219,23 @@ export function deletedSection(
 /** The access slice a list asks for. `all` is what every page sends today. */
 export type ScopeFilterValue = 'mine' | 'shared' | 'public' | 'all'
 
+const SCOPE_LABELS: Record<ScopeFilterValue, string> = {
+  all: 'common.scopeAll',
+  mine: 'common.scopeMine',
+  shared: 'common.scopeShared',
+  public: 'common.scopePublic',
+}
+
 /**
  * Whose items the list shows — the access scope.
  *
  * This one is not new behaviour, it is *disclosure*: every list already sends `scope: 'all'`, so
- * anything shared with you is already in the table, distinguishable only by the Owner column. The
- * filter lets you separate the slices you could not previously name.
+ * anything shared with you is already in the table, distinguishable only by the Created by column.
+ * The filter lets you separate the slices you could not previously name.
  *
  * `all` is modelled as no selection rather than a fourth option — it IS the unfiltered state, and
- * showing it selected would put a permanent `1` on the trigger's count badge.
+ * showing it selected would put a permanent `1` on the trigger's count badge. The trigger names it
+ * instead: a default nobody can see is one nobody can learn to change.
  */
 export function scopeSection(
   t: Translate,
@@ -224,6 +251,7 @@ export function scopeSection(
       { value: 'public', label: t('common.scopePublic') },
     ],
     selected: value === 'all' ? [] : [value],
+    summary: t(SCOPE_LABELS[value]),
     onChange: (values) => onChange((values[0] as ScopeFilterValue) ?? 'all'),
     single: true,
   }

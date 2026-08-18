@@ -200,6 +200,7 @@
     "me": "Me",
     "status": "Status",
     "access": "Access",
+    "scopeAll": "All",
     "scopeMine": "Mine",
     "scopeShared": "Shared with me",
     "scopePublic": "Public",

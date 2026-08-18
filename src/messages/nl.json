@@ -200,6 +200,7 @@
     "me": "Ik",
     "status": "Status",
     "access": "Toegang",
+    "scopeAll": "Alles",
     "scopeMine": "Van mij",
     "scopeShared": "Met mij gedeeld",
     "scopePublic": "Openbaar",

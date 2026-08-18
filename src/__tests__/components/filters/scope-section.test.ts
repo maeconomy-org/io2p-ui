@@ -33,6 +33,16 @@ describe('scopeSection', () => {
     expect(scopeSection(t, 'all', vi.fn()).single).toBe(true)
   })
 
+  it('names the active slice on the trigger, including the default', () => {
+    // The badge cannot say this — counting `all` as active would mark every list as filtered — so
+    // the summary is what makes an unselected default legible.
+    expect(scopeSection(t, 'all', vi.fn()).summary).toBe('common.scopeAll')
+    expect(scopeSection(t, 'mine', vi.fn()).summary).toBe('common.scopeMine')
+    expect(scopeSection(t, 'shared', vi.fn()).summary).toBe(
+      'common.scopeShared'
+    )
+  })
+
   it('does not offer `all` as an option', () => {
     const values = scopeSection(t, 'all', vi.fn()).options.map((o) => o.value)
     expect(values).toEqual(['mine', 'shared', 'public'])
