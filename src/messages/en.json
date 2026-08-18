@@ -90,6 +90,11 @@
       "objects": "Objects view",
       "processes": "Processes view",
       "properties": "Properties view",
+      "objectsAccess": "Objects access",
+      "processesAccess": "Processes access",
+      "formulasAccess": "Formulas access",
+      "constantsAccess": "Constants access",
+      "templatesAccess": "Templates access",
       "options": {
         "table": "Table",
         "columns": "Columns",

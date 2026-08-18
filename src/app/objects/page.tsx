@@ -9,15 +9,11 @@ import type { ObjectListItem } from 'io2p-client'
 
 import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { usePreference } from '@/hooks/ui/use-preference'
+import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { Button } from '@/components/ui'
-import {
-  FilterMenu,
-  deletedSection,
-  scopeSection,
-  type ScopeFilterValue,
-} from '@/components/filters'
+import { FilterMenu, deletedSection, scopeSection } from '@/components/filters'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
 import { ObjectColumnsView } from '@/app/objects/components/columns-view'
@@ -53,7 +49,7 @@ export default function ObjectsPage() {
   const router = useRouter()
 
   const [viewType, setViewType] = usePreference('objectsView')
-  const [scope, setScope] = useState<ScopeFilterValue>('all')
+  const [scope, setScope] = useScopePreference('objectsScope')
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
   const [resumeDraftId, setResumeDraftId] = useState<string | null>(null)
   const [shareTarget, setShareTarget] = useState<ObjectListItem | null>(null)

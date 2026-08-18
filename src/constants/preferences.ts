@@ -70,12 +70,29 @@ export type PropertiesViewType = 'detailed' | 'grid'
 /** Files tab rows/thumbnails toggle. */
 export type FilesViewType = 'list' | 'grid'
 
+/**
+ * Which access slice a list opens on.
+ *
+ * Defaults to `all` on purpose: a user who has not found the filter yet should see everything they
+ * can, not silently miss shared work and wonder where it went. Narrowing is a choice they make once
+ * they know what they want.
+ */
+export type EntityScopePreference = (typeof ENTITY_SCOPES)[number]
+
+export const ENTITY_SCOPES = ['mine', 'shared', 'public', 'all'] as const
+
 /** The value type stored under each preference key. */
 export interface PreferenceValues {
   objectsView: ObjectViewType
   processView: ProcessViewType
   propertiesView: PropertiesViewType
   filesView: FilesViewType
+  /** Opening access slice, per list. Objects and processes only — see the library note below. */
+  objectsScope: EntityScopePreference
+  processScope: EntityScopePreference
+  formulaScope: EntityScopePreference
+  constantScope: EntityScopePreference
+  templateScope: EntityScopePreference
   /** Tour ids the user has completed or dismissed. */
   toursSeen: string[]
   /** The `ONBOARDING_EPOCH` the stored onboarding state was written under. */
@@ -149,6 +166,31 @@ export const PREFERENCES: {
     ns: PREF_NS.ui,
     default: 'list',
     validate: oneOf(['list', 'grid'] as const),
+  },
+  objectsScope: {
+    ns: PREF_NS.defaults,
+    default: 'all',
+    validate: oneOf(ENTITY_SCOPES),
+  },
+  processScope: {
+    ns: PREF_NS.defaults,
+    default: 'all',
+    validate: oneOf(ENTITY_SCOPES),
+  },
+  formulaScope: {
+    ns: PREF_NS.defaults,
+    default: 'all',
+    validate: oneOf(ENTITY_SCOPES),
+  },
+  constantScope: {
+    ns: PREF_NS.defaults,
+    default: 'all',
+    validate: oneOf(ENTITY_SCOPES),
+  },
+  templateScope: {
+    ns: PREF_NS.defaults,
+    default: 'all',
+    validate: oneOf(ENTITY_SCOPES),
   },
   toursSeen: {
     ns: PREF_NS.onboarding,

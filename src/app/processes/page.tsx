@@ -8,12 +8,7 @@ import dynamic from 'next/dynamic'
 import type { ProcessListItem } from 'io2p-client'
 
 import { Button, FLOATING_BAR_LEVELS } from '@/components/ui'
-import {
-  FilterMenu,
-  deletedSection,
-  scopeSection,
-  type ScopeFilterValue,
-} from '@/components/filters'
+import { FilterMenu, deletedSection, scopeSection } from '@/components/filters'
 import {
   BulkActionBar,
   EntityTable,
@@ -30,6 +25,7 @@ import { ViewSelector } from '@/components/view-selector'
 import { useProcesses } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { usePreference } from '@/hooks/ui/use-preference'
+import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { anchor, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
 import { buildProcessColumns } from './components/process-columns'
@@ -85,7 +81,7 @@ export default function ProcessesPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openInEditMode, setOpenInEditMode] = useState(false)
-  const [scope, setScope] = useState<ScopeFilterValue>('all')
+  const [scope, setScope] = useScopePreference('processScope')
   const [toShare, setToShare] = useState<ProcessListItem | null>(null)
   const [shareBundleOpen, setShareBundleOpen] = useState(false)
 

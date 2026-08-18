@@ -15,6 +15,7 @@ import {
   ENABLED_OBJECT_VIEW_TYPES,
   ENABLED_PROCESS_VIEW_TYPES,
 } from '@/constants'
+import { ENTITY_SCOPES } from '@/constants/preferences'
 import { usePreference } from '@/hooks/ui/use-preference'
 import { SegmentedControl } from './segmented-control'
 
@@ -100,6 +101,11 @@ export function PreferencesSettings() {
             ]}
           />
         </Row>
+        <ScopeRow preference="objectsScope" label={t('objectsAccess')} />
+        <ScopeRow preference="processScope" label={t('processesAccess')} />
+        <ScopeRow preference="formulaScope" label={t('formulasAccess')} />
+        <ScopeRow preference="constantScope" label={t('constantsAccess')} />
+        <ScopeRow preference="templateScope" label={t('templatesAccess')} />
         <Row label={t('rowsPerPage')} testId="pref-page-size">
           <SegmentedControl
             ariaLabel={t('rowsPerPage')}
@@ -114,5 +120,50 @@ export function PreferencesSettings() {
         </Row>
       </CardContent>
     </Card>
+  )
+}
+
+const SCOPE_LABEL: Record<(typeof ENTITY_SCOPES)[number], string> = {
+  all: 'scopeAll',
+  mine: 'scopeMine',
+  shared: 'scopeShared',
+  public: 'scopePublic',
+}
+
+/**
+ * Which access slice one list opens on.
+ *
+ * Five of these rather than one global switch: someone may want only their own objects while still
+ * needing the whole formula library, which is shared by construction.
+ */
+function ScopeRow({
+  preference,
+  label,
+}: {
+  preference:
+    | 'objectsScope'
+    | 'processScope'
+    | 'formulaScope'
+    | 'constantScope'
+    | 'templateScope'
+  label: string
+}) {
+  const tCommon = useTranslations('common')
+  const [scope, setScope] = usePreference(preference)
+  const testId = `pref-${preference}`
+
+  return (
+    <Row label={label} testId={testId}>
+      <SegmentedControl
+        ariaLabel={label}
+        value={scope}
+        onChange={setScope}
+        testIdPrefix={testId}
+        options={ENTITY_SCOPES.map((value) => ({
+          value,
+          label: tCommon(SCOPE_LABEL[value]),
+        }))}
+      />
+    </Row>
   )
 }

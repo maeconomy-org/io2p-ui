@@ -17,6 +17,7 @@ import {
   FilterMenu,
   deletedSection,
   ownerSection,
+  scopeSection,
   type OwnerFilterValue,
 } from '@/components/filters'
 import {
@@ -29,6 +30,7 @@ import {
 } from '@/components/entity-list'
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { useTemplates } from '@/hooks/api/entities'
+import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useSearch } from '@/contexts'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { anchor } from '@/constants'
@@ -73,6 +75,7 @@ export default function TemplatesPage() {
     useState<TemplateListItem | null>(null)
   const [openInEditMode, setOpenInEditMode] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
+  const [scope, setScope] = useScopePreference('templateScope')
   const [typeFilter, setTypeFilter] = useState<TemplateTypeFilterValue>()
   // Which kind a CREATE will be. An edit takes the loaded template's own type.
   const [createType, setCreateType] =
@@ -94,7 +97,7 @@ export default function TemplatesPage() {
     {
       ...listQuery.query,
       size: filters.pageSize,
-      scope: 'all',
+      scope,
       q: isSearchMode ? searchQuery : undefined,
       deleted: filters.showDeleted ? 'include' : undefined,
       system: owner,
@@ -164,6 +167,7 @@ export default function TemplatesPage() {
               <FilterMenu
                 sections={[
                   templateTypeSection(t, typeFilter, setTypeFilter),
+                  scopeSection(t, scope, setScope),
                   ownerSection(t, owner, setOwner),
                   deletedSection(
                     t,

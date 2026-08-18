@@ -11,6 +11,7 @@ import {
   FilterMenu,
   deletedSection,
   ownerSection,
+  scopeSection,
   type OwnerFilterValue,
 } from '@/components/filters'
 import {
@@ -24,6 +25,7 @@ import {
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useConstants } from '@/hooks/api/leaves'
+import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useSearch } from '@/contexts'
 import { anchor } from '@/constants'
 
@@ -63,6 +65,7 @@ export default function ConstantsPage() {
 
   const [sheet, setSheet] = useState<SheetState | null>(null)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
+  const [scope, setScope] = useScopePreference('constantScope')
   const [shareTarget, setShareTarget] = useState<ConstantDTO | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
@@ -82,7 +85,7 @@ export default function ConstantsPage() {
       ...listQuery.query,
       size: filters.pageSize,
       // `all`: built-ins are shared, so `mine` would hide most of the library.
-      scope: 'all',
+      scope,
       q: isSearchMode ? searchQuery : undefined,
       deleted: filters.showDeleted ? 'include' : undefined,
       system: owner,
@@ -126,6 +129,7 @@ export default function ConstantsPage() {
             <div className="flex items-center gap-2">
               <FilterMenu
                 sections={[
+                  scopeSection(t, scope, setScope),
                   ownerSection(t, owner, setOwner),
                   deletedSection(
                     t,

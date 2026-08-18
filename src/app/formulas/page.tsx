@@ -11,6 +11,7 @@ import {
   FilterMenu,
   deletedSection,
   ownerSection,
+  scopeSection,
   type OwnerFilterValue,
 } from '@/components/filters'
 import {
@@ -24,6 +25,7 @@ import {
 import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useFormulas } from '@/hooks/api/leaves'
+import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useSearch } from '@/contexts'
 import { anchor } from '@/constants'
 import { PageHelp } from '@/components/onboarding/page-help'
@@ -78,6 +80,7 @@ export default function FormulasPage() {
   const [sheet, setSheet] = useState<SheetState | null>(null)
   const [referenceOpen, setReferenceOpen] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
+  const [scope, setScope] = useScopePreference('formulaScope')
   const [shareTarget, setShareTarget] = useState<FormulaDTO | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
@@ -96,8 +99,7 @@ export default function FormulasPage() {
     {
       ...listQuery.query,
       size: filters.pageSize,
-      // `all` is the library view: built-ins are shared, so `mine` would hide most of them.
-      scope: 'all',
+      scope,
       q: isSearchMode ? searchQuery : undefined,
       deleted: filters.showDeleted ? 'include' : undefined,
       system: owner,
@@ -145,6 +147,7 @@ export default function FormulasPage() {
             <div className="flex items-center gap-2">
               <FilterMenu
                 sections={[
+                  scopeSection(t, scope, setScope),
                   ownerSection(t, owner, setOwner),
                   deletedSection(
                     t,

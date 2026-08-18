@@ -90,6 +90,11 @@
       "objects": "Objectenweergave",
       "processes": "Processenweergave",
       "properties": "Eigenschappenweergave",
+      "objectsAccess": "Objecten toegang",
+      "processesAccess": "Processen toegang",
+      "formulasAccess": "Formules toegang",
+      "constantsAccess": "Constanten toegang",
+      "templatesAccess": "Sjablonen toegang",
       "options": {
         "table": "Tabel",
         "columns": "Kolommen",
