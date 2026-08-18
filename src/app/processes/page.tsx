@@ -17,6 +17,9 @@ import {
 import {
   BulkActionBar,
   EntityTable,
+  canDelete,
+  canReshare,
+  permissionOf,
   useEntityListActions,
   useEntityListFilters,
   useEntityListQuery,
@@ -137,7 +140,18 @@ export default function ProcessesPage() {
     restore: restoreMutation,
     entityName: 'process',
     messages: PROCESS_MESSAGES,
+    // Not `createdBy === userId`: that would also drop rows shared with the viewer at `admin`,
+    // who may delete them. Until the node sends `permission`, `permissionOf` resolves the owner
+    // and returns undefined otherwise, which the ladder reads as unrestricted.
+    canAct: (process) => canDelete(permissionOf(process, userId)),
   })
+
+  // Sharing is its own rung — `canAct` above filters at `admin` for the lifecycle verbs, and a
+  // process shared at `share` may be re-granted without being deletable.
+  const shareableProcesses = useMemo(
+    () => list.selectedRows.filter((p) => canReshare(permissionOf(p, userId))),
+    [list.selectedRows, userId]
+  )
 
   const columns = useMemo(
     () =>
@@ -273,6 +287,8 @@ export default function ProcessesPage() {
             key: 'share',
             label: t('access.share'),
             icon: Share2,
+            hidden: shareableProcesses.length === 0,
+            actionable: shareableProcesses.length,
             onSelect: () => setShareBundleOpen(true),
           },
         ]}
@@ -283,7 +299,7 @@ export default function ProcessesPage() {
           open
           onOpenChange={(open) => !open && setShareBundleOpen(false)}
           mode="create"
-          seedResources={list.selectedRows.map((p) => ({
+          seedResources={shareableProcesses.map((p) => ({
             type: 'process' as const,
             id: p.id,
             name: p.name,

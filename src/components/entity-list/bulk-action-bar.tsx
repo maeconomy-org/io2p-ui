@@ -9,6 +9,17 @@ export interface BulkAction {
   icon: LucideIcon
   onSelect: () => void
   disabled?: boolean
+  /**
+   * Drop the button entirely. Prefer this to `disabled` for anything the viewer may not do — a
+   * greyed control still claims the feature exists and gives no reason.
+   */
+  hidden?: boolean
+  /**
+   * How many of the selected rows this action will actually touch, when that is fewer than all of
+   * them. Rendered beside the label so a partial run is visible BEFORE it happens, rather than
+   * discovered from a count in the toast afterwards.
+   */
+  actionable?: number
 }
 
 import {
@@ -68,21 +79,31 @@ export function BulkActionBar({
       </span>
       <FloatingActionBarSeparator />
 
-      {actions.map((action) => (
-        <Button
-          key={action.key}
-          type="button"
-          data-testid={`bulk-${action.key}`}
-          variant="ghost"
-          size="sm"
-          className="whitespace-nowrap rounded-full"
-          disabled={busy || action.disabled}
-          onClick={action.onSelect}
-        >
-          <action.icon className="h-3.5 w-3.5 sm:mr-1.5" />
-          <span className="hidden sm:inline">{action.label}</span>
-        </Button>
-      ))}
+      {actions
+        .filter((action) => !action.hidden)
+        .map((action) => (
+          <Button
+            key={action.key}
+            type="button"
+            data-testid={`bulk-${action.key}`}
+            variant="ghost"
+            size="sm"
+            className="whitespace-nowrap rounded-full"
+            disabled={busy || action.disabled}
+            onClick={action.onSelect}
+          >
+            <action.icon className="h-3.5 w-3.5 sm:mr-1.5" />
+            <span className="hidden sm:inline">
+              {action.actionable !== undefined && action.actionable < count
+                ? t('common.bulk.partial', {
+                    label: action.label,
+                    count: action.actionable,
+                    total: count,
+                  })
+                : action.label}
+            </span>
+          </Button>
+        ))}
 
       {onRestore && canRestore && (
         <Button

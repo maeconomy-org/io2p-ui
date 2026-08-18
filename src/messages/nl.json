@@ -207,6 +207,7 @@
     "bulk": {
       "label": "Selectieacties",
       "selected": "{count} geselecteerd",
+      "partial": "{label} {count} van {total}",
       "deleteTitle": "Geselecteerde items verwijderen?",
       "deleteDescription": "Dit verwijdert {count} items. Ze kunnen daarna worden hersteld."
     },
@@ -214,7 +215,8 @@
     "back": "Terug",
     "continue": "Doorgaan",
     "yes": "Ja",
-    "sharedReadOnly": "Met jou gedeeld — alleen-lezen"
+    "sharedReadOnly": "Met jou gedeeld — alleen-lezen",
+    "deletedReadOnly": "Verwijderd — alleen de eigenaar kan dit herstellen."
   },
   "copyButton": {
     "copied": "Gekopieerd!",

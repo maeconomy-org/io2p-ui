@@ -207,6 +207,7 @@
     "bulk": {
       "label": "Selection actions",
       "selected": "{count} selected",
+      "partial": "{label} {count} of {total}",
       "deleteTitle": "Delete the selected items?",
       "deleteDescription": "This deletes {count} items. They can be restored afterwards."
     },
@@ -214,7 +215,8 @@
     "back": "Back",
     "continue": "Continue",
     "yes": "Yes",
-    "sharedReadOnly": "Shared with you — read only"
+    "sharedReadOnly": "Shared with you — read only",
+    "deletedReadOnly": "Deleted — only its owner can restore it."
   },
   "copyButton": {
     "copied": "Copied!",

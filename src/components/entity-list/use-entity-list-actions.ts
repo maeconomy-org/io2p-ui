@@ -74,8 +74,9 @@ export function useEntityListActions<T extends ListRow>({
     () => (page?.data ?? []).filter((row) => rowSelection[row.id]),
     [page, rowSelection]
   )
-  // The subset the verbs apply to. Selection itself stays whole, because Share works on rows this
-  // viewer cannot write.
+  // The subset the verbs apply to. Selection itself stays whole: the user picked those rows, and
+  // silently unpicking them would hide why an action covers fewer than they chose. Sharing is in
+  // scope too — a bundle needs `share` on EVERY resource or the node 403s the whole call.
   const actionableRows = useMemo(
     () => (canAct ? selectedRows.filter(canAct) : selectedRows),
     [selectedRows, canAct]
@@ -148,6 +149,7 @@ export function useEntityListActions<T extends ListRow>({
     rowSelection,
     setRowSelection,
     selectedRows,
+    actionableRows,
     clearSelection,
     anyDeleted: actionableRows.some((row) => row.deleted),
     anyLive: actionableRows.some((row) => !row.deleted),
