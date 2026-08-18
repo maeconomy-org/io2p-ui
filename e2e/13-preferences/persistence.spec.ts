@@ -22,10 +22,10 @@ async function setPageSize(
   await page.goto('/settings')
   await page.getByTestId('settings-tab-preferences').click()
   await expect(async () => {
+    await page.getByTestId('pref-page-size-trigger').click()
     await page.getByTestId(`pref-page-size-${size}`).click()
-    await expect(page.getByTestId(`pref-page-size-${size}`)).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    await expect(page.getByTestId('pref-page-size-trigger')).toContainText(
+      size,
       { timeout: 3_000 }
     )
   }).toPass({ timeout: 30_000 })
@@ -73,10 +73,7 @@ test.describe('13 - preferences / persistence', () => {
     await page.reload()
     await page.getByTestId('settings-tab-preferences').click()
 
-    await expect(page.getByTestId('pref-page-size-50')).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
+    await expect(page.getByTestId('pref-page-size-trigger')).toContainText('50')
   })
 })
 

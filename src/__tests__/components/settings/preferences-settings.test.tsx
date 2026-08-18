@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
@@ -48,21 +49,24 @@ describe('PreferencesSettings', () => {
     updatePreferences.mockResolvedValue({})
   })
 
-  it('reflects the default properties view (detailed) on first render', () => {
+  // The rows are dropdowns: the trigger shows the current value, and the options only exist once
+  // it is opened. userEvent, not fireEvent — Radix opens on a full pointer sequence.
+  const choose = async (testId: string, option: string) => {
+    const user = userEvent.setup()
+    await user.click(screen.getByTestId(`${testId}-trigger`))
+    await user.click(await screen.findByTestId(`${testId}-${option}`))
+  }
+
+  it('shows the default properties view on the trigger', () => {
     renderPrefs()
-    expect(screen.getByTestId('pref-properties-detailed')).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
-    expect(screen.getByTestId('pref-properties-grid')).toHaveAttribute(
-      'aria-pressed',
-      'false'
+    expect(screen.getByTestId('pref-properties-trigger')).toHaveTextContent(
+      'detailed'
     )
   })
 
-  it('persists the properties view to the account when toggled', async () => {
+  it('persists the properties view to the account when chosen', async () => {
     renderPrefs()
-    fireEvent.click(screen.getByTestId('pref-properties-grid'))
+    await choose('pref-properties', 'grid')
 
     await waitFor(() =>
       expect(updatePreferences).toHaveBeenCalledWith({
@@ -71,9 +75,9 @@ describe('PreferencesSettings', () => {
     )
   })
 
-  it('persists the objects view when a segment is chosen', async () => {
+  it('persists the objects view when chosen', async () => {
     renderPrefs()
-    fireEvent.click(screen.getByTestId('pref-objects-columns'))
+    await choose('pref-objects', 'columns')
 
     await waitFor(() =>
       expect(updatePreferences).toHaveBeenCalledWith({
@@ -82,9 +86,9 @@ describe('PreferencesSettings', () => {
     )
   })
 
-  it('persists the process view when a segment is chosen', async () => {
+  it('persists the process view when chosen', async () => {
     renderPrefs()
-    fireEvent.click(screen.getByTestId('pref-processes-sankey'))
+    await choose('pref-processes', 'sankey')
 
     await waitFor(() =>
       expect(updatePreferences).toHaveBeenCalledWith({
@@ -93,34 +97,53 @@ describe('PreferencesSettings', () => {
     )
   })
 
-  it('renders a labelled row for each of the three preferences', () => {
+  it('renders a labelled row for every preference', () => {
     renderPrefs()
-    expect(screen.getByTestId('pref-objects')).toBeInTheDocument()
-    expect(screen.getByTestId('pref-processes')).toBeInTheDocument()
-    expect(screen.getByTestId('pref-properties')).toBeInTheDocument()
+    for (const id of [
+      'pref-objects',
+      'pref-processes',
+      'pref-properties',
+      'pref-objectsScope',
+      'pref-processScope',
+      'pref-formulaScope',
+      'pref-constantScope',
+      'pref-templateScope',
+      'pref-page-size',
+    ]) {
+      expect(screen.getByTestId(id)).toBeInTheDocument()
+    }
   })
 
-  it('offers only process views that exist', () => {
+  it('offers only process views that exist', async () => {
     // A stored preference for a retired view is what makes this matter: the option list is the
     // single source of what the page can actually render.
     renderPrefs()
-    expect(screen.getByTestId('pref-processes-table')).toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click(screen.getByTestId('pref-processes-trigger'))
+
+    expect(
+      await screen.findByTestId('pref-processes-table')
+    ).toBeInTheDocument()
     expect(screen.getByTestId('pref-processes-sankey')).toBeInTheDocument()
     expect(screen.getByTestId('pref-processes-network')).toBeInTheDocument()
     // Dashboard was retired with the statement-era analytics it computed.
-    expect(
-      screen.queryByTestId('pref-processes-dashboard')
-    ).not.toBeInTheDocument()
+    expect(screen.queryByTestId('pref-processes-dashboard')).toBeNull()
   })
 
   it('falls back to a real option when the stored view was retired', () => {
-    // Without the fallback the control renders with nothing selected, which reads as "no default".
+    // Without the fallback the trigger renders empty, which reads as "no default".
     preferences = { ui: { processView: 'dashboard' } }
     renderPrefs()
 
-    expect(screen.getByTestId('pref-processes-table')).toHaveAttribute(
-      'aria-pressed',
-      'true'
+    expect(screen.getByTestId('pref-processes-trigger')).toHaveTextContent(
+      'table'
+    )
+  })
+
+  it('defaults every access row to the whole slice', () => {
+    renderPrefs()
+    expect(screen.getByTestId('pref-objectsScope-trigger')).toHaveTextContent(
+      'scopeAll'
     )
   })
 })

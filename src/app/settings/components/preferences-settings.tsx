@@ -1,6 +1,5 @@
 'use client'
 
-import { LayoutGrid, List } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import {
@@ -17,7 +16,7 @@ import {
 } from '@/constants'
 import { ENTITY_SCOPES } from '@/constants/preferences'
 import { usePreference } from '@/hooks/ui/use-preference'
-import { SegmentedControl } from './segmented-control'
+import { PreferenceSelect } from './preference-select'
 
 function Row({
   label,
@@ -64,40 +63,38 @@ export function PreferencesSettings() {
       </CardHeader>
       <CardContent className="divide-y">
         <Row label={t('objects')} testId="pref-objects">
-          <SegmentedControl
+          <PreferenceSelect
             ariaLabel={t('objects')}
             value={objectsView}
             onChange={setObjectsView}
-            testIdPrefix="pref-objects"
+            testId="pref-objects"
             options={ENABLED_OBJECT_VIEW_TYPES.map((v) => ({
               value: v.value,
               label: tOpt(v.value),
-              icon: v.icon,
             }))}
           />
         </Row>
         <Row label={t('processes')} testId="pref-processes">
-          <SegmentedControl
+          <PreferenceSelect
             ariaLabel={t('processes')}
             value={processViewValue}
             onChange={setProcessView}
-            testIdPrefix="pref-processes"
+            testId="pref-processes"
             options={ENABLED_PROCESS_VIEW_TYPES.map((v) => ({
               value: v.value,
               label: tOpt(v.value),
-              icon: v.icon,
             }))}
           />
         </Row>
         <Row label={t('properties')} testId="pref-properties">
-          <SegmentedControl
+          <PreferenceSelect
             ariaLabel={t('properties')}
             value={propertiesView}
             onChange={setPropertiesView}
-            testIdPrefix="pref-properties"
+            testId="pref-properties"
             options={[
-              { value: 'detailed', label: tOpt('detailed'), icon: List },
-              { value: 'grid', label: tOpt('grid'), icon: LayoutGrid },
+              { value: 'detailed', label: tOpt('detailed') },
+              { value: 'grid', label: tOpt('grid') },
             ]}
           />
         </Row>
@@ -107,11 +104,11 @@ export function PreferencesSettings() {
         <ScopeRow preference="constantScope" label={t('constantsAccess')} />
         <ScopeRow preference="templateScope" label={t('templatesAccess')} />
         <Row label={t('rowsPerPage')} testId="pref-page-size">
-          <SegmentedControl
+          <PreferenceSelect
             ariaLabel={t('rowsPerPage')}
             value={String(pageSize)}
             onChange={(value) => setPageSize(Number(value))}
-            testIdPrefix="pref-page-size"
+            testId="pref-page-size"
             options={DEFAULT_TABLE_PAGE_SIZE_OPTIONS.map((size) => ({
               value: String(size),
               label: String(size),
@@ -154,11 +151,11 @@ function ScopeRow({
 
   return (
     <Row label={label} testId={testId}>
-      <SegmentedControl
+      <PreferenceSelect
         ariaLabel={label}
         value={scope}
         onChange={setScope}
-        testIdPrefix={testId}
+        testId={testId}
         options={ENTITY_SCOPES.map((value) => ({
           value,
           label: tCommon(SCOPE_LABEL[value]),

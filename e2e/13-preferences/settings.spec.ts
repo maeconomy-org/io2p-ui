@@ -72,10 +72,10 @@ test.describe('13 - settings', () => {
     await openTab(page, 'preferences')
 
     await expect(async () => {
+      await page.getByTestId('pref-objects-trigger').click()
       await page.getByTestId('pref-objects-columns').click()
-      await expect(page.getByTestId('pref-objects-columns')).toHaveAttribute(
-        'aria-pressed',
-        'true',
+      await expect(page.getByTestId('pref-objects-trigger')).toContainText(
+        'Columns',
         { timeout: 3_000 }
       )
     }).toPass({ timeout: 30_000 })
