@@ -80,7 +80,7 @@ export default function FormulasPage() {
   const [sheet, setSheet] = useState<SheetState | null>(null)
   const [referenceOpen, setReferenceOpen] = useState(false)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
-  const [scope, setScope] = useScopePreference('formulaScope')
+  const [scope, setScope, defaultScope] = useScopePreference('formulaScope')
   const [shareTarget, setShareTarget] = useState<FormulaDTO | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
@@ -147,7 +147,7 @@ export default function FormulasPage() {
             <div className="flex items-center gap-2">
               <FilterMenu
                 sections={[
-                  scopeSection(t, scope, setScope),
+                  scopeSection(t, scope, setScope, defaultScope),
                   ownerSection(t, owner, setOwner),
                   deletedSection(
                     t,

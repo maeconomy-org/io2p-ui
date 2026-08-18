@@ -21,13 +21,23 @@ describe('the filter trigger', () => {
     expect(screen.queryByTestId('filter-count')).toBeNull()
   })
 
-  it('keeps the badge for real narrowing, alongside the summary', () => {
-    render(<FilterMenu sections={[scopeSection(t, 'mine', vi.fn())]} />)
+  it('badges a scope the user wandered to, not merely one that is set', () => {
+    render(<FilterMenu sections={[scopeSection(t, 'mine', vi.fn(), 'all')]} />)
 
     expect(screen.getByTestId('filter-summary')).toHaveTextContent(
       'common.scopeMine'
     )
     expect(screen.getByTestId('filter-menu').textContent).toContain('1')
+  })
+
+  it("leaves the badge clear on the account's own default", () => {
+    // The scope is always set to something, so counting membership would mark every list filtered.
+    render(<FilterMenu sections={[scopeSection(t, 'mine', vi.fn(), 'mine')]} />)
+
+    expect(screen.getByTestId('filter-summary')).toHaveTextContent(
+      'common.scopeMine'
+    )
+    expect(screen.getByTestId('filter-menu').textContent).not.toContain('1')
   })
 
   it('says nothing for a section that declares no summary', () => {

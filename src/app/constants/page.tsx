@@ -65,7 +65,7 @@ export default function ConstantsPage() {
 
   const [sheet, setSheet] = useState<SheetState | null>(null)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
-  const [scope, setScope] = useScopePreference('constantScope')
+  const [scope, setScope, defaultScope] = useScopePreference('constantScope')
   const [shareTarget, setShareTarget] = useState<ConstantDTO | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
@@ -129,7 +129,7 @@ export default function ConstantsPage() {
             <div className="flex items-center gap-2">
               <FilterMenu
                 sections={[
-                  scopeSection(t, scope, setScope),
+                  scopeSection(t, scope, setScope, defaultScope),
                   ownerSection(t, owner, setOwner),
                   deletedSection(
                     t,

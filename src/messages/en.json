@@ -85,8 +85,8 @@
       "languageReloadHint": "Changing the language reloads the page."
     },
     "preferences": {
-      "title": "View preferences",
-      "description": "Pick the view each area opens in. Your latest choice is remembered for this account.",
+      "title": "List defaults",
+      "description": "How each list opens: which view it uses, and whose items it shows. Access can still be changed per list from its Filters menu — this is only where it starts.",
       "objects": "Objects view",
       "processes": "Processes view",
       "properties": "Properties view",

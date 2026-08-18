@@ -22,7 +22,7 @@ type ScopePreferenceKey = {
  */
 export function useScopePreference(
   key: ScopePreferenceKey
-): [ScopeFilterValue, (next: ScopeFilterValue) => void] {
+): [ScopeFilterValue, (next: ScopeFilterValue) => void, ScopeFilterValue] {
   const [stored, , resolved] = usePreference(key)
   const [scope, setScope] = useState<ScopeFilterValue>(stored)
   const adopted = useRef(false)
@@ -33,5 +33,6 @@ export function useScopePreference(
     setScope(stored)
   }, [resolved, stored])
 
-  return [scope, setScope]
+  // The stored value is returned too: the filter badge measures wandering from it, not selection.
+  return [scope, setScope, stored]
 }

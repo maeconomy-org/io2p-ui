@@ -81,7 +81,7 @@ export default function ProcessesPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openInEditMode, setOpenInEditMode] = useState(false)
-  const [scope, setScope] = useScopePreference('processScope')
+  const [scope, setScope, defaultScope] = useScopePreference('processScope')
   const [toShare, setToShare] = useState<ProcessListItem | null>(null)
   const [shareBundleOpen, setShareBundleOpen] = useState(false)
 
@@ -187,7 +187,7 @@ export default function ProcessesPage() {
               {isTable && (
                 <FilterMenu
                   sections={[
-                    scopeSection(t, scope, setScope),
+                    scopeSection(t, scope, setScope, defaultScope),
                     deletedSection(
                       t,
                       filters.showDeleted,

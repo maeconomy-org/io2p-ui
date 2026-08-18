@@ -5,10 +5,26 @@ import { scopeSection } from '@/components/filters/filter-menu'
 const t = (key: string) => key
 
 describe('scopeSection', () => {
-  it('shows nothing selected for `all`, so the trigger badge stays clear', () => {
-    // `all` IS the unfiltered state. Rendering it as a selected option would put a permanent 1 on
-    // the count badge and make "no filters" indistinguishable from "one filter".
-    expect(scopeSection(t, 'all', vi.fn()).selected).toEqual([])
+  it('shows the active slice as selected, including `all`', () => {
+    // Modelled as absence, `all` had no way back except "Clear filters" — which also cleared the
+    // Status section — and the menu read as though nothing was chosen.
+    expect(scopeSection(t, 'all', vi.fn()).selected).toEqual(['all'])
+  })
+
+  it('counts toward the badge only when it differs from the stored default', () => {
+    // Otherwise every account carries a permanent 1: the scope is always set to something.
+    expect(scopeSection(t, 'all', vi.fn(), 'all').activeWhen).toBe(false)
+    expect(scopeSection(t, 'mine', vi.fn(), 'all').activeWhen).toBe(true)
+    // A user whose list opens on `mine` has not narrowed anything by seeing `mine`.
+    expect(scopeSection(t, 'mine', vi.fn(), 'mine').activeWhen).toBe(false)
+    expect(scopeSection(t, 'all', vi.fn(), 'mine').activeWhen).toBe(true)
+  })
+
+  it('returns to the stored default when the filters are cleared', () => {
+    // This filter has no empty state — the list always asks for some slice.
+    const onChange = vi.fn()
+    scopeSection(t, 'public', onChange, 'mine').onChange([])
+    expect(onChange).toHaveBeenCalledWith('mine')
   })
 
   it('reflects the active slice', () => {
@@ -17,7 +33,7 @@ describe('scopeSection', () => {
     expect(scopeSection(t, 'public', vi.fn()).selected).toEqual(['public'])
   })
 
-  it('falls back to `all` when the selection is cleared', () => {
+  it('falls back to `all` when no default was supplied', () => {
     const onChange = vi.fn()
     scopeSection(t, 'shared', onChange).onChange([])
     expect(onChange).toHaveBeenCalledWith('all')
@@ -43,8 +59,8 @@ describe('scopeSection', () => {
     )
   })
 
-  it('does not offer `all` as an option', () => {
+  it('offers every slice the list endpoint takes', () => {
     const values = scopeSection(t, 'all', vi.fn()).options.map((o) => o.value)
-    expect(values).toEqual(['mine', 'shared', 'public'])
+    expect(values).toEqual(['all', 'mine', 'shared', 'public'])
   })
 })

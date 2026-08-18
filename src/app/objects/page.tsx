@@ -49,7 +49,7 @@ export default function ObjectsPage() {
   const router = useRouter()
 
   const [viewType, setViewType] = usePreference('objectsView')
-  const [scope, setScope] = useScopePreference('objectsScope')
+  const [scope, setScope, defaultScope] = useScopePreference('objectsScope')
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
   const [resumeDraftId, setResumeDraftId] = useState<string | null>(null)
   const [shareTarget, setShareTarget] = useState<ObjectListItem | null>(null)
@@ -134,7 +134,7 @@ export default function ObjectsPage() {
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
             <FilterMenu
               sections={[
-                scopeSection(t, scope, setScope),
+                scopeSection(t, scope, setScope, defaultScope),
                 deletedSection(t, filters.showDeleted, filters.setShowDeleted),
               ]}
               {...anchor('filters')}

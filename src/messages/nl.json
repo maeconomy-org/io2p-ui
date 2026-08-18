@@ -85,8 +85,8 @@
       "languageReloadHint": "Het wijzigen van de taal herlaadt de pagina."
     },
     "preferences": {
-      "title": "Weergavevoorkeuren",
-      "description": "Kies de weergave waarin elk onderdeel opent. Je laatste keuze wordt voor dit account onthouden.",
+      "title": "Standaardinstellingen voor lijsten",
+      "description": "Hoe elke lijst opent: welke weergave en van wie de items zijn. Toegang kunt u per lijst wijzigen via het menu Filters — dit is alleen het startpunt.",
       "objects": "Objectenweergave",
       "processes": "Processenweergave",
       "properties": "Eigenschappenweergave",

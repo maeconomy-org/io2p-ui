@@ -46,6 +46,12 @@ export interface FilterSection {
    * counting the default as active would put a permanent `1` on every list.
    */
   summary?: string
+  /**
+   * Whether this section counts toward the trigger's badge, when membership alone is the wrong
+   * test. A section with a stored default is always "selected" — what matters is whether the
+   * selection differs from where the list opens for this account.
+   */
+  activeWhen?: boolean
 }
 
 /**
@@ -70,7 +76,12 @@ export function FilterMenu({
 }) {
   const t = useTranslations()
 
-  const activeCount = sections.reduce((n, s) => n + s.selected.length, 0)
+  const activeCount = sections.reduce(
+    (n, s) =>
+      n +
+      (s.activeWhen === undefined ? s.selected.length : s.activeWhen ? 1 : 0),
+    0
+  )
   const hasActive = activeCount > 0
   const summaries = sections
     .map((s) => s.summary)
@@ -229,31 +240,40 @@ const SCOPE_LABELS: Record<ScopeFilterValue, string> = {
 /**
  * Whose items the list shows — the access scope.
  *
- * This one is not new behaviour, it is *disclosure*: every list already sends `scope: 'all'`, so
- * anything shared with you is already in the table, distinguishable only by the Created by column.
- * The filter lets you separate the slices you could not previously name.
+ * Every list already sends a scope, so anything shared with you is in the table whether or not you
+ * asked; the filter lets you separate the slices, and the trigger names the active one because a
+ * default nobody can see is one nobody can learn to change.
  *
- * `all` is modelled as no selection rather than a fourth option — it IS the unfiltered state, and
- * showing it selected would put a permanent `1` on the trigger's count badge. The trigger names it
- * instead: a default nobody can see is one nobody can learn to change.
+ * `all` is a real option, not the absence of one. Modelled as absence it had no way back except
+ * "Clear filters", which also cleared Status — and it could not be shown selected, so the section
+ * read as though nothing was chosen.
+ *
+ * `storedDefault` is what the badge measures against: it counts having WANDERED from where this
+ * list opens for you, not having a value at all. Otherwise every account carries a permanent `1`.
  */
 export function scopeSection(
   t: Translate,
   value: ScopeFilterValue,
-  onChange: (next: ScopeFilterValue) => void
+  onChange: (next: ScopeFilterValue) => void,
+  storedDefault: ScopeFilterValue = 'all'
 ): FilterSection {
   return {
     key: 'scope',
     label: t('common.access'),
     options: [
+      { value: 'all', label: t('common.scopeAll') },
       { value: 'mine', label: t('common.scopeMine') },
       { value: 'shared', label: t('common.scopeShared') },
       { value: 'public', label: t('common.scopePublic') },
     ],
-    selected: value === 'all' ? [] : [value],
+    selected: [value],
     summary: t(SCOPE_LABELS[value]),
-    onChange: (values) => onChange((values[0] as ScopeFilterValue) ?? 'all'),
+    // Re-picking the active option would clear it, and this filter has no empty state — the list
+    // always asks for some slice. Falling back to the stored default keeps that true.
+    onChange: (values) =>
+      onChange((values[0] as ScopeFilterValue) ?? storedDefault),
     single: true,
+    activeWhen: value !== storedDefault,
   }
 }
 
