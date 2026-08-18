@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import { Badge, Label } from '@/components/ui'
+import { canDelete, canEdit } from '@/components/entity-list'
 import { useProcesses } from '@/hooks/api/entities'
 import type { EntityDraft, ValueProvenance } from '@/lib/entity'
 import { templatePresetToDraftProperties } from '@/lib/entity'
@@ -56,6 +57,19 @@ export function ProcessSheet({
   const [editing, setEditing] = useState(isCreate || initialEditing)
   const [template, setTemplate] = useState<TemplateChoice | null>(null)
   const isDeleted = !!process?.deleted
+  const permission = process?.permission
+  const editable = canEdit(permission)
+
+  // `initialEditing` comes from the row's Edit action, and it is applied before the fetch resolves —
+  // so a viewer who may not write would already be sitting in a live form by the time the node's
+  // verdict arrives. Corrected here rather than gated at `useState`, where `permission` is always
+  // undefined.
+  //
+  // Keyed on `editable` alone, NOT on `process`: a refetch hands back a new object on every cache
+  // update, and re-running there would drop a viewer out of a form they are part-way through.
+  useEffect(() => {
+    if (!isCreate && !editable) setEditing(false)
+  }, [isCreate, editable])
   const lifecycle = useEntityLifecycle(processes, 'Process', () =>
     setEditing(false)
   )
@@ -282,7 +296,10 @@ export function ProcessSheet({
           isDirty={isDirty}
           isSubmitting={isSubmitting}
           lifecycleBusy={lifecycle.isBusy}
-          canDelete={!!process}
+          canEdit={editable}
+          // Its own rung: delete and restore are guarded at `admin`, so a write grantee edits but
+          // does not delete.
+          canDelete={!!process && canDelete(permission)}
           entityName={process?.name}
           onEdit={() => setEditing(true)}
           onCancel={() => guardUnsaved(cancel)}

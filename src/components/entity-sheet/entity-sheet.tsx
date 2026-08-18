@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import { Badge, Label } from '@/components/ui'
+import { canDelete, canEdit } from '@/components/entity-list'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useObjectDrafts } from '@/hooks/drafts'
 import { hasPendingUploads, type ValueProvenance } from '@/lib/entity'
@@ -69,6 +70,11 @@ export function EntitySheet({
 
   // A soft-deleted object is shown, not hidden — but it can't be edited until it's restored.
   const isDeleted = !!entity?.deleted
+  // The node's own verdict, so a viewer shared at `write` keeps Edit while one shared at `read`
+  // loses it — an ownership test would get the first of those wrong. Absent on a create, and on a
+  // node predating the field, where the ladder reads it as unrestricted.
+  const permission = entity?.permission
+  const editable = canEdit(permission)
   const lifecycle = useEntityLifecycle(objects, 'Object', () =>
     setEditing(false)
   )
@@ -308,7 +314,10 @@ export function EntitySheet({
           isDirty={isDirty}
           isSubmitting={isSubmitting}
           lifecycleBusy={lifecycle.isBusy}
-          canDelete={!!entity}
+          canEdit={editable}
+          // Its own rung: delete and restore are guarded at `admin`, so a write grantee edits but
+          // does not delete.
+          canDelete={!!entity && canDelete(permission)}
           entityName={entity?.name}
           onEdit={() => setEditing(true)}
           onCancel={() => guardUnsaved(cancel)}

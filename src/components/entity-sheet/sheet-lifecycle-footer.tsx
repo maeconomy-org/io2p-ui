@@ -30,6 +30,7 @@ export function SheetLifecycleFooter({
   canEdit = true,
   readOnlyNote,
   canDelete,
+  canRestore = canDelete,
   entityName,
   onEdit,
   onCancel,
@@ -52,6 +53,11 @@ export function SheetLifecycleFooter({
   readOnlyNote?: string
   /** False while the entity has no id yet, or the caller has no delete for it. */
   canDelete: boolean
+  /**
+   * Restoring is guarded at the same rung as deleting — both are lifecycle writes — so it defaults
+   * to `canDelete` rather than to `true`, where a `write` grantee would be offered a 403.
+   */
+  canRestore?: boolean
   /** Named in the confirmation, so the dialog says what it is about to delete. */
   entityName?: string
   onEdit: () => void
@@ -80,21 +86,32 @@ export function SheetLifecycleFooter({
   return (
     <SheetFooter className="flex-row gap-2 border-t px-6 py-3">
       {isDeleted ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="flex-1"
-          disabled={lifecycleBusy}
-          data-testid="sheet-restore"
-          onClick={onRestore}
-        >
-          {lifecycleBusy ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <RotateCcw className="mr-2 h-4 w-4" />
-          )}
-          {t('common.restore')}
-        </Button>
+        canRestore ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1"
+            disabled={lifecycleBusy}
+            data-testid="sheet-restore"
+            onClick={onRestore}
+          >
+            {lifecycleBusy ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RotateCcw className="mr-2 h-4 w-4" />
+            )}
+            {t('common.restore')}
+          </Button>
+        ) : (
+          // Restore is guarded at `admin`, so a `write` grantee reaches here with nothing to do —
+          // and an empty bar reads as a rendering fault.
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="sheet-read-only"
+          >
+            {t('common.deletedReadOnly')}
+          </p>
+        )
       ) : !editing ? (
         <>
           {canEdit && (
