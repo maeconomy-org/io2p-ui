@@ -30,7 +30,7 @@ import {
   type RollupRuleColumnActions,
 } from './components/rollup-rule-columns'
 import { useRollupRules } from './hooks/use-rollup-rules'
-import type { RollupRuleDTO } from './lib/rollup-rule'
+import type { RollupRuleDTO } from 'io2p-client'
 
 const RollupRuleSheet = dynamic(
   () => import('./components/rollup-rule-sheet').then((m) => m.RollupRuleSheet),
@@ -62,17 +62,13 @@ export default function RollupRulesPage() {
   const setPage = listQuery.setPage
   const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
 
-  // Built explicitly rather than spread from `listQuery.query`: that carries `q` and `scope`, and
-  // this resource has neither — a rule is the node's or yours, and there is nothing to search.
+  // Built explicitly rather than spread from `listQuery.query`: that carries `q`, `scope` and
+  // `sort`, and this resource has none of them — a rule is the node's or yours, there is nothing to
+  // search, and the node fixes the order at newest-first.
   const { data: rulesPage, isFetching } = useList(
     {
       page: listQuery.query.page,
       size: filters.pageSize,
-      sort:
-        listQuery.query.sort === 'createdAt' ||
-        listQuery.query.sort === '-createdAt'
-          ? listQuery.query.sort
-          : undefined,
       system: owner,
       deleted: filters.showDeleted ? 'include' : undefined,
     },
@@ -140,8 +136,6 @@ export default function RollupRulesPage() {
             page={rulesPage}
             getRowId={(rule) => rule.id}
             fetching={isFetching}
-            sort={listQuery.query.sort}
-            onSortChange={listQuery.setSort}
             enableRowSelection
             rowSelection={list.rowSelection}
             onRowSelectionChange={list.setRowSelection}

@@ -23,7 +23,7 @@ import {
 } from '@/constants/property-dictionary'
 
 import { useAuth } from '@/contexts'
-import type { RollupRuleDTO } from '../lib/rollup-rule'
+import type { RollupRuleDTO } from 'io2p-client'
 
 export interface RollupRuleColumnActions {
   onViewDetails: (rule: RollupRuleDTO) => void
@@ -80,15 +80,14 @@ export function buildRollupRuleColumns({
         <OwnerCell
           system={rule.system}
           ownerUserId={rule.ownerUserId}
-          ownerName={rule.ownerName}
+          ownerName={rule.createdByName}
         />
       )
     ),
     timestampColumn<RollupRuleDTO>(
       'createdAt',
       t('objects.fields.created'),
-      (rule) => rule.createdAt,
-      { sortable: true }
+      (rule) => rule.createdAt
     ),
     actionsColumn<RollupRuleDTO>(
       (rule): ReactNode => (

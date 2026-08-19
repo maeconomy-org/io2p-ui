@@ -33,12 +33,13 @@ import { iomStatus } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 
 import { useRollupRules } from '../hooks/use-rollup-rules'
+import type { RollupRuleDTO } from 'io2p-client'
+
 import { rollupRuleErrorMessage } from '../lib/errors'
 import {
   normalizeRollupPropertyKey,
   ROLLUP_AGGREGATIONS,
   type RollupAggregation,
-  type RollupRuleDTO,
 } from '../lib/rollup-rule'
 
 export type RollupRuleSheetMode = 'create' | 'view'
@@ -379,7 +380,7 @@ function RollupRuleView({
           <OwnerCell
             system={rule.system}
             ownerUserId={rule.ownerUserId}
-            ownerName={rule.ownerName}
+            ownerName={rule.createdByName}
           />
         </Fact>
         <Fact label={t('objects.fields.created')}>
