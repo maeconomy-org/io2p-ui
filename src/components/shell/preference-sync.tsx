@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useLocale } from 'next-intl'
 
 import {
@@ -32,6 +33,7 @@ export function PreferenceSync() {
   const [, storeTheme] = usePreference('theme')
   const [, storeLocale] = usePreference('locale')
   const locale = useLocale()
+  const router = useRouter()
 
   const hints = useMemo(
     () => packHintsFromPreferences(preferences),
@@ -58,19 +60,31 @@ export function PreferenceSync() {
   }, [settled, serverTheme, theme, applyTheme])
 
   /**
-   * A locale changed on ANOTHER device applies on the next navigation, not now.
+   * The account's language needs a new SERVER render, so ask for one.
    *
-   * There is deliberately no `router.refresh()` here. Refresh invalidates the
-   * segment cache, so React suspends onto `loading.tsx` — a whole-page skeleton
-   * on every load where the cookie has not caught up yet. Wrapping it in a
-   * transition does not help: `router.refresh()` already does that internally.
+   * Leaving it to the next navigation does not work, however much cheaper it
+   * looks. A client navigation re-renders the SEGMENT, never the root layout —
+   * and the root layout is what hands `NextIntlClientProvider` its catalogue.
+   * The page arrives half translated: Server Components in the new language,
+   * every `useTranslations` still in the one that was loaded with the tab.
    *
-   * The cookie effect above has still corrected the mirror, so the very next
-   * request renders in the new language. That is what "the cookie is a hint"
-   * buys, and it costs one navigation instead of a skeleton on every load.
-   * An explicit switch refreshes itself — see `useSetLocale`.
+   * The cookie effect above has already corrected the mirror, so the refreshed
+   * request carries the new language. Same order `useSetLocale` depends on.
+   *
+   * The guard keys on the TARGET, not on the mount. A refresh that does not
+   * take — the cookie could not be written — leaves the target unchanged and
+   * must not loop. A target that changes is a new language from another device,
+   * and that one has to be honoured in a tab already open.
    */
   const serverLocale = hints.locale
+  const refreshedForRef = useRef<string | undefined>(undefined)
+
+  useEffect(() => {
+    if (!settled || !serverLocale || serverLocale === locale) return
+    if (refreshedForRef.current === serverLocale) return
+    refreshedForRef.current = serverLocale
+    router.refresh()
+  }, [settled, serverLocale, locale, router])
 
   // Existing users carry a theme and a locale this browser knows but the node
   // has never seen. Without this one push, both silently reset to the defaults

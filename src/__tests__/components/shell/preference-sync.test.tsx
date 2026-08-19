@@ -131,16 +131,79 @@ describe('PreferenceSync — locale', () => {
   })
 
   /**
-   * The regression this pins. `router.refresh()` invalidates the segment cache,
-   * so React suspends onto `loading.tsx` — a whole-page skeleton. Firing it from
-   * a PASSIVE reconcile put that skeleton on every load whose cookie had not
-   * caught up yet. An explicit switch refreshes itself; see `useSetLocale`.
+   * The regression this pins. Waiting for the next navigation left the user
+   * half translated after a login: the settings page came back in Dutch around
+   * an English card, because a client navigation re-renders the segment and
+   * never the root layout that owns the catalogue.
    */
-  it('never refreshes on its own, whatever the account says', () => {
+  it('refreshes when the account language is not the rendered one', () => {
+    auth.preferences = { locale: { app: 'nl' } }
+
+    render(<PreferenceSync />)
+
+    expect(refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes once, however often it re-renders', () => {
     auth.preferences = { locale: { app: 'nl' } }
     const { rerender } = render(<PreferenceSync />)
 
     rerender(<PreferenceSync />)
+    rerender(<PreferenceSync />)
+
+    expect(refresh).toHaveBeenCalledTimes(1)
+  })
+
+  /**
+   * A refresh that did not take leaves BOTH values where they were, so the
+   * guard still holds — the loop this pins is the one a cookie the browser
+   * refuses to store would otherwise produce.
+   */
+  it('does not retry the same language when the refresh does not take', () => {
+    auth.preferences = { locale: { app: 'nl' } }
+    const { rerender } = render(<PreferenceSync />)
+
+    auth = { ...auth, preferences: { locale: { app: 'nl' } } }
+    rerender(<PreferenceSync />)
+
+    expect(refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes again for a language chosen on another device', () => {
+    auth.preferences = { locale: { app: 'nl' } }
+    const { rerender } = render(<PreferenceSync />)
+    expect(refresh).toHaveBeenCalledTimes(1)
+
+    // The refresh took: the tree now renders Dutch. Then the other device
+    // switches the account to English, and this tab has to follow.
+    locale = 'nl'
+    auth = { ...auth, preferences: { locale: { app: 'en' } } }
+    rerender(<PreferenceSync />)
+
+    expect(refresh).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not refresh when the two already agree', () => {
+    locale = 'nl'
+    auth.preferences = { locale: { app: 'nl' } }
+
+    render(<PreferenceSync />)
+
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('does not refresh while `/me` is still in flight', () => {
+    auth = { preferences: undefined, authLoading: true, isAuthenticated: true }
+
+    render(<PreferenceSync />)
+
+    expect(refresh).not.toHaveBeenCalled()
+  })
+
+  it('does not refresh for an account that has no language yet', () => {
+    auth.preferences = { ui: { theme: 'dark' } }
+
+    render(<PreferenceSync />)
 
     expect(refresh).not.toHaveBeenCalled()
   })
