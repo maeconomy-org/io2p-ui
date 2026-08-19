@@ -18,7 +18,7 @@ async function seedObject(page: import('@playwright/test').Page, tag: string) {
   await panel.getByLabel(/name/i).first().fill(name)
   await addProperty(page, 0)
   await fillProperty(page, 0, 'Weight', '12')
-  await page.getByTestId('sheet-save').click()
+  await saveSheet(page)
   await expect(panel).toBeHidden()
   return name
 }

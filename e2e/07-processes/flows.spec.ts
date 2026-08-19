@@ -119,7 +119,7 @@ test.describe('07 - processes / flows', () => {
 
     await switchTab(page, 'inputs')
     await page.getByTestId('flow-remove-inputs-0').click()
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
 
     await expect(sheet(page)).toBeVisible()
 

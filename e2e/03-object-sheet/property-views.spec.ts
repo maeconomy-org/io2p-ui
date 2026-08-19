@@ -31,6 +31,10 @@ const grid = /grid overview/i
 
 async function createWithProperties(page: import('@playwright/test').Page) {
   const name = `${stamp()}-views`
+  // `openCreateSheet` clicks the header button on whatever page is loaded — it does NOT navigate,
+  // so the first test in a file has to get to /objects itself or it clicks into about:blank.
+  await page.goto('/objects')
+  await expect(page.getByTestId('data-table')).toBeVisible()
   const panel = await openCreateSheet(page)
   await panel.getByLabel(/name/i).first().fill(name)
   await addProperty(page, 0)
@@ -108,11 +112,18 @@ test.describe('03 - object sheet / property views', () => {
     await page.getByTestId('settings-tab-preferences').click()
     await expect(page.getByTestId('pref-properties')).toBeVisible()
 
-    await page.getByTestId('pref-properties-detailed').click()
-    await expect(page.getByTestId('pref-properties-detailed')).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
+    // A Select, not a segmented control (`1ef3215`): the item only exists once the trigger opens,
+    // and the chosen value shows on the TRIGGER rather than as `aria-pressed` on the option.
+    // `toPass`: a click landing before hydration does nothing at all, silently — the same guard
+    // `13-preferences` uses on the identical control.
+    await expect(async () => {
+      await page.getByTestId('pref-properties-trigger').click()
+      await page.getByTestId('pref-properties-detailed').click()
+      await expect(page.getByTestId('pref-properties-trigger')).toContainText(
+        /list/i,
+        { timeout: 3_000 }
+      )
+    }).toPass({ timeout: 30_000 })
 
     const name = await createWithProperties(page)
     await openObjectSheet(page, rowFor(page, name))
@@ -124,6 +135,8 @@ test.describe('03 - object sheet / property views', () => {
   }) => {
     // An object with no properties renders the empty line, not a control over nothing.
     const name = `${stamp()}-bare`
+    await page.goto('/objects')
+    await expect(page.getByTestId('data-table')).toBeVisible()
     const panel = await openCreateSheet(page)
     await panel.getByLabel(/name/i).first().fill(name)
     await saveSheet(page)
@@ -152,10 +165,17 @@ test.describe('03 - object sheet / property views', () => {
     // Not a case so much as the cleanup PV3/PV4 owe the account they share.
     await page.goto('/settings')
     await page.getByTestId('settings-tab-preferences').click()
-    await page.getByTestId('pref-properties-detailed').click()
-    await expect(page.getByTestId('pref-properties-detailed')).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
+    // A Select, not a segmented control (`1ef3215`): the item only exists once the trigger opens,
+    // and the chosen value shows on the TRIGGER rather than as `aria-pressed` on the option.
+    // `toPass`: a click landing before hydration does nothing at all, silently — the same guard
+    // `13-preferences` uses on the identical control.
+    await expect(async () => {
+      await page.getByTestId('pref-properties-trigger').click()
+      await page.getByTestId('pref-properties-detailed').click()
+      await expect(page.getByTestId('pref-properties-trigger')).toContainText(
+        /list/i,
+        { timeout: 3_000 }
+      )
+    }).toPass({ timeout: 30_000 })
   })
 })

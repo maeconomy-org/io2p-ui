@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test'
 
 import { tour } from './selectors'
-import { sheet, switchTab } from './sheet'
+import { saveSheet, sheet, switchTab } from './sheet'
 
 export type Bag = 'inputs' | 'outputs'
 
@@ -16,7 +16,7 @@ export async function createObjectWithId(
   const panel = sheet(page)
   await expect(panel).toBeVisible()
   await panel.getByLabel(/name/i).first().fill(name)
-  await page.getByTestId('sheet-save').click()
+  await saveSheet(page)
   await expect(panel).toBeHidden()
 
   const row = page
@@ -77,7 +77,7 @@ export async function createProcess(
   await switchTab(page, 'outputs')
   await addFlow(page, 'outputs', 0, outputName, '4')
 
-  await page.getByTestId('sheet-save').click()
+  await saveSheet(page)
   await expect(panel).toBeHidden()
 }
 

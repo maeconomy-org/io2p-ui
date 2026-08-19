@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { tour } from '../utils/selectors'
-import { openCreateSheet, sheet } from '../utils/sheet'
+import { openCreateSheet, saveSheet, sheet } from '../utils/sheet'
 
 /** Selection, the actions it unlocks, and the two floating bars that can occupy the same corner. */
 
@@ -30,7 +30,7 @@ test.describe('02 - objects list / selection', () => {
     for (const name of NAMES) {
       const panel = await openCreateSheet(page)
       await panel.getByLabel(/name/i).first().fill(name)
-      await page.getByTestId('sheet-save').click()
+      await saveSheet(page)
       await expect(sheet(page)).toBeHidden()
     }
 

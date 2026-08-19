@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
-import { openCreateSheet, sheet } from '../utils/sheet'
+import { openCreateSheet, saveSheet, sheet } from '../utils/sheet'
 
 const runId = Date.now()
 const L1 = `e2e-${runId}-L1`
@@ -28,7 +28,7 @@ async function createObject(page: Page, name: string, parentName?: string) {
     await page.keyboard.press('Escape')
   }
 
-  await page.getByTestId('sheet-save').click()
+  await saveSheet(page)
   await expect(sheet(page)).toBeHidden()
 }
 

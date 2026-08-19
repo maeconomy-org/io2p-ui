@@ -1,5 +1,10 @@
 import { expect, test } from '../fixtures/app'
-import { addProperty, fillProperty, openCreateSheet } from '../utils/sheet'
+import {
+  addProperty,
+  fillProperty,
+  openCreateSheet,
+  saveSheet,
+} from '../utils/sheet'
 
 const stamp = () => `e2e-${Date.now()}`
 
@@ -42,7 +47,7 @@ test.describe('03 - object sheet / create', () => {
     const panel = await openCreateSheet(page)
 
     await panel.getByLabel(/name/i).first().fill(name)
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
 
     await expect(panel).toBeHidden()
     await expect(page.getByRole('cell', { name, exact: false })).toBeVisible()
@@ -59,7 +64,7 @@ test.describe('03 - object sheet / create', () => {
     await addProperty(page, 1)
     await fillProperty(page, 1, 'Colour', 'red')
 
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(panel).toBeHidden()
 
     await expect(page.getByRole('cell', { name, exact: false })).toBeVisible()

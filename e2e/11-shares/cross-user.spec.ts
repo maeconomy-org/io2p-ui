@@ -1,7 +1,6 @@
-import type { Page } from '@playwright/test'
-
 import { expect, test } from '../fixtures/app'
 import { requireCredentials, secondCredentials } from '../setup/credentials'
+import { restoreSession, signInAs } from '../utils/session'
 import { tour } from '../utils/selectors'
 import { createObjectWithId } from '../utils/process'
 
@@ -14,23 +13,18 @@ import { createObjectWithId } from '../utils/process'
  */
 const second = secondCredentials()
 
-async function signIn(
-  page: Page,
-  who: { email: string; password: string }
-): Promise<void> {
-  await page.goto('/')
-  await page.getByLabel('Email').fill(who.email)
-  await page.getByLabel('Password').fill(who.password)
-  await page.getByTestId('auth-email-submit').click()
-  await page.waitForURL(/\/(objects|two-factor)$/)
-
-  // An account with TOTP on cannot be driven without its secret. Named rather than left to time
-  // out sixty seconds later against a page the test never expected to be on.
-  test.skip(
-    page.url().includes('/two-factor'),
-    `${who.email} has two-factor enabled — turn it off for the e2e account, or the grantee cannot sign in`
-  )
-}
+/**
+ * Signing in as the grantee ENDS the primary account's session for the whole origin, so every write
+ * spec scheduled after this FILE would run signed out. Put it back once, here, rather than leaving
+ * the next folder to discover it.
+ */
+test.afterAll(async ({ browser }) => {
+  if (!second) return
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  await restoreSession(page)
+  await context.close()
+})
 
 test.describe('11 - shares / cross-user', () => {
   test.skip(
@@ -90,7 +84,7 @@ test.describe('11 - shares / cross-user', () => {
 
     const ownerContext = await browser.newContext()
     const owner = await ownerContext.newPage()
-    await signIn(owner, requireCredentials())
+    await signInAs(owner, requireCredentials())
     await createObjectWithId(owner, objectName)
 
     await owner.goto('/shares')
@@ -113,7 +107,7 @@ test.describe('11 - shares / cross-user', () => {
 
     const granteeContext = await browser.newContext()
     const grantee = await granteeContext.newPage()
-    await signIn(grantee, second!)
+    await signInAs(grantee, second!)
 
     // The shared scope is index-driven on the grant set, so the listing IS the access check.
     await grantee.goto('/objects')

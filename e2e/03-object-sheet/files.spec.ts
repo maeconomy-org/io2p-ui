@@ -33,7 +33,7 @@ async function createObject(page: Page, tag: string): Promise<string> {
   await tour(page, 'createObject').click()
   await expect(sheet(page)).toBeVisible()
   await sheet(page).getByLabel(/name/i).first().fill(name)
-  await page.getByTestId('sheet-save').click()
+  await saveSheet(page)
   await expect(sheet(page)).toBeHidden()
   return name
 }

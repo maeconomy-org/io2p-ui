@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
-import { openCreateSheet, sheet } from '../utils/sheet'
+import { openCreateSheet, saveSheet, sheet } from '../utils/sheet'
 
 /**
  * `/objects/[uuid]` is the same list kit pointed at `?parent=`, so what is worth testing here is the
@@ -35,7 +35,7 @@ async function createObject(page: Page, name: string, parentName?: string) {
     await page.keyboard.press('Escape')
   }
 
-  await page.getByTestId('sheet-save').click()
+  await saveSheet(page)
   await expect(sheet(page)).toBeHidden()
 }
 
@@ -86,7 +86,7 @@ test.describe('04 - object children', () => {
     )
 
     await panel.getByLabel(/name/i).first().fill(name)
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(panel).toBeHidden()
 
     await expect(rowFor(page, name)).toBeVisible()

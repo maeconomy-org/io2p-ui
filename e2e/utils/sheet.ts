@@ -95,3 +95,18 @@ export async function removeProperty(
     await page.getByTestId(`property-remove-confirm-${index}`).click()
   }
 }
+
+/**
+ * Navigate to a list route and wait for ITS table, not the outgoing page's.
+ *
+ * `page.goto()` resolves before React has torn the previous route down, so for a moment BOTH
+ * tables carry `data-testid="data-table"` — the old one hidden, the new one painting. A bare
+ * `expect(getByTestId('data-table')).toBeVisible()` then fails strict mode with "resolved to 2
+ * elements", which reads as a duplicate-testid bug rather than a transition.
+ *
+ * `.last()` is the arriving one; waiting for it to be visible is what proves the transition is over.
+ */
+export async function gotoList(page: Page, path: string): Promise<void> {
+  await page.goto(path)
+  await expect(page.getByTestId('data-table').last()).toBeVisible()
+}

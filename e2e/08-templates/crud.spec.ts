@@ -63,7 +63,7 @@ test.describe('08 - templates', () => {
     await addProperty(page, 1)
     await fillProperty(page, 1, 'Thickness', '200')
 
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
     await expect(rowFor(page, name)).toHaveCount(1)
   })
@@ -80,7 +80,7 @@ test.describe('08 - templates', () => {
     await expect(page.getByTestId('flow-row-inputs-0')).toBeVisible()
     await expect(page.getByTestId('flow-row-outputs-0')).toBeVisible()
 
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
     await expect(rowFor(page, name)).toHaveCount(1)
   })
@@ -172,7 +172,7 @@ test.describe('08 - templates', () => {
     const name = `${stamp()}-tp5`
     await openCreate(page, 'object')
     await sheet(page).getByLabel(/name/i).first().fill(name)
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     await openForEdit(page, name)
@@ -181,7 +181,7 @@ test.describe('08 - templates', () => {
     // stays open holding the work rather than leaving a dead control to puzzle over.
     const nameField = sheet(page).getByLabel(/name/i).first()
     await nameField.fill('   ')
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeVisible()
     await expect(
       page.locator('[data-sonner-toaster] li').filter({ hasText: /name/i })
@@ -214,7 +214,7 @@ test.describe('08 - templates', () => {
     await fillProperty(page, 0, 'Thickness', '450 mm')
     await addProperty(page, 1)
     await fillProperty(page, 1, 'Grade', 'C30/37')
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     await rowFor(page, objectName)
@@ -272,7 +272,7 @@ test.describe('08 - templates', () => {
     await sheet(page).getByLabel(/name/i).first().fill(name)
     await addProperty(page, 0)
     await fillProperty(page, 0, 'Depth', '450')
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     await openForEdit(page, name)
@@ -284,7 +284,7 @@ test.describe('08 - templates', () => {
       (r) =>
         /\/v1\/templates\/[0-9a-f-]{36}/.test(r.url()) && r.method() !== 'GET'
     )
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     const body = (await request).postDataJSON()
 
     // A template save REPLACES the whole tree, so every id the read returned stops existing the

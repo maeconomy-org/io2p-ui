@@ -8,6 +8,7 @@ import {
   enterEditMode,
   expandProperty,
   fillProperty,
+  gotoList,
   openObjectSheet,
   saveSheet,
   sheet,
@@ -32,8 +33,7 @@ async function createFormula(
   name: string,
   expression: string
 ): Promise<void> {
-  await page.goto('/formulas')
-  await expect(page.getByTestId('data-table')).toBeVisible()
+  await gotoList(page, '/formulas')
   await tour(page, 'formulasCreate').click()
   await page.getByLabel(/name/i).first().fill(name)
   await page.getByLabel(/expression/i).fill(expression)
@@ -49,8 +49,7 @@ async function createConstant(
   name: string,
   value: string
 ): Promise<void> {
-  await page.goto('/constants')
-  await expect(page.getByTestId('data-table')).toBeVisible()
+  await gotoList(page, '/constants')
   await tour(page, 'constantsCreate').click()
   await page.locator('#constant-name').fill(name)
   await page.locator('#constant-data').fill(value)
@@ -67,8 +66,7 @@ async function openSheetWith(
   name: string,
   properties: { name: string; value: string }[]
 ): Promise<void> {
-  await page.goto('/objects')
-  await expect(page.getByTestId('data-table')).toBeVisible()
+  await gotoList(page, '/objects')
   await tour(page, 'createObject').click()
   await expect(sheet(page)).toBeVisible()
   await sheet(page).getByLabel(/name/i).first().fill(name)
@@ -100,7 +98,12 @@ async function bind(
   optionTestId: string
 ): Promise<void> {
   await page.getByTestId(`formula-bind-${variable}`).click()
-  await page.getByTestId(optionTestId).click()
+  // The picker is a Popover, not a Select: it ANIMATES out, so binding a second variable while the
+  // first popover is still unmounting puts two option lists in the DOM and the click resolves to
+  // two elements. Scope to the open one rather than waiting on a duration.
+  const open = page.locator('[data-state="open"][role="dialog"]').last()
+  await open.getByTestId(optionTestId).click()
+  await expect(page.getByTestId(optionTestId)).toHaveCount(0)
 }
 
 test.describe('03 - object sheet / formulas', () => {
@@ -207,7 +210,7 @@ test.describe('03 - object sheet / formulas', () => {
         fixture.expectedResult
       )
 
-      await page.getByTestId('sheet-save').click()
+      await saveSheet(page)
       await expect(sheet(page)).toBeHidden()
 
       // The client mirrors core's expr-eval and its 12-significant-figure rounding, so the number
@@ -236,7 +239,7 @@ test.describe('03 - object sheet / formulas', () => {
     await page.getByTestId('property-name-1').fill('Tripled')
     await chooseFormula(page, 1, formulaName)
     await bind(page, 'x', 'formula-sibling-Base')
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     await openObjectSheet(page, rowFor(page, objectName))
@@ -266,7 +269,7 @@ test.describe('03 - object sheet / formulas', () => {
     await page.getByTestId('property-name-1').fill('Quad')
     await chooseFormula(page, 1, formulaName)
     await bind(page, 'x', 'formula-sibling-Base')
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     // An INLINE expression has no formula to select, and the editor picks formulas rather than
@@ -308,7 +311,7 @@ test.describe('03 - object sheet / formulas', () => {
     await page.getByTestId('property-name-1').fill('Answer')
     await chooseFormula(page, 1, formulaName)
     await bind(page, 'x', 'formula-sibling-Seed')
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     await openObjectSheet(page, rowFor(page, objectName))
@@ -334,7 +337,7 @@ test.describe('03 - object sheet / formulas', () => {
     await page.getByTestId('property-name-1').fill('Plus')
     await chooseFormula(page, 1, formulaName)
     await bind(page, 'x', 'formula-sibling-Start')
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     await openObjectSheet(page, rowFor(page, objectName))
@@ -376,7 +379,7 @@ test.describe('03 - object sheet / formulas', () => {
     await chooseFormula(page, 0, formulaName)
     await bind(page, 'r', `formula-constant-${constantName}`)
     await expect(page.getByTestId('formula-preview')).toContainText('20')
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     await page.goto('/constants')

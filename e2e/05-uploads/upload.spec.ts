@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { tour } from '../utils/selectors'
-import { openObjectSheet, sheet, switchTab } from '../utils/sheet'
+import { openObjectSheet, saveSheet, sheet, switchTab } from '../utils/sheet'
 
 /**
  * to MinIO on :9000 by presigned PUT, and `POST /v1/files/{id}/complete` finalises it.
@@ -27,7 +27,7 @@ async function createWithFile(page: Page, tag: string, file = TINY) {
   await page.locator('input[type=file]').first().setInputFiles(file)
   await page.getByTestId('attachment-modal-done').click()
 
-  await page.getByTestId('sheet-save').click()
+  await saveSheet(page)
   await expect(sheet(page)).toBeHidden()
   return name
 }

@@ -7,6 +7,7 @@ import {
   addProperty,
   expandProperty,
   fillProperty,
+  saveSheet,
   sheet,
 } from '../utils/sheet'
 
@@ -125,7 +126,7 @@ test.describe('02 - objects list / drafts', () => {
     await expect(page.getByTestId('property-name-0')).toHaveValue('Material')
     await expect(page.getByTestId('property-value-0-0')).toHaveValue('oak')
 
-    await page.getByTestId('sheet-save').click()
+    await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     // The object exists on the server now, so the local copy is a draft of nothing — leaving it
