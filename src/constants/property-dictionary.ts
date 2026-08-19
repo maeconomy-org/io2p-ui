@@ -447,6 +447,139 @@ export const PROPERTY_DICTIONARY: PropertyDictionaryEntry[] = [
       nl: 'https://environdec.com/epd/000123',
     },
   },
+  // ── generic quantities ────────────────────────────────────────────────────
+  // Additive by nature, so a rollup rule on one of these sums to something meaningful. That is the
+  // curation test for this group: a total must answer a real question ("how much X is in here"),
+  // which is why ratings, rates and percentages are deliberately absent.
+  {
+    key: 'mass',
+    labels: { en: 'Mass', nl: 'Massa' },
+    category: 'dimensions',
+    valuePlaceholder: { en: '12.5 kg', nl: '12,5 kg' },
+  },
+  {
+    key: 'net-weight',
+    labels: { en: 'Net Weight', nl: 'Nettogewicht' },
+    category: 'dimensions',
+    valuePlaceholder: { en: '10 kg', nl: '10 kg' },
+  },
+  {
+    key: 'gross-weight',
+    labels: { en: 'Gross Weight', nl: 'Brutogewicht' },
+    category: 'dimensions',
+    valuePlaceholder: { en: '12 kg', nl: '12 kg' },
+  },
+  {
+    key: 'capacity',
+    labels: { en: 'Capacity', nl: 'Capaciteit' },
+    aliases: { en: ['max-load'], nl: ['maximale-belasting'] },
+    category: 'dimensions',
+    valuePlaceholder: { en: '500 l', nl: '500 l' },
+  },
+  {
+    key: 'energy-consumption',
+    labels: { en: 'Energy Consumption', nl: 'Energieverbruik' },
+    aliases: { en: ['energy', 'consumption'], nl: ['energie', 'verbruik'] },
+    category: 'sustainability',
+    valuePlaceholder: { en: '1200 kWh', nl: '1200 kWh' },
+  },
+  {
+    key: 'power',
+    labels: { en: 'Power', nl: 'Vermogen' },
+    aliases: { en: ['wattage'] },
+    category: 'dimensions',
+    valuePlaceholder: { en: '2400 W', nl: '2400 W' },
+  },
+  {
+    key: 'water-consumption',
+    labels: { en: 'Water Consumption', nl: 'Waterverbruik' },
+    aliases: { en: ['water'], nl: ['water'] },
+    category: 'sustainability',
+    valuePlaceholder: { en: '150 l', nl: '150 l' },
+  },
+  {
+    key: 'waste',
+    labels: { en: 'Waste', nl: 'Afval' },
+    category: 'sustainability',
+    valuePlaceholder: { en: '25 kg', nl: '25 kg' },
+  },
+  {
+    key: 'duration',
+    labels: { en: 'Duration', nl: 'Duur' },
+    aliases: { en: ['time', 'lead-time'], nl: ['tijd', 'doorlooptijd'] },
+    category: 'lifecycle',
+    valuePlaceholder: { en: '3 d', nl: '3 d' },
+  },
+  {
+    key: 'cost',
+    labels: { en: 'Cost', nl: 'Kosten' },
+    aliases: { en: ['total-cost'], nl: ['totale-kosten'] },
+    category: 'commerce',
+    valuePlaceholder: { en: '1250.00', nl: '1250,00' },
+  },
+
+  // ── generic identity and process ──────────────────────────────────────────
+  {
+    key: 'reference',
+    labels: { en: 'Reference', nl: 'Referentie' },
+    aliases: { en: ['ref', 'reference-number'], nl: ['ref', 'kenmerk'] },
+    category: 'meta',
+  },
+  {
+    key: 'version',
+    labels: { en: 'Version', nl: 'Versie' },
+    aliases: { en: ['revision'], nl: ['revisie'] },
+    category: 'meta',
+    valuePlaceholder: { en: '1.0', nl: '1.0' },
+  },
+  {
+    key: 'batch-size',
+    labels: { en: 'Batch Size', nl: 'Batchgrootte' },
+    category: 'dimensions',
+    valuePlaceholder: { en: '100', nl: '100' },
+  },
+  {
+    key: 'condition',
+    labels: { en: 'Condition', nl: 'Conditie' },
+    aliases: { en: ['state'], nl: ['staat', 'toestand'] },
+    category: 'state',
+  },
+  {
+    key: 'location',
+    labels: { en: 'Location', nl: 'Locatie' },
+    // No `plaats` alias: `city` already owns it, and an alias resolving to whichever entry
+    // happens to come first is a coin toss the user cannot see.
+    aliases: { en: ['position', 'placement'], nl: ['positie'] },
+    category: 'location',
+  },
+  {
+    key: 'department',
+    labels: { en: 'Department', nl: 'Afdeling' },
+    category: 'ownership',
+  },
+  {
+    key: 'project',
+    labels: { en: 'Project', nl: 'Project' },
+    category: 'meta',
+  },
+  {
+    key: 'start-date',
+    labels: { en: 'Start Date', nl: 'Startdatum' },
+    category: 'lifecycle',
+    valuePlaceholder: { en: '2024-01-15', nl: '15-01-2024' },
+  },
+  {
+    key: 'end-date',
+    labels: { en: 'End Date', nl: 'Einddatum' },
+    aliases: { en: ['completion-date'], nl: ['opleverdatum'] },
+    category: 'lifecycle',
+    valuePlaceholder: { en: '2024-06-30', nl: '30-06-2024' },
+  },
+  {
+    key: 'comment',
+    labels: { en: 'Comment', nl: 'Opmerking' },
+    category: 'meta',
+  },
 ]
 
 const PROPERTY_DICTIONARY_BY_KEY: Map<string, PropertyDictionaryEntry> =
@@ -490,6 +623,77 @@ export function resolvePropertyLabel(
 
 const normalize = (s: string) => s.trim().toLowerCase()
 
+/**
+ * Turn typed text into a stable property key.
+ *
+ * Diacritics are STRIPPED rather than preserved: the node lowercases a key and does nothing else,
+ * so "Oppervlakte" and "oppervlákte" would otherwise be two keys for one word, and a rollup rule
+ * matching `search.k` exactly would sum only one of them.
+ *
+ * Deliberately dictionary-INDEPENDENT. This is the floor that holds however the vocabulary is
+ * configured (or removed): two people typing the same word in the same language always get the
+ * same key. The dictionary adds cross-language convergence on top; it is not what makes keys agree.
+ */
+export function slug(input: string): string {
+  return input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+/**
+ * Find the dictionary entry whose key, label or alias EXACTLY matches the typed text, in either
+ * locale. Distinct from `matchDictionary`, which scores prefixes and substrings for the suggestion
+ * list — an exact hit is the only kind safe to act on without asking.
+ */
+export function findExactTerm(
+  typed: string
+): PropertyDictionaryEntry | undefined {
+  const query = normalize(typed)
+  if (query === '') return undefined
+
+  // A term's OWN key and labels beat another term's alias. `cost` is an alias of `price` and also a
+  // key in its own right; without this order, which one you get depends on array position, and
+  // typing the exact name of a term would resolve to something else.
+  const direct = PROPERTY_DICTIONARY.find((entry) =>
+    [entry.key, entry.labels.en, entry.labels.nl].some(
+      (candidate) => normalize(candidate) === query
+    )
+  )
+  if (direct) return direct
+
+  return PROPERTY_DICTIONARY.find((entry) =>
+    [...(entry.aliases?.en ?? []), ...(entry.aliases?.nl ?? [])].some(
+      (candidate) => normalize(candidate) === query
+    )
+  )
+}
+
+/**
+ * Decide what a typed property name is STORED as: a canonical key plus the text as written.
+ *
+ * The key is identity and the label is language — the protocol keeps them apart, and the free-text
+ * path used to store the same string as both. That is what split "Gewicht" from "Weight" into two
+ * keys nothing could ever sum together.
+ *
+ * A term known in EITHER locale resolves to its shared key, so a Dutch author and an English one
+ * land on `weight` and their values roll up as one quantity. Anything else is slugged, which is
+ * still an improvement (two Dutch users typing "Vloerafwerking" now agree) but cannot bridge
+ * languages — no algorithm knows "Vloerafwerking" and "Floor finish" are one concept. That residual
+ * is why the dictionary is worth extending.
+ *
+ * The label is ALWAYS what the user typed. Rewriting visible text under someone is not this
+ * function's job — `resolvePropertyLabel` renders a known key in the reader's own language at
+ * display time, which gets the same result without touching what was authored.
+ */
+export function resolveKey(typed: string): { key: string; label: string } {
+  const exact = findExactTerm(typed)
+  return { key: exact ? exact.key : slug(typed), label: typed }
+}
+
 export interface PropertySuggestion {
   entry: PropertyDictionaryEntry
   score: number
@@ -500,11 +704,22 @@ export interface PropertySuggestion {
 /**
  * Score a single candidate string against a normalized query.
  * Prefix match = 3, substring match = 1, no match = 0.
+ *
+ * Matching runs BOTH ways. A query that merely starts with a term ("Gewicht (kg)", "total weight")
+ * used to score zero, because the test only asked whether the term contained the query — so the
+ * longer someone typed, the fewer suggestions they got, and the qualified name they were writing
+ * became a brand-new key with nothing offered to prevent it. Containing the term scores below
+ * being one, so an exact word still wins the list.
  */
 function scoreCandidate(candidate: string, query: string): number {
   const c = normalize(candidate)
+  if (c === query) return 4
   if (c.startsWith(query)) return 3
   if (c.includes(query)) return 1
+  // Guarded by length: a two-letter term appears inside half the sentences anyone could type, and
+  // suggesting it on that basis is noise rather than help.
+  if (c.length >= 3 && query.startsWith(c)) return 2
+  if (c.length >= 4 && query.includes(c)) return 1
   return 0
 }
 

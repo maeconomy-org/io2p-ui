@@ -1,13 +1,22 @@
 import type { RollupRuleDTO } from 'io2p-client'
 
+import { resolveKey } from '@/constants/property-dictionary'
+
 export const ROLLUP_AGGREGATIONS = ['sum'] as const
 
 export type RollupAggregation = RollupRuleDTO['aggregation']
 
 /**
- * The server lowercases and trims, so `concreteMass` and `concretemass` are one key. Applied in the
- * form too, or the collision surfaces only as a 409 on two strings the user typed differently.
+ * Turn a typed rule key into the key a property would actually be stored under.
+ *
+ * This MUST be the same resolution the property name field applies, not merely a lowercase: a rule
+ * matches `search.k` exactly, so "Concrete Mass" typed here has to become `concrete-mass` — what
+ * the property field stores — and not `concrete mass`, which would match nothing forever while
+ * looking perfectly correct in the rules table.
+ *
+ * It also means a rule typed in Dutch finds the same key as a property typed in English, because
+ * both go through the dictionary.
  */
 export function normalizeRollupPropertyKey(input: string): string {
-  return input.trim().toLowerCase()
+  return resolveKey(input).key
 }

@@ -22,11 +22,18 @@ const at = (tree: unknown, path: string): unknown =>
 const problem = (status: number, detail?: string) => ({ status, detail })
 
 describe('normalizeRollupPropertyKey', () => {
-  it('trims and lowercases, matching what the server stores', () => {
+  // A rule matches `search.k` EXACTLY, so it has to land on the key the property field would
+  // store. A plain lowercase gave 'concrete mass', which no authored key can ever equal.
+  it('resolves to the key a property would be stored under', () => {
     expect(normalizeRollupPropertyKey('  Concrete Mass  ')).toBe(
-      'concrete mass'
+      'concrete-mass'
     )
     expect(normalizeRollupPropertyKey('concreteMass')).toBe('concretemass')
+  })
+
+  it('finds the shared key for a term typed in either language', () => {
+    expect(normalizeRollupPropertyKey('Gewicht')).toBe('weight')
+    expect(normalizeRollupPropertyKey('Weight')).toBe('weight')
   })
 
   it('collapses the pair that produces an unexplained 409', () => {

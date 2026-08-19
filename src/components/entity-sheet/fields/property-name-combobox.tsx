@@ -17,6 +17,7 @@ import { Input } from '@/components/ui'
 import {
   getDictionaryEntry,
   matchDictionary,
+  resolveKey,
   type PropertyDictionaryLocale,
   type PropertySuggestion,
 } from '@/constants/property-dictionary'
@@ -102,6 +103,18 @@ export const PropertyNameCombobox = forwardRef<
     setIsOpen(false)
   }
 
+  /**
+   * Settle the key once the user is done typing.
+   *
+   * On COMMIT, not per keystroke: rewriting the key mid-word fights the input, and half a word is
+   * not a term. The visible text never changes here — only the stored key does.
+   */
+  const commit = () => {
+    const { key, label } = resolveKey(value)
+    if (key !== value) onChange(key, label)
+    onBlur?.()
+  }
+
   const shouldShowList = isOpen && suggestions.length > 0
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -151,9 +164,9 @@ export const PropertyNameCombobox = forwardRef<
         value={displayValue}
         placeholder={placeholder}
         onChange={(e) => {
-          // Free-text: key and label are the same typed string. This also
-          // clears any previously-bound dictionary key the moment the user
-          // edits the standardized label.
+          // While typing, the key mirrors the text — `commit` settles it on blur. Storing the raw
+          // string here also clears any previously-bound dictionary key the moment the user edits
+          // the standardized label.
           const typed = e.target.value
           onChange(typed, typed)
           setIsOpen(true)
@@ -162,7 +175,7 @@ export const PropertyNameCombobox = forwardRef<
         onFocus={() => {
           if (suggestions.length > 0) setIsOpen(true)
         }}
-        onBlur={onBlur}
+        onBlur={commit}
         onKeyDown={handleKeyDown}
       />
       {shouldShowList && (
