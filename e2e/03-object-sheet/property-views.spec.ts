@@ -3,6 +3,7 @@ import {
   addProperty,
   enterEditMode,
   fillProperty,
+  gotoList,
   openCreateSheet,
   openObjectSheet,
   saveSheet,
@@ -108,14 +109,20 @@ test.describe('03 - object sheet / property views', () => {
   }) => {
     // One preference, two surfaces. They used to be able to disagree, which reads as the setting
     // not working rather than as two controls over one value.
+    //
+    // The object is created FIRST, deliberately. Doing it after the Settings write mounts the
+    // create sheet's own `PropertyReadView`, whose `usePreference` seeds from whatever the cache
+    // holds — so the setup would write the previous test's layout back over the value this case
+    // just set, and the assertion would fail against a preference the test itself undid.
+    const name = await createWithProperties(page)
+
     await page.goto('/settings')
     await page.getByTestId('settings-tab-preferences').click()
     await expect(page.getByTestId('pref-properties')).toBeVisible()
 
-    // A Select, not a segmented control (`1ef3215`): the item only exists once the trigger opens,
+    // A Select, not a segmented control (`1ef3215`): the item exists only once the trigger opens,
     // and the chosen value shows on the TRIGGER rather than as `aria-pressed` on the option.
-    // `toPass`: a click landing before hydration does nothing at all, silently — the same guard
-    // `13-preferences` uses on the identical control.
+    // `toPass` because a click landing before hydration does nothing at all, silently.
     await expect(async () => {
       await page.getByTestId('pref-properties-trigger').click()
       await page.getByTestId('pref-properties-detailed').click()
@@ -125,7 +132,7 @@ test.describe('03 - object sheet / property views', () => {
       )
     }).toPass({ timeout: 30_000 })
 
-    const name = await createWithProperties(page)
+    await gotoList(page, '/objects')
     await openObjectSheet(page, rowFor(page, name))
     await expect(toggle(page, detailed)).toHaveAttribute('aria-pressed', 'true')
   })
