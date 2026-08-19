@@ -576,6 +576,13 @@ export const PROPERTY_DICTIONARY: PropertyDictionaryEntry[] = [
     valuePlaceholder: { en: '2024-06-30', nl: '30-06-2024' },
   },
   {
+    key: 'construction-year',
+    labels: { en: 'Construction Year', nl: 'Bouwjaar' },
+    aliases: { en: ['year-built', 'built'], nl: ['bouwjaar'] },
+    category: 'lifecycle',
+    valuePlaceholder: { en: '1998', nl: '1998' },
+  },
+  {
     key: 'comment',
     labels: { en: 'Comment', nl: 'Opmerking' },
     category: 'meta',
