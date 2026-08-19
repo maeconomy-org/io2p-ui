@@ -55,7 +55,11 @@ export function UnitPicker({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // `modal`: the sheet around this is a Radix Dialog, which sets `pointer-events: none` on the
+    // body while it is open. The popover portals OUTSIDE the sheet's content, so it inherited that
+    // and the list could be walked with the arrow keys but not scrolled with a wheel. Modal gives
+    // the popover its own interaction layer.
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           id={id}
@@ -65,7 +69,9 @@ export function UnitPicker({
           aria-expanded={open}
           data-testid="unit-picker"
           className={cn(
-            'h-8 w-full justify-between font-normal',
+            // h-10 to match `Input`: this sits in the same form column as the name field, and the
+            // h-8 the in-sheet pickers use is for the denser property rows.
+            'h-10 w-full justify-between font-normal',
             !value && 'text-muted-foreground',
             className
           )}
@@ -80,7 +86,10 @@ export function UnitPicker({
       >
         <Command>
           <CommandInput placeholder={t('formulas.searchUnits')} />
-          <CommandList>
+          {/* Bounded by the space Radix measured between the trigger and the viewport edge, not
+              just by CommandList's own 300px: inside a sheet the popover can open with less room
+              than that, and the list would then run past the bottom with nothing to scroll. */}
+          <CommandList className="max-h-[min(300px,var(--radix-popover-content-available-height))]">
             {isFetching && !units ? (
               <div className="flex justify-center py-4">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -128,7 +137,7 @@ export function UnitPicker({
                     />
                     <span className="font-mono">{unit.symbol}</span>
                     {unit.canonical && (
-                      <span className="ml-auto text-xs text-muted-foreground">
+                      <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] uppercase tracking-wide text-muted-foreground">
                         {t('formulas.unitCanonical')}
                       </span>
                     )}

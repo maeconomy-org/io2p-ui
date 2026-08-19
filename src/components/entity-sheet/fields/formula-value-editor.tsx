@@ -68,7 +68,10 @@ export function FormulaSelect({
   const { data: selected } = useFormulas().useGet(formulaId)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // `modal`: this renders inside the entity sheet, a Radix Dialog that sets
+    // `pointer-events: none` on the body. A portalled popover inherits it, and its list stops
+    // answering a wheel while still responding to the arrow keys.
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -396,7 +399,10 @@ function BindingPicker({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // `modal`: this renders inside the entity sheet, a Radix Dialog that sets
+    // `pointer-events: none` on the body. A portalled popover inherits it, and its list stops
+    // answering a wheel while still responding to the arrow keys.
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"

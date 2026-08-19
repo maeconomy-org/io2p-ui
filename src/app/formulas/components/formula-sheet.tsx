@@ -200,23 +200,24 @@ function FormulaForm({
             />
           </div>
 
-          <div {...anchor('formulaExpression')}>
-            <FormulaExpressionField
-              value={expression}
-              onChange={setExpression}
-            />
-          </div>
-
-          {/* Optional, and below the expression on purpose: the node INFERS a unit whenever the
-              expression preserves one, so `weight * 1.1` needs nothing here. A declaration earns
-              its place where inference cannot reach — a product of two lengths, or a scale
-              conversion whose result is not in the unit its arguments are. */}
+          {/* ABOVE the expression, full width. Beside it the column had to be narrow enough for
+              the expression to stay usable, which truncated the trigger to "No u…" and turned the
+              hint into a tall thin paragraph. The expression field owns a status line and the
+              insert palette below it, so anything placed after that row is separated from this one
+              by the whole palette. */}
           <div className="space-y-2">
             <Label htmlFor="formula-unit">{t('formulas.unit')}</Label>
             <UnitPicker id="formula-unit" value={unit} onChange={setUnit} />
             <p className="text-xs text-muted-foreground">
               {t('formulas.unitHint')}
             </p>
+          </div>
+
+          <div {...anchor('formulaExpression')}>
+            <FormulaExpressionField
+              value={expression}
+              onChange={setExpression}
+            />
           </div>
         </SheetBody>
 

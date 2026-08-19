@@ -179,7 +179,7 @@ export function FormulaExpressionField({
           </p>
           <div className="relative">
             <Search
-              className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
             />
             <Input
@@ -188,7 +188,7 @@ export function FormulaExpressionField({
               placeholder={t('formulas.filterInserts')}
               aria-label={t('formulas.filterInserts')}
               data-testid="formula-insert-filter"
-              className="h-7 pl-7 text-xs"
+              className="h-9 pl-8 text-xs"
             />
           </div>
           <div className="flex flex-wrap gap-1">
