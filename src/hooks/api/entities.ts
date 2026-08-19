@@ -16,6 +16,7 @@ import { useIomClient } from '@/lib/io2p'
 import { queryKeys } from '@/lib/query-keys'
 import type { TemplateShareDependency } from '@/types'
 import type {
+  EntityRollupEntry,
   ObjectDTO,
   ObjectListItem,
   ProcessDTO,
@@ -93,10 +94,51 @@ function useObjectSubtree(
   })
 }
 
+/**
+ * Matches the node's `ROLLUP_COOLDOWN_MS` default: a target recomputed inside the cooldown is
+ * deferred, so a faster poll spends the 300/min budget re-reading a number that cannot have moved.
+ */
+export const ROLLUP_POLL_MS = 30_000
+
+/**
+ * Keep polling while any rule's recompute is still queued. One stale entry is enough — the others
+ * being settled says nothing about that one.
+ */
+export function rollupPollInterval(
+  data: { data: EntityRollupEntry[] } | undefined
+): number | false {
+  return data?.data.some((entry) => entry.stale) ? ROLLUP_POLL_MS : false
+}
+
+/**
+ * Computed subtree totals for one object — the object itself plus every descendant.
+ *
+ * OWNER-ONLY on the node: a `read` grant does not reach it and a non-owner gets 404, so the caller
+ * gates on `createdBy === userId` rather than on `permission` (a grantee can hold `admin` and still
+ * be refused). Totals are not part of the object and never become properties on it, which is why
+ * this is a second request rather than a field on `useGet`.
+ */
+function useObjectRollups(
+  id: string | undefined,
+  options?: { enabled?: boolean }
+) {
+  const client = useIomClient()
+  return useQuery({
+    queryKey: queryKeys.objects.rollups(id ?? ''),
+    queryFn: () => client.objects.rollups(id!),
+    enabled: !!id && options?.enabled !== false,
+    // The app-wide default is 30s, so without this a poll tick landing inside that window is
+    // served from cache: the interval fires and the number never moves.
+    staleTime: 0,
+    refetchInterval: (query) => rollupPollInterval(query.state.data),
+  })
+}
+
 const objectBundle = {
   ...objectBase,
   useChildren: useObjectChildren,
   useSubtree: useObjectSubtree,
+  useRollups: useObjectRollups,
 }
 
 export function useObjects() {

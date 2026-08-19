@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { ChevronRight, LayoutGrid, List, Paperclip } from 'lucide-react'
 
 import {
@@ -15,8 +15,15 @@ import { cn } from '@/lib/utils'
 import { usePreference } from '@/hooks/ui/use-preference'
 import type { DraftProperty, DraftFile, DraftValue } from '@/lib/entity'
 
+import {
+  resolvePropertyLabel,
+  type PropertyDictionaryLocale,
+} from '@/constants/property-dictionary'
+import type { EntityRollupEntry } from 'io2p-client'
+
 import { FilesDisclosure } from '../files'
 import { DeletedRow } from './deleted-row'
+import { RollupLine } from './rollup-line'
 import { FormulaSummary } from './formula-value-editor'
 import { ValueNormalization, formulaBoundValueIds } from './value-normalization'
 import {
@@ -42,6 +49,18 @@ function fileCount(p: DraftProperty): number {
   )
 }
 
+/**
+ * The canonical unit of the property's own value, if it has one.
+ *
+ * `RollupLine` matches this against a bucket's `unit`, NOT its `dimension` — those are different
+ * vocabularies (`kg` vs `mass`), and comparing across them never matches, which would open every
+ * multi-bucket row. A bucket carries the canonical unit of its dimension and a value's `unit` is
+ * canonical too, so the two are directly comparable.
+ */
+function ownUnit(p: DraftProperty): string | undefined {
+  return liveValues(p).find((v) => v.unit !== undefined)?.unit
+}
+
 function valueSummary(p: DraftProperty, manyLabel: string): string {
   const values = liveValues(p)
   if (values.length === 0) return '—'
@@ -60,6 +79,7 @@ type FileChange = (
 export function PropertyReadView({
   properties,
   derivedValues,
+  rollups,
   entityId,
   onFileChange,
   allowFiles = true,
@@ -67,6 +87,8 @@ export function PropertyReadView({
 }: {
   properties: DraftProperty[]
   derivedValues: DerivedValues
+  /** Subtree totals keyed by lowercased property key. Objects only; absent elsewhere. */
+  rollups?: ReadonlyMap<string, EntityRollupEntry>
   entityId?: string
   onFileChange?: FileChange
   /** False for entities io2p cannot attach files to (templates) — hides every file affordance. */
@@ -75,13 +97,27 @@ export function PropertyReadView({
   allowViewToggle?: boolean
 }) {
   const t = useTranslations()
+  const locale = useLocale() as PropertyDictionaryLocale
   const [view, setView] = usePreference('propertiesView')
   const boundValueIds = useMemo(
     () => formulaBoundValueIds(derivedValues),
     [derivedValues]
   )
 
-  if (properties.length === 0) {
+  // A rule can cover a key this object never authored — the parent holds nothing, the descendants
+  // hold it all. That is the most useful rollup there is, so it gets a row of its own rather than
+  // being dropped for want of a property to decorate.
+  const orphans = useMemo(() => {
+    if (!rollups) return []
+    const authored = new Set(properties.map((p) => p.key.toLowerCase()))
+    return [...rollups.values()]
+      .filter((entry) => !authored.has(entry.propertyKey))
+      .sort((a, b) => a.propertyKey.localeCompare(b.propertyKey))
+  }, [rollups, properties])
+
+  // Not `properties.length` — an object whose rules all cover keys it never authored has only
+  // orphan rows, and testing the properties alone would discard exactly those.
+  if (properties.length === 0 && orphans.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         {t('objects.detailsSheet.noProperties')}
@@ -137,9 +173,33 @@ export function PropertyReadView({
                     t('objects.values', { count: liveValues(p).length })
                   )}
                 </div>
+                {rollups?.get(p.key.toLowerCase()) && (
+                  <RollupLine
+                    entry={rollups.get(p.key.toLowerCase())!}
+                    ownUnit={ownUnit(p)}
+                    compact
+                    className="mt-1"
+                  />
+                )}
               </div>
             )
           )}
+          {orphans.map((entry) => (
+            <div
+              key={entry.ruleId}
+              className="rounded-md border border-dashed p-2.5"
+            >
+              <div className="flex items-center gap-1.5 text-sm font-medium">
+                <span className="truncate">
+                  {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
+                </span>
+              </div>
+              <div className="mt-0.5 truncate text-sm text-muted-foreground">
+                —
+              </div>
+              <RollupLine entry={entry} compact className="mt-1" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -153,10 +213,45 @@ export function PropertyReadView({
               entityId={entityId}
               onFileChange={onFileChange}
               allowFiles={allowFiles}
+              rollup={rollups?.get(p.key.toLowerCase())}
+            />
+          ))}
+          {orphans.map((entry) => (
+            <OrphanRollupCard
+              key={entry.ruleId}
+              entry={entry}
+              locale={locale}
             />
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * A rollup covering a key this object never authored. Not collapsible: there are no values to
+ * disclose, so a chevron would open onto nothing.
+ */
+function OrphanRollupCard({
+  entry,
+  locale,
+}: {
+  entry: EntityRollupEntry
+  locale: PropertyDictionaryLocale
+}) {
+  return (
+    <div
+      className="rounded-md border border-dashed px-3 py-1.5"
+      data-testid="orphan-rollup"
+    >
+      <div className="flex items-center gap-1.5">
+        <span className="truncate text-sm font-medium">
+          {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
+        </span>
+        <span className="ml-2 text-sm text-muted-foreground">—</span>
+      </div>
+      <RollupLine entry={entry} className="mt-0.5" />
     </div>
   )
 }
@@ -169,6 +264,7 @@ function PropertyCard({
   entityId,
   onFileChange,
   allowFiles,
+  rollup,
 }: {
   property: DraftProperty
   derivedValues: DerivedValues
@@ -177,6 +273,8 @@ function PropertyCard({
   entityId?: string
   onFileChange?: FileChange
   allowFiles: boolean
+  /** The subtree total for this property's key, when a rule covers it. */
+  rollup?: EntityRollupEntry
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
@@ -218,6 +316,16 @@ function PropertyCard({
           </Badge>
         )}
       </CollapsibleTrigger>
+
+      {/* OUTSIDE the collapsible content: the card is collapsed by default, and a total nobody can
+          see without expanding is a total nobody reads. */}
+      {rollup && (
+        <RollupLine
+          entry={rollup}
+          ownUnit={ownUnit(property)}
+          className="px-3 pb-1.5 pl-8"
+        />
+      )}
 
       <CollapsibleContent className="space-y-2 border-t bg-muted/10 px-3 py-2">
         {/* Property-level files first (under the header), then each value with its own files. */}

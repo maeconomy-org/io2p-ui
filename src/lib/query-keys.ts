@@ -32,6 +32,12 @@ export const queryKeys = {
       [...queryKeys.objects.all, 'children', parentId, query] as const,
     subtree: (ancestorId: string, query?: unknown) =>
       [...queryKeys.objects.all, 'subtree', ancestorId, query] as const,
+    // Under `detail` so saving the object refetches its totals — the write hooks invalidate
+    // `detail(id)` and React Query matches by prefix. A sibling of `subtree` would be missed by
+    // every one of them. Editing a DESCENDANT still only invalidates that descendant's key; the
+    // ancestor's totals catch up through the `stale` poll, which is what `stale` is for.
+    rollups: (id: string) =>
+      [...queryKeys.objects.detail(id), 'rollups'] as const,
   },
 
   // ─── Processes ───────────────────────────────────────────

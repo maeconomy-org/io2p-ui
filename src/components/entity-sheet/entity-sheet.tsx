@@ -7,9 +7,11 @@ import { toast } from 'sonner'
 
 import { Badge, Label } from '@/components/ui'
 import { canDelete, canEdit } from '@/components/entity-list'
+import { useAuth } from '@/contexts/auth-context'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useObjectDrafts } from '@/hooks/drafts'
 import { hasPendingUploads, type ValueProvenance } from '@/lib/entity'
+import type { EntityRollupEntry } from 'io2p-client'
 
 import { useEntityForm } from './hooks/use-entity-form'
 import { useEntityLifecycle } from './hooks/use-entity-lifecycle'
@@ -59,6 +61,7 @@ export function EntitySheet({
   const isCreate = !entityId
 
   const objects = useObjects()
+  const { userId } = useAuth()
   // OBJECT_DETAIL_READ, not a literal: the hover prefetch keys on these exact options.
   const { data: entity, isLoading } = objects.useGet(
     entityId ?? undefined,
@@ -122,6 +125,22 @@ export function EntitySheet({
     if (saved) toast.success(t('objects.drafts.saved'))
     else toast.error(t('objects.drafts.saveFailed'))
   }
+
+  // Subtree totals, keyed by the node's already-lowercased `propertyKey` so the read view can join
+  // on `property.key.toLowerCase()`.
+  //
+  // Gated on OWNERSHIP, not on `permission`: the node serves this owner-only and answers a
+  // non-owner with 404, so a `write` or even `admin` grantee must not ask. `canEdit` is the wrong
+  // test here for the same reason it is the right one for Edit.
+  const isOwner = !!entity && !!userId && entity.createdBy === userId
+  const { data: rollupData } = objects.useRollups(entityId ?? undefined, {
+    enabled: isOwner,
+  })
+  const rollups = useMemo(() => {
+    const m = new Map<string, EntityRollupEntry>()
+    rollupData?.data.forEach((entry) => m.set(entry.propertyKey, entry))
+    return m
+  }, [rollupData])
 
   // Keyed by value id: presence means the value is derived, the payload is the node's evaluation
   // trace. A derived value always has a source; `provenance` is what it was computed FROM.
@@ -204,6 +223,7 @@ export function EntitySheet({
           form={form}
           editing={editing}
           derivedValues={derivedValues}
+          rollups={rollups}
         />
       ),
     },

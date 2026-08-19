@@ -585,7 +585,14 @@
       "unknownUnit": "Onbekende eenheid",
       "noNumber": "Geen getal gevonden",
       "canonicalValue": "Canonieke waarde",
-      "excludedFromFormulas": "uitgesloten van de formules die deze gebruiken"
+      "excludedFromFormulas": "uitgesloten van de formules die deze gebruiken",
+      "rollupTotal": "Totaal hieronder",
+      "rollupContributors": "{count, plural, one {# waarde} other {# waarden}}",
+      "rollupSkipped": "{count, plural, one {# niet meegeteld} other {# niet meegeteld}}",
+      "rollupMoreDimensions": "{count, plural, one {+# andere eenheid} other {+# andere eenheden}}",
+      "rollupProcessing": "Bijwerken…",
+      "rollupNotCalculated": "Nog niet berekend",
+      "rollupSubtreeTooLarge": "Te veel items om te totaliseren"
     },
     "duplicate": {
       "title": "Objecten kopiëren",

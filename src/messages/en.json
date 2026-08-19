@@ -585,7 +585,14 @@
       "unknownUnit": "Unknown unit",
       "noNumber": "No number found",
       "canonicalValue": "Canonical value",
-      "excludedFromFormulas": "excluded from the formulas that use it"
+      "excludedFromFormulas": "excluded from the formulas that use it",
+      "rollupTotal": "Total below",
+      "rollupContributors": "{count, plural, one {# value} other {# values}}",
+      "rollupSkipped": "{count, plural, one {# not counted} other {# not counted}}",
+      "rollupMoreDimensions": "{count, plural, one {+# more unit} other {+# more units}}",
+      "rollupProcessing": "Updating…",
+      "rollupNotCalculated": "Not calculated yet",
+      "rollupSubtreeTooLarge": "Too many items to total"
     },
     "duplicate": {
       "title": "Copy Objects",

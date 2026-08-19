@@ -3,7 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-import { useObjects, useProcesses, useTemplates } from '@/hooks/api/entities'
+import {
+  ROLLUP_POLL_MS,
+  rollupPollInterval,
+  useObjects,
+  useProcesses,
+  useTemplates,
+} from '@/hooks/api/entities'
 
 const objects = {
   list: vi.fn(),
@@ -14,6 +20,7 @@ const objects = {
   restore: vi.fn(),
   children: vi.fn(),
   subtree: vi.fn(),
+  rollups: vi.fn(),
 }
 
 const templates = {
@@ -52,6 +59,7 @@ describe('entities hooks', () => {
         'usePrefetchDetail',
         'useRemove',
         'useRestore',
+        'useRollups',
         'useSubtree',
         'useUpdate',
       ].sort()
@@ -129,5 +137,45 @@ describe('entities hooks', () => {
 
     await result.current.mutateAsync({ id: 't1' })
     expect(templates.delete).toHaveBeenCalledWith('t1')
+  })
+
+  it('useRollups is disabled until an id AND ownership are known', async () => {
+    objects.rollups.mockResolvedValue({ data: [] })
+    const { wrapper } = makeWrapper()
+
+    // A non-owner must never fire the request: the node answers 404, so asking is a guaranteed
+    // failure rather than a permission the UI could recover from.
+    const { result, rerender } = renderHook(
+      ({ id, owner }: { id?: string; owner: boolean }) =>
+        useObjects().useRollups(id, { enabled: owner }),
+      { wrapper, initialProps: { id: 'o1', owner: false } }
+    )
+
+    expect(result.current.isFetched).toBe(false)
+    expect(objects.rollups).not.toHaveBeenCalled()
+
+    rerender({ id: 'o1', owner: true })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(objects.rollups).toHaveBeenCalledWith('o1')
+  })
+
+  it('rollupPollInterval polls while an entry is stale and stops when none are', () => {
+    const entry = (stale: boolean) => ({
+      ruleId: 'r1',
+      propertyKey: 'mass',
+      buckets: [],
+      skippedCount: 0,
+      stale,
+      computedAt: null,
+    })
+
+    // One stale entry is enough — that rule's recompute is still queued.
+    expect(rollupPollInterval({ data: [entry(false), entry(true)] })).toBe(
+      ROLLUP_POLL_MS
+    )
+    expect(rollupPollInterval({ data: [entry(false)] })).toBe(false)
+    // Nothing fetched yet, and the empty case: no rule, nothing to wait for.
+    expect(rollupPollInterval(undefined)).toBe(false)
+    expect(rollupPollInterval({ data: [] })).toBe(false)
   })
 })

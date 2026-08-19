@@ -12,6 +12,7 @@ import {
   TextInitial,
 } from 'lucide-react'
 import { useFieldArray, useWatch, type UseFormReturn } from 'react-hook-form'
+import type { EntityRollupEntry } from 'io2p-client'
 
 import {
   Badge,
@@ -57,6 +58,11 @@ interface PropertyFieldsProps {
    * Presence means "derived"; the payload is the node's evaluation trace, absent on older writes.
    */
   derivedValues: DerivedValues
+  /**
+   * Subtree totals keyed by lowercased property key. Objects only — templates and process flows
+   * have no rollups, and pass nothing.
+   */
+  rollups?: ReadonlyMap<string, EntityRollupEntry>
   entityId?: string
   /** Renders a header row (label + Add) instead of a trailing Add button — used by the create shell. */
   label?: string
@@ -133,6 +139,7 @@ export function PropertyFields({
   form,
   editing,
   derivedValues,
+  rollups,
   entityId,
   label,
   allowFiles = true,
@@ -197,6 +204,7 @@ export function PropertyFields({
       <PropertyReadView
         properties={readProperties ?? []}
         derivedValues={derivedValues}
+        rollups={rollups}
         entityId={entityId}
         onFileChange={patchFile}
         allowFiles={allowFiles}
