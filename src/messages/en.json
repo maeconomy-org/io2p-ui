@@ -850,9 +850,10 @@
         "hyperbolic": "Hyperbolic",
         "logarithmic": "Logarithmic",
         "rounding": "Rounding",
-        "other": "Other"
+        "other": "Other",
+        "conditional": "Conditional & selection"
       },
-      "logNote": "log() is the natural logarithm (base e), not base 10. Use log10() for base 10.",
+      "logNote": "log() and ln() are the natural logarithm (base e). Use log10() for base 10, or lg() for base 2.",
       "constantsTitle": "Built-in Constants",
       "examplesTitle": "Examples",
       "examples": {
@@ -875,14 +876,20 @@
         "compoundInterest": {
           "formula": "P * (1 + rate)^years",
           "label": "Compound interest"
+        },
+        "conditional": {
+          "formula": "a > b ? a : b",
+          "label": "Pick the larger"
         }
       },
       "unsupportedTitle": "Not Supported",
       "unsupported": {
-        "comparison": "No comparison operators: <, >, <=, >=, ==, !=",
-        "logical": "No logical operators: &&, ||, !",
+        "comparison": "A comparison cannot BE the result — `a < b` yields true/false, not a number. Use one inside a conditional: `a < b ? a : b`",
+        "logical": "No logical operators: &&, ||, !. Use not() and nested conditionals",
         "bitwise": "No bitwise operators: &, |, ~, <<, >>",
-        "ternary": "No ternary expressions: condition ? a : b",
+        "assignment": "No assignment: `a = b` and `f(x) = …` are rejected, so an `==` typo cannot silently become a value",
+        "arrays": "No arrays or member access: [1,2], a[0], a.b — a calc yields ONE number",
+        "sequence": "No `;` sequence operator",
         "implicitMul": "No implicit multiplication — write 2*x, not 2x"
       }
     },

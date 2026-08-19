@@ -850,9 +850,10 @@
         "hyperbolic": "Hyperbolisch",
         "logarithmic": "Logaritmisch",
         "rounding": "Afronding",
-        "other": "Overig"
+        "other": "Overig",
+        "conditional": "Voorwaardelijk & selectie"
       },
-      "logNote": "log() is de natuurlijke logaritme (grondtal e), niet grondtal 10. Gebruik log10() voor grondtal 10.",
+      "logNote": "log() en ln() zijn de natuurlijke logaritme (grondtal e). Gebruik log10() voor grondtal 10, of lg() voor grondtal 2.",
       "constantsTitle": "Ingebouwde constanten",
       "examplesTitle": "Voorbeelden",
       "examples": {
@@ -875,14 +876,20 @@
         "compoundInterest": {
           "formula": "P * (1 + rate)^years",
           "label": "Samengestelde rente"
+        },
+        "conditional": {
+          "formula": "a > b ? a : b",
+          "label": "Kies de grootste"
         }
       },
       "unsupportedTitle": "Niet ondersteund",
       "unsupported": {
-        "comparison": "Geen vergelijkingsoperatoren: <, >, <=, >=, ==, !=",
-        "logical": "Geen logische operatoren: &&, ||, !",
-        "bitwise": "Geen bitwise operatoren: &, |, ~, <<, >>",
-        "ternary": "Geen ternaire expressies: conditie ? a : b",
+        "comparison": "Een vergelijking kan niet HET resultaat zijn — `a < b` geeft waar/onwaar, geen getal. Gebruik er een binnen een voorwaarde: `a < b ? a : b`",
+        "logical": "Geen logische operatoren: &&, ||, !. Gebruik not() en geneste voorwaarden",
+        "bitwise": "Geen bitsgewijze operatoren: &, |, ~, <<, >>",
+        "assignment": "Geen toewijzing: `a = b` en `f(x) = …` worden geweigerd, zodat een `==`-typefout nooit stilletjes een waarde wordt",
+        "arrays": "Geen arrays of member-toegang: [1,2], a[0], a.b — een berekening geeft ÉÉN getal",
+        "sequence": "Geen `;`-reeksoperator",
         "implicitMul": "Geen impliciete vermenigvuldiging — schrijf 2*x, niet 2x"
       }
     },

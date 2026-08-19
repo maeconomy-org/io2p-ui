@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl'
 import { FunctionSquare, Ban } from 'lucide-react'
 
+import { builtinNames } from '@/lib/formula-expression'
+
 import {
   Dialog,
   DialogContent,
@@ -30,16 +32,56 @@ const OPERATORS = [
   { symbol: '-x', key: 'unaryMinus' },
 ] as const
 
+/**
+ * How the parser's functions are GROUPED for reading. Membership only — the list of what exists
+ * comes from `builtinNames()`, so a parser upgrade cannot leave this dialog claiming a function
+ * that is gone (it listed `signum`, which does not exist; the name is `sign`) or hiding seventeen
+ * that arrived. Anything ungrouped falls into `other`, which a test asserts stays non-empty-safe.
+ */
 const FUNCTION_GROUPS = [
   {
     key: 'trigonometric',
-    fns: ['sin', 'cos', 'tan', 'asin', 'acos', 'atan'],
+    fns: ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2'],
   },
-  { key: 'hyperbolic', fns: ['sinh', 'cosh', 'tanh'] },
-  { key: 'logarithmic', fns: ['log', 'log2', 'log10', 'exp'] },
-  { key: 'rounding', fns: ['ceil', 'floor', 'round'] },
-  { key: 'other', fns: ['abs', 'sqrt', 'cbrt', 'signum', 'pow', 'min', 'max'] },
+  {
+    key: 'hyperbolic',
+    fns: ['sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh'],
+  },
+  {
+    key: 'logarithmic',
+    fns: ['log', 'ln', 'lg', 'log2', 'log10', 'log1p', 'exp', 'expm1'],
+  },
+  { key: 'rounding', fns: ['ceil', 'floor', 'round', 'roundTo', 'trunc'] },
+  {
+    key: 'conditional',
+    fns: ['if', 'not', 'min', 'max'],
+  },
 ] as const
+
+/**
+ * Every function the parser actually offers, in reading order, with anything ungrouped collected
+ * into `other`.
+ *
+ * Derived rather than listed: `builtinNames()` reads the live parser (minus `random`, which is
+ * banned for determinism, and the collection-only names the disabled array grammar makes
+ * unusable), so this dialog cannot drift from what a formula will accept.
+ */
+export function groupedFunctions(): { key: string; fns: string[] }[] {
+  const available = new Set(builtinNames().functions)
+  const grouped = new Set<string>()
+
+  const groups = FUNCTION_GROUPS.map((group) => {
+    const fns = group.fns.filter((fn) => {
+      if (!available.has(fn)) return false
+      grouped.add(fn)
+      return true
+    })
+    return { key: group.key, fns }
+  }).filter((group) => group.fns.length > 0)
+
+  const rest = [...available].filter((fn) => !grouped.has(fn)).sort()
+  return rest.length > 0 ? [...groups, { key: 'other', fns: rest }] : groups
+}
 
 const CONSTANTS = [
   { name: 'pi', alias: '\u03C0', value: '3.14159\u2026' },
@@ -53,13 +95,20 @@ const EXAMPLE_KEYS = [
   'pythagorean',
   'circleArea',
   'compoundInterest',
+  'conditional',
 ] as const
 
+// `ternary` is GONE from this list: `a > b ? a : b` parses AND evaluates. The grammar keeps
+// comparison and conditional operators precisely so they can be used inside `?:` — what it refuses
+// is a comparison as the whole result, because a calc must yield a number and `a < b` yields a
+// boolean. Assignment, arrays and `;` are the operators actually disabled.
 const UNSUPPORTED_KEYS = [
   'comparison',
   'logical',
   'bitwise',
-  'ternary',
+  'assignment',
+  'arrays',
+  'sequence',
   'implicitMul',
 ] as const
 
@@ -113,7 +162,7 @@ export function FormulaReferenceDialog({
             <section>
               <SectionHeading>{t('functionsTitle')}</SectionHeading>
               <div className="space-y-3 mt-2">
-                {FUNCTION_GROUPS.map((group) => (
+                {groupedFunctions().map((group) => (
                   <div key={group.key}>
                     <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
                       {t(`functionGroups.${group.key}`)}

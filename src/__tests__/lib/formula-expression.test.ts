@@ -1,3 +1,4 @@
+import { groupedFunctions } from '@/app/formulas/components/formula-reference-dialog'
 import { describe, it, expect } from 'vitest'
 
 import {
@@ -204,5 +205,23 @@ describe('builtinNames', () => {
     for (const name of constants) {
       expect(isValidExpression(name)).toBe(true)
     }
+  })
+})
+
+describe('the reference dialog matches the parser', () => {
+  // The dialog's groups are membership only; the LIST comes from `builtinNames()`. This asserts the
+  // derivation actually covers everything, because the hand-written version drifted badly: it
+  // claimed `signum` (the name is `sign`) and omitted seventeen real functions after a parser
+  // change nobody re-read it against.
+  it('shows every function the parser offers, and none it does not', () => {
+    const { functions } = builtinNames()
+    const shown = groupedFunctions().flatMap((group) => group.fns)
+
+    expect([...shown].sort()).toEqual([...functions].sort())
+    expect(shown).toHaveLength(new Set(shown).size)
+  })
+
+  it('does not claim a function that was removed for determinism', () => {
+    expect(builtinNames().functions).not.toContain('random')
   })
 })
