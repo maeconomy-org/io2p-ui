@@ -8,23 +8,12 @@ export interface NavItem {
   readonly key: string
   readonly path: string
   readonly dataTour?: string
-  /** A grouped entry: the parent is a menu, not a destination. */
   readonly children?: readonly NavItem[]
 }
 
-/**
- * Top-level navigation.
- *
- * "Library" groups the reusable definitions — templates, formulas, constants — as against the data
- * itself. They belong together, and flattening them would put Constants at the same weight as
- * Objects in a bar that is already five items wide.
- */
 export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'objects', path: '/objects', dataTour: TOUR_ANCHORS.navObjects },
   { key: 'processes', path: '/processes', dataTour: TOUR_ANCHORS.navProcesses },
-  // Shares takes the slot `/groups` held. It is the successor concept, not a rename: a group
-  // bundled people AND resources under one word, a Share bundles only resources and lists its
-  // members inline.
   { key: 'shares', path: '/shares', dataTour: TOUR_ANCHORS.navShares },
   {
     key: 'library',
@@ -34,26 +23,19 @@ export const NAV_ITEMS: readonly NavItem[] = [
       { key: 'models', path: '/templates' },
       { key: 'formulas', path: '/formulas' },
       { key: 'constants', path: '/constants' },
-      // `/rollup-rules` is built and reachable by url, but stays out of the menu until io2p-core
-      // ships the resource — the page runs against a contract the node does not implement yet.
+      { key: 'rollupRules', path: '/rollup-rules' },
     ],
   },
   { key: 'import', path: '/import', dataTour: TOUR_ANCHORS.navImport },
 ]
 
-// Where to disclose a vulnerability. NOT `config.supportEmail` — that one is
-// per-deployment and defaults to a support desk; this address must match SECURITY.md,
-// security.txt and io2p.org/security, and does not vary by who is hosting.
 export const SECURITY_CONTACT_EMAIL = 'info@maeconomy.org'
 
-// Footer links. The label comes from `nav.<key>` — added dynamically, so the i18n
-// test cannot see it and a missing key fails in the browser, not in CI.
 export const FOOTER_LINKS = [
   { key: 'help', path: '/help' },
   { key: 'security', path: '/security' },
 ] as const
 
-// Process types (based on actual API model)
 export const PROCESS_TYPES = [
   { value: 'processing', labelKey: 'processing' },
   { value: 'assembly', labelKey: 'assembly' },

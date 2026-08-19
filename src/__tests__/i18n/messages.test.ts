@@ -8,6 +8,7 @@ import {
   ENABLED_OBJECT_VIEW_TYPES,
   ENABLED_PROCESS_VIEW_TYPES,
 } from '@/constants/view-types'
+import { NAV_ITEMS } from '@/constants/site'
 
 type Tree = Record<string, unknown>
 
@@ -177,6 +178,20 @@ describe('messages', () => {
       expect(
         at(nl as Tree, `settings.preferences.options.${type.value}`)
       ).toBeTypeOf('string')
+    }
+  })
+
+  // The navbar renders `nav.${item.key}`, so a nav key with no message throws at RENDER — the whole
+  // layout, not just the label. Nothing else compares the two lists, so a kebab-case key sitting
+  // beside a camelCase message resolved to nothing until someone opened the menu.
+  it('has a label for every navigation item, at both levels', () => {
+    for (const item of NAV_ITEMS) {
+      expect(at(en as Tree, `nav.${item.key}`)).toBeTypeOf('string')
+      expect(at(nl as Tree, `nav.${item.key}`)).toBeTypeOf('string')
+      for (const child of item.children ?? []) {
+        expect(at(en as Tree, `nav.${child.key}`)).toBeTypeOf('string')
+        expect(at(nl as Tree, `nav.${child.key}`)).toBeTypeOf('string')
+      }
     }
   })
 })
