@@ -18,6 +18,7 @@ import type {
   ListUsersQuery,
   ListImportsQuery,
   ListImportItemsQuery,
+  ListRollupRulesQuery,
 } from 'io2p-client'
 
 export const queryKeys = {
@@ -150,13 +151,18 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.constants.details(), id] as const,
   },
 
+  // ─── Units (the node's vocabulary — read-only, append-only) ──
+  // One query and nothing mutates it, so no lists()/detail() tier: there is nothing to
+  // invalidate narrowly and nothing to page.
+  units: {
+    all: ['units'] as const,
+  },
+
   // ─── Rollup rules (library resource) ─────────────────────
   rollupRules: {
     all: ['rollupRules'] as const,
     lists: () => [...queryKeys.rollupRules.all, 'list'] as const,
-    // `unknown` until io2p-client ships the resource: the query type lives in the route today, and
-    // importing it here would point `lib/` at a feature folder.
-    list: (query?: unknown) =>
+    list: (query?: ListRollupRulesQuery) =>
       [...queryKeys.rollupRules.lists(), query] as const,
     details: () => [...queryKeys.rollupRules.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.rollupRules.details(), id] as const,

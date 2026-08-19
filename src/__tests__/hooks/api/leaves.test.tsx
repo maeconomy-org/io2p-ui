@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-import { useFormulas, useConstants } from '@/hooks/api/leaves'
+import { useFormulas, useConstants, useUnits } from '@/hooks/api/leaves'
+import { queryKeys } from '@/lib/query-keys'
 
 const formulas = {
   list: vi.fn(),
@@ -21,16 +22,19 @@ const constants = {
   restore: vi.fn(),
 }
 
+const units = { all: vi.fn(), list: vi.fn() }
+
 vi.mock('@/lib/io2p', () => ({
-  useIomClient: () => ({ formulas, constants }),
+  useIomClient: () => ({ formulas, constants, units }),
 }))
 
 function makeWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  return ({ children }: { children: React.ReactNode }) =>
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children)
+  return Object.assign(wrapper, { queryClient })
 }
 
 describe('leaf hooks', () => {
@@ -128,5 +132,60 @@ describe('leaf hooks', () => {
     })
     await result.current.mutateAsync({ id: 'c1', body: { data: '9.81' } })
     expect(constants.appendVersion).toHaveBeenCalledWith('c1', { data: '9.81' })
+  })
+
+  it('useUnits reads the vocabulary unwrapped', async () => {
+    const vocabulary = [
+      {
+        symbol: 'kg',
+        dimension: 'mass',
+        aliases: [],
+        canonical: true,
+        toCanonical: 1,
+      },
+    ]
+    units.all.mockResolvedValue(vocabulary)
+
+    const { result } = renderHook(() => useUnits(), {
+      wrapper: makeWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(units.all).toHaveBeenCalled()
+    expect(result.current.data).toEqual(vocabulary)
+  })
+
+  // A correction WRITES to the target — the node stamps its `supersededBy` in the same command.
+  // Every surface that warns about supersession reads the target through `useGet`, so without this
+  // the formula just marked wrong keeps reading as fine until its entry ages out.
+  it('a correction invalidates the formula it supersedes', async () => {
+    formulas.create.mockResolvedValue({ id: 'f-2' })
+    const wrapper = makeWrapper()
+    const spy = vi.spyOn(wrapper.queryClient, 'invalidateQueries')
+
+    const { result } = renderHook(() => useFormulas().useCreate(), { wrapper })
+    await result.current.mutateAsync({
+      body: { name: 'Fixed', expression: 'a * 2', correctionOf: 'f-1' },
+    })
+
+    expect(spy).toHaveBeenCalledWith({
+      queryKey: queryKeys.formulas.detail('f-1'),
+    })
+  })
+
+  it('an ordinary create touches only the lists', async () => {
+    formulas.create.mockResolvedValue({ id: 'f-3' })
+    const wrapper = makeWrapper()
+    const spy = vi.spyOn(wrapper.queryClient, 'invalidateQueries')
+
+    const { result } = renderHook(() => useFormulas().useCreate(), { wrapper })
+    await result.current.mutateAsync({
+      body: { name: 'New', expression: 'a * 2' },
+    })
+
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy).toHaveBeenCalledWith({
+      queryKey: queryKeys.formulas.lists(),
+    })
   })
 })

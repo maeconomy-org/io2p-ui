@@ -592,7 +592,17 @@
       "rollupMoreDimensions": "{count, plural, one {+# andere eenheid} other {+# andere eenheden}}",
       "rollupProcessing": "Bijwerken…",
       "rollupNotCalculated": "Nog niet berekend",
-      "rollupSubtreeTooLarge": "Te veel items om te totaliseren"
+      "rollupSubtreeTooLarge": "Te veel items om te totaliseren",
+      "declaredUnit": "Eenheid opgegeven door de formule",
+      "unitInherited": "Eenheid overgenomen uit de waarden die hij leest",
+      "calcError": {
+        "arg-not-numeric": "Een waarde die hij leest is geen getal",
+        "div-by-zero": "Deling door nul",
+        "domain": "Het resultaat valt buiten wat de bewerking toestaat",
+        "non-numeric-result": "Het resultaat is geen getal",
+        "dimension-mismatch": "Hij combineert grootheden die niet samen kunnen",
+        "unknown-unit": "De opgegeven eenheid kent deze node niet"
+      }
     },
     "duplicate": {
       "title": "Objecten kopiëren",
@@ -893,7 +903,20 @@
     "empty": {
       "title": "Nog geen formules",
       "description": "Een formule is een herbruikbare expressie die je aan een waarde kunt koppelen."
-    }
+    },
+    "unit": "Eenheid van het resultaat",
+    "unitHint": "Optioneel. De node leidt de eenheid af uit de waarden die een formule leest — geef er alleen zelf een op als dat niet lukt, bijvoorbeeld bij een breedte maal een hoogte, of een resultaat in een andere schaal dan de invoer.",
+    "unitInferred": "Afgeleid uit de waarden",
+    "unitNone": "Geen eenheid",
+    "unitCanonical": "opgeslagen in",
+    "searchUnits": "Eenheden zoeken…",
+    "noUnitMatches": "Geen eenheden gevonden",
+    "supersededBy": "Gecorrigeerd door",
+    "supersededWarning": "Deze formule is als onjuist gemarkeerd en vervangen door een correctie. Waarden die hem al gebruiken behouden hun resultaat.",
+    "useCorrection": "Gebruik de correctie",
+    "correct": "Markeer als onjuist",
+    "correctTitle": "Een formule corrigeren",
+    "correctOf": "Een vervanging voor “{name}”, die als onjuist wordt gemarkeerd. Waarden die hem al gebruiken behouden hun resultaat en worden niet herberekend."
   },
   "viewSelector": {
     "table": "Tabelweergave",

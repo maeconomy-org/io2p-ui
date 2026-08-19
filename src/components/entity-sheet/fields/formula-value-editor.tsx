@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   ChevronsUpDown,
   Loader2,
@@ -127,6 +128,7 @@ export function FormulaSelect({
                   />
                   <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
                     {f.expression}
+                    {f.unit ? ` → ${f.unit}` : ''}
                   </span>
                 </CommandItem>
               ))}
@@ -242,6 +244,28 @@ export function FormulaBindings({
       data-testid="formula-bindings"
       className="space-y-2 rounded-md border bg-muted/30 p-3"
     >
+      {/* Free: `formula` is already fetched for the variable list and the preview. The node lets a
+          superseded formula bind — the status is a signal, never a gate — so this warns and offers
+          the correction rather than swapping or blocking anything. */}
+      {formula.supersededBy && (
+        <div
+          data-testid="formula-superseded"
+          className="flex flex-wrap items-center gap-1.5 text-xs text-destructive"
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>{t('formulas.supersededWarning')}</span>
+          <button
+            type="button"
+            className="underline underline-offset-2"
+            onClick={() =>
+              onChange({ formulaId: formula.supersededBy!, args: [] })
+            }
+          >
+            {t('formulas.useCorrection')}
+          </button>
+        </div>
+      )}
+
       {formula.variables.length === 0 ? (
         <p
           data-testid="formula-no-variables"
@@ -294,6 +318,10 @@ export function FormulaBindings({
               <CheckCircle2 className="h-4 w-4" />
               <span>
                 {t('objects.formulaEditor.result')}: {preview.result}
+                {/* The DECLARED symbol, not what the value will be stored in: the node converts a
+                    declared unit to its dimension's canonical form, so a formula declaring `J`
+                    stores kWh. Shown anyway because it is what this formula claims to produce. */}
+                {formula?.unit ? ` ${formula.unit}` : ''}
               </span>
             </>
           )}

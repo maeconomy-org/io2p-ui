@@ -70,14 +70,69 @@ describe('ValueProvenanceDisplay', () => {
     expect(screen.getByText('Height is not a number')).toBeInTheDocument()
   })
 
-  it('falls back to the error code when there is no detail', () => {
+  // The codes are an OPEN set and `detail` is English by contract, so an unrecognised code gets a
+  // translated sentence rather than an identifier printed at the reader.
+  it('does not show a raw error code for a code it does not know', () => {
     renderProvenance({
       ...PROVENANCE,
       error: { code: 'cycle', detail: '' },
     })
     fireEvent.click(screen.getByRole('button'))
 
-    expect(screen.getByText('cycle')).toBeInTheDocument()
+    expect(screen.queryByText('cycle')).not.toBeInTheDocument()
+    // Twice: the collapsed badge and the expanded fallback line.
+    expect(screen.getAllByText('objects.properties.formulaError')).toHaveLength(
+      2
+    )
+  })
+
+  it('translates a known error code and keeps detail as the diagnostic line', () => {
+    renderProvenance({
+      ...PROVENANCE,
+      error: { code: 'dimension-mismatch', detail: 'kg vs m' },
+    })
+    fireEvent.click(screen.getByRole('button'))
+
+    expect(
+      screen.getByText('objects.properties.calcError.dimension-mismatch')
+    ).toBeInTheDocument()
+    expect(screen.getByText('kg vs m')).toBeInTheDocument()
+  })
+
+  it('names the unit the formula declared', () => {
+    renderProvenance({
+      ...PROVENANCE,
+      unitSource: 'declared',
+      declaredUnit: 'J',
+    })
+    fireEvent.click(screen.getByRole('button'))
+
+    expect(screen.getByTestId('provenance-unit')).toHaveTextContent('J')
+  })
+
+  // Inherited FLOATS — it is re-derived from live siblings on every recompute, so the wording says
+  // where it came from rather than presenting it as fixed.
+  it('says when the unit came from the values instead', () => {
+    renderProvenance({ ...PROVENANCE, unitSource: 'inherited' })
+    fireEvent.click(screen.getByRole('button'))
+
+    expect(
+      screen.getByText('objects.properties.unitInherited')
+    ).toBeInTheDocument()
+  })
+
+  it('survives a unitSource this build has never heard of', () => {
+    renderProvenance({ ...PROVENANCE, unitSource: 'inferred' })
+    fireEvent.click(screen.getByRole('button'))
+
+    expect(screen.getByTestId('provenance-unit')).toHaveTextContent('inferred')
+  })
+
+  it('shows nothing about units when the result is unitless', () => {
+    renderProvenance(PROVENANCE)
+    fireEvent.click(screen.getByRole('button'))
+
+    expect(screen.queryByTestId('provenance-unit')).not.toBeInTheDocument()
   })
 })
 

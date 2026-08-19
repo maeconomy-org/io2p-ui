@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { FormulaDTO } from 'io2p-client'
-import { Copy, RotateCcw, Trash2, Share2 } from 'lucide-react'
+import { AlertTriangle, Copy, RotateCcw, Trash2, Share2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
 import {
@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts'
 export interface FormulaColumnActions {
   onViewDetails: (formula: FormulaDTO) => void
   onDuplicate: (formula: FormulaDTO) => void
+  onCorrect: (formula: FormulaDTO) => void
   /** Read-share only for library items — the node rejects any other permission. */
   onShare: (formula: FormulaDTO) => void
   onDelete: (formula: FormulaDTO) => void
@@ -52,6 +53,18 @@ export function buildFormulaColumns({
       (f): ReactNode => (
         <code className="font-mono text-xs">{f.expression}</code>
       )
+    ),
+    // What the result is IN. Blank means the node infers it from the arguments, which is the
+    // common case — a declaration is for expressions inference cannot follow.
+    textColumn<FormulaDTO>(
+      'unit',
+      t('formulas.unit'),
+      (f): ReactNode =>
+        f.unit ? (
+          <code className="font-mono text-xs">{f.unit}</code>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )
     ),
     // The variables ARE the contract a binding has to satisfy, and they are server-derived — so this
     // is the column that tells you what using this formula will ask of you.
@@ -172,6 +185,16 @@ function rowActions(
   ]
 
   if (canWrite) {
+    // Not offered on an already-superseded formula: the pointer is last-write-wins, so a second
+    // correction would silently drop the first one and leave two claims with no way to see either.
+    if (!formula.system && !formula.supersededBy) {
+      rows.push({
+        key: 'correct',
+        label: t('formulas.correct'),
+        icon: AlertTriangle,
+        onSelect: () => actions.onCorrect(formula),
+      })
+    }
     rows.push({
       key: 'share',
       label: t('access.share'),

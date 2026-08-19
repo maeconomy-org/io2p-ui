@@ -19,6 +19,25 @@ vi.mock('@/hooks/api/leaves', () => ({
       data: { data: [{ id: 'c1', name: 'co2_factor' }] },
     }),
   }),
+  useUnits: () => ({
+    data: [
+      {
+        symbol: 'kg',
+        dimension: 'mass',
+        aliases: [],
+        canonical: true,
+        toCanonical: 1,
+      },
+      {
+        symbol: 'J',
+        dimension: 'energy',
+        aliases: [],
+        canonical: false,
+        toCanonical: 1 / 3_600_000,
+      },
+    ],
+    isFetching: false,
+  }),
 }))
 
 const toastSuccess = vi.fn()
@@ -105,6 +124,63 @@ describe('FormulaSheet', () => {
 
     await waitFor(() => expect(createMutate).toHaveBeenCalled())
     expect(createMutate.mock.calls[0][0].body).not.toHaveProperty('copiedFrom')
+  })
+
+  it('omits unit when none was declared', async () => {
+    render(<FormulaSheet open onOpenChange={vi.fn()} mode="create" />)
+    fireEvent.change(nameInput(), { target: { value: 'Volume' } })
+    fireEvent.change(expressionInput(), { target: { value: 'l * w * h' } })
+    fireEvent.click(screen.getByRole('button', { name: 'formulas.create' }))
+
+    await waitFor(() => expect(createMutate).toHaveBeenCalled())
+    expect(createMutate.mock.calls[0][0].body).not.toHaveProperty('unit')
+  })
+
+  // A copy that dropped the declaration would send its results back to the unitless bucket — the
+  // same silent exclusion the declaration exists to prevent, one generation removed.
+  it('carries the declared unit into a duplicate', async () => {
+    render(
+      <FormulaSheet
+        open
+        onOpenChange={vi.fn()}
+        mode="duplicate"
+        formula={{ ...FORMULA, unit: 'kg' }}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'formulas.create' }))
+
+    await waitFor(() => expect(createMutate).toHaveBeenCalled())
+    expect(createMutate.mock.calls[0][0].body.unit).toBe('kg')
+  })
+
+  it('sends correctionOf for a correction, and not copiedFrom', async () => {
+    render(
+      <FormulaSheet
+        open
+        onOpenChange={vi.fn()}
+        mode="correction"
+        formula={FORMULA}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'formulas.create' }))
+
+    await waitFor(() => expect(createMutate).toHaveBeenCalled())
+    const body = createMutate.mock.calls[0][0].body
+    expect(body.correctionOf).toBe(FORMULA.id)
+    // The node defaults `copiedFrom` from `correctionOf` — a correction IS lineage.
+    expect(body).not.toHaveProperty('copiedFrom')
+  })
+
+  it('warns when viewing a formula that has been corrected', () => {
+    render(
+      <FormulaSheet
+        open
+        onOpenChange={vi.fn()}
+        mode="view"
+        formula={{ ...FORMULA, supersededBy: 'f-2' }}
+      />
+    )
+    expect(screen.getByText('formulas.supersededWarning')).toBeInTheDocument()
   })
 
   it('has no description or authored version field', () => {

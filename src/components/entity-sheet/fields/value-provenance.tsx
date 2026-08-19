@@ -98,6 +98,25 @@ export function ValueProvenanceDisplay({
             </code>
           </div>
 
+          {provenance.unitSource && (
+            <div data-testid="provenance-unit">
+              {provenance.unitSource === 'declared' ? (
+                <>
+                  {t('objects.properties.declaredUnit')}:{' '}
+                  <code className="rounded bg-muted px-1 py-0.5 font-mono">
+                    {provenance.declaredUnit}
+                  </code>
+                </>
+              ) : provenance.unitSource === 'inherited' ? (
+                t('objects.properties.unitInherited')
+              ) : (
+                // Open set: the node may add a source this build has never heard of, and showing
+                // the raw word is better than showing nothing about where the unit came from.
+                provenance.unitSource
+              )}
+            </div>
+          )}
+
           {provenance.args.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {provenance.args.map((arg) => (
@@ -115,8 +134,15 @@ export function ValueProvenanceDisplay({
             </div>
           )}
 
+          {/* The CODE is translated; `detail` is English diagnostic text by contract, so it rides
+              along as a secondary line rather than being the whole message. */}
           {error && (
-            <p className="text-destructive">{error.detail || error.code}</p>
+            <div className="space-y-0.5 text-destructive">
+              <p>{calcErrorMessage(error.code, t)}</p>
+              {error.detail && (
+                <p className="text-[10px] opacity-80">{error.detail}</p>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -152,4 +178,24 @@ function argSource(
     return labelForValue?.(arg.source.valueId)
   }
   return undefined
+}
+
+/**
+ * A calc failure in the reader's language.
+ *
+ * The node's codes are an OPEN set and `detail` is English by contract, so an unrecognised code
+ * falls back to a generic sentence rather than printing an identifier at the user.
+ */
+function calcErrorMessage(code: string, t: (key: string) => string): string {
+  const known = new Set([
+    'arg-not-numeric',
+    'div-by-zero',
+    'domain',
+    'non-numeric-result',
+    'dimension-mismatch',
+    'unknown-unit',
+  ])
+  return known.has(code)
+    ? t(`objects.properties.calcError.${code}`)
+    : t('objects.properties.formulaError')
 }

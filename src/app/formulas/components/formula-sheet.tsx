@@ -25,6 +25,7 @@ import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 
 import { FormulaExpressionField } from './formula-expression-field'
+import { UnitPicker } from './unit-picker'
 import { anchor } from '@/constants'
 
 /**
@@ -34,8 +35,14 @@ import { anchor } from '@/constants'
  * `copiedFrom` (D46). Every value already bound to the original keeps using it, which is the point:
  * a stored calculation cannot change under the objects that reference it. An Edit affordance would
  * name something the API cannot do and silently leave those objects behind.
+ *
+ * `correction` is Duplicate's twin and its opposite in meaning. Duplicate FORKS: both formulas stay
+ * good. Correct is a CLAIM that the original is wrong — the node stamps it `supersededBy` in the
+ * same command. Neither one recomputes anything: values bound to the original keep using it, and
+ * the status is a signal for readers, never a gate. That is why it is its own affordance rather
+ * than a checkbox on Duplicate.
  */
-export type FormulaSheetMode = 'create' | 'duplicate' | 'view'
+export type FormulaSheetMode = 'create' | 'duplicate' | 'correction' | 'view'
 
 interface FormulaSheetProps {
   open: boolean
@@ -64,7 +71,9 @@ export function FormulaSheet({
               <SheetHeader className="border-b px-6 py-4 pr-12">
                 <SheetTitle>{formula?.name ?? t('formulas.title')}</SheetTitle>
                 <SheetDescription>
-                  {t('formulas.immutableNote')}
+                  {formula?.supersededBy
+                    ? t('formulas.supersededWarning')
+                    : t('formulas.immutableNote')}
                 </SheetDescription>
               </SheetHeader>
               <FormulaFacts formula={formula} />
@@ -103,13 +112,20 @@ function FormulaForm({
   const t = useTranslations()
   const createMutation = useFormulas().useCreate()
 
-  const seeded = mode === 'duplicate' && formula
+  const seeded = (mode === 'duplicate' || mode === 'correction') && formula
   const [name, setName] = useState(() =>
-    seeded ? t('formulas.copyName', { name: formula.name }) : ''
+    seeded
+      ? mode === 'correction'
+        ? formula.name
+        : t('formulas.copyName', { name: formula.name })
+      : ''
   )
   const [expression, setExpression] = useState(() =>
     seeded ? formula.expression : ''
   )
+  // Seeded on duplicate too: a copy that dropped the declaration would send its results back to
+  // the unitless bucket, one generation removed from the bug the declaration exists to fix.
+  const [unit, setUnit] = useState(() => (seeded ? (formula.unit ?? '') : ''))
 
   const canSave =
     name.trim() !== '' &&
@@ -124,9 +140,15 @@ function FormulaForm({
         body: {
           name: name.trim(),
           expression: expression.trim(),
+          ...(unit ? { unit } : {}),
           // Records the lineage so "where did this come from" is answerable later.
           ...(mode === 'duplicate' && formula
             ? { copiedFrom: formula.id }
+            : {}),
+          // No `copiedFrom` alongside it: the node defaults it from `correctionOf`, because a
+          // correction IS lineage.
+          ...(mode === 'correction' && formula
+            ? { correctionOf: formula.id }
             : {}),
         },
       })
@@ -143,14 +165,18 @@ function FormulaForm({
     <>
       <SheetHeader className="border-b px-6 py-4 pr-12">
         <SheetTitle>
-          {mode === 'duplicate'
-            ? t('formulas.duplicateTitle')
-            : t('formulas.createTitle')}
+          {mode === 'correction'
+            ? t('formulas.correctTitle')
+            : mode === 'duplicate'
+              ? t('formulas.duplicateTitle')
+              : t('formulas.createTitle')}
         </SheetTitle>
         <SheetDescription>
-          {mode === 'duplicate' && formula
-            ? t('formulas.duplicateOf', { name: formula.name })
-            : t('formulas.createDescription')}
+          {mode === 'correction' && formula
+            ? t('formulas.correctOf', { name: formula.name })
+            : mode === 'duplicate' && formula
+              ? t('formulas.duplicateOf', { name: formula.name })
+              : t('formulas.createDescription')}
         </SheetDescription>
       </SheetHeader>
 
@@ -179,6 +205,18 @@ function FormulaForm({
               value={expression}
               onChange={setExpression}
             />
+          </div>
+
+          {/* Optional, and below the expression on purpose: the node INFERS a unit whenever the
+              expression preserves one, so `weight * 1.1` needs nothing here. A declaration earns
+              its place where inference cannot reach — a product of two lengths, or a scale
+              conversion whose result is not in the unit its arguments are. */}
+          <div className="space-y-2">
+            <Label htmlFor="formula-unit">{t('formulas.unit')}</Label>
+            <UnitPicker id="formula-unit" value={unit} onChange={setUnit} />
+            <p className="text-xs text-muted-foreground">
+              {t('formulas.unitHint')}
+            </p>
           </div>
         </SheetBody>
 
@@ -215,6 +253,16 @@ function FormulaFacts({ formula }: { formula: FormulaDTO | null }) {
         <code className="font-mono text-sm">{formula.expression}</code>
       </Fact>
 
+      <Fact label={t('formulas.unit')}>
+        {formula.unit ? (
+          <span className="font-mono text-sm">{formula.unit}</span>
+        ) : (
+          <span className="text-sm text-muted-foreground">
+            {t('formulas.unitInferred')}
+          </span>
+        )}
+      </Fact>
+
       <Fact label={t('formulas.variables')}>
         {formula.variables.length === 0 ? (
           <span className="text-sm text-muted-foreground">
@@ -240,6 +288,14 @@ function FormulaFacts({ formula }: { formula: FormulaDTO | null }) {
           {formula.system ? t('common.builtIn') : t('common.userCreated')}
         </Badge>
       </Fact>
+
+      {formula.supersededBy && (
+        <Fact label={t('formulas.supersededBy')}>
+          <code className="font-mono text-xs text-muted-foreground">
+            {formula.supersededBy}
+          </code>
+        </Fact>
+      )}
 
       {formula.copiedFrom && (
         <Fact label={t('formulas.copiedFrom')}>

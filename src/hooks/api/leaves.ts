@@ -60,8 +60,17 @@ function useFormulaCreate() {
   return useMutation({
     mutationFn: (vars: { body: CreateFormulaBody; options?: WriteOptions }) =>
       client.formulas.create(vars.body, vars.options),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.formulas.lists() })
+      // A correction WRITES to the target — the node stamps its `supersededBy` in the same
+      // command. Every surface that warns about supersession reads the target through `useGet`,
+      // so without this the formula just marked wrong keeps reading as fine until its cache
+      // entry ages out.
+      if (vars.body.correctionOf) {
+        qc.invalidateQueries({
+          queryKey: queryKeys.formulas.detail(vars.body.correctionOf),
+        })
+      }
     },
   })
 }
@@ -223,4 +232,22 @@ const constantBundle = {
 
 export function useConstants() {
   return constantBundle
+}
+
+// ── units ───────────────────────────────────────────────────────────────────
+/**
+ * The node's unit vocabulary — what an authored value string and a formula's declared result unit
+ * may contain.
+ *
+ * No `staleTime` override: the app-wide default already caches for the session, which is what an
+ * APPEND-ONLY list wants. A cached copy can only be missing units added by a later deploy, never
+ * wrong about the ones it has, and the browser revalidates the GET on its own.
+ */
+export function useUnits(options?: { enabled?: boolean }) {
+  const client = useIomClient()
+  return useQuery({
+    queryKey: queryKeys.units.all,
+    queryFn: () => client.units.all(),
+    enabled: options?.enabled ?? true,
+  })
 }

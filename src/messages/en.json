@@ -592,7 +592,17 @@
       "rollupMoreDimensions": "{count, plural, one {+# more unit} other {+# more units}}",
       "rollupProcessing": "Updating…",
       "rollupNotCalculated": "Not calculated yet",
-      "rollupSubtreeTooLarge": "Too many items to total"
+      "rollupSubtreeTooLarge": "Too many items to total",
+      "declaredUnit": "Unit declared by the formula",
+      "unitInherited": "Unit taken from the values it reads",
+      "calcError": {
+        "arg-not-numeric": "A value it reads is not a number",
+        "div-by-zero": "Division by zero",
+        "domain": "The result is outside what the operation allows",
+        "non-numeric-result": "The result is not a number",
+        "dimension-mismatch": "It mixes quantities that cannot be combined",
+        "unknown-unit": "The declared unit is not one this node knows"
+      }
     },
     "duplicate": {
       "title": "Copy Objects",
@@ -893,7 +903,20 @@
     "empty": {
       "title": "No formulas yet",
       "description": "A formula is a reusable expression you can bind to a value."
-    }
+    },
+    "unit": "Result unit",
+    "unitHint": "Optional. The node works the unit out from the values a formula reads — declare one only when it cannot, such as a width times a height, or a result in a different scale than its inputs.",
+    "unitInferred": "Worked out from the values",
+    "unitNone": "No unit",
+    "unitCanonical": "stored in",
+    "searchUnits": "Search units…",
+    "noUnitMatches": "No units match",
+    "supersededBy": "Corrected by",
+    "supersededWarning": "This formula has been marked wrong and replaced by a correction. Values already using it keep their results.",
+    "useCorrection": "Use the correction",
+    "correct": "Mark as wrong",
+    "correctTitle": "Correct a formula",
+    "correctOf": "A replacement for “{name}”, which will be marked wrong. Values already using it keep their results and are not recalculated."
   },
   "viewSelector": {
     "table": "Table View",

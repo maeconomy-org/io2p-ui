@@ -72,7 +72,7 @@ const FORMULA_MESSAGES = {
 
 type SheetState =
   | { mode: 'create' }
-  | { mode: 'duplicate' | 'view'; formula: FormulaDTO }
+  | { mode: 'duplicate' | 'correction' | 'view'; formula: FormulaDTO }
 
 export default function FormulasPage() {
   const t = useTranslations()
@@ -123,6 +123,7 @@ export default function FormulasPage() {
     () => ({
       onViewDetails: (formula) => setSheet({ mode: 'view', formula }),
       onDuplicate: (formula) => setSheet({ mode: 'duplicate', formula }),
+      onCorrect: (formula) => setSheet({ mode: 'correction', formula }),
       onShare: setShareTarget,
       onDelete: list.setToDelete,
       onRestore: list.handleRestore,
