@@ -35,6 +35,21 @@ interface BuildObjectColumnsOptions {
   isRestoring?: boolean
 }
 
+/**
+ * Columns the user may hide. `select`, `name` and `actions` are deliberately
+ * absent — a row with no name has no identity, and one with no actions cannot
+ * be acted on. An explicit list rather than a filter over the column array, so
+ * a column added later is not offered by accident.
+ */
+export const OBJECT_TOGGLEABLE_COLUMNS = [
+  { id: 'cover', labelKey: 'objects.fields.cover' },
+  { id: 'id', labelKey: 'objects.fields.uuid' },
+  { id: 'childCount', labelKey: 'objects.fields.children' },
+  { id: 'createdBy', labelKey: 'common.owner' },
+  { id: 'createdAt', labelKey: 'objects.fields.created' },
+  { id: 'updatedAt', labelKey: 'objects.fields.updated' },
+] as const
+
 export function buildObjectColumns({
   t,
   actions,
@@ -65,6 +80,14 @@ export function buildObjectColumns({
       childrenTooltip: (count) => t('objects.childrenTooltip', { count }),
     }),
     idColumn<ObjectListItem>((o) => o.id, t('objects.fields.uuid')),
+    // `childCount` is populated only because the list asks `withChildCounts`.
+    // It is `0` for a leaf and absent if that flag ever goes away, so `?? '—'`
+    // distinguishes "no children" from "not asked for".
+    textColumn<ObjectListItem>(
+      'childCount',
+      t('objects.fields.children'),
+      (o) => (o.childCount === undefined ? undefined : String(o.childCount))
+    ),
     textColumn<ObjectListItem>(
       'createdBy',
       t('common.owner'),
@@ -76,6 +99,12 @@ export function buildObjectColumns({
       'createdAt',
       t('objects.fields.created'),
       (o) => o.createdAt,
+      { sortable: true }
+    ),
+    timestampColumn<ObjectListItem>(
+      'updatedAt',
+      t('objects.fields.updated'),
+      (o) => o.updatedAt,
       { sortable: true }
     ),
     actionsColumn<ObjectListItem>(

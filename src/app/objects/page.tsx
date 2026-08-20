@@ -9,6 +9,7 @@ import type { ObjectListItem } from 'io2p-client'
 
 import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { usePreference } from '@/hooks/ui/use-preference'
+import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
@@ -18,6 +19,7 @@ import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
 import { ObjectColumnsView } from '@/app/objects/components/columns-view'
 import {
+  DataTableColumnToggle,
   EntityTable,
   useEntityListFilters,
   useEntityListQuery,
@@ -25,6 +27,7 @@ import {
 import { DraftRows } from '@/components/drafts'
 import { useObjectDrafts } from '@/hooks/drafts'
 
+import { OBJECT_TOGGLEABLE_COLUMNS } from './components/object-columns'
 import { ObjectBulkBar } from './components/object-bulk-bar'
 import { ObjectRowPortals } from './components/object-row-portals'
 import { useObjectListPage } from './components/use-object-list-page'
@@ -49,6 +52,9 @@ export default function ObjectsPage() {
   const router = useRouter()
 
   const [viewType, setViewType] = usePreference('objectsView')
+  const [columnVisibility, setColumnVisibility] = useColumnVisibility(
+    'objectColumnsHidden'
+  )
   const [scope, setScope, defaultScope] = useScopePreference('objectsScope')
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
   const [resumeDraftId, setResumeDraftId] = useState<string | null>(null)
@@ -139,6 +145,13 @@ export default function ObjectsPage() {
               ]}
               {...anchor('filters')}
             />
+            {viewType === 'table' && (
+              <DataTableColumnToggle
+                columns={[...OBJECT_TOGGLEABLE_COLUMNS]}
+                columnVisibility={columnVisibility}
+                onColumnVisibilityChange={setColumnVisibility}
+              />
+            )}
             <ViewSelector
               view={viewType}
               onChange={setViewType}
@@ -170,6 +183,7 @@ export default function ObjectsPage() {
           <EntityTable
             onRowHover={(row) => prefetchDetail(row.id)}
             columns={state.columns}
+            columnVisibility={columnVisibility}
             page={objectsPage}
             getRowId={(o) => o.id}
             fetching={isFetching}

@@ -1,12 +1,26 @@
 'use client'
 
 import { createContext, useContext, type ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 import type { ColumnDef } from '@tanstack/react-table'
-import { ArrowDown, ArrowUp, ChevronRight, ChevronsUpDown } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ChevronRight,
+  EyeOff,
+} from 'lucide-react'
 
 import {
   Button,
   CopyButton,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -47,10 +61,46 @@ export function SortProvider({
   )
 }
 
-function SortableHeader({ field, label }: { field: string; label: string }) {
+/**
+ * Lets a header hide its own column. Separate from `SortContext` because a table
+ * can be sortable without being hideable, and the menu drops the Hide entry when
+ * no provider supplies this.
+ */
+const HideContext = createContext<{ onHide?: (id: string) => void }>({})
+
+export function HideProvider({
+  onHide,
+  children,
+}: {
+  onHide?: (id: string) => void
+  children: ReactNode
+}) {
+  return (
+    <HideContext.Provider value={{ onHide }}>{children}</HideContext.Provider>
+  )
+}
+
+function SortableHeader({
+  field,
+  label,
+  sortable,
+}: {
+  field: string
+  label: string
+  sortable: boolean
+}) {
+  const t = useTranslations()
   const { sort, onChange } = useContext(SortContext)
-  const isAsc = sort === field
-  const isDesc = sort === `-${field}`
+  const { onHide } = useContext(HideContext)
+  const isAsc = sortable && sort === field
+  const isDesc = sortable && sort === `-${field}`
+
+  // Nothing to offer: not sortable, and no provider to hide it.
+  if (!sortable && !onHide) return <>{label}</>
+
+  // Clicking the label keeps the one-click cycle. The menu exists because a
+  // cycle cannot show its own states: nothing says a third click clears the
+  // sort, and desc → asc costs two clicks through an unlabelled one.
   const cycle = () =>
     onChange?.(
       isAsc
@@ -59,35 +109,89 @@ function SortableHeader({ field, label }: { field: string; label: string }) {
           ? undefined
           : (field as EntitySort)
     )
+
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      className="-ml-3 h-8"
-      onClick={cycle}
-    >
-      {label}
-      {isAsc ? (
-        <ArrowUp className="ml-1 h-3.5 w-3.5" />
-      ) : isDesc ? (
-        <ArrowDown className="ml-1 h-3.5 w-3.5" />
+    <div className="-ml-3 flex items-center">
+      {sortable ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 pr-1"
+          onClick={cycle}
+        >
+          {label}
+          {/* Only when sorted. An idle indicator next to the menu chevron reads
+              as two halves of one broken control rather than two affordances. */}
+          {isAsc ? (
+            <ArrowUp className="ml-1 h-3.5 w-3.5" />
+          ) : isDesc ? (
+            <ArrowDown className="ml-1 h-3.5 w-3.5" />
+          ) : null}
+        </Button>
       ) : (
-        <ChevronsUpDown className="ml-1 h-3.5 w-3.5 opacity-40" />
+        <span className="px-3 text-sm font-medium">{label}</span>
       )}
-    </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-6 px-0"
+            aria-label={t('common.columnOptions', { column: label })}
+            data-testid={`column-menu-${field}`}
+          >
+            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          {sortable ? (
+            <>
+              <DropdownMenuItem
+                onSelect={() => onChange?.(field as EntitySort)}
+              >
+                <ChevronUp className="mr-2 h-3.5 w-3.5" />
+                {t('common.sortAsc')}
+                {isAsc ? <Check className="ml-auto h-3.5 w-3.5" /> : null}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => onChange?.(`-${field}` as EntitySort)}
+              >
+                <ChevronDown className="mr-2 h-3.5 w-3.5" />
+                {t('common.sortDesc')}
+                {isDesc ? <Check className="ml-auto h-3.5 w-3.5" /> : null}
+              </DropdownMenuItem>
+            </>
+          ) : null}
+          {sortable && onHide ? <DropdownMenuSeparator /> : null}
+          {onHide ? (
+            <DropdownMenuItem onSelect={() => onHide(field)}>
+              <EyeOff className="mr-2 h-3.5 w-3.5" />
+              {t('common.hideColumn')}
+            </DropdownMenuItem>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }
 
+/**
+ * The node sorts by `name`, `createdAt` and `updatedAt` and nothing else, so a
+ * column outside that set gets the menu WITHOUT the sort entries rather than no
+ * menu at all — otherwise it could never be hidden from its own header.
+ */
 function headerCell<T>(
   id: string,
   label: string,
   sortable: boolean | undefined
 ): Pick<ColumnDef<T, unknown>, 'header' | 'enableSorting'> {
-  if (!sortable) return { header: () => label, enableSorting: false }
   return {
     enableSorting: false,
-    header: () => <SortableHeader field={id} label={label} />,
+    header: () => (
+      <SortableHeader field={id} label={label} sortable={sortable === true} />
+    ),
   }
 }
 
@@ -140,8 +244,7 @@ export function idColumn<T>(
 ): ColumnDef<T, unknown> {
   return {
     id: 'id',
-    header: () => header,
-    enableSorting: false,
+    ...headerCell<T>('id', header, false),
     cell: ({ row }) => {
       const id = get(row.original)
       return (

@@ -93,6 +93,13 @@ export interface PreferenceValues {
   formulaScope: EntityScopePreference
   constantScope: EntityScopePreference
   templateScope: EntityScopePreference
+  /**
+   * Column ids HIDDEN on each list. Hidden rather than visible, so a column
+   * added in a later release shows up by default instead of depending on how a
+   * saved blob that predates it is read.
+   */
+  objectColumnsHidden: string[]
+  processColumnsHidden: string[]
   /** Tour ids the user has completed or dismissed. */
   toursSeen: string[]
   /** The `ONBOARDING_EPOCH` the stored onboarding state was written under. */
@@ -191,6 +198,16 @@ export const PREFERENCES: {
     ns: PREF_NS.defaults,
     default: 'all',
     validate: oneOf(ENTITY_SCOPES),
+  },
+  objectColumnsHidden: {
+    ns: PREF_NS.ui,
+    default: NO_STRINGS,
+    validate: isStringArray,
+  },
+  processColumnsHidden: {
+    ns: PREF_NS.ui,
+    default: NO_STRINGS,
+    validate: isStringArray,
   },
   toursSeen: {
     ns: PREF_NS.onboarding,

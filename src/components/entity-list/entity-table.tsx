@@ -12,7 +12,7 @@ import type { Page } from 'io2p-client'
 
 import { DataTable } from './data-table'
 import { pageMeta } from './page-meta'
-import { SortProvider } from './columns'
+import { HideProvider, SortProvider } from './columns'
 import type { EntitySort } from './use-entity-list-query'
 
 export interface EntityTableProps<T> {
@@ -80,22 +80,30 @@ export function EntityTable<T>({
     onPageChange?.(clamped)
   }
 
+  const onHide = useMemo(() => {
+    const set = rest.onColumnVisibilityChange
+    if (!set) return undefined
+    return (id: string) => set({ ...rest.columnVisibility, [id]: false })
+  }, [rest.onColumnVisibilityChange, rest.columnVisibility])
+
   return (
     <SortProvider sort={sort} onChange={onSortChange}>
-      <DataTable
-        columns={columns}
-        data={data}
-        getRowId={getRowId}
-        fetching={fetching}
-        pagination={meta}
-        onPageChange={(zeroBased) => emit(zeroBased + 1)}
-        onFirstPage={() => emit(1)}
-        onPreviousPage={() => emit(meta.currentPage - 1)}
-        onNextPage={() => emit(meta.currentPage + 1)}
-        onLastPage={() => emit(meta.totalPages)}
-        onPageSizeChange={onPageSizeChange}
-        {...rest}
-      />
+      <HideProvider onHide={onHide}>
+        <DataTable
+          columns={columns}
+          data={data}
+          getRowId={getRowId}
+          fetching={fetching}
+          pagination={meta}
+          onPageChange={(zeroBased) => emit(zeroBased + 1)}
+          onFirstPage={() => emit(1)}
+          onPreviousPage={() => emit(meta.currentPage - 1)}
+          onNextPage={() => emit(meta.currentPage + 1)}
+          onLastPage={() => emit(meta.totalPages)}
+          onPageSizeChange={onPageSizeChange}
+          {...rest}
+        />
+      </HideProvider>
     </SortProvider>
   )
 }
