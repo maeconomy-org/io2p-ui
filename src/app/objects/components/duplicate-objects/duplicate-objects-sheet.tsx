@@ -41,7 +41,10 @@ import { logger } from '@/lib/observability/logger'
 import { useIomClient } from '@/lib/io2p'
 import { toast } from 'sonner'
 
-import { useDuplicateObjects } from '@/hooks/api/use-duplicate-objects'
+import {
+  DuplicateIntoOwnSubtreeError,
+  useDuplicateObjects,
+} from '@/hooks/api/use-duplicate-objects'
 import { ParentSelector } from '@/app/objects/components/duplicate-objects/components'
 
 const EMPTY_PRESELECTED: DuplicateSourceObject[] = []
@@ -215,11 +218,12 @@ export function DuplicateObjectsSheet({
     setSelectedObjects(selectedObjects.filter((o) => o.uuid !== uuid))
   }
 
-  // Prevent selecting a source object as the target parent
+  // No filtering here: the picker excludes the sources itself, so there is
+  // nothing to reject. Filtering the value AFTER the picker committed its own
+  // state left the rejected object selected on screen while the copy went to
+  // the root.
   const handleParentsChange = (parentUuids: string[]) => {
-    const sourceUuids = selectedObjects.map((o) => o.uuid)
-    const filtered = parentUuids.filter((uuid) => !sourceUuids.includes(uuid))
-    setTargetParentUuids(filtered)
+    setTargetParentUuids(parentUuids)
   }
 
   const handleConfirm = async () => {
@@ -253,6 +257,12 @@ export function DuplicateObjectsSheet({
         // number of copies already exist. Saying so beats a silent no-op that
         // looks like the click never registered — the list behind the sheet has
         // already been invalidated and will show them.
+        // The cycle guard runs BEFORE any write, so nothing was created and the
+        // generic "some may already exist" warning would be wrong here.
+        if (error instanceof DuplicateIntoOwnSubtreeError) {
+          toast.error(t('objects.duplicate.targetInsideSource'))
+          return
+        }
         logger.error('Duplicate objects failed', { err: error })
         toast.error(t('objects.duplicate.failedPartial'))
       }
@@ -455,6 +465,7 @@ export function DuplicateObjectsSheet({
                 <ParentSelector
                   initialParentUuids={targetParentUuids}
                   onParentsChange={handleParentsChange}
+                  excludeUuids={selectedObjects.map((o) => o.uuid)}
                   placeholder={t('objects.parentSearch')}
                   maxSelections={1}
                   disabled={isCopying}

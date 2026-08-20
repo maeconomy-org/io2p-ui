@@ -562,6 +562,7 @@
       "breadcrumbRoot": "Root",
       "addChild": "Add Child",
       "childrenCount": "{count} children",
+      "parentDeleted": "This object is deleted. Its children stay live and keep working — restore it to bring it back into lists and rollups.",
       "noChildrenTitle": "No child objects yet",
       "noChildrenDescription": "Children sit under this object in the hierarchy. Adding one sets this object as its parent — the child owns the link, so it can be moved without touching anything here.",
       "moreChildActions": "More child actions"
@@ -642,7 +643,8 @@
       "copyHere": "Copy Objects Here",
       "copied": "{count, plural, one {# object copied} other {# objects copied}}",
       "failedPartial": "The copy stopped part-way. Some objects may already have been created — check the list before retrying.",
-      "copyFilesHint": "Linked files only. Uploaded files stay with the original."
+      "copyFilesHint": "Linked files only. Uploaded files stay with the original.",
+      "targetInsideSource": "The destination is inside the objects you are copying. Pick a destination outside them, or turn off \"include children\"."
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
     "saveError": {

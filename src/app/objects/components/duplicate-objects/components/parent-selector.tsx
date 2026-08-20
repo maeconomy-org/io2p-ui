@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { X, Loader2, ChevronsUpDown, Users, Check, Plus } from 'lucide-react'
 
@@ -29,6 +29,16 @@ const EMPTY_PARENT_UUIDS: string[] = []
 
 interface ParentSelectorProps {
   currentObjectUuid?: string
+  /**
+   * Objects that must never be offered as a destination.
+   *
+   * Filtered HERE rather than rejected by the caller afterwards: this picker
+   * owns `editedParents` and commits its own state before notifying, so a
+   * caller that filters the value cannot make the picker stop showing it — the
+   * rejected object stayed selected and badged while the copy silently went to
+   * the root.
+   */
+  excludeUuids?: readonly string[]
   initialParentUuids?: string[]
   onParentsChange: (parentUuids: string[]) => void
   placeholder?: string
@@ -50,6 +60,7 @@ interface ParentSelectorProps {
 
 export function ParentSelector({
   currentObjectUuid,
+  excludeUuids,
   initialParentUuids = EMPTY_PARENT_UUIDS,
   onParentsChange,
   placeholder,
@@ -66,6 +77,9 @@ export function ParentSelector({
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
+  // Memoised: it is a dependency of the search callback, and a fresh Set each
+  // render would rebuild that callback and re-run the search on every keystroke.
+  const excludedSet = useMemo(() => new Set(excludeUuids ?? []), [excludeUuids])
   // `null` = untouched, so the incoming uuids show through. Syncing them into state with an effect
   // meant one render with the OLD selection after the prop changed, and setState in an effect body
   // is what the compiler lint rejects.
@@ -102,7 +116,7 @@ export function ParentSelector({
         // The list speaks `id`; this picker's markup speaks `uuid`.
         setSearchResults(
           results.data
-            .filter((o) => o.id !== currentObjectUuid)
+            .filter((o) => o.id !== currentObjectUuid && !excludedSet.has(o.id))
             .map((o) => ({ ...o, uuid: o.id }))
         )
         setHasInitiallyLoaded(true)
@@ -113,7 +127,7 @@ export function ParentSelector({
         setIsSearching(false)
       }
     },
-    [isOpen, currentObjectUuid, client]
+    [isOpen, currentObjectUuid, excludedSet, client]
   )
 
   // Handle search logic (debounced)

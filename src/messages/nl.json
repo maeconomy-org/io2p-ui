@@ -575,6 +575,7 @@
       "breadcrumbRoot": "Root",
       "addChild": "Kind toevoegen",
       "childrenCount": "{count} kinderen",
+      "parentDeleted": "Dit object is verwijderd. De onderliggende objecten blijven actief en blijven werken — herstel het om het weer in lijsten en totalen te tonen.",
       "noChildrenTitle": "Nog geen onderliggende objecten",
       "noChildrenDescription": "Onderliggende objecten staan onder dit object in de hiërarchie. Er een toevoegen maakt dit object de parent — het kind bezit de koppeling en kan worden verplaatst zonder hier iets te wijzigen.",
       "moreChildActions": "Meer acties voor onderliggende objecten"
@@ -642,7 +643,8 @@
       "copyHere": "Objecten hier kopiëren",
       "copied": "{count, plural, one {# object gekopieerd} other {# objecten gekopieerd}}",
       "failedPartial": "Het kopiëren is halverwege gestopt. Sommige objecten zijn mogelijk al aangemaakt — controleer de lijst voordat u het opnieuw probeert.",
-      "copyFilesHint": "Alleen gekoppelde bestanden. Geüploade bestanden blijven bij het origineel."
+      "copyFilesHint": "Alleen gekoppelde bestanden. Geüploade bestanden blijven bij het origineel.",
+      "targetInsideSource": "De bestemming ligt binnen de objecten die u kopieert. Kies een bestemming daarbuiten, of schakel \"inclusief onderliggende objecten\" uit."
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
     "saveError": {

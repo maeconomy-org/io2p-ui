@@ -19,11 +19,52 @@ export interface DuplicateObjectsParams {
   copyAddress?: boolean
 }
 
+/**
+ * The destination sits inside the subtree being copied. A typed error rather
+ * than a toast from the hook: the hook does not own the UI, and the sheet needs
+ * to tell this apart from a network failure to say something useful.
+ */
+export class DuplicateIntoOwnSubtreeError extends Error {
+  constructor() {
+    super('The destination is inside the objects being copied')
+    this.name = 'DuplicateIntoOwnSubtreeError'
+  }
+}
+
 /** A subtree deeper than this is almost certainly a cycle or a mistake, not an intent. */
 const MAX_DEPTH = 10
 
-/** One page of children per level — a level wider than this is a different feature's problem. */
+/** Page size for the child walk. `paginate` walks every page, so this only sets the chunk. */
 const CHILD_PAGE_SIZE = 100
+
+/**
+ * Would copying `sourceId` into `targetId` put the copy inside its own subtree?
+ *
+ * Only asked when children travel: without them the copy is one flat object and
+ * landing it under a descendant is legal, if odd. With them, the walk descends
+ * the ORIGINAL tree and writes into the new branch, so it terminates — but it
+ * buries a duplicate of the whole subtree inside one of its own members, and
+ * `MAX_DEPTH` truncates the result silently.
+ *
+ * `?ancestor=` is right here where the child walk avoids it: this is a one-shot
+ * read BEFORE any write, so the index lagging a write cannot affect it.
+ */
+async function targetIsInsideSource(
+  client: Io2pClient,
+  sourceId: string,
+  targetId: string
+): Promise<boolean> {
+  if (sourceId === targetId) return true
+
+  for await (const descendant of client.objects.paginate({
+    ancestor: sourceId,
+    size: CHILD_PAGE_SIZE,
+    scope: 'all',
+  })) {
+    if (descendant.id === targetId) return true
+  }
+  return false
+}
 
 /**
  * One object and, optionally, its subtree.
@@ -53,16 +94,23 @@ async function duplicateOne(
 
   // `?parent=` is the IMMEDIATE children — `?ancestor=` lags behind a write, and this walks the
   // tree itself, so it needs the level that is already correct.
-  const children = await client.objects.list({
+  //
+  // `paginate`, not one `list`: a single page silently stopped at 100 children, so copying a
+  // floor with 150 rooms produced 100 and reported success. The ids are collected BEFORE any
+  // copy is created, so the walk reads a stable snapshot of the source rather than a list its
+  // own writes are extending.
+  const childIds: string[] = []
+  for await (const child of client.objects.paginate({
     parent: sourceId,
-    page: 1,
     size: CHILD_PAGE_SIZE,
     scope: 'all',
-  })
+  })) {
+    childIds.push(child.id)
+  }
 
-  for (const child of children.data) {
+  for (const childId of childIds) {
     // The COPY's id, so the subtree hangs off the new branch rather than back onto the original.
-    await duplicateOne(client, child.id, [created.id], params, depth + 1)
+    await duplicateOne(client, childId, [created.id], params, depth + 1)
   }
 }
 
@@ -89,6 +137,20 @@ export function useDuplicateObjects() {
         const destinations = params.targetParentIds.length
           ? params.targetParentIds
           : ['']
+        // Checked for EVERY pair before anything is written: discovering it
+        // half-way would leave a partial subtree behind, which is exactly the
+        // state this refuses to create.
+        if (params.includeChildren) {
+          for (const target of destinations) {
+            if (!target) continue
+            for (const sourceId of params.sourceIds) {
+              if (await targetIsInsideSource(client, sourceId, target)) {
+                throw new DuplicateIntoOwnSubtreeError()
+              }
+            }
+          }
+        }
+
         for (const target of destinations) {
           for (const sourceId of params.sourceIds) {
             await duplicateOne(
