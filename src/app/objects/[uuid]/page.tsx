@@ -7,11 +7,12 @@ import { useTranslations } from 'next-intl'
 import { PlusCircle, Copy, FileText } from 'lucide-react'
 import type { ObjectListItem } from 'io2p-client'
 
+import { cn } from '@/lib/utils'
 import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { useObjects } from '@/hooks/api/entities'
 import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
 import { usePreference } from '@/hooks/ui/use-preference'
-import { SplitButton } from '@/components/ui'
+import { Badge, SplitButton } from '@/components/ui'
 import { FilterMenu, deletedSection } from '@/components/filters'
 import { ObjectBreadcrumb } from '../components/object-breadcrumb'
 import { ViewSelector } from '@/components/view-selector'
@@ -124,7 +125,23 @@ export default function ObjectChildrenPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold">{parentObject.name}</h1>
+              <h1
+                className={cn(
+                  'text-2xl font-bold',
+                  parentObject.deleted && 'text-destructive line-through'
+                )}
+              >
+                {parentObject.name}
+              </h1>
+              {parentObject.deleted && (
+                <Badge
+                  variant="outline"
+                  className="border-destructive text-destructive"
+                  data-testid="parent-deleted-badge"
+                >
+                  {t('common.deleted')}
+                </Badge>
+              )}
               <p className="text-sm font-medium text-muted-foreground">
                 (
                 {t('objects.childrenPage.childrenCount', {
@@ -136,6 +153,14 @@ export default function ObjectChildrenPage() {
             <p className="mt-1 font-mono text-sm text-muted-foreground">
               {parentObject.id}
             </p>
+            {parentObject.deleted && (
+              <p
+                className="mt-1 text-sm text-destructive"
+                data-testid="parent-deleted-hint"
+              >
+                {t('objects.childrenPage.parentDeleted')}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

@@ -36,12 +36,18 @@ export function ParentsField({
   form,
   editing,
   parentNames,
+  deletedParentIds,
   onParentPicked,
   selfId,
 }: {
   form: UseFormReturn<EntityDraft>
   editing: boolean
   parentNames: Map<string, string>
+  /**
+   * Parents that are soft-deleted. Delete does not cascade, so this object is live while one of its
+   * parents is a tombstone — an unmarked chip would read as an ordinary link to an ordinary parent.
+   */
+  deletedParentIds?: Set<string>
   /**
    * Report a name the picker just resolved. The OWNER holds the map: the loaded entity only knows
    * the parents it arrived with, and the sheet needs a freshly picked name after Save to say where
@@ -57,6 +63,7 @@ export function ParentsField({
   const parentIds = useWatch({ control: form.control, name: 'parentIds' }) ?? []
 
   const nameOf = (id: string) => parentNames.get(id) ?? id
+  const isDeleted = (id: string) => deletedParentIds?.has(id) ?? false
 
   const setParents = (next: string[]) =>
     form.setValue('parentIds', next, { shouldDirty: true })
@@ -97,11 +104,16 @@ export function ParentsField({
               key={id}
               variant="secondary"
               data-testid={`parent-badge-${id}`}
-              className="gap-1"
+              className={cn(
+                'gap-1',
+                isDeleted(id) && 'border-destructive/40 text-destructive'
+              )}
             >
               {editing ? (
                 <>
-                  {nameOf(id)}
+                  <span className={cn(isDeleted(id) && 'line-through')}>
+                    {nameOf(id)}
+                  </span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -120,10 +132,21 @@ export function ParentsField({
                   <Link
                     href={`/objects/${id}`}
                     data-testid={`parent-link-${id}`}
-                    className="underline-offset-2 hover:underline"
+                    className={cn(
+                      'underline-offset-2 hover:underline',
+                      isDeleted(id) && 'line-through'
+                    )}
                   >
                     {nameOf(id)}
                   </Link>
+                  {isDeleted(id) && (
+                    <span
+                      className="text-[10px]"
+                      data-testid={`parent-deleted-${id}`}
+                    >
+                      {t('objects.deletedBadge')}
+                    </span>
+                  )}
                   <CopyButton
                     text={id}
                     label={nameOf(id)}

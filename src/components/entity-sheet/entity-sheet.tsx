@@ -169,6 +169,17 @@ export function EntitySheet({
     return m
   }, [entity, defaultParentNames, pickedParentNames])
 
+  // Separate from `parentNames` on purpose: that map answers "what is this called", and the
+  // reparent toast reads it. Delete is non-cascading, so a live child legitimately keeps a link to
+  // a tombstoned parent — the chip has to say so rather than render it like any other parent.
+  const deletedParentIds = useMemo(
+    () =>
+      new Set(
+        (entity?.parents ?? []).filter((p) => p.deleted).map((p) => p.id)
+      ),
+    [entity]
+  )
+
   /**
    * Say where the object went. `/objects` lists ROOTS, so linking a parent removes the row the user
    * was looking at — correct, and silent without this.
@@ -283,6 +294,7 @@ export function EntitySheet({
               form={form}
               editing={editing}
               parentNames={parentNames}
+              deletedParentIds={deletedParentIds}
               onParentPicked={(id, name) =>
                 setPickedParentNames((m) => ({ ...m, [id]: name }))
               }
