@@ -77,6 +77,28 @@
     "members": "Wie het mag zien",
     "membersDescription": "Een share bevat alleen resources en toont zijn leden hier — dat is het verschil met de Groepen die hij vervangt, die beide onder één woord mengden."
   },
+  "defineConstant": {
+    "what": "Een getal met een naam",
+    "whatDescription": "Een CO₂-factor, een dichtheid, een belastingtarief — hier één keer opgeschreven in plaats van in twintig formules getypt. Verandert het getal, dan pas je deze ene rij aan en volgt elke formule die eraan gekoppeld is. De node levert er al een paar; die van jou kun je delen.",
+    "start": "Maak er een",
+    "startDescription": "Volgende opent het formulier. Er zijn maar twee velden, en het tweede is de interessante helft.",
+    "name": "De naam is de koppeling",
+    "nameDescription": "Dit is waar een formule naar grijpt — je kiest het uit een lijst met constanten in de formule-editor in plaats van een getal te typen. Hernoemen kan later niet: een koppeling legt de naam vast, dus hernoemen zou elke berekening die hem gebruikt losmaken.",
+    "value": "De waarde, en de eenheid",
+    "valueDescription": "Een gewoon getal, of een getal met een eenheid: 0,42, 10 kg, 3,5 m. De eenheid reist mee met de waarde, dus een formule die dit met meters combineert weet wat hij vasthoudt.",
+    "save": "Later bewerken voegt een versie toe",
+    "saveDescription": "Opslaan publiceert de eerste versie. De waarde daarna wijzigen overschrijft hem niet — het publiceert een NIEUWE, en elke formule houdt de versie waaraan hij gekoppeld was. Dat is het nut van een constante: een getal dat je kunt corrigeren zonder stilzwijgend resultaten te veranderen die iemand al heeft vastgelegd."
+  },
+  "rollUpValues": {
+    "what": "Totalen die niemand typt",
+    "whatDescription": "Ruimtes hebben een vloeroppervlak. Een regel voor die eigenschap laat elke verdieping de som van zijn ruimtes zien, en elk gebouw de som van al zijn verdiepingen — zonder dat er tussenin een getal is ingevuld. Een formule werkt binnen de waarden van één object; dit is het enige dat OMLAAG door de boom reikt. Regels horen niet bij een object: je noemt een eigenschap één keer en hij geldt voor al die van jou.",
+    "start": "Voeg een regel toe",
+    "startDescription": "De node levert al regels voor de gebruikelijke sleutels — gewicht, volume, oppervlakte, kosten. Volgende opent het formulier voor je eigen regel.",
+    "keys": "Noem de eigenschap, dan Toevoegen",
+    "keysDescription": "Typ de sleutel en druk op Toevoegen — het wordt een chip, en je kunt er meerdere klaarzetten voor je opslaat, wat per stuk een regel maakt. Opslaan doet niets tot er een chip staat. Sleutels worden in kleine letters bewaard, dus \"Massa\" en \"massa\" zijn dezelfde regel. Houdt de sleutel meestal tekst vast, dan zie je een waarschuwing; die blokkeert niets, maar het totaal blijft leeg.",
+    "save": "Eerst de regels, dan de data",
+    "saveDescription": "Dit is het stuk dat op een bug lijkt en het niet is. Een regel telt alleen wat er ná zijn bestaan wordt geschreven — toegevoegd aan data die er al staat blijft hij stil tot er ergens daaronder iets verandert. Het totaal verschijnt dan op het BOVENLIGGENDE object, als een kaart met stippellijn en het label \"Derived\", binnen ongeveer een minuut. Een blad zonder kinderen toont helemaal geen kaart."
+  },
   "runImport": {
     "jobs": "Elke import die je hebt gedraaid",
     "jobsDescription": "Eén rij per taak, met de status en hoeveel rijen zijn aangekomen. Open er een om per rij te zien wat er is gebeurd — ook welke de node heeft geweigerd, en waarom.",

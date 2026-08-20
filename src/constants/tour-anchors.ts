@@ -58,7 +58,13 @@ export const TOUR_ANCHORS = {
   formulasReference: 'formulas-reference',
   formulaExpression: 'formula-expression',
   constantsCreate: 'constants-create',
+  constantsList: 'constants-list',
+  sheetConstantName: 'sheet-constant-name',
+  sheetConstantValue: 'sheet-constant-value',
   rollupRulesCreate: 'rollup-rules-create',
+  rollupRulesList: 'rollup-rules-list',
+  /** The property-key combobox and its Add button, which queue a chip each. */
+  sheetRollupKeys: 'sheet-rollup-keys',
 
   // Import
   /** The status / wizard tab strip. Always mounted, whichever tab is active. */

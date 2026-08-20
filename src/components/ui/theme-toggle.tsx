@@ -105,13 +105,8 @@ export function ThemeDropdownItem() {
               value={item.value}
               className="cursor-pointer"
             >
-              <span className="flex items-center gap-2 justify-between w-full">
-                <span className="flex items-center gap-2">
-                  <item.icon className="h-4 w-4" />
-                  {t(item.value)}
-                </span>
-                {theme === item.value && <Check className="h-3 w-3" />}
-              </span>
+              <item.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+              {t(item.value)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

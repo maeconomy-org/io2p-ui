@@ -147,6 +147,8 @@ describe('tour copy', () => {
       '/formulas': ['src/app/formulas', 'src/components'],
       '/shares': ['src/app/shares', 'src/components'],
       '/import': ['src/app/import', 'src/components'],
+      '/constants': ['src/app/constants', 'src/components'],
+      '/rollup-rules': ['src/app/rollup-rules', 'src/components'],
     }
 
     for (const tour of TOURS) {

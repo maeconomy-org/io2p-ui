@@ -34,6 +34,10 @@ import {
   type ConstantColumnActions,
 } from './components/constant-columns'
 import { PageHelp } from '@/components/onboarding/page-help'
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 
 const ShareSheet = dynamic(
   () => import('@/components/access').then((mod) => mod.ShareSheet),
@@ -64,6 +68,9 @@ export default function ConstantsPage() {
   const t = useTranslations()
 
   const [sheet, setSheet] = useState<SheetState | null>(null)
+
+  useTourAction(TOUR_ACTIONS.createConstant, () => setSheet({ mode: 'create' }))
+  useTourAction(TOUR_ACTIONS.closeSheet, () => setSheet(null))
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
   const [scope, setScope, defaultScope] = useScopePreference('constantScope')
   const [shareTarget, setShareTarget] = useState<ConstantDTO | null>(null)
@@ -124,7 +131,7 @@ export default function ConstantsPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <h2 className="text-2xl font-semibold">{t('constants.title')}</h2>
-              <PageHelp concept="constant" />
+              <PageHelp concept="constant" tour="define-constant" />
             </div>
             <div className="flex items-center gap-2">
               <FilterMenu
@@ -158,24 +165,28 @@ export default function ConstantsPage() {
             />
           )}
 
-          <EntityTable
-            columns={columns}
-            page={constantsPage}
-            getRowId={(constant) => constant.id}
-            fetching={isFetching}
-            sort={listQuery.query.sort}
-            onSortChange={listQuery.setSort}
-            enableRowSelection
-            rowSelection={list.rowSelection}
-            onRowSelectionChange={list.setRowSelection}
-            onPageChange={listQuery.setPage}
-            onPageSizeChange={filters.handlePageSizeChange}
-            pageSize={filters.pageSize}
-            onRowClick={(constant) => setSheet({ mode: 'edit', constant })}
-            emptyIcon={<Ruler className="h-10 w-10 text-muted-foreground/50" />}
-            emptyTitle={t('constants.empty.title')}
-            emptyDescription={t('constants.empty.description')}
-          />
+          <div {...anchor('constantsList')}>
+            <EntityTable
+              columns={columns}
+              page={constantsPage}
+              getRowId={(constant) => constant.id}
+              fetching={isFetching}
+              sort={listQuery.query.sort}
+              onSortChange={listQuery.setSort}
+              enableRowSelection
+              rowSelection={list.rowSelection}
+              onRowSelectionChange={list.setRowSelection}
+              onPageChange={listQuery.setPage}
+              onPageSizeChange={filters.handlePageSizeChange}
+              pageSize={filters.pageSize}
+              onRowClick={(constant) => setSheet({ mode: 'edit', constant })}
+              emptyIcon={
+                <Ruler className="h-10 w-10 text-muted-foreground/50" />
+              }
+              emptyTitle={t('constants.empty.title')}
+              emptyDescription={t('constants.empty.description')}
+            />
+          </div>
         </div>
       </div>
 

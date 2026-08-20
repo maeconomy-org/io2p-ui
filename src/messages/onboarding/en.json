@@ -77,6 +77,28 @@
     "members": "Who can see it",
     "membersDescription": "A share carries only resources and lists its members here — that is the difference from the Groups it replaced, which mixed both under one word."
   },
+  "defineConstant": {
+    "what": "A number with a name",
+    "whatDescription": "A CO₂ factor, a density, a tax rate — written once here instead of typed into twenty formulas. When the figure changes you edit this one row, and every formula bound to it follows. The node ships some already; the ones you make are yours to share.",
+    "start": "Make one",
+    "startDescription": "Next opens the form. There are only two fields, and the second one is the interesting half.",
+    "name": "The name is the binding",
+    "nameDescription": "This is what a formula reaches for — you pick it from a Constants list in the formula editor rather than typing a number. It cannot be renamed later: a binding records the name, so a rename would orphan every calculation using it.",
+    "value": "The value, and its unit",
+    "valueDescription": "A plain number, or a number with a unit: 0.42, 10 kg, 3.5 m. The unit travels with the value, so a formula that mixes this with metres knows what it is holding.",
+    "save": "Editing later adds a version",
+    "saveDescription": "Saving publishes the first version. Changing the value afterwards does not overwrite it — it publishes a NEW one, and every formula keeps the version it was bound to. That is the point of a constant: a number you can correct without silently changing results someone already recorded."
+  },
+  "rollUpValues": {
+    "what": "Totals that nobody types",
+    "whatDescription": "Rooms carry a floor area. A rule for that property makes every floor show the sum of its rooms, and every building the sum of all its floors — with no number authored anywhere in between. A formula works across one object's own values; this is the only thing that reaches DOWN the tree. Rules are not attached to an object: you name a property once and it applies to all of yours.",
+    "start": "Add a rule",
+    "startDescription": "The node already ships rules for the common keys — weight, volume, area, cost. Next opens the form to add your own.",
+    "keys": "Name the property, then Add",
+    "keysDescription": "Type the key and press Add — it becomes a chip, and you can queue several before saving, which creates one rule each. Nothing happens on submit until a chip exists. Keys are stored lower-case, so \"Mass\" and \"mass\" are the same rule. If the key usually holds text you will see a warning; it does not stop you, but the total will stay empty.",
+    "save": "Rules first, data second",
+    "saveDescription": "This is the part that looks like a bug and is not. A rule only counts writes made after it exists — added to data that already landed, it stays quiet until the next change anywhere below. The total then appears on the PARENT, as a dashed \"Derived\" card, within about a minute. A leaf with no children shows no card at all."
+  },
   "runImport": {
     "jobs": "Every import you have run",
     "jobsDescription": "A row per job, with its status and how many rows landed. Open one to see what happened row by row — including which ones the node refused, and why.",

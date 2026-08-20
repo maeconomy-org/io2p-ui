@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts'
 import { useConstants } from '@/hooks/api/leaves'
 import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
+import { anchor } from '@/constants'
 
 export type ConstantSheetMode = 'create' | 'edit'
 
@@ -148,7 +149,7 @@ function ConstantForm({
             <p className="text-sm">{name}</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2" {...anchor('sheetConstantName')}>
             <Label htmlFor="constant-name">{t('constants.name')}</Label>
             <Input
               id="constant-name"
@@ -167,7 +168,7 @@ function ConstantForm({
         )}
 
         {!readOnly && (
-          <div className="space-y-2">
+          <div className="space-y-2" {...anchor('sheetConstantValue')}>
             <Label htmlFor="constant-data">
               {isEdit ? t('constants.newValue') : t('constants.value')}
             </Label>
@@ -210,7 +211,12 @@ function ConstantForm({
           {readOnly ? t('common.close') : t('common.cancel')}
         </Button>
         {!readOnly && (
-          <Button type="submit" className="w-full" disabled={!canSave}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!canSave}
+            {...anchor('sheetSubmit')}
+          >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isEdit ? t('constants.addVersion') : t('constants.create')}
           </Button>

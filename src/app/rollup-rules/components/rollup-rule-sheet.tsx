@@ -42,6 +42,7 @@ import {
   ROLLUP_AGGREGATIONS,
   type RollupAggregation,
 } from '../lib/rollup-rule'
+import { anchor } from '@/constants'
 
 export type RollupRuleSheetMode = 'create' | 'view'
 
@@ -204,7 +205,7 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
       className="-mx-1 flex min-h-0 flex-1 flex-col overflow-hidden px-1"
     >
       <SheetBody className="space-y-5">
-        <div className="space-y-2">
+        <div className="space-y-2" {...anchor('sheetRollupKeys')}>
           <Label htmlFor={fieldId}>{t('rollupRules.propertyKeys')}</Label>
           <div className="flex items-start gap-2">
             <PropertyNameCombobox
@@ -353,6 +354,7 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
           className="w-full"
           disabled={!canSave}
           data-testid="rollup-rule-submit"
+          {...anchor('sheetSubmit')}
         >
           {createMutation.isPending && (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -87,10 +87,7 @@ export function LanguageDropdownItem() {
               value={item.value}
               className="cursor-pointer"
             >
-              <span className="flex items-center gap-2 justify-between w-full">
-                {item.label}
-                {locale === item.value && <Check className="h-3 w-3" />}
-              </span>
+              {item.label}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

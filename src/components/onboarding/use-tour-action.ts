@@ -17,6 +17,8 @@ export const TOUR_ACTIONS = {
   createTemplate: 'templates.create',
   createFormula: 'formulas.create',
   createShare: 'shares.create',
+  createConstant: 'constants.create',
+  createRollupRule: 'rollupRules.create',
   /**
    * Open the import wizard tab.
    *

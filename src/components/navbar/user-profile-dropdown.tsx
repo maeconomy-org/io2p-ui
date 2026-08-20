@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import {
@@ -34,7 +34,8 @@ import {
   TOUR_START_EVENT,
   USER_MENU_TOGGLE_EVENT,
 } from '@/components/onboarding/constants'
-import { TOURS } from '@/components/onboarding/tour-registry'
+import { groupedTours } from '@/components/onboarding/tour-registry'
+import { tourIcon } from './nav-icons'
 import { LanguageDropdownItem } from '@/components/language-switcher'
 import { ThemeDropdownItem } from '@/components/ui/theme-toggle'
 import { anchor } from '@/constants'
@@ -168,22 +169,42 @@ export function UserProfileDropdown() {
             <RocketIcon className="h-4 w-4 mr-2" />
             <span>{t('nav.demoWalkthrough')}</span>
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {TOURS.map((tour) => (
-              <DropdownMenuItem
-                key={tour.id}
-                data-testid={`tour-${tour.id}`}
-                className="cursor-pointer"
-                onClick={() =>
-                  window.dispatchEvent(
-                    new CustomEvent(TOUR_START_EVENT, {
-                      detail: { id: tour.id },
-                    })
+          {/* Grouped, and each row carries the icon of the page it runs on —
+              the same mark as the navbar, so the row says where as well as
+              what. Nine flat labels read as one wall and named no destination. */}
+          <DropdownMenuSubContent className="min-w-56">
+            {groupedTours().map((group, index) => (
+              <Fragment key={group.key}>
+                {index > 0 && <DropdownMenuSeparator />}
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                  {t(`onboarding.tourGroups.${group.key}`)}
+                </DropdownMenuLabel>
+                {group.tours.map((tour) => {
+                  const Icon = tourIcon(tour.route, tour.icon)
+                  return (
+                    <DropdownMenuItem
+                      key={tour.id}
+                      data-testid={`tour-${tour.id}`}
+                      className="cursor-pointer"
+                      onClick={() =>
+                        window.dispatchEvent(
+                          new CustomEvent(TOUR_START_EVENT, {
+                            detail: { id: tour.id },
+                          })
+                        )
+                      }
+                    >
+                      {Icon && (
+                        <Icon
+                          className="mr-2 h-4 w-4 text-muted-foreground"
+                          aria-hidden
+                        />
+                      )}
+                      <span>{t(`onboarding.tours.${tour.id}`)}</span>
+                    </DropdownMenuItem>
                   )
-                }
-              >
-                {t(`onboarding.tours.${tour.id}`)}
-              </DropdownMenuItem>
+                })}
+              </Fragment>
             ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>

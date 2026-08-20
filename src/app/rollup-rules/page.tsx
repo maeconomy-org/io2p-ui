@@ -23,6 +23,10 @@ import {
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useAuth } from '@/contexts'
 import { PageHelp } from '@/components/onboarding/page-help'
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 import { anchor, type PropertyDictionaryLocale } from '@/constants'
 
 import {
@@ -53,6 +57,11 @@ export default function RollupRulesPage() {
 
   const [sheet, setSheet] = useState<SheetState | null>(null)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
+
+  useTourAction(TOUR_ACTIONS.createRollupRule, () =>
+    setSheet({ mode: 'create' })
+  )
+  useTourAction(TOUR_ACTIONS.closeSheet, () => setSheet(null))
 
   const listQuery = useEntityListQuery()
   const { useList, useRemove, useRestore } = useRollupRules()
@@ -107,7 +116,7 @@ export default function RollupRulesPage() {
               <h2 className="text-2xl font-semibold">
                 {t('rollupRules.title')}
               </h2>
-              <PageHelp concept="rollupRule" />
+              <PageHelp concept="rollupRule" tour="roll-up-values" />
             </div>
             <div className="flex items-center gap-2">
               <FilterMenu
@@ -131,22 +140,26 @@ export default function RollupRulesPage() {
             </div>
           </div>
 
-          <EntityTable
-            columns={columns}
-            page={rulesPage}
-            getRowId={(rule) => rule.id}
-            fetching={isFetching}
-            enableRowSelection
-            rowSelection={list.rowSelection}
-            onRowSelectionChange={list.setRowSelection}
-            onPageChange={listQuery.setPage}
-            onPageSizeChange={filters.handlePageSizeChange}
-            pageSize={filters.pageSize}
-            onRowClick={(rule) => setSheet({ mode: 'view', rule })}
-            emptyIcon={<Sigma className="h-10 w-10 text-muted-foreground/50" />}
-            emptyTitle={t('rollupRules.empty.title')}
-            emptyDescription={t('rollupRules.empty.description')}
-          />
+          <div {...anchor('rollupRulesList')}>
+            <EntityTable
+              columns={columns}
+              page={rulesPage}
+              getRowId={(rule) => rule.id}
+              fetching={isFetching}
+              enableRowSelection
+              rowSelection={list.rowSelection}
+              onRowSelectionChange={list.setRowSelection}
+              onPageChange={listQuery.setPage}
+              onPageSizeChange={filters.handlePageSizeChange}
+              pageSize={filters.pageSize}
+              onRowClick={(rule) => setSheet({ mode: 'view', rule })}
+              emptyIcon={
+                <Sigma className="h-10 w-10 text-muted-foreground/50" />
+              }
+              emptyTitle={t('rollupRules.empty.title')}
+              emptyDescription={t('rollupRules.empty.description')}
+            />
+          </div>
         </div>
       </div>
 

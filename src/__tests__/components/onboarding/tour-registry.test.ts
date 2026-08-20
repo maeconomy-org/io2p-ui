@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 
+import { tourIcon } from '@/components/navbar/nav-icons'
 import {
   TOURS,
+  groupedTours,
   getTour,
   type TourId,
 } from '@/components/onboarding/tour-registry'
@@ -67,6 +69,38 @@ describe('tour registry', () => {
     }
   })
 
+  /**
+   * The menu renders groups, not the raw list — a tour whose route no group
+   * claims would vanish from the only place it can be started.
+   */
+  it('files every tour under exactly one menu group', () => {
+    const grouped = groupedTours().flatMap((group) => group.tours)
+    expect(grouped.map((tour) => tour.id).sort()).toEqual(
+      TOURS.map((tour) => tour.id).sort()
+    )
+  })
+
+  /**
+   * The bug this pins was visible at a glance and invisible to every other
+   * check: create-object and work-with-drafts both run on /objects, so both
+   * derived the same icon and the menu stacked two identical marks. Adjacent
+   * rows are exactly where a repeat reads as a mistake.
+   */
+  it('shows no two identical icons inside one menu group', () => {
+    for (const group of groupedTours()) {
+      const icons = group.tours.map((tour) => tourIcon(tour.route, tour.icon))
+      expect(new Set(icons).size, `${group.key} repeats an icon`).toBe(
+        icons.length
+      )
+    }
+  })
+
+  it('gives every tour an icon', () => {
+    for (const tour of TOURS) {
+      expect(tourIcon(tour.route, tour.icon), tour.id).toBeDefined()
+    }
+  })
+
   it('keeps every tour short enough to finish', () => {
     for (const tour of TOURS) {
       expect(tour.steps(bundle(en)).length).toBeGreaterThan(0)
@@ -85,6 +119,8 @@ describe('tour registry', () => {
       '/formulas',
       '/shares',
       '/import',
+      '/constants',
+      '/rollup-rules',
     ]
     for (const tour of TOURS) {
       expect(ROUTES, `${tour.id} -> ${tour.route}`).toContain(tour.route)

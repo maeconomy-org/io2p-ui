@@ -22,6 +22,8 @@ export type TourId =
   | 'build-template'
   | 'write-formula'
   | 'share-objects'
+  | 'define-constant'
+  | 'roll-up-values'
   | 'run-import'
   | 'work-with-drafts'
 
@@ -48,10 +50,22 @@ interface TourStep {
   popover: { title: string; description: string }
 }
 
+/**
+ * A tour whose icon the ROUTE cannot supply. Resolved in `navbar/nav-icons`, so
+ * this module stays free of the React runtime like `site.ts` beside it.
+ *
+ * Only for a second tour on a route another already claims: create-object and
+ * work-with-drafts both run on /objects, and the menu stacked two identical
+ * marks.
+ */
+export type TourIcon = 'drafts'
+
 export interface TourDefinition {
   id: TourId
   /** Where the tour runs. The runner navigates here before driving. */
   route: string
+  /** Overrides the icon derived from `route`. See TourIcon. */
+  icon?: TourIcon
   /** Copy namespace in `messages/onboarding/{locale}.json`. */
   group: string
   /**
@@ -166,6 +180,39 @@ export const TOURS: readonly TourDefinition[] = [
     ],
   },
   {
+    id: 'define-constant',
+    route: '/constants',
+    group: 'defineConstant',
+    steps: (m) => [
+      step(m, 'defineConstant', 'what', sel('constantsList')),
+      step(m, 'defineConstant', 'start', sel('constantsCreate'), {
+        action: TOUR_ACTIONS.createConstant,
+      }),
+      step(m, 'defineConstant', 'name', sel('sheetConstantName')),
+      step(m, 'defineConstant', 'value', sel('sheetConstantValue')),
+      step(m, 'defineConstant', 'save', sel('sheetSubmit'), {
+        disableActiveInteraction: true,
+      }),
+    ],
+  },
+  {
+    id: 'roll-up-values',
+    route: '/rollup-rules',
+    group: 'rollUpValues',
+    steps: (m) => [
+      step(m, 'rollUpValues', 'what', sel('rollupRulesList')),
+      step(m, 'rollUpValues', 'start', sel('rollupRulesCreate'), {
+        action: TOUR_ACTIONS.createRollupRule,
+      }),
+      // The aggregation select gets NO step: it has one option and will in v1,
+      // so pointing at it only asks "where are the others?".
+      step(m, 'rollUpValues', 'keys', sel('sheetRollupKeys')),
+      step(m, 'rollUpValues', 'save', sel('sheetSubmit'), {
+        disableActiveInteraction: true,
+      }),
+    ],
+  },
+  {
     id: 'run-import',
     route: '/import',
     group: 'runImport',
@@ -215,6 +262,7 @@ export const TOURS: readonly TourDefinition[] = [
   {
     id: 'work-with-drafts',
     route: '/objects',
+    icon: 'drafts',
     group: 'workWithDrafts',
     steps: (m) => [
       step(m, 'workWithDrafts', 'start', sel('createObject'), {
@@ -226,3 +274,40 @@ export const TOURS: readonly TourDefinition[] = [
 ] as const
 
 export const getTour = (id: TourId) => TOURS.find((tour) => tour.id === id)
+
+/**
+ * How the profile menu breaks the list up.
+ *
+ * Nine flat rows read as one undifferentiated wall, and the labels alone do not
+ * say where a walkthrough happens. Grouping by AREA answers that, and the route
+ * is what decides the group — so a new tour is filed by where it runs rather
+ * than by someone remembering to add it here.
+ *
+ * The order of `routes` is the display order, which is why the library group
+ * puts constants before formulas: the Constants group in the formula editor is
+ * empty until one exists, so learning them the other way round shows an empty
+ * picker.
+ */
+export const TOUR_MENU_GROUPS = [
+  { key: 'core', routes: ['/objects', '/processes'] },
+  {
+    key: 'library',
+    routes: ['/templates', '/constants', '/formulas', '/rollup-rules'],
+  },
+  { key: 'exchange', routes: ['/shares', '/import'] },
+] as const
+
+export type TourMenuGroupKey = (typeof TOUR_MENU_GROUPS)[number]['key']
+
+/** The registry as the menu renders it: grouped, and empty groups dropped. */
+export function groupedTours(): {
+  key: TourMenuGroupKey
+  tours: TourDefinition[]
+}[] {
+  return TOUR_MENU_GROUPS.map((group) => ({
+    key: group.key,
+    tours: group.routes.flatMap((route) =>
+      TOURS.filter((tour) => tour.route === route)
+    ),
+  })).filter((group) => group.tours.length > 0)
+}

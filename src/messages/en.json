@@ -1308,8 +1308,15 @@
       "build-template": "Build a template",
       "write-formula": "Write a formula",
       "share-objects": "Share objects",
+      "define-constant": "Define a constant",
+      "roll-up-values": "Total values up a tree",
       "run-import": "Import a spreadsheet",
       "work-with-drafts": "Work with drafts"
+    },
+    "tourGroups": {
+      "core": "Objects & processes",
+      "library": "Library",
+      "exchange": "Sharing & import"
     },
     "startTour": "Start the walkthrough",
     "hintUnread": "Not read yet"
