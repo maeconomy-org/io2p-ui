@@ -1306,6 +1306,7 @@
       "build-template": "Build a template",
       "write-formula": "Write a formula",
       "share-objects": "Share objects",
+      "run-import": "Import a spreadsheet",
       "work-with-drafts": "Work with drafts"
     },
     "startTour": "Start the walkthrough",

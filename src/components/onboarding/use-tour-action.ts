@@ -18,6 +18,39 @@ export const TOUR_ACTIONS = {
   createFormula: 'formulas.create',
   createShare: 'shares.create',
   /**
+   * Open the import wizard tab.
+   *
+   * A gate like the sheet openers above, for the same reason: the wizard is
+   * `forceMount`ed and merely HIDDEN when its tab is inactive, so every anchor
+   * inside it is found by `querySelector` while measuring 0x0.
+   */
+  startImport: 'import.start',
+  /**
+   * Move the wizard on one step, loading the sample sheet if it has none yet.
+   *
+   * One action for all four crossings rather than a named one per step: the
+   * walkthrough only ever goes forward through them in order, and `closeSheet`
+   * already means "undo one crossing" in the other direction.
+   */
+  importAdvance: 'import.advance',
+  /**
+   * Ask the mapper for a hierarchy, and accept it.
+   *
+   * Two crossings rather than one because the answer is the lesson: the proposal
+   * arrives with "6 rows would become 8 objects", and a wrong hierarchy is
+   * obvious in that number where it is invisible in the column names.
+   *
+   * The mapper answers these, not the wizard — `asked` is its own state, kept
+   * there because a suggestion that arrives on its own was wrong on ten of
+   * sixteen sheets of a real register.
+   */
+  importSuggestLevels: 'import.suggestLevels',
+  importHideSuggestion: 'import.hideSuggestion',
+  importApplyLevels: 'import.applyLevels',
+  importClearLevels: 'import.clearLevels',
+  /** Drop the sample sheet. Fired when the tour ENDS, however it ended. */
+  resetImport: 'import.reset',
+  /**
    * Undo the opening above when the tour steps BACK across the gate.
    *
    * The steps before a gate point at the page; the steps after it point inside

@@ -77,6 +77,28 @@
     "members": "Wie het mag zien",
     "membersDescription": "Een share bevat alleen resources en toont zijn leden hier — dat is het verschil met de Groepen die hij vervangt, die beide onder één woord mengden."
   },
+  "runImport": {
+    "jobs": "Elke import die je hebt gedraaid",
+    "jobsDescription": "Eén rij per taak, met de status en hoeveel rijen zijn aangekomen. Open er een om per rij te zien wat er is gebeurd — ook welke de node heeft geweigerd, en waarom.",
+    "start": "Begin een nieuwe",
+    "startDescription": "Dezelfde pagina bevat beide weergaven. Volgende schakelt naar de wizard; de resultaten blijven hier staan en werken bij terwijl je bezig bent.",
+    "steps": "Vijf stappen, op volgorde",
+    "stepsDescription": "Uploaden, tabblad kiezen, kolommen koppelen, controleren, importeren. Volgende laadt een klein voorbeeldbestand zodat je alle vijf ziet — er wordt niets van jou aangeraakt, en het wordt weggegooid als deze rondleiding stopt.",
+    "sheet": "Geef aan waar de data begint",
+    "sheetDescription": "Een werkmap kan meerdere tabbladen hebben, en een echte export begint vaak met een titel of een lege regel. Markeer de kopregel en de eerste dataregel op het raster zelf, zodat je het antwoord leest waar je de vraag stelt.",
+    "columns": "Eén rij per kolom",
+    "columnsDescription": "De keuzelijst rechts op elke rij zegt wat die kolom wordt: de naam van het object, een deel van het adres, een eigenschap, of niets. Kolommen zonder koppeling worden gewoon niet geïmporteerd. Een kolom die een eigenschap wordt krijgt een tweede keuzelijst om één cel in meerdere waarden te splitsen, voor bestanden die een lijst in `a; b; c` proppen.",
+    "hierarchy": "Rijen kunnen ook nesten",
+    "hierarchyDescription": "Standaard wordt één rij één object. Maar een bestand herhaalt vaak een houder in een kolom — hetzelfde gebouw op elke rij van zijn ruimtes. Die kolommen tot NIVEAUS maken bouwt in plaats daarvan de boom. Er wordt hier niets uit zichzelf gegokt, want een verkeerde gok voegt data stilzwijgend samen. Volgende vraagt om een voorstel.",
+    "proposal": "Beoordeel het op dit getal",
+    "proposalDescription": "De kolommen die het noemt zeggen je weinig — een echte hiërarchie en twee losse categorieën zien er in de data hetzelfde uit. Wat het zou opleveren niet: \"200 rijen zouden 3 objecten worden\" is in één oogopslag fout. Lees het aantal, accepteer of weiger dan. Volgende accepteert het.",
+    "levels": "Wat er is veranderd",
+    "levelsDescription": "Gebouwen en verdiepingen zijn nu houders, geen herhaalde tekst, en het aantal hierboven zegt hoeveel objecten dat oplevert. Elke kolom die GEEN niveau is heeft er net een derde keuzelijst bij gekregen — \"hoort bij\" — want een waarde moet nu zeggen bij welk niveau hij hoort: het diepste, een genoemd niveau, of allemaal. Een adres hoort meestal bij allemaal.",
+    "check": "Controleer voor je schrijft",
+    "checkDescription": "Het aantal, de boom die wordt gebouwd, en elke rij waarvan de wizard nu al weet dat hij hem niet kan gebruiken. Er is nog niets verstuurd. Je kunt hier een bovenliggend object kiezen, zodat de hele import ergens in je structuur landt.",
+    "run": "Daarna importeren",
+    "runDescription": "De knop onder de kaart start het. De taak draait op de achtergrond en rapporteert per rij, dus je kunt deze pagina verlaten. De rondleiding stopt hier — dit zijn voorbeeldgegevens en ze worden gewist als je dit sluit."
+  },
   "workWithDrafts": {
     "start": "Begin iets dat je later afmaakt",
     "startDescription": "Open het aanmaakscherm zoals gewoonlijk. Er wordt niets naar de server opgeslagen tot je verzendt.",

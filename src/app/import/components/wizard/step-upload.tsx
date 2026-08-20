@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { AlertTriangle, Loader2, Upload } from 'lucide-react'
 
 import { Alert, AlertDescription, Progress } from '@/components/ui'
+import { anchor } from '@/constants'
 import { cn } from '@/lib/utils'
 import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
 import { useAppConfig } from '@/contexts/query-context'
@@ -62,6 +63,7 @@ export function StepUpload({
       <button
         type="button"
         data-testid="import-dropzone"
+        {...anchor('importDropzone')}
         disabled={wizard.parsing}
         onClick={() => inputRef.current?.click()}
         onDragOver={(event) => {

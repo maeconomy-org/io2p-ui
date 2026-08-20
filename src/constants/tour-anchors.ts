@@ -60,6 +60,23 @@ export const TOUR_ANCHORS = {
   constantsCreate: 'constants-create',
   rollupRulesCreate: 'rollup-rules-create',
 
+  // Import
+  /** The status / wizard tab strip. Always mounted, whichever tab is active. */
+  importTabs: 'import-tabs',
+  importJobs: 'import-jobs',
+  importStepper: 'import-stepper',
+  importDropzone: 'import-dropzone',
+  importSheet: 'import-sheet',
+  importColumns: 'import-columns',
+  /** The hierarchy box. Present ONLY while no hierarchy is applied. */
+  importHierarchy: 'import-hierarchy',
+  /** "N rows would become M objects" — the one part of a proposal a person can judge. */
+  importHierarchyEffect: 'import-hierarchy-effect',
+  /** The applied-hierarchy bar. The other half of the pair above; never both. */
+  importLevelBar: 'import-level-bar',
+  importCheck: 'import-check',
+  importRun: 'import-run',
+
   // Shares
   sharesCreate: 'shares-create',
   sharesTabs: 'shares-tabs',

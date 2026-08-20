@@ -146,10 +146,15 @@ describe('tour copy', () => {
       '/templates': ['src/app/templates', 'src/components'],
       '/formulas': ['src/app/formulas', 'src/components'],
       '/shares': ['src/app/shares', 'src/components'],
+      '/import': ['src/app/import', 'src/components'],
     }
 
     for (const tour of TOURS) {
-      const dirs = ROUTE_DIRS[tour.route] ?? []
+      // Thrown rather than defaulted to []: an undeclared route used to scope the
+      // scan to nothing, and every one of that tour's steps failed with a
+      // misleading "nothing renders it" instead of the real cause.
+      const dirs = ROUTE_DIRS[tour.route]
+      if (!dirs) throw new Error(`no scope declared for ${tour.route}`)
       const scope = sources
         .filter(({ file }) =>
           dirs.some((dir) => file.startsWith(join(process.cwd(), dir)))

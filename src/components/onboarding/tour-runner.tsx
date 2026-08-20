@@ -164,6 +164,9 @@ export default function TourRunner() {
           }
         },
         onDestroyed: () => {
+          // Before the state below is cleared, so a tour that staged something
+          // takes it back on EVERY exit — Done, Escape, the X, the overlay.
+          if (tour.onEnd) runTourAction(tour.onEnd)
           driverRef.current = null
           isStartingRef.current = false
           // Released only once the tour is over, so the same walkthrough can be
@@ -173,12 +176,15 @@ export default function TourRunner() {
         },
         steps: (() => {
           const defs = tour.steps(m)
-          return defs.map(({ action, ...step }, index) => {
-            // The step BEFORE this one opened a sheet, so stepping back has to
-            // shut it again — otherwise Previous highlights a control the open
-            // sheet is covering.
-            const reopensPage = defs[index - 1]?.action !== undefined
-            if (!action && !reopensPage) {
+          return defs.map(({ action, undo: _undo, ...step }, index) => {
+            // The step BEFORE this one crossed a gate, so stepping back has to
+            // uncross it — otherwise Previous highlights a control the thing it
+            // opened is covering, or a control that no longer exists at all.
+            const crossed = defs[index - 1]
+            const undo = crossed?.action
+              ? (crossed.undo ?? TOUR_ACTIONS.closeSheet)
+              : undefined
+            if (!action && !undo) {
               return step
             }
             return {
@@ -195,9 +201,9 @@ export default function TourRunner() {
                 }),
                 // Defining the hook means driver.js no longer moves for us, so
                 // both branches have to drive explicitly.
-                ...(reopensPage && {
+                ...(undo && {
                   onPrevClick: () => {
-                    runTourAction(TOUR_ACTIONS.closeSheet)
+                    runTourAction(undo)
                     driverObj.movePrevious()
                   },
                 }),

@@ -1306,6 +1306,7 @@
       "build-template": "Een template bouwen",
       "write-formula": "Een formule schrijven",
       "share-objects": "Objecten delen",
+      "run-import": "Een spreadsheet importeren",
       "work-with-drafts": "Werken met concepten"
     },
     "startTour": "Start de rondleiding",

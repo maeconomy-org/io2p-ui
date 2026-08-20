@@ -52,6 +52,21 @@ describe('tour registry', () => {
     }
   })
 
+  /**
+   * An `undo` is what Previous does at the step AFTER the one carrying it, so it
+   * only ever runs to reverse an `action`. Written on a step with no action it
+   * is dead code that reads as coverage.
+   */
+  it('pairs every undo with the action it reverses', () => {
+    for (const tour of TOURS) {
+      for (const step of tour.steps(bundle(en))) {
+        if (step.undo) {
+          expect(step.action, `${tour.id}: ${step.element}`).toBeDefined()
+        }
+      }
+    }
+  })
+
   it('keeps every tour short enough to finish', () => {
     for (const tour of TOURS) {
       expect(tour.steps(bundle(en)).length).toBeGreaterThan(0)
@@ -69,6 +84,7 @@ describe('tour registry', () => {
       '/templates',
       '/formulas',
       '/shares',
+      '/import',
     ]
     for (const tour of TOURS) {
       expect(ROUTES, `${tour.id} -> ${tour.route}`).toContain(tour.route)
