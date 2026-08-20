@@ -3,7 +3,7 @@
 import { useId, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Loader2, Plus, X } from 'lucide-react'
+import { Loader2, Plus, TriangleAlert, X } from 'lucide-react'
 
 import {
   Badge,
@@ -37,6 +37,7 @@ import type { RollupRuleDTO } from 'io2p-client'
 
 import { rollupRuleErrorMessage } from '../lib/errors'
 import {
+  isCertainlyNonNumericKey,
   normalizeRollupPropertyKey,
   ROLLUP_AGGREGATIONS,
   type RollupAggregation,
@@ -123,6 +124,8 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
   // Only when the two differ: echoing an unchanged key would be noise on every keystroke.
   const showNormalized = normalizedDraft !== '' && normalizedDraft !== draft
   const draftExists = normalizedDraft !== '' && takenKeys.has(normalizedDraft)
+  const draftNonNumeric =
+    normalizedDraft !== '' && isCertainlyNonNumericKey(normalizedDraft)
   const draftQueued = keys.includes(normalizedDraft)
   const canAdd = normalizedDraft !== '' && !draftExists && !draftQueued
 
@@ -244,6 +247,17 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
             ) : (
               <p className="text-xs text-muted-foreground">
                 {t('rollupRules.propertyKeyHint')}
+              </p>
+            )}
+            {/* A warning, never a block: the node accepts the rule, and a key
+                the dictionary calls text can still hold numbers in practice. */}
+            {draftNonNumeric && (
+              <p
+                className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
+                data-testid="rollup-rule-non-numeric-warning"
+              >
+                <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{t('rollupRules.nonNumericKey')}</span>
               </p>
             )}
           </div>

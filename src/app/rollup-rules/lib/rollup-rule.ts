@@ -1,6 +1,6 @@
 import type { RollupRuleDTO } from 'io2p-client'
 
-import { resolveKey } from '@/constants/property-dictionary'
+import { getDictionaryEntry, resolveKey } from '@/constants/property-dictionary'
 
 export const ROLLUP_AGGREGATIONS = ['sum'] as const
 
@@ -19,4 +19,73 @@ export type RollupAggregation = RollupRuleDTO['aggregation']
  */
 export function normalizeRollupPropertyKey(input: string): string {
   return resolveKey(input).key
+}
+
+/**
+ * Dictionary categories whose members never hold a summable number.
+ *
+ * An ALLOW-LIST of the certain cases, not a guess at the rest. The obvious
+ * heuristics both fail: presence of a `valuePlaceholder` is not a numeric
+ * signal (`postal-code`, `serial-number`, `ifc-class` all have one), and a
+ * placeholder starting with a digit catches every date plus `barcode`,
+ * `coordinates` and `nl-sfb-classification`.
+ *
+ * `lifecycle` is deliberately absent even though most of it is dates: it also
+ * holds `lifespan-years` and `duration`, which are genuinely summable.
+ */
+const NON_NUMERIC_CATEGORIES = new Set([
+  'appearance',
+  'composition',
+  'contact',
+  'meta',
+  'ownership',
+  'state',
+])
+
+/**
+ * Text keys inside an otherwise numeric category. `location` holds `latitude`,
+ * `longitude` and `floor`, so the category cannot be listed wholesale; these
+ * members of it are still certainly text.
+ */
+const NON_NUMERIC_KEYS = new Set([
+  'address',
+  'street',
+  'city',
+  'state',
+  'country',
+  'country-of-origin',
+  'room',
+  'building',
+  'manufacturer',
+  'supplier',
+  'model',
+  'serial-number',
+  'product-code',
+  'batch-number',
+  'barcode',
+  'certification',
+  'energy-label',
+  'currency',
+  'unit',
+  'ifc-class',
+  'fire-rating',
+  'map-url',
+  'epd-url',
+  'coordinates',
+  'nl-sfb-classification',
+])
+
+/**
+ * True when a rollup on this key will certainly never produce a number.
+ *
+ * Deliberately silent on anything it cannot be sure of — an unknown key is
+ * free-text as often as not, and a warning that fires on a valid key teaches
+ * the user to dismiss the one that matters. It answers "is this certainly
+ * text", never "is this numeric".
+ */
+export function isCertainlyNonNumericKey(key: string): boolean {
+  if (NON_NUMERIC_KEYS.has(key)) return true
+  const entry = getDictionaryEntry(key)
+  if (!entry?.category) return false
+  return NON_NUMERIC_CATEGORIES.has(entry.category)
 }
