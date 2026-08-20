@@ -33,6 +33,7 @@ import { useTheme } from '@/hooks/use-theme'
 import { useSetLocale } from '@/hooks/ui/use-set-locale'
 import { cn } from '@/lib/utils'
 import { NAV_ITEMS, type NavItem } from '@/constants'
+import { NAV_ICONS } from './nav-icons'
 import { useAuth, useAppConfig } from '@/contexts'
 
 const LOCALES = [
@@ -275,6 +276,7 @@ function NavLink({
   indented?: boolean
 }) {
   const active = pathname === item.path || pathname.startsWith(item.path)
+  const Icon = item.icon ? NAV_ICONS[item.icon] : null
   return (
     <SheetClose asChild>
       <Link
@@ -287,7 +289,10 @@ function NavLink({
           active ? 'bg-muted text-primary font-medium' : 'text-foreground'
         )}
       >
-        <span>{label}</span>
+        <span className="flex items-center gap-2.5">
+          {Icon ? <Icon className="h-4 w-4" aria-hidden="true" /> : null}
+          {label}
+        </span>
         <ChevronRight className="h-4 w-4 text-muted-foreground" />
       </Link>
     </SheetClose>

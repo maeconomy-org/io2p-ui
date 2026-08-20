@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useSearch, useAppConfig } from '@/contexts'
 import { NAV_ITEMS, anchor } from '@/constants'
+import { NAV_ICONS } from './nav-icons'
 import { NAV_MENU_TOGGLE_EVENT } from '@/components/onboarding/constants'
 import { UserProfileDropdown } from './user-profile-dropdown'
 import { MobileMenu } from './mobile-menu'
@@ -98,6 +99,8 @@ export default function Navbar() {
                    * and only the ROWS wait, in `DataTable`'s own `fetching`
                    * state.
                    */
+                  const Icon = item.icon ? NAV_ICONS[item.icon] : null
+
                   if (!item.children) {
                     return (
                       <Link
@@ -105,8 +108,11 @@ export default function Navbar() {
                         href={item.path}
                         prefetch
                         data-tour={item.dataTour}
-                        className={className}
+                        className={cn(className, 'flex items-center gap-1.5')}
                       >
+                        {Icon ? (
+                          <Icon className="h-4 w-4" aria-hidden="true" />
+                        ) : null}
                         {t(`nav.${item.key}`)}
                       </Link>
                     )
@@ -125,19 +131,37 @@ export default function Navbar() {
                     >
                       <DropdownMenuTrigger
                         data-tour={item.dataTour}
-                        className={cn(className, 'flex items-center gap-1')}
+                        className={cn(className, 'flex items-center gap-1.5')}
                       >
+                        {Icon ? (
+                          <Icon className="h-4 w-4" aria-hidden="true" />
+                        ) : null}
                         {t(`nav.${item.key}`)}
                         <ChevronDown className="h-3.5 w-3.5" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start">
-                        {item.children.map((child) => (
-                          <DropdownMenuItem key={child.key} asChild>
-                            <Link href={child.path} prefetch>
-                              {t(`nav.${child.key}`)}
-                            </Link>
-                          </DropdownMenuItem>
-                        ))}
+                        {item.children.map((child) => {
+                          const ChildIcon = child.icon
+                            ? NAV_ICONS[child.icon]
+                            : null
+                          return (
+                            <DropdownMenuItem key={child.key} asChild>
+                              <Link
+                                href={child.path}
+                                prefetch
+                                className="flex items-center gap-2"
+                              >
+                                {ChildIcon ? (
+                                  <ChildIcon
+                                    className="h-4 w-4"
+                                    aria-hidden="true"
+                                  />
+                                ) : null}
+                                {t(`nav.${child.key}`)}
+                              </Link>
+                            </DropdownMenuItem>
+                          )
+                        })}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )

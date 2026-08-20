@@ -4,29 +4,66 @@
 
 import { TOUR_ANCHORS } from './tour-anchors'
 
+/**
+ * A name, not a component. Importing `lucide-react` here would put the React
+ * runtime behind `@/constants`, which 51 modules import — Server Components
+ * among them. `NAV_ICONS` in the navbar resolves the name.
+ */
+export type NavIcon =
+  | 'objects'
+  | 'processes'
+  | 'shares'
+  | 'library'
+  | 'formulas'
+  | 'constants'
+  | 'rollupRules'
+  | 'import'
+
 export interface NavItem {
   readonly key: string
   readonly path: string
+  readonly icon?: NavIcon
   readonly dataTour?: string
   readonly children?: readonly NavItem[]
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  { key: 'objects', path: '/objects', dataTour: TOUR_ANCHORS.navObjects },
-  { key: 'processes', path: '/processes', dataTour: TOUR_ANCHORS.navProcesses },
-  { key: 'shares', path: '/shares', dataTour: TOUR_ANCHORS.navShares },
+  {
+    key: 'objects',
+    path: '/objects',
+    icon: 'objects',
+    dataTour: TOUR_ANCHORS.navObjects,
+  },
+  {
+    key: 'processes',
+    path: '/processes',
+    icon: 'processes',
+    dataTour: TOUR_ANCHORS.navProcesses,
+  },
+  {
+    key: 'shares',
+    path: '/shares',
+    icon: 'shares',
+    dataTour: TOUR_ANCHORS.navShares,
+  },
   {
     key: 'library',
     path: '/templates',
+    icon: 'library',
     dataTour: TOUR_ANCHORS.navLibrary,
     children: [
-      { key: 'models', path: '/templates' },
-      { key: 'formulas', path: '/formulas' },
-      { key: 'constants', path: '/constants' },
-      { key: 'rollupRules', path: '/rollup-rules' },
+      { key: 'models', path: '/templates', icon: 'library' },
+      { key: 'formulas', path: '/formulas', icon: 'formulas' },
+      { key: 'constants', path: '/constants', icon: 'constants' },
+      { key: 'rollupRules', path: '/rollup-rules', icon: 'rollupRules' },
     ],
   },
-  { key: 'import', path: '/import', dataTour: TOUR_ANCHORS.navImport },
+  {
+    key: 'import',
+    path: '/import',
+    icon: 'import',
+    dataTour: TOUR_ANCHORS.navImport,
+  },
 ]
 
 export const SECURITY_CONTACT_EMAIL = 'info@maeconomy.org'
