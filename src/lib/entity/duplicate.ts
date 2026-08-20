@@ -42,6 +42,23 @@ function fileInputsFrom(source: ObjectDTO): FileInput[] {
 }
 
 /**
+ * Join the prefix to the name with exactly one space.
+ *
+ * The separator is IMPLICIT rather than something the user has to type. The
+ * placeholder reads "e.g. Copy of", so most people type no trailing space and a
+ * naive concatenation gives "Copy ofRoom 3" — and trimming the prefix first, as
+ * this used to, breaks it for the people who DO type one.
+ *
+ * A prefix ending in punctuation still reads correctly ("Copy-" -> "Copy- Room
+ * 3" is wrong, but "Copy -" -> "Copy - Room 3" is what that user meant); the
+ * space is the safe default because a name is a label, not an identifier.
+ */
+function prefixName(prefix: string, name: string): string {
+  const clean = prefix.trim()
+  return clean ? `${clean} ${name}` : name
+}
+
+/**
  * One object → the body that recreates it somewhere else.
  *
  * Built on the same `dtoToDraft` → `buildCreateObjectInput` round trip the edit path uses, so a
@@ -63,7 +80,7 @@ export function objectToDuplicateInput(
   } = options
 
   const draft = dtoToDraft(source)
-  draft.name = `${namePrefix}${draft.name}`.trim()
+  draft.name = prefixName(namePrefix, draft.name)
   draft.parentIds = [...parentIds]
   if (!copyProperties) draft.properties = []
   if (!copyAddress) draft.address = null

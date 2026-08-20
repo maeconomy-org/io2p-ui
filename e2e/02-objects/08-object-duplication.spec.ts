@@ -138,8 +138,9 @@ test.describe('08 - Object Duplication', () => {
 
     await expect(page.getByRole('heading', { name: parentName })).toBeVisible()
 
-    // Click "Copy Here" in header
-    await page.locator('[data-testid="page-header-copy-button"]').click()
+    // "Copy here" moved behind the Add-child split button's chevron.
+    await page.getByTestId('split-button-trigger').click()
+    await page.getByRole('menuitem', { name: /copy objects here/i }).click()
 
     const copySheet = getDialog(page, /copy objects/i)
     await expect(copySheet).toBeVisible()

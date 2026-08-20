@@ -39,6 +39,8 @@ import { OwnerHint } from '@/components/entity-list'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/observability/logger'
 import { useIomClient } from '@/lib/io2p'
+import { toast } from 'sonner'
+
 import { useDuplicateObjects } from '@/hooks/api/use-duplicate-objects'
 import { ParentSelector } from '@/app/objects/components/duplicate-objects/components'
 
@@ -47,7 +49,6 @@ const EMPTY_PRESELECTED: DuplicateSourceObject[] = []
 export interface DuplicateSourceObject {
   uuid: string
   name: string
-  hasChildren?: boolean
   childCount?: number
 }
 
@@ -149,6 +150,10 @@ export function DuplicateObjectsSheet({
           size: 10,
           page: 1,
           scope: 'all',
+          // Without this `childCount` is absent on every row, and the
+          // "include children" switch below gates on it — so recursive copy
+          // silently disappeared for anything picked by search.
+          withChildCounts: true,
         })
 
         // The list speaks `id`; this picker's markup speaks `uuid`. Mapped here rather than
@@ -200,10 +205,7 @@ export function DuplicateObjectsSheet({
         {
           uuid: object.uuid,
           name: object.name,
-          hasChildren:
-            object.hasChildren ||
-            (object.children && object.children.length > 0),
-          childCount: object.childCount || object.children?.length || 0,
+          childCount: object.childCount ?? 0,
         },
       ])
     }
@@ -225,29 +227,39 @@ export function DuplicateObjectsSheet({
       await onConfirm({
         sourceObjects: selectedObjects,
         targetParentUuids,
-        namePrefix: namePrefix.trim(),
+        namePrefix,
         includeChildren,
         copyProperties,
         copyFiles,
         copyAddress,
       })
     } else {
-      await duplicateObjects({
-        sourceIds: selectedObjects.map((o) => o.uuid),
-        targetParentIds: targetParentUuids,
-        namePrefix: namePrefix.trim(),
-        includeChildren,
-        copyProperties,
-        copyFiles,
-        copyAddress,
-      })
-      onOpenChange(false)
+      try {
+        await duplicateObjects({
+          sourceIds: selectedObjects.map((o) => o.uuid),
+          targetParentIds: targetParentUuids,
+          namePrefix,
+          includeChildren,
+          copyProperties,
+          copyFiles,
+          copyAddress,
+        })
+        toast.success(
+          t('objects.duplicate.copied', { count: selectedObjects.length })
+        )
+        onOpenChange(false)
+      } catch (error) {
+        // The loop is sequential and stops at the first failure, so an unknown
+        // number of copies already exist. Saying so beats a silent no-op that
+        // looks like the click never registered — the list behind the sheet has
+        // already been invalidated and will show them.
+        logger.error('Duplicate objects failed', { err: error })
+        toast.error(t('objects.duplicate.failedPartial'))
+      }
     }
   }
 
-  const anyHasChildren = selectedObjects.some(
-    (o) => o.hasChildren || (o.childCount != null && o.childCount > 0)
-  )
+  const anyHasChildren = selectedObjects.some((o) => (o.childCount ?? 0) > 0)
   const totalChildCount = selectedObjects.reduce(
     (sum, o) => sum + (o.childCount || 0),
     0
@@ -260,9 +272,24 @@ export function DuplicateObjectsSheet({
   const selectedSourceUuids = new Set(selectedObjects.map((o) => o.uuid))
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        // Cancel is disabled while copying, but Escape, an outside click and the
+        // built-in X are not — and the loop keeps creating objects after the
+        // sheet unmounts, invisibly.
+        if (isCopying && !next) return
+        onOpenChange(next)
+      }}
+    >
       <SheetContent
         className="sm:max-w-lg flex flex-col"
+        onEscapeKeyDown={(event) => {
+          if (isCopying) event.preventDefault()
+        }}
+        onInteractOutside={(event) => {
+          if (isCopying) event.preventDefault()
+        }}
         data-testid="duplicate-sheet"
       >
         <SheetHeader>
@@ -366,17 +393,14 @@ export function DuplicateObjectsSheet({
                                 ownerUserId={object.createdBy}
                                 ownerName={object.createdByName}
                               />
-                              {(object.hasChildren ||
-                                (object.children &&
-                                  object.children.length > 0)) && (
+                              {(object.childCount ?? 0) > 0 && (
                                 <Badge
                                   variant="outline"
                                   className="ml-auto text-xs"
                                 >
-                                  {object.childCount ||
-                                    object.children?.length ||
-                                    0}{' '}
-                                  children
+                                  {t('objects.duplicate.childCount', {
+                                    count: object.childCount ?? 0,
+                                  })}
                                 </Badge>
                               )}
                             </CommandItem>
@@ -518,9 +542,14 @@ export function DuplicateObjectsSheet({
 
             {/* Copy files */}
             <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="copy-files" className="text-sm font-medium">
-                {t('objects.duplicate.copyFilesReferences')}
-              </Label>
+              <div className="space-y-0.5">
+                <Label htmlFor="copy-files" className="text-sm font-medium">
+                  {t('objects.duplicate.copyFilesReferences')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('objects.duplicate.copyFilesHint')}
+                </p>
+              </div>
               <Switch
                 id="copy-files"
                 checked={copyFiles}

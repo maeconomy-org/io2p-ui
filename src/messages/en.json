@@ -537,7 +537,8 @@
     "noItemsMatch": "No items match your search",
     "noItemsColumn": "No items in this column",
     "deleteConfirmTitle": "Are you sure?",
-    "deleteConfirmDescription": "This will soft delete \"{name}\" and cannot be undone.",
+    "deleteConfirmDescription": "This soft deletes \"{name}\". You can restore it afterwards.",
+    "deleteConfirmDescriptionWithChildren": "This soft deletes \"{name}\", which has {count, plural, one {# descendant} other {# descendants}}. They stay live and keep working, but \"{name}\" will no longer appear in lists or count toward rollups. You can restore it afterwards.",
     "permissionDenied": "Permission denied. You don't have the required permissions to perform this action.",
     "qrCodeTitle": "QR Code for {name}",
     "qrCodeDescription": "Scan this code to access the object details",
@@ -562,7 +563,8 @@
       "addChild": "Add Child",
       "childrenCount": "{count} children",
       "noChildrenTitle": "No child objects yet",
-      "noChildrenDescription": "Children sit under this object in the hierarchy. Adding one sets this object as its parent — the child owns the link, so it can be moved without touching anything here."
+      "noChildrenDescription": "Children sit under this object in the hierarchy. Adding one sets this object as its parent — the child owns the link, so it can be moved without touching anything here.",
+      "moreChildActions": "More child actions"
     },
     "parentSelector": {
       "label": "Parent Objects",
@@ -633,11 +635,14 @@
       "copyProperties": "Copy properties & values",
       "copyFilesReferences": "Copy file references",
       "copyAddress": "Copy address",
-      "childCount": "{count} child object{count, plural, one {} other {s}} will be copied",
+      "childCount": "{count, plural, one {# child} other {# children}}",
       "confirm": "Copy",
       "copying": "Copying...",
       "action": "Duplicate",
-      "copyHere": "Copy Objects Here"
+      "copyHere": "Copy Objects Here",
+      "copied": "{count, plural, one {# object copied} other {# objects copied}}",
+      "failedPartial": "The copy stopped part-way. Some objects may already have been created — check the list before retrying.",
+      "copyFilesHint": "Linked files only. Uploaded files stay with the original."
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
     "saveError": {

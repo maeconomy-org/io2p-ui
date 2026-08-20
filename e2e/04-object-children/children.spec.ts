@@ -98,7 +98,8 @@ test.describe('04 - object children', () => {
     await page.goto(parentUrl)
     await expect(page.getByTestId('data-table')).toBeVisible()
 
-    await page.getByTestId('page-header-copy-button').click()
+    await page.getByTestId('split-button-trigger').click()
+    await page.getByRole('menuitem', { name: /copy objects here/i }).click()
 
     const duplicate = page.getByTestId('duplicate-sheet')
     await expect(duplicate).toBeVisible()

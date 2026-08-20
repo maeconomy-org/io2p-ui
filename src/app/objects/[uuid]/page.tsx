@@ -11,7 +11,7 @@ import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { useObjects } from '@/hooks/api/entities'
 import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
 import { usePreference } from '@/hooks/ui/use-preference'
-import { Button } from '@/components/ui'
+import { SplitButton } from '@/components/ui'
 import { FilterMenu, deletedSection } from '@/components/filters'
 import { ObjectBreadcrumb } from '../components/object-breadcrumb'
 import { ViewSelector } from '@/components/view-selector'
@@ -153,19 +153,23 @@ export default function ObjectChildrenPage() {
               />
             )}
             <ViewSelector view={viewType} onChange={setViewType} />
-            <Button
+            <SplitButton
               size="sm"
-              variant="outline"
-              onClick={() => setIsCopyHereOpen(true)}
-              data-testid="page-header-copy-button"
+              onClick={() => setIsAddSheetOpen(true)}
+              menuLabel={t('objects.childrenPage.moreChildActions')}
+              actions={[
+                {
+                  key: 'copy-here',
+                  label: t('objects.duplicate.copyHere'),
+                  icon: <Copy className="mr-2 h-4 w-4" />,
+                  onSelect: () => setIsCopyHereOpen(true),
+                },
+              ]}
+              data-testid="page-header-add-child-button"
             >
-              <Copy className="mr-2 h-4 w-4" />
-              {t('objects.duplicate.copyHere')}
-            </Button>
-            <Button size="sm" onClick={() => setIsAddSheetOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
               {t('objects.childrenPage.addChild')}
-            </Button>
+            </SplitButton>
           </div>
         </div>
 

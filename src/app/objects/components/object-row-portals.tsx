@@ -34,6 +34,10 @@ const BulkParentDialog = dynamic(
   () => import('./bulk-parent-dialog').then((mod) => mod.BulkParentDialog),
   { ssr: false }
 )
+const DeleteObjectDialog = dynamic(
+  () => import('./delete-object-dialog').then((mod) => mod.DeleteObjectDialog),
+  { ssr: false }
+)
 const ShareEditorSheet = dynamic(
   () =>
     import('@/app/shares/components/share-editor-sheet').then(
@@ -82,7 +86,6 @@ export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
             {
               uuid: state.duplicateTarget.id,
               name: state.duplicateTarget.name ?? '',
-              hasChildren: (state.duplicateTarget.childCount ?? 0) > 0,
               childCount: state.duplicateTarget.childCount ?? 0,
             },
           ]}
@@ -124,10 +127,9 @@ export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
       )}
 
       {state.objectToDelete && (
-        <DeleteConfirmationDialog
-          open
+        <DeleteObjectDialog
+          object={state.objectToDelete}
           onOpenChange={(open) => !open && state.setObjectToDelete(null)}
-          objectName={state.objectToDelete.name}
           onDelete={state.confirmDelete}
         />
       )}

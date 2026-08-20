@@ -511,7 +511,8 @@
     "noItemsMatch": "Geen items komen overeen met uw zoekopdracht",
     "noItemsColumn": "Geen items in deze kolom",
     "deleteConfirmTitle": "Weet u het zeker?",
-    "deleteConfirmDescription": "Dit zal \"{name}\" soft verwijderen en kan niet ongedaan worden gemaakt.",
+    "deleteConfirmDescription": "Dit verwijdert \"{name}\" zacht. U kunt het daarna herstellen.",
+    "deleteConfirmDescriptionWithChildren": "Dit verwijdert \"{name}\" zacht, met {count, plural, one {# onderliggend object} other {# onderliggende objecten}}. Deze blijven actief en blijven werken, maar \"{name}\" verschijnt niet meer in lijsten en telt niet meer mee in totalen. U kunt het daarna herstellen.",
     "permissionDenied": "Toegang geweigerd. U heeft niet de vereiste rechten om deze actie uit te voeren.",
     "qrCodeTitle": "QR-code voor {name}",
     "qrCodeDescription": "Scan deze code om de objectdetails te openen",
@@ -575,7 +576,8 @@
       "addChild": "Kind toevoegen",
       "childrenCount": "{count} kinderen",
       "noChildrenTitle": "Nog geen onderliggende objecten",
-      "noChildrenDescription": "Onderliggende objecten staan onder dit object in de hiërarchie. Er een toevoegen maakt dit object de parent — het kind bezit de koppeling en kan worden verplaatst zonder hier iets te wijzigen."
+      "noChildrenDescription": "Onderliggende objecten staan onder dit object in de hiërarchie. Er een toevoegen maakt dit object de parent — het kind bezit de koppeling en kan worden verplaatst zonder hier iets te wijzigen.",
+      "moreChildActions": "Meer acties voor onderliggende objecten"
     },
     "columnsView": {
       "level": "Niveau {level}",
@@ -633,11 +635,14 @@
       "copyProperties": "Eigenschappen & waarden kopiëren",
       "copyFilesReferences": "Bestandsreferenties kopiëren",
       "copyAddress": "Adres kopiëren",
-      "childCount": "{count} onderliggend{count, plural, one { object} other {e objecten}} worden gekopieerd",
+      "childCount": "{count, plural, one {# onderliggend} other {# onderliggende}}",
       "confirm": "Kopiëren",
       "copying": "Bezig met kopiëren...",
       "action": "Kopiëren",
-      "copyHere": "Objecten hier kopiëren"
+      "copyHere": "Objecten hier kopiëren",
+      "copied": "{count, plural, one {# object gekopieerd} other {# objecten gekopieerd}}",
+      "failedPartial": "Het kopiëren is halverwege gestopt. Sommige objecten zijn mogelijk al aangemaakt — controleer de lijst voordat u het opnieuw probeert.",
+      "copyFilesHint": "Alleen gekoppelde bestanden. Geüploade bestanden blijven bij het origineel."
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
     "saveError": {
