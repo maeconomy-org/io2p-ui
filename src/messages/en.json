@@ -222,7 +222,11 @@
     "continue": "Continue",
     "yes": "Yes",
     "sharedReadOnly": "Shared with you — read only",
-    "deletedReadOnly": "Deleted — only its owner can restore it."
+    "deletedReadOnly": "Deleted — only its owner can restore it.",
+    "sortAsc": "Asc",
+    "sortDesc": "Desc",
+    "hideColumn": "Hide",
+    "columnOptions": "{column} column options"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -397,10 +401,12 @@
       "revision": "Revision",
       "description": "Description",
       "created": "Created at",
-      "updated": "Updated",
+      "updated": "Updated at",
       "address": "Address",
       "properties": "Properties",
-      "parent": "Parent"
+      "parent": "Parent",
+      "cover": "Cover",
+      "children": "Children"
     },
     "formulaEditor": {
       "expression": "Expression",
@@ -586,12 +592,11 @@
       "noNumber": "No number found",
       "canonicalValue": "Canonical value",
       "excludedFromFormulas": "excluded from the formulas that use it",
-      "rollupTotal": "Total below",
+      "rollupTotal": "Subtree total",
       "rollupContributors": "{count, plural, one {# value} other {# values}}",
       "rollupSkipped": "{count, plural, one {# not counted} other {# not counted}}",
       "rollupMoreDimensions": "{count, plural, one {+# more unit} other {+# more units}}",
       "rollupProcessing": "Updating…",
-      "rollupNotCalculated": "Not calculated yet",
       "rollupSubtreeTooLarge": "Too many items to total",
       "declaredUnit": "Unit declared by the formula",
       "unitInherited": "Unit taken from the values it reads",
@@ -602,7 +607,12 @@
         "non-numeric-result": "The result is not a number",
         "dimension-mismatch": "It mixes quantities that cannot be combined",
         "unknown-unit": "The declared unit is not one this node knows"
-      }
+      },
+      "rollupNoNumbers": "No numeric values",
+      "rollupOnlyThisObject": "This object only",
+      "rollupBelowShare": "{below} below",
+      "rollupSplitLabel": "{own} here, {below} below",
+      "rollupDerived": "Derived"
     },
     "duplicate": {
       "title": "Copy Objects",
@@ -1582,6 +1592,7 @@
       "keyTaken": "A rule for this key already exists — possibly a deleted one. Turn on Show deleted to find it.",
       "invalid": "Rejected: {detail}"
     },
-    "property": "Property"
+    "property": "Property",
+    "nonNumericKey": "This property usually holds text, so the rollup will likely stay empty."
   }
 }

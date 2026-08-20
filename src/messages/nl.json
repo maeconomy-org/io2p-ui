@@ -222,7 +222,11 @@
     "continue": "Doorgaan",
     "yes": "Ja",
     "sharedReadOnly": "Met jou gedeeld — alleen-lezen",
-    "deletedReadOnly": "Verwijderd — alleen de eigenaar kan dit herstellen."
+    "deletedReadOnly": "Verwijderd — alleen de eigenaar kan dit herstellen.",
+    "sortAsc": "Opl.",
+    "sortDesc": "Afl.",
+    "hideColumn": "Verbergen",
+    "columnOptions": "Kolomopties voor {column}"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -398,10 +402,12 @@
       "revision": "Revisie",
       "description": "Beschrijving",
       "created": "Aangemaakt op",
-      "updated": "Bijgewerkt",
+      "updated": "Bijgewerkt op",
       "address": "Adres",
       "properties": "Eigenschappen",
-      "parent": "Bovenliggend"
+      "parent": "Bovenliggend",
+      "cover": "Omslag",
+      "children": "Onderliggend"
     },
     "formulaEditor": {
       "expression": "Formule",
@@ -586,12 +592,11 @@
       "noNumber": "Geen getal gevonden",
       "canonicalValue": "Canonieke waarde",
       "excludedFromFormulas": "uitgesloten van de formules die deze gebruiken",
-      "rollupTotal": "Totaal hieronder",
+      "rollupTotal": "Totaal substructuur",
       "rollupContributors": "{count, plural, one {# waarde} other {# waarden}}",
       "rollupSkipped": "{count, plural, one {# niet meegeteld} other {# niet meegeteld}}",
       "rollupMoreDimensions": "{count, plural, one {+# andere eenheid} other {+# andere eenheden}}",
       "rollupProcessing": "Bijwerken…",
-      "rollupNotCalculated": "Nog niet berekend",
       "rollupSubtreeTooLarge": "Te veel items om te totaliseren",
       "declaredUnit": "Eenheid opgegeven door de formule",
       "unitInherited": "Eenheid overgenomen uit de waarden die hij leest",
@@ -602,7 +607,12 @@
         "non-numeric-result": "Het resultaat is geen getal",
         "dimension-mismatch": "Hij combineert grootheden die niet samen kunnen",
         "unknown-unit": "De opgegeven eenheid kent deze node niet"
-      }
+      },
+      "rollupNoNumbers": "Geen numerieke waarden",
+      "rollupOnlyThisObject": "Alleen dit object",
+      "rollupBelowShare": "{below} eronder",
+      "rollupSplitLabel": "{own} hier, {below} eronder",
+      "rollupDerived": "Afgeleid"
     },
     "duplicate": {
       "title": "Objecten kopiëren",
@@ -1582,6 +1592,7 @@
       "keyTaken": "Er bestaat al een regel voor deze sleutel — mogelijk een verwijderde. Zet \"Verwijderde tonen\" aan om deze te vinden.",
       "invalid": "Afgewezen: {detail}"
     },
-    "property": "Eigenschap"
+    "property": "Eigenschap",
+    "nonNumericKey": "Deze eigenschap bevat meestal tekst, dus de optelling blijft waarschijnlijk leeg."
   }
 }

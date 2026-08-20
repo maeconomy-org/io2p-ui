@@ -110,13 +110,35 @@ describe('rollup rows in the property read view', () => {
 
     expect(screen.getByTestId('rollup-line')).toBeInTheDocument()
     expect(screen.getByText('4120 kg')).toBeInTheDocument()
+    // The own value is 2400 kg of the 4120 kg total, so what the DESCENDANTS
+    // add is 1720 kg — the number a reader would otherwise work out by hand.
     expect(
-      screen.getByText('objects.properties.rollupContributors:{"count":312}')
+      screen.getByText(
+        'objects.properties.rollupBelowShare:{"below":"1720 kg"}'
+      )
     ).toBeInTheDocument()
+    expect(screen.getByTestId('rollup-split-bar')).toBeInTheDocument()
   })
 
   // The card is collapsed by default, so a total rendered inside the disclosure would be invisible
   // until clicked — which is the same as not shipping it.
+  it('renders a rollup as its own card, never inside the property', () => {
+    // Derived data is not a property. Nesting it made one concept look like two
+    // — attached to a value here, standalone there.
+    const { container } = renderRollups(
+      [massProperty()],
+      new Map([['mass', entry()]])
+    )
+    const card = screen.getByTestId('rollup-card')
+    expect(card).toBeInTheDocument()
+    expect(card.querySelector('[data-testid="rollup-line"]')).toBeTruthy()
+
+    // The property's own label lives outside the rollup card — if the rollup
+    // were still nested, the card would contain both.
+    expect(card).not.toContainElement(screen.getByText('2400 kg'))
+    expect(container).toBeTruthy()
+  })
+
   it('shows the total without expanding the card', () => {
     renderRollups([massProperty()], new Map([['mass', entry()]]))
     expect(screen.getByText('4120 kg')).toBeVisible()
@@ -136,7 +158,7 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByText('4120 kg')).toBeInTheDocument()
   })
 
-  it('renders a rule covering a key the object never authored', () => {
+  it('renders a rule covering a key the object never authored as its own card', () => {
     renderRollups(
       [massProperty()],
       new Map([
@@ -159,15 +181,15 @@ describe('rollup rows in the property read view', () => {
       ])
     )
 
-    expect(screen.getByTestId('orphan-rollup')).toBeInTheDocument()
+    expect(screen.getAllByTestId('rollup-card')[0]).toBeInTheDocument()
     expect(screen.getByText('1650 m3')).toBeInTheDocument()
   })
 
   // An object may hold ONLY orphan rollups — every rule covers a key its descendants carry and it
   // does not. Testing `properties.length` alone would drop exactly those.
-  it('renders orphans when the object has no properties at all', () => {
+  it('renders rollup cards when the object has no properties at all', () => {
     renderRollups([], new Map([['mass', entry()]]))
-    expect(screen.getByTestId('orphan-rollup')).toBeInTheDocument()
+    expect(screen.getAllByTestId('rollup-card')[0]).toBeInTheDocument()
   })
 
   it('never adds buckets together, and counts the ones it hides', () => {
@@ -223,14 +245,98 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByTestId('rollup-stale')).toBeInTheDocument()
   })
 
-  it('says so when nothing has been computed yet', () => {
+  it('drops the card entirely when nothing below contributes', () => {
+    // The leaf case from the field: own value 2400 kg, total 2400 kg, one
+    // contributor. Printing the same quantity twice — once authored, once
+    // canonical — reads as two facts about two different things.
+    renderRollups(
+      [massProperty()],
+      new Map([
+        [
+          'mass',
+          entry({
+            buckets: [
+              {
+                dimension: 'mass',
+                unit: 'kg',
+                num: 2400,
+                contributorCount: 1,
+              },
+            ],
+          }),
+        ],
+      ])
+    )
+    // No card at all: a whole block to say "this object only" is more noise
+    // than the number it replaced. It returns the moment a child contributes.
+    expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('rollup-line')).not.toBeInTheDocument()
+  })
+
+  it('falls back to a contributor count when the units do not match', () => {
+    // A property authored in m3 cannot be subtracted from a mass total, so no
+    // split is claimed rather than a wrong one computed.
+    renderRollups([massProperty('m3')], new Map([['mass', entry()]]))
+    expect(
+      screen.getByText('objects.properties.rollupContributors:{"count":312}')
+    ).toBeInTheDocument()
+    expect(screen.queryByTestId('rollup-split-bar')).not.toBeInTheDocument()
+  })
+
+  it('hides an entry the worker has never computed', () => {
+    // The worker recomputes on a WRITE to the subtree, so a rule added after
+    // the object was last touched stays synthesized indefinitely. "Updating…"
+    // forever promises a number that is not coming.
     renderRollups(
       [massProperty()],
       new Map([['mass', entry({ buckets: [], computedAt: null, stale: true })]])
     )
-    expect(
-      screen.getByText('objects.properties.rollupNotCalculated')
-    ).toBeInTheDocument()
+    expect(screen.queryByTestId('rollup-line')).not.toBeInTheDocument()
+  })
+
+  it('keeps the previous total visible while a RE-compute is queued', () => {
+    // The distinction that makes hiding the never-computed case safe: a
+    // recompute still carries the last buckets, so the number stays on screen
+    // with the processing note beside it.
+    renderRollups(
+      [massProperty()],
+      new Map([['mass', entry({ computedAt: 1_700_000, stale: true })]])
+    )
+    expect(screen.getByText('4120 kg')).toBeInTheDocument()
+    expect(screen.getByTestId('rollup-stale')).toBeInTheDocument()
+  })
+
+  it('drops the line entirely once the worker has run and found no numbers', () => {
+    // The node answers with one entry per rule on every object, so a rule that
+    // matched nothing here is noise, not information.
+    renderRollups(
+      [massProperty()],
+      new Map([
+        ['mass', entry({ buckets: [], computedAt: 1_700_000, stale: false })],
+      ])
+    )
+    expect(screen.queryByTestId('rollup-line')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('rollup-stale')).not.toBeInTheDocument()
+  })
+
+  it('keeps a computed-empty entry that counted values it could not read', () => {
+    // `skippedCount` is the signal that a unit is wrong somewhere below, so it
+    // survives the filter even with no total to show.
+    renderRollups(
+      [massProperty()],
+      new Map([
+        [
+          'mass',
+          entry({
+            buckets: [],
+            computedAt: 1_700_000,
+            stale: false,
+            skippedCount: 7,
+          }),
+        ],
+      ])
+    )
+    expect(screen.getByTestId('rollup-skipped')).toBeInTheDocument()
   })
 
   it('surfaces values the node could not read as numbers', () => {

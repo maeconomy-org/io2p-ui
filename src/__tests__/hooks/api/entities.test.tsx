@@ -160,13 +160,13 @@ describe('entities hooks', () => {
   })
 
   it('rollupPollInterval polls while an entry is stale and stops when none are', () => {
-    const entry = (stale: boolean) => ({
+    const entry = (stale: boolean, computedAt: number | null = 1_700_000) => ({
       ruleId: 'r1',
       propertyKey: 'mass',
       buckets: [],
       skippedCount: 0,
       stale,
-      computedAt: null,
+      computedAt,
     })
 
     // One stale entry is enough — that rule's recompute is still queued.
@@ -177,5 +177,21 @@ describe('entities hooks', () => {
     // Nothing fetched yet, and the empty case: no rule, nothing to wait for.
     expect(rollupPollInterval(undefined)).toBe(false)
     expect(rollupPollInterval({ data: [] })).toBe(false)
+  })
+
+  it('rollupPollInterval ignores an entry the worker has never computed', () => {
+    // `computedAt: null` is `stale: true` by construction, and only a WRITE to
+    // the subtree queues the worker — so polling it re-reads the same
+    // synthesized entry every 30s for as long as the sheet stays open.
+    const never = {
+      ruleId: 'r1',
+      propertyKey: 'mass',
+      buckets: [],
+      skippedCount: 0,
+      stale: true,
+      computedAt: null,
+    }
+
+    expect(rollupPollInterval({ data: [never] })).toBe(false)
   })
 })

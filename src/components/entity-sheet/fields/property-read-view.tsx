@@ -2,7 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { ChevronRight, LayoutGrid, List, Paperclip } from 'lucide-react'
+import {
+  Calculator,
+  ChevronRight,
+  LayoutGrid,
+  List,
+  Paperclip,
+} from 'lucide-react'
 
 import {
   Badge,
@@ -23,7 +29,7 @@ import type { EntityRollupEntry } from 'io2p-client'
 
 import { FilesDisclosure } from '../files'
 import { DeletedRow } from './deleted-row'
-import { RollupLine } from './rollup-line'
+import { RollupLine, ownShare, rollupSaysSomething } from './rollup-line'
 import { FormulaSummary } from './formula-value-editor'
 import { ValueNormalization, formulaBoundValueIds } from './value-normalization'
 import {
@@ -104,20 +110,52 @@ export function PropertyReadView({
     [derivedValues]
   )
 
-  // A rule can cover a key this object never authored — the parent holds nothing, the descendants
-  // hold it all. That is the most useful rollup there is, so it gets a row of its own rather than
-  // being dropped for want of a property to decorate.
-  const orphans = useMemo(() => {
-    if (!rollups) return []
-    const authored = new Set(properties.map((p) => p.key.toLowerCase()))
-    return [...rollups.values()]
-      .filter((entry) => !authored.has(entry.propertyKey))
-      .sort((a, b) => a.propertyKey.localeCompare(b.propertyKey))
-  }, [rollups, properties])
+  /**
+   * Every consumer below reads THIS map, not the prop.
+   *
+   * The node answers with one entry per rule ALWAYS — every rule visible to
+   * you, on every object, related or not. Filtering once here is what keeps a
+   * silent entry from reaching a property card as an empty "Subtree total"
+   * line, and it cannot be forgotten at one of the call sites.
+   */
+  const liveRollups = useMemo(() => {
+    if (!rollups) return undefined
+    return new Map(
+      [...rollups].filter(([, entry]) => rollupSaysSomething(entry))
+    )
+  }, [rollups])
+
+  /**
+   * EVERY rollup, as its own card — not just the ones with no matching property.
+   *
+   * A rule covering an authored key used to render inside that property's card,
+   * so the same concept appeared two different ways depending on whether a
+   * property happened to share its key. Each entry carries the own values of the
+   * property it relates to (when there is one), which is what lets the card show
+   * the own/below split without pretending to be that property.
+   */
+  const rollupCards = useMemo(() => {
+    if (!liveRollups) return []
+    const byKey = new Map(properties.map((p) => [p.key.toLowerCase(), p]))
+    return (
+      [...liveRollups.values()]
+        .map((entry) => ({ entry, property: byKey.get(entry.propertyKey) }))
+        // A rollup whose only contributor is this object restates the property
+        // sitting directly above it — in canonical units, so it reads as a second
+        // number. A leaf has nothing below to total; the card returns when a child
+        // does.
+        .filter(({ entry, property }) => {
+          if (!property) return true
+          const lead = [...entry.buckets].sort((a, b) => b.num - a.num)[0]
+          return !lead || !ownShare(lead, liveValues(property))?.onlyContributor
+        })
+        .sort((a, b) => a.entry.propertyKey.localeCompare(b.entry.propertyKey))
+    )
+  }, [liveRollups, properties])
 
   // Not `properties.length` — an object whose rules all cover keys it never authored has only
   // orphan rows, and testing the properties alone would discard exactly those.
-  if (properties.length === 0 && orphans.length === 0) {
+  if (properties.length === 0 && rollupCards.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         {t('objects.detailsSheet.noProperties')}
@@ -173,32 +211,17 @@ export function PropertyReadView({
                     t('objects.values', { count: liveValues(p).length })
                   )}
                 </div>
-                {rollups?.get(p.key.toLowerCase()) && (
-                  <RollupLine
-                    entry={rollups.get(p.key.toLowerCase())!}
-                    ownUnit={ownUnit(p)}
-                    compact
-                    className="mt-1"
-                  />
-                )}
               </div>
             )
           )}
-          {orphans.map((entry) => (
-            <div
+          {rollupCards.map(({ entry, property }) => (
+            <RollupCard
               key={entry.ruleId}
-              className="rounded-md border border-dashed p-2.5"
-            >
-              <div className="flex items-center gap-1.5 text-sm font-medium">
-                <span className="truncate">
-                  {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
-                </span>
-              </div>
-              <div className="mt-0.5 truncate text-sm text-muted-foreground">
-                —
-              </div>
-              <RollupLine entry={entry} compact className="mt-1" />
-            </div>
+              entry={entry}
+              locale={locale}
+              ownUnit={property ? ownUnit(property) : undefined}
+              ownValues={property ? liveValues(property) : undefined}
+            />
           ))}
         </div>
       ) : (
@@ -213,14 +236,15 @@ export function PropertyReadView({
               entityId={entityId}
               onFileChange={onFileChange}
               allowFiles={allowFiles}
-              rollup={rollups?.get(p.key.toLowerCase())}
             />
           ))}
-          {orphans.map((entry) => (
-            <OrphanRollupCard
+          {rollupCards.map(({ entry, property }) => (
+            <RollupCard
               key={entry.ruleId}
               entry={entry}
               locale={locale}
+              ownUnit={property ? ownUnit(property) : undefined}
+              ownValues={property ? liveValues(property) : undefined}
             />
           ))}
         </div>
@@ -230,28 +254,57 @@ export function PropertyReadView({
 }
 
 /**
- * A rollup covering a key this object never authored. Not collapsible: there are no values to
- * disclose, so a chevron would open onto nothing.
+ * A rollup as its own card, never nested inside a property.
+ *
+ * Derived data is not a property: it is computed, it has no values, and nothing
+ * about it can be edited. Rendering it inside the property card that happens to
+ * share its key made one concept look like two — a number attached to a value
+ * in one place and a standalone block in another. The dashed border already
+ * meant "not authored" for orphans; now it means that everywhere, and the
+ * calculator icon says why the card has no edit affordance rather than leaving
+ * the reader to notice its absence.
  */
-function OrphanRollupCard({
+function RollupCard({
   entry,
   locale,
+  ownValues,
+  ownUnit: unit,
+  'data-testid': testId = 'rollup-card',
 }: {
   entry: EntityRollupEntry
   locale: PropertyDictionaryLocale
+  ownValues?: readonly { num?: number; unit?: string }[]
+  ownUnit?: string
+  'data-testid'?: string
 }) {
+  const t = useTranslations()
+
   return (
     <div
-      className="rounded-md border border-dashed px-3 py-1.5"
-      data-testid="orphan-rollup"
+      className="rounded-md border border-dashed bg-muted/20 px-3 py-1.5"
+      data-testid={testId}
     >
       <div className="flex items-center gap-1.5">
+        <Calculator
+          className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
         <span className="truncate text-sm font-medium">
           {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
         </span>
-        <span className="ml-2 text-sm text-muted-foreground">—</span>
+        <Badge
+          variant="secondary"
+          className="h-4 shrink-0 px-1 text-[10px] font-normal"
+        >
+          {t('objects.properties.rollupDerived')}
+        </Badge>
       </div>
-      <RollupLine entry={entry} className="mt-0.5" />
+      <RollupLine
+        entry={entry}
+        ownUnit={unit}
+        ownValues={ownValues}
+        className="mt-0.5"
+      />
     </div>
   )
 }
@@ -323,6 +376,7 @@ function PropertyCard({
         <RollupLine
           entry={rollup}
           ownUnit={ownUnit(property)}
+          ownValues={liveValues(property)}
           className="px-3 pb-1.5 pl-8"
         />
       )}
