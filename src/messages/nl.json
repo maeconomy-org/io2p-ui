@@ -958,7 +958,6 @@
     "certificateInstallationDesc": "Volg deze stappen om uw certificaat te installeren",
     "windows": "Windows",
     "macos": "macOS",
-    "downloadGuide": "Volledige handleiding downloaden",
     "usingCertificate": "Uw certificaat gebruiken",
     "usingCertificateDesc": "Leer hoe u uw certificaat gebruikt met {acronym}",
     "firstTimeLogin": "Eerste keer inloggen",

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Download, HelpCircle, ArrowLeft } from 'lucide-react'
+import { HelpCircle, ArrowLeft } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
 import { buildRuntimeConfig } from '@/constants/client'
@@ -75,11 +75,6 @@ export default async function HelpPage() {
                     ))}
                   </ol>
                 </div>
-
-                <Button variant="outline" className="mt-4">
-                  <Download className="mr-2 h-4 w-4" />
-                  {t('help.downloadGuide')}
-                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -151,9 +146,11 @@ export default async function HelpPage() {
                   </div>
                 </div>
 
-                <Button variant="outline" className="mt-4">
-                  <HelpCircle className="mr-2 h-4 w-4" />
-                  {t('help.contactSupport', { email: supportEmail })}
+                <Button variant="outline" className="mt-4" asChild>
+                  <a href={`mailto:${supportEmail}`}>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    {t('help.contactSupport', { email: supportEmail })}
+                  </a>
                 </Button>
               </CardContent>
             </Card>

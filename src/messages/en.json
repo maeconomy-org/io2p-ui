@@ -958,7 +958,6 @@
     "certificateInstallationDesc": "Follow these steps to install your certificate",
     "windows": "Windows",
     "macos": "macOS",
-    "downloadGuide": "Download Full Guide",
     "usingCertificate": "Using Your Certificate",
     "usingCertificateDesc": "Learn how to use your certificate with {acronym}",
     "firstTimeLogin": "First-Time Login",
