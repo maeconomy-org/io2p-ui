@@ -7,6 +7,7 @@ import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge, Table, TableBody, TableCell, TableRow } from '@/components/ui'
 import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
+import { anchor } from '@/constants'
 
 /** Rows of the raw grid to show. Enough to find a header past any preamble. */
 const GRID_ROWS = 12
@@ -25,7 +26,7 @@ export function StepSheet({ wizard }: { wizard: ImportWizard }) {
   const grid = sheet.rows.slice(0, GRID_ROWS)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" {...anchor('importSheet')}>
       <div>
         <h3 className="font-medium">{t('import.sheet.title')}</h3>
         <p className="text-sm text-muted-foreground">

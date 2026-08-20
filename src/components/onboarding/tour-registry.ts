@@ -22,6 +22,7 @@ export type TourId =
   | 'build-template'
   | 'write-formula'
   | 'share-objects'
+  | 'run-import'
   | 'work-with-drafts'
 
 interface TourStep {
@@ -36,6 +37,14 @@ interface TourStep {
    * on how that particular control happens to be built.
    */
   action?: TourAction
+  /**
+   * What Previous does at the step AFTER this one, undoing `action`.
+   *
+   * Defaults to `closeSheet`, which is right for a gate that opened a sheet. A
+   * gate that changed the page some other way says so here — accepting a
+   * hierarchy is undone by clearing it, not by closing anything.
+   */
+  undo?: TourAction
   popover: { title: string; description: string }
 }
 
@@ -45,6 +54,16 @@ export interface TourDefinition {
   route: string
   /** Copy namespace in `messages/onboarding/{locale}.json`. */
   group: string
+  /**
+   * Put the page back when the tour ends, however it ended — Done, Escape, the
+   * X, or a click on the overlay.
+   *
+   * Opt-in per tour rather than a blanket teardown: ending the create-object
+   * tour on the Submit button should LEAVE the sheet open, since the next thing
+   * the user does is fill it in. Only a tour that staged something of its own
+   * has anything to take back.
+   */
+  onEnd?: TourAction
   steps: (m: TourMessages) => TourStep[]
 }
 
@@ -144,6 +163,53 @@ export const TOURS: readonly TourDefinition[] = [
       }),
       step(m, 'shareObjects', 'resources', sel('shareResources')),
       step(m, 'shareObjects', 'members', sel('shareMembers')),
+    ],
+  },
+  {
+    id: 'run-import',
+    route: '/import',
+    group: 'runImport',
+    // Every step past the dropzone renders FROM the sample sheet this tour
+    // loads, so ending anywhere has to drop it again.
+    onEnd: TOUR_ACTIONS.resetImport,
+    steps: (m) => [
+      step(m, 'runImport', 'jobs', sel('importJobs')),
+      step(m, 'runImport', 'start', sel('importTabs'), {
+        action: TOUR_ACTIONS.startImport,
+      }),
+      step(m, 'runImport', 'steps', sel('importStepper'), {
+        action: TOUR_ACTIONS.importAdvance,
+      }),
+      step(m, 'runImport', 'sheet', sel('importSheet'), {
+        action: TOUR_ACTIONS.importAdvance,
+      }),
+      // FOUR steps on the mapper, because it is the only screen here where
+      // pointing is not enough. The hierarchy box and the applied-hierarchy bar
+      // cannot both be on screen — one renders while no hierarchy is set and the
+      // other while one is — so the walkthrough accepts a hierarchy in the
+      // middle and shows the before and the after.
+      step(m, 'runImport', 'columns', sel('importColumns')),
+      step(m, 'runImport', 'hierarchy', sel('importHierarchy'), {
+        action: TOUR_ACTIONS.importSuggestLevels,
+        undo: TOUR_ACTIONS.importHideSuggestion,
+      }),
+      step(m, 'runImport', 'proposal', sel('importHierarchyEffect'), {
+        action: TOUR_ACTIONS.importApplyLevels,
+        undo: TOUR_ACTIONS.importClearLevels,
+      }),
+      step(m, 'runImport', 'levels', sel('importLevelBar'), {
+        action: TOUR_ACTIONS.importAdvance,
+      }),
+      step(m, 'runImport', 'check', sel('importCheck'), {
+        action: TOUR_ACTIONS.importAdvance,
+      }),
+      // The last step describes the run without offering it. Nothing is written
+      // by reaching this screen — the footer button does that, and it sits
+      // OUTSIDE the highlight, so the overlay is what keeps it unpressable while
+      // the sample is loaded.
+      step(m, 'runImport', 'run', sel('importRun'), {
+        disableActiveInteraction: true,
+      }),
     ],
   },
   {

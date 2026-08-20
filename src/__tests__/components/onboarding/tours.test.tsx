@@ -33,6 +33,7 @@ const driverMock = vi.fn((config: DriverConfig) => ({
     ;(config.onDestroyed as (() => void) | undefined)?.()
   },
   moveNext: vi.fn(),
+  movePrevious: vi.fn(),
 }))
 
 vi.mock('driver.js', () => ({
@@ -111,6 +112,7 @@ const lastConfig = (): DriverConfig => driverMock.mock.calls.at(-1)?.[0] ?? {}
 describe('TourRunner', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    pathname = '/objects'
     setReducedMotion(false)
     authState.isAuthenticated = true
     authState.authLoading = false
@@ -123,13 +125,13 @@ describe('TourRunner', () => {
     })
   })
 
-  const startTour = async () => {
+  const startTour = async (id = 'create-object') => {
     const { default: TourRunner } =
       await import('@/components/onboarding/tour-runner')
     render(<TourRunner />, { wrapper })
     await act(async () => {
       window.dispatchEvent(
-        new CustomEvent(TOUR_START_EVENT, { detail: { id: 'create-object' } })
+        new CustomEvent(TOUR_START_EVENT, { detail: { id } })
       )
     })
     // The request is parked in state first so it can survive a route change, so
@@ -176,6 +178,109 @@ describe('TourRunner', () => {
     // clicked for the sheet the remaining steps live in to exist at all.
     const gated = steps.filter((s) => s.popover?.onNextClick !== undefined)
     expect(gated).toHaveLength(1)
+  })
+
+  /**
+   * run-import stages a sample sheet inside the wizard, one button short of
+   * being written. It has to come back on EVERY exit — driver.js routes Done,
+   * Escape, the X and an overlay click through this one callback, so hooking it
+   * here is what makes "however it ended" true rather than "if they pressed
+   * Done".
+   */
+  it('takes back what a tour staged, on every way out', async () => {
+    const { TOUR_ACTION_EVENT } =
+      await import('@/components/onboarding/constants')
+    const seen: string[] = []
+    const listener = (event: Event) => {
+      const detail = (event as CustomEvent<{ action?: string }>).detail
+      if (detail?.action) seen.push(detail.action)
+    }
+    window.addEventListener(TOUR_ACTION_EVENT, listener)
+
+    pathname = '/import'
+    await startTour('run-import')
+    await act(async () => {
+      ;(lastConfig().onDestroyed as () => void)()
+    })
+
+    window.removeEventListener(TOUR_ACTION_EVENT, listener)
+    expect(seen).toContain('import.reset')
+  })
+
+  it('leaves a tour that staged nothing alone when it ends', async () => {
+    const { TOUR_ACTION_EVENT } =
+      await import('@/components/onboarding/constants')
+    const seen: string[] = []
+    const listener = (event: Event) => {
+      const detail = (event as CustomEvent<{ action?: string }>).detail
+      if (detail?.action) seen.push(detail.action)
+    }
+    window.addEventListener(TOUR_ACTION_EVENT, listener)
+
+    // Ending create-object on the Submit button must LEAVE the sheet open —
+    // filling it in is the next thing the user does.
+    await startTour()
+    await act(async () => {
+      ;(lastConfig().onDestroyed as () => void)()
+    })
+
+    window.removeEventListener(TOUR_ACTION_EVENT, listener)
+    expect(seen).toEqual([])
+  })
+
+  /**
+   * The generic close is right for a gate that opened a sheet, and wrong for one
+   * that changed the page some other way. run-import accepts a HIERARCHY at one
+   * of its gates; closing a sheet would not take that back, and the step behind
+   * it points at a box that only exists while no hierarchy is set.
+   */
+  it('reverses a gate with its own undo rather than the generic close', async () => {
+    pathname = '/import'
+    await startTour('run-import')
+
+    const steps = lastConfig().steps as Array<{
+      element: string
+      popover?: { onPrevClick?: () => void }
+    }>
+    const { TOUR_ACTION_EVENT } =
+      await import('@/components/onboarding/constants')
+    const seen: string[] = []
+    const listener = (event: Event) => {
+      const detail = (event as CustomEvent<{ action?: string }>).detail
+      if (detail?.action) seen.push(detail.action)
+    }
+    window.addEventListener(TOUR_ACTION_EVENT, listener)
+
+    // The step after the one that accepts the hierarchy.
+    const index = steps.findIndex((s) => s.element.includes('level-bar'))
+    expect(index).toBeGreaterThan(0)
+    steps[index]?.popover?.onPrevClick?.()
+
+    window.removeEventListener(TOUR_ACTION_EVENT, listener)
+    expect(seen).toEqual(['import.clearLevels'])
+  })
+
+  it('still falls back to closing a sheet when a gate declares no undo', async () => {
+    await startTour()
+
+    const steps = lastConfig().steps as Array<{
+      popover?: { onPrevClick?: () => void }
+    }>
+    const { TOUR_ACTION_EVENT } =
+      await import('@/components/onboarding/constants')
+    const seen: string[] = []
+    const listener = (event: Event) => {
+      const detail = (event as CustomEvent<{ action?: string }>).detail
+      if (detail?.action) seen.push(detail.action)
+    }
+    window.addEventListener(TOUR_ACTION_EVENT, listener)
+
+    const withPrev = steps.filter((s) => s.popover?.onPrevClick)
+    expect(withPrev).toHaveLength(1)
+    withPrev[0]?.popover?.onPrevClick?.()
+
+    window.removeEventListener(TOUR_ACTION_EVENT, listener)
+    expect(seen).toEqual(['sheet.close'])
   })
 
   it('disables animation when the user prefers reduced motion', async () => {

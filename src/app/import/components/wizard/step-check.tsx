@@ -19,6 +19,7 @@ import {
 } from '@/components/ui'
 import { ObjectPicker } from '@/components/entity-sheet/fields'
 import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
+import { anchor } from '@/constants'
 
 /**
  * The last screen before anything is written, and the reason it exists: the node's store is
@@ -107,7 +108,7 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" {...anchor('importCheck')}>
       <div>
         <h3 className="font-medium">{t('import.check.title')}</h3>
         <p className="text-sm text-muted-foreground">

@@ -15,6 +15,11 @@ import {
   SelectValue,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { anchor } from '@/constants'
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 import type { ColumnTarget } from '@/app/import/lib/build-items'
 import {
   ATTACH_EVERY_LEVEL,
@@ -330,6 +335,24 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
     [showProposal, wizard.dataRows, wizard.mapping, unusedSuggestion]
   )
 
+  /**
+   * The walkthrough works the two controls a person cannot be shown otherwise.
+   *
+   * The hierarchy box and the applied-hierarchy bar are mutually exclusive —
+   * `canAsk` is `levels.length === 0` and the bar needs the opposite — and so is
+   * the per-column "attaches to" select. A tour that only pointed at things
+   * could never show the second half of this screen at all.
+   *
+   * Each of the four is exactly what one visible button does, so the walkthrough
+   * cannot reach a state the user could not have reached themselves.
+   */
+  useTourAction(TOUR_ACTIONS.importSuggestLevels, () => setAsked(true))
+  useTourAction(TOUR_ACTIONS.importHideSuggestion, () => setAsked(false))
+  useTourAction(TOUR_ACTIONS.importApplyLevels, () =>
+    wizard.setLevels(unusedSuggestion)
+  )
+  useTourAction(TOUR_ACTIONS.importClearLevels, () => wizard.setLevels([]))
+
   return (
     <div className="space-y-6">
       <div>
@@ -341,7 +364,10 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
 
       {/* ASKED FOR, never a proposal that arrives on its own — see the note on `asked`. */}
       {canAsk && (
-        <div className="flex items-start gap-3 rounded-md border bg-muted/30 p-3">
+        <div
+          className="flex items-start gap-3 rounded-md border bg-muted/30 p-3"
+          {...anchor('importHierarchy')}
+        >
           <Layers className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1 space-y-2">
             {showProposal ? (
@@ -356,6 +382,7 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
                     glance, where a list of column names is not. */}
                 <p
                   data-testid="map-suggest-effect"
+                  {...anchor('importHierarchyEffect')}
                   className="text-xs tabular-nums text-muted-foreground"
                 >
                   {t('import.map.suggestionEffect', {
@@ -411,7 +438,10 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
       )}
 
       {wizard.levels.length > 0 && (
-        <div className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-3">
+        <div
+          className="flex items-center justify-between rounded-md border bg-muted/30 px-4 py-3"
+          {...anchor('importLevelBar')}
+        >
           <div className="min-w-0">
             <p className="text-sm font-medium">
               {wizard.levels.map((c) => columnName(c)).join(' › ')}
@@ -438,7 +468,10 @@ export function StepMap({ wizard }: { wizard: ImportWizard }) {
         </div>
       )}
 
-      <div className={cn('divide-y rounded-md border')}>
+      <div
+        className={cn('divide-y rounded-md border')}
+        {...anchor('importColumns')}
+      >
         {wizard.columns.map((column) => (
           <ColumnRow key={column.index} column={column} wizard={wizard} />
         ))}

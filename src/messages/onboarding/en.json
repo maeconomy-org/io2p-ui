@@ -77,6 +77,28 @@
     "members": "Who can see it",
     "membersDescription": "A share carries only resources and lists its members here — that is the difference from the Groups it replaced, which mixed both under one word."
   },
+  "runImport": {
+    "jobs": "Every import you have run",
+    "jobsDescription": "A row per job, with its status and how many rows landed. Open one to see what happened row by row — including which ones the node refused, and why.",
+    "start": "Start a new one",
+    "startDescription": "The same page holds both views. Next switches to the wizard; the results stay here and keep updating while you work.",
+    "steps": "Five steps, in order",
+    "stepsDescription": "Upload, pick a sheet, map the columns, check, import. Next loads a small example file so you can see all five — nothing of yours is touched, and it is thrown away when this walkthrough ends.",
+    "sheet": "Say where the data starts",
+    "sheetDescription": "A workbook can hold several sheets, and a real export often begins with a title or a blank line. Mark the header row and the first data row on the grid itself, so you read the answer where you asked the question.",
+    "columns": "One row per column",
+    "columnsDescription": "The dropdown on the right of each row says what that column becomes: the object's name, a part of its address, a property, or nothing at all. Unmapped columns are simply not imported. A column mapped to a property gets a second dropdown for splitting one cell into several values, for sheets that pack a list into `a; b; c`.",
+    "hierarchy": "Rows can also nest",
+    "hierarchyDescription": "By default one row becomes one object. But a sheet often repeats a container down a column — the same building on every one of its rooms. Turning those columns into LEVELS builds the tree instead. Nothing here guesses on its own, because a wrong guess merges data away silently. Next asks for a proposal.",
+    "proposal": "Judge it by this number",
+    "proposalDescription": "The columns it names tell you very little — a real hierarchy and two unrelated categories look identical in the data. What it would produce does not: \"200 rows would become 3 objects\" is wrong at a glance. Read the count, then accept or refuse. Next accepts it.",
+    "levels": "What changed",
+    "levelsDescription": "Buildings and floors are now containers, not repeated text, and the count above says how many objects that makes. Every column that is NOT a level has just gained a third dropdown — \"attaches to\" — because a value now has to say which level it belongs to: the deepest one, a named one, or all of them. An address usually belongs to all of them.",
+    "check": "Check before you write",
+    "checkDescription": "The count, the tree it will build, and every row the wizard already knows it cannot use. Nothing has been sent yet. You can pick a parent object here, so the whole import lands somewhere in your structure.",
+    "run": "Then import",
+    "runDescription": "The button below the card starts it. The job runs in the background and reports per row, so you can leave this page. The walkthrough stops here — this is example data, and it will be cleared when you close this."
+  },
   "workWithDrafts": {
     "start": "Start something you can finish later",
     "startDescription": "Open the create sheet as usual. Nothing is saved to the server until you submit.",

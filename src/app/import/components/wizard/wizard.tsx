@@ -7,9 +7,15 @@ import { Check, ChevronRight, Upload } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui'
+import { anchor } from '@/constants'
 
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 import { useCancelImport, useRunImport } from '@/hooks/api/imports'
 import { useImportWizard } from '@/app/import/hooks/use-import-wizard'
+import { sampleSheetFile } from '@/app/import/lib/sample-sheet'
 
 import { StepUpload } from './step-upload'
 import { StepSheet } from './step-sheet'
@@ -54,6 +60,7 @@ function Stepper({
   return (
     <ol
       data-testid="wizard-stepper"
+      {...anchor('importStepper')}
       className="flex flex-wrap items-center gap-1 text-sm"
     >
       {STEPS.map((step, index) => {
@@ -101,9 +108,17 @@ function Stepper({
 
 export function Wizard({
   onFinished,
+  onTourExit,
 }: {
   /** No job id: `useRunImport` arms the watcher at start, not on this click. */
   onFinished?: () => void
+  /**
+   * The walkthrough stepped back off the wizard's FIRST step, so the gate that
+   * has to open now is the tab — and that one belongs to the page. Lifting the
+   * step counter up there instead would hand the page the wizard's internals to
+   * hold on behalf of a tour.
+   */
+  onTourExit?: () => void
 }) {
   const t = useTranslations()
   const [step, setStep] = useState(0)
@@ -113,6 +128,41 @@ export function Wizard({
 
   const back = () => setStep((s) => Math.max(0, s - 1))
   const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1))
+
+  /**
+   * The walkthrough drives the wizard with a sample sheet.
+   *
+   * Every step after Upload is rendered FROM a parsed file, so a tour with no
+   * file can only point at the dropzone. The sample goes in through `pickFile`
+   * like any other — nothing is injected further down the cascade, so what the
+   * tour walks is the real pipeline.
+   *
+   * `wizard.file` is the guard, not a flag of our own: it is set by exactly the
+   * call below, so re-crossing the gate after stepping back cannot re-parse.
+   */
+  useTourAction(TOUR_ACTIONS.importAdvance, () => {
+    if (wizard.file) {
+      next()
+      return
+    }
+    void wizard.pickFile(sampleSheetFile()).then((ok) => {
+      if (ok) next()
+    })
+  })
+
+  // Fired by the runner when the tour steps BACK over a gate. Past the wizard's
+  // first step that is one step; at it, it is the tab, which the page owns.
+  useTourAction(TOUR_ACTIONS.closeSheet, () => {
+    if (step > 0) back()
+    else onTourExit?.()
+  })
+
+  // On EVERY exit, so an escaped tour cannot leave a sample sheet sitting one
+  // button away from being written to the node.
+  useTourAction(TOUR_ACTIONS.resetImport, () => {
+    wizard.reset()
+    setStep(0)
+  })
 
   /**
    * Why Continue is unavailable, per step. Scoped to the step that OWNS the condition — one shared
@@ -195,7 +245,10 @@ export function Wizard({
     <div className="space-y-6">
       <Stepper current={step} onJump={setStep} />
 
-      <div className="rounded-lg border bg-card p-6">
+      <div
+        className="rounded-lg border bg-card p-6"
+        {...(step === last ? anchor('importRun') : {})}
+      >
         {step === 0 && <StepUpload wizard={wizard} onParsed={next} />}
         {step === 1 && <StepSheet wizard={wizard} />}
         {step === 2 && <StepMap wizard={wizard} />}
