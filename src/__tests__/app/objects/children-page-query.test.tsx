@@ -40,6 +40,17 @@ vi.mock('next-intl', () => ({
 
 vi.mock('next/dynamic', () => ({ default: () => () => null }))
 
+// The page reads two account preferences (view type, hidden columns). Both reach
+// `useAuth`, which needs a QueryClient this test deliberately does not build —
+// the subject here is the QUERY, not preference plumbing.
+vi.mock('@/hooks/ui/use-preference', () => ({
+  usePreference: () => ['table', vi.fn(), true],
+}))
+
+vi.mock('@/hooks/ui/use-column-visibility', () => ({
+  useColumnVisibility: () => [{}, vi.fn()],
+}))
+
 vi.mock('@/hooks/data/use-breadcrumb-trail', () => ({
   useBreadcrumbTrail: () => ({
     ancestors: [],
@@ -81,6 +92,7 @@ vi.mock('@/app/objects/components/use-object-list-page', () => ({
     columns: [],
     rowSelection: {},
     setRowSelection: vi.fn(),
+    selectedObjects: [],
   }),
 }))
 
