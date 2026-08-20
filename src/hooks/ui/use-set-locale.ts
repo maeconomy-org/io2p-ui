@@ -21,9 +21,9 @@ import { usePreference } from './use-preference'
  * value or the server answers in the old language and nothing appears to happen.
  *
  * Refresh briefly shows the route's `loading.tsx`, because it invalidates the
- * segment cache. That is acceptable for an explicit click, and it is why the
- * PASSIVE reconcile in `PreferenceSync` does not refresh — there it would put a
- * skeleton on every load whose cookie had not caught up.
+ * segment cache. `PreferenceSync` pays the same cost for the PASSIVE reconcile,
+ * but only where the account and the cookie disagree — normally the first
+ * sign-in on a browser.
  */
 export function useSetLocale(): (next: PreferenceValues['locale']) => void {
   const [, storeLocale] = usePreference('locale')
