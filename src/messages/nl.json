@@ -107,7 +107,6 @@
       "rowsPerPage": "Rijen per pagina"
     },
     "security": {
-      "notAvailable": "Nog niet beschikbaar",
       "common": {
         "continue": "Doorgaan"
       },
@@ -157,7 +156,15 @@
       },
       "connectedAccounts": {
         "title": "Gekoppelde accounts",
-        "description": "Koppel Google of GitHub om sneller in te loggen."
+        "description": "De aanmeldmethoden die aan dit account zijn gekoppeld.",
+        "empty": "Er zijn nog geen aanmeldmethoden gekoppeld.",
+        "connectedOn": "Gekoppeld op {date}",
+        "providers": {
+          "google": "Google",
+          "microsoft": "Microsoft",
+          "credential": "Wachtwoord",
+          "unknown": "Andere aanmeldmethode"
+        }
       }
     }
   },
@@ -323,6 +330,10 @@
     "password": {
       "label": "Wachtwoord",
       "placeholder": "Voer uw wachtwoord in"
+    },
+    "social": {
+      "google": "Doorgaan met Google",
+      "microsoft": "Doorgaan met Microsoft"
     },
     "certificate": {
       "signIn": "Inloggen met certificaat"

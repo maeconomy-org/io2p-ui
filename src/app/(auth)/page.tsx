@@ -11,6 +11,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { logger } from '@/lib/observability/logger'
 import { cn } from '@/lib/utils'
 import { useAuth, useAppConfig } from '@/contexts'
+import {
+  SOCIAL_PROVIDERS,
+  enabledSocialProviders,
+  type SocialProviderId,
+} from '@/constants'
 import { loginSchema, type LoginFormData } from '@/lib/auth/schemas'
 import {
   Badge,
@@ -29,14 +34,30 @@ import {
 /** Remembers which sign-in the user reached for last, so that path is highlighted next time. */
 const LAST_AUTH_METHOD_KEY = 'iom-last-auth-method'
 
+type AuthMethod = 'certificate' | 'email' | SocialProviderId
+
+const AUTH_METHODS = new Set<AuthMethod>([
+  'certificate',
+  'email',
+  ...SOCIAL_PROVIDERS.map((p) => p.id),
+])
+
 export default function LoginPage() {
   const router = useRouter()
   const t = useTranslations()
-  const { isAuthenticated, authLoading, handleAuth, handleEmailLogin } =
-    useAuth()
+  const {
+    isAuthenticated,
+    authLoading,
+    handleAuth,
+    handleEmailLogin,
+    handleSocialLogin,
+  } = useAuth()
   const config = useAppConfig()
   const [submitting, setSubmitting] = useState(false)
   const [certLoading, setCertLoading] = useState(false)
+  const [socialLoading, setSocialLoading] = useState<SocialProviderId | null>(
+    null
+  )
   const [error, setError] = useState<string | null>(null)
   // localStorage IS an external store, so read it as one. As state seeded by an effect it could
   // only ever be null on the first paint, so the "last used" hint flickered in a render late.
@@ -45,7 +66,9 @@ export default function LoginPage() {
     () => () => {},
     () => {
       const stored = localStorage.getItem(LAST_AUTH_METHOD_KEY)
-      return stored === 'certificate' || stored === 'email' ? stored : null
+      return stored && AUTH_METHODS.has(stored as AuthMethod)
+        ? (stored as AuthMethod)
+        : null
     },
     () => null
   )
@@ -56,7 +79,11 @@ export default function LoginPage() {
     mode: 'onChange',
   })
 
-  const isLoading = submitting || certLoading
+  const socialProviders = enabledSocialProviders(config.socialProviders)
+  // Certificate is the primary action only when it is the ONLY one.
+  const hasOtherSignIn =
+    config.emailLoginEnabled === 'true' || socialProviders.length > 0
+  const isLoading = submitting || certLoading || socialLoading !== null
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -126,6 +153,24 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const onSocialClick = async (provider: SocialProviderId) => {
+    setSocialLoading(provider)
+    setError(null)
+
+    // Written before the redirect, not after: on success this browsing context
+    // is gone, so there is no "after" to write it in.
+    localStorage.setItem(LAST_AUTH_METHOD_KEY, provider)
+
+    const result = await handleSocialLogin(provider)
+    if (!result.success) {
+      localStorage.removeItem(LAST_AUTH_METHOD_KEY)
+      setError(mapError(result.error ?? ''))
+      setSocialLoading(null)
+    }
+    // No success branch and no `finally`: the provider redirect is already
+    // underway, and dropping the overlay here would flash the form back.
   }
 
   const handleCertificateAuth = async () => {
@@ -285,10 +330,10 @@ export default function LoginPage() {
                     <Button
                       type="submit"
                       data-testid="auth-email-submit"
-                      className="w-full py-6 text-base"
+                      className="w-full"
                       disabled={isLoading}
                     >
-                      {!isLoading && <Mail className="mr-2 h-5 w-5" />}
+                      {!isLoading && <Mail className="mr-2 h-4 w-4" />}
                       {t('auth.email.signIn')}
                       {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
                     </Button>
@@ -317,28 +362,54 @@ export default function LoginPage() {
             </>
           )}
 
-          <div className="relative">
-            <Button
-              onClick={handleCertificateAuth}
-              data-testid="auth-certificate"
-              variant={
-                config.emailLoginEnabled === 'true' ? 'outline' : 'default'
-              }
-              className="w-full py-6 text-base transition-colors"
-              disabled={isLoading}
-            >
-              {!isLoading && <Shield className="mr-2 h-5 w-5" />}
-              {t('auth.certificate.signIn')}
-            </Button>
-            {lastAuthMethod === 'certificate' && (
-              <Badge
-                variant="outline"
-                data-testid="auth-last-used-certificate"
-                className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+          <div className="space-y-2">
+            <div className="relative">
+              <Button
+                type="button"
+                onClick={handleCertificateAuth}
+                data-testid="auth-certificate"
+                variant={hasOtherSignIn ? 'outline' : 'default'}
+                className="w-full transition-colors"
+                disabled={isLoading}
               >
-                {t('auth.lastUsed')}
-              </Badge>
-            )}
+                {!isLoading && <Shield className="mr-2 h-4 w-4" />}
+                {t('auth.certificate.signIn')}
+              </Button>
+              {lastAuthMethod === 'certificate' && (
+                <Badge
+                  variant="outline"
+                  data-testid="auth-last-used-certificate"
+                  className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+                >
+                  {t('auth.lastUsed')}
+                </Badge>
+              )}
+            </div>
+
+            {socialProviders.map(({ id, Icon, labelKey }) => (
+              <div key={id} className="relative">
+                <Button
+                  type="button"
+                  onClick={() => onSocialClick(id)}
+                  data-testid={`auth-social-${id}`}
+                  variant="outline"
+                  className="w-full transition-colors"
+                  disabled={isLoading}
+                >
+                  {!isLoading && <Icon className="mr-2 h-4 w-4" />}
+                  {t(`auth.social.${labelKey}`)}
+                </Button>
+                {lastAuthMethod === id && (
+                  <Badge
+                    variant="outline"
+                    data-testid={`auth-last-used-${id}`}
+                    className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+                  >
+                    {t('auth.lastUsed')}
+                  </Badge>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </Card>

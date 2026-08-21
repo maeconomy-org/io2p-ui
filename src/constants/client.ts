@@ -43,6 +43,10 @@ export interface ClientConfig {
   // Environment
   nodeEnv: string
   emailLoginEnabled: string
+  // Comma-separated better-auth social provider ids the issuer has credentials
+  // for. A provider listed here without matching credentials on io2p-auth
+  // renders a button that dead-ends in a 400.
+  socialProviders: string
 
   // App information
   appName: string
@@ -71,6 +75,7 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   logShipLevel: '',
   nodeEnv: 'development',
   emailLoginEnabled: 'true',
+  socialProviders: 'google,microsoft',
   appName: 'Internet of Materials',
   appDescription: 'Material Management System',
   appAcronym: 'IoM',
@@ -127,6 +132,8 @@ export function buildRuntimeConfig(): ClientConfig {
     logShipLevel: process.env.LOG_SHIP_LEVEL || '',
     nodeEnv: process.env.NODE_ENV || 'development',
     emailLoginEnabled: process.env.EMAIL_LOGIN_ENABLED || 'true',
+    socialProviders:
+      process.env.SOCIAL_PROVIDERS ?? DEFAULT_CLIENT_CONFIG.socialProviders,
     appName: process.env.APP_NAME || 'Internet of Materials',
     appDescription: process.env.APP_DESCRIPTION || 'Material Management System',
     appAcronym: process.env.APP_ACRONYM || 'IoM',

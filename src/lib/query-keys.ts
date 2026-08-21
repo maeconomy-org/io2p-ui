@@ -71,6 +71,7 @@ export const queryKeys = {
   // ─── Auth (better-auth session list) ─────────────────────
   auth: {
     sessions: ['auth', 'sessions'] as const,
+    accounts: ['auth', 'accounts'] as const,
   },
 
   // ─── Users ───────────────────────────────────────────────

@@ -9,6 +9,7 @@ import {
   ENABLED_PROCESS_VIEW_TYPES,
 } from '@/constants/view-types'
 import { NAV_ITEMS } from '@/constants/site'
+import { SOCIAL_PROVIDERS } from '@/constants/auth'
 
 type Tree = Record<string, unknown>
 
@@ -178,6 +179,19 @@ describe('messages', () => {
       expect(
         at(nl as Tree, `settings.preferences.options.${type.value}`)
       ).toBeTypeOf('string')
+    }
+  })
+
+  // The login page renders `auth.social.${labelKey}`, which the dynamic-namespace check can only
+  // prove is non-empty. A deployer enabling a provider whose label was pruned gets a blank button.
+  it('labels every social sign-in provider', () => {
+    for (const provider of SOCIAL_PROVIDERS) {
+      expect(at(en as Tree, `auth.social.${provider.labelKey}`)).toBeTypeOf(
+        'string'
+      )
+      expect(at(nl as Tree, `auth.social.${provider.labelKey}`)).toBeTypeOf(
+        'string'
+      )
     }
   })
 

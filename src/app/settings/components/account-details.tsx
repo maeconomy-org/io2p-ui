@@ -14,7 +14,9 @@ import {
   CopyButton,
   Skeleton,
 } from '@/components/ui'
+import { describeCredential } from '@/constants'
 import { useAuth } from '@/contexts'
+import { useLinkedAccounts } from '@/hooks/api/use-linked-accounts'
 import { useMounted } from '@/hooks/ui/use-mounted'
 import { cn } from '@/lib/utils'
 
@@ -78,10 +80,20 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
+function SocialMark({ providerId }: { providerId: string }) {
+  const credential = describeCredential(providerId)
+  if (!credential.branded) return null
+  return <credential.Icon className="h-3.5 w-3.5" />
+}
+
 export function AccountDetails() {
   const t = useTranslations('settings.account')
+  const tProviders = useTranslations(
+    'settings.security.connectedAccounts.providers'
+  )
   const locale = useLocale()
   const { userInfo, userId, authLoading } = useAuth()
+  const { data: linkedAccounts } = useLinkedAccounts()
   const mounted = useMounted()
 
   // `!mounted` is load-bearing, not belt-and-braces: better-auth resolves the
@@ -92,8 +104,15 @@ export function AccountDetails() {
   // the skeleton; the real content arrives on the render after.
   const identityUnknown = !mounted || (authLoading && !userInfo)
 
-  const isEmailAuth = userInfo?.identifierType === 'UserAuthUP'
   const cert = userInfo?.certificateInfo
+  const isEmailAuth = userInfo?.identifierType === 'UserAuthUP'
+
+  // A certificate is NOT a linked account — mTLS stores its credential in its
+  // own collection, so `list-accounts` never returns one. Only reach for the
+  // social provider when this isn't a cert identity.
+  const socialAccount = cert
+    ? undefined
+    : linkedAccounts?.find((a) => describeCredential(a.providerId).branded)
   const certName = cert?.subjectFields?.CN || cert?.issuerFields?.CN
   const issuer = cert?.issuerFields?.CN
   const createdAt = formatDate(userInfo?.createdAt, locale)
@@ -138,7 +157,14 @@ export function AccountDetails() {
 
             <Row label={t('authType')}>
               <span className="inline-flex items-center gap-1.5">
-                {isEmailAuth ? (
+                {socialAccount ? (
+                  <>
+                    <SocialMark providerId={socialAccount.providerId} />
+                    {tProviders(
+                      describeCredential(socialAccount.providerId).labelKey
+                    )}
+                  </>
+                ) : isEmailAuth ? (
                   <>
                     <Mail className="h-3.5 w-3.5 text-blue-600" aria-hidden />
                     {t('email')}

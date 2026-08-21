@@ -107,7 +107,6 @@
       "rowsPerPage": "Rows per page"
     },
     "security": {
-      "notAvailable": "Not available yet",
       "common": {
         "continue": "Continue"
       },
@@ -157,7 +156,15 @@
       },
       "connectedAccounts": {
         "title": "Connected accounts",
-        "description": "Link Google or GitHub to sign in faster."
+        "description": "The sign-in methods linked to this account.",
+        "empty": "No sign-in methods are linked yet.",
+        "connectedOn": "Connected on {date}",
+        "providers": {
+          "google": "Google",
+          "microsoft": "Microsoft",
+          "credential": "Password",
+          "unknown": "Other sign-in method"
+        }
       }
     }
   },
@@ -323,6 +330,10 @@
     "password": {
       "label": "Password",
       "placeholder": "Enter your password"
+    },
+    "social": {
+      "google": "Continue with Google",
+      "microsoft": "Continue with Microsoft"
     },
     "certificate": {
       "signIn": "Sign in with Certificate"

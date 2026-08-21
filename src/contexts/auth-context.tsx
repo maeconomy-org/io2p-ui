@@ -8,6 +8,7 @@ import {
   PUBLIC_PAGES_SET,
   clearPreferenceMirrors,
   getCachedConfig,
+  type SocialProviderId,
 } from '@/constants'
 import { clearLegacyDrafts } from '@/hooks/drafts/use-object-drafts'
 import { authClient, clearCoreToken, useSession } from '@/lib/auth/client'
@@ -149,6 +150,34 @@ export function useAuth() {
     return { success: true }
   }
 
+  // Resolves ONLY on failure. The success path is a full-page redirect to the
+  // provider, so a caller must not clear its loading state in a `finally`.
+  const handleSocialLogin = async (provider: SocialProviderId) => {
+    try {
+      // ABSOLUTE, both of them. better-auth stores these verbatim in the OAuth
+      // state and emits them verbatim as the callback's Location header — it
+      // never prefixes an origin. A relative path therefore resolves against
+      // whoever issues the redirect, which is the ISSUER (:8081), not the app:
+      // '/objects' became http://localhost:8081/objects and 404'd on Fastify.
+      const returnTo = window.location.origin
+      const { error } = await authClient.signIn.social({
+        provider,
+        callbackURL: `${returnTo}/objects`,
+        errorCallbackURL: `${returnTo}/`,
+      })
+      if (error) {
+        return {
+          success: false,
+          error: error.message || 'Authentication failed.',
+        }
+      }
+      return { success: true }
+    } catch (err) {
+      logger.error('social_login_failed', { err, provider })
+      return { success: false, error: 'Authentication failed.' }
+    }
+  }
+
   const handleAuth = async () => {
     // mTLS certificate login via the issuer's custom endpoint. The full
     // cross-origin cert handshake + cookie handoff (mtls-auth.<host>) is a
@@ -197,6 +226,7 @@ export function useAuth() {
     logout,
     handleAuth,
     handleEmailLogin,
+    handleSocialLogin,
   }
 }
 
