@@ -16,9 +16,8 @@ allowBuilds:
 # framework packages we bump deliberately.
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
-  # Listed ahead of publication: io2p-client is a `file:` link today, so the
-  # cooldown does not apply yet, but it will the day it lands on a registry —
-  # and a 3-day wait on our own client would be a confusing first failure.
+  # Our own client: a 3-day cooldown on a version we just published would
+  # block the bump that needs testing.
   - io2p-client
   - next
   - react
@@ -35,6 +34,14 @@ overrides:
   # 1.17.0 is itself vulnerable now: proxy inheritance in the Node HTTP adapter
   # and a form-serializer maxDepth bypass, both fixed in 1.18.0.
   axios@>=1.0.0 <1.18.0: '>=1.18.0'
+  # postcss > nanoid, reached via next and via tailwind. A custom generator with
+  # size 0 loops forever; nothing here passes either, but the fix is one patch
+  # inside the 3 line. Unversioned key for the same reason as brace-expansion
+  # below — a RANGED key lands in the lockfile but does not move the copy under
+  # postcss. CAPPED TO THE 3 LINE: postcss asks for ^3.3.17 and is CJS, while
+  # nanoid 4+ is ESM-only. An open '>=3.3.18' resolves to 6.x, which happens to
+  # load only because Node 24 can require() ESM.
+  nanoid: '^3.3.18'
   # 19 of this branch's advisories, all one package. better-auth takes vitest as
   # an OPTIONAL peer, so jsdom > undici resolves under a prod path and `pnpm
   # audit --prod` counts it — nothing actually ships it.

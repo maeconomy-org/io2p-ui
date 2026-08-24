@@ -163,7 +163,7 @@ describe('isValidExpression', () => {
 describe('builtinNames', () => {
   it('reads the parser tables rather than a hand-kept list', () => {
     const { functions, constants } = builtinNames()
-    // expr-eval splits its table: `min` is a function, `sqrt` a call-shaped unary operator. Both are
+    // The parser splits its table: `min` is a function, `sqrt` a call-shaped unary operator. Both are
     // equally callable in a formula, so both are offered.
     expect(functions).toContain('min')
     expect(functions).toContain('sqrt')
