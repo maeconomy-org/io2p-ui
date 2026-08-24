@@ -9,10 +9,14 @@
 // `-1^2` parsed differently. Those divergences meant the preview could show a number the server
 // would never store: right-looking and wrong, with nothing on screen to say so.
 //
-// If core bumps its expr-eval pin, its parser options, or `CURRENT_EVAL_VERSION`, this bumps too.
+// If core bumps its parser pin, its parser options, or `CURRENT_EVAL_VERSION`, this bumps too.
 // `formula-expression.test.ts` asserts the alignment rather than trusting this comment.
+//
+// Moved with core from `expr-eval` (abandoned 2019, no published fix for its two advisories) to
+// the `@expr-eval/js` fork — core's `evalVersion` 3. Evaluation is unchanged; the fork additionally
+// refuses a function reaching `evaluate` through the scope, which cannot happen here either.
 
-import { Parser, type Expression } from 'expr-eval'
+import { Parser, type Expression } from '@expr-eval/js'
 
 /**
  * A MATH-ONLY grammar. Everything disabled here has no place in a pure numeric calc over a
@@ -184,7 +188,7 @@ const isCallableName = (name: string) => /^[a-z]\w*$/i.test(name)
  * documenting functions that no longer exist — the exact drift that made the old exp4j-aligned
  * reference wrong.
  *
- * expr-eval splits its table: `min`/`max`/`pow` live in `functions`, while `sqrt`/`abs`/`sin` are
+ * The parser splits its table: `min`/`max`/`pow` live in `functions`, while `sqrt`/`abs`/`sin` are
  * unary OPERATORS that happen to be call-shaped. Both are equally callable in a formula, so the UI
  * makes no distinction the user would not recognise.
  */
@@ -201,8 +205,9 @@ export function builtinNames(): { functions: string[]; constants: string[] } {
     .sort()
 
   // `true`/`false` are booleans; a calc must yield a number, so they are not offered.
-  const constants = Object.keys(PARSER.consts)
-    .filter((name) => typeof PARSER.consts[name] === 'number')
+  const constants = Object.entries(PARSER.consts)
+    .filter(([, value]) => typeof value === 'number')
+    .map(([name]) => name)
     .sort()
 
   return { functions, constants }

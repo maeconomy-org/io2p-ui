@@ -34,6 +34,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@expr-eval/js": "3.5.1",
     "@fontsource/inter": "^5.2.8",
     "@hookform/resolvers": "^5.4.0",
     "@opentelemetry/api": "^1.9.1",
@@ -84,7 +85,6 @@
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.6",
     "exceljs": "^4.4.0",
-    "expr-eval": "2.0.2",
     "input-otp": "^1.4.2",
     "io2p-client": "0.1.2",
     "lucide-react": "^1.17.0",

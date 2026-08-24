@@ -21,6 +21,9 @@ importers:
 
   .:
     dependencies:
+      '@expr-eval/js':
+        specifier: 3.5.1
+        version: 3.5.1
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -171,9 +174,6 @@ importers:
       exceljs:
         specifier: ^4.4.0
         version: 4.4.0
-      expr-eval:
-        specifier: 2.0.2
-        version: 2.0.2
       input-otp:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -631,6 +631,10 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@expr-eval/js@3.5.1':
+    resolution: {integrity: sha512-OrKGln1+kTBKh4oU2lD+Jxw2uib/akePRth5US/nJ7WK6oRK4hkynABwXYEm1Me5AndC4rtl+w80m5a0C185Lg==}
+    engines: {node: '>=16.9.0'}
 
   '@fast-csv/format@4.3.5':
     resolution: {integrity: sha512-8iRn6QF3I8Ak78lNAa+Gdl5MJJBM5vRHivFtMRUWINdevNo00K7OXxS2PshawLKTejVwieIlPmK5YlLu6w4u8A==}
@@ -3427,9 +3431,6 @@ packages:
     resolution: {integrity: sha512-knvyeauYhqjOYvQ66MznSMs83wmHrCycNEN6Ao+2AeYEfxUIkuiVxdEa1qlGEPK+We3n0THiDciYSsCcgW/DoA==}
     engines: {node: '>=12.0.0'}
 
-  expr-eval@2.0.2:
-    resolution: {integrity: sha512-4EMSHGOPSwAfBiibw3ndnP0AvjDWLsMvGOvWEZ2F96IGk0bIVdjQisOHxReSkE13mHcfbuCiXw+G4y0zv6N8Eg==}
-
   exsolve@1.0.8:
     resolution: {integrity: sha512-LmDxfWXwcTArk8fUEnOfSZpHOJ6zOMUJKOtFLFqJLoKJetuQG874Uc7/Kki7zFLzYybmZhp1M7+98pfMqeX8yA==}
 
@@ -5588,6 +5589,8 @@ snapshots:
   '@exodus/bytes@1.15.0(@noble/hashes@2.2.0)':
     optionalDependencies:
       '@noble/hashes': 2.2.0
+
+  '@expr-eval/js@3.5.1': {}
 
   '@fast-csv/format@4.3.5':
     dependencies:
@@ -8421,8 +8424,6 @@ snapshots:
       uuid: 14.0.1
 
   expect-type@1.3.0: {}
-
-  expr-eval@2.0.2: {}
 
   exsolve@1.0.8: {}
 
