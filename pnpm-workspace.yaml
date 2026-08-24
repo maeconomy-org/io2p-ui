@@ -34,6 +34,14 @@ overrides:
   # 1.17.0 is itself vulnerable now: proxy inheritance in the Node HTTP adapter
   # and a form-serializer maxDepth bypass, both fixed in 1.18.0.
   axios@>=1.0.0 <1.18.0: '>=1.18.0'
+  # postcss > nanoid, reached via next and via tailwind. A custom generator with
+  # size 0 loops forever; nothing here passes either, but the fix is one patch
+  # inside the 3 line. Unversioned key for the same reason as brace-expansion
+  # below — a RANGED key lands in the lockfile but does not move the copy under
+  # postcss. CAPPED TO THE 3 LINE: postcss asks for ^3.3.17 and is CJS, while
+  # nanoid 4+ is ESM-only. An open '>=3.3.18' resolves to 6.x, which happens to
+  # load only because Node 24 can require() ESM.
+  nanoid: '^3.3.18'
   # 19 of this branch's advisories, all one package. better-auth takes vitest as
   # an OPTIONAL peer, so jsdom > undici resolves under a prod path and `pnpm
   # audit --prod` counts it — nothing actually ships it.
@@ -59,3 +67,23 @@ overrides:
   '@babel/core@<7.29.1': '>=7.29.1'
   '@opentelemetry/core@<2.8.0': '>=2.8.0'
   vite@<8.0.16: '>=8.0.16'
+
+# Advisories with no upgrade path, reviewed rather than carried as noise.
+#
+# expr-eval is ABANDONED — last publish 2022, `latest` is 2.0.2, and the 2.0.3
+# both advisories name was never released. There is nothing to bump to. The pin
+# is also not ours alone to move: `src/lib/formula-expression.ts` mirrors
+# io2p-core's `calc.eval.ts`, which pins the same 2.0.2 with the same options,
+# and a divergence means the client previews a number the server will not store.
+#
+# Both advisories are closed at PARSE by the options that file already sets.
+# Verified against the installed copy — each of these is a parse error, not a
+# runtime guard, so no expression reaches evaluate():
+#   a.__proto__.x = 1 / a.constructor / a.b  -> "member access is not permitted"
+#   f(x) = x*2  /  a = 1  ->  Unknown character "="
+#   [1,2,3]  ->  Unknown character "["
+# Re-check when core moves its pin, or if expr-eval is ever revived.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-8gw3-rxh4-v6jx # expr-eval prototype pollution — needs allowMemberAccess
+    - GHSA-jc85-fpwf-qm7x # expr-eval unrestricted functions — needs fndef
