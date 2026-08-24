@@ -16,9 +16,8 @@ allowBuilds:
 # framework packages we bump deliberately.
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
-  # Listed ahead of publication: io2p-client is a `file:` link today, so the
-  # cooldown does not apply yet, but it will the day it lands on a registry —
-  # and a 3-day wait on our own client would be a confusing first failure.
+  # Our own client: a 3-day cooldown on a version we just published would
+  # block the bump that needs testing.
   - io2p-client
   - next
   - react
