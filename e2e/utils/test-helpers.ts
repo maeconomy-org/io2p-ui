@@ -72,9 +72,8 @@ export async function waitForUploadsIdle(page: Page, timeout = 30_000) {
  * Open an object by double-clicking its row in the table
  */
 export async function openObject(page: Page, name: string) {
-  // If any background uploads are pending, wait for them before reloading.
-  // Reload destroys JS context and aborts in-flight fetches, which silently
-  // loses files. See e2e/02-objects/01-object-crud.spec.ts TC006.
+  // Reload destroys the JS context and aborts in-flight fetches, which
+  // silently loses files still uploading.
   await waitForUploadsIdle(page)
 
   await page.reload()
