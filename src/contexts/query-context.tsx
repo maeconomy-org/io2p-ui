@@ -10,7 +10,11 @@ import {
 } from '@tanstack/react-query'
 
 import type { ClientConfig } from '@/constants'
-import { iomStatus, isCallerAbort, wasErrorReported } from '@/lib/io2p-errors'
+import {
+  iomStatus,
+  isCallerCancelled,
+  wasErrorReported,
+} from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 
 // Dev-only, and lazy so the devtools bundle never enters the module graph of
@@ -80,14 +84,17 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
         // skipped here and only the un-reported ones (a raw fetch in a
         // queryFn, a throw inside a select) produce a record.
         //
-        // The abort guard is defensive: TanStack v5 handles its own unmount
-        // cancellations internally and cancelled queries revert rather than
-        // error, so this should not fire on the standard path — but an
-        // AbortError that DID reach here would otherwise be re-inflated to
-        // error level after io2p.ts deliberately demoted it.
+        // The cancellation guard is NOT merely defensive on the mutation side:
+        // a measured run put four `token mint interrupted` records through it
+        // per suite, because a MUTATION carries its own error past io2p.ts.
+        // Without it they are re-inflated to error level here after io2p.ts
+        // deliberately demoted them. On the query side it is defensive —
+        // TanStack v5 cancels on unmount internally and those revert rather
+        // than error — but both ask the same question, so both use the same
+        // predicate rather than one drifting behind the other.
         queryCache: new QueryCache({
           onError: (error, query) => {
-            if (isCallerAbort(error) || wasErrorReported(error)) return
+            if (isCallerCancelled(error) || wasErrorReported(error)) return
             logger.error('Query failed', {
               err: error,
               queryKey: query.queryKey,
@@ -96,7 +103,7 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
         }),
         mutationCache: new MutationCache({
           onError: (error, _variables, _context, mutation) => {
-            if (isCallerAbort(error) || wasErrorReported(error)) return
+            if (isCallerCancelled(error) || wasErrorReported(error)) return
             logger.error('Mutation failed', {
               err: error,
               mutationKey: mutation.options.mutationKey,

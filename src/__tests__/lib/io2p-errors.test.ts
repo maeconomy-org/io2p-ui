@@ -14,6 +14,7 @@ import {
   iomDetail,
   iomStatus,
   isCallerAbort,
+  isCallerCancelled,
   isMintInterrupted,
   isUnreadable,
   markErrorReported,
@@ -230,5 +231,43 @@ describe('isMintInterrupted', () => {
   it('is safe on non-errors', () => {
     expect(isMintInterrupted(undefined)).toBe(false)
     expect(isMintInterrupted('token mint interrupted')).toBe(false)
+  })
+})
+
+describe('isCallerCancelled', () => {
+  it('covers both routes a caller can cancel by', () => {
+    const abort = Object.assign(new Error('aborted'), { name: 'AbortError' })
+    const mint = new NetworkError('token mint interrupted', {
+      method: 'GET',
+      url: 'https://node.test/api/v1/me',
+    })
+    expect(isCallerCancelled(abort)).toBe(true)
+    expect(isCallerCancelled(mint)).toBe(true)
+  })
+
+  // The whole point of the predicate: a real outage is still a failure to report.
+  it('does not swallow a genuine outage', () => {
+    const nodeDown = new NetworkError('network request failed', {
+      method: 'GET',
+      url: 'https://node.test/api/v1/objects',
+    })
+    expect(isCallerCancelled(nodeDown)).toBe(false)
+    expect(isCallerCancelled(new IomError(problem(500)))).toBe(false)
+  })
+})
+
+// Guards the omission that leaked four records per suite run: `isMintInterrupted` was added and
+// only ONE of three handlers learned about it. Every cancellation check must go through the shared
+// predicate, so widening the vocabulary widens everywhere at once.
+describe('cancellation checks stay in one place', () => {
+  it('no handler asks isCallerAbort directly', async () => {
+    const { readFileSync } = await import('node:fs')
+    const files = ['src/contexts/query-context.tsx', 'src/lib/io2p.ts']
+    for (const file of files) {
+      const source = readFileSync(file, 'utf8')
+      expect(source, `${file} should use isCallerCancelled`).not.toMatch(
+        /isCallerAbort\(/
+      )
+    }
   })
 })

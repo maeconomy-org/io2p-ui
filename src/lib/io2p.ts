@@ -6,8 +6,7 @@ import { getCachedConfig } from '@/constants/client'
 
 import { getCoreToken } from './auth/client'
 import {
-  isCallerAbort,
-  isMintInterrupted,
+  isCallerCancelled,
   isUnreadable,
   markErrorReported,
 } from './io2p-errors'
@@ -142,7 +141,7 @@ export function createIo2pClient(
         status: info.status,
         ms: info.durationMs,
       }
-      if (isCallerAbort(err) || isMintInterrupted(err)) {
+      if (isCallerCancelled(err)) {
         // Debug, not error: aborts are the caller's own doing (unmounts,
         // superseded queries) and must not reach Sentry or the ship sink.
         // A mint the browser killed during a navigation is the same event one

@@ -79,6 +79,18 @@ export function isMintInterrupted(error: unknown): boolean {
   )
 }
 
+/**
+ * The caller's own doing, by any route: an explicit abort, or a token mint the browser killed
+ * during a navigation. Neither is a failure to report — the request they belong to is already gone.
+ *
+ * One predicate rather than `isCallerAbort(e) || isMintInterrupted(e)` repeated at each handler.
+ * When `isMintInterrupted` was added, only ONE of the three call sites learned about it and four
+ * records kept reaching Sentry from the other two. A widened vocabulary has to widen everywhere.
+ */
+export function isCallerCancelled(error: unknown): boolean {
+  return isCallerAbort(error) || isMintInterrupted(error)
+}
+
 const READ_METHODS = new Set(['GET', 'HEAD'])
 
 /**
