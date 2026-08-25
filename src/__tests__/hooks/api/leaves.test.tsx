@@ -62,7 +62,10 @@ describe('leaf hooks', () => {
     )
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(formulas.list).toHaveBeenCalledWith({ page: 1, size: 20 })
+    expect(formulas.list).toHaveBeenCalledWith(
+      { page: 1, size: 20 },
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    )
     expect(result.current.data).toEqual(page)
   })
 

@@ -79,7 +79,8 @@ describe('TemplateSelector', () => {
     await open()
 
     expect(list).toHaveBeenCalledWith(
-      expect.objectContaining({ full: true, size: 8, page: 1 })
+      expect.objectContaining({ full: true, size: 8, page: 1 }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     )
   })
 
@@ -102,7 +103,8 @@ describe('TemplateSelector', () => {
     await open()
 
     expect(list).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'process' })
+      expect.objectContaining({ type: 'process' }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     )
   })
 

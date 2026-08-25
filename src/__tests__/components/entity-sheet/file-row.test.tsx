@@ -200,7 +200,12 @@ describe('FileRow', () => {
     })
     renderRow({ _localId: 'f1', id: 'f1', kind: 'upload' })
 
-    await waitFor(() => expect(files.get).toHaveBeenCalledWith('f1'))
+    await waitFor(() =>
+      expect(files.get).toHaveBeenCalledWith(
+        'f1',
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      )
+    )
     await waitFor(() =>
       expect(screen.getByText('gone.pdf')).toBeInTheDocument()
     )
@@ -309,7 +314,12 @@ describe('FileRow row click', () => {
       }
     )
 
-    await waitFor(() => expect(files.get).toHaveBeenCalledWith('f1'))
+    await waitFor(() =>
+      expect(files.get).toHaveBeenCalledWith(
+        'f1',
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      )
+    )
     await waitFor(() =>
       expect(
         screen.getByRole('button', { name: /^objects.files.preview/ })

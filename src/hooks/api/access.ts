@@ -54,7 +54,8 @@ function useGrantList(
       resource?.resourceId ?? '',
       query
     ),
-    queryFn: () => client.access.grants.list(resource!, query),
+    queryFn: ({ signal }) =>
+      client.access.grants.list(resource!, query, { signal }),
     enabled: !!resource?.resourceId && options?.enabled !== false,
     staleTime: ACCESS_STALE_TIME,
   })
@@ -75,7 +76,7 @@ function useSharedByMe(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.access.grants.sharedByMe(query),
-    queryFn: () => client.access.grants.sharedByMe(query),
+    queryFn: ({ signal }) => client.access.grants.sharedByMe(query, { signal }),
     enabled: options?.enabled ?? true,
     placeholderData: options?.keepPreviousData ? keepPreviousData : undefined,
     staleTime: ACCESS_STALE_TIME,
@@ -128,7 +129,7 @@ function useShareList(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.access.shares.list(query),
-    queryFn: () => client.access.shares.list(query),
+    queryFn: ({ signal }) => client.access.shares.list(query, { signal }),
     enabled: options?.enabled ?? true,
     placeholderData: options?.keepPreviousData ? keepPreviousData : undefined,
     staleTime: ACCESS_STALE_TIME,

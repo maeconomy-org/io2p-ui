@@ -59,7 +59,8 @@ function flowQuantity(
 async function fetchRelations(
   client: Io2pClient,
   objectId: string,
-  direction: FlowDirection
+  direction: FlowDirection,
+  signal?: AbortSignal
 ): Promise<RelationGroup> {
   // `full: true` because a lean flow is a thin `{id, ref, refName}` and the quantity lives in the
   // flow's own properties. `enrichFiles: false` because nothing here renders a file — the same
@@ -68,16 +69,19 @@ async function fetchRelations(
   // object and quietly understate the relation count.
   // `deleted` is left at its default (`exclude`): a soft-deleted process is not a live relation, the
   // same reasoning the server applies to a soft-deleted flow, which never matches `?ref=` either.
-  const page = await client.processes.list({
-    page: 1,
-    size: RELATIONS_PAGE_SIZE,
-    ref: objectId,
-    direction,
-    scope: 'all',
-    full: true,
-    enrichFiles: false,
-    sort: '-createdAt',
-  })
+  const page = await client.processes.list(
+    {
+      page: 1,
+      size: RELATIONS_PAGE_SIZE,
+      ref: objectId,
+      direction,
+      scope: 'all',
+      full: true,
+      enrichFiles: false,
+      sort: '-createdAt',
+    },
+    { signal }
+  )
 
   const bag = direction === 'input' ? 'inputs' : 'outputs'
 
@@ -129,14 +133,15 @@ export function useObjectRelations(
 
   const inputs = useQuery({
     queryKey: queryKeys.processes.relations(objectId ?? '', 'input'),
-    queryFn: () => fetchRelations(client, objectId!, 'input'),
+    queryFn: ({ signal }) => fetchRelations(client, objectId!, 'input', signal),
     enabled: !!objectId,
     staleTime: STALE_TIME,
   })
 
   const outputs = useQuery({
     queryKey: queryKeys.processes.relations(objectId ?? '', 'output'),
-    queryFn: () => fetchRelations(client, objectId!, 'output'),
+    queryFn: ({ signal }) =>
+      fetchRelations(client, objectId!, 'output', signal),
     enabled: !!objectId,
     staleTime: STALE_TIME,
   })

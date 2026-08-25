@@ -91,7 +91,11 @@ describe('entities hooks', () => {
 
     rerender({ pid: 'p1' })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(objects.children).toHaveBeenCalledWith('p1', undefined)
+    expect(objects.children).toHaveBeenCalledWith(
+      'p1',
+      undefined,
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    )
     expect(result.current.data).toEqual(page)
   })
 
@@ -125,7 +129,10 @@ describe('entities hooks', () => {
     )
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(templates.list).toHaveBeenCalledWith({ page: 1, size: 20 })
+    expect(templates.list).toHaveBeenCalledWith(
+      { page: 1, size: 20 },
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    )
     expect(result.current.data).toEqual(page)
   })
 
@@ -156,7 +163,10 @@ describe('entities hooks', () => {
 
     rerender({ id: 'o1', owner: true })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(objects.rollups).toHaveBeenCalledWith('o1')
+    expect(objects.rollups).toHaveBeenCalledWith(
+      'o1',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    )
   })
 
   it('rollupPollInterval polls while an entry is stale and stops when none are', () => {

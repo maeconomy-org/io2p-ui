@@ -235,7 +235,12 @@ describe('ObjectFilesSection', () => {
     // Enrichment skips a non-live file, so it arrives with an id and nothing else.
     renderSection({ files: [{ _localId: 'f1', id: 'f1', kind: 'upload' }] })
 
-    await waitFor(() => expect(files.get).toHaveBeenCalledWith('f1'))
+    await waitFor(() =>
+      expect(files.get).toHaveBeenCalledWith(
+        'f1',
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      )
+    )
     await waitFor(() =>
       expect(screen.getByText('gone.pdf')).toBeInTheDocument()
     )

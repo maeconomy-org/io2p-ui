@@ -485,7 +485,8 @@ describe('ShareSheet directOnly — the Direct shares tab stays direct', () => {
     await screen.findByLabelText('access.permissionFor:{"name":"name:u1"}')
     expect(list).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ source: 'direct', revoked: 'include' })
+      expect.objectContaining({ source: 'direct', revoked: 'include' }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     )
   })
 

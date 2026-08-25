@@ -34,7 +34,7 @@ function useFormulaList(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.formulas.list(query),
-    queryFn: () => client.formulas.list(query),
+    queryFn: ({ signal }) => client.formulas.list(query, { signal }),
     enabled: options?.enabled ?? true,
     placeholderData: options?.keepPreviousData ? keepPreviousData : undefined,
     staleTime: LEAF_STALE_TIME,
@@ -48,7 +48,7 @@ function useFormulaGet(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.formulas.detail(id ?? ''),
-    queryFn: () => client.formulas.get(id!),
+    queryFn: ({ signal }) => client.formulas.get(id!, { signal }),
     enabled: !!id && options?.enabled !== false,
     staleTime: LEAF_STALE_TIME,
   })
@@ -121,7 +121,7 @@ function useConstantList(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.constants.list(query),
-    queryFn: () => client.constants.list(query),
+    queryFn: ({ signal }) => client.constants.list(query, { signal }),
     enabled: options?.enabled ?? true,
     placeholderData: options?.keepPreviousData ? keepPreviousData : undefined,
     staleTime: LEAF_STALE_TIME,
@@ -135,7 +135,7 @@ function useConstantGet(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.constants.detail(id ?? ''),
-    queryFn: () => client.constants.get(id!),
+    queryFn: ({ signal }) => client.constants.get(id!, { signal }),
     enabled: !!id && options?.enabled !== false,
     staleTime: LEAF_STALE_TIME,
   })
@@ -153,7 +153,8 @@ function useConstantsByIds(ids: readonly string[]) {
   return useQueries({
     queries: ids.map((id) => ({
       queryKey: queryKeys.constants.detail(id),
-      queryFn: () => client.constants.get(id),
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        client.constants.get(id, { signal }),
       staleTime: LEAF_STALE_TIME,
     })),
     // Combined here rather than in the caller: `useQueries` gives this the same identity while the
@@ -247,7 +248,7 @@ export function useUnits(options?: { enabled?: boolean }) {
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.units.all,
-    queryFn: () => client.units.all(),
+    queryFn: ({ signal }) => client.units.all({ signal }),
     enabled: options?.enabled ?? true,
   })
 }

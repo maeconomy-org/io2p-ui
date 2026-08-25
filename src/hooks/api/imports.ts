@@ -66,7 +66,7 @@ export function useImportJob(id: string | null) {
 
   const query = useQuery({
     queryKey: queryKeys.imports.detail(id ?? ''),
-    queryFn: () => client.imports.get(id!),
+    queryFn: ({ signal }) => client.imports.get(id!, { signal }),
     enabled: Boolean(id),
     // The app-wide default is `staleTime: Infinity` with no refetching, which would freeze a
     // running job's progress at whatever the first response said. Both overrides are needed.
@@ -117,7 +117,7 @@ export function useImports(query?: ListImportsQuery) {
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.imports.list(query),
-    queryFn: () => client.imports.list(query),
+    queryFn: ({ signal }) => client.imports.list(query, { signal }),
   })
 }
 
@@ -134,7 +134,7 @@ export function useImportItems(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.imports.items(id ?? '', query),
-    queryFn: () => client.imports.items(id!, query),
+    queryFn: ({ signal }) => client.imports.items(id!, query, { signal }),
     enabled: Boolean(id),
   })
 }

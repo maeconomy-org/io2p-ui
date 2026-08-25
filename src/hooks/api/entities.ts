@@ -74,7 +74,8 @@ function useObjectChildren(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.objects.children(parentId ?? '', query),
-    queryFn: () => client.objects.children(parentId!, query),
+    queryFn: ({ signal }) =>
+      client.objects.children(parentId!, query, { signal }),
     enabled: !!parentId && options?.enabled !== false,
     staleTime: OBJECT_STALE_TIME,
   })
@@ -88,7 +89,8 @@ function useObjectSubtree(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.objects.subtree(ancestorId ?? '', query),
-    queryFn: () => client.objects.subtree(ancestorId!, query),
+    queryFn: ({ signal }) =>
+      client.objects.subtree(ancestorId!, query, { signal }),
     enabled: !!ancestorId && options?.enabled !== false,
     staleTime: OBJECT_STALE_TIME,
   })
@@ -133,7 +135,7 @@ function useObjectRollups(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.objects.rollups(id ?? ''),
-    queryFn: () => client.objects.rollups(id!),
+    queryFn: ({ signal }) => client.objects.rollups(id!, { signal }),
     enabled: !!id && options?.enabled !== false,
     // The app-wide default is 30s, so without this a poll tick landing inside that window is
     // served from cache: the interval fires and the number never moves.
@@ -178,7 +180,7 @@ function useTemplateList(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.templates.list(query),
-    queryFn: () => client.templates.list(query),
+    queryFn: ({ signal }) => client.templates.list(query, { signal }),
     enabled: options?.enabled ?? true,
     placeholderData: options?.keepPreviousData ? keepPreviousData : undefined,
     staleTime: OBJECT_STALE_TIME,
@@ -192,8 +194,8 @@ function useTemplateGet(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.templates.detail(id ?? ''),
-    queryFn: () =>
-      client.templates.get(id!, { enrichFiles: options?.enrichFiles }),
+    queryFn: ({ signal }) =>
+      client.templates.get(id!, { enrichFiles: options?.enrichFiles, signal }),
     enabled: !!id && options?.enabled !== false,
     staleTime: OBJECT_STALE_TIME,
   })
@@ -264,7 +266,8 @@ function useTemplateShareDependencies(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.templates.shareDependencies(id ?? ''),
-    queryFn: () => client.templates.shareDependencies(id!),
+    queryFn: ({ signal }) =>
+      client.templates.shareDependencies(id!, { signal }),
     enabled: !!id && options?.enabled !== false,
   })
 }
@@ -280,7 +283,8 @@ function useTemplateShareDependenciesFor(ids: readonly string[]) {
   return useQueries({
     queries: ids.map((id) => ({
       queryKey: queryKeys.templates.shareDependencies(id),
-      queryFn: () => client.templates.shareDependencies(id),
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        client.templates.shareDependencies(id, { signal }),
     })),
     combine: (results) => {
       const formulas = new Map<string, TemplateShareDependency>()

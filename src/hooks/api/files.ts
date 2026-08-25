@@ -193,7 +193,8 @@ export function useFileUpload() {
 export function fileRecordQuery(client: Io2pClient, id: string) {
   return {
     queryKey: queryKeys.files.detail(id),
-    queryFn: () => client.files.get(id),
+    queryFn: ({ signal }: { signal: AbortSignal }) =>
+      client.files.get(id, { signal }),
     staleTime: 60_000,
     retry: false,
   }

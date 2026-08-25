@@ -72,7 +72,10 @@ describe('createEntityHooks', () => {
       })
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(resource.list).toHaveBeenCalledWith({ q: 'x' })
+      expect(resource.list).toHaveBeenCalledWith(
+        { q: 'x' },
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      )
       expect(result.current.data).toEqual(page)
     })
 
@@ -106,7 +109,13 @@ describe('createEntityHooks', () => {
 
       rerender({ id: '7' })
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
-      expect(resource.get).toHaveBeenCalledWith('7', { enrichFiles: undefined })
+      expect(resource.get).toHaveBeenCalledWith(
+        '7',
+        expect.objectContaining({
+          enrichFiles: undefined,
+          signal: expect.any(AbortSignal),
+        })
+      )
       expect(result.current.data).toEqual({ id: '7', name: 'seven' })
     })
   })

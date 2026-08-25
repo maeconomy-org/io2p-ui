@@ -21,7 +21,7 @@ function useRollupRuleList(
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.rollupRules.list(query),
-    queryFn: () => client.rollupRules.list(query),
+    queryFn: ({ signal }) => client.rollupRules.list(query, { signal }),
     enabled: options?.enabled ?? true,
     placeholderData: options?.keepPreviousData ? keepPreviousData : undefined,
     staleTime: ROLLUP_STALE_TIME,

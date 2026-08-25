@@ -14,6 +14,7 @@ import {
 import type {
   Io2pClient,
   EntityGetOptions,
+  ReadOptions,
   CreateOptions,
   UpdateOptions,
   WriteOptions,
@@ -50,7 +51,7 @@ export interface EntityResource<
   CreateResp,
   UpdateBody,
 > {
-  list: (query?: ListQuery) => Promise<Page<ListDto>>
+  list: (query?: ListQuery, options?: ReadOptions) => Promise<Page<ListDto>>
   // EntityGetOptions, not GetOptions: objects and processes carry a soft-deletable authored
   // tree, so their detail read accepts `includeDeleted`. Templates are hand-written, not from here.
   get: (id: string, options?: EntityGetOptions) => Promise<Dto>
@@ -119,7 +120,7 @@ export function createEntityHooks<
     const client = useIomClient()
     return useQuery({
       queryKey: keys.list(query),
-      queryFn: () => select(client).list(query),
+      queryFn: ({ signal }) => select(client).list(query, { signal }),
       enabled: options?.enabled ?? true,
       placeholderData: options?.keepPreviousData ? keepPreviousData : undefined,
       staleTime,
@@ -149,10 +150,13 @@ export function createEntityHooks<
 
     return {
       queryKey: shape.length ? [...keys.detail(id), ...shape] : keys.detail(id),
-      queryFn: () =>
+      // Annotated because this returns a bare object, not a `useQuery` argument — there is no
+      // contextual type here for React Query to infer the context from.
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
         select(client).get(id, {
           enrichFiles: options?.enrichFiles,
           includeDeleted: options?.includeDeleted,
+          signal,
         }),
       staleTime,
     }

@@ -23,7 +23,7 @@ export function useUserSearch(
   const params = { page: 1, size: SEARCH_SIZE, q: trimmed || undefined }
   const { data, isFetching } = useQuery({
     queryKey: queryKeys.users.list(params),
-    queryFn: () => client.users.list(params),
+    queryFn: ({ signal }) => client.users.list(params, { signal }),
     enabled: options.enabled ?? true,
     staleTime: SEARCH_STALE_TIME,
     placeholderData: (previous) => previous,

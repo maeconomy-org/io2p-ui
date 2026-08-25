@@ -56,7 +56,8 @@ const STALE_TIME = 30_000
  * time behind a skeleton; this is two, whatever N is.
  */
 async function fetchGraphProcesses(
-  client: Io2pClient
+  client: Io2pClient,
+  signal?: AbortSignal
 ): Promise<{ processes: ProcessListItem[]; truncated: boolean }> {
   // `enrichFiles: false` — the chart draws no thumbnails, and this is the heaviest part of a row.
   // `refNames: true` is the server default, but stated anyway: the whole chart is labelled from it,
@@ -71,13 +72,13 @@ async function fetchGraphProcesses(
     full: true,
   }
 
-  const first = await client.processes.list({ page: 1, ...query })
+  const first = await client.processes.list({ page: 1, ...query }, { signal })
   const wanted = first.page.totalPages
   const fetching = Math.min(wanted, GRAPH_MAX_PAGES)
 
   const rest = await Promise.all(
     Array.from({ length: Math.max(0, fetching - 1) }, (_, i) =>
-      client.processes.list({ page: i + 2, ...query })
+      client.processes.list({ page: i + 2, ...query }, { signal })
     )
   )
 
@@ -147,7 +148,7 @@ export function useProcessGraph({
 
   const listQuery = useQuery({
     queryKey: queryKeys.processes.graph(),
-    queryFn: () => fetchGraphProcesses(client),
+    queryFn: ({ signal }) => fetchGraphProcesses(client, signal),
     staleTime: STALE_TIME,
   })
 
