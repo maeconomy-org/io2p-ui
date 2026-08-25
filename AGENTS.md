@@ -369,6 +369,37 @@ Any UI change that affects user-visible behavior **must** have corresponding E2E
   - View selectors and filter toggles
   - Navigation links
 
+#### E2E: state that outlives the test
+
+Preferences, the session, and anything else stored per ACCOUNT survive the test that set them, the
+file, and the whole run. A spec that changes one is writing to state every later spec reads.
+
+- **Restore in `test.afterAll` (or `afterEach`), NEVER as the test's last step.** An inline restore
+  only runs when the test passes — and the run where it mattered is the run where the test failed.
+  It has cost two cascades already: a sign-out that never restored `AUTH_STATE` and left every later
+  spec 401ing, and a view preference stuck on `columns` that reddened table specs in files nobody had
+  touched. Copy the `test.afterAll` in `e2e/11-shares/cross-user.spec.ts`.
+- **Restore unconditionally, and to a known value** — not to "whatever it was", which a failed test
+  may never have read. `e2e/13-preferences/persistence.spec.ts` sets page size back to `20` every
+  time.
+- **Never assert a default.** No run guarantees a starting value, because the previous run stored
+  one. Set what you assert, in the test.
+- **A spec that mutates account state does not belong in the parallel `read` project.** `*.read.spec.ts`
+  is an ASSERTION that the file creates and changes nothing.
+
+The `write` project already runs serially on one worker, so this is NOT a concurrency problem and
+running "one at a time" does not fix it. The contention is over stored state, and it reaches across
+files, runs, and the gap between them.
+
+The tell: failures that MOVE between runs, land in files you did not touch, or show up as ~30s
+timeouts rather than assertion errors. Diagnose by running the suspect spec ALONE — if it passes in
+isolation and fails in the suite, it is contending with state, not broken. A spec that passes 10/10
+by itself and fails in the run has told you where to look.
+
+**`toPass()` and long timeouts hide the cause.** A retry wrapper re-runs the block and swallows the
+real error every attempt, turning a 3-second answer into a 30-second silence. When diagnosing, strip
+the wrapper first.
+
 ### What Does NOT Need Tests
 
 - Pure UI styling changes (color, spacing, font)
