@@ -67,37 +67,30 @@ function scrubSensitiveData(event: SentryEvent): SentryEvent | null {
 /**
  * Filter out noisy errors that aren't actionable
  */
+const NOISE_SUBSTRINGS = [
+  // Server-side: the node or a dependency is unreachable.
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  // Next.js Server Actions — bot traffic and version skew, not user-affecting.
+  'Failed to find Server Action',
+  "Missing 'next-action' header",
+  // Client-side.
+  'NetworkError',
+  'Loading chunk',
+  'ChunkLoadError',
+  'ResizeObserver',
+  'Non-Error promise rejection',
+]
+
 export function filterNoisyErrors(event: SentryEvent): SentryEvent | null {
-  const errorType = event.exception?.values?.[0]?.type || ''
-  const errorMessage = event.exception?.values?.[0]?.value || ''
+  // EVERY value, not just [0]: linkedErrorsIntegration expands an Error `cause`
+  // chain into the array and puts the root cause LAST, so a NetworkError wrapped
+  // by a TypeError was never matched — the rule below existed but dropped nothing.
+  const values = event.exception?.values ?? []
 
-  // Server-side noise
-  if (
-    errorType === 'NetworkError' ||
-    errorMessage.includes('ECONNREFUSED') ||
-    errorMessage.includes('ETIMEDOUT')
-  ) {
-    return null
-  }
-
-  // Next.js Server Action errors (bot traffic and version skew)
-  // These are logged but don't affect legitimate users
-  if (
-    errorMessage.includes('Failed to find Server Action') ||
-    errorMessage.includes("Missing 'next-action' header")
-  ) {
-    return null
-  }
-
-  // Client-side noise
-  if (
-    errorMessage.includes('NetworkError') ||
-    errorMessage.includes('Loading chunk') ||
-    errorMessage.includes('ChunkLoadError') ||
-    errorMessage.includes('ResizeObserver') ||
-    errorMessage.includes('Non-Error promise rejection')
-  ) {
-    return null
+  for (const { type = '', value = '' } of values) {
+    if (type === 'NetworkError') return null
+    if (NOISE_SUBSTRINGS.some((needle) => value.includes(needle))) return null
   }
 
   return event
@@ -145,6 +138,11 @@ function scrubPresignedUrls(event: SentryEvent): SentryEvent {
  * Combined beforeSend hook for all runtimes
  */
 export function beforeSend(event: SentryEvent): SentryEvent | null {
+  // Localhost events are NOT filtered, deliberately. A local production build is how
+  // the e2e suite runs, and every real bug found in the 2026-08-25 triage — the missing
+  // AbortSignals, the clipboard fallback, a core 500 — surfaced only because those runs
+  // reported. Dropping them would have hidden exactly what made the pipeline worth having.
+
   // First scrub sensitive data
   const scrubbedEvent = scrubSensitiveData(event)
   if (!scrubbedEvent) return null

@@ -80,3 +80,21 @@ describe('getCoreToken caching', () => {
     await expect(getCoreToken()).rejects.toThrow(/401/)
   })
 })
+
+describe('getCoreToken rejection handling', () => {
+  beforeEach(() => {
+    clearCoreToken()
+    vi.restoreAllMocks()
+  })
+
+  it('still surfaces the mint failure to a caller that awaits it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 401 })
+    )
+
+    await expect(getCoreToken()).rejects.toThrow(
+      'core credential mint rejected: 401'
+    )
+  })
+})

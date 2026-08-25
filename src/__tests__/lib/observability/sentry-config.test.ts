@@ -110,3 +110,45 @@ describe('beforeSend', () => {
     expect(serialized).toContain('bucket.s3.amazonaws.com/k')
   })
 })
+
+describe('filterNoisyErrors', () => {
+  function eventWith(values: { type?: string; value?: string }[]) {
+    return { exception: { values } } as unknown as Parameters<
+      typeof beforeSend
+    >[0]
+  }
+
+  it('drops a NetworkError that is not the first exception value', () => {
+    // linkedErrorsIntegration puts the root cause LAST — the old [0]-only check
+    // missed this shape entirely.
+    expect(
+      beforeSend(
+        eventWith([
+          { type: 'TypeError', value: 'Failed to fetch' },
+          { type: 'NetworkError', value: 'network request failed' },
+        ])
+      )
+    ).toBeNull()
+  })
+
+  it('drops noise matched on a later value message', () => {
+    expect(
+      beforeSend(
+        eventWith([
+          { type: 'Error', value: 'wrapper' },
+          { type: 'Error', value: 'Loading chunk 42 failed' },
+        ])
+      )
+    ).toBeNull()
+  })
+
+  it('keeps a genuine application error', () => {
+    expect(
+      beforeSend(
+        eventWith([
+          { type: 'Error', value: 'core credential mint rejected: 401' },
+        ])
+      )
+    ).not.toBeNull()
+  })
+})

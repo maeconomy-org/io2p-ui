@@ -92,7 +92,9 @@ async function mintCoreToken(now: number): Promise<string> {
   }
   const res = await fetch(`${base}/api/auth/token`, { credentials: 'include' })
   if (!res.ok) {
-    throw new Error(`Failed to mint core token: ${res.status}`)
+    // No "token" in the text: Sentry's server-side scrubber matches that word and
+    // masks the WHOLE message, hiding the status — the only part worth reading.
+    throw new Error(`core credential mint rejected: ${res.status}`)
   }
   const data = (await res.json()) as { token?: string }
   if (!data.token) {

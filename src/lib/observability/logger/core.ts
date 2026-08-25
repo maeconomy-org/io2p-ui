@@ -196,6 +196,14 @@ export function buildRecord(
     level,
     time: new Date().toISOString(),
     msg,
+    // Which page the record came from. Sentry derives this itself via
+    // httpContextIntegration; every other sink (NDJSON, ship → /api/telemetry,
+    // OTel) had no page context at all, so triaging from server logs could not
+    // say where an error happened. `pathname` only — a query string is a
+    // credential until proven otherwise (redact.ts cannot see inside a value).
+    ...(typeof window !== 'undefined'
+      ? { page: window.location.pathname }
+      : {}),
     ...(err !== undefined ? { err: serializeError(err) } : {}),
     ...safeCtx,
   }
