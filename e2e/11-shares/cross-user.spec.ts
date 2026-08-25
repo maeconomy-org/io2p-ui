@@ -15,8 +15,8 @@ const second = secondCredentials()
 
 /**
  * Signing in as the grantee ENDS the primary account's session for the whole origin, so every write
- * spec scheduled after this FILE would run signed out. Put it back once, here, rather than leaving
- * the next folder to discover it.
+ * spec scheduled after this FILE would run signed out. The `session-teardown` project repairs the
+ * account for the NEXT run; this repairs it for the rest of THIS one.
  */
 test.afterAll(async ({ browser }) => {
   if (!second) return

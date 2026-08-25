@@ -54,8 +54,16 @@ export default defineConfig({
   },
   projects: [
     {
+      // Runs after every other project, whatever the run selected — see the file for why a
+      // file-local `afterAll` cannot do this job.
+      name: 'session-teardown',
+      testMatch: /.*\.teardown\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
+      teardown: 'session-teardown',
       // Retried even locally, where everything else is not. Setup is one cheap idempotent step
       // that every other project declares a dependency on, so a single transient network blip
       // here does not fail one test — it cancels the entire run.
