@@ -178,8 +178,8 @@ importers:
         specifier: ^1.4.2
         version: 1.4.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       io2p-client:
-        specifier: 0.1.2
-        version: 0.1.2
+        specifier: 0.1.3-beta.0
+        version: 0.1.3-beta.0
       lucide-react:
         specifier: ^1.17.0
         version: 1.17.0(react@19.2.8)
@@ -3704,8 +3704,8 @@ packages:
   intl-messageformat@11.2.4:
     resolution: {integrity: sha512-iKP6+uJXn+XcfRgYfGPE3+mqCoODV2vATrXDLo/YkYgIdelJHJPBEbc0GZThipAYPuk+8QJFiPgOfblU085ABg==}
 
-  io2p-client@0.1.2:
-    resolution: {integrity: sha512-LeFMcnWkT7LElWKpn8RSZy6hdWh7WItmupjT2PF9Yx5Yq3MTgV7aWJH/3vlaq8CsK6NuGJsmQ39LQG7WgVJ3xw==}
+  io2p-client@0.1.3-beta.0:
+    resolution: {integrity: sha512-bfBV+beE1SMqiok7H8gsoCAblRndfGBq0IvZX7EFqzp00l0Wn8fNQH+Njlw1ALxbkdX6mCGfmUzUp1IFPH9PBA==}
     engines: {node: '>=20'}
 
   is-array-buffer@3.0.5:
@@ -8697,7 +8697,7 @@ snapshots:
       '@formatjs/fast-memoize': 3.1.4
       '@formatjs/icu-messageformat-parser': 3.5.7
 
-  io2p-client@0.1.2:
+  io2p-client@0.1.3-beta.0:
     dependencies:
       uuid: 14.0.1
       zod: 4.4.3
