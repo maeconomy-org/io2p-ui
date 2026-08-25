@@ -14,8 +14,13 @@ export interface LinkedAccount {
 export function useLinkedAccounts() {
   return useQuery({
     queryKey: queryKeys.auth.accounts,
-    queryFn: async (): Promise<LinkedAccount[]> => {
-      const { data, error } = await authClient.listAccounts()
+    // Without the signal the fetch outlives the unmount — switching settings tabs
+    // tears this query down mid-flight and better-fetch reports the cancellation
+    // as a bare `TypeError: Failed to fetch`, indistinguishable from a real one.
+    queryFn: async ({ signal }): Promise<LinkedAccount[]> => {
+      const { data, error } = await authClient.listAccounts({
+        fetchOptions: { signal },
+      })
       if (error) {
         throw new Error(error.message)
       }

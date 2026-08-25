@@ -57,8 +57,10 @@ export function ActiveSessionsCard() {
     refetch,
   } = useQuery({
     queryKey: queryKeys.auth.sessions,
-    queryFn: async () => {
-      const { data, error } = await authClient.listSessions()
+    queryFn: async ({ signal }) => {
+      const { data, error } = await authClient.listSessions({
+        fetchOptions: { signal },
+      })
       if (error) {
         throw new Error(error.message)
       }

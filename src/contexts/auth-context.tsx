@@ -105,7 +105,12 @@ export function useAuth() {
   const onProtectedRoute = !PUBLIC_PAGES_SET.has(pathname)
   const { data: coreUser, isPending: mePending } = useQuery({
     queryKey: queryKeys.users.current,
-    queryFn: () => iom.users.me(),
+    // `signal` is not optional here: `useAuth()` mounts an observer in every
+    // component that calls it, and a navigation unmounts them mid-flight. Without
+    // it the fetch — and the core-token mint underneath it — outlive the page and
+    // reject as an unhandled "Failed to fetch", which is what `cancelQueries()` in
+    // `logout` was already trying to prevent.
+    queryFn: ({ signal }) => iom.users.me({ signal }),
     // `!signingOut` is what stops the logout 401. `queryClient.clear()` removes
     // the cached user, and React Query immediately REFETCHES for any observer
     // still mounted and enabled — so `/me` fired against a session the issuer
