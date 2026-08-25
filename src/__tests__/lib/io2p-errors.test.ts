@@ -3,6 +3,7 @@ import {
   ConflictError,
   ForbiddenError,
   IomError,
+  NetworkError,
   NotFoundError,
   PreconditionFailedError,
   UnauthorizedError,
@@ -13,6 +14,7 @@ import {
   iomDetail,
   iomStatus,
   isCallerAbort,
+  isMintInterrupted,
   isUnreadable,
   markErrorReported,
   saveErrorMessage,
@@ -195,5 +197,38 @@ describe('isUnreadable', () => {
     expect(isUnreadable('GET', 401)).toBe(false)
     expect(isUnreadable('GET', 0)).toBe(false)
     expect(isUnreadable('GET', undefined)).toBe(false)
+  })
+})
+
+describe('isMintInterrupted', () => {
+  const mintAborted = () =>
+    new NetworkError('token mint interrupted', {
+      method: 'GET',
+      url: 'https://node.test/api/v1/me',
+    })
+
+  it('recognises a mint the browser killed mid-navigation', () => {
+    expect(isMintInterrupted(mintAborted())).toBe(true)
+  })
+
+  // The distinction the whole branch rests on: a real outage is ALSO a status-0
+  // NetworkError, and it must keep reaching Sentry at error level.
+  it('does NOT match a genuine outage', () => {
+    const nodeDown = new NetworkError('network request failed', {
+      method: 'GET',
+      url: 'https://node.test/api/v1/objects',
+    })
+    expect(isMintInterrupted(nodeDown)).toBe(false)
+  })
+
+  it('does not match an HTTP failure that happens to mention the mint', () => {
+    expect(
+      isMintInterrupted(new IomError(problem(500, 'token mint interrupted')))
+    ).toBe(false)
+  })
+
+  it('is safe on non-errors', () => {
+    expect(isMintInterrupted(undefined)).toBe(false)
+    expect(isMintInterrupted('token mint interrupted')).toBe(false)
   })
 })

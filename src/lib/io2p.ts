@@ -5,7 +5,12 @@ import { createClient, type ClientLogger, type Io2pClient } from 'io2p-client'
 import { getCachedConfig } from '@/constants/client'
 
 import { getCoreToken } from './auth/client'
-import { isCallerAbort, isUnreadable, markErrorReported } from './io2p-errors'
+import {
+  isCallerAbort,
+  isMintInterrupted,
+  isUnreadable,
+  markErrorReported,
+} from './io2p-errors'
 import { logger } from './observability/logger'
 import { redactPresignedUrlString } from './observability/redact'
 
@@ -137,9 +142,13 @@ export function createIo2pClient(
         status: info.status,
         ms: info.durationMs,
       }
-      if (isCallerAbort(err)) {
+      if (isCallerAbort(err) || isMintInterrupted(err)) {
         // Debug, not error: aborts are the caller's own doing (unmounts,
         // superseded queries) and must not reach Sentry or the ship sink.
+        // A mint the browser killed during a navigation is the same event one
+        // layer down — the request it would have authorised is already gone.
+        // Kept distinct from a real outage, which is also a status-0
+        // NetworkError but is nobody's caller cancelling anything.
         logger.debug('io2p request aborted', fields)
         return
       }

@@ -64,6 +64,21 @@ export function isCallerAbort(error: unknown): boolean {
   return false
 }
 
+/**
+ * A token mint the browser killed mid-flight, which it does to every in-flight request during a
+ * client-side navigation. The transport names this case specifically (`NetworkError` carrying
+ * `token mint interrupted`) rather than leaving it as the bare `TypeError` fetch throws, because a
+ * cancelled mint is indistinguishable from a rejected credential by shape alone.
+ *
+ * Keyed on the detail, NOT on `status === 0`: a real outage is a NetworkError with status 0 too,
+ * and that one must keep reaching Sentry. This is the caller abandoning its own request.
+ */
+export function isMintInterrupted(error: unknown): boolean {
+  return (
+    isNodeUnreachable(error) && iomDetail(error) === 'token mint interrupted'
+  )
+}
+
 const READ_METHODS = new Set(['GET', 'HEAD'])
 
 /**
