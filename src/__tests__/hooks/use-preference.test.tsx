@@ -304,3 +304,65 @@ describe('resolveFlag', () => {
     expect(resolveFlag({}, 'onboarding', 'a')).toBe(false)
   })
 })
+
+describe('usePreference on a cold load', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    // `/me` still in flight: no cached user, and `preferences` undefined.
+    authState = { preferences: undefined, authLoading: false }
+  })
+
+  // Regression: `onMutate` used to `cancelQueries` on `users.current` — the very query whose
+  // cached user the optimistic write needs. On a cold load that aborted `/me`, so the write found
+  // no user, returned it untouched, and the control snapped back to its default while the PATCH
+  // succeeded. Observed on the wire as an aborted `/me` beside a 200 on `/me/preferences`.
+  it('does not cancel the in-flight /me that the optimistic write depends on', async () => {
+    const cancelQueries = vi.spyOn(queryClient, 'cancelQueries')
+    updatePreferences.mockResolvedValue({ ui: { objectsView: 'columns' } })
+
+    const { result } = renderHook(() => usePreference('objectsView'), {
+      wrapper,
+    })
+    act(() => result.current[1]('columns'))
+
+    await waitFor(() => expect(updatePreferences).toHaveBeenCalled())
+    expect(cancelQueries).not.toHaveBeenCalled()
+  })
+
+  it('still sends the patch when no user is cached yet', async () => {
+    updatePreferences.mockResolvedValue({ ui: { objectsView: 'columns' } })
+
+    const { result } = renderHook(() => usePreference('objectsView'), {
+      wrapper,
+    })
+    act(() => result.current[1]('columns'))
+
+    await waitFor(() =>
+      expect(updatePreferences).toHaveBeenCalledWith({
+        ui: { objectsView: 'columns' },
+      })
+    )
+  })
+
+  it('refetches /me once the write settles, so the cache converges', async () => {
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+    updatePreferences.mockResolvedValue({ ui: { objectsView: 'columns' } })
+
+    const { result } = renderHook(() => usePreference('objectsView'), {
+      wrapper,
+    })
+    act(() => result.current[1]('columns'))
+
+    await waitFor(() =>
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: queryKeys.users.current,
+      })
+    )
+  })
+})

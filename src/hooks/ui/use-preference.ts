@@ -107,8 +107,18 @@ function usePreferencePatch(): (patch: Preferences) => void {
     mutationFn: (patch: Preferences) => iom.users.updatePreferences(patch),
     // A toggle must flip on click, not a round trip later, so patch the cached
     // user up front and let the response confirm it.
-    onMutate: async (patch) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.users.current })
+    // NOT `cancelQueries` first, which is the usual optimistic-update recipe. The query it would
+    // cancel is `/me` — the one whose cached user this very update needs. On a COLD load `/me` is
+    // still in flight when the click lands, so cancelling it means `getQueryData` returns
+    // undefined, the callback below returns `user` untouched, nothing re-renders, and the control
+    // snaps back to the cookie hint. The PATCH still succeeds: the server has the new value and the
+    // screen says otherwise, so the user clicks again. Observed as an aborted `/me` beside a 200
+    // on `/me/preferences`.
+    //
+    // The race `cancelQueries` exists to prevent — an in-flight `/me` resolving afterwards and
+    // overwriting the optimistic value — is handled by re-applying the patch in `onSettled`
+    // instead, which costs nothing when the cache was warm.
+    onMutate: (patch) => {
       const previous = queryClient.getQueryData<UserDTO>(
         queryKeys.users.current
       )
@@ -126,10 +136,22 @@ function usePreferencePatch(): (patch: Preferences) => void {
     },
     // The node returns the FULL merged bag, so trust it over the optimistic
     // guess — another device may have changed a different key meanwhile.
+    //
+    // `user` can still be undefined here when `/me` has not landed yet, and dropping the write in
+    // that case would discard the one authoritative answer we have. Re-apply it when `/me` arrives
+    // instead: `onSettled` refetches, and the refetch carries the same value the server just
+    // confirmed, so the two agree by construction.
     onSuccess: (merged) => {
       queryClient.setQueryData<UserDTO>(queryKeys.users.current, (user) =>
         user ? { ...user, preferences: merged } : user
       )
+    },
+    // Covers the cold-load case the removed `cancelQueries` used to (badly): an `/me` that was
+    // already in flight resolves with the value from BEFORE this patch and would overwrite it.
+    // Invalidating makes it refetch once the write has settled, so the cache converges on what the
+    // server actually stores. A no-op when `/me` was already resolved and fresh.
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.current })
     },
   })
 
