@@ -29,6 +29,7 @@ import {
   permissionWhenKnown,
 } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
+import { copyText } from '@/lib/clipboard'
 import { cn, truncateText } from '@/lib/utils'
 import { useObjects } from '@/hooks/api/entities'
 
@@ -220,10 +221,14 @@ export function MillerColumn({
                           {t('objects.viewDetails')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => {
-                            navigator.clipboard.writeText(item.id)
-                            toast.success(
-                              t('copyButton.copiedWithLabel', { label: 'UUID' })
+                          onClick={async () => {
+                            const ok = await copyText(item.id)
+                            toast[ok ? 'success' : 'error'](
+                              ok
+                                ? t('copyButton.copiedWithLabel', {
+                                    label: 'UUID',
+                                  })
+                                : t('copyButton.failedToCopy')
                             )
                           }}
                         >

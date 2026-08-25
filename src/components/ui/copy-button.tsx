@@ -5,7 +5,7 @@ import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib/observability/logger'
+import { copyText } from '@/lib/clipboard'
 import { cn } from '@/lib/utils'
 import { Button } from './button'
 import {
@@ -43,24 +43,18 @@ export function CopyButton({
 
     if (!text) return
 
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-
-      if (showToast) {
-        toast.success(
-          label ? t('copiedWithLabel', { label }) : t('copiedToClipboard')
-        )
-      }
-
-      // Reset the copied state after 2 seconds
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      if (showToast) {
-        toast.error(t('failedToCopy'))
-      }
-      logger.error('Failed to copy:', { err: error })
+    if (!(await copyText(text))) {
+      if (showToast) toast.error(t('failedToCopy'))
+      return
     }
+
+    setCopied(true)
+    if (showToast) {
+      toast.success(
+        label ? t('copiedWithLabel', { label }) : t('copiedToClipboard')
+      )
+    }
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const iconClassName = cn(
