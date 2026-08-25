@@ -376,9 +376,10 @@ file, and the whole run. A spec that changes one is writing to state every later
 
 - **Restore in `test.afterAll` (or `afterEach`), NEVER as the test's last step.** An inline restore
   only runs when the test passes — and the run where it mattered is the run where the test failed.
-  It has cost two cascades already: a sign-out that never restored `AUTH_STATE` and left every later
-  spec 401ing, and a view preference stuck on `columns` that reddened table specs in files nobody had
-  touched. Copy the `test.afterAll` in `e2e/11-shares/cross-user.spec.ts`.
+  It has cost three cascades already: a sign-out that never restored `AUTH_STATE` and left every
+  later spec 401ing; a view preference stuck on `columns`; and that preference then reddening ALL TEN
+  specs in `chrome.read.spec.ts`, reproduced deliberately with `--no-deps` to measure the blast
+  radius. Copy the `test.afterAll` in `e2e/11-shares/cross-user.spec.ts`.
 - **Restore unconditionally, and to a known value** — not to "whatever it was", which a failed test
   may never have read. `e2e/13-preferences/persistence.spec.ts` sets page size back to `20` every
   time.
@@ -386,6 +387,10 @@ file, and the whole run. A spec that changes one is writing to state every later
   one. Set what you assert, in the test.
 - **A spec that mutates account state does not belong in the parallel `read` project.** `*.read.spec.ts`
   is an ASSERTION that the file creates and changes nothing.
+- **A `read` spec still CONSUMES that state** — 23 assertions across them depend on the objects view
+  rendering as a table. That is how one un-restored preference in a WRITE spec resurfaced as ten red
+  specs in `chrome.read.spec.ts`, none of which had broken any rule. The read project is where this
+  bug LANDS, not where it starts, and the parallel project is where it looks least like state.
 
 The `write` project already runs serially on one worker, so this is NOT a concurrency problem and
 running "one at a time" does not fix it. The contention is over stored state, and it reaches across
