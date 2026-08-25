@@ -145,9 +145,27 @@ export function PropertyReadView({
         // number. A leaf has nothing below to total; the card returns when a child
         // does.
         .filter(({ entry, property }) => {
-          if (!property) return true
+          if (!property || entry.error) return true
+          const own = liveValues(property)
+          // `num`/`parse` are normalizer output and land with the READ, so a value
+          // authored a moment ago carries neither. "Does anything below contribute?"
+          // has no answer yet, and answering it "yes" flashed a card that vanished
+          // on the next fetch.
+          const notYetRead = (v: (typeof own)[number]) =>
+            v.data !== undefined && v.num === undefined && v.parse === undefined
+          if (own.some(notYetRead)) {
+            return false
+          }
           const lead = [...entry.buckets].sort((a, b) => b.num - a.num)[0]
-          return !lead || !ownShare(lead, liveValues(property))?.onlyContributor
+          // With no bucket the entry can only report skips, and `ownShare` has
+          // nothing to compare — which kept the card on every leaf whose values are
+          // all unreadable ("5 bar"). Its own skips covering the count means the
+          // object is again the sole contributor.
+          if (!lead) {
+            const unreadable = own.filter((v) => v.parse?.ok === false).length
+            return entry.skippedCount > unreadable
+          }
+          return !ownShare(lead, own)?.onlyContributor
         })
         .sort((a, b) => a.entry.propertyKey.localeCompare(b.entry.propertyKey))
     )

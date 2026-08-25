@@ -339,6 +339,98 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByTestId('rollup-skipped')).toBeInTheDocument()
   })
 
+  // A leaf holding `5 bar` under a `pressure` rule: `bar` is in no dimension, so
+  // the entry has NO bucket — and the sole-contributor test used to read the lead
+  // bucket, leaving every such leaf with a card claiming something is below it.
+  it('drops the card on a leaf whose own values are all unreadable', () => {
+    renderRollups(
+      [
+        {
+          id: 'p1',
+          key: 'pressure',
+          label: 'Pressure',
+          values: [
+            {
+              id: 'v1',
+              data: '5 bar',
+              parse: { ok: false, normVersion: 1, reason: 'unknown-unit' },
+            },
+          ],
+        },
+      ],
+      new Map([
+        [
+          'pressure',
+          entry({
+            ruleId: 'rule-pressure',
+            propertyKey: 'pressure',
+            buckets: [],
+            skippedCount: 1,
+          }),
+        ],
+      ])
+    )
+    expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
+  })
+
+  it('keeps the card when a descendant adds an unreadable value of its own', () => {
+    renderRollups(
+      [
+        {
+          id: 'p1',
+          key: 'pressure',
+          label: 'Pressure',
+          values: [
+            {
+              id: 'v1',
+              data: '5 bar',
+              parse: { ok: false, normVersion: 1, reason: 'unknown-unit' },
+            },
+          ],
+        },
+      ],
+      new Map([
+        [
+          'pressure',
+          entry({
+            ruleId: 'rule-pressure',
+            propertyKey: 'pressure',
+            buckets: [],
+            skippedCount: 2,
+          }),
+        ],
+      ])
+    )
+    expect(screen.getByTestId('rollup-skipped')).toBeInTheDocument()
+  })
+
+  it('holds the card back while a freshly authored value is unnormalized', () => {
+    // `num`/`parse` arrive with the read, so between authoring and the answer
+    // there is nothing to subtract from the total. The card used to appear for
+    // that one render and disappear on the next fetch.
+    renderRollups(
+      [
+        {
+          id: 'p1',
+          key: 'mass',
+          label: 'Mass',
+          values: [{ id: 'v1', data: '2400 kg' }],
+        },
+      ],
+      new Map([
+        [
+          'mass',
+          entry({
+            buckets: [
+              { dimension: 'mass', unit: 'kg', num: 2400, contributorCount: 1 },
+            ],
+          }),
+        ],
+      ])
+    )
+    expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
+  })
+
   it('surfaces values the node could not read as numbers', () => {
     renderRollups(
       [massProperty()],
