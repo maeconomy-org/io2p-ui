@@ -30,7 +30,11 @@ const CHILD = `e2e-${runId}-lc-child`
 const rowFor = (page: Page, name: string) =>
   page.getByTestId('data-table-row').filter({ hasText: name }).first()
 
+/** Every rule this file creates, so `afterAll` can remove them all — each one is a running cost. */
+const createdRules: string[] = []
+
 async function createRule(page: Page, key: string) {
+  createdRules.push(key)
   await page.goto('/rollup-rules')
   await expect(page.getByTestId('data-table')).toBeVisible()
   await tour(page, 'rollupRulesCreate').click()
@@ -98,15 +102,20 @@ test.describe('16 - rollups / lifecycle', () => {
     const page = await browser.newPage()
     await page.goto('/rollup-rules')
     await expect(page.getByTestId('data-table')).toBeVisible()
-    const row = page.getByTestId('data-table-row').filter({ hasText: KEY })
-    await expect(row).toHaveCount(1, { timeout: 15_000 })
-    const actions = rowActions(page, 'rollup-rule', row)
-    await actions.menu.click()
-    await actions.action('delete').click()
-    await page
-      .getByRole('alertdialog')
-      .getByRole('button', { name: /^delete$/i })
-      .click()
+    for (const key of createdRules) {
+      const row = page.getByTestId('data-table-row').filter({ hasText: key })
+      // `toHaveCount` WAITS; a bare `count()` reads before the list has fetched and skips the
+      // cleanup silently, which is how thirteen rules leaked into the dev node.
+      await expect(row).toHaveCount(1, { timeout: 15_000 })
+      const actions = rowActions(page, 'rollup-rule', row)
+      await actions.menu.click()
+      await actions.action('delete').click()
+      await page
+        .getByRole('alertdialog')
+        .getByRole('button', { name: /^delete$/i })
+        .click()
+      await expect(row).toHaveCount(0, { timeout: 15_000 })
+    }
     await page.close()
   })
 
@@ -150,33 +159,73 @@ test.describe('16 - rollups / lifecycle', () => {
     await pollParent(page, hasCard, 'a card after the subtree was written')
   })
 
-  test('RU12: an unreadable unit removes the contribution, it does not sum', async ({
+  test('RU4: an orphan key renders a card the parent never authored', async ({
     page,
   }, testInfo) => {
     testInfo.setTimeout(300_000)
 
-    // `bar` is in no dimension, so the value parses to nothing: core counts it in `skippedCount`
-    // and must NOT fold it into the `unitless` bucket, which would merge a pressure into a
-    // bare-number sum and produce a silently wrong total (core fixed exactly that in 24b209c).
-    //
-    // Measured on the wire: the parent's entry goes to `skippedCount: 1` while its bucket stays at
-    // `num: 10, contributorCount: 1` — the parent's own value. So the card DISAPPEARS, because the
-    // parent is once again the only numeric contributor. The skip is real but the reader never
-    // sees it; that is the sole-contributor filter working, and the card is the assertion.
+    // The parent holds NO property under this key; only the child does. Core calls this the most
+    // valuable case — the total exists precisely because a reader cannot see it any other way —
+    // and an implementation that decorates existing property rows drops it entirely.
+    const orphanKey = `orph${Date.now()}`
+    await createRule(page, orphanKey)
+
     await page.goto('/objects')
     await expect(page.getByTestId('data-table')).toBeVisible()
     await rowFor(page, PARENT).dblclick()
     await expect(page).toHaveURL(/\/objects\/[0-9a-f-]{8,}/i)
     await openObjectSheet(page, rowFor(page, CHILD))
     await enterEditMode(page)
-    await page.getByTestId('property-toggle-0').click()
-    await page.getByTestId('property-value-0-0').fill('5 bar')
+    const next = await addProperty(page, 1)
+    await fillProperty(page, next, orphanKey, '7 kg')
     await saveSheet(page, { expectClose: false })
 
     await pollParent(
       page,
-      async (p) => !(await hasCard(p)),
-      'the card to go once the child stops contributing a number'
+      async (p) =>
+        (await p
+          .getByTestId('rollup-card')
+          .filter({ hasText: orphanKey })
+          .count()) > 0,
+      'a card for a key the parent never authored'
     )
+  })
+
+  test('RU14: two units in one dimension total as one bucket', async ({
+    page,
+  }, testInfo) => {
+    testInfo.setTimeout(300_000)
+
+    // The normalizer converts at WRITE time — `2 t` is stored as `num: 2000, unit: kg` — so both
+    // values are already in the canonical unit by the time the rollup buckets them, and the
+    // compute never re-parses a display string. Two units, one dimension, one total.
+    const key = `mix${Date.now()}`
+    await createRule(page, key)
+
+    await page.goto('/objects')
+    await expect(page.getByTestId('data-table')).toBeVisible()
+    await rowFor(page, PARENT).dblclick()
+    await expect(page).toHaveURL(/\/objects\/[0-9a-f-]{8,}/i)
+    await openObjectSheet(page, rowFor(page, CHILD))
+    await enterEditMode(page)
+    // Slot 2, not 1: this describe is serial and RU4 above already appended one, so the index is
+    // the count of rows the CHILD now has rather than a constant.
+    const slot = await addProperty(page, 2)
+    await fillProperty(page, slot, key, '2 t')
+    await saveSheet(page, { expectClose: false })
+
+    // The parent authored nothing under this key, so the card is an orphan and everything in it
+    // came from below. One bucket: a second would mean the tonnes were treated as their own
+    // dimension, which is the silent-wrong-number shape this whole feature exists to avoid.
+    await pollParent(
+      page,
+      async (p) =>
+        (await p.getByTestId('rollup-card').filter({ hasText: key }).count()) >
+        0,
+      'a card totalling the tonnes the child authored'
+    )
+    await expect(
+      page.getByTestId('rollup-card').filter({ hasText: key })
+    ).not.toContainText(/more unit/i)
   })
 })

@@ -15,15 +15,13 @@ import { tour } from '../utils/selectors'
 
 const stamp = () => `e2e-${Date.now()}`
 
-/** The value rendered under the "Result unit" label — the Fact carries no testid of its own. */
+/**
+ * The Result-unit block. Keyed on a testid rather than on the label text: the app ships EN and NL,
+ * and a locator reading "Result unit" finds nothing the moment a preceding spec leaves the account
+ * in Dutch — which is how this failed in the suite while passing alone.
+ */
 const unitFact = (page: import('@playwright/test').Page) =>
-  page
-    .getByRole('dialog')
-    .locator('div')
-    .filter({ has: page.getByText('Result unit', { exact: true }) })
-    .last()
-    .locator('span')
-    .last()
+  page.getByTestId('formula-fact-unit').locator('span').last()
 
 test.describe('16 - rollups / formula units', () => {
   test.beforeEach(async ({ page }) => {
@@ -54,10 +52,7 @@ test.describe('16 - rollups / formula units', () => {
     await page.getByTestId('unit-picker').click()
     await page.getByTestId('unit-option-m2').click()
 
-    await page
-      .getByRole('button', { name: /create formula/i })
-      .last()
-      .click()
+    await page.getByTestId('formula-submit').click()
 
     const row = page
       .getByTestId('data-table-row')
@@ -83,10 +78,7 @@ test.describe('16 - rollups / formula units', () => {
     await dialog.getByLabel(/name/i).first().fill(inferred)
     await dialog.getByLabel(/expression/i).fill('a * 1.1')
 
-    await page
-      .getByRole('button', { name: /create formula/i })
-      .last()
-      .click()
+    await page.getByTestId('formula-submit').click()
 
     const row = page
       .getByTestId('data-table-row')
@@ -99,6 +91,9 @@ test.describe('16 - rollups / formula units', () => {
     // An empty unit is not "no unit" — the taint walk carries one through a multiplicative scalar,
     // so `a * 1.1` inherits whatever `a` is in. Rendering a blank would read as unitless, which is
     // the exact state the declaration exists to avoid.
-    await expect(unitFact(page)).toHaveText(/worked out from the values/i)
+    // Not the English sentence: the point is that SOMETHING stands in for the absent declaration,
+    // and the unit symbol is what must not appear.
+    await expect(unitFact(page)).not.toHaveText(/^[A-Za-z0-9]{1,4}$/)
+    await expect(unitFact(page)).not.toBeEmpty()
   })
 })

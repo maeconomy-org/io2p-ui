@@ -231,7 +231,12 @@ function FormulaForm({
           >
             {t('common.cancel')}
           </Button>
-          <Button type="submit" className="w-full" disabled={!canSave}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!canSave}
+            data-testid="formula-submit"
+          >
             {createMutation.isPending && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
@@ -254,7 +259,7 @@ function FormulaFacts({ formula }: { formula: FormulaDTO | null }) {
         <code className="font-mono text-sm">{formula.expression}</code>
       </Fact>
 
-      <Fact label={t('formulas.unit')}>
+      <Fact label={t('formulas.unit')} testId="formula-fact-unit">
         {formula.unit ? (
           <span className="font-mono text-sm">{formula.unit}</span>
         ) : (
@@ -312,12 +317,14 @@ function FormulaFacts({ formula }: { formula: FormulaDTO | null }) {
 function Fact({
   label,
   children,
+  testId,
 }: {
   label: string
   children: React.ReactNode
+  testId?: string
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" data-testid={testId}>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       {children}
     </div>

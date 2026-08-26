@@ -73,6 +73,22 @@ test.describe('16 - rollups / rules', () => {
     await expect(page.getByTestId('rollup-rule-add-key')).toBeDisabled()
   })
 
+  test('RR7: a rule offers no edit affordance, on any row', async ({
+    page,
+  }) => {
+    const row = page.getByTestId('data-table-row').first()
+    await expect(row).toBeVisible()
+
+    const actions = rowActions(page, 'rollup-rule', row)
+    await actions.menu.click()
+
+    // `propertyKey` and `aggregation` are both immutable — every state row pins the ruleId, so
+    // changing a key is delete-then-create, and PATCH updates nothing in v1. A menu entry that can
+    // only ever fail is worse than no entry.
+    await expect(actions.action('edit')).toHaveCount(0)
+    await expect(actions.action('share')).toHaveCount(0)
+  })
+
   test('RR4: a created rule lists, and can be deleted again', async ({
     page,
   }) => {
