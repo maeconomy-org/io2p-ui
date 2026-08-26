@@ -471,6 +471,13 @@ function PropertyRow({
                   form.setValue(`${basePath}.${index}.label`, label, {
                     shouldDirty: true,
                   })
+                  // The submit handler REFUSES a nameless property by hand
+                  // (`setError`), and `setValue` does not clear a manually set
+                  // error. Without this the sheet stays refused after the user
+                  // has fixed the name — the save never fires again and the
+                  // same toast reappears, with no way out but discarding.
+                  if (key.trim() !== '')
+                    form.clearErrors(`${basePath}.${index}.key`)
                 }}
               />
               {allowFiles && (
