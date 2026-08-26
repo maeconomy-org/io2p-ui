@@ -56,11 +56,10 @@ test.describe('11 - shares / editor', () => {
     await page.goto('/shares')
     await expect(page.getByTestId('shares-tab-shares')).toBeVisible()
 
+    // S3 creates a bundle above this, so a row must exist. `count()` does not
+    // retry — skipping on it deleted the case whenever the list had not painted.
     const row = page.getByTestId('data-table-row').first()
-    test.skip(
-      (await page.getByTestId('data-table-row').count()) === 0,
-      'needs at least one existing share'
-    )
+    await expect(row).toBeVisible()
     await row.click()
 
     await expect(page.getByTestId('share-name')).toHaveCount(0)

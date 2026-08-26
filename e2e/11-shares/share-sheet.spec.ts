@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
+import { secondCredentials } from '../setup/credentials'
 
 /**
  * The per-item Share sheet — the one reached from a row menu, as opposed to the `/shares` bundle
@@ -11,6 +12,8 @@ import { expect, test } from '../fixtures/app'
  * Granting the moment a name is picked means a mis-click IS already someone's access, undoable only
  * by a second write — so "the picker fired no grant" is the assertion that matters here.
  */
+
+const second = secondCredentials()
 
 function openShareFor(page: Page, prefix: string) {
   return async () => {
@@ -37,22 +40,33 @@ test.describe('11 - shares / the per-item sheet', () => {
     page,
     api,
   }) => {
+    test.skip(
+      !second,
+      'set E2E_EMAIL_2 in .env.local — the picker needs someone to find'
+    )
     await page.goto('/objects')
     await expect(page.getByTestId('data-table-row').first()).toBeVisible()
     await openShareFor(page, 'object')()
 
     api.clear()
-    await page.getByRole('button', { name: /add people/i }).click()
+    // The picker uses `shouldFilter={false}` and searches the SERVER, so an
+    // empty box offers nobody — this skipped every run until the query was
+    // typed, and reported as covered.
+    await page.getByTestId('share-add-people').click()
+    await page.getByPlaceholder(/search/i).fill(second!.email)
 
     const option = page.getByRole('option').first()
-    test.skip(
-      (await option.count()) === 0,
-      'the directory returned nobody to share with'
-    )
+    await expect(option).toBeVisible({ timeout: 15_000 })
     await option.click()
 
-    // The staged row is on screen…
-    await expect(page.getByRole('dialog')).toContainText(/save/i)
+    // The staged row is on screen. Named, because the people-picker popover is
+    // ALSO `role="dialog"` and an unnamed one is a strict-mode violation the
+    // moment the picker opens.
+    await expect(
+      page
+        .getByRole('dialog', { name: /share/i })
+        .getByTestId('share-sheet-save')
+    ).toBeVisible()
     // …and not a single grant has gone out. A picker that wrote on select would already have
     // given this person access, and only a second write could take it back.
     await api.expectCount(/\/v1\/access\/grants/, 0)

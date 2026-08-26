@@ -69,7 +69,13 @@ test.describe('11 - shares / template dependencies', () => {
       await page.keyboard.press('Escape')
     }
 
-    test.skip(!found, 'no template on page 1 binds a formula or constant')
+    // Genuinely absent rather than not-yet-painted: the loop above has already
+    // opened every row on page 1. Named as a GAP so a skipped run does not read
+    // as a covered one — close it by seeding a template that binds a formula.
+    test.skip(
+      !found,
+      'NOT COVERED: no template on page 1 binds a formula or constant — needs a seeded fixture'
+    )
 
     await page.getByTestId('share-dependencies').check()
     await expect(page.getByTestId('share-dependencies')).toBeChecked()
@@ -198,8 +204,10 @@ test.describe('03 - object sheet / binding scope', () => {
     await page.getByTestId('value-mode-1-0').click()
     await page.getByTestId('formula-select').click()
 
+    // The account has formulas, so this waits for the list to paint rather than
+    // reading it once and deleting the case.
     const options = page.getByTestId(/^formula-option-/)
-    test.skip((await options.count()) === 0, 'no formula exists to bind')
+    await expect(options.first()).toBeVisible()
     await options.first().click()
 
     const firstVariable = page.getByTestId(/^formula-bind-/).first()
