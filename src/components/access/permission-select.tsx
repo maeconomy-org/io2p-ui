@@ -24,12 +24,14 @@ export function PermissionSelect({
   onChange,
   disabled,
   className,
+  testId,
   'aria-label': ariaLabel,
 }: {
   value: Permission
   onChange: (next: Permission) => void
   disabled?: boolean
   className?: string
+  testId?: string
   'aria-label'?: string
 }) {
   const t = useTranslations()
@@ -44,7 +46,11 @@ export function PermissionSelect({
           selected item's children into the trigger, and these items are two lines — label over
           hint — which a one-line trigger squashes. The hint belongs where you are choosing, not
           where you are reading back what you chose. */}
-      <SelectTrigger className={cn('h-9', className)} aria-label={ariaLabel}>
+      <SelectTrigger
+        className={cn('h-9', className)}
+        aria-label={ariaLabel}
+        data-testid={testId}
+      >
         <span className="truncate">{t(`access.permission.${value}`)}</span>
       </SelectTrigger>
       <SelectContent>

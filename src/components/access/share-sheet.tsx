@@ -615,7 +615,11 @@ function ShareForm({
           </div>
 
           {memberIds.map((id) => (
-            <div key={id} className="space-y-2 rounded-md border px-3 py-2">
+            <div
+              key={id}
+              className="space-y-2 rounded-md border px-3 py-2"
+              data-testid={`share-member-${id}`}
+            >
               <div className="flex items-center gap-2">
                 <span className="min-w-0 flex-1 truncate text-sm">
                   {labelForKey(id)}
@@ -626,6 +630,7 @@ function ShareForm({
                   size="icon"
                   className="h-8 w-8 shrink-0"
                   aria-label={t('access.revokeFor', { name: labelForKey(id) })}
+                  data-testid={`share-member-remove-${id}`}
                   onClick={() => removeMember(id)}
                 >
                   <X className="h-4 w-4" />
@@ -634,6 +639,7 @@ function ShareForm({
 
               <PermissionSelect
                 className="w-full"
+                testId={`share-member-permission-${id}`}
                 value={draft[id].permission}
                 disabled={readOnly}
                 aria-label={t('access.permissionFor', {
@@ -703,7 +709,12 @@ function ShareForm({
 
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
-            <Button type="button" variant="outline" className="w-full">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              data-testid="share-add-people"
+            >
               <UserPlus className="mr-2 h-4 w-4" />
               {t('access.addPeople')}
             </Button>
@@ -911,6 +922,7 @@ function ShareForm({
           className="flex-1"
           disabled={!dirty || saving}
           onClick={save}
+          data-testid="share-sheet-save"
         >
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {t('common.save')}

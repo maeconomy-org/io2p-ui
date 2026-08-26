@@ -260,6 +260,7 @@ export function FormulaBindings({
           <button
             type="button"
             className="underline underline-offset-2"
+            data-testid="formula-use-correction"
             onClick={() =>
               onChange({ formulaId: formula.supersededBy!, args: [] })
             }
