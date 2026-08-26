@@ -13,12 +13,17 @@ import {
 import { rowActions, tour } from '../utils/selectors'
 
 /**
- * `5 bar` — a unit in no dimension at all.
+ * `5 lux` — a unit in no dimension at all.
  *
  * Core parses it to nothing and counts it in `skippedCount`; folding it into the `unitless` bucket
  * would merge a pressure into a bare-number sum and produce a silently wrong total (fixed in core
- * as `24b209c`). Measured here on the wire: the parent's entry goes to `skippedCount: 1` while its
+ * as `24b209c`). Measured on the wire: the parent's entry goes to `skippedCount: 1` while its
  * bucket stays `num: 10, contributorCount: 1` — its own value, unchanged.
+ *
+ * NOT `bar`: core `6c5aed4` gave pressure a dimension, so `5 bar` is now a summable quantity and
+ * this test asserted a world that no longer exists. The unit here has to be one the table genuinely
+ * does not know, and the table is append-only — so when `lux` is eventually added, this breaks the
+ * same way and wants the same fix rather than a longer timeout.
  *
  * Its own file rather than another case in `lifecycle.spec.ts`, because the assertion is that
  * NOTHING below contributes a number. In a serial file every earlier case that adds a value to the
@@ -27,9 +32,9 @@ import { rowActions, tour } from '../utils/selectors'
  */
 
 const runId = Date.now()
-const KEY = `bar${runId}`
-const PARENT = `e2e-${runId}-bar-parent`
-const CHILD = `e2e-${runId}-bar-child`
+const KEY = `lux${runId}`
+const PARENT = `e2e-${runId}-lux-parent`
+const CHILD = `e2e-${runId}-lux-child`
 
 const rowFor = (page: Page, name: string) =>
   page.getByTestId('data-table-row').filter({ hasText: name }).first()
@@ -56,7 +61,7 @@ test.describe('16 - rollups / an unreadable unit', () => {
   test('RU12: an unreadable unit removes the contribution, it does not sum', async ({
     page,
   }, testInfo) => {
-    testInfo.setTimeout(420_000)
+    testInfo.setTimeout(720_000)
 
     await page.goto('/rollup-rules')
     await expect(page.getByTestId('data-table')).toBeVisible()
@@ -97,7 +102,10 @@ test.describe('16 - rollups / an unreadable unit', () => {
 
     const cardVisible = async () => {
       await page.goto('/objects')
-      await expect(page.getByTestId('data-table')).toBeVisible()
+      // `.first()`: an object sheet renders its OWN `data-table`, so a bare locator here is a
+      // strict-mode violation whenever the previous iteration's sheet is still mounted — and
+      // `Escape` closing it is not something to depend on.
+      await expect(page.getByTestId('data-table').first()).toBeVisible()
       await openObjectSheet(page, rowFor(page, PARENT))
       await page.waitForTimeout(4_000)
       return (await page.getByTestId('rollup-card').count()) > 0
@@ -124,13 +132,16 @@ test.describe('16 - rollups / an unreadable unit', () => {
     await openObjectSheet(page, rowFor(page, CHILD))
     await enterEditMode(page)
     await page.getByTestId('property-toggle-0').click()
-    await page.getByTestId('property-value-0-0').fill('5 bar')
+    await page.getByTestId('property-value-0-0').fill('5 lux')
     await saveSheet(page, { expectClose: false })
 
     // The skip is real and the reader never sees it: with nothing below contributing a number the
     // parent is the sole contributor again, so the whole card goes rather than gaining a badge.
+    // A wider window than the first poll: this one runs LAST in the directory, after nineteen
+    // other cases have queued work, and the ~70s settle on an idle node stretches under load.
+    // Passing alone and failing in the run is contention, not a defect.
     let gone = false
-    for (let attempt = 0; attempt < 8 && !gone; attempt++) {
+    for (let attempt = 0; attempt < 14 && !gone; attempt++) {
       gone = !(await cardVisible())
       if (!gone) {
         await page.keyboard.press('Escape')
