@@ -156,11 +156,18 @@ export function PropertyReadView({
           if (own.some(notYetRead)) {
             return false
           }
+          // The node counts the LIVE entities below this one, so `0` settles "is anything down
+          // there?" outright. Compared against `undefined` rather than tested for falsiness: the
+          // field is ABSENT when the subtree exceeded the size bound, and `!descendantCount` would
+          // read that as "leaf" — wrong in the opposite direction, on the largest trees.
+          if (entry.descendantCount === 0) return false
+
           const lead = [...entry.buckets].sort((a, b) => b.num - a.num)[0]
           // With no bucket the entry can only report skips, and `ownShare` has
           // nothing to compare — which kept the card on every leaf whose values are
-          // all unreadable ("5 bar"). Its own skips covering the count means the
-          // object is again the sole contributor.
+          // all unreadable ("5 lux"). Its own skips covering the count means the
+          // object is again the sole contributor. Still reached when the count is
+          // absent, which is the over-bound case.
           if (!lead) {
             const unreadable = own.filter((v) => v.parse?.ok === false).length
             return entry.skippedCount > unreadable

@@ -1,6 +1,12 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, renderHook } from '@testing-library/react'
+import {
+  render,
+  screen,
+  fireEvent,
+  renderHook,
+  cleanup,
+} from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import type { EntityRollupEntry } from 'io2p-client'
@@ -467,6 +473,52 @@ describe('rollup rows in the property read view', () => {
     renderRollups([massProperty()], new Map())
     expect(screen.queryByTestId('rollup-line')).not.toBeInTheDocument()
     expect(screen.queryByTestId('orphan-rollup')).not.toBeInTheDocument()
+  })
+
+  it('drops the card when the node says nothing is below', () => {
+    // `descendantCount: 0` is the node answering outright what the filter used to reconstruct by
+    // subtracting the object's own values from the lead bucket.
+    renderRollups(
+      [massProperty()],
+      new Map([['mass', entry({ descendantCount: 0 })]])
+    )
+    expect(screen.queryByTestId('rollup-line')).not.toBeInTheDocument()
+  })
+
+  it('keeps the card when the count is ABSENT, not zero', () => {
+    // Absent means the subtree exceeded the size bound, so the number would be a floor. A
+    // falsiness test would read it as "leaf" and hide the total on the largest trees — the
+    // opposite of the bug the field exists to fix.
+    const overBound = entry({
+      buckets: [
+        { dimension: 'mass', unit: 'kg', num: 9000, contributorCount: 40 },
+      ],
+    })
+    delete (overBound as { descendantCount?: number }).descendantCount
+    renderRollups([massProperty()], new Map([['mass', overBound]]))
+    expect(screen.getByTestId('rollup-line')).toBeInTheDocument()
+  })
+
+  it('tells a leaf holding an unreadable value from a parent whose child holds one', () => {
+    // Byte-identical entries apart from the count: `{ buckets: [], skippedCount: 1 }` is served
+    // for BOTH a leaf whose own value is unreadable and a parent whose descendant's is. This is
+    // the ambiguity core added the field to close.
+    renderRollups(
+      [massProperty()],
+      new Map([
+        ['mass', entry({ buckets: [], skippedCount: 1, descendantCount: 0 })],
+      ])
+    )
+    expect(screen.queryByTestId('rollup-line')).not.toBeInTheDocument()
+
+    cleanup()
+    renderRollups(
+      [massProperty()],
+      new Map([
+        ['mass', entry({ buckets: [], skippedCount: 1, descendantCount: 3 })],
+      ])
+    )
+    expect(screen.getByTestId('rollup-line')).toBeInTheDocument()
   })
 
   it('formats a unitless bucket without a trailing space', () => {
