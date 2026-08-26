@@ -19,13 +19,15 @@ setup('authenticate', async ({ page }) => {
     page.getByRole('heading', { name: /objects/i }).first()
   ).toBeVisible()
 
-  await expect(page.locator('.driver-popover')).toHaveCount(0)
-
   await resetPreferences(page)
 
   // The reset lands on the node; the tab still holds the old values in its `/me` cache.
   await page.goto('/objects')
   await expect(page.getByTestId('data-table')).toBeVisible({ timeout: 30_000 })
+
+  // AFTER the reset, not before: a tour left armed here blocks the first click on every list page
+  // with `driver-overlay`, and the click reports a 60s timeout rather than naming the overlay.
+  await expect(page.locator('.driver-popover')).toHaveCount(0)
 
   await page.context().storageState({ path: AUTH_STATE })
 })

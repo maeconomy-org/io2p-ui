@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
+import { resetPreferences } from '../utils/preferences'
 import { tour } from '../utils/selectors'
 
 /**
@@ -9,6 +10,21 @@ import { tour } from '../utils/selectors'
  * Everything here writes ACCOUNT state, which outlives the run — each test puts back what it
  * changed. Nothing may assume a default: a page can open in any theme, view or locale.
  */
+
+/**
+ * SE5 sets the objects view and puts it back as its LAST step, which only runs when it passes. When
+ * it fails first the account is left on `columns`, and every table spec that follows — in other
+ * files, in later runs — reads it and reddens. Restoring here runs either way.
+ */
+test.afterAll(async ({ browser }) => {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  // `resetPreferences` runs IN the page for the session cookie and `__IOM_CONFIG__`, neither of
+  // which exists on about:blank.
+  await page.goto('/objects')
+  await resetPreferences(page)
+  await context.close()
+})
 
 async function openTab(page: Page, tab: string): Promise<void> {
   await page.goto('/settings')

@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
+import { openDialog } from '../utils/sheet'
 import { tour, type EntityPrefix } from '../utils/selectors'
 
 /**
@@ -74,8 +75,9 @@ test.describe('09 - formulas / lifecycle', () => {
     await page.goto('/formulas')
     await expect(page.getByTestId('data-table')).toBeVisible()
     await tour(page, 'formulasCreate').click()
-    await page.getByLabel(/name/i).first().fill(name)
-    await page.getByLabel(/expression/i).fill('a * 2')
+    const created = await openDialog(page)
+    await created.getByLabel(/name/i).first().fill(name)
+    await created.getByLabel(/expression/i).fill('a * 2')
     await page
       .getByRole('button', { name: /create formula/i })
       .last()
@@ -86,8 +88,9 @@ test.describe('09 - formulas / lifecycle', () => {
     await page.getByTestId('formula-action-duplicate').click()
 
     const copyName = `${tag}-duplicate`
-    await page.getByLabel(/name/i).first().fill(copyName)
-    await page.getByLabel(/expression/i).fill('a * 3')
+    const copy = await openDialog(page)
+    await copy.getByLabel(/name/i).first().fill(copyName)
+    await copy.getByLabel(/expression/i).fill('a * 3')
     await page
       .getByRole('button', { name: /create formula/i })
       .last()
@@ -104,8 +107,9 @@ test.describe('09 - formulas / lifecycle', () => {
     await page.goto('/formulas')
     await expect(page.getByTestId('data-table')).toBeVisible()
     await tour(page, 'formulasCreate').click()
-    await page.getByLabel(/name/i).first().fill(name)
-    await page.getByLabel(/expression/i).fill('x + 1')
+    const dialog = await openDialog(page)
+    await dialog.getByLabel(/name/i).first().fill(name)
+    await dialog.getByLabel(/expression/i).fill('x + 1')
     await page
       .getByRole('button', { name: /create formula/i })
       .last()

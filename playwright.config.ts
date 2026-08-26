@@ -38,6 +38,10 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     ignoreHTTPSErrors: true,
+    // Chrome denies `clipboard.writeText` when the tab is not focused, which a
+    // serial run triggers constantly — without the grant, copy specs fail on the
+    // harness rather than on the product.
+    permissions: ['clipboard-read', 'clipboard-write'],
     launchOptions: {
       // Slow down actions for better visibility (set to 0 for fast execution)
       slowMo: process.env.SLOW_MO ? parseInt(process.env.SLOW_MO) : 0,

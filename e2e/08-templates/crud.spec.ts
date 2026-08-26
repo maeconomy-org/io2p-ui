@@ -181,7 +181,7 @@ test.describe('08 - templates', () => {
     // stays open holding the work rather than leaving a dead control to puzzle over.
     const nameField = sheet(page).getByLabel(/name/i).first()
     await nameField.fill('   ')
-    await saveSheet(page)
+    await saveSheet(page, { expectClose: false })
     await expect(sheet(page)).toBeVisible()
     await expect(
       page.locator('[data-sonner-toaster] li').filter({ hasText: /name/i })
@@ -213,7 +213,7 @@ test.describe('08 - templates', () => {
     await addProperty(page, 0)
     await fillProperty(page, 0, 'Thickness', '450 mm')
     await addProperty(page, 1)
-    await fillProperty(page, 1, 'Grade', 'C30/37')
+    await fillProperty(page, 1, 'Material', 'C30/37')
     await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
@@ -242,9 +242,12 @@ test.describe('08 - templates', () => {
     // A template is a RECIPE, so values arrive as placeholders: the shape survives, the reading does
     // not. `450 mm` keeps its unit and loses its number; `C30/37` has no leading number at all, so it
     // is instance data and would otherwise be shared by every object made from this template.
+    //
+    // Both names are dictionary terms, so they read back with their labels. A name the dictionary
+    // does not carry is stored as its slug and would read back lowercased.
     await expect(page.getByTestId('property-name-0')).toHaveValue('Thickness')
     await expect(page.getByTestId('property-value-0-0')).toHaveValue('0 mm')
-    await expect(page.getByTestId('property-name-1')).toHaveValue('Grade')
+    await expect(page.getByTestId('property-name-1')).toHaveValue('Material')
     await expect(page.getByTestId('property-value-1-0')).toHaveValue('')
   })
 

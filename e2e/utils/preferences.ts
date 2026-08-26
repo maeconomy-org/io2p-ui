@@ -1,6 +1,29 @@
 import type { Page } from '@playwright/test'
 
-import { PREFERENCES } from '@/constants/preferences'
+import type { TourId } from '@/components/onboarding/tour-registry'
+import { ONBOARDING_EPOCH, PREFERENCES } from '@/constants/preferences'
+
+/**
+ * Listed rather than imported from the registry: `tour-registry` reaches `use-tour-action` and
+ * `use-onboarding` reaches `usePreference`, so either runtime import drags React and
+ * `next/navigation` into the Playwright process, which resolves neither.
+ *
+ * The types are erased at compile time but still bind this list to the app's: a renamed tour fails
+ * the `Record<TourId, true>` key check, and an ADDED one fails it as a missing property.
+ */
+const TOUR_IDS: Record<TourId, true> = {
+  'create-object': true,
+  'create-process': true,
+  'build-template': true,
+  'write-formula': true,
+  'share-objects': true,
+  'define-constant': true,
+  'roll-up-values': true,
+  'run-import': true,
+  'work-with-drafts': true,
+}
+
+const ALL_TOURS = [...Object.keys(TOUR_IDS), 'initial-login']
 
 /**
  * Every preference at its registry default, as one `PATCH me/preferences` bag.
@@ -15,6 +38,17 @@ function defaultsPatch(): Record<string, Record<string, unknown>> {
     patch[spec.ns] ??= {}
     patch[spec.ns][spec.key ?? name] = spec.default
   }
+
+  // `toursSeen` is the one preference whose DEFAULT is hostile here: empty means "never onboarded",
+  // so resetting it arms every tour and `driver-overlay` then swallows the first click on each list
+  // page. Every tour marked seen instead — `15-onboarding` starts the ones it wants explicitly.
+  const onboarding = patch[PREFERENCES.toursSeen.ns]
+  onboarding[PREFERENCES.toursSeen.key ?? 'toursSeen'] = ALL_TOURS
+  // The stored epoch defaults to 0 and `ONBOARDING_EPOCH` is 1, so leaving it at its default marks
+  // the whole list stale and re-arms every tour however complete `toursSeen` is.
+  onboarding[PREFERENCES.onboardingEpoch.key ?? 'onboardingEpoch'] =
+    ONBOARDING_EPOCH
+
   return patch
 }
 

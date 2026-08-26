@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/app'
+import { openDialog } from '../utils/sheet'
 import { tour } from '../utils/selectors'
 
 const stamp = () => `e2e-${Date.now()}`
@@ -54,8 +55,9 @@ test.describe('09 - formulas', () => {
     const name = `${stamp()}-fm`
     await tour(page, 'formulasCreate').click()
 
-    await page.getByLabel(/name/i).first().fill(name)
-    await page.getByLabel(/expression/i).fill('width * height')
+    const dialog = await openDialog(page)
+    await dialog.getByLabel(/name/i).first().fill(name)
+    await dialog.getByLabel(/expression/i).fill('width * height')
 
     await page
       .getByRole('button', { name: /create formula/i })

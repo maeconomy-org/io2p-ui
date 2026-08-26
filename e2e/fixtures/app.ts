@@ -48,9 +48,6 @@ const IGNORED_CONSOLE = [
   /net::ERR_/,
   /ChunkLoadError/,
   /query-devtools/,
-  // A request CANCELLED by navigation, not one that failed: `reload()` and `goto()` abort what is
-  // in flight and io2p-client logs that at error level. Narrow enough that a real 4xx still fails.
-  /io2p request failed[\s\S]*status: undefined[\s\S]*(Failed to fetch|NetworkError)/,
 ]
 
 /** Lets a test declare an error it expects — a missing route SHOULD 404. */

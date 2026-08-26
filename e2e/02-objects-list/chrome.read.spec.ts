@@ -146,7 +146,9 @@ test.describe('02 - objects list / chrome', () => {
     page,
     api,
   }) => {
-    const detail = /\/objects\/[0-9a-f-]{8,}/i
+    // Anchored on the id: `/objects/<id>/rollups` is a different endpoint the sheet fetches on
+    // open, and an unanchored pattern counts it as a second detail read.
+    const detail = /\/objects\/[0-9a-f-]{8,}(\?|$)/i
     const row = page.getByTestId('data-table-row').first()
 
     await row.hover()

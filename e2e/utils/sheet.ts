@@ -43,11 +43,18 @@ export async function switchTab(page: Page, tab: SheetTab): Promise<void> {
   await page.getByTestId(`sheet-tab-${tab}`).click()
 }
 
-export async function saveSheet(page: Page): Promise<void> {
+/**
+ * `expectClose: false` for a submit the app is expected to REFUSE — validation keeps the sheet open
+ * holding the work, so waiting for it to close asserts the opposite of what the caller is testing.
+ */
+export async function saveSheet(
+  page: Page,
+  { expectClose = true }: { expectClose?: boolean } = {}
+): Promise<void> {
   const save = page.getByTestId('sheet-save')
   await expect(save).toBeEnabled()
   await save.click()
-  await expect(save).toBeHidden()
+  if (expectClose) await expect(save).toBeHidden()
 }
 
 /**
@@ -109,4 +116,18 @@ export async function removeProperty(
 export async function gotoList(page: Page, path: string): Promise<void> {
   await page.goto(path)
   await expect(page.getByTestId('data-table').last()).toBeVisible()
+}
+
+/**
+ * The open dialog, waited for.
+ *
+ * Library creates (formula, constant, template) open a Radix dialog rather than the entity sheet.
+ * Filling `page.getByLabel(/name/i)` instead resolves INSTANTLY to the list's `Name column options`
+ * button, so Playwright's auto-wait never covers the dialog's open transition — the fill lands on a
+ * button and reports "Element is not an <input>".
+ */
+export async function openDialog(page: Page): Promise<Locator> {
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  return dialog
 }

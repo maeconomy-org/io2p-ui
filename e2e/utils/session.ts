@@ -1,6 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 
-import { requireCredentials, type Credentials } from '../setup/credentials'
+import {
+  AUTH_STATE,
+  requireCredentials,
+  type Credentials,
+} from '../setup/credentials'
 
 /**
  * io2p-auth keeps ONE live session per origin, so signing in as a second account ENDS the first
@@ -15,7 +19,17 @@ import { requireCredentials, type Credentials } from '../setup/credentials'
  * So a spec that signs in as anyone else owes a `restoreSession` afterwards.
  */
 export async function signInAs(page: Page, who: Credentials): Promise<void> {
-  await page.goto('/')
+  // Callers arrive here right after clicking sign-out, which fires its OWN redirect to `/`. A
+  // `goto` racing that redirect is cancelled by the browser as `net::ERR_ABORTED`, so let the
+  // redirect land on its own first and navigate only if it never comes.
+  const form = page.getByTestId('auth-email-submit')
+  try {
+    await form.waitFor({ state: 'visible', timeout: 5_000 })
+  } catch {
+    await page.goto('/')
+    await expect(form).toBeVisible()
+  }
+
   await page.getByLabel('Email').fill(who.email)
   await page.getByLabel('Password').fill(who.password)
   await page.getByTestId('auth-email-submit').click()
@@ -34,9 +48,14 @@ export async function signInAs(page: Page, who: Credentials): Promise<void> {
  *
  * Belongs in an `afterAll`, not an `afterEach`: the damage is done once per switch, and the specs
  * that follow are in other files entirely.
+ *
+ * Rewrites `AUTH_STATE`, which is the half that matters. Signing back in repairs the live page, but
+ * every following test builds its context from the file on disk — and that still holds the token
+ * the sign-out invalidated, so they all start signed out with a 401 no assertion explains.
  */
 export async function restoreSession(page: Page): Promise<void> {
   await signInAs(page, requireCredentials())
   await page.goto('/objects')
   await expect(page.getByTestId('data-table')).toBeVisible()
+  await page.context().storageState({ path: AUTH_STATE })
 }

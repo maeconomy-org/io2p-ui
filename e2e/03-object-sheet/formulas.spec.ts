@@ -9,6 +9,7 @@ import {
   expandProperty,
   fillProperty,
   gotoList,
+  openDialog,
   openObjectSheet,
   saveSheet,
   sheet,
@@ -35,8 +36,9 @@ async function createFormula(
 ): Promise<void> {
   await gotoList(page, '/formulas')
   await tour(page, 'formulasCreate').click()
-  await page.getByLabel(/name/i).first().fill(name)
-  await page.getByLabel(/expression/i).fill(expression)
+  const dialog = await openDialog(page)
+  await dialog.getByLabel(/name/i).first().fill(name)
+  await dialog.getByLabel(/expression/i).fill(expression)
   await page
     .getByRole('button', { name: /create formula/i })
     .last()

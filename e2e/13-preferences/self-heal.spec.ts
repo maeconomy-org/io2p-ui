@@ -24,6 +24,11 @@ test.describe('13 - preferences / self heal', () => {
   }) => {
     await setLanguage(page, 'nl')
 
+    // `PreferenceSync` is the only writer of this cookie and it rewrites it
+    // whenever a mounted page disagrees. Seeding while `/settings` is still up
+    // hands the value straight back to that effect, so leave the app first.
+    await page.goto('about:blank')
+
     // Only the language field, so the load starts from the same place a first
     // login does: the account says Dutch and this browser has never heard it.
     await context.addCookies([

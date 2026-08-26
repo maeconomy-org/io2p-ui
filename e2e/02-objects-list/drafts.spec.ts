@@ -1,8 +1,9 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
-import { requireCredentials, secondCredentials } from '../setup/credentials'
+import { secondCredentials } from '../setup/credentials'
 import { tour } from '../utils/selectors'
+import { restoreSession } from '../utils/session'
 import {
   addProperty,
   expandProperty,
@@ -48,6 +49,22 @@ async function saveAsDraft(page: Page, name: string) {
   await expect(sheet(page)).toBeHidden()
   await expect(draftRow(page, name)).toHaveCount(1)
 }
+
+/**
+ * D9 signs in as the second account, which ENDS the primary account's session for the whole origin.
+ * Restoring inline on D9's last line is not enough: if D9 fails earlier, every write spec after this
+ * FILE runs signed out and reports its own unrelated-looking failure. `afterAll` runs regardless.
+ *
+ * `restoreSession` also rewrites the saved storageState, which every following file builds its
+ * context from — without it they load the token the sign-outs invalidated.
+ */
+test.afterAll(async ({ browser }) => {
+  if (!secondCredentials()) return
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  await restoreSession(page)
+  await context.close()
+})
 
 test.describe('02 - objects list / drafts', () => {
   test('D1: Escape with unsaved work offers Save draft, Discard and Cancel', async ({
@@ -222,11 +239,7 @@ test.describe('02 - objects list / drafts', () => {
     // And it is still there for the account that wrote it.
     await tour(page, 'userMenuTrigger').click()
     await page.getByTestId('nav-sign-out').click()
-    const owner = requireCredentials()
-    await page.getByLabel('Email').fill(owner.email)
-    await page.getByLabel('Password').fill(owner.password)
-    await page.getByTestId('auth-email-submit').click()
-    await expect(page.getByTestId('data-table')).toBeVisible()
+    await restoreSession(page)
     await expect(draftRow(page, name)).toHaveCount(1)
   })
 })

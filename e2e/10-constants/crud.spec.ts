@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/app'
+import { openDialog } from '../utils/sheet'
 import { tour } from '../utils/selectors'
 
 /**
@@ -19,8 +20,9 @@ test.describe('10 - constants', () => {
     const name = `${stamp()}-co`
     await tour(page, 'constantsCreate').click()
 
-    await page.getByLabel(/name/i).first().fill(name)
-    await page.getByLabel(/value/i).first().fill('0.42')
+    const dialog = await openDialog(page)
+    await dialog.getByLabel(/name/i).first().fill(name)
+    await dialog.getByLabel(/value/i).first().fill('0.42')
 
     await page
       .getByRole('button', { name: /create constant/i })
