@@ -26,6 +26,7 @@ export type EntityPrefix =
   | 'share'
   | 'shared-by-me'
   | 'draft'
+  | 'rollup-rule'
 
 export function rowActions(page: Page, prefix: EntityPrefix, row: Locator) {
   return {
