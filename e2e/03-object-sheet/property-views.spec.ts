@@ -163,6 +163,11 @@ test.describe('03 - object sheet / property views', () => {
 
     await enterEditMode(page)
     await expect(toggle(page, grid)).toHaveCount(0)
+
+    // An EXISTING property opens collapsed (`useState(isNew)`), so the row is the editor's proof
+    // here — the name field lives in the CollapsibleContent and is not in the DOM until expanded.
+    await expect(page.getByTestId('property-row-0')).toBeVisible()
+    await page.getByTestId('property-toggle-0').click()
     await expect(page.getByTestId('property-name-0')).toBeVisible()
   })
 

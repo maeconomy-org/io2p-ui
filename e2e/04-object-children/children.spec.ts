@@ -127,9 +127,11 @@ test.describe('04 - object children', () => {
   test('CH4/CH5: row Duplicate on the list copies the subtree under a prefix', async ({
     page,
   }) => {
-    // No trailing space: the sheet trims the prefix before it is concatenated, so one would be
-    // dropped and every expected name here would be off by a character.
+    // `prefixName` (lib/entity/duplicate.ts) trims the prefix and then joins with exactly ONE
+    // space, so the separator is implicit and a trailing space here would not survive. Expect
+    // "<prefix> <name>", never "<prefix><name>".
     const prefix = `c${Date.now()}-`
+    const copyName = (name: string) => `${prefix} ${name}`
     await page.goto('/objects')
     await expect(page.getByTestId('data-table')).toBeVisible()
 
@@ -147,14 +149,14 @@ test.describe('04 - object children', () => {
     await page.getByTestId('duplicate-confirm').click()
     await expect(page.getByTestId('duplicate-sheet')).toBeHidden()
 
-    const copy = rowFor(page, `${prefix}${PARENT}`)
+    const copy = rowFor(page, copyName(PARENT))
     await expect(copy).toBeVisible()
 
     // Recursive: the copy is a new branch, so the child must hang off IT rather than off the
     // original — a subtree copied onto the source's own parent is the failure worth catching.
     await copy.dblclick()
     await expect(page).toHaveURL(/\/objects\/[0-9a-f-]{8,}/i)
-    await expect(rowFor(page, `${prefix}${CHILD}`)).toBeVisible()
+    await expect(rowFor(page, copyName(CHILD))).toBeVisible()
   })
 
   test('CH6: an unknown uuid says so instead of crashing', async ({

@@ -58,7 +58,12 @@ test.describe('14 - auth / social', () => {
 
   test('a refused sign-in is translated and does not redirect', async ({
     page,
+    consoleGuard,
   }) => {
+    // This test MANUFACTURES the 400 below, so the browser logging it is the fixture working, not
+    // a defect — without this the guard fails the test for the refusal it was asked to stage.
+    consoleGuard.expectError(/status of 400/)
+
     await page.route('**/sign-in/social', (route) =>
       route.fulfill({
         status: 400,

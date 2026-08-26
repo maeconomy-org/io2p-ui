@@ -51,9 +51,14 @@ test.describe('14 - auth / locale on login', () => {
     // navigation cannot correct, so it is the one that has to be asserted.
     await expect(page.getByRole('link', { name: 'Objecten' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'nl')
+  })
 
-    // Account state outlives the run. Inline rather than in an `afterEach`:
-    // the reset needs the session this test signed in with.
+  // Account state outlives the run, and an inline reset only runs when the test PASSES — the run
+  // where it matters is the run where it failed, which then hands Dutch to every later spec. The
+  // session is signed in here rather than reused: this file clears its own cookies.
+  test.afterEach(async ({ page }) => {
+    await page.goto('/')
+    if (!/\/objects$/.test(page.url())) await signIn(page)
     await setLanguage(page, 'en')
   })
 })

@@ -119,7 +119,9 @@ test.describe('07 - processes / flows', () => {
 
     await switchTab(page, 'inputs')
     await page.getByTestId('flow-remove-inputs-0').click()
-    await saveSheet(page)
+    // The refusal IS the subject: the sheet stays open, so the default wait for the save button to
+    // disappear would time out on the behaviour this test exists to assert.
+    await saveSheet(page, { expectClose: false })
 
     await expect(sheet(page)).toBeVisible()
 

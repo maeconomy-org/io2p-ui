@@ -29,10 +29,25 @@ export async function setLanguage(
     )
   }).toPass({ timeout: 30_000 })
 
+  // The PATCH must be in flight BEFORE the click, or the response is missed and this waits 15s for
+  // a request that already landed.
+  const saved = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'PATCH' &&
+      r.url().includes('preferences') &&
+      r.status() === 200,
+    { timeout: 15_000 }
+  )
+
   await expect(async () => {
     await page.getByTestId(`appearance-language-${code}`).click()
     await expect(
       page.getByTestId(`appearance-language-${code}`)
     ).toHaveAttribute('aria-pressed', 'true', { timeout: 3_000 })
   }).toPass({ timeout: 30_000 })
+
+  // `aria-pressed` flips OPTIMISTICALLY, so returning on it hands back a page whose write is still
+  // in flight. A caller that then overwrites the preference cookie races that response, which
+  // rewrites the cookie from the server's bag — and the language it just set is silently undone.
+  await saved
 }
