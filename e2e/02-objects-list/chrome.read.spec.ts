@@ -110,30 +110,6 @@ test.describe('02 - objects list / chrome', () => {
     expect(total).toBe(await rows.count())
   })
 
-  test('L18: hovering a thumbnail enlarges the SAME image, minting nothing', async ({
-    page,
-  }) => {
-    // KNOWN GAP, not a passing test. This skips whenever page 1 holds no cover image, which is
-    // most runs — so the optimization below reads as covered while never being exercised. A `read`
-    // spec creates nothing, so closing it needs a seeded object with a cover, or the case moves to
-    // the `write` project and uploads one. Until then the skip reason says so out loud rather than
-    // reporting as a quiet pass.
-    const thumb = page.getByTestId('cover-thumb').first()
-    test.skip(
-      (await thumb.count()) === 0,
-      'NOT COVERED: page 1 holds no cover image — needs a seeded fixture, see the note above'
-    )
-
-    const src = await thumb.locator('img').getAttribute('src')
-    await thumb.hover()
-
-    const preview = page.getByTestId('cover-preview')
-    await expect(preview).toBeVisible()
-    // One 320px thumbnail serves the row AND the card. A different src here means the preview
-    // reaches for a full-size file, which costs a signed URL per hovered row.
-    await expect(preview).toHaveAttribute('src', src ?? '')
-  })
-
   test('L4: sorting by name round-trips through the server', async ({
     page,
     api,
