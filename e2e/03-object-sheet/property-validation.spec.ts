@@ -16,9 +16,12 @@ import {
  * What happens when a property name is WRONG — the half the rewrite never carried across.
  *
  * The old suite had TC021/TC022 and a dictionary round-trip pair; the current suite covers the
- * happy paths and the state machine but asserts nothing about invalid input here. A property with
- * content and no key is DROPPED by the builders (`draft.ts:310` filters on `key.trim() !== ''`),
- * so without a refusal the user saves work that never persists.
+ * happy paths and the state machine but asserts nothing about invalid input here.
+ *
+ * The refusal is the UI's own rule, NOT the node's: `PropertyInputShape.key` is a plain
+ * `Type.String()` with no `minLength`, so core would accept an empty key. What forces it is that
+ * `draft.ts:310` filters nameless properties out of the payload — so without the guard the user
+ * types a value, sees a success toast, and the property was never sent.
  */
 
 const stamp = () => `e2e-${Date.now()}`

@@ -9,9 +9,11 @@ import { addProperty, saveSheet, sheet, switchTab } from '../utils/sheet'
  * What a process refuses, and whether it lets you recover.
  *
  * Four rules live in `use-process-form.ts`'s submit: a nameless property, a flow with no object, an
- * emptied direction, and the server's own verdict. Each returns EARLY, so none of them reaches the
- * node — which makes the recovery path as important as the refusal. A refusal you cannot clear is
- * worse than no validation at all: the work is held hostage by the guard meant to protect it.
+ * emptied direction, and the server's own verdict. The first three return EARLY, so nothing reaches
+ * the node — they are the UI compensating for its own builders, which drop a nameless property
+ * rather than sending it. That makes the recovery path as important as the refusal: a refusal you
+ * cannot clear is worse than no validation at all, because the guard holds the work hostage instead
+ * of protecting it.
  */
 
 const stamp = () => `e2e-${Date.now()}`
