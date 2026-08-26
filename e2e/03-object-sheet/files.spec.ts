@@ -69,6 +69,68 @@ test.describe('03 - object sheet / files', () => {
     expect(api.count(/\/v1\/files$/)).toBe(0)
   })
 
+  /**
+   * `isAllowedExternalFileReference` is an SSRF guard, not cosmetic validation:
+   * it admits `https:` only, refuses userinfo, and blocks loopback, `.local`
+   * and literal IPs. A reference that slipped through would be fetched by
+   * whatever later resolves it.
+   *
+   * The structural assertion is the load-bearing one. A build that showed the
+   * error AND staged the file anyway would pass a message-only check, which is
+   * the failure this case exists to catch.
+   */
+  test('FI14: a rejected reference is not staged, whatever the reason', async ({
+    page,
+  }) => {
+    const name = await createObject(page, 'fi14')
+    await openObjectSheet(page, rowFor(page, name))
+    await enterEditMode(page)
+    await switchTab(page, 'files')
+
+    await page.getByTestId('add-files').click()
+    await expect(page.getByTestId('attachment-modal')).toBeVisible()
+
+    const modal = page.getByTestId('attachment-modal')
+    const rejected = [
+      'http://example.org/plan.pdf',
+      'javascript:alert(1)',
+      'https://localhost/plan.pdf',
+      'https://127.0.0.1/plan.pdf',
+      'https://user:pw@example.org/plan.pdf',
+      'not-a-url',
+    ]
+
+    for (const url of rejected) {
+      await page.getByTestId('attachment-modal-url').fill(url)
+      await page.getByTestId('attachment-modal-label').fill(`ref for ${url}`)
+      await page.getByTestId('attachment-modal-add-reference').click()
+
+      // `addReference` returns BEFORE `setPending`, so the label never appears
+      // in the staged list and the url stays in the box for correction. The
+      // pending row carries no testid, so the label it would render IS the
+      // signal.
+      await expect(modal.getByText(`ref for ${url}`)).toHaveCount(0)
+      await expect(page.getByTestId('attachment-modal-url')).toHaveValue(url)
+    }
+
+    // The counterweight: the same modal accepts a good url, so the six absences
+    // above are the guard and not a dead button.
+    await page
+      .getByTestId('attachment-modal-url')
+      .fill('https://example.org/ok.pdf')
+    await page.getByTestId('attachment-modal-label').fill('Accepted')
+    await page.getByTestId('attachment-modal-add-reference').click()
+    await expect(modal.getByText('Accepted')).toHaveCount(1)
+
+    await page.getByTestId('attachment-modal-done').click()
+    await saveSheet(page)
+
+    await expect(page.getByTestId('file-row')).toHaveCount(1)
+    await expect(
+      page.getByTestId('file-row').filter({ hasText: 'Accepted' })
+    ).toHaveCount(1)
+  })
+
   test('FI2: a file can be attached to a property and to a single value', async ({
     page,
   }) => {
