@@ -491,6 +491,52 @@ export const PROPERTY_DICTIONARY: PropertyDictionaryEntry[] = [
     valuePlaceholder: { en: '2400 W', nl: '2400 W' },
   },
   {
+    key: 'pressure',
+    labels: { en: 'Pressure', nl: 'Druk' },
+    category: 'dimensions',
+    // `N/mm²` is the structural-engineering spelling of MPa and normalizes to it, so a strength
+    // authored either way lands in one bucket.
+    valuePlaceholder: { en: '5 bar', nl: '5 bar' },
+  },
+  {
+    key: 'compressive-strength',
+    labels: { en: 'Compressive Strength', nl: 'Druksterkte' },
+    aliases: { en: ['strength'], nl: ['sterkte'] },
+    category: 'dimensions',
+    valuePlaceholder: { en: '30 N/mm²', nl: '30 N/mm²' },
+  },
+  {
+    key: 'voltage',
+    labels: { en: 'Voltage', nl: 'Spanning' },
+    category: 'dimensions',
+    valuePlaceholder: { en: '230 V', nl: '230 V' },
+  },
+  {
+    key: 'current',
+    labels: { en: 'Current', nl: 'Stroom' },
+    aliases: { en: ['amperage'] },
+    category: 'dimensions',
+    valuePlaceholder: { en: '16 A', nl: '16 A' },
+  },
+  {
+    key: 'charge-capacity',
+    labels: { en: 'Charge Capacity', nl: 'Laadcapaciteit' },
+    // NOT `capacity`, which already means a VOLUME here ("500 l"). Two keys are two rollup
+    // totals and nothing merges them, so reusing the word would split one quantity in half.
+    aliases: { en: ['battery-capacity'], nl: ['accucapaciteit'] },
+    category: 'dimensions',
+    valuePlaceholder: { en: '2000 mAh', nl: '2000 mAh' },
+  },
+  {
+    key: 'piece-count',
+    labels: { en: 'Piece Count', nl: 'Aantal Stuks' },
+    // `count` is its own dimension in the node's table, NOT an alias into unitless — so "5" and
+    // "5 pcs" are different kinds and do not sum together.
+    aliases: { en: ['pieces'], nl: ['stuks'] },
+    category: 'dimensions',
+    valuePlaceholder: { en: '12 pcs', nl: '12 pcs' },
+  },
+  {
     key: 'water-consumption',
     labels: { en: 'Water Consumption', nl: 'Waterverbruik' },
     aliases: { en: ['water'], nl: ['water'] },
