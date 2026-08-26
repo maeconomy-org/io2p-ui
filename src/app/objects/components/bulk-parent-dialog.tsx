@@ -90,6 +90,7 @@ export function BulkParentDialog({
         <div className="space-y-2 py-2">
           <Label>{t('objects.fields.parent')}</Label>
           <ObjectPicker
+            testId="bulk-parent-picker"
             value={parentId}
             displayName={parentName}
             className="w-full"
@@ -99,7 +100,10 @@ export function BulkParentDialog({
             }}
           />
           {selectedIds.has(parentId) && (
-            <p className="text-xs text-muted-foreground">
+            <p
+              className="text-xs text-muted-foreground"
+              data-testid="bulk-parent-skips-self"
+            >
               {t('objects.bulk.parentSkipsSelf')}
             </p>
           )}
@@ -120,6 +124,7 @@ export function BulkParentDialog({
             className="flex-1"
             disabled={!parentId || saving}
             onClick={apply}
+            data-testid="bulk-parent-save"
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('common.save')}
