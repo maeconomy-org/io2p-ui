@@ -203,17 +203,17 @@ test.describe('08 - templates', () => {
   })
 
   /**
-   * PINS TODAY'S BEHAVIOUR, WHICH IS A KNOWN DEFECT — see the note below.
+   * The refusal is the UI compensating for its OWN builder: `template.ts:204`
+   * and `:235` filter a nameless property out of the payload, so saving would
+   * drop the value in silence. The handler `return`s before any request — no
+   * node rule is involved, and `PropertyInputShape.key` would accept an empty
+   * string.
    *
-   * `template.ts:204` and `:235` filter a nameless property out of the payload,
-   * exactly as the object builder does. But `use-template-form` carries no
-   * `findEmptyPropertyKey` guard, so the save is ACCEPTED and the value is
-   * dropped in silence — the object and process sheets refuse it.
-   *
-   * Asserted as "saves, and the value is gone" rather than "is refused", so this
-   * fails loudly the day the guard is added rather than quietly disagreeing.
+   * The RECOVERY half is the one that matters. This sheet shipped with no guard
+   * at all, and the two sheets that had one shipped refusing PERMANENTLY, so a
+   * test that stopped at the rejection would have been green over both defects.
    */
-  test('TP14: a template property with a value but no name is silently dropped', async ({
+  test('TP14: a template property with a value but no name blocks, then saves once named', async ({
     page,
   }) => {
     const name = `${stamp()}-tp14`
@@ -223,17 +223,26 @@ test.describe('08 - templates', () => {
     await addProperty(page, 0)
     await page.getByTestId('property-value-0-0').fill('42')
 
-    // No refusal: the sheet closes and the template is created.
+    await saveSheet(page, { expectClose: false })
+    await expect(sheet(page)).toBeVisible()
+
+    // Naming it is the input that fixes the refusal, so the same submit must now
+    // reach the node rather than re-refusing from an error nothing cleared.
+    await page.getByTestId('property-name-0').fill('Capacity')
     await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
     await page.goto('/templates')
     await expect(rowFor(page, name)).toHaveCount(1)
 
-    // The value never reached the node. Reopening shows no property at all,
-    // which is the harm: the user typed 42 and the template does not have it.
+    // The property survived the round trip: the refusal protected the work
+    // rather than costing it. The sheet reopens on DETAILS, and a saved row then
+    // starts collapsed — neither is a missing property.
     await openForEdit(page, name)
-    await expect(page.getByTestId('property-row-0')).toHaveCount(0)
+    await switchTab(page, 'properties')
+    await expect(page.getByTestId('property-row-0')).toHaveCount(1)
+    await expandProperty(page, 0)
+    await expect(page.getByTestId('property-name-0')).toHaveValue('Capacity')
   })
 
   test('TP8: a template can be created from an existing object', async ({
