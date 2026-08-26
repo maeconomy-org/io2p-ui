@@ -24,8 +24,12 @@ test.describe('02 - objects list / chrome', () => {
   test('L2: paging dims the rows rather than blanking them', async ({
     page,
   }) => {
+    // NOT `test.skip(await next.isDisabled())`. `isDisabled()` does not retry, so it read the
+    // button before it settled and the case SKIPPED on an account with 2230 objects across 112
+    // pages — reporting as covered while never running. `toBeEnabled()` waits, so a genuinely
+    // single-page account now FAILS here rather than quietly deleting the test.
     const next = page.getByTestId('page-next')
-    test.skip(await next.isDisabled(), 'needs more than one page of objects')
+    await expect(next).toBeEnabled()
 
     const rows = page.getByTestId('data-table-row')
     const before = await rows.count()
@@ -109,10 +113,15 @@ test.describe('02 - objects list / chrome', () => {
   test('L18: hovering a thumbnail enlarges the SAME image, minting nothing', async ({
     page,
   }) => {
+    // KNOWN GAP, not a passing test. This skips whenever page 1 holds no cover image, which is
+    // most runs — so the optimization below reads as covered while never being exercised. A `read`
+    // spec creates nothing, so closing it needs a seeded object with a cover, or the case moves to
+    // the `write` project and uploads one. Until then the skip reason says so out loud rather than
+    // reporting as a quiet pass.
     const thumb = page.getByTestId('cover-thumb').first()
     test.skip(
       (await thumb.count()) === 0,
-      'no object on page 1 has a cover image'
+      'NOT COVERED: page 1 holds no cover image — needs a seeded fixture, see the note above'
     )
 
     const src = await thumb.locator('img').getAttribute('src')
