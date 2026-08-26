@@ -157,12 +157,12 @@ test.describe('02 - objects list / page size', () => {
   })
 
   test('L3: changing the page size returns to page 1', async ({ page }) => {
-    const sizeTrigger = page.getByTestId('page-size')
     // `TablePagination` renders nothing at all on a single page, so there is no control to drive.
-    test.skip(
-      (await sizeTrigger.count()) === 0,
-      'needs more than one page of objects'
-    )
+    // Asserted rather than skipped on: `count()` does not retry, so a read before the table
+    // settles reports 0 and the case deletes itself while reporting as covered — which is exactly
+    // what L2 was doing against an account of 2230 objects.
+    const sizeTrigger = page.getByTestId('page-size')
+    await expect(sizeTrigger).toBeVisible()
 
     original = (await sizeTrigger.innerText()).trim()
     const target = original === '10' ? '20' : '10'
