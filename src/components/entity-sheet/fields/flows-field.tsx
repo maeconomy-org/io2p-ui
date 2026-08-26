@@ -316,6 +316,11 @@ function FlowRow({
               onSelect={(id, name) => {
                 form.setValue(`${base}.ref`, id, { shouldDirty: true })
                 form.setValue(`${base}.refName`, name, { shouldDirty: false })
+                // `use-process-form` refuses a flow with no object by calling `setError` BY HAND,
+                // and `setValue` does not clear a manually set error. Without this the sheet stays
+                // refused after the user has picked one — the save never fires again, and the only
+                // way out is discarding the work the refusal existed to protect.
+                if (id) form.clearErrors(`${base}.ref`)
               }}
             />
             <input
