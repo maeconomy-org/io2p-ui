@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nextjs'
 import {
   sharedSentryOptions,
   beforeSend,
+  shouldInitSentry,
 } from '@/lib/observability/sentry-config'
 import { getCachedConfig } from '@/constants/client'
 import { initWebVitals } from '@/lib/observability/web-vitals'
@@ -19,9 +20,7 @@ function initSentry() {
     const config = getCachedConfig()
     if (!config) return
 
-    // Only initialize in production or when explicitly enabled for testing
-    const shouldInit =
-      config.nodeEnv === 'production' || config.sentryEnabled === 'true'
+    const shouldInit = shouldInitSentry(config.nodeEnv, config.sentryEnabled)
 
     if (shouldInit && config.sentryDsn) {
       Sentry.init({

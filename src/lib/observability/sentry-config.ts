@@ -20,6 +20,23 @@ export { redactPresignedUrlString } from './redact'
 type SentryEvent = ErrorEvent
 
 /**
+ * Whether the browser SDK should boot.
+ *
+ * `SENTRY_ENABLED` is three-state, not a boolean: unset follows the build, and an explicit value
+ * overrides it in EITHER direction. A plain `production || enabled === 'true'` reads correctly and
+ * cannot express the off case — the production arm short-circuits first, so `false` was ignored in
+ * the one build that ships Sentry, and `pnpm run start:e2e` (a production build) tunnelled
+ * envelopes on every page load.
+ */
+export function shouldInitSentry(
+  nodeEnv: string | undefined,
+  sentryEnabled: string | undefined
+): boolean {
+  if (sentryEnabled === 'false') return false
+  return nodeEnv === 'production' || sentryEnabled === 'true'
+}
+
+/**
  * Common Sentry options for the browser init and the logger's Sentry sink.
  * Errors only: no tracing options here on purpose (omitting them entirely is
  * what keeps the tracing machinery out of the bundle) and no enableLogs —

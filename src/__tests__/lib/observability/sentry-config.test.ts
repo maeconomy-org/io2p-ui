@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   beforeSend,
   redactPresignedUrlString,
+  shouldInitSentry,
 } from '@/lib/observability/sentry-config'
 
 const SIG = 'a1b2c3d4e5f60718293a4b5c6d7e8f9011223344556677889900aabbccddeeff'
@@ -150,5 +151,29 @@ describe('filterNoisyErrors', () => {
         ])
       )
     ).not.toBeNull()
+  })
+})
+
+describe('shouldInitSentry', () => {
+  it('turns Sentry OFF in a production build when the switch says false', () => {
+    // The regression: `production || enabled === 'true'` short-circuits on the production arm, so
+    // an explicit `false` was ignored exactly where Sentry actually ships. `pnpm run start:e2e`
+    // builds for production, so every e2e run tunnelled envelopes and `POST /monitoring` answered
+    // 500 three times per page load, failing specs that never mentioned Sentry.
+    expect(shouldInitSentry('production', 'false')).toBe(false)
+  })
+
+  it('follows the build when the switch is unset', () => {
+    expect(shouldInitSentry('production', undefined)).toBe(true)
+    expect(shouldInitSentry('development', undefined)).toBe(false)
+  })
+
+  it('turns Sentry ON outside production when the switch says true', () => {
+    expect(shouldInitSentry('development', 'true')).toBe(true)
+  })
+
+  it('treats any other value as unset rather than as off', () => {
+    expect(shouldInitSentry('production', '')).toBe(true)
+    expect(shouldInitSentry('development', 'yes')).toBe(false)
   })
 })
