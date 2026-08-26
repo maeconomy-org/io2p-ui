@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import type { CreateTemplateInput, TemplateDTO } from 'io2p-client'
 
 import { useTemplates } from '@/hooks/api/entities'
+import { findEmptyPropertyKey } from '@/lib/entity'
 import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 import {
@@ -91,6 +92,17 @@ export function useTemplateForm(
     if (!draft.name.trim()) {
       form.setError('name', { type: 'required' })
       toast.error(t('templates.nameRequired'))
+      return
+    }
+
+    // `properties()` at `template.ts:235` filters out anything with a blank key, so without this
+    // the save SUCCEEDS, the node never sees the value, and reopening shows no property row —
+    // silent data loss rather than a refusal. The object and process sheets already guard this;
+    // the template sheet was the one path that did not.
+    const nameless = findEmptyPropertyKey(draft)
+    if (nameless >= 0) {
+      form.setError(`properties.${nameless}.key`, { type: 'required' })
+      toast.error(t('objects.saveError.propertyKeyRequired'))
       return
     }
 
