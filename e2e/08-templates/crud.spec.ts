@@ -202,6 +202,40 @@ test.describe('08 - templates', () => {
     await expect(rowFor(page, renamed)).toHaveCount(0)
   })
 
+  /**
+   * PINS TODAY'S BEHAVIOUR, WHICH IS A KNOWN DEFECT — see the note below.
+   *
+   * `template.ts:204` and `:235` filter a nameless property out of the payload,
+   * exactly as the object builder does. But `use-template-form` carries no
+   * `findEmptyPropertyKey` guard, so the save is ACCEPTED and the value is
+   * dropped in silence — the object and process sheets refuse it.
+   *
+   * Asserted as "saves, and the value is gone" rather than "is refused", so this
+   * fails loudly the day the guard is added rather than quietly disagreeing.
+   */
+  test('TP14: a template property with a value but no name is silently dropped', async ({
+    page,
+  }) => {
+    const name = `${stamp()}-tp14`
+    await openCreate(page, 'object')
+    await sheet(page).getByLabel(/name/i).first().fill(name)
+
+    await addProperty(page, 0)
+    await page.getByTestId('property-value-0-0').fill('42')
+
+    // No refusal: the sheet closes and the template is created.
+    await saveSheet(page)
+    await expect(sheet(page)).toBeHidden()
+
+    await page.goto('/templates')
+    await expect(rowFor(page, name)).toHaveCount(1)
+
+    // The value never reached the node. Reopening shows no property at all,
+    // which is the harm: the user typed 42 and the template does not have it.
+    await openForEdit(page, name)
+    await expect(page.getByTestId('property-row-0')).toHaveCount(0)
+  })
+
   test('TP8: a template can be created from an existing object', async ({
     page,
   }) => {
