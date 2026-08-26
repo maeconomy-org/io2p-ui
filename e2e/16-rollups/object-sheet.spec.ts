@@ -167,6 +167,29 @@ test.describe('16 - rollups / object sheet', () => {
     )
   })
 
+  test('RU5: the card survives the grid layout', async ({ page }) => {
+    await page.goto('/objects')
+    await expect(page.getByTestId('data-table')).toBeVisible()
+    await openObjectSheet(page, rowFor(page, PARENT))
+
+    // `compact` changes RollupLine — no expander, dimensions counted rather than listed — and the
+    // cards are rendered from a SECOND branch of the read view. Breaking one branch leaves the
+    // other working, so a test that only ever looks at the default layout covers half the code.
+    await page.getByRole('button', { name: /grid overview/i }).click()
+    await expect(
+      page.getByRole('button', { name: /grid overview/i })
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByTestId('rollup-card')).toHaveCount(1)
+
+    // Back to detailed before leaving: the view is stored per ACCOUNT, so RU3 below and every
+    // later spec would otherwise read `grid`. The afterAll restore is the safety net for the run
+    // where this line never executes.
+    await page.getByRole('button', { name: /detailed view/i }).click()
+    await expect(
+      page.getByRole('button', { name: /detailed view/i })
+    ).toHaveAttribute('aria-pressed', 'true')
+  })
+
   test('RU3: a leaf does not claim anything is below it', async ({ page }) => {
     // The child is reached through the PARENT, not `/objects`: the root list asks `parent: ''`, so
     // a child is not in it at all — a locator pointed at the root list waits the full timeout for
