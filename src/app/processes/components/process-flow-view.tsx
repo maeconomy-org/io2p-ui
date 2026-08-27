@@ -4,7 +4,14 @@ import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
-import { AlertTriangle, ExternalLink, Focus, Workflow, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  ExternalLink,
+  Focus,
+  HelpCircle,
+  Workflow,
+  X,
+} from 'lucide-react'
 
 import {
   Button,
@@ -13,6 +20,15 @@ import {
   EmptyState,
   FloatingActionBar,
   FloatingActionBarSeparator,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@/components/ui'
 import { ContentSkeleton } from '@/components/skeletons'
 import { cn } from '@/lib/utils'
@@ -179,17 +195,6 @@ export function ProcessFlowView({
 
   const pagerActive = windowed && totalLevels > DEPTH_WINDOW_SIZE
 
-  if (isLoading) return <ContentSkeleton />
-
-  if (error) {
-    return (
-      <EmptyState
-        icon={<AlertTriangle className="h-10 w-10 text-destructive/60" />}
-        title={t('processes.flowView.error')}
-      />
-    )
-  }
-
   return (
     <div className="space-y-3">
       <ProcessFlowToolbar
@@ -209,9 +214,6 @@ export function ProcessFlowView({
         hiddenNodeCount={Math.max(0, totalNodes - graph.nodes.length)}
         depthDisabled={!!focusId || highlighted.length > 0}
         layered={layered}
-        units={units}
-        activeUnit={activeUnit}
-        onActiveUnitChange={setUnitOverride}
         objects={objectNodes}
         selectedObjects={selectedObjects}
         onSelectedObjectsChange={setSelectedObjects}
@@ -219,7 +221,14 @@ export function ProcessFlowView({
 
       <Card>
         <CardContent className="pt-4">
-          {graph.links.length === 0 ? (
+          {isLoading ? (
+            <ContentSkeleton />
+          ) : error ? (
+            <EmptyState
+              icon={<AlertTriangle className="h-10 w-10 text-destructive/60" />}
+              title={t('processes.flowView.error')}
+            />
+          ) : graph.links.length === 0 ? (
             <EmptyState
               icon={<Workflow className="h-10 w-10 text-muted-foreground/50" />}
               title={t('processes.flowView.empty.title')}
@@ -241,7 +250,12 @@ export function ProcessFlowView({
                   onLinkClick={handleLinkClick}
                 />
               )}
-              <Legend variant={variant} />
+              <Legend
+                variant={variant}
+                units={units}
+                activeUnit={activeUnit}
+                onActiveUnitChange={setUnitOverride}
+              />
             </>
           )}
         </CardContent>
@@ -326,7 +340,17 @@ export function ProcessFlowView({
  * Two categories, so a legend is mandatory: node kind must never rest on hue alone. Each swatch is
  * the same secondary cue its chart draws — a dashed wash in the Sankey, a diamond in the overview.
  */
-function Legend({ variant }: { variant: ProcessGraphVariant }) {
+function Legend({
+  variant,
+  units,
+  activeUnit,
+  onActiveUnitChange,
+}: {
+  variant: ProcessGraphVariant
+  units: Array<{ unit: string; count: number }>
+  activeUnit: string | null
+  onActiveUnitChange: (unit: string) => void
+}) {
   const t = useTranslations()
   const network = variant === 'network'
 
@@ -368,6 +392,47 @@ function Legend({ variant }: { variant: ProcessGraphVariant }) {
           ? t('processes.networkView.legendHint')
           : t('processes.flowView.legendHint')}
       </span>
+
+      {/* Only worth a control when the data is actually mixed; one dimension needs no choice. And
+          only in the layered view, where link WIDTH carries the magnitude. */}
+      {!network && units.length > 1 && (
+        <span className="ml-auto inline-flex items-center gap-1.5">
+          <span>{t('processes.flowView.unit.widths')}</span>
+          <Select value={activeUnit ?? ''} onValueChange={onActiveUnitChange}>
+            <SelectTrigger
+              className="h-7 w-[7.5rem] text-xs"
+              aria-label={t('processes.flowView.unit.label')}
+              data-testid="flow-unit-select"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {units.map(({ unit, count }) => (
+                <SelectItem key={unit || 'unitless'} value={unit}>
+                  {unit || t('processes.flowView.unit.unitless')} ({count})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label={t('processes.flowView.unit.label')}
+                  data-testid="flow-unit-help"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                {t('processes.flowView.unit.help')}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </span>
+      )}
     </div>
   )
 }

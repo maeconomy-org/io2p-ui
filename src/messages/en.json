@@ -790,6 +790,8 @@
       },
       "unit": {
         "label": "Unit",
+        "widths": "Widths",
+        "help": "Widths are drawn in one unit at a time — mixing kg and m3 on one scale makes them meaningless. The count is how many flows carry that unit. Switching asks a different question of the same graph: where the mass goes, or the volume, or the footprint.",
         "unitless": "No unit"
       },
       "filter": {

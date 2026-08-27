@@ -790,6 +790,8 @@
       },
       "unit": {
         "label": "Eenheid",
+        "widths": "Breedtes",
+        "help": "Breedtes worden in één eenheid tegelijk getekend — kg en m3 op één schaal mengen maakt ze betekenisloos. Het getal is het aantal stromen met die eenheid. Wisselen stelt een andere vraag over dezelfde grafiek: waar de massa heen gaat, of het volume, of de voetafdruk.",
         "unitless": "Geen eenheid"
       },
       "filter": {

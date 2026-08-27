@@ -16,11 +16,6 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 
@@ -43,10 +38,6 @@ export interface ProcessFlowToolbarProps {
   /** Depth slicing and unit scaling are layered-layout concepts; the overview has neither. */
   layered: boolean
 
-  units: Array<{ unit: string; count: number }>
-  activeUnit: string | null
-  onActiveUnitChange: (unit: string) => void
-
   objects: GraphNode[]
   selectedObjects: string[]
   onSelectedObjectsChange: (ids: string[]) => void
@@ -66,9 +57,6 @@ export function ProcessFlowToolbar({
   hiddenNodeCount,
   depthDisabled,
   layered,
-  units,
-  activeUnit,
-  onActiveUnitChange,
   objects,
   selectedObjects,
   onSelectedObjectsChange,
@@ -87,32 +75,12 @@ export function ProcessFlowToolbar({
       : t('processes.flowView.depthLimited', { size: windowSize })
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       <ObjectFilter
         objects={objects}
         selected={selectedObjects}
         onChange={onSelectedObjectsChange}
       />
-
-      {/* Only worth a control when the data is actually mixed; one dimension needs no choice. And
-          only in the layered view, where link WIDTH carries the magnitude. */}
-      {layered && units.length > 1 && (
-        <Select value={activeUnit ?? ''} onValueChange={onActiveUnitChange}>
-          <SelectTrigger
-            className="h-8 w-[9.5rem]"
-            aria-label={t('processes.flowView.unit.label')}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {units.map(({ unit, count }) => (
-              <SelectItem key={unit || 'unitless'} value={unit}>
-                {unit || t('processes.flowView.unit.unitless')} ({count})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
 
       {/* One segmented control: the centre toggles limited/full AND reads out the slice, the arrows
           page through it. Sankey-only — a depth window is a left-to-right topological slice, which
