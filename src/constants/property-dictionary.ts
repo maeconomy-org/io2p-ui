@@ -633,6 +633,151 @@ export const PROPERTY_DICTIONARY: PropertyDictionaryEntry[] = [
     labels: { en: 'Comment', nl: 'Opmerking' },
     category: 'meta',
   },
+
+  // ── Terms taken from real asset-register sheets (building, estate, hotel, materials) ──────────
+  // Scoped area and energy stay SEPARATE keys rather than aliases of `area`/`energy-consumption`:
+  // a gross area repeated on every row of a floor would double-count the moment it met a rollup,
+  // which is exactly what those sheets do with it.
+  {
+    key: 'gross-floor-area',
+    labels: { en: 'Gross Floor Area', nl: 'Bruto Vloeroppervlak' },
+    aliases: { en: ['gfa'], nl: ['bvo'] },
+    category: 'dimensions',
+    valuePlaceholder: { en: '610 m2', nl: '610 m2' },
+  },
+  {
+    key: 'gross-building-area',
+    labels: { en: 'Gross Building Area', nl: 'Bruto Gebouwoppervlak' },
+    category: 'dimensions',
+    valuePlaceholder: { en: '1780 m2', nl: '1780 m2' },
+  },
+  {
+    key: 'site-area',
+    labels: { en: 'Site Area', nl: 'Terreinoppervlak' },
+    aliases: { en: ['plot-area'], nl: ['perceeloppervlak'] },
+    category: 'dimensions',
+    valuePlaceholder: { en: '62000 m2', nl: '62000 m2' },
+  },
+  {
+    key: 'ceiling-height',
+    labels: { en: 'Ceiling Height', nl: 'Plafondhoogte' },
+    category: 'dimensions',
+    valuePlaceholder: { en: '2.7 m', nl: '2,7 m' },
+  },
+  {
+    key: 'floor-energy-consumption',
+    labels: {
+      en: 'Floor Energy Consumption',
+      nl: 'Energieverbruik Verdieping',
+    },
+    category: 'sustainability',
+    valuePlaceholder: { en: '2400 kWh', nl: '2400 kWh' },
+  },
+  {
+    key: 'building-energy-consumption',
+    labels: {
+      en: 'Building Energy Consumption',
+      nl: 'Energieverbruik Gebouw',
+    },
+    category: 'sustainability',
+    valuePlaceholder: { en: '9200 kWh', nl: '9200 kWh' },
+  },
+  {
+    key: 'thermal-conductivity',
+    labels: { en: 'Thermal Conductivity', nl: 'Warmtegeleiding' },
+    aliases: { en: ['lambda', 'u-value'], nl: ['lambdawaarde'] },
+    category: 'sustainability',
+    valuePlaceholder: { en: '0.022 W/mK', nl: '0,022 W/mK' },
+  },
+  {
+    key: 'inspection-interval',
+    labels: { en: 'Inspection Interval', nl: 'Inspectie-interval' },
+    category: 'lifecycle',
+    valuePlaceholder: { en: '12 months', nl: '12 maanden' },
+  },
+  {
+    key: 'installed',
+    labels: { en: 'Installed', nl: 'Geïnstalleerd' },
+    aliases: { en: ['installation-date'], nl: ['installatiedatum'] },
+    category: 'lifecycle',
+    valuePlaceholder: { en: '2019-03-11', nl: '2019-03-11' },
+  },
+  {
+    key: 'refurbished',
+    labels: { en: 'Refurbished', nl: 'Gerenoveerd' },
+    aliases: { en: ['renovated'], nl: ['gerenoveerd'] },
+    category: 'lifecycle',
+    valuePlaceholder: { en: '2019-04-02', nl: '2019-04-02' },
+  },
+  {
+    key: 'cleaning-time',
+    labels: { en: 'Cleaning Time', nl: 'Schoonmaaktijd' },
+    category: 'dimensions',
+    valuePlaceholder: { en: '25 min', nl: '25 min' },
+  },
+  {
+    key: 'occupancy',
+    labels: { en: 'Occupancy', nl: 'Bezetting' },
+    category: 'dimensions',
+    valuePlaceholder: { en: '2', nl: '2' },
+  },
+  {
+    key: 'room-type',
+    labels: { en: 'Room Type', nl: 'Ruimtetype' },
+    category: 'classification',
+    valuePlaceholder: { en: 'Reception', nl: 'Receptie' },
+  },
+  {
+    key: 'asset-type',
+    labels: { en: 'Asset Type', nl: 'Objecttype' },
+    aliases: { en: ['product-type', 'component-type'], nl: ['producttype'] },
+    category: 'classification',
+    valuePlaceholder: { en: 'HVAC', nl: 'HVAC' },
+  },
+  {
+    key: 'material-class',
+    labels: { en: 'Material Class', nl: 'Materiaalklasse' },
+    category: 'classification',
+    valuePlaceholder: { en: 'Insulation', nl: 'Isolatie' },
+  },
+  {
+    key: 'fire-class',
+    labels: { en: 'Fire Class', nl: 'Brandklasse' },
+    aliases: { en: ['euroclass'] },
+    category: 'classification',
+    valuePlaceholder: { en: 'A1', nl: 'A1' },
+  },
+  {
+    key: 'typical-quantity',
+    labels: { en: 'Typical Quantity', nl: 'Typisch Aantal' },
+    category: 'meta',
+    valuePlaceholder: { en: '4', nl: '4' },
+  },
+  {
+    key: 'hazardous',
+    labels: { en: 'Hazardous', nl: 'Gevaarlijk' },
+    category: 'state',
+    valuePlaceholder: { en: 'No', nl: 'Nee' },
+  },
+  {
+    key: 'orientation',
+    labels: { en: 'Orientation', nl: 'Oriëntatie' },
+    category: 'location',
+    valuePlaceholder: { en: 'South-west', nl: 'Zuidwest' },
+  },
+  {
+    key: 'wall-colour',
+    labels: { en: 'Wall Colour', nl: 'Muurkleur' },
+    aliases: { en: ['wall-color'] },
+    category: 'appearance',
+    valuePlaceholder: { en: 'Warm grey', nl: 'Warmgrijs' },
+  },
+  {
+    key: 'nightly-rate',
+    labels: { en: 'Nightly Rate', nl: 'Nachttarief' },
+    category: 'commerce',
+    valuePlaceholder: { en: '95', nl: '95' },
+  },
 ]
 
 const PROPERTY_DICTIONARY_BY_KEY: Map<string, PropertyDictionaryEntry> =
