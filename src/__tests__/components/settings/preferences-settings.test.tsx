@@ -15,7 +15,12 @@ vi.mock('next-intl', () => ({
 const USER = 'user-a-uuid'
 let preferences: Record<string, Record<string, unknown>> | undefined
 vi.mock('@/contexts/auth-context', () => ({
-  useAuth: () => ({ userId: USER, preferences, authLoading: false }),
+  useAuth: () => ({
+    userId: USER,
+    preferences,
+    authLoading: false,
+    isAuthenticated: true,
+  }),
 }))
 
 const updatePreferences = vi.fn()

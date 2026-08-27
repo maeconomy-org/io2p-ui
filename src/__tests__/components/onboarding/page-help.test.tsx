@@ -28,6 +28,7 @@ vi.mock('@/contexts/auth-context', () => ({
         | undefined
     )?.preferences,
     authLoading,
+    isAuthenticated: true,
   }),
 }))
 

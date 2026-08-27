@@ -12,7 +12,8 @@ const USER = { id: 'user-a', identities: [], preferences: {} }
 const authState: {
   preferences?: Record<string, unknown>
   authLoading: boolean
-} = { preferences: {}, authLoading: false }
+  isAuthenticated?: boolean
+} = { preferences: {}, authLoading: false, isAuthenticated: true }
 
 vi.mock('@/contexts/auth-context', () => ({ useAuth: () => authState }))
 

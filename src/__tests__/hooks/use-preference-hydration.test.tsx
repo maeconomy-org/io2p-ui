@@ -21,7 +21,11 @@ import type { PreferenceHints } from '@/constants'
 
 const USER = { id: 'user-a', identities: [], preferences: {} as never }
 
-let authState: { preferences?: unknown; authLoading: boolean } = {
+let authState: {
+  preferences?: unknown
+  authLoading: boolean
+  isAuthenticated?: boolean
+} = {
   preferences: undefined,
   authLoading: false,
 }
@@ -67,7 +71,11 @@ describe('usePreference hydration parity', () => {
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
-    authState = { preferences: undefined, authLoading: false }
+    authState = {
+      preferences: undefined,
+      authLoading: false,
+      isAuthenticated: true,
+    }
     const html = renderToString(<Tree hints={hints} client={client} />)
     expect(html).toContain('columns')
 

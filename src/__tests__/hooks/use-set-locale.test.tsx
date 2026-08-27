@@ -14,7 +14,11 @@ import { queryKeys } from '@/lib/query-keys'
 const USER = { id: 'user-a', identities: [], preferences: {} }
 
 vi.mock('@/contexts/auth-context', () => ({
-  useAuth: () => ({ preferences: {}, authLoading: false }),
+  useAuth: () => ({
+    preferences: {},
+    authLoading: false,
+    isAuthenticated: true,
+  }),
 }))
 
 const updatePreferences = vi.fn()

@@ -102,6 +102,7 @@ function applyPatch(
 function usePreferencePatch(): (patch: Preferences) => void {
   const iom = useIomClient()
   const queryClient = useQueryClient()
+  const { isAuthenticated } = useAuth()
 
   const { mutate } = useMutation({
     mutationFn: (patch: Preferences) => iom.users.updatePreferences(patch),
@@ -155,7 +156,21 @@ function usePreferencePatch(): (patch: Preferences) => void {
     },
   })
 
-  return mutate
+  /**
+   * Signed OUT, the write is SKIPPED rather than attempted and rolled back.
+   *
+   * The auth pages carry a theme and language control of their own, and there is no account yet to
+   * store the choice on — the cookie the caller writes is what the server reads for the next
+   * render, so the change still takes effect. Attempting it anyway 401s on every click, silently
+   * (`onError` only restores the cache), which is a failing request per keystroke for nothing.
+   */
+  return useCallback(
+    (patch: Preferences) => {
+      if (!isAuthenticated) return
+      mutate(patch)
+    },
+    [isAuthenticated, mutate]
+  )
 }
 
 /**

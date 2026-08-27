@@ -14,7 +14,11 @@ import { queryKeys } from '@/lib/query-keys'
 
 const USER = { id: 'user-a', identities: [], preferences: {} as never }
 
-let authState: { preferences?: unknown; authLoading: boolean } = {
+let authState: {
+  preferences?: unknown
+  authLoading: boolean
+  isAuthenticated?: boolean
+} = {
   preferences: undefined,
   authLoading: false,
 }
@@ -44,7 +48,11 @@ describe('usePreference', () => {
         mutations: { retry: false },
       },
     })
-    authState = { preferences: undefined, authLoading: false }
+    authState = {
+      preferences: undefined,
+      authLoading: false,
+      isAuthenticated: true,
+    }
     queryClient.setQueryData(queryKeys.users.current, USER)
     updatePreferences.mockResolvedValue({})
   })
@@ -153,7 +161,11 @@ describe('usePreference', () => {
   })
 
   it('is unresolved while auth is still loading', () => {
-    authState = { preferences: undefined, authLoading: true }
+    authState = {
+      preferences: undefined,
+      authLoading: true,
+      isAuthenticated: true,
+    }
     const { result } = renderHook(() => usePreference('objectsView'), {
       wrapper,
     })
@@ -186,7 +198,11 @@ describe('the `key` override', () => {
         mutations: { retry: false },
       },
     })
-    authState = { preferences: undefined, authLoading: false }
+    authState = {
+      preferences: undefined,
+      authLoading: false,
+      isAuthenticated: true,
+    }
     queryClient.setQueryData(queryKeys.users.current, USER)
     updatePreferences.mockResolvedValue({})
   })
@@ -208,6 +224,22 @@ describe('the `key` override', () => {
     const { result } = renderHook(() => usePreference('locale'), { wrapper })
     expect(result.current[0]).toBe('nl')
   })
+
+  // The auth pages carry their own theme and language controls, and there is no account yet to
+  // store a choice on. The cookie the caller writes still drives the next server render, so the
+  // change takes effect — attempting the account write as well only 401s, once per click.
+  it('skips the account write when nobody is signed in', async () => {
+    authState = {
+      preferences: undefined,
+      authLoading: false,
+      isAuthenticated: false,
+    }
+    const { result } = renderHook(() => usePreference('locale'), { wrapper })
+
+    act(() => result.current[1]('nl'))
+
+    await waitFor(() => expect(updatePreferences).not.toHaveBeenCalled())
+  })
 })
 
 describe('useFlagPreference', () => {
@@ -219,7 +251,11 @@ describe('useFlagPreference', () => {
         mutations: { retry: false },
       },
     })
-    authState = { preferences: undefined, authLoading: false }
+    authState = {
+      preferences: undefined,
+      authLoading: false,
+      isAuthenticated: true,
+    }
     queryClient.setQueryData(queryKeys.users.current, USER)
     updatePreferences.mockResolvedValue({})
   })
@@ -259,7 +295,11 @@ describe('useFlagPreference', () => {
   })
 
   it('follows authLoading for `resolved`', () => {
-    authState = { preferences: undefined, authLoading: true }
+    authState = {
+      preferences: undefined,
+      authLoading: true,
+      isAuthenticated: true,
+    }
     expect(render().result.current[2]).toBe(false)
   })
 })
@@ -315,7 +355,11 @@ describe('usePreference on a cold load', () => {
       },
     })
     // `/me` still in flight: no cached user, and `preferences` undefined.
-    authState = { preferences: undefined, authLoading: false }
+    authState = {
+      preferences: undefined,
+      authLoading: false,
+      isAuthenticated: true,
+    }
   })
 
   // Regression: `onMutate` used to `cancelQueries` on `users.current` — the very query whose
