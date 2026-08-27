@@ -33,7 +33,8 @@
     "typecheck": "tsc --noEmit",
     "typecheck:e2e": "tsc -p e2e/tsconfig.json",
     "fullcheck": "pnpm run typecheck && pnpm run typecheck:e2e && pnpm run lint && pnpm run format:check && pnpm run test:run && pnpm run build",
-    "prepare": "husky"
+    "prepare": "husky",
+    "seed:demo": "tsx -r dotenv/config scripts/seed-demo.ts dotenv_config_path=.env.local"
   },
   "dependencies": {
     "@expr-eval/js": "3.5.1",
