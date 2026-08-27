@@ -123,7 +123,7 @@ describe('suggestMapping', () => {
     }
     expect(columns[4]).toMatchObject({
       kind: 'property',
-      key: 'area_m²', // NOT `area_m` — the ² survives
+      key: 'area-m2', // NOT `area-m` — the ² transliterates rather than vanishing
       label: 'Area (m²)',
     })
   })

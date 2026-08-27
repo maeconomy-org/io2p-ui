@@ -94,7 +94,12 @@ function toTarget(value: string, column: WizardColumn): ColumnTarget | null {
   }
   if (value === 'property') {
     const label = columnLabel(column.header, column.index)
-    return { kind: 'property', key: deriveKey(label), label, split: null }
+    return {
+      kind: 'property',
+      key: deriveKey(column.header, column.index),
+      label,
+      split: null,
+    }
   }
   return { kind: value as 'name' }
 }

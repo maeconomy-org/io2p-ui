@@ -9,6 +9,8 @@
 
 import type { ImportItemInput } from 'io2p-client'
 
+import { resolveKey } from '@/constants/property-dictionary'
+
 import type { ImportMessage } from './messages'
 
 /** Where a column's value goes. `null` means the column is not mapped. */
@@ -105,14 +107,6 @@ function splitValues(text: string, split: string | null): string[] {
 }
 
 /**
- * A key that keeps every letter and digit, in ANY script.
- *
- * `\p{L}\p{N}` with the `u` flag, never `\w` — `\w` is `[A-Za-z0-9_]`, so it silently drops
- * accented letters: a German header `Größe` becomes `grse` and `Fläche m²` becomes `flche_m`.
- * The label keeps the original either way, so the UI looks correct while search and templates key
- * off a string nobody has ever seen.
- */
-/**
  * The property label PERSISTED to the node. Never translated — running the wizard in Dutch would
  * write `Kolom 3` into an append-only store. The on-screen name is `import.map.unnamedColumn`.
  */
@@ -120,14 +114,23 @@ export function columnLabel(header: string, index: number): string {
   return header.trim() || `Column ${index + 1}`
 }
 
-export function deriveKey(header: string): string {
-  return (
-    header
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '_')
-      .replace(/[^\p{L}\p{N}_]/gu, '') || 'column'
-  )
+/**
+ * The key a spreadsheet column is stored under — the SAME resolution the typed property field
+ * applies, via `resolveKey`.
+ *
+ * It has to be identical, not merely similar: a rollup rule matches `search.k` exactly, and core
+ * lowercases the key and does nothing else. An import that spelled `year_built` where the property
+ * field writes `year-built` produced rows no rule could ever sum, while both spellings looked
+ * correct on screen. Going through the dictionary also earns the import cross-language convergence
+ * for free — a Dutch `Gewicht` column now lands on `weight` alongside an English one.
+ *
+ * `slug` returns '' for a header with nothing ASCII-able in it (CJK, emoji), which is not storable —
+ * hence the positional fallback, which also keeps two blank headers apart.
+ */
+export function deriveKey(header: string, index?: number): string {
+  const resolved = resolveKey(header.trim()).key
+  if (resolved) return resolved
+  return index === undefined ? 'column' : `column-${index + 1}`
 }
 
 /** The body under construction — accumulated across the rows that share a hierarchy path. */

@@ -207,11 +207,10 @@ export function suggestMapping(
 
     // Everything else becomes a PROPERTY rather than nothing: an unmapped column is data the
     // operator brought and the import silently discarded.
-    // Keyed off the LABEL: `deriveKey('')` is the literal `'column'`, so two blank headers collide.
     const label = columnLabel(header, index)
     columns[index] = {
       kind: 'property',
-      key: deriveKey(label),
+      key: deriveKey(header, index),
       label,
       split: suggestSplit(samples),
     }

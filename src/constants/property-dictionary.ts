@@ -677,11 +677,34 @@ export function resolvePropertyLabel(
 const normalize = (s: string) => s.trim().toLowerCase()
 
 /**
+ * Letters that survive NFD intact, because they are their own codepoint rather than a base plus a
+ * combining mark. Stripping marks turns "\u00f6" into "o" but leaves "\u00df" and "\u00e6" untouched, so without
+ * this they fall to the non-ASCII filter and VANISH \u2014 "Gr\u00f6\u00dfe" would key as `gro-e`.
+ */
+const TRANSLITERATIONS: Record<string, string> = {
+  ß: 'ss',
+  æ: 'ae',
+  œ: 'oe',
+  ø: 'o',
+  đ: 'd',
+  ð: 'd',
+  þ: 'th',
+  ł: 'l',
+  ħ: 'h',
+  ı: 'i',
+  '\u00b2': '2',
+  '\u00b3': '3',
+}
+
+/**
  * Turn typed text into a stable property key.
  *
  * Diacritics are STRIPPED rather than preserved: the node lowercases a key and does nothing else,
  * so "Oppervlakte" and "oppervlákte" would otherwise be two keys for one word, and a rollup rule
  * matching `search.k` exactly would sum only one of them.
+ *
+ * Returns `''` for input with no ASCII-able characters at all (CJK, emoji). Callers that key data
+ * off the result MUST supply their own fallback — an empty key is not storable.
  *
  * Deliberately dictionary-INDEPENDENT. This is the floor that holds however the vocabulary is
  * configured (or removed): two people typing the same word in the same language always get the
@@ -692,6 +715,7 @@ export function slug(input: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+    .replace(/[^a-z0-9]/g, (char) => TRANSLITERATIONS[char] ?? char)
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')

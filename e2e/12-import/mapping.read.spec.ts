@@ -76,7 +76,8 @@ test.describe('12 - import / mapping', () => {
 
     await page.getByTestId('wizard-next').click()
     expect(await statValue(page, 'objects')).toBe(3)
-    // Dropped rather than slugged, its three cells would be missing from the total.
+    // The header keys as `grosse`; what this guards is that it keys as ANYTHING. A header the
+    // slug empties is a column dropped whole, and its three cells go missing from the total.
     expect(await statValue(page, 'values')).toBe(6)
   })
 

@@ -6,6 +6,7 @@ import {
   columnLabel,
   deriveKey,
 } from '@/app/import/lib/build-items'
+import { resolveKey } from '@/constants/property-dictionary'
 
 /**
  * tempIds are level segments joined by U+0000, not '/'. Spelled once here: a test that hardcodes
@@ -65,27 +66,48 @@ describe('columnLabel', () => {
   })
 
   it('gives two blank columns DISTINCT property keys', () => {
-    const first = deriveKey(columnLabel('', 2))
-    const second = deriveKey(columnLabel('', 3))
+    const first = deriveKey('', 2)
+    const second = deriveKey('', 3)
 
-    expect(first).toBe('column_3')
-    expect(second).toBe('column_4')
+    expect(first).toBe('column-3')
+    expect(second).toBe('column-4')
     expect(first).not.toBe(second)
   })
 })
 
 describe('deriveKey', () => {
-  it('keeps letters and digits in ANY script', () => {
-    // `\w` is [A-Za-z0-9_], so it drops accents silently: the label still reads "Größe" while
-    // search and templates key off "grse". This is the exact bug the old mapper shipped.
-    expect(deriveKey('Größe')).toBe('größe')
-    expect(deriveKey('Fläche m²')).toBe('fläche_m²')
-    expect(deriveKey('Year Built')).toBe('year_built')
+  it('agrees EXACTLY with the typed property field', () => {
+    // The whole point of the function: a rollup rule matches `search.k` verbatim, so an imported
+    // column and a hand-typed property of the same name must produce one key, not two that read
+    // alike. `year_built` vs `year-built` is what made imported rows unsummable.
+    for (const header of ['Year Built', 'Energy Consumption', 'Concrete Mass'])
+      expect(deriveKey(header)).toBe(resolveKey(header).key)
+  })
+
+  it('resolves a known term through the dictionary, in either language', () => {
+    expect(deriveKey('Gewicht')).toBe('weight')
+    expect(deriveKey('Weight')).toBe('weight')
+  })
+
+  it('transliterates letters that survive diacritic-stripping', () => {
+    // NFD leaves ß and æ whole, so the ASCII filter would DELETE them: `Größe` keyed as `gro-e`.
+    expect(deriveKey('Größe')).toBe('grosse')
+    expect(deriveKey('Fläche m²')).toBe('flache-m2')
+  })
+
+  it('converges spellings that differ only by accent', () => {
+    // Off-dictionary, so both fall to `slug` — which is where the diacritic guarantee lives. A
+    // dictionary TERM is matched literally, so an accented misspelling of one resolves by slug
+    // instead of to the canonical key; that gap is `findExactTerm`'s, not this function's.
+    expect(deriveKey('Vloerafwérking')).toBe(deriveKey('Vloerafwerking'))
   })
 
   it('never returns an empty key', () => {
+    // `slug` yields '' here; an empty key is not storable, so the position stands in.
+    expect(deriveKey('   ', 0)).toBe('column-1')
+    expect(deriveKey('!!!', 4)).toBe('column-5')
+    expect(deriveKey('日本語', 1)).toBe('column-2')
     expect(deriveKey('   ')).toBe('column')
-    expect(deriveKey('!!!')).toBe('column')
   })
 })
 
