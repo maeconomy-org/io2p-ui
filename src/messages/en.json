@@ -459,6 +459,7 @@
     "propertyEditor": {
       "name": "Name",
       "namePlaceholder": "Select or type a property name",
+      "keyLocked": "Renaming changes the label only — this property stays stored as “{key}” and keeps totalling under that key. To total under a new key, remove this property and add it again.",
       "value": "Value",
       "derived": "Derived",
       "addProperty": "Add property",

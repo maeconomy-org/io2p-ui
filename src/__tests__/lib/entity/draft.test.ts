@@ -173,6 +173,35 @@ describe('buildUpdateObjectBody', () => {
     expect(body.properties?.update).toEqual([{ id: 'p1', label: 'Weight' }])
   })
 
+  it('property update: a renamed key is NOT sent, only the label', () => {
+    // Core declares the key immutable (`PropertyUpdateShape` has no `key` field), so a rename
+    // reaches the node as a label change and the property keeps totalling under its ORIGINAL key.
+    // The sheet warns about this; the body must not pretend otherwise by shipping a key core
+    // would reject.
+    const before = loaded({
+      properties: [{ id: 'p1', key: 'mass', label: 'Massa', values: [] }],
+    })
+    const body = buildUpdateObjectBody(
+      before,
+      draft({
+        properties: [
+          {
+            id: 'p1',
+            key: 'concrete-mass',
+            label: 'Concrete Mass',
+            values: [],
+          },
+        ],
+      })
+    )
+
+    expect(body.properties?.update).toEqual([
+      { id: 'p1', label: 'Concrete Mass' },
+    ])
+    expect(body.properties?.update?.[0]).not.toHaveProperty('key')
+    expect(body.properties?.add).toBeUndefined()
+  })
+
   it('value add / remove / data-update within a property', () => {
     const before = loaded({
       properties: [

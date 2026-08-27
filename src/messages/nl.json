@@ -460,6 +460,7 @@
     "propertyEditor": {
       "name": "Naam",
       "namePlaceholder": "Selecteer of typ een eigenschapsnaam",
+      "keyLocked": "Hernoemen wijzigt alleen het label — deze eigenschap blijft opgeslagen als “{key}” en telt onder die sleutel. Verwijder de eigenschap en voeg hem opnieuw toe om onder een nieuwe sleutel te tellen.",
       "value": "Waarde",
       "derived": "Afgeleid",
       "addProperty": "Eigenschap toevoegen",

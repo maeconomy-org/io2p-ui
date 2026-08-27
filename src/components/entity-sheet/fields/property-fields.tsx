@@ -295,6 +295,17 @@ function PropertyRow({
   // New properties (no key yet) open expanded to edit; loaded ones start collapsed to stay compact.
   const [isNew] = useState(() => !form.getValues(`${basePath}.${index}.key`))
   const [open, setOpen] = useState(isNew)
+  /**
+   * The key this property was COMMITTED under, for a property that already exists on the node.
+   *
+   * Read once: it is the baseline a rename is measured against, so re-reading it after the rename
+   * would compare the new key with itself and never warn.
+   */
+  const [committedKey] = useState<string | undefined>(() =>
+    form.getValues(`${basePath}.${index}.id`)
+      ? form.getValues(`${basePath}.${index}.key`)
+      : undefined
+  )
   const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -463,7 +474,16 @@ function PropertyRow({
                 className="h-8 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 placeholder={t('objects.propertyEditor.namePlaceholder')}
                 data-testid={`property-name-${index}`}
-                value={propKey ?? ''}
+                /*
+                 * The LABEL, not the key — the field is called "Name" and every other surface
+                 * (the row header, the read view, the grid) shows the label. Binding it to the key
+                 * put `gross-floor-area` under a "Name" heading beside a card reading "Gross floor
+                 * area", and typing over it read as renaming when core forbids a re-key.
+                 *
+                 * Falls back to the key so a property authored before a label existed still shows
+                 * something rather than an empty field.
+                 */
+                value={propLabel || propKey || ''}
                 onChange={(key, label) => {
                   form.setValue(`${basePath}.${index}.key`, key, {
                     shouldDirty: true,
@@ -494,6 +514,20 @@ function PropertyRow({
               )}
             </div>
           </div>
+          {committedKey && propKey && propKey !== committedKey && (
+            /*
+             * A committed property's key is IMMUTABLE — core rejects it in `PropertyUpdateShape`,
+             * so `diffProperties` sends the new label and the key stays as authored. Silently that
+             * leaves two properties reading alike in the sheet while totalling under different
+             * rollup keys, and the renamed one drops out of its parent's total with nothing said.
+             */
+            <p
+              className="text-xs text-amber-600 dark:text-amber-500"
+              data-testid={`property-key-locked-${index}`}
+            >
+              {t('objects.propertyEditor.keyLocked', { key: committedKey })}
+            </p>
+          )}
           {allowFiles && (
             <FilesDisclosure
               files={propFiles}

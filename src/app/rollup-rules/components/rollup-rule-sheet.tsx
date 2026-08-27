@@ -212,6 +212,9 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
               id={fieldId}
               value={draft}
               onChange={(key) => setDraft(key)}
+              // Enter queues the key, so several can be typed in a row without reaching for the
+              // mouse. `addKey` is a no-op unless `canAdd`, so a duplicate or empty key just sits.
+              onEnter={addKey}
               placeholder={t('rollupRules.placeholders.propertyKey')}
               aria-invalid={draftExists || draftQueued}
               aria-describedby={hintId}

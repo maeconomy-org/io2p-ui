@@ -23,6 +23,7 @@ import {
 } from '@/constants/property-dictionary'
 
 export interface PropertyNameComboboxProps {
+  /** The LABEL — this is a field called "Name", so it shows the name, never the stored key. */
   value: string
   /**
    * Fires on every change. `key` is the stable identifier stored on the
@@ -33,6 +34,11 @@ export interface PropertyNameComboboxProps {
    */
   onChange: (key: string, label: string) => void
   onBlur?: () => void
+  /**
+   * Enter pressed with no suggestion list open — the key is settled first, so the handler reads a
+   * committed value rather than the raw text. Omit it and Enter does nothing, as before.
+   */
+  onEnter?: () => void
   placeholder?: string
   id?: string
   className?: string
@@ -54,6 +60,7 @@ export const PropertyNameCombobox = forwardRef<
     value,
     onChange,
     onBlur,
+    onEnter,
     placeholder,
     id,
     className,
@@ -106,12 +113,13 @@ export const PropertyNameCombobox = forwardRef<
   /**
    * Settle the key once the user is done typing.
    *
-   * On COMMIT, not per keystroke: rewriting the key mid-word fights the input, and half a word is
-   * not a term. The visible text never changes here — only the stored key does.
+   * On COMMIT, not per keystroke: resolving mid-word fights the input, and half a word is not a
+   * term. `value` is the LABEL the user sees, so the visible text is never rewritten here — only
+   * the stored key is, from the text as typed.
    */
   const commit = () => {
-    const { key, label } = resolveKey(value)
-    if (key !== value) onChange(key, label)
+    const { key } = resolveKey(value)
+    if (key !== '') onChange(key, value)
     onBlur?.()
   }
 
@@ -123,6 +131,14 @@ export const PropertyNameCombobox = forwardRef<
         e.preventDefault()
         setIsOpen(true)
         setHighlighted(0)
+      }
+      // Only with the list CLOSED: with it open, Enter belongs to the highlighted suggestion, and
+      // stealing it would submit the half-typed text the user was about to replace.
+      if (e.key === 'Enter' && onEnter) {
+        e.preventDefault()
+        const { key } = resolveKey(value)
+        if (key !== '') onChange(key, value)
+        onEnter()
       }
       return
     }
