@@ -6,6 +6,10 @@ import { AlertTriangle, ChevronDown, ChevronUp, Sigma } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import {
+  resolvePropertyLabel,
+  type PropertyDictionaryLocale,
+} from '@/constants/property-dictionary'
 import type {
   DraftProperty,
   ValueProvenance as ValueProvenanceData,
@@ -156,14 +160,20 @@ export function ValueProvenanceDisplay({
  */
 export function labelForValueId(
   properties: DraftProperty[],
-  valueId: string
+  valueId: string,
+  locale?: PropertyDictionaryLocale
 ): string | undefined {
   for (const p of properties) {
     // Match `ref` as well as `id`: a not-yet-saved value has only a client ref, and a TEMPLATE value
     // has its ref preserved as the thing sibling calcs bind to. Matching ids alone would leave those
     // bindings labelled as unknown.
     if (p.values.some((v) => v.id === valueId || v.ref === valueId))
-      return p.label || p.key
+      // A formula trace names a sibling PROPERTY, so it reads in the same language as that
+      // property's own row — `weight` must not surface here as "Weight" beside a card saying
+      // "Gewicht". Locale is optional so a non-rendering caller can still ask for the raw label.
+      return locale
+        ? resolvePropertyLabel(p.key, p.label, locale)
+        : p.label || p.key
   }
   return undefined
 }

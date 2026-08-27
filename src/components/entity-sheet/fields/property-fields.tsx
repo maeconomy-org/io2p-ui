@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { PropertyNameCombobox } from './property-name-combobox'
 import {
   getValuePlaceholder,
+  resolvePropertyLabel,
   type PropertyDictionaryLocale,
 } from '@/constants/property-dictionary'
 import {
@@ -115,7 +116,8 @@ function newValue(): DraftValue {
  */
 function collectSiblings(
   properties: EntityDraft['properties'],
-  selfKey: string | undefined
+  selfKey: string | undefined,
+  locale: PropertyDictionaryLocale
 ): FormulaSibling[] {
   const out: FormulaSibling[] = []
   properties.forEach((p) => {
@@ -127,7 +129,7 @@ function collectSiblings(
       if (text !== '' && !Number.isFinite(num)) return
       out.push({
         key,
-        label: p.label || p.key || '—',
+        label: resolvePropertyLabel(p.key, p.label, locale) || '—',
         num: Number.isFinite(num) ? num : undefined,
       })
     })
@@ -344,6 +346,9 @@ function PropertyRow({
 
   const propKey = row?.key
   const propLabel = row?.label
+  // One resolved name for the whole row: the collapsed header, the deleted row and the Name field
+  // must agree, or expanding a property appears to rename it.
+  const displayLabel = resolvePropertyLabel(propKey, propLabel, locale)
   const propDeleted = row?.deleted ?? false
   const valuePlaceholder =
     getValuePlaceholder(propKey, locale) ?? t('objects.propertyEditor.value')
@@ -391,7 +396,7 @@ function PropertyRow({
   if (propDeleted) {
     return (
       <DeletedRow
-        label={propLabel || propKey || t('objects.propertyEditor.name')}
+        label={displayLabel || t('objects.propertyEditor.name')}
         onRestore={onRestore}
         testId={`property-deleted-${index}`}
       />
@@ -417,7 +422,7 @@ function PropertyRow({
             )}
           />
           <span className="truncate text-sm font-medium">
-            {propLabel || propKey || (
+            {displayLabel || (
               <span className="italic text-muted-foreground">
                 {t('objects.propertyEditor.namePlaceholder')}
               </span>
@@ -480,10 +485,11 @@ function PropertyRow({
                  * put `gross-floor-area` under a "Name" heading beside a card reading "Gross floor
                  * area", and typing over it read as renaming when core forbids a re-key.
                  *
-                 * Falls back to the key so a property authored before a label existed still shows
-                 * something rather than an empty field.
+                 * Localized through the dictionary for the same reason the read view is: a known
+                 * term reads in the viewer's own language on both sides of Edit, so toggling into
+                 * edit mode does not rename what the reader was just looking at.
                  */
-                value={propLabel || propKey || ''}
+                value={displayLabel}
                 onChange={(key, label) => {
                   form.setValue(`${basePath}.${index}.key`, key, {
                     shouldDirty: true,
@@ -601,7 +607,11 @@ function PropertyRow({
                         <ValueProvenanceDisplay
                           provenance={provenance}
                           labelForValue={(id) =>
-                            labelForValueId(siblingSource ?? ownProperties, id)
+                            labelForValueId(
+                              siblingSource ?? ownProperties,
+                              id,
+                              locale
+                            )
                           }
                         />
                       ) : (
@@ -758,7 +768,8 @@ function PropertyRow({
                       calc={value.calc}
                       siblings={collectSiblings(
                         siblingSource ?? ownProperties,
-                        selfKey
+                        selfKey,
+                        locale
                       )}
                       onChange={(calc) =>
                         form.setValue(`${base}.calc`, calc, {

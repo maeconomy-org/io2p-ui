@@ -215,11 +215,16 @@ export function PropertyReadView({
         <div className="grid grid-cols-2 gap-2">
           {properties.map((p, i) =>
             p.deleted ? (
-              <DeletedRow key={p.id ?? i} label={p.label || p.key} />
+              <DeletedRow
+                key={p.id ?? i}
+                label={resolvePropertyLabel(p.key, p.label, locale)}
+              />
             ) : (
               <div key={p.id ?? i} className="rounded-md border p-2.5">
                 <div className="flex items-center gap-1.5 text-sm font-medium">
-                  <span className="truncate">{p.label || p.key}</span>
+                  <span className="truncate">
+                    {resolvePropertyLabel(p.key, p.label, locale)}
+                  </span>
                   {allowFiles && fileCount(p) > 0 && (
                     <Badge
                       variant="secondary"
@@ -257,7 +262,7 @@ export function PropertyReadView({
               property={p}
               derivedValues={derivedValues}
               boundValueIds={boundValueIds}
-              labelForValue={(id) => labelForValueId(properties, id)}
+              labelForValue={(id) => labelForValueId(properties, id, locale)}
               entityId={entityId}
               onFileChange={onFileChange}
               allowFiles={allowFiles}
@@ -355,11 +360,18 @@ function PropertyCard({
   rollup?: EntityRollupEntry
 }) {
   const t = useTranslations()
+  const locale = useLocale() as PropertyDictionaryLocale
   const [open, setOpen] = useState(false)
   const count = allowFiles ? fileCount(property) : 0
+  // A dictionary term reads in the viewer's own language; anything else keeps the authored text.
+  const displayLabel = resolvePropertyLabel(
+    property.key,
+    property.label,
+    locale
+  )
 
   if (property.deleted) {
-    return <DeletedRow label={property.label || property.key} />
+    return <DeletedRow label={displayLabel} />
   }
 
   return (
@@ -375,9 +387,7 @@ function PropertyCard({
             open && 'rotate-90'
           )}
         />
-        <span className="truncate text-sm font-medium">
-          {property.label || property.key}
-        </span>
+        <span className="truncate text-sm font-medium">{displayLabel}</span>
         <span className="ml-2 min-w-0 flex-1 truncate text-sm text-muted-foreground">
           {valueSummary(
             property,
