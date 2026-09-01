@@ -337,6 +337,15 @@ export function ProcessFlowView({
 }
 
 /**
+ * The unitless bucket's own unit is `''`, and Radix REFUSES an empty `SelectItem` value — it
+ * reserves that for clearing the selection. It throws rather than warns, which unmounts the whole
+ * flow view into the error boundary, so the crash lands on the chart and not on the one control
+ * that caused it. Only reachable once the graph is mixed, which is why the picker being rendered at
+ * all is what triggers it.
+ */
+const UNITLESS_VALUE = '__unitless__'
+
+/**
  * Two categories, so a legend is mandatory: node kind must never rest on hue alone. Each swatch is
  * the same secondary cue its chart draws — a dashed wash in the Sankey, a diamond in the overview.
  */
@@ -355,7 +364,10 @@ function Legend({
   const network = variant === 'network'
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-4 border-t pt-3 text-xs text-muted-foreground">
+    <div
+      data-testid="flow-legend"
+      className="mt-3 flex flex-wrap items-center gap-4 border-t pt-3 text-xs text-muted-foreground"
+    >
       <span className="inline-flex items-center gap-1.5">
         <span
           className={cn(
@@ -398,7 +410,12 @@ function Legend({
       {!network && units.length > 1 && (
         <span className="ml-auto inline-flex items-center gap-1.5">
           <span>{t('processes.flowView.unit.widths')}</span>
-          <Select value={activeUnit ?? ''} onValueChange={onActiveUnitChange}>
+          <Select
+            value={activeUnit === null ? '' : activeUnit || UNITLESS_VALUE}
+            onValueChange={(value) =>
+              onActiveUnitChange(value === UNITLESS_VALUE ? '' : value)
+            }
+          >
             <SelectTrigger
               className="h-7 w-[7.5rem] text-xs"
               aria-label={t('processes.flowView.unit.label')}
@@ -408,7 +425,10 @@ function Legend({
             </SelectTrigger>
             <SelectContent>
               {units.map(({ unit, count }) => (
-                <SelectItem key={unit || 'unitless'} value={unit}>
+                <SelectItem
+                  key={unit || UNITLESS_VALUE}
+                  value={unit || UNITLESS_VALUE}
+                >
                   {unit || t('processes.flowView.unit.unitless')} ({count})
                 </SelectItem>
               ))}
