@@ -42,6 +42,10 @@ export function LanguageSelect({ className }: { className?: string }) {
           variant="ghost"
           size="icon"
           className={className}
+          // The aria-label is TRANSLATED, so a locator built on it stops
+          // matching the moment the page is in Dutch — which is the state half
+          // the language cases put it in.
+          data-testid="language-select"
           aria-label={t('footer.language')}
         >
           <Languages className="h-4 w-4" />

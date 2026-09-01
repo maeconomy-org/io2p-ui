@@ -19,7 +19,10 @@ export default function AuthLayout({
 
   return (
     <div className="relative flex flex-1">
-      <div className="absolute right-4 top-4 z-20 flex items-center gap-1">
+      <div
+        data-testid="auth-chrome"
+        className="absolute right-4 top-4 z-20 flex items-center gap-1"
+      >
         <LanguageSelect className="size-9" />
         <ThemeSelect className="size-9" />
       </div>
