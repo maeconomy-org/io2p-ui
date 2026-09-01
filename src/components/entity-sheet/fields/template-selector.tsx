@@ -100,6 +100,7 @@ export function TemplateSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          data-testid="template-selector"
           className={cn(
             'h-9 w-full justify-between font-normal',
             !selected && 'text-muted-foreground'
@@ -137,6 +138,7 @@ export function TemplateSelector({
                 <CommandItem
                   key={template.id}
                   value={template.id}
+                  data-testid={`template-option-${template.id}`}
                   onSelect={() => choose(template)}
                 >
                   <Check
@@ -154,7 +156,10 @@ export function TemplateSelector({
                     ownerName={template.ownerName}
                   />
                   {(template.properties?.length ?? 0) > 0 && (
-                    <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                    <span
+                      data-testid="template-option-property-count"
+                      className="ml-2 shrink-0 text-xs text-muted-foreground"
+                    >
                       {t('objects.templateSelector.propertyCount', {
                         count: template.properties?.length ?? 0,
                       })}
