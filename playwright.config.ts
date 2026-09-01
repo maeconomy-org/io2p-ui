@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { existsSync } from 'fs'
 import * as dotenv from 'dotenv'
 import path from 'path'
 
@@ -20,8 +21,47 @@ function getCertAuthOrigin(): string {
   return url.origin
 }
 
+/**
+ * Empty unless a real key pair is on this machine.
+ *
+ * `certs/` is gitignored, so the file NAMES vary per checkout — this config named one that only
+ * ever existed on the author's machine, and Playwright reads `certPath` while building the browser
+ * context, so an absent file fails `setup`, which every other project depends on. One missing file
+ * cancelled the whole run with an ENOENT that named neither mTLS nor the config.
+ *
+ * The only specs that need the pair are `14-auth/certificate.spec.ts`, and those already skip on
+ * `E2E_MTLS_ORIGIN`. Override the names with `E2E_CLIENT_CERT` / `E2E_CLIENT_KEY`.
+ */
+function getClientCertificates() {
+  const origin = getCertAuthOrigin()
+  if (!origin) return []
+
+  const certPath = path.join(
+    certsDir,
+    process.env.E2E_CLIENT_CERT || 'client1.crt'
+  )
+  const keyPath = path.join(
+    certsDir,
+    process.env.E2E_CLIENT_KEY || 'client1.key'
+  )
+  if (!existsSync(certPath) || !existsSync(keyPath)) return []
+
+  return [
+    {
+      origin,
+      certPath,
+      keyPath,
+      passphrase: process.env.CLIENT_CERT_PASSPHRASE || '',
+    },
+  ]
+}
+
 export default defineConfig({
   testDir: './e2e',
+
+  // The generated fixtures, before any spec can ENOENT on one. `pretest:e2e` only covers
+  // `pnpm test:e2e`, and every documented run command is a bare `npx playwright test`.
+  globalSetup: './e2e/setup/generate-fixtures.ts',
 
   fullyParallel: false, // Run tests serially for stability
   forbidOnly: !!process.env.CI,
@@ -47,14 +87,7 @@ export default defineConfig({
       slowMo: process.env.SLOW_MO ? parseInt(process.env.SLOW_MO) : 0,
     },
     // Certificate for API servers (mTLS)
-    clientCertificates: [
-      {
-        origin: getCertAuthOrigin(),
-        certPath: path.join(certsDir, 'client_1_2.crt'),
-        keyPath: path.join(certsDir, 'client_1_2.key'),
-        passphrase: process.env.CLIENT_CERT_PASSPHRASE || '',
-      },
-    ],
+    clientCertificates: getClientCertificates(),
   },
   projects: [
     {

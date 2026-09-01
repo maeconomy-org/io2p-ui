@@ -1,6 +1,7 @@
 import { expect, test as setup } from '@playwright/test'
 
 import { resetPreferences } from '../utils/preferences'
+import { ensureRootObjects } from '../utils/seed-objects'
 import { AUTH_STATE, requireCredentials } from './credentials'
 
 /** Signs in once and saves the state every other project reuses. See §4.8 of the e2e plan. */
@@ -20,6 +21,10 @@ setup('authenticate', async ({ page }) => {
   ).toBeVisible()
 
   await resetPreferences(page)
+  // Setup already owns the account's preconditions, and this is one: half the suite opens on a
+  // `data-table-row`, and L1/L2 need MORE THAN ONE PAGE of them. Writes nothing when the account
+  // already has enough.
+  await ensureRootObjects(page)
 
   // The reset lands on the node; the tab still holds the old values in its `/me` cache.
   await page.goto('/objects')

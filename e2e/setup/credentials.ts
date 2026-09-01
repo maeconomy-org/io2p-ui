@@ -22,7 +22,7 @@ export function requireCredentials(): Credentials {
   if (!email || !password) {
     throw new Error(
       'E2E_EMAIL and E2E_PASSWORD must be set in .env.local. ' +
-        'See internal-docs/11-e2e-test-plan.md §4.8.'
+        'See docs/e2e-docs/e2e-test-plan.md §4.8.'
     )
   }
 
