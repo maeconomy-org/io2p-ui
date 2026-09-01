@@ -83,14 +83,23 @@ export function ShareDetailSheet({
         <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
           <div className="px-6 pt-4">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overview">
+              <TabsTrigger
+                value="overview"
+                data-testid="share-detail-tab-overview"
+              >
                 {t('shares.tabOverview')}
               </TabsTrigger>
-              <TabsTrigger value="resources">
+              <TabsTrigger
+                value="resources"
+                data-testid="share-detail-tab-resources"
+              >
                 <Boxes className="mr-1.5 h-3.5 w-3.5" />
                 {resources.length}
               </TabsTrigger>
-              <TabsTrigger value="members">
+              <TabsTrigger
+                value="members"
+                data-testid="share-detail-tab-members"
+              >
                 <Users className="mr-1.5 h-3.5 w-3.5" />
                 {members.length}
               </TabsTrigger>
