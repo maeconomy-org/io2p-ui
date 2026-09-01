@@ -241,11 +241,17 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
               </p>
             )}
             {draftExists ? (
-              <p className="text-xs text-destructive">
+              <p
+                className="text-xs text-destructive"
+                data-testid="rollup-rule-duplicate-key"
+              >
                 {t('rollupRules.duplicateKey')}
               </p>
             ) : draftQueued ? (
-              <p className="text-xs text-destructive">
+              <p
+                className="text-xs text-destructive"
+                data-testid="rollup-rule-already-queued"
+              >
                 {t('rollupRules.alreadyQueued')}
               </p>
             ) : (
