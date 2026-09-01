@@ -193,6 +193,9 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
                 key={row.tempId}
                 data-testid={`check-row-${row.tempId}`}
                 data-depth={row.depth}
+                // An attribute rather than a testid on the cell: the Yes badge is `common.yes`, so
+                // a locator on its TEXT reads nothing the moment the account is in Dutch.
+                data-has-address={String(row.hasAddress)}
               >
                 <TableCell>
                   {/* Indentation IS the hierarchy. A flat list of 1,847 names says nothing about

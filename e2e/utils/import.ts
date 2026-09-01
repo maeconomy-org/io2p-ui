@@ -5,6 +5,7 @@ export type SheetFixture =
   | 'flat.csv'
   | 'preamble.csv'
   | 'levels.csv'
+  | 'levels-address.csv'
   | 'keys.csv'
   | 'unicode.csv'
   | 'noname.csv'
