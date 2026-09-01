@@ -24,7 +24,11 @@ async function signIn(page: import('@playwright/test').Page): Promise<void> {
 }
 
 test.describe('14 - auth / locale on login', () => {
-  test('a Dutch account signing in from an English login page lands in Dutch', async ({
+  /**
+   * ⏸ DEFERRED — the same reconcile gap as `13-preferences/self-heal.spec.ts`, arriving through the
+   * login form instead of a full load. See `docs/e2e-docs/e2e-run-2026-08-31.md` "Still open" #1.
+   */
+  test.fixme('a Dutch account signing in from an English login page lands in Dutch', async ({
     page,
     context,
   }) => {

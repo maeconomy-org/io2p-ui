@@ -219,11 +219,14 @@ test.describe('03 - object sheet / binding scope', () => {
       'true'
     )
 
+    // `Width`, not the `width` that was typed. The sibling testid is minted from the LABEL, and
+    // `collectSiblings` resolves a dictionary key through `resolvePropertyLabel` — so a key the
+    // dictionary knows comes back as its display name.
     await page.getByTestId('binding-scope-constants').click()
-    await expect(page.getByTestId('formula-sibling-width')).toHaveCount(0)
+    await expect(page.getByTestId('formula-sibling-Width')).toHaveCount(0)
 
     await page.getByTestId('binding-scope-siblings').click()
-    await expect(page.getByTestId('formula-sibling-width')).toBeVisible()
+    await expect(page.getByTestId('formula-sibling-Width')).toBeVisible()
     await expect(page.getByTestId(/^formula-constant-/)).toHaveCount(0)
   })
 })

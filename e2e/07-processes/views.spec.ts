@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/app'
+import { selectView } from '../utils/views'
 
 /**
  * §6.11 PR3, PR4, PR15 — the process view selector.
@@ -9,7 +10,7 @@ import { expect, test } from '../fixtures/app'
 test.describe('07 - processes / views', () => {
   test.afterEach(async ({ page }) => {
     await page.goto('/processes')
-    await page.getByTestId('view-option-table').click()
+    await selectView(page, 'table')
     await expect(page.getByTestId('data-table')).toBeVisible()
   })
 
@@ -19,7 +20,7 @@ test.describe('07 - processes / views', () => {
     await page.goto('/processes')
     await expect(page.getByTestId('data-table')).toBeVisible()
 
-    await page.getByTestId('view-option-sankey').click()
+    await selectView(page, 'sankey')
     await expect(page.getByTestId('data-table')).toHaveCount(0)
 
     await expect(page.getByTestId('filter-menu')).toHaveCount(0)
@@ -37,7 +38,7 @@ test.describe('07 - processes / views', () => {
     page,
   }) => {
     await page.goto('/processes')
-    await page.getByTestId('view-option-sankey').click()
+    await selectView(page, 'sankey')
     await expect(page.getByTestId('data-table')).toHaveCount(0)
 
     // A swap is visible for one frame, but the same divergence is reliably reported as a

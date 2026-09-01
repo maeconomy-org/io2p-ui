@@ -53,18 +53,15 @@ function defaultsPatch(): Record<string, Record<string, unknown>> {
 }
 
 /**
- * Reset the account to its default preferences.
- *
- * Preferences are ACCOUNT state stored on the node, so they outlive a run: a spec that leaves
- * `/processes` in the Sankey view, an access scope on `shared`, or a hidden column breaks unrelated
- * specs in the NEXT run, and the failure looks exactly like an app regression.
+ * Send one merge patch to `me/preferences`.
  *
  * Runs in the page so it borrows the session cookie and `__IOM_CONFIG__` — a `page.request` call
  * carries the cookie but cannot mint the short-lived core token the node wants.
  */
-export async function resetPreferences(page: Page): Promise<void> {
-  const patch = defaultsPatch()
-
+export async function patchPreferences(
+  page: Page,
+  patch: Record<string, Record<string, unknown>>
+): Promise<void> {
   const failure = await page.evaluate(async (body) => {
     const config = (
       window as unknown as {
@@ -94,6 +91,34 @@ export async function resetPreferences(page: Page): Promise<void> {
   }, patch)
 
   if (failure) {
-    throw new Error(`Could not reset preferences — ${failure}`)
+    throw new Error(`Could not patch preferences — ${failure}`)
   }
+}
+
+/**
+ * Reset the account to its default preferences.
+ *
+ * Preferences are ACCOUNT state stored on the node, so they outlive a run: a spec that leaves
+ * `/processes` in the Sankey view, an access scope on `shared`, or a hidden column breaks unrelated
+ * specs in the NEXT run, and the failure looks exactly like an app regression.
+ */
+export async function resetPreferences(page: Page): Promise<void> {
+  await patchPreferences(page, defaultsPatch())
+}
+
+/**
+ * Empty `toursSeen`, so the welcome tour arms on the next signed-in render.
+ *
+ * The one preference `resetPreferences` deliberately does NOT restore to its registry default, and
+ * the reason it does not is the reason this exists: an armed tour drops `driver-overlay` over every
+ * list page and swallows the first click. Only a case that is ABOUT the tour may set this, and it
+ * owes `resetPreferences` afterwards.
+ */
+export async function armInitialLoginTour(page: Page): Promise<void> {
+  await patchPreferences(page, {
+    [PREFERENCES.toursSeen.ns]: {
+      [PREFERENCES.toursSeen.key ?? 'toursSeen']: [],
+      [PREFERENCES.onboardingEpoch.key ?? 'onboardingEpoch']: ONBOARDING_EPOCH,
+    },
+  })
 }

@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test'
 
 import { tour } from './selectors'
-import { saveSheet, sheet, switchTab } from './sheet'
+import { gotoList, saveSheet, sheet, switchTab } from './sheet'
 
 export type Bag = 'inputs' | 'outputs'
 
@@ -9,8 +9,10 @@ export async function createObjectWithId(
   page: Page,
   name: string
 ): Promise<string> {
-  await page.goto('/objects')
-  await expect(page.getByTestId('data-table')).toBeVisible()
+  // `gotoList`, not goto + expect: `page.goto` resolves before React tears the previous route
+  // down, so for a moment BOTH tables carry `data-testid="data-table"` and the bare assertion dies
+  // on a strict-mode violation that reads like a duplicate testid.
+  await gotoList(page, '/objects')
 
   await tour(page, 'createObject').click()
   const panel = sheet(page)
@@ -61,8 +63,7 @@ export async function createProcess(
   inputNames: string[],
   outputName: string
 ): Promise<void> {
-  await page.goto('/processes')
-  await expect(page.getByTestId('data-table')).toBeVisible()
+  await gotoList(page, '/processes')
 
   await tour(page, 'processesCreate').click()
   const panel = sheet(page)
