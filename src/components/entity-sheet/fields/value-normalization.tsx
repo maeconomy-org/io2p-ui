@@ -47,6 +47,7 @@ export function ValueNormalization({
     const detail = t(parseFailureKey(value.parse))
     return (
       <Marker
+        state="excluded"
         className={cn('text-destructive', className)}
         label={detail}
         tooltip={`${detail} — ${t('objects.properties.excludedFromFormulas')}`}
@@ -60,6 +61,7 @@ export function ValueNormalization({
   const canonical = `${format.number(value.num)}${value.unit ? ` ${value.unit}` : ''}`
   return (
     <Marker
+      state="canonical"
       className={cn('text-muted-foreground', className)}
       label={canonical}
       tooltip={`${t('objects.properties.canonicalValue')}: ${canonical}`}
@@ -92,11 +94,14 @@ function Marker({
   icon,
   label,
   tooltip,
+  state,
   className,
 }: {
   icon: React.ReactNode
   label: string
   tooltip: string
+  /** Which of the two markers this is — the state carries it, not the colour or the prose. */
+  state: 'canonical' | 'excluded'
   className?: string
 }) {
   return (
@@ -105,6 +110,8 @@ function Marker({
         <TooltipTrigger asChild>
           <button
             type="button"
+            data-testid="value-normalization"
+            data-state={state}
             aria-label={label}
             className={cn('shrink-0 cursor-default', className)}
           >
