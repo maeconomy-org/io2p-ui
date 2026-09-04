@@ -23,7 +23,7 @@ import {
  * defect report: a value some formula BINDS no longer parses, so the recipe is quietly computing
  * without it.
  *
- * Which one appears is read off `data-state`, not off colour or prose. Both are translated, and the
+ * Which one appears is read off `data-marker`, not off colour or prose. Both are translated, and the
  * pair is exactly the case where a wrong marker still looks right.
  *
  * Deliberately NOT here, because they already exist under other IDs: P13 is `PVAL5`, P15 is
@@ -102,7 +102,7 @@ test.describe('03 - object sheet / value markers', () => {
     await expandProperty(page, 0)
 
     const chip = marker(page)
-    await expect(chip).toHaveAttribute('data-state', 'canonical')
+    await expect(chip).toHaveAttribute('data-marker', 'canonical')
     // The number the ROLLUP will add, in the unit it will add it in. A chip that echoed `2 t` back
     // would be decoration.
     await expect(chip).toHaveAttribute('aria-label', /kg/)
@@ -142,6 +142,12 @@ test.describe('03 - object sheet / value markers', () => {
       .last()
       .getByTestId('formula-sibling-Width')
       .click()
+
+    // A third property that is unparseable and bound to NOTHING — the control for the claim that
+    // this warning is about being USED. Free text on purpose: a serial number never parses, and
+    // that is not a mistake.
+    await addProperty(page, 2)
+    await fillProperty(page, 2, 'Serial', 'not a number either')
     await saveSheet(page)
     await expect(panel).toBeHidden()
 
@@ -193,7 +199,31 @@ test.describe('03 - object sheet / value markers', () => {
       page
         .getByTestId(`property-row-${after}`)
         .getByTestId('value-normalization')
-    ).toHaveAttribute('data-state', 'excluded')
+    ).toHaveAttribute('data-marker', 'excluded')
+
+    // THE CONTROL THIS CASE'S OWN ARGUMENT NEEDS. Everything above proves
+    // bound + unparseable => excluded, and says nothing about unbound + unparseable — while the
+    // comment claims the warning is about being USED, and that flagging every unparseable value
+    // would put a warning on half the properties. Delete the `usedInFormula` check in the product
+    // and every assertion above still passes. This is the half that fails.
+    const loose = page
+      .locator('[data-testid^="property-row-"]')
+      .filter({ hasText: 'Serial' })
+    await expect(loose).toHaveCount(1)
+    const looseIndex = Number(
+      (await loose.getAttribute('data-testid'))!.split('-').pop()
+    )
+    await page.getByTestId(`property-toggle-${looseIndex}`).click()
+    // Anchored: the row is open and holds the unparseable value, so the missing marker is an
+    // absence observed where it COULD have appeared rather than a free pass.
+    await expect(
+      page.getByTestId(`property-value-${looseIndex}-0`)
+    ).toHaveValue('not a number either')
+    await expect(
+      page
+        .getByTestId(`property-row-${looseIndex}`)
+        .getByTestId('value-normalization')
+    ).toHaveCount(0)
   })
 
   test('P16b: the read layout follows you to another object', async ({
@@ -222,15 +252,21 @@ test.describe('03 - object sheet / value markers', () => {
   test.afterEach(async ({ page }) => {
     await gotoList(page, '/objects')
     await openObjectSheet(page, page.getByTestId('data-table-row').first())
-    if (
-      (await layout(page, DETAILED).getAttribute('aria-pressed')) !== 'true'
-    ) {
+
+    // UNCONDITIONALLY, under `toPass`. The earlier version read `aria-pressed` ONCE and clicked only
+    // if it disagreed — which is the guard measured and reverted in `selectView`: pre-hydration that
+    // attribute comes from the first-paint cookie, which can disagree with the account, so a restore
+    // could return having clicked nothing and hand a grid layout to every later spec. The layouts
+    // are radio-like, so a redundant click costs nothing and this cannot skip the work.
+    await expect(async () => {
       await layout(page, DETAILED).click()
       await expect(layout(page, DETAILED)).toHaveAttribute(
         'aria-pressed',
-        'true'
+        'true',
+        { timeout: 3_000 }
       )
-    }
+    }).toPass({ timeout: 30_000 })
+
     await page.keyboard.press('Escape')
   })
 })

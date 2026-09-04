@@ -91,7 +91,20 @@ test.describe('07 - processes / template and siblings', () => {
     const page = await browser.newPage()
     await gotoList(page, '/templates')
     const row = rowFor(page, TEMPLATE)
-    await expect(row).toHaveCount(1, { timeout: 15_000 })
+    // TOLERANT of a template that was never created — the half-failed `beforeAll` case, which is
+    // exactly when this hook matters most. Asserting count 1 throws there and aborts the cleanup.
+    let seen = false
+    for (let attempt = 0; attempt < 12; attempt++) {
+      if ((await row.count()) > 0) {
+        seen = true
+        break
+      }
+      await page.waitForTimeout(500)
+    }
+    if (!seen) {
+      await page.close()
+      return
+    }
     const actions = rowActions(page, 'template', row)
     await actions.menu.click()
     await actions.action('delete').click()
@@ -134,6 +147,11 @@ test.describe('07 - processes / template and siblings', () => {
     await openProcessCreate(page)
     await sheet(page).getByLabel(/name/i).first().fill(name)
 
+    // A property on the PROCESS itself, for PR14's second arm. It sits on the details tab, which is
+    // where the create sheet opens.
+    await addProperty(page, 0)
+    await fillProperty(page, 0, 'Batch', '7')
+
     // Unlike the TEMPLATE sheet, a process create sheet opens with no flow rows at all — the slots
     // have to be added. `addFlow` also picks the ref, which a save would require anyway.
     //
@@ -163,5 +181,10 @@ test.describe('07 - processes / template and siblings', () => {
     // formula with nothing to bind rather than a union that was never assembled.
     const open = page.locator('[data-state="open"][role="dialog"]').last()
     await expect(open.getByTestId('formula-sibling-Width')).toBeVisible()
+
+    // BOTH ARMS. The docblock says the union spans "the process's own properties AND every flow",
+    // and the assertion above only proves flow-to-flow. An implementation that unioned the flows
+    // and dropped the process-level bag would pass it while breaking half of what D76 promises.
+    await expect(open.getByTestId('formula-sibling-Batch')).toBeVisible()
   })
 })

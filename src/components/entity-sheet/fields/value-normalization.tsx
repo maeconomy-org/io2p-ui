@@ -111,7 +111,12 @@ function Marker({
           <button
             type="button"
             data-testid="value-normalization"
-            data-state={state}
+            // `data-marker`, NOT `data-state`: this button is a Radix `TooltipTrigger asChild`, and
+            // Radix writes its own `data-state` there for open/close styling. Slot merge order
+            // happens to let a child prop win today, so ours survived and clobbered theirs — a
+            // product bug on its own, and one a version bump silently flips. The `value-mode` /
+            // `data-mode` precedent this followed chose `data-mode` for exactly this reason.
+            data-marker={state}
             aria-label={label}
             className={cn('shrink-0 cursor-default', className)}
           >

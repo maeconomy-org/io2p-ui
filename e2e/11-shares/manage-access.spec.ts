@@ -56,7 +56,11 @@ function rowFor(page: Page, name: string) {
 }
 
 test.describe('11 - shares / manage access', () => {
-  test.describe.configure({ mode: 'serial' })
+  // NOT serial. The five cases are independent — five types, five pages, five rows, no shared
+  // mutable state — and the `write` project is already one worker, so serial adds no isolation it
+  // does not already have. Its only live effect would be skip propagation: one failure reporting
+  // the other four as SKIPPED, which reads as coverage. That is exactly how RU23 sat unexecuted
+  // while being counted.
 
   test.beforeAll(async ({ browser }, testInfo) => {
     // A hook carries its own 60s budget and `test.setTimeout` does not reach it. Five creates, one

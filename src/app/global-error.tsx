@@ -23,7 +23,10 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   return (
     <html lang="en">
       <body className="bg-background min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-6 text-center">
+        <div
+          data-testid="error-boundary"
+          className="max-w-md w-full bg-card rounded-lg shadow-lg p-6 text-center"
+        >
           <div className="mb-6">
             <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-foreground mb-2">
