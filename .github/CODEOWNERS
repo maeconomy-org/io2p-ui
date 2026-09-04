@@ -1,0 +1,26 @@
+# Review routing. An entry here means a PR touching those paths cannot merge without
+# a review from one of the listed owners — so this file is only useful for paths where
+# a bad merge is genuinely hard to unwind.
+#
+# Owners must have write access to the repository. The org has no teams; if one is
+# created later, replace the individual handles with the team.
+
+# Default owner for everything not matched below.
+*                           @dev-maeconomy @byurhannurula
+
+# The paperwork that defines the project's terms. Changing these is a legal or
+# policy decision, not a code change.
+/LICENSE                    @dev-maeconomy @byurhannurula
+/SECURITY.md                @dev-maeconomy @byurhannurula
+/CODE_OF_CONDUCT.md         @dev-maeconomy @byurhannurula
+
+# CI is what everyone else's PRs are trusted against — and a workflow change can
+# grant itself permissions no reviewer asked for.
+/.github/workflows/         @dev-maeconomy @byurhannurula
+
+# Server-side request gates and the scrubbing every log sink depends on. A mistake
+# here leaks credentials into telemetry or removes the only limit on an open route.
+/src/lib/http/              @dev-maeconomy @byurhannurula
+/src/lib/observability/     @dev-maeconomy @byurhannurula
+/src/proxy.ts               @dev-maeconomy @byurhannurula
+/src/constants/auth.ts      @dev-maeconomy @byurhannurula

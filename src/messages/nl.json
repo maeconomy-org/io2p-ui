@@ -14,20 +14,14 @@
       "goHome": "Naar startpagina"
     }
   },
-  "app": {
-    "name": "Internet of Materials",
-    "description": "Materiaalbeheersysteem",
-    "acronym": "IoM"
-  },
   "nav": {
     "objects": "Objecten",
     "processes": "I/O-processen",
     "models": "Sjablonen",
     "import": "Importeren",
-    "importStatus": "Importstatus",
     "help": "Help",
+    "security": "Beveiliging",
     "signOut": "Afmelden",
-    "groups": "Groepen",
     "user": "Gebruiker",
     "certificateAuthenticated": "Certificaat geverifieerd",
     "emailAuthenticated": "E-mail geverifieerd",
@@ -42,7 +36,12 @@
     "settings": "Instellingen",
     "mobile": {
       "uuid": "UUID"
-    }
+    },
+    "library": "Bibliotheek",
+    "formulas": "Formules",
+    "constants": "Constanten",
+    "shares": "Delen",
+    "rollupRules": "Rollup-regels"
   },
   "theme": {
     "toggle": "Thema",
@@ -56,7 +55,8 @@
     "tabs": {
       "account": "Account",
       "appearance": "Weergave",
-      "preferences": "Voorkeuren"
+      "preferences": "Voorkeuren",
+      "security": "Beveiliging"
     },
     "account": {
       "title": "Accountgegevens",
@@ -72,7 +72,10 @@
       "validFrom": "Geldig vanaf",
       "validTo": "Geldig tot",
       "expiresIn": "Certificaat verloopt",
-      "notAvailable": "Niet beschikbaar"
+      "notAvailable": "Niet beschikbaar",
+      "emailAddress": "E-mail",
+      "verified": "Geverifieerd",
+      "unverified": "Niet geverifieerd"
     },
     "appearance": {
       "title": "Weergave",
@@ -82,11 +85,16 @@
       "languageReloadHint": "Het wijzigen van de taal herlaadt de pagina."
     },
     "preferences": {
-      "title": "Weergavevoorkeuren",
-      "description": "Kies de weergave waarin elk onderdeel opent. Je laatste keuze wordt voor dit account onthouden.",
+      "title": "Standaardinstellingen voor lijsten",
+      "description": "Hoe elke lijst opent: welke weergave en van wie de items zijn. Toegang kunt u per lijst wijzigen via het menu Filters — dit is alleen het startpunt.",
       "objects": "Objectenweergave",
       "processes": "Processenweergave",
       "properties": "Eigenschappenweergave",
+      "objectsAccess": "Objecten toegang",
+      "processesAccess": "Processen toegang",
+      "formulasAccess": "Formules toegang",
+      "constantsAccess": "Constanten toegang",
+      "templatesAccess": "Sjablonen toegang",
       "options": {
         "table": "Tabel",
         "columns": "Kolommen",
@@ -95,6 +103,68 @@
         "network": "Netwerk",
         "detailed": "Lijst",
         "grid": "Raster"
+      },
+      "rowsPerPage": "Rijen per pagina"
+    },
+    "security": {
+      "common": {
+        "continue": "Doorgaan"
+      },
+      "password": {
+        "title": "Uw wachtwoord",
+        "description": "Wijzig het wachtwoord waarmee u inlogt.",
+        "current": "Huidig wachtwoord",
+        "new": "Nieuw wachtwoord",
+        "save": "Opslaan",
+        "success": "Wachtwoord bijgewerkt. Andere sessies zijn afgemeld.",
+        "error": "Kan uw wachtwoord niet bijwerken. Controleer uw huidige wachtwoord en probeer het opnieuw."
+      },
+      "twoFactor": {
+        "title": "Tweestapsverificatie",
+        "description": "Voeg een extra beveiligingslaag toe aan uw account.",
+        "enable": "Tweestapsverificatie inschakelen",
+        "disable": "Tweestapsverificatie uitschakelen",
+        "enabledLabel": "Tweestapsverificatie is ingeschakeld",
+        "setupTitle": "Tweestapsverificatie inschakelen",
+        "setupDescription": "Scan de QR-code met uw authenticator-app, of voer de sleutel handmatig in, en voer daarna de 6-cijferige code in.",
+        "codeLabel": "Voer de 6-cijferige code in om de installatie te verifiëren",
+        "verify": "Verifiëren",
+        "enabled": "Tweestapsverificatie ingeschakeld.",
+        "enableError": "Kan de installatie niet starten. Controleer uw wachtwoord en probeer het opnieuw.",
+        "verifyError": "Die code was ongeldig. Probeer het opnieuw.",
+        "disabled": "Tweestapsverificatie uitgeschakeld.",
+        "disableError": "Kan tweestapsverificatie niet uitschakelen.",
+        "disableTitle": "Tweestapsverificatie uitschakelen",
+        "disableDescription": "Voer uw wachtwoord in om tweestapsverificatie uit te schakelen."
+      },
+      "verifyPassword": {
+        "title": "Verifiëren met wachtwoord",
+        "description": "Verifieer uw account door uw wachtwoord in te voeren.",
+        "label": "Uw wachtwoord"
+      },
+      "sessions": {
+        "title": "Actieve sessies",
+        "description": "Dit zijn de apparaten die momenteel bij uw account zijn ingelogd.",
+        "loading": "Sessies laden…",
+        "thisDevice": "Huidige",
+        "unknownDevice": "Onbekend apparaat",
+        "revoke": "Sessie beëindigen",
+        "revoked": "Sessie beëindigd.",
+        "revokeError": "Kan de sessie niet beëindigen.",
+        "revokedOthers": "Alle andere sessies afgemeld.",
+        "signOutOthers": "Andere sessies afmelden"
+      },
+      "connectedAccounts": {
+        "title": "Gekoppelde accounts",
+        "description": "De aanmeldmethoden die aan dit account zijn gekoppeld.",
+        "empty": "Er zijn nog geen aanmeldmethoden gekoppeld.",
+        "connectedOn": "Gekoppeld op {date}",
+        "providers": {
+          "google": "Google",
+          "microsoft": "Microsoft",
+          "credential": "Wachtwoord",
+          "unknown": "Andere aanmeldmethode"
+        }
       }
     }
   },
@@ -103,11 +173,10 @@
     "language": "Taal"
   },
   "common": {
-    "back": "Terug",
-    "backToHome": "Terug naar start",
     "cancel": "Annuleren",
+    "remove": "Verwijderen",
     "add": "Toevoegen",
-    "update": "Bijwerken",
+    "done": "Klaar",
     "edit": "Bewerken",
     "delete": "Verwijderen",
     "previous": "Vorige",
@@ -115,29 +184,56 @@
     "actions": "Acties",
     "close": "Sluiten",
     "loading": "Laden...",
-    "updating": "Bijwerken...",
     "search": "Zoeken",
     "filters": "Filters",
-    "selected": "Geselecteerd",
-    "clear": "Wissen",
-    "clearAll": "Alles wissen",
     "clearFilters": "Filters wissen",
     "refresh": "Vernieuwen",
     "retry": "Opnieuw proberen",
-    "optional": "(Optioneel)",
-    "language": "Taal",
     "confirm": "Bevestigen",
-    "new": "Nieuw",
     "deleted": "Verwijderd",
     "download": "Downloaden",
     "downloadFailed": "Het downloaden van het bestand is mislukt. Probeer het opnieuw.",
-    "deleteFailed": "Verwijderen mislukt. Probeer het opnieuw.",
     "save": "Opslaan",
     "saving": "Opslaan...",
     "saveFailed": "Opslaan mislukt. Probeer het opnieuw.",
     "savedSuccessfully": "Wijzigingen succesvol opgeslagen",
     "noResults": "Geen resultaten.",
-    "apply": "Toepassen"
+    "error": "Er is iets misgegaan",
+    "sessionExpired": "Uw sessie is verlopen. Meld u opnieuw aan om op te slaan.",
+    "restore": "Herstellen",
+    "showMore": "Meer tonen",
+    "showLess": "Minder tonen",
+    "unknown": "Onbekend",
+    "owner": "Gemaakt door",
+    "tier": "Type",
+    "sharedWithYou": "Met u gedeeld",
+    "builtIn": "Ingebouwd",
+    "userCreated": "Door gebruiker",
+    "me": "Ik",
+    "status": "Status",
+    "access": "Toegang",
+    "scopeAll": "Alles",
+    "scopeMine": "Van mij",
+    "scopeShared": "Met mij gedeeld",
+    "scopePublic": "Openbaar",
+    "clearSelection": "Selectie wissen",
+    "bulk": {
+      "label": "Selectieacties",
+      "selected": "{count} geselecteerd",
+      "partial": "{label} {count} van {total}",
+      "deleteTitle": "Geselecteerde items verwijderen?",
+      "deleteDescription": "Dit verwijdert {count} items. Ze kunnen daarna worden hersteld."
+    },
+    "no": "Nee",
+    "back": "Terug",
+    "continue": "Doorgaan",
+    "yes": "Ja",
+    "sharedReadOnly": "Met jou gedeeld — alleen-lezen",
+    "deletedReadOnly": "Verwijderd — alleen de eigenaar kan dit herstellen.",
+    "sortAsc": "Opl.",
+    "sortDesc": "Afl.",
+    "hideColumn": "Verbergen",
+    "columnOptions": "Kolomopties voor {column}"
   },
   "copyButton": {
     "copied": "Gekopieerd!",
@@ -163,22 +259,6 @@
       "dialogDescription": "Dialoogvenster voor bijlagevoorbeeld. Gebruik pijltjestoetsen om tussen bestanden te navigeren en Escape om te sluiten."
     }
   },
-  "attachmentModal": {
-    "title": "Bijlagen beheren",
-    "dialogDescription": "Upload nieuwe bestanden of koppel bestanden via referentie aan dit item.",
-    "done": "Gereed",
-    "uploadTitle": "Bestanden uploaden?",
-    "uploadDescription": "{count} bestand(en) worden geüpload en bijgevoegd. Deze actie kan niet ongedaan worden gemaakt.",
-    "uploadWarning": "Herlaad de pagina niet en navigeer niet weg terwijl bestanden worden geüpload.",
-    "important": "Belangrijk:",
-    "uploadFiles": "Bestanden uploaden",
-    "uploading": "{count} bestanden uploaden...",
-    "uploadDoNotReload": "Herlaad de pagina niet tijdens het uploaden",
-    "filesFailedToUpload": "{count} bestanden uploaden mislukt",
-    "filesUploadedSuccessfully": "{count} bestanden succesvol geüpload",
-    "uploadTimedOut": "Upload verlopen",
-    "uploadFailed": "Upload mislukt"
-  },
   "pagination": {
     "previous": "Vorige",
     "next": "Volgende",
@@ -193,45 +273,13 @@
     "pageOf": "Pagina {page} van {pages}",
     "rowsPerPage": "Rijen per pagina"
   },
-  "units": {
-    "volume": "Volume",
-    "weight": "Gewicht/massa",
-    "area": "Oppervlakte",
-    "length": "Lengte",
-    "count": "Aantal",
-    "energy": "Energie/milieu"
-  },
   "auth": {
     "welcome": "Welkom bij {acronym}",
     "subtitle": "{name} - {description}",
-    "intro": "Om toegang te krijgen tot het systeem heeft u een geldig certificaat nodig. Klik op de knop hieronder om het autorisatieproces te starten.",
-    "authorize": "Autoriseer met certificaat",
-    "authorizeShort": "Autoriseer",
-    "authorizing": "Authenticeren met certificaat...",
-    "selectCertificate": "Selecteer uw certificaat wanneer uw browser hierom vraagt",
-    "browserPromptTitle": "Browsermelding:",
-    "browserPrompt": "U kunt een dialoog voor certificaatselectie zien. Kies het clientcertificaat van uw organisatie om verder te gaan.",
-    "success": "Succesvol geauthenticeerd",
-    "redirecting": "U wordt doorgestuurd naar de applicatie...",
-    "openApp": "Applicatie openen",
-    "tryAgain": "Opnieuw proberen",
     "loading": "Laden",
     "needHelp": "Hulp nodig met authenticatie?",
-    "requiresCertificate": "Deze applicatie vereist een geldig clientcertificaat voor veilige toegang",
     "mtls": "mTLS-authenticatie",
-    "secureAccess": "Veilige toegang",
     "tagline": "Volg, beheer en optimaliseer bouwmaterialen gedurende hun levenscyclus",
-    "infoTitle": "Hoe het werkt",
-    "infoStep1Title": "Certificaat installeren",
-    "infoStep1": "Uw organisatie levert een clientcertificaat waarmee u veilig wordt geïdentificeerd.",
-    "infoStep2Title": "Toegang autoriseren",
-    "infoStep2": "Klik op de autorisatieknop en selecteer uw certificaat wanneer uw browser hierom vraagt.",
-    "infoStep3Title": "Begin met beheren",
-    "infoStep3": "Krijg toegang tot het volledige platform om objecten, processen en materiaalstromen te volgen.",
-    "featureObjects": "Objectbeheer",
-    "featureProcesses": "I/O Procesvolging",
-    "featureModels": "Materiaalmodellen",
-    "featureImport": "Bulk data-import",
     "carousel": {
       "indicators": "Platform highlights",
       "goToSlide": "Ga naar slide {n}"
@@ -277,12 +325,15 @@
     "email": {
       "label": "E-mail",
       "placeholder": "uw.email@voorbeeld.nl",
-      "signIn": "Inloggen met e-mail",
-      "authorizing": "Inloggen..."
+      "signIn": "Inloggen met e-mail"
     },
     "password": {
       "label": "Wachtwoord",
       "placeholder": "Voer uw wachtwoord in"
+    },
+    "social": {
+      "google": "Doorgaan met Google",
+      "microsoft": "Doorgaan met Microsoft"
     },
     "certificate": {
       "signIn": "Inloggen met certificaat"
@@ -292,31 +343,11 @@
       "link": "Wachtwoord vergeten?",
       "title": "Wachtwoord resetten",
       "description": "Voer uw e-mailadres in en we sturen u een link om uw wachtwoord te resetten.",
-      "emailLabel": "E-mailadres",
-      "emailPlaceholder": "uw.email@voorbeeld.nl",
       "sendReset": "Resetlink verzenden",
-      "sending": "Verzenden...",
       "success": "Wachtwoord resetlink verzonden! Controleer uw e-mail voor instructies.",
-      "error": "Verzenden van resetlink mislukt. Probeer het opnieuw.",
-      "cancel": "Annuleren",
-      "close": "Sluiten"
+      "error": "Verzenden van resetlink mislukt. Probeer het opnieuw."
     },
     "backToLogin": "Terug naar inloggen",
-    "emailVerification": {
-      "title": "E-mailverificatie vereist",
-      "description": "We hebben een verificatie-e-mail gestuurd naar {email}. Controleer uw inbox en klik op de verificatielink.",
-      "resend": "E-mail opnieuw verzenden",
-      "sending": "Verzenden...",
-      "sent": "E-mail verzonden!"
-    },
-    "verifyEmail": {
-      "title": "E-mailverificatie",
-      "verifying": "Uw e-mailadres wordt geverifieerd...",
-      "success": "Uw e-mailadres is succesvol geverifieerd! U kunt nu inloggen.",
-      "error": "E-mailverificatie mislukt. De link is mogelijk verlopen.",
-      "noToken": "Geen verificatietoken gevonden. Controleer de link in uw e-mail.",
-      "loginNow": "Nu inloggen"
-    },
     "validation": {
       "emailRequired": "E-mailadres is verplicht",
       "emailInvalid": "Voer een geldig e-mailadres in",
@@ -325,7 +356,11 @@
       "passwordLowercase": "Wachtwoord moet minimaal één kleine letter bevatten",
       "passwordUppercase": "Wachtwoord moet minimaal één hoofdletter bevatten",
       "passwordDigit": "Wachtwoord moet minimaal één cijfer bevatten",
-      "passwordSpecial": "Wachtwoord moet minimaal één speciaal teken bevatten"
+      "passwordSpecial": "Wachtwoord moet minimaal één speciaal teken bevatten",
+      "passwordsMustMatch": "Wachtwoorden komen niet overeen",
+      "codeRequired": "Verificatiecode is vereist",
+      "codeInvalid": "Voer de 6-cijferige code in",
+      "passwordMaxLength": "Wachtwoord mag maximaal 256 tekens bevatten"
     },
     "errors": {
       "authFailed": "Authenticatie mislukt",
@@ -335,332 +370,162 @@
       "timeout": "Authenticatie is verlopen. Dit kan duiden op een netwerkprobleem of certificaatprobleem.",
       "unauthorized": "Uw certificaat is niet geautoriseerd om dit systeem te gebruiken. Neem contact op met uw beheerder.",
       "expired": "Uw certificaat is verlopen. Vraag een nieuw certificaat aan bij uw beheerder.",
-      "troubleshootingTitle": "Probleemoplossing:",
-      "troubleshooting": [
-        "Controleer of uw certificaat in uw browser is geïnstalleerd",
-        "Controleer of uw certificaat niet is verlopen",
-        "Controleer of u het juiste certificaat hebt gekozen",
-        "Vernieuw de pagina en probeer opnieuw"
-      ],
-      "differentCertTitle": "Een ander certificaat gebruiken?",
-      "differentCert": "Sluit uw browser volledig en start opnieuw. Browsers cachen mTLS-certificaten en de selectie kan niet worden gewijzigd zonder de browser opnieuw te starten.",
-      "stillIssuesTitle": "Nog steeds problemen?",
-      "stillIssues": "Neem contact op met uw systeembeheerder of IT-ondersteuning. Zij kunnen uw certificaatrechten controleren en helpen bij installatie indien nodig."
+      "emailLoginDisabled": "Inloggen met e-mail en wachtwoord is uitgeschakeld op deze node."
+    },
+    "resetPassword": {
+      "title": "Stel een nieuw wachtwoord in",
+      "subtitle": "Kies een sterk wachtwoord voor uw account.",
+      "newPassword": "Nieuw wachtwoord",
+      "confirmPassword": "Bevestig wachtwoord",
+      "confirmPlaceholder": "Voer uw wachtwoord opnieuw in",
+      "submit": "Wachtwoord instellen",
+      "success": "Uw wachtwoord is ingesteld. U kunt nu inloggen.",
+      "error": "Instellen van uw wachtwoord is mislukt. De link is mogelijk verlopen — vraag een nieuwe aan.",
+      "invalidToken": "Deze resetlink is ongeldig of verlopen. Vraag een nieuwe aan om door te gaan.",
+      "requestNew": "Nieuwe link aanvragen"
+    },
+    "twoFactor": {
+      "title": "Tweestapsverificatie",
+      "subtitle": "Voer de 6-cijferige code in om door te gaan.",
+      "codeLabel": "Verificatiecode",
+      "verify": "Verifiëren",
+      "backupSubtitle": "Voer een van uw back-upcodes in.",
+      "backupLabel": "Back-upcode",
+      "useBackupCode": "Een back-upcode gebruiken",
+      "useAuthenticator": "Authenticator-app gebruiken",
+      "trustDevice": "Dit apparaat 30 dagen vertrouwen",
+      "error": "Die code was ongeldig. Probeer het opnieuw."
     }
   },
   "objects": {
     "title": "Objecten",
     "showDeleted": "Soft Deleted",
     "create": "Object aanmaken",
-    "creatingParents": "Parent {current} van {total} maken…",
-    "parentCreationFailed": "Kan parent-concept \"{name}\" niet aanmaken. Probeer opnieuw.",
     "searchResults": "Zoekresultaten voor: \"{query}\"",
     "results": "{count} resultaat{count, plural, one {} other {en}}",
-    "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",
     "clearSearch": "Zoekopdracht wissen",
-    "doubleClick": "(dubbelklik)",
     "childrenTooltip": "{count} {count, plural, one {kind} other {kinderen}} - dubbelklik om te bekijken",
-    "children": "Kinderen",
-    "deleted": "Verwijderd",
     "restoreTitle": "Object herstellen",
-    "restore": "Herstellen",
-    "restoring": "Bezig met herstellen...",
-    "detailsDescription": "Bekijk en bewerk objecteigenschappen, relaties en bestanden",
-    "tabs": {
-      "properties": "Eigenschappen",
-      "files": "Bestanden",
-      "relationships": "Relaties",
-      "metadata": "Metadata",
-      "history": "Geschiedenis"
-    },
-    "passport": {
-      "untitled": "Naamloos object",
-      "sheetDescription": "Een alleen-lezen productoverzicht opgebouwd uit de eigenschappen, het adres en de bestanden van dit object.",
-      "print": "Afdrukken",
-      "lifecycle": "Levenscyclus",
-      "warranty": "Garantie",
-      "active": "Actief",
-      "expired": "Verlopen",
-      "expiresIn": "Verloopt over {days} dagen",
-      "percentElapsed": "{percent}% verstreken",
-      "inService": "In gebruik",
-      "produced": "Geproduceerd",
-      "lastInspection": "Laatste inspectie",
-      "nextMaintenance": "Volgend onderhoud",
-      "expectedLifespan": "Verwachte levensduur",
-      "documents": "Documenten ({count})",
-      "serialTooltip": "Serienummer",
-      "days": "{count} {count, plural, one {dag} other {dagen}}",
-      "months": "{count} {count, plural, one {maand} other {maanden}}",
-      "years": "{count} {count, plural, one {jaar} other {jaar}}",
-      "emptyTitle": "Nog geen paspoortgegevens",
-      "emptyDescription": "Voeg eigenschappen toe zoals fabrikant, afmetingen of garantie om het productpaspoort te vullen.",
-      "categories": {
-        "product": "Product",
-        "classification": "Classificatie",
-        "dimensions": "Afmetingen",
-        "composition": "Samenstelling",
-        "appearance": "Uiterlijk",
-        "sustainability": "Duurzaamheid",
-        "commerce": "Handel",
-        "ownership": "Eigendom",
-        "state": "Status",
-        "contact": "Contact",
-        "location": "Locatie",
-        "meta": "Overig",
-        "other": "Overig"
-      },
-      "downloadPdf": "PDF downloaden",
-      "openPreview": "Afdrukvoorbeeld openen",
-      "pdfError": "PDF genereren mislukt. Probeer het opnieuw."
-    },
-    "history": {
-      "empty": "Nog geen geschiedenis.",
-      "emptyFilter": "Geen gebeurtenissen in deze categorie.",
-      "filterLabel": "Geschiedenis filteren",
-      "listLabel": "Geschiedenisgebeurtenissen, nieuwste eerst",
-      "filters": {
-        "all": "Alles",
-        "metadata": "Metadata",
-        "property": "Eigenschappen",
-        "value": "Waarden",
-        "file": "Bestanden",
-        "address": "Adres"
-      },
-      "events": {
-        "metadataCreated": "Object {name} aangemaakt",
-        "metadataAdded": {
-          "name": "Naam ingesteld op {after}",
-          "abbreviation": "Afkorting ingesteld op {after}",
-          "description": "Beschrijving toegevoegd",
-          "version": "Versie ingesteld op {after}"
-        },
-        "metadataChanged": {
-          "name": "Naam gewijzigd van {before} naar {after}",
-          "abbreviation": "Afkorting gewijzigd van {before} naar {after}",
-          "description": "Beschrijving bijgewerkt",
-          "version": "Versie gewijzigd van {before} naar {after}"
-        },
-        "metadataCleared": {
-          "name": "Naam gewist",
-          "abbreviation": "Afkorting gewist",
-          "description": "Beschrijving gewist",
-          "version": "Versie gewist"
-        },
-        "propertyAdded": "Eigenschap {label} toegevoegd",
-        "propertyRemoved": "Eigenschap {label} verwijderd",
-        "valueAdded": "Waarde {value} toegevoegd aan {propertyLabel}",
-        "valueRemoved": "Waarde {value} verwijderd van {propertyLabel}",
-        "fileUploaded": "Bestand {name} geüpload ({size})",
-        "fileRemoved": "Bestand {name} verwijderd",
-        "addressAdded": "Adres {fullAddress} toegevoegd",
-        "addressUpdated": "Adres bijgewerkt"
-      }
-    },
     "fields": {
       "uuid": "UUID",
       "name": "Naam",
-      "abbreviation": "Afkorting",
       "version": "Versie",
+      "revision": "Revisie",
       "description": "Beschrijving",
-      "created": "Aangemaakt",
-      "updated": "Bijgewerkt",
+      "created": "Aangemaakt op",
+      "updated": "Bijgewerkt op",
       "address": "Adres",
       "properties": "Eigenschappen",
-      "files": "Bestanden",
-      "group": "Groep"
+      "parent": "Bovenliggend",
+      "cover": "Omslag",
+      "children": "Onderliggend"
+    },
+    "formulaEditor": {
+      "expression": "Formule",
+      "switchToFormula": "Formule gebruiken",
+      "switchToText": "Vaste waarde gebruiken",
+      "selectFormula": "Kies een formule",
+      "searchFormulas": "Zoek formules…",
+      "noFormulas": "Geen formules gevonden",
+      "searchValues": "Zoek waarden en constanten…",
+      "filterBindings": "Toon",
+      "scope": {
+        "all": "Alle",
+        "siblings": "Waarden",
+        "constants": "Constanten"
+      },
+      "noVariables": "Deze formule heeft geen variabelen",
+      "noNumericValues": "Geen numerieke waarden om te koppelen",
+      "noConstants": "Geen constanten gevonden",
+      "expressionPlaceholder": "bijv. b * h",
+      "bindVariables": "Variabelen koppelen",
+      "selectValue": "Kies een waarde",
+      "result": "Resultaat",
+      "editFormula": "Formule bewerken",
+      "inlineExpression": "Deze waarde gebruikt een eenmalige expressie die alleen via de API kan worden gewijzigd",
+      "unknownConstant": "Een constante die deze formule gebruikt kon niet worden gevonden",
+      "unbound": "Niet gekoppeld",
+      "siblingValues": "Waarden op deze entiteit",
+      "constants": "Constanten"
+    },
+    "detailsSheet": {
+      "noParents": "Geen bovenliggende objecten",
+      "tabDetails": "Details",
+      "tabParents": "Bovenliggend",
+      "unsavedChanges": "{count} niet-opgeslagen wijziging{count, plural, one {} other {en}}",
+      "discardConfirm": "Niet-opgeslagen wijzigingen weggooien?",
+      "noProperties": "Geen eigenschappen",
+      "tabRelations": "Relaties"
+    },
+    "propertyEditor": {
+      "name": "Naam",
+      "namePlaceholder": "Selecteer of typ een eigenschapsnaam",
+      "keyLocked": "Hernoemen wijzigt alleen het label — deze eigenschap blijft opgeslagen als “{key}” en telt onder die sleutel. Verwijder de eigenschap en voeg hem opnieuw toe om onder een nieuwe sleutel te tellen.",
+      "value": "Waarde",
+      "derived": "Afgeleid",
+      "addProperty": "Eigenschap toevoegen",
+      "addValue": "Waarde toevoegen"
     },
     "address": {
       "street": "Straat",
-      "number": "Nummer",
-      "city": "Stad",
       "postalCode": "Postcode",
-      "country": "Land",
+      "city": "Plaats",
       "state": "Provincie",
-      "district": "District"
+      "country": "Land",
+      "coordinates": "Coördinaten",
+      "noResults": "Geen adressen gevonden voor \"{query}\""
     },
-    "placeholders": {
-      "address": "Zoek naar een adres...",
-      "name": "Voer objectnaam in",
-      "abbreviation": "Voer afkorting in",
-      "version": "Voer versie in",
-      "description": "Voer beschrijving in"
-    },
-    "noUuid": "Geen UUID",
     "objectUuid": "Object-UUID",
-    "propertyUuid": "Eigenschap-UUID",
-    "attach": "Bijvoegen",
-    "attachToProperty": "Aan eigenschap",
-    "attachToValue": "Aan waarde",
-    "filesAttachedProperty": "Bestanden gekoppeld aan eigenschap",
     "values": "{count} waarde{count, plural, one {} other {s}}",
-    "filesCount": "{count} bestand{count, plural, one {} other {en}}",
-    "noValues": "Geen waarden",
-    "noProperties": "Geen eigenschappen gedefinieerd",
-    "propertiesUpdated": "Eigenschappen succesvol bijgewerkt",
-    "propertiesUpdateFailed": "Objecteigenschappen bijwerken mislukt",
-    "formulaUnresolvedArgs": "Sommige formulevariabelen konden niet aan hun bronwaarden worden gekoppeld en zijn overgeslagen.",
-    "formulaCycleDetected": "Er is een cyclus tussen formules gedetecteerd. Sommige berekeningen liepen mogelijk niet in de juiste volgorde — controleer uw formules.",
-    "metadataUpdated": "Metadata succesvol bijgewerkt",
-    "addressUpdated": "Adres succesvol bijgewerkt",
-    "parentsUpdated": "Bovenliggende relaties succesvol bijgewerkt",
-    "showLess": "Minder tonen",
-    "showMore": "Meer tonen",
-    "deletedAt": "Verwijderd op",
-    "deletedBy": "Verwijderd door",
-    "noAddress": "Geen adres opgegeven",
-    "buildingAddress": "Gebouwadres",
-    "addressComponents": "Adrescomponenten",
     "filesTitle": "Bestanden",
-    "addFiles": "Bestanden toevoegen",
-    "parentsTitle": "Bovenliggende objecten",
-    "noParents": "Geen bovenliggende objecten",
-    "parentUuid": "Bovenliggend UUID",
     "parentSearch": "Zoek naar bovenliggende objecten...",
-    "relationshipsTitle": "I/O-procesrelaties",
-    "viewAllInProcesses": "Bekijk alles in processen",
-    "viewInProcesses": "Bekijk in processen",
-    "noIoProcesses": "Geen I/O-procesrelaties",
-    "inputCount": "Invoer voor {count} proces{count, plural, one {} other {sen}}",
-    "outputCount": "Uitvoer van {count} proces{count, plural, one {} other {sen}}",
-    "processName": "Procesnaam",
-    "flow": "Flow",
-    "quantity": "Hoeveelheid",
-    "notSpecified": "Niet opgegeven",
-    "creatingTemplate": "Sjabloon aanmaken...",
     "createTemplate": "Sjabloon aanmaken",
-    "attachFilesProperty": "Bestanden koppelen aan eigenschap",
-    "attachFilesValue": "Bestanden koppelen aan waarde",
-    "unsavedChanges": {
-      "title": "Niet-opgeslagen wijzigingen",
-      "description": "U heeft gegevens ingevoerd die nog niet zijn opgeslagen. Wilt u doorgaan met bewerken of uw wijzigingen verwijderen?",
-      "descriptionWithDraft": "U heeft niet-opgeslagen wijzigingen. Sla ze op als concept om later verder te gaan, verwijder ze, of blijf bewerken.",
-      "keepEditing": "Doorgaan met bewerken",
-      "discard": "Wijzigingen verwijderen",
-      "saveDraft": "Opslaan als concept"
-    },
     "drafts": {
       "badge": "Concept",
       "untitled": "Naamloos concept",
-      "hideDraftsLabel": "Verberg concepten",
+      "saved": "Concept opgeslagen",
+      "savedOn": "Opgeslagen {date}",
       "actions": {
-        "open": "Openen",
-        "discard": "Verwerpen",
-        "more": "Meer conceptacties"
+        "resume": "Verder bewerken",
+        "discard": "Verwerpen"
+      },
+      "unsaved": {
+        "title": "Wijzigingen bewaren?",
+        "description": "Je hebt {count, plural, =1 {# niet-opgeslagen wijziging} other {# niet-opgeslagen wijzigingen}}. Sla ze op als concept op dit apparaat om later verder te gaan, of verwerp ze.",
+        "descriptionEdit": "Je hebt {count, plural, =1 {# niet-opgeslagen wijziging} other {# niet-opgeslagen wijzigingen}}. Als je nu sluit, gaan ze verloren.",
+        "saveDraft": "Concept opslaan",
+        "uploadsDropped": "Gekozen bestanden worden niet in een concept bewaard — je moet ze opnieuw toevoegen."
       },
       "discardConfirm": {
         "title": "Concept verwerpen?",
         "description": "Hierdoor wordt het concept permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.",
         "confirm": "Verwerpen"
-      }
+      },
+      "saveFailed": "Kon het concept niet opslaan — probeer het zo opnieuw"
     },
-    "addTitle": "Nieuw object toevoegen",
-    "addDescription": "Maak een nieuw object aan door de onderstaande gegevens in te vullen",
-    "modelTemplatePlaceholder": "Selecteer een modelsjabloon (optioneel)",
-    "addProperty": "Eigenschap toevoegen",
-    "addAnotherProperty": "Voeg nog een eigenschap toe",
-    "qrCode": "QR-code",
-    "showQr": "QR tonen",
     "actions": {
       "copyUuid": "UUID kopiëren",
-      "showQrCode": "QR-code tonen",
-      "viewPassport": "Paspoort bekijken"
+      "showQrCode": "QR-code tonen"
     },
     "bulk": {
-      "selected": "{selected} van {total} rij(en) geselecteerd",
-      "deleteSelected": "Verwijderen",
-      "restoreSelected": "Herstellen",
-      "addToGroup": "Toevoegen aan groep",
       "setParent": "Bovenliggend instellen",
-      "createNewGroup": "Nieuwe groep aanmaken",
-      "groupNamePlaceholder": "Voer groepsnaam in...",
-      "confirmBulkDelete": "{count} objecten verwijderen?",
-      "confirmBulkDeleteDescription": "Dit zal {count} geselecteerde object(en) zacht verwijderen. Deze actie kan niet ongedaan worden gemaakt.",
-      "bulkDeleteSuccess": "{count} object(en) succesvol verwijderd",
-      "bulkDeleteFailed": "Sommige objecten konden niet worden verwijderd",
-      "bulkDeletePermissionDenied": "Sommige objecten konden niet worden verwijderd omdat u geen schrijfrechten hebt op hun groep.",
-      "bulkRestoreSuccess": "{count} object(en) succesvol hersteld",
-      "bulkRestoreFailed": "Sommige objecten konden niet worden hersteld",
-      "addedToGroup": "{count} object(en) toegevoegd aan groep",
-      "addedToGroupFailed": "Objecten konden niet aan groep worden toegevoegd",
-      "parentSet": "Bovenliggend ingesteld voor {count} object(en)",
-      "parentSetFailed": "Bovenliggend kon niet worden ingesteld voor sommige objecten",
-      "selectAll": "Alles selecteren",
-      "deselectAll": "Alles deselecteren",
+      "parentSet": "{count} items verplaatst",
       "columns": "Kolommen",
-      "searchParent": "Zoek naar bovenliggend...",
-      "selectParent": "Selecteer bovenliggend object",
-      "noGroupsFound": "Geen groepen gevonden",
-      "deleting": "Objecten verwijderen...",
-      "restoring": "Objecten herstellen...",
-      "settingParent": "Bovenliggend instellen...",
-      "addingToGroup": "Toevoegen aan groep..."
+      "setParentTitle": "Bovenliggend object kiezen",
+      "setParentDescription": "Verplaats {count} geselecteerde items onder één bovenliggend object. Bestaande bovenliggende objecten blijven behouden.",
+      "parentSkipsSelf": "Het gekozen bovenliggende object staat ook in uw selectie — het wordt overgeslagen."
     },
-    "groupFilter": {
-      "title": "Groepen",
-      "allGroups": "Alle groepen",
-      "search": "Groepen zoeken...",
-      "noGroups": "Geen groepen gevonden",
-      "clear": "Groepsfilter wissen"
-    },
-    "noObjectsTitle": "Geen objecten gevonden",
-    "noObjectsDescription": "Begin met het aanmaken van uw eerste object",
+    "noObjectsTitle": "Nog geen objecten",
+    "noObjectsDescription": "Een object is alles wat je wilt volgen — een machine, een batch, een document. Geef het eigenschappen, bestanden en een plek in de hiërarchie.",
     "viewDetails": "Details bekijken",
     "columnCount": "{count} kolom{count, plural, one {} other {men}}",
     "columnSearch": "Zoeken in deze kolom...",
     "noItemsMatch": "Geen items komen overeen met uw zoekopdracht",
     "noItemsColumn": "Geen items in deze kolom",
     "deleteConfirmTitle": "Weet u het zeker?",
-    "deleteConfirmDescription": "Dit zal \"{name}\" soft verwijderen en kan niet ongedaan worden gemaakt.",
-    "deletingObject": "Object verwijderen...",
-    "objectDeletedSuccess": "Object succesvol verwijderd",
-    "objectDeleteFailed": "Object verwijderen mislukt",
-    "fileDeletedSuccess": "Bestand succesvol verwijderd",
-    "fileDeleteFailed": "Bestand verwijderen mislukt",
-    "objectMetadataUpdated": "Objectmetadata succesvol bijgewerkt",
-    "objectMetadataUpdateFailed": "Objectmetadata bijwerken mislukt",
-    "parentObjectsUpdated": "Bovenliggende objecten succesvol bijgewerkt",
-    "parentObjectsUpdateFailed": "Bovenliggende objecten bijwerken mislukt",
-    "addressUpdatedSuccess": "Adres succesvol bijgewerkt",
-    "addressUpdateFailed": "Adresupdates verwerken mislukt",
+    "deleteConfirmDescription": "Dit verwijdert \"{name}\" zacht. U kunt het daarna herstellen.",
+    "deleteConfirmDescriptionWithChildren": "Dit verwijdert \"{name}\" zacht, met {count, plural, one {# onderliggend object} other {# onderliggende objecten}}. Deze blijven actief en blijven werken, maar \"{name}\" verschijnt niet meer in lijsten en telt niet meer mee in totalen. U kunt het daarna herstellen.",
     "permissionDenied": "Toegang geweigerd. U heeft niet de vereiste rechten om deze actie uit te voeren.",
-    "permissionDeniedDelete": "U heeft geen rechten om objecten in deze groep te verwijderen. Vraag de groepseigenaar om schrijfrechten.",
-    "creatingObject": "Object aanmaken...",
-    "objectCreatedSuccess": "Object succesvol aangemaakt!",
-    "objectCreatedWithFiles": "Object aangemaakt met {count} bestand{count, plural, one {} other {en}}",
-    "objectCreateFailed": "Object aanmaken mislukt",
-    "filesUploadedSuccess": "{count} bestand{count, plural, one {} other {en}} succesvol geüpload",
-    "filesUploadFailed": "{count} bestand{count, plural, one {} other {en}} uploaden mislukt",
-    "revertingObject": "Object herstellen...",
-    "revertingTemplate": "Sjabloon herstellen...",
-    "objectRestoredSuccess": "Object succesvol hersteld",
-    "templateRestoredSuccess": "Sjabloon succesvol hersteld",
-    "objectRestoreFailed": "Object herstellen mislukt",
-    "templateRestoreFailed": "Sjabloon herstellen mislukt",
-    "propertyRemoved": "Eigenschap verwijderd",
-    "propertyMarkedForDeletion": "Eigenschap gemarkeerd voor verwijdering",
-    "uploadingFiles": "{count} bestand{count, plural, one {} other {en}} uploaden...",
-    "doNotReload": "⚠️ Herlaad de pagina niet tijdens het uploaden",
-    "uploadCenterTitle": "Uploads",
-    "uploadCenterInProgress": "{done} van {total} uploaden",
-    "uploadCenterIdle": "Alle uploads voltooid",
-    "uploadCenterFailed": "{count} mislukt",
-    "uploadCenterClear": "Wissen",
-    "uploadCenterPending": "In behandeling:",
-    "uploadCenterCompleted": "Voltooid:",
-    "uploadCenterFailedLabel": "Mislukt:",
-    "uploadCenterCancel": "Upload annuleren",
-    "uploadCenterRetry": "Upload opnieuw proberen",
-    "uploadCenterCancelling": "Annuleren…",
-    "uploadCenterStatusUploading": "Uploaden…",
-    "uploadCenterStatusPending": "Wachten…",
-    "uploadCenterStatusDone": "Gereed",
-    "uploadCenterStatusFailed": "Mislukt",
-    "uploadCenterStatusCancelled": "Geannuleerd",
-    "uploadCenterRemove": "Verwijderen uit lijst",
-    "uploadCenterAnnounceCompleted": "Upload van {fileName} voltooid",
-    "uploadCenterAnnounceFailed": "Upload van {fileName} mislukt",
-    "uploadCenterAnnounceCancelled": "Upload van {fileName} geannuleerd",
     "qrCodeTitle": "QR-code voor {name}",
     "qrCodeDescription": "Scan deze code om de objectdetails te openen",
     "qrCodeDownloadPng": "Download PNG",
@@ -670,25 +535,14 @@
     "templateDialogDescription": "Configureer de sjabloondetails voordat u deze aanmaakt vanuit dit object.",
     "templateNameLabel": "Naam",
     "templateNamePlaceholder": "Voer sjabloonnaam in",
-    "templateAbbreviationLabel": "Afkorting",
-    "templateAbbreviationPlaceholder": "Voer afkorting in (optioneel)",
     "templateVersionLabel": "Versie",
     "templateVersionPlaceholder": "Voer versie in",
     "templateDescriptionLabel": "Beschrijving",
     "templateDescriptionPlaceholder": "Voer sjabloonbeschrijving in",
     "creating": "Bezig met aanmaken...",
-    "attachFile": "Bestand bijvoegen",
-    "attachmentsTitle": "Bijlagen",
     "deletedBadge": "(verwijderd)",
     "loadingChildren": "Kinderen laden...",
-    "propertyName": "Eigenschapsnaam",
-    "propertyValue": "Waarde",
-    "propertyValues": "Eigenschapswaarden",
-    "propertyNameRequired": "Eigenschapsnaam is vereist",
-    "propertyNamePlaceholder": "bijv. Totaal verdiepingen",
     "propertyNameSuggestionsLabel": "Voorgestelde standaard eigenschapsnamen",
-    "propertyValuePlaceholder": "Voer eigenschapswaarde in",
-    "addAnotherValue": "Nog een waarde toevoegen",
     "parentSelector": {
       "label": "Bovenliggende objecten",
       "placeholder": "Zoek bovenliggende objecten...",
@@ -696,83 +550,84 @@
       "startTyping": "Typ minimaal 2 tekens om te zoeken",
       "searching": "Zoeken...",
       "noResults": "Geen objecten gevonden",
-      "showingTop": "Toont top {shown} van {total} objecten",
       "clearAll": "Alles wissen",
       "selectedCount": "{count, plural, one {1 ouder geselecteerd} other {# ouders geselecteerd}}",
       "maxBadge": "Max",
       "maxSelections": "Maximaal {max} ouders kunnen worden geselecteerd",
-      "createNew": "Nieuwe parent maken",
-      "draftParentRemovedTitle": "Parent-concept bestaat niet meer",
-      "draftParentRemovedDescription": "Het parent-concept waarnaar je verwees is in een ander tabblad verwijderd. Kies opnieuw een parent."
+      "createNew": "Nieuwe parent maken"
     },
     "attachments": {
       "dragDrop": "Sleep bestanden hierheen of klik om te bladeren",
       "maxSize": "Max {size}",
-      "uploading": "Uploaden... ({progress}%)",
       "externalUrl": "Voer externe bestands-URL in",
       "labelOptional": "Label (optioneel)",
-      "noAttachments": "Geen bijlagen",
       "rename": "Bestand hernoemen",
-      "remove": "Bestand verwijderen",
       "dropzoneHint": "Bestanden hier loslaten om te uploaden",
       "dropzoneOversize": "{names} overgeslagen: groter dan {size}MB",
       "tooManyFiles": "Te veel bestanden in één keer — sleep maximaal {max} bestanden per batch"
     },
     "files": {
       "preview": "Voorbeeld in nieuw tabblad",
+      "attach": "Bijlage",
+      "addFiles": "Bestanden toevoegen",
+      "external": "Link",
+      "filesCount": "Bestanden ({count})",
+      "invalidUrl": "Voer een geldige https-URL in",
       "delete": "Bestand verwijderen",
-      "filePreview": "Bestandsvoorbeeld",
-      "deleteTitle": "Bestand verwijderen",
-      "deleteConfirm": "Weet u zeker dat u \"{name}\" wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
-      "noFiles": "Geen bestanden gevonden voor dit object"
+      "noFiles": "Geen bestanden gevonden voor dit object",
+      "unavailable": "Dit bestand is niet meer beschikbaar.",
+      "listView": "Lijstweergave",
+      "gridView": "Rasterweergave",
+      "restore": "Bestand herstellen",
+      "openExternal": "Link openen",
+      "addedCount": "{count} bestanden toegevoegd"
     },
     "childrenPage": {
-      "loadingParent": "Bovenliggend object laden...",
       "parentNotFound": "Bovenliggend object niet gevonden",
-      "backToObjects": "Terug naar objecten",
       "breadcrumbRoot": "Root",
       "addChild": "Kind toevoegen",
-      "childrenTitle": "Kinderen",
       "childrenCount": "{count} kinderen",
-      "noChildrenTitle": "Nog geen kinderen",
-      "noChildrenDescription": "Dit object heeft geen onderliggende objecten. Voeg een nieuw kind toe of kopieer bestaande objecten hierheen."
-    },
-    "modelSelector": {
-      "label": "Model",
-      "placeholder": "Selecteer een model...",
-      "searchPlaceholder": "Zoek modellen...",
-      "startTyping": "Typ om modellen te zoeken",
-      "searching": "Zoeken...",
-      "noResults": "Geen modellen gevonden",
-      "showingTop": "Toont {shown} van {total} modellen",
-      "clearSelection": "Wissen"
+      "parentDeleted": "Dit object is verwijderd. De onderliggende objecten blijven actief en blijven werken — herstel het om het weer in lijsten en totalen te tonen.",
+      "noChildrenTitle": "Nog geen onderliggende objecten",
+      "noChildrenDescription": "Onderliggende objecten staan onder dit object in de hiërarchie. Er een toevoegen maakt dit object de parent — het kind bezit de koppeling en kan worden verplaatst zonder hier iets te wijzigen.",
+      "moreChildActions": "Meer acties voor onderliggende objecten"
     },
     "columnsView": {
-      "noObjects": "Geen objecten gevonden",
-      "loadData": "Laad gegevens om de objecthiërarchie te verkennen",
-      "rootObjects": "Hoofdobjecten",
-      "level": "Niveau {level}"
+      "level": "Niveau {level}",
+      "allObjects": "Alle objecten"
     },
     "properties": {
-      "noProperties": "Geen eigenschappen gedefinieerd",
-      "addFirst": "Voeg uw eerste eigenschap toe",
-      "add": "Eigenschap toevoegen",
       "detailedView": "Gedetailleerde weergave",
-      "passportView": "Paspoort overzicht",
-      "propertyType": "Eigenschap type",
-      "textType": "Tekst",
-      "formulaType": "Formule",
+      "gridView": "Rasteroverzicht",
       "formula": "Formule",
-      "formulaInput": "Formule-expressie",
-      "formulaPlaceholder": "bijv. x * y + 10",
-      "formulaTemplates": "Snelle sjablonen",
-      "formulaVariables": "Variabele toewijzing",
-      "formulaSelectProperty": "Selecteer eigenschap...",
-      "formulaNoProperties": "Geen eigenschappen beschikbaar",
-      "formulaPreview": "Live voorbeeld",
-      "formulaResolved": "Opgelost",
-      "formulaResult": "Resultaat",
-      "formulaMapAllVariables": "Wijs alle variabelen toe om het resultaat te zien"
+      "formulaError": "Kon niet worden berekend",
+      "showFormula": "Formuledetails tonen",
+      "hideFormula": "Formuledetails verbergen",
+      "unknownUnit": "Onbekende eenheid",
+      "noNumber": "Geen getal gevonden",
+      "canonicalValue": "Canonieke waarde",
+      "excludedFromFormulas": "uitgesloten van de formules die deze gebruiken",
+      "rollupTotal": "Totaal substructuur",
+      "rollupContributors": "{count, plural, one {# waarde} other {# waarden}}",
+      "rollupSkipped": "{count, plural, one {# niet meegeteld} other {# niet meegeteld}}",
+      "rollupMoreDimensions": "{count, plural, one {+# andere eenheid} other {+# andere eenheden}}",
+      "rollupProcessing": "Bijwerken…",
+      "rollupSubtreeTooLarge": "Te veel items om te totaliseren",
+      "declaredUnit": "Eenheid opgegeven door de formule",
+      "unitInherited": "Eenheid overgenomen uit de waarden die hij leest",
+      "calcError": {
+        "arg-not-numeric": "Een waarde die hij leest is geen getal",
+        "div-by-zero": "Deling door nul",
+        "domain": "Het resultaat valt buiten wat de bewerking toestaat",
+        "non-numeric-result": "Het resultaat is geen getal",
+        "dimension-mismatch": "Hij combineert grootheden die niet samen kunnen",
+        "unknown-unit": "De opgegeven eenheid kent deze node niet"
+      },
+      "rollupNoNumbers": "Geen numerieke waarden",
+      "rollupOnlyThisObject": "Alleen dit object",
+      "rollupBelowShare": "{below} eronder",
+      "rollupSplitLabel": "{own} hier, {below} eronder",
+      "rollupDerived": "Afgeleid"
     },
     "duplicate": {
       "title": "Objecten kopiëren",
@@ -791,27 +646,87 @@
       "includeChildren": "Inclusief kinderen (subboom)",
       "includeChildrenHint": "Kopieer recursief alle onderliggende objecten",
       "copyProperties": "Eigenschappen & waarden kopiëren",
-      "copyFiles": "Bestandsbijlagen kopiëren",
       "copyFilesReferences": "Bestandsreferenties kopiëren",
       "copyAddress": "Adres kopiëren",
-      "childCount": "{count} onderliggend{count, plural, one { object} other {e objecten}} worden gekopieerd",
+      "childCount": "{count, plural, one {# onderliggend} other {# onderliggende}}",
       "confirm": "Kopiëren",
       "copying": "Bezig met kopiëren...",
-      "success": "Objecten succesvol gekopieerd",
-      "failed": "Objecten kopiëren mislukt",
       "action": "Kopiëren",
-      "copyHere": "Objecten hier kopiëren"
+      "copyHere": "Objecten hier kopiëren",
+      "copied": "{count, plural, one {# object gekopieerd} other {# objecten gekopieerd}}",
+      "failedPartial": "Het kopiëren is halverwege gestopt. Sommige objecten zijn mogelijk al aangemaakt — controleer de lijst voordat u het opnieuw probeert.",
+      "copyFilesHint": "Alleen gekoppelde bestanden. Geüploade bestanden blijven bij het origineel.",
+      "targetInsideSource": "De bestemming ligt binnen de objecten die u kopieert. Kies een bestemming daarbuiten, of schakel \"inclusief onderliggende objecten\" uit."
+    },
+    "itemsCount": "{count} item{count, plural, one {} other {s}}",
+    "saveError": {
+      "conflict": "Dit object is elders gewijzigd sinds u het opende. Kopieer uw wijzigingen, open het object opnieuw en pas ze opnieuw toe.",
+      "invalid": "Opslaan mislukt — {detail}",
+      "notFound": "Dit object bestaat niet meer.",
+      "propertyKeyRequired": "Geef elke eigenschap een naam voordat u opslaat."
+    },
+    "templateSelector": {
+      "label": "Beginnen met een sjabloon",
+      "placeholder": "Selecteer een sjabloon",
+      "search": "Sjablonen zoeken...",
+      "noResults": "Geen sjablonen gevonden",
+      "propertyCount": "{count} eigenschappen"
+    },
+    "parentPicker": {
+      "search": "Zoek bovenliggende objecten...",
+      "noResults": "Geen objecten gevonden"
+    },
+    "templateNameFrom": "{name} Sjabloon",
+    "templateCreatedSuccess": "Sjabloon aangemaakt",
+    "noObjectsAction": "Maak je eerste object",
+    "unnamed": "Naamloos",
+    "cover": {
+      "previewOf": "Bekijk de omslagafbeelding van {name}",
+      "set": "Gebruik als omslagafbeelding",
+      "clear": "Niet meer als omslagafbeelding gebruiken",
+      "current": "Omslagafbeelding"
+    },
+    "relations": {
+      "consumedBy": "Verbruikt door",
+      "consumedByHint": "Processen die dit object als invoer gebruiken.",
+      "producedBy": "Geproduceerd door",
+      "producedByHint": "Processen die dit object als uitvoer opleveren.",
+      "empty": "Nog geen processen verwijzen naar dit object.",
+      "loadFailed": "Gerelateerde processen konden niet worden geladen.",
+      "more": "+{count} meer niet getoond",
+      "flowCount": "{count} stromen",
+      "viewAll": "Alles bekijken in Processen"
+    },
+    "parents": {
+      "movedUnder": "Verplaatst onder {name}",
+      "alsoUnder": "Nu ook onder {name}",
+      "openParent": "Openen",
+      "movedFallbackName": "de nieuwe bovenliggende"
     }
+  },
+  "uploads": {
+    "centerAnnounceCancelled": "Upload van {fileName} geannuleerd",
+    "centerAnnounceCompleted": "Upload van {fileName} voltooid",
+    "centerAnnounceFailed": "Upload van {fileName} mislukt",
+    "centerCancel": "Upload annuleren",
+    "centerCancelling": "Annuleren…",
+    "centerClear": "Wissen",
+    "centerFailed": "{count} mislukt",
+    "centerIdle": "Alle uploads voltooid",
+    "centerInProgress": "{done} van {total} uploaden",
+    "centerRemove": "Verwijderen uit lijst",
+    "centerRetry": "Upload opnieuw proberen",
+    "centerStatusCancelled": "Geannuleerd",
+    "centerStatusDone": "Gereed",
+    "centerStatusFailed": "Mislukt",
+    "centerStatusPending": "Wachten…",
+    "centerStatusUploading": "Uploaden…"
   },
   "processes": {
     "title": "I/O-processen",
     "filterObjects": "Filteren op objecten...",
     "create": "Proces aanmaken",
-    "filters": "Actieve filters:",
     "clearMaterials": "Materialen wissen",
-    "clearObject": "Object wissen",
-    "clearAll": "Alles wissen",
-    "depthLimited": "3 Niveaus",
     "depthFull": "Volledige diepte",
     "depthWindow": {
       "label": "Niveaus {from}–{to} van {total}",
@@ -825,108 +740,109 @@
       "description": "Toont directe invoer & uitvoer",
       "clear": "Focus wissen"
     },
-    "object": "Object",
-    "inputs": "Invoer",
-    "outputs": "Uitvoer",
-    "relationships": "Dit maakt {count} materiaalrelaties aan",
-    "form": {
-      "createTitle": "Procesflow aanmaken",
-      "subtitle": "Een proces heeft een naam plus vrije eigenschappen. In- en uitvoer zijn objecten; markeer een eigenschap als hoeveelheid voor de stroomdiagrammen.",
-      "nameLabel": "Naam",
-      "namePlaceholder": "bijv. Beton recyclen",
-      "descriptionLabel": "Omschrijving (optioneel)",
-      "properties": "Eigenschappen",
-      "addProperty": "Eigenschap toevoegen",
-      "noProperties": "Nog geen eigenschappen.",
+    "flows": {
       "inputs": "Invoer",
       "outputs": "Uitvoer",
-      "addInput": "Invoer toevoegen",
-      "addOutput": "Uitvoer toevoegen",
-      "noInputs": "Voeg minstens één invoer toe.",
-      "noOutputs": "Voeg minstens één uitvoer toe.",
+      "quantity": "Hoeveelheid",
+      "selectObject": "Object selecteren",
       "searchObjects": "Objecten zoeken…",
-      "searchHint": "Typ minstens 2 tekens om te zoeken.",
-      "selectedObject": "Geselecteerd object",
-      "removeMaterial": "Verwijderen",
-      "quantityField": "Hoeveelheidsveld:",
-      "quantityNone": "Geen",
-      "unnamedProperty": "Eigenschap {n}",
-      "quantityWarning": "{count, plural, one {# hoeveelheid heeft geen herkenbaar getal} other {# hoeveelheden hebben geen herkenbaar getal}} — opgeslagen zoals ingevoerd.",
-      "attachments": "Bijlagen",
-      "attachmentsComingSoon": "Bestandsbijlagen voor processen komen binnenkort.",
-      "createButton": "Proces aanmaken"
+      "noObjects": "Geen objecten gevonden",
+      "toggleDetails": "Stroomdetails tonen",
+      "add": {
+        "inputs": "Invoer toevoegen",
+        "outputs": "Uitvoer toevoegen"
+      },
+      "empty": {
+        "inputs": "Nog geen invoer",
+        "outputs": "Nog geen uitvoer"
+      },
+      "alsoInput": "ook een invoer",
+      "alsoOutput": "ook een uitvoer",
+      "untitled": "Stroom"
     },
-    "dashboard": {
-      "noDataTitle": "Geen procesgegevens",
-      "noDataDescription": "Maak uw eerste proces aan om hier analyses en inzichten te zien.",
-      "createFirstProcess": "Eerste proces aanmaken",
-      "totalFlows": "Totaal flows",
-      "circularFlows": "Circulaire flows",
-      "circularityRate": "Circulariteitspercentage",
-      "reusedComponents": "Hergebruikte componenten",
-      "processCategories": "Procescategorieën",
-      "topCount": "Top {count}",
-      "noProcessCategoryData": "Geen procescategoriegegevens beschikbaar",
-      "lifecycleStages": "Levenscyclusfasen",
-      "noLifecycleData": "Geen levenscyclusgegevens beschikbaar",
-      "environmentalImpact": "Milieu-impact",
-      "totalEmissions": "Totale emissies",
-      "avgMaterialLoss": "Gem. materiaalverlies",
-      "processesUnit": "processen",
-      "upcycled": "Geüpcycled",
-      "downcycled": "Gedegradeerd",
-      "materialsTitle": "Materialen ({count})",
-      "unnamedMaterial": "Naamloos materiaal",
-      "noStage": "Geen fase",
-      "noMaterials": "Geen materialen om weer te geven"
+    "saveError": {
+      "flowNeedsObject": "Elke invoer en uitvoer moet naar een object verwijzen",
+      "needsInput": "Een proces heeft minstens één invoer nodig.",
+      "needsOutput": "Een proces heeft minstens één uitvoer nodig."
     },
-    "materialSelector": {
-      "selectedCount": "{count} materiaal{count, plural, one {} other {en}} geselecteerd",
-      "maxBadge": "Max",
-      "placeholder": "Selecteer materialen...",
-      "searchPlaceholder": "Zoek materialen...",
-      "startTyping": "Begin met typen om materialen te zoeken",
-      "noResults": "Geen materialen gevonden",
-      "showingTop": "Toont {shown} van {total} materialen"
+    "deleted": "Proces verwijderd",
+    "deleteFailed": "Verwijderen van proces mislukt",
+    "restored": "Proces hersteld",
+    "restoreFailed": "Herstellen van proces mislukt",
+    "fields": {
+      "flows": "In / Uit"
     },
-    "loadingState": {
-      "loading": "Procesgegevens laden...",
-      "noProcesses": "Geen I/O-processen",
-      "noProcessesForObject": "Geen I/O-processen gevonden voor het geselecteerde object.",
-      "noProcessesYet": "Er zijn nog geen I/O-processen aangemaakt.",
-      "createFirst": "Eerste proces aanmaken"
-    }
+    "empty": {
+      "title": "Nog geen processen",
+      "description": "Een proces zet invoerobjecten om in uitvoerobjecten."
+    },
+    "flowView": {
+      "depthLimited": "{size} niveaus",
+      "openDetails": "Details openen",
+      "cyclesRemoved": "{count, plural, one {# circulaire stroom wordt niet getekend} other {# circulaire stromen worden niet getekend}} — een Sankey moet acyclisch zijn.",
+      "truncated": "Alleen de eerste processen worden getoond — de stroomgrafiek is groter dan één ophaalronde.",
+      "error": "De stroomgrafiek kon niet worden geladen.",
+      "legendHint": "Klik op een knooppunt om te focussen · klik op een stroom om het proces te openen",
+      "noQuantity": "Geen hoeveelheid vastgelegd",
+      "kind": {
+        "object": "Object",
+        "process": "Proces"
+      },
+      "unit": {
+        "label": "Eenheid",
+        "widths": "Breedtes",
+        "help": "Breedtes worden in één eenheid tegelijk getekend — kg en m3 op één schaal mengen maakt ze betekenisloos. Het getal is het aantal stromen met die eenheid. Wisselen stelt een andere vraag over dezelfde grafiek: waar de massa heen gaat, of het volume, of de voetafdruk.",
+        "unitless": "Geen eenheid"
+      },
+      "filter": {
+        "selected": "{count} geselecteerd",
+        "search": "Objecten zoeken…"
+      },
+      "empty": {
+        "title": "Nog niets te tekenen",
+        "description": "Een proces met minstens één input en één output verschijnt hier."
+      }
+    },
+    "networkView": {
+      "networks": "{count, plural, one {# stroomnetwerk} other {# afzonderlijke stroomnetwerken}}",
+      "bridges": "{count, plural, one {# koppeling verbindt twee netwerken} other {# koppelingen verbinden anders gescheiden netwerken}}",
+      "bridgeLegend": "Netwerkkoppeling",
+      "bridgeHint": "De enige koppeling tussen deze twee netwerken — verwijder hem en ze vallen uiteen.",
+      "flowCount": "{count, plural, one {# stroom} other {# stromen}}",
+      "legendHint": "Sleep om te herschikken · scroll om te zoomen · klik op een knooppunt om te focussen",
+      "seeOverview": "Het overzicht tekent ze wel."
+    },
+    "relatedTo": "Processen gerelateerd aan {name}",
+    "clearRelated": "Wissen"
   },
-  "models": {
+  "templates": {
     "title": "Sjablonen",
-    "tabObjectTemplates": "Objectsjablonen",
-    "tabFormulas": "Formules",
-    "showDeleted": "Verwijderde items tonen",
-    "defaultName": "Model",
-    "editTitle": "Model bewerken",
-    "createTitle": "Nieuw model maken",
-    "detailsDescription": "Bekijk en bewerk objecteigenschappen, relaties en bestanden",
-    "editDescription": "Werk dit modelsjabloon en de eigenschappen bij.",
-    "createDescription": "Maak een nieuw modelsjabloon dat kan worden gebruikt om objecten te genereren.",
-    "placeholders": {
-      "name": "bijv. Schoolgebouw",
-      "abbreviation": "bijv. SG (optioneel)",
-      "version": "bijv. 1.0 (optioneel)",
-      "description": "Beschrijf het objectmodel..."
+    "fields": {
+      "type": "Type"
     },
-    "addFirstProperty": "Eerste eigenschap toevoegen",
-    "creating": "Bezig met maken...",
-    "updating": "Bezig met bijwerken...",
-    "create": "Model maken",
-    "update": "Model bijwerken",
-    "loading": "Sjablonen laden...",
-    "noTemplatesTitle": "Geen sjablonen gevonden",
-    "noTemplatesDescription": "Er zijn geen sjablonen om weer te geven",
-    "restoreTitle": "Model herstellen",
-    "searchResults": "Zoekresultaten voor: \"{query}\"",
-    "results": "{count} resultaat{count, plural, one {} other {en}}",
-    "resultsPage": "{count} resultaat{count, plural, one {} other {en}} (pagina {page} van {pages})",
-    "clearSearch": "Zoekopdracht wissen"
+    "systemBadge": "Ingebouwd",
+    "deleted": "Sjabloon verwijderd",
+    "deleteFailed": "Sjabloon verwijderen mislukt",
+    "defaultName": "Sjabloon",
+    "createTitle": "Nieuw sjabloon maken",
+    "placeholders": {
+      "version": "bijv. 1.0 (optioneel)"
+    },
+    "create": "Sjabloon maken",
+    "noTemplatesTitle": "Nog geen templates",
+    "noTemplatesDescription": "Een template is een startpunt voor nieuwe objecten: de eigenschappen, formulerecepten en de constanten waaraan ze gebonden zijn, klaar voor hergebruik.",
+    "nameRequired": "Een sjabloon heeft een naam nodig",
+    "systemReadOnly": "Ingebouwd sjabloon — alleen-lezen",
+    "restored": "Sjabloon hersteld",
+    "restoreFailed": "Herstellen van sjabloon mislukt",
+    "formulaInert": "Berekend wanneer dit sjabloon wordt toegepast",
+    "typeObject": "Object",
+    "typeProcess": "Proces",
+    "createObject": "Objectsjabloon",
+    "createProcess": "Processjabloon",
+    "flowSlot": "Elk object",
+    "flowSlotPlaceholder": "Elk object (optionele standaard)",
+    "noTemplatesAction": "Maak een template"
   },
   "formulas": {
     "title": "Formules",
@@ -934,32 +850,17 @@
     "expression": "Expressie",
     "description": "Beschrijving",
     "version": "Versie",
-    "defaultName": "Formule",
     "create": "Formule maken",
-    "update": "Formule bijwerken",
-    "creating": "Bezig met maken...",
-    "updating": "Bezig met bijwerken...",
     "created": "Formule succesvol aangemaakt",
-    "updated": "Formule succesvol bijgewerkt",
     "deleted": "Formule succesvol verwijderd",
-    "saveFailed": "Formule opslaan mislukt",
     "deleteFailed": "Formule verwijderen mislukt",
     "validSyntax": "Geldige formule syntaxis",
-    "invalidSyntax": "Ongeldige formule syntaxis",
     "createTitle": "Nieuwe formule maken",
-    "editTitle": "Formule bewerken",
     "createDescription": "Definieer een herbruikbare wiskundige formule met variabelen.",
-    "editDescription": "Werk deze formuledefinitie bij.",
-    "noFormulasTitle": "Geen formules gevonden",
-    "noFormulasDescription": "Maak formules om te gebruiken in eigenschapsberekeningen.",
     "placeholders": {
       "name": "bijv. Oppervlakteberekening",
-      "expression": "bijv. breedte * hoogte",
-      "version": "bijv. 1.0 (optioneel)",
-      "description": "Beschrijf de formule..."
+      "expression": "bijv. breedte * hoogte"
     },
-    "selectFormula": "Selecteer een formule",
-    "searchPlaceholder": "Formules zoeken...",
     "reference": {
       "title": "Formule referentie",
       "description": "Ondersteunde operatoren, functies en constanten",
@@ -980,9 +881,10 @@
         "hyperbolic": "Hyperbolisch",
         "logarithmic": "Logaritmisch",
         "rounding": "Afronding",
-        "other": "Overig"
+        "other": "Overig",
+        "conditional": "Voorwaardelijk & selectie"
       },
-      "logNote": "log() is de natuurlijke logaritme (grondtal e), niet grondtal 10. Gebruik log10() voor grondtal 10.",
+      "logNote": "log() en ln() zijn de natuurlijke logaritme (grondtal e). Gebruik log10() voor grondtal 10, of lg() voor grondtal 2.",
       "constantsTitle": "Ingebouwde constanten",
       "examplesTitle": "Voorbeelden",
       "examples": {
@@ -1005,276 +907,54 @@
         "compoundInterest": {
           "formula": "P * (1 + rate)^years",
           "label": "Samengestelde rente"
+        },
+        "conditional": {
+          "formula": "a > b ? a : b",
+          "label": "Kies de grootste"
         }
       },
       "unsupportedTitle": "Niet ondersteund",
       "unsupported": {
-        "comparison": "Geen vergelijkingsoperatoren: <, >, <=, >=, ==, !=",
-        "logical": "Geen logische operatoren: &&, ||, !",
-        "bitwise": "Geen bitwise operatoren: &, |, ~, <<, >>",
-        "ternary": "Geen ternaire expressies: conditie ? a : b",
+        "comparison": "Een vergelijking kan niet HET resultaat zijn — `a < b` geeft waar/onwaar, geen getal. Gebruik er een binnen een voorwaarde: `a < b ? a : b`",
+        "logical": "Geen logische operatoren: &&, ||, !. Gebruik not() en geneste voorwaarden",
+        "bitwise": "Geen bitsgewijze operatoren: &, |, ~, <<, >>",
+        "assignment": "Geen toewijzing: `a = b` en `f(x) = …` worden geweigerd, zodat een `==`-typefout nooit stilletjes een waarde wordt",
+        "arrays": "Geen arrays of member-toegang: [1,2], a[0], a.b — een berekening geeft ÉÉN getal",
+        "sequence": "Geen `;`-reeksoperator",
         "implicitMul": "Geen impliciete vermenigvuldiging — schrijf 2*x, niet 2x"
       }
-    }
-  },
-  "groups": {
-    "title": "Groepen & projecten",
-    "search": "Groepen zoeken...",
-    "create": "Groep aanmaken",
-    "filtered": "gefilterd",
-    "total": "totaal",
-    "public": "Openbaar",
-    "private": "Privé",
-    "showing": "Toont {start}-{end} van {total} groepen",
-    "noMatches": "Geen groepen gevonden die overeenkomen met uw zoekopdracht.",
-    "noGroups": "Geen groepen beschikbaar.",
-    "loadError": "Kan groepen niet laden. Probeer het opnieuw.",
-    "confirmDelete": "Weet u zeker dat u \"{name}\" wilt verwijderen?",
-    "deleteConfirmTitle": "Groep verwijderen?",
-    "deleteConfirmDescription": "Dit zal de groep \"{name}\" verwijderen. Deze actie kan niet ongedaan worden gemaakt.",
-    "groupUuid": "Groeps-UUID",
-    "ownerUuid": "Eigenaar-UUID",
-    "userUuid": "Gebruikers-UUID",
-    "userUuidPlaceholder": "Voer gebruikers-UUID in...",
-    "userIdentifierPlaceholder": "Voer e-mail of certificaat-CN in",
-    "userNotFound": "Geen gebruiker gevonden voor deze identifier",
-    "searchingUser": "Gebruikers zoeken...",
-    "userSearchError": "Zoeken naar gebruikers is mislukt. Probeer opnieuw.",
-    "uuidDetected": "UUID gedetecteerd — direct toevoegen zonder zoeken",
-    "addByUuid": "Toevoegen via UUID",
-    "identifierType": {
-      "email": "E-mail",
-      "certificate": "Certificaat"
     },
-    "viewDetails": "Details bekijken",
-    "viewObjects": "Objecten bekijken",
-    "groupDetails": "Groepdetails",
-    "deleteGroup": "Groep verwijderen",
-    "owner": "Eigenaar",
-    "ownerDescription": "U bent de eigenaar van deze groep en heeft volledige toegang",
-    "cannotAddOwner": "Dit is de groepseigenaar — deze heeft al volledige toegang",
-    "userAlreadyExists": "Deze gebruiker is al lid van de groep",
-    "users": "Gebruikers",
-    "info": "Info",
-    "sharedUsers": "Gedeelde gebruikers",
-    "addUser": "Gebruiker toevoegen",
-    "addFirstUser": "Eerste gebruiker toevoegen",
-    "noUsers": "Nog geen gebruikers gedeeld met deze groep.",
-    "usersCount": "{count, plural, =0 {Geen gebruikers} one {# gebruiker} other {# gebruikers}}",
-    "permissionLevel": "Rechtenniveau",
-    "visibility": "Zichtbaarheid",
-    "publicDescription": "Iedereen kan deze groep bekijken",
-    "privateDescription": "Alleen gedeelde gebruikers hebben toegang",
-    "publicShortDescription": "Zichtbaar voor iedereen op het platform",
-    "privateShortDescription": "Beperkt tot specifieke gebruikers",
-    "yourPermissions": "Uw rechten",
-    "permissionsFromGroup": "Overgenomen van openbare groepsrechten",
-    "publicReadOnlyHint": "Openbare groepen geven alleen-lezen toegang aan iedereen. Voeg gebruikers per UUID toe voor extra rechten.",
-    "permissionsSummary": "{count} rechten",
-    "filter": {
-      "label": "Filter",
-      "all": "Alle",
-      "my": "Mijn groepen",
-      "shared": "Gedeeld met mij"
+    "variables": "Variabelen",
+    "variablesDerived": "Variabelen die deze formule je laat koppelen:",
+    "insertHint": "Klik om in te voegen:",
+    "filterInserts": "Filter constanten en functies",
+    "noInsertMatches": "Niets komt overeen met dit filter",
+    "expressionHint": "Een rekenkundige expressie over vrije variabelen, bijv. volume * co2_factor",
+    "duplicate": "Dupliceren",
+    "duplicateTitle": "Formule dupliceren",
+    "duplicateOf": "Een nieuwe formule gekopieerd van “{name}”. Het origineel blijft ongewijzigd, en alles dat het al gebruikt houdt het origineel.",
+    "copyName": "{name} (kopie)",
+    "copiedFrom": "Gekopieerd van",
+    "immutableNote": "Formules kunnen niet worden bewerkt — dupliceer er een om een variant te maken. Waarden die al aan deze formule gekoppeld zijn blijven hem gebruiken.",
+    "restored": "Formule hersteld",
+    "restoreFailed": "Herstellen van formule mislukt",
+    "empty": {
+      "title": "Nog geen formules",
+      "description": "Een formule is een herbruikbare expressie die je aan een waarde kunt koppelen."
     },
-    "selectAtLeastOnePermission": "Selecteer minimaal één recht",
-    "permissions": {
-      "READ": "Lezen",
-      "GROUP_WRITE": "Groep schrijven",
-      "GROUP_WRITE_RECORDS": "Records schrijven"
-    },
-    "permissionDescription": {
-      "READ": "U kunt deze groep en de records alleen bekijken",
-      "GROUP_WRITE": "U kunt groepsinstellingen bewerken en delen met anderen",
-      "GROUP_WRITE_RECORDS": "Volledige toegang: groep bewerken, records toevoegen en verwijderen"
-    },
-    "errors": {
-      "updateName": "Bijwerken van groepsnaam mislukt. Probeer het opnieuw.",
-      "addUser": "Toevoegen van gebruiker aan groep mislukt. Probeer het opnieuw.",
-      "removeUser": "Verwijderen van gebruiker uit groep mislukt. Probeer het opnieuw.",
-      "updatePermission": "Bijwerken van gebruikersrechten mislukt. Probeer het opnieuw.",
-      "toggleVisibility": "Bijwerken van groepszichtbaarheid mislukt. Probeer het opnieuw."
-    },
-    "form": {
-      "createTitle": "Nieuwe groep aanmaken",
-      "createDescription": "Maak een nieuwe groep om objecten te organiseren en te delen met andere gebruikers.",
-      "editTitle": "Groep bewerken",
-      "viewTitle": "Groepsdetails",
-      "name": "Groepsnaam",
-      "namePlaceholder": "Voer groepsnaam in...",
-      "creating": "Bezig met aanmaken...",
-      "saving": "Bezig met opslaan...",
-      "createGroup": "Groep aanmaken",
-      "saveChanges": "Wijzigingen opslaan",
-      "addUsers": "Gebruikers toevoegen",
-      "addUsersOptional": "optioneel",
-      "isPublic": "Maak deze groep openbaar",
-      "publicPermissions": "Openbare rechtenniveau"
-    }
-  },
-  "import": {
-    "title": "Objecten importeren",
-    "subtitle": "Objecten importeren uit XLSX- of CSV-bestanden",
-    "rows": "{count} rijen",
-    "largeDatasetDetected": "Grote dataset gedetecteerd (geschat {size}MB). Geoptimaliseerde upload gebruiken.",
-    "importJobStarted": "Importopdracht succesvol gestart!",
-    "importJobId": "Opdracht-ID: {id}",
-    "importFailed": "Import mislukt",
-    "processingChunks": "{total} objecten verwerken in {chunks} chunks",
-    "uploadingChunk": "Chunk {current}/{total} uploaden ({percent}%)...",
-    "allChunksUploaded": "Alle chunks geüpload!",
-    "importJobIdLabel": "Importopdracht-ID: {id}",
-    "statementDeleteFailed": "Statement verwijderen mislukt: {error}",
-    "steps": {
-      "upload": "Bestand uploaden",
-      "map": "Kolommen koppelen",
-      "preview": "Voorbeeld & importeren"
-    },
-    "sheet": {
-      "select": "Werkblad selecteren",
-      "placeholder": "Selecteer een werkblad",
-      "noSheets": "Geen werkbladen gevonden in het bestand",
-      "noData": "Geen gegevens gevonden in werkblad \"{sheet}\"",
-      "selectPrompt": "Selecteer een werkblad om verder te gaan"
-    },
-    "upload": {
-      "processing": "Bestand verwerken ({progress}%)...",
-      "dragDrop": "Sleep uw bestand hierheen",
-      "browse": "of klik om te bladeren",
-      "supports": "Ondersteunt XLSX- en CSV-bestanden tot {size}MB",
-      "title": "Gegevensvoorbeeld",
-      "description": "Controleer en importeer uw gegevens",
-      "objects": "{count} objecten",
-      "properties": "{count} eigenschappen",
-      "previewing": "Voorbeeld {shown}/{total}",
-      "allShown": "Alle rijen weergegeven",
-      "note": "Let op: alle {total} rijen worden geïmporteerd, ook al worden er slechts {shown} getoond in het voorbeeld.",
-      "exportJson": "JSON exporteren",
-      "objectsToImport": "Te importeren objecten",
-      "importing": "Bezig met importeren...",
-      "import": "Importeer {count} objecten"
-    },
-    "map": {
-      "title": "Kolommen koppelen",
-      "description": "Koppel kolommen aan objecteigenschappen",
-      "headerRow": "Header-rij:",
-      "row": "Rij",
-      "showing": "(toont rijen {start} tot {end})",
-      "useHeaders": "Gebruik rij als headers",
-      "applyTemplate": "Sjabloon toepassen:",
-      "selectTemplate": "Selecteer sjabloon",
-      "sheetPreview": "Werkbladvoorbeeld",
-      "mapColumns": "Koppel kolommen aan eigenschappen",
-      "reset": "Reset",
-      "mapAll": "Koppel alle niet-gekoppelde als eigenschappen",
-      "saveTemplate": "Sjabloon opslaan",
-      "saveTemplateTitle": "Koppelingssjabloon opslaan",
-      "saveTemplateDescription": "Sjablonen slaan uw kolomkoppelingen op zodat u ze kunt hergebruiken",
-      "templateName": "Sjabloonnaam",
-      "templatePlaceholder": "bijv. Klantimport",
-      "noData": "Geen gegevens beschikbaar om te koppelen. Selecteer eerst een werkblad.",
-      "column": "Kolom",
-      "mapToProperty": "Koppel aan eigenschap",
-      "preview": "Voorbeeld",
-      "required": "(Verplicht)",
-      "dontImport": "Deze kolom niet importeren",
-      "continue": "Doorgaan",
-      "back": "Terug",
-      "save": "Opslaan",
-      "errors": {
-        "mapRequired": "Koppel alle verplichte eigenschappen voordat u doorgaat",
-        "templateName": "Voer een sjabloonnaam in",
-        "templateSaved": "Sjabloon \"{name}\" opgeslagen"
-      }
-    },
-    "preview": {
-      "title": "Gegevensvoorbeeld",
-      "description": "Controleer en importeer uw gegevens",
-      "objects": "{count} objecten",
-      "properties": "{count} eigenschappen",
-      "previewing": "Voorbeeld {shown}/{total}",
-      "allShown": "Alle rijen weergegeven",
-      "note": "Let op: alle {total} rijen worden geïmporteerd, ook al worden er slechts {shown} getoond in het voorbeeld.",
-      "exportJson": "JSON exporteren",
-      "objectsToImport": "Te importeren objecten",
-      "importing": "Bezig met importeren...",
-      "import": "Importeer {count} objecten"
-    },
-    "errors": {
-      "noData": "Geen gegevens om te importeren"
-    },
-    "limits": {
-      "title": "Importlimieten",
-      "exceedsLimits": "Overschrijdt limieten",
-      "largeImport": "Grote import",
-      "fileSize": "Bestandsgrootte",
-      "maxPerFile": "Max {size} per bestand",
-      "fileSizeHint": "Splits grote bestanden indien nodig",
-      "importSize": "Importgrootte",
-      "maxPerImport": "Max {size} per import",
-      "importSizeHint": "Totale payload-groottelimiet",
-      "currentSize": "Huidig: {size}",
-      "objectCount": "Aantal objecten",
-      "maxObjects": "Max {count} objecten",
-      "objectCountHint": "Per enkele importbewerking",
-      "currentObjects": "Huidig: {count} objecten",
-      "exceedsDescriptionTitle": "Import overschrijdt limieten.",
-      "largeDescriptionTitle": "Grote import gedetecteerd.",
-      "largeDescriptionBody": "Neem contact op met ondersteuning voor hulp bij grote imports.",
-      "support": {
-        "optimizedStrategies": "Geoptimaliseerde importstrategieën",
-        "temporaryIncreases": "Tijdelijke limietverhogingen",
-        "validation": "Hulp bij gegevensvalidatie",
-        "performance": "Prestatie-optimalisatie"
-      },
-      "contactSupport": "Neem contact op met ondersteuning ({email})",
-      "tips": {
-        "title": "Tips voor grote imports",
-        "breakDatasets": "Verdeel grote datasets in kleinere delen",
-        "removeProperties": "Verwijder onnodige eigenschappen om de grootte te verminderen",
-        "offPeak": "Importeer tijdens daluren voor betere prestaties",
-        "chunkedUpload": "Gebruik chunked upload voor zeer grote bestanden"
-      },
-      "mailSubject": "{acronym} Grote import aanvraag",
-      "mailBody": "Hallo,\n\nIk wil graag hulp vragen bij een grote import.\n\nHuidige importdetails:\n- Objecten: {currentObjectCount}\n- Grootte: {currentSizeMB}MB\n\nHuidige limieten:\n- Max objecten: {maxObjectsPerImport}\n- Max bestandsgrootte: {maxImportFileSizeMB}MB\n- Max importgrootte: {maxImportPayloadMB}MB\n\nGraag advies over de beste aanpak.\n\nBedankt."
-    },
-    "toasts": {
-      "largeDataset": "Grote dataset gedetecteerd (geschat {size}MB). Geoptimaliseerde upload gebruiken.",
-      "jobStarted": "Importopdracht succesvol gestart!",
-      "failed": "Import mislukt",
-      "processingChunks": "{total} objecten verwerken in {chunks} chunks",
-      "uploadingChunk": "Chunk {current}/{total} uploaden ({percent}%)...",
-      "allUploaded": "Alle chunks geüpload!"
-    }
-  },
-  "importStatus": {
-    "back": "Terug naar import",
-    "title": "Importstatus",
-    "jobsFound": "{count} opdracht{count, plural, one {} other {en}} gevonden",
-    "loadingJobs": "Importopdrachten laden...",
-    "failedJobs": "Kon opdrachten niet laden",
-    "tryAgain": "Opnieuw proberen",
-    "noJobs": "Geen importtaken gevonden",
-    "startFirst": "Start uw eerste import om opdrachten hier te zien",
-    "startNew": "Nieuwe import starten",
-    "progress": "Voortgang",
-    "started": "Gestart",
-    "completed": "Voltooid",
-    "totalObjects": "Totaal objecten",
-    "successful": "Geslaagd",
-    "failed": "Mislukt",
-    "errorDetails": "Foutdetails",
-    "viewObjects": "Objecten bekijken",
-    "autoRefresh": "Automatisch vernieuwen",
-    "autoRefreshing": "Automatisch vernieuwen",
-    "jobId": "Opdracht-ID:",
-    "loadingDetails": "Opdrachtdetails laden...",
-    "processed": "Verwerkt",
-    "jobTitle": "Importopdracht {id} - {status}",
-    "cancelJob": "Import annuleren"
-  },
-  "filters": {
-    "filterOptions": "Filteropties"
+    "unit": "Eenheid van het resultaat",
+    "unitHint": "Optioneel. De node leidt de eenheid af uit de waarden die een formule leest — geef er alleen zelf een op als dat niet lukt, bijvoorbeeld bij een breedte maal een hoogte, of een resultaat in een andere schaal dan de invoer.",
+    "unitInferred": "Afgeleid uit de waarden",
+    "unitNone": "Geen eenheid",
+    "unitCanonical": "opgeslagen in",
+    "searchUnits": "Eenheden zoeken…",
+    "noUnitMatches": "Geen eenheden gevonden",
+    "supersededBy": "Gecorrigeerd door",
+    "supersededWarning": "Deze formule is als onjuist gemarkeerd en vervangen door een correctie. Waarden die hem al gebruiken behouden hun resultaat.",
+    "useCorrection": "Gebruik de correctie",
+    "correct": "Markeer als onjuist",
+    "correctTitle": "Een formule corrigeren",
+    "correctOf": "Een vervanging voor “{name}”, die als onjuist wordt gemarkeerd. Waarden die hem al gebruiken behouden hun resultaat en worden niet herberekend."
   },
   "viewSelector": {
     "table": "Tabelweergave",
@@ -1292,42 +972,12 @@
     "search": "Zoeken",
     "complete": "Voltooien",
     "close": "Sluiten",
-    "shortcuts": {
-      "search": "Zoeken",
-      "complete": "Aanvullen",
-      "close": "Sluiten"
-    },
     "searchingFor": "Zoeken naar \"{query}\"",
     "filters": "Filters",
     "recent": "Recent",
     "quickActions": "Snelle acties",
     "viewDeleted": "Verwijderde objecten bekijken",
     "viewDeletedDescription": "Toon alle soft-verwijderde items"
-  },
-  "objectSelection": {
-    "title": "Object selecteren",
-    "dialogDescription": "Zoek en selecteer een object om aan dit proces toe te voegen.",
-    "searchObjects": "Objecten zoeken",
-    "availableObjects": "Beschikbare objecten",
-    "searching": "Objecten zoeken...",
-    "noObjects": "Geen objecten gevonden die overeenkomen met uw zoekopdracht",
-    "typeToSearch": "Typ minimaal 2 tekens om objecten te zoeken",
-    "quantity": "Hoeveelheid",
-    "quantityPlaceholder": "Voer hoeveelheid in",
-    "unit": "Eenheid",
-    "selectUnit": "Selecteer eenheid",
-    "metadata": "Materiaalmetadata (Optioneel)",
-    "lifecycleStage": "Levenscyclusfase",
-    "selectLifecycleStage": "Selecteer levenscyclusfase",
-    "materialCategory": "Materiaalcategorie",
-    "selectCategory": "Selecteer categorie",
-    "customProperties": "Aangepaste eigenschappen (Optioneel)",
-    "propertyName": "Eigenschapsnaam",
-    "propertyValue": "Eigenschapswaarde",
-    "addProperty": "Eigenschap toevoegen",
-    "addAnotherProperty": "Voeg nog een eigenschap toe",
-    "addMaterial": "Materiaal toevoegen",
-    "updateMaterial": "Materiaal bijwerken"
   },
   "help": {
     "title": "Helpcentrum",
@@ -1338,95 +988,111 @@
     "certificateInstallation": "Certificaatinstallatie",
     "certificateInstallationDesc": "Volg deze stappen om uw certificaat te installeren",
     "windows": "Windows",
+    "macos": "macOS",
+    "usingCertificate": "Uw certificaat gebruiken",
+    "usingCertificateDesc": "Leer hoe u uw certificaat gebruikt met {acronym}",
+    "firstTimeLogin": "Eerste keer inloggen",
+    "dailyUsage": "Dagelijks gebruik",
+    "commonIssues": "Veelvoorkomende problemen",
+    "commonIssuesDesc": "Oplossingen voor veelvoorkomende certificaatproblemen",
+    "certificateNotShowing": "Certificaat wordt niet weergegeven",
+    "accessDenied": "Toegang geweigerd",
+    "contactSupport": "Neem contact op met ondersteuning: {email}",
     "windowsSteps": [
       "Dubbelklik op het certificaatbestand (.p12 of .pfx)",
       "Selecteer \"Huidige gebruiker\" voor opslaglocatie",
       "Voer uw certificaatwachtwoord in wanneer daarom wordt gevraagd",
       "Voltooi de wizard voor certificaatimport"
     ],
-    "macos": "macOS",
     "macosSteps": [
       "Dubbelklik op het certificaatbestand",
       "Sta Sleutelhangertoegang toe om te installeren",
       "Voer uw systeemwachtwoord in",
       "Voer het certificaatwachtwoord in"
     ],
-    "downloadGuide": "Volledige handleiding downloaden",
-    "usingCertificate": "Uw certificaat gebruiken",
-    "usingCertificateDesc": "Leer hoe u uw certificaat gebruikt met {acronym}",
-    "firstTimeLogin": "Eerste keer inloggen",
     "firstTimeLoginSteps": [
       "Open {acronym}-applicatie",
       "Klik op \"Autoriseren\"",
       "Selecteer uw certificaat wanneer daarom wordt gevraagd",
       "Klik op OK/Toestaan"
     ],
-    "dailyUsage": "Dagelijks gebruik",
     "dailyUsageItems": [
       "Browser onthoudt uw keuze",
       "Mogelijk opnieuw selecteren na herstart browser",
       "Selectiedialoog verschijnt bij meerdere certificaten"
     ],
-    "commonIssues": "Veelvoorkomende problemen",
-    "commonIssuesDesc": "Oplossingen voor veelvoorkomende certificaatproblemen",
-    "certificateNotShowing": "Certificaat wordt niet weergegeven",
     "certificateNotShowingItems": [
       "Controleer of certificaat correct is geïnstalleerd",
       "Controleer of certificaat niet is verlopen",
       "Zorg ervoor dat u een ondersteunde browser gebruikt"
     ],
-    "accessDenied": "Toegang geweigerd",
     "accessDeniedItems": [
       "Controleer of het juiste certificaat is geselecteerd",
       "Controleer certificaatvervaldatum",
       "Neem contact op met beheerder als problemen aanhouden"
-    ],
-    "contactSupport": "Neem contact op met ondersteuning: {email}"
+    ]
   },
-  "onboarding": {
-    "initialLogin": {
-      "welcome": "Welkom bij IoM - Objecten",
-      "welcomeDescription": "Dit is uw hoofdwerkruimte waar u alle objecten in uw systeem kunt bekijken, beheren en organiseren. Objecten zijn de kernentiteiten die echte items, documenten of concepten vertegenwoordigen die u wilt volgen en beheren.",
-      "processes": "I/O-processen",
-      "processesDescription": "Hier kunt u processen volgen en monitoren die uw objecten transformeren of verplaatsen. Deze sectie helpt u te begrijpen hoe objecten door verschillende fasen stromen, van input naar output, waardoor u volledig inzicht krijgt in uw operationele workflows.",
-      "groups": "Groepen & projecten",
-      "groupsDescription": "Organiseer uw objecten in groepen en projecten. Groepen stellen u in staat om collecties objecten te delen met andere gebruikers, toegangsrechten te beheren en effectief samen te werken binnen uw organisatie.",
-      "models": "Modellen & sjablonen",
-      "modelsDescription": "Maak herbruikbare modellen en sjablonen die de structuur en eigenschappen van uw objecten definiëren. Modellen fungeren als blauwdrukken, zorgen voor consistentie bij het maken van nieuwe objecten en helpen uw gegevens te standaardiseren over het hele platform.",
-      "import": "Gegevensimport",
-      "importDescription": "Importeer bestaande gegevens uit externe bronnen, spreadsheets of andere systemen. Deze krachtige functie stelt u in staat om uw legacy-gegevens efficiënt in IoM te brengen, met ondersteuning voor verschillende formaten en bulkbewerkingen om snel aan de slag te gaan.",
-      "search": "Globaal zoeken",
-      "searchDescription": "Gebruik de krachtige zoekfunctionaliteit om snel elk object, proces of gegevens in uw hele IoM-werkruimte te vinden. Druk op Cmd+K (of Ctrl+K) om het commandocentrum te openen en door alles te zoeken met intelligente filtering en suggesties.",
-      "demoTour": "Interactieve demotour",
-      "demoTourDescription": "Klaar voor een hands-on ervaring? Klik op \"Demotour\" om op elk moment een uitgebreide rondleiding te krijgen die u begeleidt bij het maken van uw eerste object, het verkennen van alle functies en het begrijpen hoe alles samenwerkt."
+  "security": {
+    "back": "Terug",
+    "title": "Beveiliging",
+    "intro": "Denkt u een beveiligingslek te hebben gevonden, dan horen wij dat graag. Deze pagina legt uit hoe u ons bereikt, wat binnen de reikwijdte valt en wat u kunt verwachten nadat u iets heeft gemeld.",
+    "canonical": "De canonieke, altijd actuele versie van dit beleid staat op",
+    "noPublicIssue": {
+      "title": "Meld een kwetsbaarheid nooit openbaar",
+      "description": "Een openbare melding informeert iedereen — ook wie het zou misbruiken — voordat er een oplossing is om naar te upgraden. Gebruik een van de privékanalen hieronder."
     },
-    "demo": {
-      "filters": "Filters",
-      "filtersDescription": "Gebruik filters om uw weergave te verfijnen en precies te vinden wat u nodig heeft. U kunt filteren op verschillende criteria, waaronder het tonen of verbergen van verwijderde objecten, status, categorieën en meer. Filters helpen u zich te concentreren op de meest relevante gegevens voor uw huidige taak.",
-      "viewOptions": "Weergaveopties",
-      "viewOptionsDescription": "Schakel tussen verschillende weergavemodi om uw gegevens te zien in het formaat dat het beste voor u werkt. Kies uit tabelweergave voor gedetailleerde lijsten of kolomweergave voor een meer visuele, kaartgebaseerde lay-out. Uw voorkeur wordt automatisch opgeslagen.",
-      "createObjects": "Nieuwe objecten maken",
-      "createObjectsDescription": "Dit is waar uw objectcreatiereis begint. Klik op deze knop wanneer u een nieuw object aan uw IoM-systeem wilt toevoegen. Objecten kunnen van alles vertegenwoordigen, van fysieke items tot digitale activa, processen of concepten.",
-      "modelTemplates": "Modelsjablonen",
-      "modelTemplatesDescription": "Kies uit vooraf gedefinieerde sjablonen die automatisch relevante velden invullen op basis van het type object dat u maakt. Modellen zorgen voor consistentie en besparen tijd door gestructureerde blauwdrukken te bieden voor veelvoorkomende objecttypen in uw organisatie.",
-      "parentRelationships": "Bovenliggende relaties",
-      "parentRelationshipsDescription": "Stel hiërarchische verbindingen in door dit object te koppelen aan zijn bovenliggende objecten. Dit creëert een gestructureerde boom die helpt bij het organiseren van uw gegevens en krachtige filtering en navigatie door gerelateerde objecten mogelijk maakt.",
-      "objectMetadata": "Objectmetadata",
-      "objectMetadataDescription": "Deze kernvelden definiëren de identiteit van uw object: Naam (de primaire identificatie), Afkorting (optionele korte code voor snelle referentie), Versie (voor het bijhouden van wijzigingen in de tijd) en Beschrijving (gedetailleerde uitleg voor teambegrip). Vul deze zorgvuldig in, want ze worden door het hele systeem gebruikt voor zoeken en identificatie.",
-      "locationInfo": "Locatie-informatie",
-      "locationInfoDescription": "Koppel indien relevant een fysiek adres of locatie aan uw object. Dit is bijzonder handig voor het volgen van activa, faciliteiten of objecten die een geografische component hebben in hun identiteit.",
-      "fileAttachments": "Bestandsbijlagen",
-      "fileAttachmentsDescription": "Upload ondersteunende documenten, afbeeldingen, specificaties of bestanden die extra context bieden over uw object. Deze bijlagen worden onderdeel van het permanente record van het object en zijn doorzoekbaar binnen het systeem.",
-      "customProperties": "Aangepaste eigenschappen",
-      "customPropertiesDescription": "Voeg gespecialiseerde gegevensvelden toe die uniek zijn voor uw object. Elke eigenschap heeft een naam en waarde, en u kunt bestanden aan individuele eigenschappen koppelen voor gedetailleerde documentatie. Deze flexibiliteit stelt u in staat om specifieke informatie vast te leggen die uw object nodig heeft.",
-      "propertyFiles": "Eigenschapsbestandsbijlagen",
-      "propertyFilesDescription": "Eigenschappen ondersteunen bestandsbijlagen op meerdere niveaus - u kunt bestanden koppelen aan de eigenschapsnaam zelf (voor documentatie over wat de eigenschap vertegenwoordigt) en aan individuele eigenschapswaarden (voor bewijs of ondersteunende documenten). Dit gedetailleerde bestandssysteem creëert uitgebreide documentatie voor uw objecten.",
-      "completeCreation": "Objectcreatie voltooien",
-      "completeCreationDescription": "Wanneer u alle benodigde informatie heeft ingevuld, klik op Maken om uw nieuwe object op te slaan in het systeem. Het object is dan beschikbaar voor zoeken, koppelen en gebruik in processen in uw hele IoM-werkruimte."
+    "status": {
+      "title": "Status van het project",
+      "description": "io2p bevindt zich in een vroeg stadium. De API’s en opslagformaten evolueren nog tussen releases — zet een versie vast en lees de release notes voordat u bijwerkt. Een onafhankelijke beveiligingsaudit is nog niet uitgevoerd; tot die tijd horen wij een probleem liever vroeg dan laat."
     },
-    "createObject": {
-      "title": "Maak uw eerste object",
-      "description": "Gebruik deze knop om een nieuw object aan het systeem toe te voegen."
+    "report": {
+      "title": "Hoe u meldt",
+      "description": "Twee privékanalen, in volgorde van voorkeur.",
+      "items": [
+        "GitHub private vulnerability reporting — open een concept-advisory op de betreffende repository via github.com/maeconomy-org. Dit heeft de voorkeur: het blijft privé, geeft ons een plek om de oplossing te ontwikkelen en te testen, en regelt de CVE-uitgifte.",
+        "Stuur een e-mail naar {email} als u geen GitHub-account heeft of liever e-mailt. Zet \"security\" in het onderwerp.",
+        "Machineleesbare contactgegevens staan op io2p.org/.well-known/security.txt, conform RFC 9116."
+      ]
+    },
+    "include": {
+      "title": "Wat u meestuurt",
+      "description": "Hoe meer hiervan u kunt geven, hoe sneller wij het kunnen bevestigen en oplossen.",
+      "items": [
+        "Wat het probleem is en wat een aanvaller ermee zou kunnen bereiken",
+        "Stappen om het te reproduceren — bij voorkeur een minimale proof of concept",
+        "De betrokken versie, commit of URL",
+        "Relevante configuratie, logs of verzoeken, met geheimen weggelaten"
+      ]
+    },
+    "expect": {
+      "title": "Wat u van ons kunt verwachten",
+      "description": "Wij zijn een klein team. Heeft u binnen de bevestigingstermijn niets gehoord, stuur dan een herinnering in plaats van aan te nemen dat u genegeerd bent.",
+      "items": [
+        "Binnen 3 werkdagen een bevestiging dat uw melding ons heeft bereikt",
+        "Binnen 10 werkdagen een eerste beoordeling — of wij het kunnen reproduceren en hoe ernstig wij het inschatten",
+        "Voortgangsupdates terwijl wij aan een oplossing werken, en bericht voordat wij iets publiceren",
+        "Vermelding in de advisory, tenzij u liever anoniem blijft — laat ons weten wat u wilt"
+      ]
+    },
+    "scope": {
+      "title": "Reikwijdte",
+      "description": "Binnen de reikwijdte: deze applicatie en de io2p-diensten erachter. Het volgende valt erbuiten.",
+      "items": [
+        "Externe afhankelijkheden — meld die bij het bronproject. Is een probleem in een afhankelijkheid via io2p bereikbaar op een manier die het bronproject niet als kwetsbaarheid ziet, dan valt dat deel wél binnen de reikwijdte.",
+        "Elke installatie die wij niet zelf beheren. io2p is self-hosted software; een specifieke installatie is van wie hem draait.",
+        "Bevindingen van geautomatiseerde scanners zonder aangetoonde impact, ontbrekende hardening-headers zonder aanvalspad, en meldingen die een reeds gecompromitteerde host of fysieke toegang vereisen."
+      ]
+    },
+    "harbour": {
+      "title": "Safe harbour",
+      "description": "Wij ondernemen of ondersteunen geen juridische stappen tegen wie te goeder trouw een kwetsbaarheid meldt en dit beleid volgt. Twijfelt u of iets dat u wilt testen binnen deze lijnen valt, vraag het ons eerst via {email}.",
+      "items": [
+        "Meld privé via een van de bovenstaande kanalen en geef ons redelijke tijd om te reageren",
+        "Test alleen tegen uw eigen installatie of testgegevens — niet die van anderen",
+        "Benader, wijzig of vernietig geen gegevens die niet van u zijn",
+        "Doe geen afbreuk aan de beschikbaarheid van enige dienst",
+        "Maak niets openbaar voordat wij een oplossing hebben kunnen uitbrengen"
+      ]
     }
   },
   "search": {
@@ -1457,78 +1123,505 @@
       }
     }
   },
-  "processDetails": {
-    "unnamedProcess": "Naamloos proces",
-    "input": "Invoer",
-    "output": "Uitvoer",
-    "environmentalImpact": "Milieu-impact",
-    "emissions": "Emissies",
-    "notMeasured": "Niet gemeten",
-    "materialLoss": "Materiaalverlies",
-    "lostInProcess": "Verloren in proces",
-    "noLoss": "Geen verlies",
-    "quality": "Kwaliteit",
-    "qualityChange": "Kwaliteitsverandering",
-    "unchanged": "Ongewijzigd",
-    "processProperties": "Proceseigenschappen",
-    "inputMaterialDetails": "Invoermateriaal details",
-    "outputMaterialDetails": "Uitvoermateriaal details",
-    "quantity": "Hoeveelheid",
-    "lifecycle": "Levenscyclus",
-    "category": "Categorie",
-    "customProperties": "Aangepaste eigenschappen",
-    "processNotes": "Procesnotities",
-    "close": "Sluiten"
+  "constants": {
+    "title": "Constanten",
+    "name": "Naam",
+    "value": "Waarde",
+    "newValue": "Nieuwe waarde",
+    "currentValue": "Huidige waarde",
+    "versions": "Versies",
+    "history": "Geschiedenis",
+    "create": "Constante aanmaken",
+    "createTitle": "Constante aanmaken",
+    "createDescription": "Een benoemd getal waaraan formules kunnen koppelen — een CO₂-factor, een dichtheid, een tarief.",
+    "addVersion": "Versie toevoegen",
+    "versionAdded": "Nieuwe versie toegevoegd",
+    "created": "Constante aangemaakt",
+    "deleted": "Constante verwijderd",
+    "deleteFailed": "Verwijderen van constante mislukt",
+    "restored": "Constante hersteld",
+    "restoreFailed": "Herstellen van constante mislukt",
+    "notNumeric": "geen getal",
+    "nameImmutable": "Een koppeling legt de naam vast, dus die kan niet meer wijzigen zodra formules hem gebruiken.",
+    "pinnedNote": "Een versie toevoegen verandert bestaande formules niet — elke formule houdt de versie waaraan hij gekoppeld is.",
+    "valueHint": "Moet een getal zijn, met optioneel een eenheid: 0,42, 10 kg, 3,5 m",
+    "placeholders": {
+      "name": "bijv. co2_factor",
+      "value": "bijv. 0,42"
+    },
+    "empty": {
+      "title": "Nog geen constanten",
+      "description": "Een constante is een gedeeld, geversioneerd getal waaraan formules kunnen koppelen."
+    }
   },
-  "processTable": {
-    "process": "Proces",
-    "quantity": "Hoeveelheid",
-    "inputMaterial": "Invoermateriaal",
-    "outputMaterial": "Uitvoermateriaal",
-    "flow": "Flow",
-    "emissions": "Emissies",
-    "loss": "Verlies %",
-    "quality": "Kwaliteit",
-    "noRelationshipsFound": "Geen relaties gevonden",
-    "noRelationshipsOnPage": "Geen relaties op deze pagina"
+  "access": {
+    "shareTitle": "\"{name}\" delen",
+    "shareDescription": "Kies wie dit kan zien en wat zij ermee kunnen doen.",
+    "peopleWithAccess": "Personen met toegang",
+    "owner": "Eigenaar",
+    "notShared": "Nog met niemand gedeeld.",
+    "addPeople": "Personen toevoegen",
+    "searchPeople": "Personen zoeken...",
+    "noPeople": "Niemand meer om toe te voegen.",
+    "publicLabel": "Algemene toegang",
+    "publicHint": "Iedereen die is aangemeld bij deze node kan het bekijken",
+    "includeDescendantsHint": "Ook alles onder dit object — inclusief later toegevoegde objecten",
+    "ownerOnly": "Alleen de eigenaar kan zien met wie dit is gedeeld.",
+    "permissionFor": "Rechten voor {name}",
+    "revokeFor": "Toegang intrekken voor {name}",
+    "share": "Delen",
+    "permission": {
+      "read": "Lezen",
+      "write": "Schrijven",
+      "share": "Delen",
+      "admin": "Beheer"
+    },
+    "permissionHint": {
+      "read": "Bekijken",
+      "write": "Bekijken en bewerken",
+      "share": "Bewerken en opnieuw delen",
+      "admin": "Volledige controle, inclusief verwijderen"
+    },
+    "saved": "Delen bijgewerkt",
+    "redundantRead": "Zij hebben al leestoegang via algemene toegang. Deze toekenning werkt pas als algemene toegang wordt uitgezet.",
+    "readShareOnly": "Dit kan alleen ter inzage worden gedeeld — de eigenaar behoudt bewerkrechten.",
+    "shareDependencies": "Deel ook {count, plural, one {de formule of constante} other {de formules en constanten}} die dit sjabloon gebruikt ({names}). Zonder {count, plural, one {deze} other {deze}} kunnen personen met wie u het sjabloon deelt er geen objecten mee maken.",
+    "dependenciesDeleted": "Dit sjabloon gebruikt items die niet meer bestaan ({names}). Niemand kan er objecten mee maken totdat ze zijn hersteld.",
+    "dependenciesNotYours": "Dit sjabloon gebruikt ook items van iemand anders ({names}). Alleen de eigenaar kan deze delen; tot die tijd kunnen de personen met wie u het deelt er geen objecten mee maken.",
+    "dependenciesFailed": "Het sjabloon is gedeeld, maar deze niet: {names}. Tot dat gebeurt, kunnen de personen met wie u het deelde er geen objecten mee maken.",
+    "bulkShareTitle": "{count, plural, =1 {# item} other {# items}} delen",
+    "bulkShareDescription": "Iedereen die je hier toevoegt, krijgt toegang tot alle geselecteerde items.",
+    "bulkShareAdditive": "Dit voegt alleen toegang toe. Niemand verliest toegang en bestaande deelinstellingen blijven ongewijzigd.",
+    "bulkShareNobody": "Voeg iemand toe om deze mee te delen.",
+    "bulkShared": "{count, plural, =1 {# item} other {# items}} gedeeld",
+    "saveFailedFor": "Toegang voor {names} kon niet worden opgeslagen. De rest is toegepast.",
+    "revokedTitle": "Had eerder toegang",
+    "revokedHint": "Toont wie is verwijderd en de laatste rechten die zij hadden — geen volledige wijzigingsgeschiedenis.",
+    "saveFailedReason": "Sommige wijzigingen konden niet worden toegepast.",
+    "viaShare": "via {name}",
+    "viaShareUnnamed": "via een share",
+    "manageBundle": "Share beheren",
+    "removeFromShare": "Uit share verwijderen",
+    "removeFromShareTitle": "{name} uit “{share}” verwijderen?",
+    "removeFromShareBody": "Zij verliezen toegang tot {count} items: {items}. Een share geldt voor iedereen erin, dus dit kan niet tot één item worden beperkt — splits de share als dat nodig is.",
+    "removedFromShare": "Uit de share verwijderd."
   },
-  "lifecycleStages": {
-    "PRIMARY_INPUT": "Primaire invoer",
-    "SECONDARY_INPUT": "Secundaire invoer",
-    "REUSED_COMPONENT": "Hergebruikt component",
-    "PROCESSING": "Verwerking",
-    "COMPONENT": "Component",
-    "PRODUCT": "Product",
-    "USE_PHASE": "Gebruiksfase",
-    "WASTE": "Afval",
-    "DISPOSAL": "Afvoer"
+  "shares": {
+    "title": "Delen",
+    "create": "Nieuwe deling",
+    "tabShares": "Delingen",
+    "deleteAction": "Deling verwijderen",
+    "deleted": "Deling verwijderd",
+    "deleteFailed": "Kon de deling niet verwijderen",
+    "everyone": "Iedereen op deze node",
+    "cascadeOn": "Inclusief inhoud",
+    "fields": {
+      "name": "Naam",
+      "contents": "Inhoud",
+      "cascade": "Doorwerking",
+      "updated": "Bijgewerkt",
+      "resource": "Item",
+      "sharedWith": "Gedeeld met",
+      "permission": "Rechten",
+      "resources": "Wat wordt gedeeld",
+      "members": "Met wie het wordt gedeeld"
+    },
+    "resourceType": {
+      "object": "Object",
+      "process": "Proces",
+      "formula": "Formule",
+      "constant": "Constante",
+      "template": "Sjabloon"
+    },
+    "empty": {
+      "title": "Nog geen delingen",
+      "description": "Een deling bundelt items en geeft een groep mensen in één keer toegang tot alles."
+    },
+    "sharedByMeEmpty": {
+      "title": "U hebt nog niets gedeeld",
+      "description": "Elk object en proces waartoe u iemand toegang geeft verschijnt hier — via een deling of los — zodat u het op één plek kunt zien en intrekken."
+    },
+    "mixedPermissions": "Gemengd",
+    "manageAccess": "Toegang beheren",
+    "revokeAll": "Alle toegang intrekken",
+    "revokeAllTitle": "Alle toegang intrekken?",
+    "revokeAllDescription": "Dit trekt de toegang in die u rechtstreeks op dit item hebt gegeven — {count} vermeld.",
+    "revokeAllBundleWarning": "Wie ook via een deling toegang heeft, behoudt die: delingen worden apart ingetrokken, via het tabblad Delingen.",
+    "revokedAll": "Toegang ingetrokken",
+    "duplicate": "Dupliceren",
+    "duplicateTitle": "Deling dupliceren",
+    "copyOf": "Kopie van {name}",
+    "created": "Deling aangemaakt",
+    "saved": "Deling bijgewerkt",
+    "editorDescription": "Geef de deling een naam, kies wat erin zit en voor wie.",
+    "namePlaceholder": "bijv. Q3 recyclingaudit",
+    "addResources": "Aan deze deling toevoegen",
+    "searchResources": "Zoeken...",
+    "noResources": "Niets meer om toe te voegen.",
+    "family": {
+      "data": "Objecten & processen",
+      "library": "Formules, constanten & sjablonen"
+    },
+    "familyLocked": "Een deling bevat óf objecten en processen, óf bibliotheekitems — niet allebei. Verwijder alles om te wisselen.",
+    "libraryShareHint": "Bibliotheekitems kunnen alleen ter inzage worden gedeeld. Iedereen in deze deling krijgt leestoegang.",
+    "noResourcesYet": "Nog niets in deze deling.",
+    "noMembersYet": "Nog niemand toegevoegd.",
+    "removeResource": "{name} verwijderen",
+    "removeMember": "{name} verwijderen",
+    "cascadeLabel": "Alles onder deze objecten meenemen",
+    "cascadeHint": "Objecten die er later onder komen worden automatisch gedeeld.",
+    "cascadeBlocked": "Alleen beschikbaar voor een deling die volledig uit objecten bestaat — al het andere heeft geen inhoud om door te geven.",
+    "incompleteHint": "Een deling heeft een naam nodig, minstens één item, en minstens één persoon.",
+    "bulk": {
+      "deleteTitle": "Deze delingen verwijderen?",
+      "deleteDescription": "Dit verwijdert {count} delingen en trekt alle toegekende toegang in.",
+      "revokeDescription": "Dit trekt de toegang in die u rechtstreeks op {count} items hebt gegeven."
+    },
+    "tabOverview": "Overzicht",
+    "tabDirect": "Directe shares",
+    "lastMemberHint": "Een share heeft minstens één persoon nodig. Verwijder de share om het delen helemaal te stoppen."
   },
-  "processCategories": {
-    "CONSTRUCTION": "Bouw",
-    "DECONSTRUCTION": "Demontage",
-    "SORTING": "Sortering",
-    "RECYCLING": "Recycling",
-    "REFURBISHMENT": "Renovatie",
-    "TRANSPORT": "Transport",
-    "DEMOLITION": "Sloop",
-    "DISPOSAL": "Afvoer"
+  "concepts": {
+    "share": {
+      "label": "Wat is een share?",
+      "body": "Een bundel objecten en processen die je in één keer aan een groep mensen geeft. Vervangt Groepen: een groep mengde mensen en resources onder één woord, een share bevat alleen resources en toont wie ze mag zien. Toegang werkt door naar onderliggende objecten en je kunt de hele bundel in één keer intrekken."
+    },
+    "formula": {
+      "label": "Wat is een formule?",
+      "body": "Een herbruikbare expressie die aan een waarde is gekoppeld en door de server wordt herberekend. Formules zijn onveranderlijk — om er een te wijzigen dupliceer je hem en koppel je de nieuwe versie, zodat bestaand gebruik zijn betekenis behoudt."
+    },
+    "constant": {
+      "label": "Wat is een constante?",
+      "body": "Een gedeeld, geversioneerd getal waar formules op naam naar verwijzen. De versie wordt vastgezet op het moment van koppelen, dus een nieuwe waarde publiceren verandert nooit stilzwijgend al berekende resultaten."
+    },
+    "object": {
+      "label": "Wat is een object?",
+      "body": "Alles wat je wilt volgen — een machine, een batch, een document. Een object heeft eigenschappen, bestanden, een adres en een plek in de hiërarchie."
+    },
+    "process": {
+      "label": "Wat is een proces?",
+      "body": "Een stap die invoerobjecten omzet in uitvoerobjecten. Met processen leg je vast dat iets is gemaakt, verplaatst of getransformeerd, en waar het vandaan kwam."
+    },
+    "template": {
+      "label": "Wat is een template?",
+      "body": "Een startpunt voor nieuwe objecten: de eigenschappen waarmee ze beginnen, inclusief formulerecepten en de constanten waaraan die gebonden zijn. Een template kiezen vult het formulier; je kunt alles nog wijzigen."
+    },
+    "import": {
+      "label": "Hoe werkt importeren?",
+      "body": "Haal objecten in bulk binnen uit een CSV- of Excel-bestand. Je koppelt je kolommen één keer aan objectvelden, daarna draait de taak op de achtergrond en rapporteert per rij het resultaat."
+    },
+    "rollupRule": {
+      "label": "Wat is een rollup-regel?",
+      "body": "Een regel die één eigenschap optelt over alles wat onder een object in de hiërarchie hangt. Elke afzonderlijke afstammeling telt één keer mee, hoeveel paden er ook naartoe leiden. Ingebouwde regels gelden voor iedereen; de regels die je zelf maakt gelden voor je eigen objecten."
+    }
   },
-  "materialCategories": {
-    "CONCRETE": "Beton en betonproducten",
-    "STEEL": "Staal en staalproducten",
-    "TIMBER": "Hout en houtproducten",
-    "MASONRY": "Baksteen, steen en metselwerk",
-    "WINDOW_UNIT": "Ramen en beglazingssystemen",
-    "DOOR_UNIT": "Deuren en deursystemen",
-    "ROOFING": "Dakbedekking en daksystemen",
-    "INSULATION": "Thermische en akoestische isolatie",
-    "HVAC": "Verwarming, ventilatie en airconditioning",
-    "ELECTRICAL": "Elektrische systemen en componenten",
-    "PLUMBING": "Sanitair en watersystemen",
-    "FLOORING": "Vloermaterialen en -systemen",
-    "WALL_FINISH": "Wandafwerking en gevelbekleding",
-    "CEILING": "Plafond systemen en afwerking",
-    "MIXED_WASTE": "Gemengd bouwafval",
-    "HAZARDOUS_WASTE": "Gevaarlijke materialen en afval"
+  "onboarding": {
+    "tours": {
+      "create-object": "Een object maken",
+      "create-process": "Maak een proces",
+      "build-template": "Een template bouwen",
+      "write-formula": "Een formule schrijven",
+      "share-objects": "Objecten delen",
+      "define-constant": "Een constante maken",
+      "roll-up-values": "Waarden optellen in een boom",
+      "run-import": "Een spreadsheet importeren",
+      "work-with-drafts": "Werken met concepten"
+    },
+    "tourGroups": {
+      "core": "Objecten en processen",
+      "library": "Bibliotheek",
+      "exchange": "Delen en importeren"
+    },
+    "startTour": "Start de rondleiding",
+    "hintUnread": "Nog niet gelezen"
+  },
+  "import": {
+    "title": "Importeren",
+    "tabs": {
+      "status": "Jouw imports",
+      "wizard": "Nieuwe import"
+    },
+    "actions": {
+      "newImport": "Nieuwe import",
+      "importCount": "{count, number} {count, plural, one {object} other {objecten}} importeren"
+    },
+    "steps": {
+      "upload": "Uploaden",
+      "sheet": "Blad",
+      "map": "Kolommen koppelen",
+      "check": "Controleren",
+      "import": "Importeren"
+    },
+    "status": {
+      "draft": "Concept",
+      "queued": "In wachtrij",
+      "running": "Bezig",
+      "completed": "Voltooid",
+      "completed_with_errors": "Voltooid met fouten",
+      "failed": "Mislukt",
+      "cancelled": "Geannuleerd"
+    },
+    "error": {
+      "fileTooBig": "Dat bestand is {size, number} MB — de limiet is {limit, number} MB",
+      "unsupportedType": "Alleen .xlsx- en .csv-bestanden kunnen worden geïmporteerd",
+      "noData": "Dit bestand bevat geen gegevens",
+      "unreadable": "Dat bestand kon niet worden gelezen"
+    },
+    "problem": {
+      "levelBlank": "Niveau {level, number} is leeg — elk niveau moet een waarde hebben",
+      "keyBlank": "Sleutelkolom is leeg",
+      "nameBlank": "Naam is leeg",
+      "duplicateKey": "Dubbele sleutel \"{key}\"",
+      "parentUnresolved": "Bovenliggend \"{parent}\" is geen rij in dit blad en geen object-id",
+      "parentDropped": "Bovenliggend \"{parent}\" is zelf geweigerd, dus deze rij kan ook niet worden aangemaakt"
+    },
+    "blocked": {
+      "noFile": "Kies eerst een bestand",
+      "noName": "Koppel een kolom aan Naam, of kies eerst een hiërarchie",
+      "createsNothing": "Deze koppeling zou niets aanmaken",
+      "tooManyObjects": "Dat zijn {count, number} objecten — de limiet is {limit, number} per import"
+    },
+    "upload": {
+      "title": "Upload een spreadsheet",
+      "subtitle": "Excel of CSV. Er wordt niets aangemaakt tot je aan het eind bevestigt.",
+      "reading": "Je bestand wordt gelezen…",
+      "dropzone": "Sleep een bestand hierheen, of klik om te kiezen",
+      "limits": ".xlsx of .csv — tot {size, number} MB en {objects, number} objecten"
+    },
+    "sheet": {
+      "title": "Welk blad, en waar begint de data?",
+      "subtitle": "Klik op een rij om die als kop of als eerste datarij te markeren.",
+      "dimensions": "{rows, number} rijen · {columns, number} kolommen",
+      "guessed": "Rij {row, number} geraden als kop — de eerste gevulde rij met data van dezelfde breedte eronder.",
+      "headerBadge": "Kop",
+      "dataBadge": "Data begint",
+      "markHeader": "kop",
+      "markData": "data",
+      "ignoringAbove": "Rijen 1–{count, number} worden genegeerd.",
+      "reading": "{count, number} rijen worden gelezen."
+    },
+    "map": {
+      "title": "Wat staat er in elke kolom?",
+      "subtitle": "Geraden op basis van je koppen en de waarden zelf — pas aan wat niet klopt.",
+      "noValues": "geen waarden in deze kolom",
+      "unnamedColumn": "Kolom {index, number}",
+      "levelBadge": "Niveau {level, number}",
+      "isLevel": "Niveau",
+      "makeLevel": "Maak niveau",
+      "attachDeepest": "op het diepste niveau",
+      "attachEvery": "op elk niveau",
+      "attachTo": "op {level}",
+      "useHierarchy": "Gebruik als hiërarchie",
+      "clearHierarchy": "Hiërarchie wissen",
+      "rowsBecomeObjects": "{rows, number} rijen worden {objects, number} objecten",
+      "split": {
+        "one": "Eén waarde",
+        "on": "Splitsen op {char}"
+      },
+      "targets": {
+        "skip": "Niet importeren",
+        "name": "Naam",
+        "description": "Omschrijving",
+        "property": "Eigenschap",
+        "address": "Adres (hele cel)",
+        "fileUrl": "Bestandslink",
+        "key": "Sleutel (id van deze rij)",
+        "parent": "Sleutel bovenliggend",
+        "addressPart": {
+          "street": "Adres — straat",
+          "houseNumber": "Adres — huisnummer",
+          "postalCode": "Adres — postcode",
+          "city": "Adres — plaats",
+          "state": "Adres — provincie",
+          "country": "Adres — land"
+        }
+      },
+      "suggestionEffect": "Als je dit accepteert worden er {objects, number} objecten gemaakt uit {rows, number} rijen.",
+      "inert": {
+        "levelsWin": "Genegeerd — de hiërarchie komt uit de niveaukolommen, dus deze waarde wordt niet geïmporteerd.",
+        "noParent": "Doet op zichzelf niets — koppel een andere kolom aan “Sleutel bovenliggend” om rijen te verbinden."
+      },
+      "levelsExplainer": "Herhaalt een kolom zich door het blad — een gebouw dat bij elk van zijn ruimtes staat? Markeer die kolommen als niveaus; elke herhaalde waarde wordt dan een bovenliggend object.",
+      "askForSuggestion": "Stel een hiërarchie voor",
+      "proposal": "Deze kolommen herhalen zich en splitsen de rijen telkens verder op:",
+      "noneFound": "Geen kolom herhaalt zich op een manier die op een hiërarchie lijkt. Markeer er zelf een als jij het beter weet."
+    },
+    "check": {
+      "title": "Controleer wat er wordt aangemaakt",
+      "subtitle": "Er is nog niets weggeschreven. Dit zijn de objecten, niet de rijen.",
+      "stats": {
+        "objects": "{count, plural, one {object} other {objecten}}",
+        "depth": "niveaus diep",
+        "values": "waarden",
+        "problems": "{count, plural, one {probleem} other {problemen}}",
+        "objectsHint": "uit {rows, number} rijen",
+        "depthHint": "hiërarchie",
+        "valuesHint": "over alle eigenschappen",
+        "problemsHint": "{count, plural, =0 {geen} other {rijen geweigerd}}"
+      },
+      "willSkip": "{count, number} {count, plural, one {rij wordt} other {rijen worden}} overgeslagen",
+      "rowPrefix": "Rij {row, number}: ",
+      "andMore": "…en nog {count, number}",
+      "columns": {
+        "object": "Object",
+        "properties": "Eigenschappen",
+        "address": "Adres",
+        "files": "Bestanden",
+        "row": "Rij"
+      },
+      "valueCount": "({count, number} waarden)",
+      "showingFirst": "De eerste {shown, number} van {total, number} objecten worden getoond.",
+      "filter": {
+        "all": "Alle",
+        "valid": "Geldig",
+        "needsFix": "Moet nog"
+      },
+      "allClear": "Alles klopt. Klaar om te importeren.",
+      "fixOrSkip": "Vul de gemarkeerde cellen in, of laat deze {count, number} rijen buiten de import.",
+      "skipRows": "{count, number} rijen overslaan",
+      "empty": "leeg",
+      "editsAreLocal": "Wijzigingen hier worden nog niet verzonden — deze weergave bestaat om de interactie te beoordelen.",
+      "destination": {
+        "title": "Importeren onder een bestaand object",
+        "optional": "Optioneel — laat leeg om ze op het hoogste niveau aan te maken.",
+        "chosen": "Elk object op het hoogste niveau wordt aangemaakt in {name}.",
+        "fallbackName": "het gekozen object",
+        "placeholder": "Kies een bovenliggend object…",
+        "clear": "Bestemming wissen"
+      }
+    },
+    "outcome": {
+      "created": "{count} aangemaakt",
+      "failed": "{count} mislukt",
+      "skipped": "{count} overgeslagen",
+      "of": "van {count}",
+      "summary": "{ok} aangemaakt, {failed} mislukt, {skipped} overgeslagen van {total}"
+    },
+    "run": {
+      "refused": "De import is geweigerd — er is niets aangemaakt",
+      "itemPrefix": "Item {item, number}",
+      "rowPrefix": "Rij {row}",
+      "backToMapping": "Terug naar de koppeling",
+      "handedOver": "Overgedragen aan de server",
+      "handedOverDetail": "{count, number} objecten worden aangemaakt. Je kunt dit tabblad sluiten — de taak loopt door, en de statuspagina laat zien wat er met elke rij is gebeurd.",
+      "seeStatus": "Bekijk de importstatus",
+      "uploading": "Rijen uploaden",
+      "uploadingDetail": "Houd dit tabblad open tot de upload klaar is. Er is nog niets aangemaakt.",
+      "validating": "Je gegevens worden gecontroleerd",
+      "validatingDetail": "Dezelfde controles als op de server. Er is nog steeds niets aangemaakt.",
+      "validatingShort": "Controleren…",
+      "uploadedOf": "{staged, number} van {total, number} rijen geüpload",
+      "ready": "Klaar om te importeren",
+      "readyDetail": "{count, number} objecten worden aangemaakt. Dit kan niet ongedaan worden gemaakt — objecten kunnen daarna wel worden verwijderd, maar niet on-aangemaakt.",
+      "readyDetailWithFile": "{count, number} objecten worden aangemaakt uit {file}. Dit kan niet ongedaan worden gemaakt — objecten kunnen daarna wel worden verwijderd, maar niet on-aangemaakt.",
+      "failed": "De import is mislukt"
+    },
+    "list": {
+      "subtitle": "Elke import die je hebt uitgevoerd. Een taak loopt door als je het tabblad sluit.",
+      "untitled": "Naamloze import",
+      "nothingAttempted": "Niets geprobeerd",
+      "emptyTitle": "Nog geen imports",
+      "emptyDescription": "Laad objecten uit een spreadsheet, met hun hiërarchie intact.",
+      "flat": "Vlak",
+      "levelCount": "{count, number} niveaus diep",
+      "levelProgress": "{current, number} van {total, number}",
+      "columns": {
+        "file": "Import",
+        "status": "Status",
+        "outcome": "Resultaat",
+        "depth": "Diepte",
+        "started": "Gestart",
+        "duration": "Duur"
+      }
+    },
+    "detail": {
+      "back": "Terug naar imports",
+      "startedAt": "Gestart {time}",
+      "ofRowsUploaded": "van {total, number} rijen geüpload",
+      "draftHint": "Er is nog niets aangemaakt. Uploaden gaat verder waar het gestopt is.",
+      "objectsCreated": "{count, plural, one {object} other {objecten}} aangemaakt",
+      "allCreated": "Elke rij in het blad is aangemaakt.",
+      "failedOnly": "{failed, number} {failed, plural, one {rij kon} other {rijen konden}} niet worden aangemaakt.",
+      "failedAndSkipped": "{failed, number} {failed, plural, one {rij kon} other {rijen konden}} niet worden aangemaakt en {skipped, number} zijn overgeslagen omdat een bovenliggend object mislukte.",
+      "startImport": "Import starten",
+      "nothingCreated": "Er is niets aangemaakt",
+      "discardedHint": "Deze import is verworpen voordat hij liep. De {total, number} geüploade rijen zijn verwijderd; de vermelding blijft staan als bewijs dat het gebeurd is.",
+      "neverRanHint": "Deze import is geëindigd voordat er ook maar één rij is geprobeerd.",
+      "startRefused": "Deze import kan niet worden gestart: {reason}",
+      "startFailed": "Deze import kon niet worden gestart. Probeer het opnieuw.",
+      "discard": "Verwerpen",
+      "discardConfirmTitle": "Deze import verwerpen?",
+      "discardConfirmDescription": "{file} heeft niets aangemaakt, dus er valt niets ongedaan te maken. Verwerpen markeert de job als geannuleerd — hij kan nooit meer gestart worden, en het bestand opnieuw importeren betekent opnieuw uploaden.",
+      "stopping": "Stoppen…",
+      "viewObjects": "Objecten bekijken",
+      "stalledUpload": "Deze upload is gestopt na {staged, number} van {total, number} rijen en kan niet worden overgedragen. Er is niets aangemaakt — importeer het bestand opnieuw.",
+      "creatingLevel": "Niveau {current, number} van {total, number} wordt aangemaakt — onderliggende objecten wachten op hun bovenliggende.",
+      "problemsTitle": "Wat niet is geïmporteerd",
+      "problemsSubtitle": "Corrigeer deze rijen in je blad en importeer alleen die opnieuw.",
+      "downloadCsv": "{count, number} rijen downloaden als CSV",
+      "downloadFailed": "Het rapport kon niet worden gedownload. Probeer het opnieuw.",
+      "showingFirst": "De eerste {shown} van {total} worden getoond. Download het rapport voor alle rijen.",
+      "tabs": {
+        "failed": "Mislukt",
+        "skipped": "Overgeslagen"
+      },
+      "skippedExplainer": "Deze rijen zijn nooit geprobeerd — het object waar ze onder hangen mislukte eerst. Het bovenliggende object corrigeren lost ze meestal allemaal op.",
+      "noRows": {
+        "failed": "Geen mislukte rijen.",
+        "skipped": "Geen overgeslagen rijen."
+      },
+      "columns": {
+        "item": "Item",
+        "row": "Rij",
+        "key": "Sleutel",
+        "reason": "Reden"
+      },
+      "jobLabel": "Taak",
+      "polling": "Elke 2 seconden bijgewerkt"
+    }
+  },
+  "rollupRules": {
+    "title": "Rollup-regels",
+    "propertyKey": "Eigenschapssleutel",
+    "propertyKeys": "Eigenschapssleutels",
+    "aggregation": "Aggregatie",
+    "aggregations": {
+      "sum": "Som"
+    },
+    "create": "{count, plural, =0 {Regels maken} one {1 regel maken} other {# regels maken}}",
+    "createTitle": "Rollup-regels maken",
+    "createDescription": "Een regel telt één eigenschap op over de afstammelingen van een object. Voeg meerdere sleutels toe om ze in één keer te maken.",
+    "addKey": "Toevoegen",
+    "removeKey": "{key} verwijderen",
+    "queued": "{count, plural, one {# sleutel in wachtrij} other {# sleutels in wachtrij}}",
+    "alreadyQueued": "Die sleutel staat al in de lijst.",
+    "duplicateKey": "Je hebt al een regel voor deze sleutel.",
+    "normalizedAs": "Wordt opgeslagen als {key}",
+    "propertyKeyHint": "Sleutels worden in kleine letters opgeslagen, dus Massa en massa zijn dezelfde sleutel.",
+    "aggregationHint": "Geldt voor elke sleutel in de lijst.",
+    "created": "{count, plural, one {Rollup-regel gemaakt} other {# rollup-regels gemaakt}}",
+    "createdPartial": "{created} gemaakt, {failed} mislukt.",
+    "deleted": "Rollup-regel verwijderd",
+    "deleteFailed": "Verwijderen van rollup-regel mislukt",
+    "restored": "Rollup-regel hersteld",
+    "restoreFailed": "Herstellen van rollup-regel mislukt",
+    "keyImmutable": "De sleutel is de identiteit van de regel en kan niet wijzigen.",
+    "replaceToChange": "Verwijder deze regel en maak een nieuwe om een sleutel te wijzigen.",
+    "systemReadOnly": "Ingebouwde regels horen bij de node en kunnen niet worden gewijzigd of verwijderd.",
+    "placeholders": {
+      "propertyKey": "bijv. gewicht"
+    },
+    "empty": {
+      "title": "Nog geen rollup-regels",
+      "description": "Een rollup-regel telt één eigenschap op over de afstammelingen van een object."
+    },
+    "errors": {
+      "notFound": "Deze rollup-regel bestaat niet meer.",
+      "systemReadOnly": "Ingebouwde regels kunnen niet worden gewijzigd.",
+      "keyTaken": "Er bestaat al een regel voor deze sleutel — mogelijk een verwijderde. Zet \"Verwijderde tonen\" aan om deze te vinden.",
+      "invalid": "Afgewezen: {detail}"
+    },
+    "property": "Eigenschap",
+    "nonNumericKey": "Deze eigenschap bevat meestal tekst, dus de optelling blijft waarschijnlijk leeg."
   }
 }

@@ -1,4 +1,3 @@
-import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import type { ColumnDef, VisibilityState } from '@tanstack/react-table'
@@ -7,7 +6,7 @@ import {
   getSelectColumn,
   DataTableColumnToggle,
   DataTable,
-} from '@/components/tables/data-table'
+} from '@/components/entity-list/data-table'
 
 // Declare mock fns via vi.hoisted so they're available inside vi.mock factories
 const { mockT } = vi.hoisted(() => ({
@@ -160,7 +159,7 @@ describe('DataTable', () => {
     expect(screen.queryByText(/Showing/)).not.toBeInTheDocument()
   })
 
-  it('should show loading spinner when fetching is true', () => {
+  it('renders skeleton rows on first load, not a single spinner row', () => {
     const { container } = render(
       <DataTable
         columns={TEST_COLUMNS}
@@ -170,8 +169,57 @@ describe('DataTable', () => {
       />
     )
 
-    // When fetching, a spinner with animate-spin is rendered
-    const spinnerElements = container.querySelectorAll('.animate-spin')
-    expect(spinnerElements.length).toBeGreaterThan(0)
+    // Several placeholder rows, so the table keeps its height instead of
+    // collapsing to one line and shifting everything below it.
+    const rows = container.querySelectorAll('tbody tr')
+    expect(rows.length).toBeGreaterThan(1)
+    expect(
+      container.querySelectorAll('tbody tr[aria-hidden="true"]').length
+    ).toBe(rows.length)
+  })
+
+  it('keeps existing rows visible while refetching', () => {
+    // The list queries use placeholderData: keepPreviousData so paging does not
+    // flash. Replacing the rows with a loading state would defeat that, so a
+    // refetch WITH data must still render the data.
+    const { container } = render(
+      <DataTable
+        columns={TEST_COLUMNS}
+        data={TEST_DATA}
+        getRowId={(row) => row.id}
+        fetching={true}
+      />
+    )
+
+    expect(container.querySelectorAll('tbody tr').length).toBe(TEST_DATA.length)
+    expect(screen.getByText(TEST_DATA[0].name)).toBeInTheDocument()
+  })
+
+  /**
+   * `BulkActionBar` owns the selection count, and every table that enables selection renders one.
+   * A second count here read "20 of 25" — a page-at-a-time selection measured against a total
+   * across pages — so the unselected 5 looked withheld rather than simply on the next page.
+   */
+  it('renders no selection count of its own', () => {
+    render(
+      <DataTable
+        columns={TEST_COLUMNS}
+        data={TEST_DATA}
+        getRowId={(row) => row.id}
+        enableRowSelection
+        rowSelection={{ '1': true }}
+        onRowSelectionChange={vi.fn()}
+        pagination={{
+          currentPage: 1,
+          totalPages: 2,
+          totalElements: 25,
+          pageSize: 20,
+          isFirstPage: true,
+          isLastPage: false,
+        }}
+      />
+    )
+
+    expect(screen.queryByText(/objects\.bulk\.selected/)).toBeNull()
   })
 })

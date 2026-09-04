@@ -14,20 +14,14 @@
       "goHome": "Go Home"
     }
   },
-  "app": {
-    "name": "Internet of Materials",
-    "description": "Material Management System",
-    "acronym": "IoM"
-  },
   "nav": {
     "objects": "Objects",
     "processes": "I/O Processes",
     "models": "Templates",
     "import": "Import",
-    "importStatus": "Import Status",
     "help": "Help",
+    "security": "Security",
     "signOut": "Sign out",
-    "groups": "Groups",
     "user": "User",
     "certificateAuthenticated": "Certificate Authenticated",
     "emailAuthenticated": "Email Authenticated",
@@ -42,7 +36,12 @@
     "settings": "Settings",
     "mobile": {
       "uuid": "UUID"
-    }
+    },
+    "library": "Library",
+    "formulas": "Formulas",
+    "constants": "Constants",
+    "shares": "Shares",
+    "rollupRules": "Rollup rules"
   },
   "theme": {
     "toggle": "Theme",
@@ -56,7 +55,8 @@
     "tabs": {
       "account": "Account",
       "appearance": "Appearance",
-      "preferences": "Preferences"
+      "preferences": "Preferences",
+      "security": "Security"
     },
     "account": {
       "title": "Account details",
@@ -72,7 +72,10 @@
       "validFrom": "Valid from",
       "validTo": "Valid to",
       "expiresIn": "Certificate expires",
-      "notAvailable": "Not available"
+      "notAvailable": "Not available",
+      "emailAddress": "Email",
+      "verified": "Verified",
+      "unverified": "Unverified"
     },
     "appearance": {
       "title": "Appearance",
@@ -82,11 +85,16 @@
       "languageReloadHint": "Changing the language reloads the page."
     },
     "preferences": {
-      "title": "View preferences",
-      "description": "Pick the view each area opens in. Your latest choice is remembered for this account.",
+      "title": "List defaults",
+      "description": "How each list opens: which view it uses, and whose items it shows. Access can still be changed per list from its Filters menu — this is only where it starts.",
       "objects": "Objects view",
       "processes": "Processes view",
       "properties": "Properties view",
+      "objectsAccess": "Objects access",
+      "processesAccess": "Processes access",
+      "formulasAccess": "Formulas access",
+      "constantsAccess": "Constants access",
+      "templatesAccess": "Templates access",
       "options": {
         "table": "Table",
         "columns": "Columns",
@@ -95,6 +103,68 @@
         "network": "Network",
         "detailed": "List",
         "grid": "Grid"
+      },
+      "rowsPerPage": "Rows per page"
+    },
+    "security": {
+      "common": {
+        "continue": "Continue"
+      },
+      "password": {
+        "title": "Your password",
+        "description": "Change the password you use to sign in.",
+        "current": "Current password",
+        "new": "New password",
+        "save": "Save",
+        "success": "Password updated. Other sessions were signed out.",
+        "error": "Could not update your password. Check your current password and try again."
+      },
+      "twoFactor": {
+        "title": "Two-factor authentication",
+        "description": "Add an extra layer of security to your account.",
+        "enable": "Enable two-factor authentication",
+        "disable": "Disable two-factor authentication",
+        "enabledLabel": "You have two-factor authentication enabled",
+        "setupTitle": "Enable two-factor authentication",
+        "setupDescription": "Scan the QR code with your authenticator app, or enter the secret manually, then enter the 6-digit code.",
+        "codeLabel": "Enter the 6-digit code to verify the setup",
+        "verify": "Verify",
+        "enabled": "Two-factor authentication enabled.",
+        "enableError": "Could not start two-factor setup. Check your password and try again.",
+        "verifyError": "That code was not valid. Try again.",
+        "disabled": "Two-factor authentication disabled.",
+        "disableError": "Could not disable two-factor authentication.",
+        "disableTitle": "Disable two-factor authentication",
+        "disableDescription": "Enter your password to turn off two-factor authentication."
+      },
+      "verifyPassword": {
+        "title": "Verify with password",
+        "description": "Please verify your account by entering your password.",
+        "label": "Your password"
+      },
+      "sessions": {
+        "title": "Active sessions",
+        "description": "These are the devices currently signed in to your account.",
+        "loading": "Loading sessions…",
+        "thisDevice": "Current",
+        "unknownDevice": "Unknown device",
+        "revoke": "End session",
+        "revoked": "Session ended.",
+        "revokeError": "Could not end the session.",
+        "revokedOthers": "All other sessions signed out.",
+        "signOutOthers": "Sign out other sessions"
+      },
+      "connectedAccounts": {
+        "title": "Connected accounts",
+        "description": "The sign-in methods linked to this account.",
+        "empty": "No sign-in methods are linked yet.",
+        "connectedOn": "Connected on {date}",
+        "providers": {
+          "google": "Google",
+          "microsoft": "Microsoft",
+          "credential": "Password",
+          "unknown": "Other sign-in method"
+        }
       }
     }
   },
@@ -103,11 +173,10 @@
     "language": "Language"
   },
   "common": {
-    "back": "Back",
-    "backToHome": "Back to Home",
     "cancel": "Cancel",
+    "remove": "Remove",
     "add": "Add",
-    "update": "Update",
+    "done": "Done",
     "edit": "Edit",
     "delete": "Delete",
     "previous": "Previous",
@@ -115,29 +184,56 @@
     "actions": "Actions",
     "close": "Close",
     "loading": "Loading...",
-    "updating": "Updating...",
     "search": "Search",
     "filters": "Filters",
-    "selected": "Selected",
-    "clear": "Clear",
-    "clearAll": "Clear All",
     "clearFilters": "Clear filters",
     "refresh": "Refresh",
     "retry": "Retry",
-    "optional": "(Optional)",
-    "language": "Language",
     "confirm": "Confirm",
-    "new": "New",
     "deleted": "Deleted",
     "download": "Download",
     "downloadFailed": "Failed to download the file. Please try again.",
-    "deleteFailed": "Failed to delete. Please try again.",
     "save": "Save",
     "saving": "Saving...",
     "saveFailed": "Failed to save changes. Please try again.",
     "savedSuccessfully": "Changes saved successfully",
     "noResults": "No results.",
-    "apply": "Apply"
+    "error": "Something went wrong",
+    "sessionExpired": "Your session expired. Sign in again to save.",
+    "restore": "Restore",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "unknown": "Unknown",
+    "owner": "Created by",
+    "tier": "Type",
+    "sharedWithYou": "Shared with you",
+    "builtIn": "Built-in",
+    "userCreated": "User-created",
+    "me": "Me",
+    "status": "Status",
+    "access": "Access",
+    "scopeAll": "All",
+    "scopeMine": "Mine",
+    "scopeShared": "Shared with me",
+    "scopePublic": "Public",
+    "clearSelection": "Clear selection",
+    "bulk": {
+      "label": "Selection actions",
+      "selected": "{count} selected",
+      "partial": "{label} {count} of {total}",
+      "deleteTitle": "Delete the selected items?",
+      "deleteDescription": "This deletes {count} items. They can be restored afterwards."
+    },
+    "no": "No",
+    "back": "Back",
+    "continue": "Continue",
+    "yes": "Yes",
+    "sharedReadOnly": "Shared with you — read only",
+    "deletedReadOnly": "Deleted — only its owner can restore it.",
+    "sortAsc": "Asc",
+    "sortDesc": "Desc",
+    "hideColumn": "Hide",
+    "columnOptions": "{column} column options"
   },
   "copyButton": {
     "copied": "Copied!",
@@ -163,22 +259,6 @@
       "dialogDescription": "Attachment preview dialog. Use arrow keys to navigate between files and Escape to close."
     }
   },
-  "attachmentModal": {
-    "title": "Manage Attachments",
-    "dialogDescription": "Upload new files or attach files by reference to this item.",
-    "done": "Done",
-    "uploadTitle": "Upload Files?",
-    "uploadDescription": "{count} file(s) will be uploaded and attached. This action cannot be undone.",
-    "uploadWarning": "Do not reload or navigate away from this page while files are uploading.",
-    "important": "Important:",
-    "uploadFiles": "Upload Files",
-    "uploading": "Uploading {count} files...",
-    "uploadDoNotReload": "Do not reload the page while uploading",
-    "filesFailedToUpload": "{count} files failed to upload",
-    "filesUploadedSuccessfully": "{count} files uploaded successfully",
-    "uploadTimedOut": "Upload timed out",
-    "uploadFailed": "Upload failed"
-  },
   "pagination": {
     "previous": "Previous",
     "next": "Next",
@@ -193,45 +273,13 @@
     "pageOf": "Page {page} of {pages}",
     "rowsPerPage": "Rows per page"
   },
-  "units": {
-    "volume": "Volume",
-    "weight": "Weight/Mass",
-    "area": "Area",
-    "length": "Length",
-    "count": "Count",
-    "energy": "Energy/Environmental"
-  },
   "auth": {
     "welcome": "Welcome to {acronym}",
     "subtitle": "{name} - {description}",
-    "intro": "To access the system, you need a valid certificate. Click the button below to start the authorization process.",
-    "authorize": "Authorize with Certificate",
-    "authorizeShort": "Authorize",
-    "authorizing": "Authenticating with certificate...",
-    "selectCertificate": "Please select your certificate when prompted by your browser",
-    "browserPromptTitle": "Browser Prompt:",
-    "browserPrompt": "You may see a certificate selection dialog. Choose your organization's client certificate to continue.",
-    "success": "Successfully authenticated",
-    "redirecting": "You are being redirected to the application...",
-    "openApp": "Open Application",
-    "tryAgain": "Try Again",
     "loading": "Loading",
     "needHelp": "Need help with authentication?",
-    "requiresCertificate": "This application requires a valid client certificate for secure access",
     "mtls": "mTLS Authentication",
-    "secureAccess": "Secure Access",
     "tagline": "Track, manage, and optimize building materials throughout their lifecycle",
-    "infoTitle": "How it works",
-    "infoStep1Title": "Install Certificate",
-    "infoStep1": "Your organization provides a client certificate that identifies you securely.",
-    "infoStep2Title": "Authorize Access",
-    "infoStep2": "Click the authorize button and select your certificate when your browser prompts you.",
-    "infoStep3Title": "Start Managing",
-    "infoStep3": "Access the full platform to track objects, processes, and material flows.",
-    "featureObjects": "Object Management",
-    "featureProcesses": "I/O Process Tracking",
-    "featureModels": "Material Models",
-    "featureImport": "Bulk Data Import",
     "carousel": {
       "indicators": "Platform highlights",
       "goToSlide": "Go to slide {n}"
@@ -277,12 +325,15 @@
     "email": {
       "label": "Email",
       "placeholder": "your.email@example.com",
-      "signIn": "Sign in with Email",
-      "authorizing": "Signing in..."
+      "signIn": "Sign in with Email"
     },
     "password": {
       "label": "Password",
       "placeholder": "Enter your password"
+    },
+    "social": {
+      "google": "Continue with Google",
+      "microsoft": "Continue with Microsoft"
     },
     "certificate": {
       "signIn": "Sign in with Certificate"
@@ -292,31 +343,11 @@
       "link": "Forgot password?",
       "title": "Reset Password",
       "description": "Enter your email address and we'll send you a link to reset your password.",
-      "emailLabel": "Email Address",
-      "emailPlaceholder": "your.email@example.com",
       "sendReset": "Send Reset Link",
-      "sending": "Sending...",
       "success": "Password reset link sent! Check your email for instructions.",
-      "error": "Failed to send reset link. Please try again.",
-      "cancel": "Cancel",
-      "close": "Close"
+      "error": "Failed to send reset link. Please try again."
     },
     "backToLogin": "Back to Login",
-    "emailVerification": {
-      "title": "Email Verification Required",
-      "description": "We've sent a verification email to {email}. Please check your inbox and click the verification link.",
-      "resend": "Resend Email",
-      "sending": "Sending...",
-      "sent": "Email Sent!"
-    },
-    "verifyEmail": {
-      "title": "Email Verification",
-      "verifying": "Verifying your email address...",
-      "success": "Your email has been verified successfully! You can now sign in.",
-      "error": "Email verification failed. The link may have expired.",
-      "noToken": "No verification token found. Please check the link in your email.",
-      "loginNow": "Sign In Now"
-    },
     "validation": {
       "emailRequired": "Email is required",
       "emailInvalid": "Please enter a valid email address",
@@ -325,7 +356,11 @@
       "passwordLowercase": "Password must contain at least one lowercase letter",
       "passwordUppercase": "Password must contain at least one uppercase letter",
       "passwordDigit": "Password must contain at least one digit",
-      "passwordSpecial": "Password must contain at least one special character"
+      "passwordSpecial": "Password must contain at least one special character",
+      "passwordsMustMatch": "Passwords do not match",
+      "codeRequired": "Verification code is required",
+      "codeInvalid": "Enter the 6-digit code",
+      "passwordMaxLength": "Password must be at most 256 characters"
     },
     "errors": {
       "authFailed": "Authentication failed",
@@ -335,358 +370,188 @@
       "timeout": "Authentication timed out. This may indicate a network issue or certificate problem.",
       "unauthorized": "Your certificate is not authorized to access this system. Please contact your administrator.",
       "expired": "Your certificate has expired. Please obtain a new certificate from your administrator.",
-      "troubleshootingTitle": "Troubleshooting Steps:",
-      "troubleshooting": [
-        "Ensure your certificate is installed in your browser",
-        "Check that your certificate has not expired",
-        "Verify you selected the correct certificate when prompted",
-        "Try refreshing the page and attempting again"
-      ],
-      "differentCertTitle": "Need to use a different certificate?",
-      "differentCert": "Close your browser completely and reopen it. Browsers cache mTLS certificates and the selection cannot be changed without a full browser restart.",
-      "stillIssuesTitle": "Still having issues?",
-      "stillIssues": "Contact your system administrator or IT support team. They can verify your certificate permissions and help with installation if needed."
+      "emailLoginDisabled": "Signing in with email and password is turned off on this node."
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "subtitle": "Choose a strong password for your account.",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "confirmPlaceholder": "Re-enter your password",
+      "submit": "Set Password",
+      "success": "Your password has been set. You can now sign in.",
+      "error": "Failed to set your password. The link may have expired — request a new one.",
+      "invalidToken": "This reset link is invalid or has expired. Request a new one to continue.",
+      "requestNew": "Request a new link"
+    },
+    "twoFactor": {
+      "title": "Two-factor authentication",
+      "subtitle": "Enter the 6-digit code to continue.",
+      "codeLabel": "Verification code",
+      "verify": "Verify",
+      "backupSubtitle": "Enter one of your backup codes.",
+      "backupLabel": "Backup code",
+      "useBackupCode": "Use a backup code",
+      "useAuthenticator": "Use authenticator app",
+      "trustDevice": "Trust this device for 30 days",
+      "error": "That code was not valid. Try again."
     }
   },
   "objects": {
     "title": "Objects",
     "showDeleted": "Soft Deleted",
     "create": "Create Object",
-    "creatingParents": "Creating parent {current} of {total}…",
-    "parentCreationFailed": "Could not create parent draft \"{name}\". Please retry.",
     "searchResults": "Search Results for: \"{query}\"",
     "results": "{count} result{count, plural, one {} other {s}}",
-    "resultsPage": "{count} result{count, plural, one {} other {s}} (page {page} of {pages})",
     "clearSearch": "Clear Search",
-    "deleted": "Deleted",
     "restoreTitle": "Restore object",
-    "restore": "Restore",
-    "restoring": "Restoring...",
-    "detailsDescription": "View and edit object properties, relationships, and files",
-    "tabs": {
-      "properties": "Properties",
-      "files": "Files",
-      "relationships": "Relationships",
-      "metadata": "Metadata",
-      "history": "History"
-    },
-    "passport": {
-      "untitled": "Untitled object",
-      "sheetDescription": "A read-only product overview built from this object's properties, address, and files.",
-      "print": "Print",
-      "lifecycle": "Lifecycle",
-      "warranty": "Warranty",
-      "active": "Active",
-      "expired": "Expired",
-      "expiresIn": "Expires in {days} days",
-      "percentElapsed": "{percent}% elapsed",
-      "inService": "In service",
-      "produced": "Produced",
-      "lastInspection": "Last inspection",
-      "nextMaintenance": "Next maintenance",
-      "expectedLifespan": "Expected lifespan",
-      "documents": "Documents ({count})",
-      "serialTooltip": "Serial number",
-      "days": "{count} {count, plural, one {day} other {days}}",
-      "months": "{count} {count, plural, one {month} other {months}}",
-      "years": "{count} {count, plural, one {year} other {years}}",
-      "emptyTitle": "No passport data yet",
-      "emptyDescription": "Add properties like manufacturer, dimensions or warranty to populate the product passport.",
-      "categories": {
-        "product": "Product",
-        "classification": "Classification",
-        "dimensions": "Dimensions",
-        "composition": "Composition",
-        "appearance": "Appearance",
-        "sustainability": "Sustainability",
-        "commerce": "Commerce",
-        "ownership": "Ownership",
-        "state": "Status",
-        "contact": "Contact",
-        "location": "Location",
-        "meta": "Other",
-        "other": "Other"
-      },
-      "downloadPdf": "Download PDF",
-      "openPreview": "Open print preview",
-      "pdfError": "Failed to generate PDF. Please try again."
-    },
-    "history": {
-      "empty": "No history yet.",
-      "emptyFilter": "No events in this category.",
-      "filterLabel": "Filter history events",
-      "listLabel": "History events, newest first",
-      "filters": {
-        "all": "All",
-        "metadata": "Metadata",
-        "property": "Properties",
-        "value": "Values",
-        "file": "Files",
-        "address": "Address"
-      },
-      "events": {
-        "metadataCreated": "Created object {name}",
-        "metadataAdded": {
-          "name": "Name set to {after}",
-          "abbreviation": "Abbreviation set to {after}",
-          "description": "Description added",
-          "version": "Version set to {after}"
-        },
-        "metadataChanged": {
-          "name": "Renamed from {before} to {after}",
-          "abbreviation": "Abbreviation changed from {before} to {after}",
-          "description": "Description updated",
-          "version": "Version changed from {before} to {after}"
-        },
-        "metadataCleared": {
-          "name": "Name cleared",
-          "abbreviation": "Abbreviation cleared",
-          "description": "Description cleared",
-          "version": "Version cleared"
-        },
-        "propertyAdded": "Added property {label}",
-        "propertyRemoved": "Removed property {label}",
-        "valueAdded": "Added value {value} to {propertyLabel}",
-        "valueRemoved": "Removed value {value} from {propertyLabel}",
-        "fileUploaded": "Uploaded file {name} ({size})",
-        "fileRemoved": "Removed file {name}",
-        "addressAdded": "Added address {fullAddress}",
-        "addressUpdated": "Updated address"
-      }
-    },
     "fields": {
       "uuid": "UUID",
       "name": "Name",
-      "abbreviation": "Abbreviation",
       "version": "Version",
+      "revision": "Revision",
       "description": "Description",
-      "created": "Created",
-      "updated": "Updated",
+      "created": "Created at",
+      "updated": "Updated at",
       "address": "Address",
       "properties": "Properties",
-      "files": "Files",
-      "group": "Group"
+      "parent": "Parent",
+      "cover": "Cover",
+      "children": "Children"
+    },
+    "formulaEditor": {
+      "expression": "Expression",
+      "switchToFormula": "Use a formula",
+      "switchToText": "Use a plain value",
+      "selectFormula": "Select a formula",
+      "searchFormulas": "Search formulas…",
+      "noFormulas": "No formulas found",
+      "searchValues": "Search values and constants…",
+      "filterBindings": "Show",
+      "scope": {
+        "all": "All",
+        "siblings": "Values",
+        "constants": "Constants"
+      },
+      "noVariables": "This formula has no variables",
+      "noNumericValues": "No numeric values to bind",
+      "noConstants": "No constants found",
+      "expressionPlaceholder": "e.g. w * h",
+      "bindVariables": "Bind variables",
+      "selectValue": "Select a value",
+      "result": "Result",
+      "editFormula": "Edit formula",
+      "inlineExpression": "This value uses a one-off expression, which can only be changed through the API",
+      "unknownConstant": "A constant this formula uses could not be found",
+      "unbound": "Not bound",
+      "siblingValues": "Values on this entity",
+      "constants": "Constants"
+    },
+    "detailsSheet": {
+      "noParents": "No parents",
+      "tabDetails": "Details",
+      "tabParents": "Parents",
+      "unsavedChanges": "{count} unsaved change{count, plural, one {} other {s}}",
+      "discardConfirm": "Discard unsaved changes?",
+      "noProperties": "No properties",
+      "tabRelations": "Relations"
+    },
+    "propertyEditor": {
+      "name": "Name",
+      "namePlaceholder": "Select or type a property name",
+      "keyLocked": "Renaming changes the label only — this property stays stored as “{key}” and keeps totalling under that key. To total under a new key, remove this property and add it again.",
+      "value": "Value",
+      "derived": "Derived",
+      "addProperty": "Add property",
+      "addValue": "Add value"
     },
     "address": {
       "street": "Street",
-      "number": "Number",
+      "postalCode": "Postal code",
       "city": "City",
-      "postalCode": "Postal Code",
-      "country": "Country",
       "state": "State",
-      "district": "District"
+      "country": "Country",
+      "coordinates": "Coordinates",
+      "noResults": "No addresses found for \"{query}\""
     },
-    "placeholders": {
-      "address": "Search for an address...",
-      "name": "Enter object name",
-      "abbreviation": "Enter abbreviation",
-      "version": "Enter version",
-      "description": "Enter description"
-    },
-    "noUuid": "No UUID",
     "objectUuid": "Object UUID",
-    "propertyUuid": "Property UUID",
-    "attach": "Attach",
-    "attachToProperty": "Attach to property",
-    "attachToValue": "Attach to value",
-    "filesAttachedProperty": "Files Attached to Property",
     "values": "{count} value{count, plural, one {} other {s}}",
-    "filesCount": "{count} file{count, plural, one {} other {s}}",
-    "noValues": "No values",
-    "noProperties": "No properties defined",
-    "propertyName": "Property Name",
-    "propertyValue": "Value",
-    "propertyValues": "Property Values",
-    "propertyNameRequired": "Property name is required",
-    "propertyNamePlaceholder": "e.g. Total Floors",
     "propertyNameSuggestionsLabel": "Suggested standard property names",
-    "propertyValuePlaceholder": "Enter property value",
-    "addAnotherValue": "Add Another Value",
     "attachments": {
       "dragDrop": "Drag and drop files here, or click to browse",
       "maxSize": "Max {size}",
-      "uploading": "Uploading... ({progress}%)",
       "externalUrl": "Enter external file URL",
       "labelOptional": "Label (optional)",
-      "noAttachments": "No attachments",
       "rename": "Rename file",
-      "remove": "Remove file",
       "dropzoneHint": "Drop files to upload",
       "dropzoneOversize": "Skipped {names}: exceeds {size}MB",
       "tooManyFiles": "Too many files at once — drop at most {max} files per batch"
     },
     "files": {
       "preview": "Preview in new tab",
+      "attach": "Attach",
+      "addFiles": "Add files",
+      "external": "Link",
+      "filesCount": "Files ({count})",
+      "invalidUrl": "Enter a valid https URL",
       "delete": "Delete file",
-      "filePreview": "File Preview",
-      "deleteTitle": "Delete File",
-      "deleteConfirm": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
-      "noFiles": "No files found for this object"
+      "noFiles": "No files found for this object",
+      "unavailable": "This file is no longer available.",
+      "listView": "List view",
+      "gridView": "Grid view",
+      "restore": "Restore file",
+      "openExternal": "Open link",
+      "addedCount": "{count} files added"
     },
-    "propertiesUpdated": "Properties updated successfully",
-    "propertiesUpdateFailed": "Failed to update object properties",
-    "formulaUnresolvedArgs": "Some formula variables could not be linked to their source values and were skipped.",
-    "formulaCycleDetected": "A formula dependency cycle was detected. Some calculations may not have run in the correct order — please review your formulas.",
-    "metadataUpdated": "Metadata updated successfully",
-    "addressUpdated": "Address updated successfully",
-    "parentsUpdated": "Parent relationships updated successfully",
-    "showLess": "Show less",
-    "showMore": "Show more",
-    "deletedAt": "Deleted At",
-    "deletedBy": "Deleted By",
-    "noAddress": "No address specified",
-    "buildingAddress": "Building Address",
-    "addressComponents": "Address Components",
     "filesTitle": "Files",
-    "addFiles": "Add Files",
-    "parentsTitle": "Parent Objects",
-    "noParents": "No parent objects",
-    "parentUuid": "Parent UUID",
     "parentSearch": "Search for parent objects...",
-    "relationshipsTitle": "I/O Process Relationships",
-    "viewAllInProcesses": "View All in Processes",
-    "viewInProcesses": "View in Processes",
-    "noIoProcesses": "No I/O Process Relationships",
-    "inputCount": "Input to {count} process{count, plural, one {} other {es}}",
-    "outputCount": "Output from {count} process{count, plural, one {} other {es}}",
-    "processName": "Process Name",
-    "flow": "Flow",
-    "quantity": "Quantity",
-    "notSpecified": "Not specified",
-    "creatingTemplate": "Creating template...",
     "createTemplate": "Create Template",
-    "attachFilesProperty": "Attach Files to Property",
-    "attachFilesValue": "Attach Files to Value",
-    "unsavedChanges": {
-      "title": "Unsaved Changes",
-      "description": "You have entered data that hasn't been saved yet. Would you like to continue editing or discard your changes?",
-      "descriptionWithDraft": "You have unsaved changes. Save them as a draft to resume later, discard them, or keep editing.",
-      "keepEditing": "Continue Editing",
-      "discard": "Discard Changes",
-      "saveDraft": "Save as Draft"
-    },
     "drafts": {
       "badge": "Draft",
       "untitled": "Untitled draft",
-      "hideDraftsLabel": "Hide drafts",
+      "saved": "Draft saved",
+      "savedOn": "Saved {date}",
       "actions": {
-        "open": "Open",
-        "discard": "Discard",
-        "more": "More draft actions"
+        "resume": "Continue editing",
+        "discard": "Discard"
+      },
+      "unsaved": {
+        "title": "Keep your changes?",
+        "description": "You have {count, plural, =1 {# unsaved change} other {# unsaved changes}}. Save them as a draft on this device to continue later, or discard them.",
+        "descriptionEdit": "You have {count, plural, =1 {# unsaved change} other {# unsaved changes}}. Closing now will discard them.",
+        "saveDraft": "Save draft",
+        "uploadsDropped": "Files you picked are not included in a draft — you will need to add them again."
       },
       "discardConfirm": {
         "title": "Discard draft?",
         "description": "This will permanently remove the draft. This action cannot be undone.",
         "confirm": "Discard"
-      }
+      },
+      "saveFailed": "Could not save the draft — try again in a moment"
     },
-    "addTitle": "Add Object",
-    "addDescription": "Create a new object by filling in the details below",
-    "modelTemplatePlaceholder": "Select a model template (optional)",
-    "addProperty": "Add Property",
-    "addAnotherProperty": "Add Another Property",
-    "qrCode": "QR Code",
-    "showQr": "Show QR",
     "actions": {
       "copyUuid": "Copy UUID",
-      "showQrCode": "QR Code",
-      "viewPassport": "View Passport"
+      "showQrCode": "QR Code"
     },
     "bulk": {
-      "selected": "{selected} of {total} row(s) selected",
-      "deleteSelected": "Delete",
-      "restoreSelected": "Restore",
-      "addToGroup": "Add to Group",
-      "setParent": "Set Parent",
-      "createNewGroup": "Create New Group",
-      "groupNamePlaceholder": "Enter group name...",
-      "confirmBulkDelete": "Delete {count} objects?",
-      "confirmBulkDeleteDescription": "This will soft delete {count} selected object(s). This action cannot be undone.",
-      "bulkDeleteSuccess": "{count} object(s) deleted successfully",
-      "bulkDeleteFailed": "Failed to delete some objects",
-      "bulkDeletePermissionDenied": "Some objects couldn't be deleted because you don't have write permission on their group.",
-      "bulkRestoreSuccess": "{count} object(s) restored successfully",
-      "bulkRestoreFailed": "Failed to restore some objects",
-      "addedToGroup": "{count} object(s) added to group",
-      "addedToGroupFailed": "Failed to add objects to group",
-      "parentSet": "Parent set for {count} object(s)",
-      "parentSetFailed": "Failed to set parent for some objects",
-      "selectAll": "Select all",
-      "deselectAll": "Deselect all",
+      "setParent": "Set parent",
+      "parentSet": "{count} items moved",
       "columns": "Columns",
-      "searchParent": "Search for parent...",
-      "selectParent": "Select parent object",
-      "noGroupsFound": "No groups found",
-      "deleting": "Deleting objects...",
-      "restoring": "Restoring objects...",
-      "settingParent": "Setting parent...",
-      "addingToGroup": "Adding to group..."
+      "setParentTitle": "Set a parent",
+      "setParentDescription": "Move {count} selected items under one parent. Each keeps any parents it already has.",
+      "parentSkipsSelf": "The selected parent is also in your selection — it will be skipped."
     },
-    "groupFilter": {
-      "title": "Groups",
-      "allGroups": "All Groups",
-      "search": "Search groups...",
-      "noGroups": "No groups found",
-      "clear": "Clear group filter"
-    },
-    "noObjectsTitle": "No Objects Found",
-    "noObjectsDescription": "Start by creating your first object",
+    "noObjectsTitle": "No objects yet",
+    "noObjectsDescription": "An object is anything you want to track — a machine, a batch, a document. Give it properties, files and a place in the hierarchy.",
     "viewDetails": "View Details",
     "columnCount": "{count} column{count, plural, one {} other {s}}",
     "columnSearch": "Search in this column...",
     "noItemsMatch": "No items match your search",
     "noItemsColumn": "No items in this column",
     "deleteConfirmTitle": "Are you sure?",
-    "deleteConfirmDescription": "This will soft delete \"{name}\" and cannot be undone.",
-    "deletingObject": "Deleting object...",
-    "objectDeletedSuccess": "Object deleted successfully",
-    "objectDeleteFailed": "Failed to delete object",
-    "fileDeletedSuccess": "File deleted successfully",
-    "fileDeleteFailed": "Failed to delete file",
-    "objectMetadataUpdated": "Object metadata updated successfully",
-    "objectMetadataUpdateFailed": "Failed to update object metadata",
-    "parentObjectsUpdated": "Parent objects updated successfully",
-    "parentObjectsUpdateFailed": "Failed to update parent objects",
-    "addressUpdatedSuccess": "Address updated successfully",
-    "addressUpdateFailed": "Failed to process address updates",
+    "deleteConfirmDescription": "This soft deletes \"{name}\". You can restore it afterwards.",
+    "deleteConfirmDescriptionWithChildren": "This soft deletes \"{name}\", which has {count, plural, one {# descendant} other {# descendants}}. They stay live and keep working, but \"{name}\" will no longer appear in lists or count toward rollups. You can restore it afterwards.",
     "permissionDenied": "Permission denied. You don't have the required permissions to perform this action.",
-    "permissionDeniedDelete": "You don't have permission to delete objects in this group. Ask the group owner for write access.",
-    "creatingObject": "Creating object...",
-    "objectCreatedSuccess": "Object created successfully!",
-    "objectCreatedWithFiles": "Object created with {count} file{count, plural, one {} other {s}}",
-    "objectCreateFailed": "Failed to create object",
-    "filesUploadedSuccess": "{count} files uploaded successfully",
-    "filesUploadFailed": "{count} files failed to upload",
-    "revertingObject": "Reverting object...",
-    "revertingTemplate": "Reverting template...",
-    "objectRestoredSuccess": "Object restored successfully",
-    "templateRestoredSuccess": "Template restored successfully",
-    "objectRestoreFailed": "Failed to restore object",
-    "templateRestoreFailed": "Failed to restore template",
-    "propertyRemoved": "Property removed",
-    "propertyMarkedForDeletion": "Property marked for deletion",
-    "uploadingFiles": "Uploading {count} files...",
-    "doNotReload": "⚠️ Do not reload the page while uploading",
-    "uploadCenterTitle": "Uploads",
-    "uploadCenterInProgress": "Uploading {done} of {total}",
-    "uploadCenterIdle": "All uploads complete",
-    "uploadCenterFailed": "{count} failed",
-    "uploadCenterClear": "Clear",
-    "uploadCenterPending": "Pending:",
-    "uploadCenterCompleted": "Completed:",
-    "uploadCenterFailedLabel": "Failed:",
-    "uploadCenterCancel": "Cancel upload",
-    "uploadCenterRetry": "Retry upload",
-    "uploadCenterCancelling": "Cancelling…",
-    "uploadCenterStatusUploading": "Uploading…",
-    "uploadCenterStatusPending": "Waiting…",
-    "uploadCenterStatusDone": "Done",
-    "uploadCenterStatusFailed": "Failed",
-    "uploadCenterStatusCancelled": "Cancelled",
-    "uploadCenterRemove": "Remove from list",
-    "uploadCenterAnnounceCompleted": "Upload of {fileName} complete",
-    "uploadCenterAnnounceFailed": "Upload of {fileName} failed",
-    "uploadCenterAnnounceCancelled": "Upload of {fileName} cancelled",
     "qrCodeTitle": "QR Code for {name}",
     "qrCodeDescription": "Scan this code to access the object details",
     "qrCodeDownloadPng": "Download PNG",
@@ -696,40 +561,23 @@
     "templateDialogDescription": "Configure the template details before creating it from this object.",
     "templateNameLabel": "Name",
     "templateNamePlaceholder": "Enter template name",
-    "templateAbbreviationLabel": "Abbreviation",
-    "templateAbbreviationPlaceholder": "Enter abbreviation (optional)",
     "templateVersionLabel": "Version",
     "templateVersionPlaceholder": "Enter version",
     "templateDescriptionLabel": "Description",
     "templateDescriptionPlaceholder": "Enter template description",
     "creating": "Creating...",
-    "attachFile": "Attach File",
-    "attachmentsTitle": "Attachments",
-    "children": "Children",
-    "doubleClick": "(double-click to view)",
     "childrenTooltip": "{count} {count, plural, one {child} other {children}} - double-click to view",
     "deletedBadge": "(deleted)",
     "loadingChildren": "Loading children...",
     "childrenPage": {
-      "loadingParent": "Loading parent object...",
       "parentNotFound": "Parent object not found",
-      "backToObjects": "Back to Objects",
       "breadcrumbRoot": "Root",
       "addChild": "Add Child",
-      "childrenTitle": "Children",
       "childrenCount": "{count} children",
-      "noChildrenTitle": "No Children Yet",
-      "noChildrenDescription": "This object has no child objects. Add a new child or copy existing objects here."
-    },
-    "modelSelector": {
-      "label": "Model",
-      "placeholder": "Select a model...",
-      "searchPlaceholder": "Search models...",
-      "startTyping": "Start typing to search models",
-      "searching": "Searching...",
-      "noResults": "No models found",
-      "showingTop": "Showing {shown} of {total} models",
-      "clearSelection": "Clear"
+      "parentDeleted": "This object is deleted. Its children stay live and keep working — restore it to bring it back into lists and rollups.",
+      "noChildrenTitle": "No child objects yet",
+      "noChildrenDescription": "Children sit under this object in the hierarchy. Adding one sets this object as its parent — the child owns the link, so it can be moved without touching anything here.",
+      "moreChildActions": "More child actions"
     },
     "parentSelector": {
       "label": "Parent Objects",
@@ -738,41 +586,48 @@
       "startTyping": "Type at least 2 characters to search",
       "searching": "Searching...",
       "noResults": "No objects found",
-      "showingTop": "Showing top {shown} of {total} objects",
       "clearAll": "Clear All",
       "selectedCount": "{count, plural, one {1 parent selected} other {# parents selected}}",
       "maxBadge": "Max",
       "maxSelections": "Maximum {max} parents can be selected",
-      "createNew": "Create new parent",
-      "draftParentRemovedTitle": "Parent draft no longer exists",
-      "draftParentRemovedDescription": "The parent draft you referenced was removed in another tab. Please re-pick a parent."
+      "createNew": "Create new parent"
     },
     "columnsView": {
-      "noObjects": "No Objects Found",
-      "loadData": "Load some data to start exploring the object hierarchy",
-      "rootObjects": "Root Objects",
-      "level": "Level {level}"
+      "level": "Level {level}",
+      "allObjects": "All objects"
     },
     "properties": {
-      "noProperties": "No properties defined",
-      "addFirst": "Add Your First Property",
-      "add": "Add Property",
       "detailedView": "Detailed View",
-      "passportView": "Passport Overview",
-      "propertyType": "Property Type",
-      "textType": "Text",
-      "formulaType": "Formula",
+      "gridView": "Grid Overview",
       "formula": "Formula",
-      "formulaInput": "Formula Expression",
-      "formulaPlaceholder": "e.g. x * y + 10",
-      "formulaTemplates": "Quick Templates",
-      "formulaVariables": "Variable Mapping",
-      "formulaSelectProperty": "Select property...",
-      "formulaNoProperties": "No properties available",
-      "formulaPreview": "Live Preview",
-      "formulaResolved": "Resolved",
-      "formulaResult": "Result",
-      "formulaMapAllVariables": "Map all variables to see result"
+      "formulaError": "Could not be calculated",
+      "showFormula": "Show formula details",
+      "hideFormula": "Hide formula details",
+      "unknownUnit": "Unknown unit",
+      "noNumber": "No number found",
+      "canonicalValue": "Canonical value",
+      "excludedFromFormulas": "excluded from the formulas that use it",
+      "rollupTotal": "Subtree total",
+      "rollupContributors": "{count, plural, one {# value} other {# values}}",
+      "rollupSkipped": "{count, plural, one {# not counted} other {# not counted}}",
+      "rollupMoreDimensions": "{count, plural, one {+# more unit} other {+# more units}}",
+      "rollupProcessing": "Updating…",
+      "rollupSubtreeTooLarge": "Too many items to total",
+      "declaredUnit": "Unit declared by the formula",
+      "unitInherited": "Unit taken from the values it reads",
+      "calcError": {
+        "arg-not-numeric": "A value it reads is not a number",
+        "div-by-zero": "Division by zero",
+        "domain": "The result is outside what the operation allows",
+        "non-numeric-result": "The result is not a number",
+        "dimension-mismatch": "It mixes quantities that cannot be combined",
+        "unknown-unit": "The declared unit is not one this node knows"
+      },
+      "rollupNoNumbers": "No numeric values",
+      "rollupOnlyThisObject": "This object only",
+      "rollupBelowShare": "{below} below",
+      "rollupSplitLabel": "{own} here, {below} below",
+      "rollupDerived": "Derived"
     },
     "duplicate": {
       "title": "Copy Objects",
@@ -791,27 +646,87 @@
       "includeChildren": "Include children (subtree)",
       "includeChildrenHint": "Recursively copy all child objects",
       "copyProperties": "Copy properties & values",
-      "copyFiles": "Copy file attachments",
       "copyFilesReferences": "Copy file references",
       "copyAddress": "Copy address",
-      "childCount": "{count} child object{count, plural, one {} other {s}} will be copied",
+      "childCount": "{count, plural, one {# child} other {# children}}",
       "confirm": "Copy",
       "copying": "Copying...",
-      "success": "Objects copied successfully",
-      "failed": "Failed to copy objects",
       "action": "Duplicate",
-      "copyHere": "Copy Objects Here"
+      "copyHere": "Copy Objects Here",
+      "copied": "{count, plural, one {# object copied} other {# objects copied}}",
+      "failedPartial": "The copy stopped part-way. Some objects may already have been created — check the list before retrying.",
+      "copyFilesHint": "Linked files only. Uploaded files stay with the original.",
+      "targetInsideSource": "The destination is inside the objects you are copying. Pick a destination outside them, or turn off \"include children\"."
+    },
+    "itemsCount": "{count} item{count, plural, one {} other {s}}",
+    "saveError": {
+      "conflict": "This object changed elsewhere since you opened it. Copy your changes, reopen the object, and apply them again.",
+      "invalid": "Could not save — {detail}",
+      "notFound": "This object no longer exists.",
+      "propertyKeyRequired": "Give every property a name before saving."
+    },
+    "templateSelector": {
+      "label": "Start from a template",
+      "placeholder": "Select a template",
+      "search": "Search templates...",
+      "noResults": "No templates found",
+      "propertyCount": "{count} properties"
+    },
+    "parentPicker": {
+      "search": "Search for parent objects...",
+      "noResults": "No objects found"
+    },
+    "templateNameFrom": "{name} Template",
+    "templateCreatedSuccess": "Template created",
+    "noObjectsAction": "Create your first object",
+    "unnamed": "Unnamed",
+    "cover": {
+      "previewOf": "Preview the cover image of {name}",
+      "set": "Use as cover image",
+      "clear": "Remove as cover image",
+      "current": "Cover image"
+    },
+    "relations": {
+      "consumedBy": "Consumed by",
+      "consumedByHint": "Processes that take this object as an input.",
+      "producedBy": "Produced by",
+      "producedByHint": "Processes that produce this object as an output.",
+      "empty": "No processes reference this object yet.",
+      "loadFailed": "Could not load related processes.",
+      "more": "+{count} more not shown",
+      "flowCount": "{count} flows",
+      "viewAll": "View all in Processes"
+    },
+    "parents": {
+      "movedUnder": "Moved under {name}",
+      "alsoUnder": "Now also under {name}",
+      "openParent": "Open",
+      "movedFallbackName": "its new parent"
     }
+  },
+  "uploads": {
+    "centerAnnounceCancelled": "Upload of {fileName} cancelled",
+    "centerAnnounceCompleted": "Upload of {fileName} complete",
+    "centerAnnounceFailed": "Upload of {fileName} failed",
+    "centerCancel": "Cancel upload",
+    "centerCancelling": "Cancelling…",
+    "centerClear": "Clear",
+    "centerFailed": "{count} failed",
+    "centerIdle": "All uploads complete",
+    "centerInProgress": "Uploading {done} of {total}",
+    "centerRemove": "Remove from list",
+    "centerRetry": "Retry upload",
+    "centerStatusCancelled": "Cancelled",
+    "centerStatusDone": "Done",
+    "centerStatusFailed": "Failed",
+    "centerStatusPending": "Waiting…",
+    "centerStatusUploading": "Uploading…"
   },
   "processes": {
     "title": "I/O Processes",
     "filterObjects": "Filter by objects...",
     "create": "Create Process",
-    "filters": "Active Filters:",
     "clearMaterials": "Clear Materials",
-    "clearObject": "Clear Object",
-    "clearAll": "Clear All",
-    "depthLimited": "3 Levels",
     "depthFull": "Full Depth",
     "depthWindow": {
       "label": "Levels {from}–{to} of {total}",
@@ -825,108 +740,109 @@
       "description": "Showing direct inputs & outputs",
       "clear": "Clear Focus"
     },
-    "object": "Object",
-    "inputs": "Inputs",
-    "outputs": "Outputs",
-    "relationships": "This will create {count} material relationships",
-    "form": {
-      "createTitle": "Create Process Flow",
-      "subtitle": "A process has a name plus open properties. Inputs and outputs are objects; flag a property as the quantity for flow charts.",
-      "nameLabel": "Name",
-      "namePlaceholder": "e.g., Concrete Recycling",
-      "descriptionLabel": "Description (optional)",
-      "properties": "Properties",
-      "addProperty": "Add property",
-      "noProperties": "No properties yet.",
+    "flows": {
       "inputs": "Inputs",
       "outputs": "Outputs",
-      "addInput": "Add input",
-      "addOutput": "Add output",
-      "noInputs": "Add at least one input.",
-      "noOutputs": "Add at least one output.",
+      "quantity": "Quantity",
+      "selectObject": "Select object",
       "searchObjects": "Search objects…",
-      "searchHint": "Type at least 2 characters to search.",
-      "selectedObject": "Selected object",
-      "removeMaterial": "Remove",
-      "quantityField": "Quantity field:",
-      "quantityNone": "None",
-      "unnamedProperty": "Property {n}",
-      "quantityWarning": "{count, plural, one {# quantity has no recognizable number} other {# quantities have no recognizable number}} — saved as typed.",
-      "attachments": "Attachments",
-      "attachmentsComingSoon": "File attachments for processes are coming soon.",
-      "createButton": "Create process"
+      "noObjects": "No objects found",
+      "toggleDetails": "Toggle flow details",
+      "add": {
+        "inputs": "Add input",
+        "outputs": "Add output"
+      },
+      "empty": {
+        "inputs": "No inputs yet",
+        "outputs": "No outputs yet"
+      },
+      "alsoInput": "also an input",
+      "alsoOutput": "also an output",
+      "untitled": "Flow"
     },
-    "dashboard": {
-      "noDataTitle": "No Process Data",
-      "noDataDescription": "Create your first process to see analytics and insights here.",
-      "createFirstProcess": "Create First Process",
-      "totalFlows": "Total Flows",
-      "circularFlows": "Circular Flows",
-      "circularityRate": "Circularity Rate",
-      "reusedComponents": "Reused Components",
-      "processCategories": "Process Categories",
-      "topCount": "Top {count}",
-      "noProcessCategoryData": "No process category data available",
-      "lifecycleStages": "Lifecycle Stages",
-      "noLifecycleData": "No lifecycle stage data available",
-      "environmentalImpact": "Environmental Impact",
-      "totalEmissions": "Total Emissions",
-      "avgMaterialLoss": "Avg. Material Loss",
-      "processesUnit": "processes",
-      "upcycled": "Upcycled",
-      "downcycled": "Downcycled",
-      "materialsTitle": "Materials ({count})",
-      "unnamedMaterial": "Unnamed Material",
-      "noStage": "No stage",
-      "noMaterials": "No materials to display"
+    "saveError": {
+      "flowNeedsObject": "Every input and output must point at an object",
+      "needsInput": "A process needs at least one input.",
+      "needsOutput": "A process needs at least one output."
     },
-    "materialSelector": {
-      "selectedCount": "{count} material{count, plural, one {} other {s}} selected",
-      "maxBadge": "Max",
-      "placeholder": "Select materials...",
-      "searchPlaceholder": "Search materials...",
-      "startTyping": "Start typing to search materials",
-      "noResults": "No materials found",
-      "showingTop": "Showing {shown} of {total} materials"
+    "deleted": "Process deleted",
+    "deleteFailed": "Failed to delete process",
+    "restored": "Process restored",
+    "restoreFailed": "Failed to restore process",
+    "fields": {
+      "flows": "In / Out"
     },
-    "loadingState": {
-      "loading": "Loading process data...",
-      "noProcesses": "No I/O Processes",
-      "noProcessesForObject": "No I/O processes found for the selected object.",
-      "noProcessesYet": "No I/O processes have been created yet.",
-      "createFirst": "Create First Process"
-    }
+    "empty": {
+      "title": "No processes yet",
+      "description": "A process turns input objects into output objects."
+    },
+    "flowView": {
+      "depthLimited": "{size} levels",
+      "openDetails": "Open details",
+      "cyclesRemoved": "{count, plural, one {# circular flow is not drawn} other {# circular flows are not drawn}} — a Sankey has to be acyclic.",
+      "truncated": "Showing the first processes only — the flow graph is larger than one sweep.",
+      "error": "The flow graph could not be loaded.",
+      "legendHint": "Click a node to focus it · click a flow to open its process",
+      "noQuantity": "No quantity recorded",
+      "kind": {
+        "object": "Object",
+        "process": "Process"
+      },
+      "unit": {
+        "label": "Unit",
+        "widths": "Widths",
+        "help": "Widths are drawn in one unit at a time — mixing kg and m3 on one scale makes them meaningless. The count is how many flows carry that unit. Switching asks a different question of the same graph: where the mass goes, or the volume, or the footprint.",
+        "unitless": "No unit"
+      },
+      "filter": {
+        "selected": "{count} selected",
+        "search": "Search objects…"
+      },
+      "empty": {
+        "title": "Nothing to chart yet",
+        "description": "A process with at least one input and one output will appear here."
+      }
+    },
+    "networkView": {
+      "networks": "{count, plural, one {# flow network} other {# separate flow networks}}",
+      "bridges": "{count, plural, one {# link joins two networks} other {# links join otherwise-separate networks}}",
+      "bridgeLegend": "Cross-network link",
+      "bridgeHint": "The only link between these two networks — remove it and they come apart.",
+      "flowCount": "{count, plural, one {# flow} other {# flows}}",
+      "legendHint": "Drag to rearrange · scroll to zoom · click a node to focus it",
+      "seeOverview": "The overview view draws them."
+    },
+    "relatedTo": "Processes related to {name}",
+    "clearRelated": "Clear"
   },
-  "models": {
+  "templates": {
     "title": "Templates",
-    "tabObjectTemplates": "Object Templates",
-    "tabFormulas": "Formulas",
-    "showDeleted": "Show deleted items",
-    "defaultName": "Model",
-    "editTitle": "Edit Model",
-    "createTitle": "Create New Model",
-    "detailsDescription": "View and edit object properties, relationships, and files",
-    "editDescription": "Update this model template and its properties.",
-    "createDescription": "Create a new model template that can be used to generate objects.",
-    "placeholders": {
-      "name": "e.g. School Building",
-      "abbreviation": "e.g. SB (optional)",
-      "version": "e.g. 1.0 (optional)",
-      "description": "Describe the object model..."
+    "fields": {
+      "type": "Type"
     },
-    "addFirstProperty": "Add First Property",
-    "creating": "Creating...",
-    "updating": "Updating...",
-    "create": "Create Model",
-    "update": "Update Model",
-    "loading": "Loading templates...",
-    "noTemplatesTitle": "No Templates Found",
-    "noTemplatesDescription": "There are no templates to display",
-    "restoreTitle": "Restore model",
-    "searchResults": "Search Results for: \"{query}\"",
-    "results": "{count} result{count, plural, one {} other {s}}",
-    "resultsPage": "{count} result{count, plural, one {} other {s}} (page {page} of {pages})",
-    "clearSearch": "Clear Search"
+    "systemBadge": "Built-in",
+    "deleted": "Template deleted",
+    "deleteFailed": "Failed to delete template",
+    "defaultName": "Template",
+    "createTitle": "Create New Template",
+    "placeholders": {
+      "version": "e.g. 1.0 (optional)"
+    },
+    "create": "Create Template",
+    "noTemplatesTitle": "No templates yet",
+    "noTemplatesDescription": "A template is a starting point for new objects: its properties, formula recipes and the constants they bind to, ready to reuse.",
+    "nameRequired": "A template needs a name",
+    "systemReadOnly": "Built-in template — read only",
+    "restored": "Template restored",
+    "restoreFailed": "Failed to restore template",
+    "formulaInert": "Calculated when this template is applied",
+    "typeObject": "Object",
+    "typeProcess": "Process",
+    "createObject": "Object template",
+    "createProcess": "Process template",
+    "flowSlot": "Any object",
+    "flowSlotPlaceholder": "Any object (optional default)",
+    "noTemplatesAction": "Create a template"
   },
   "formulas": {
     "title": "Formulas",
@@ -934,32 +850,17 @@
     "expression": "Expression",
     "description": "Description",
     "version": "Version",
-    "defaultName": "Formula",
     "create": "Create Formula",
-    "update": "Update Formula",
-    "creating": "Creating...",
-    "updating": "Updating...",
     "created": "Formula created successfully",
-    "updated": "Formula updated successfully",
     "deleted": "Formula deleted successfully",
-    "saveFailed": "Failed to save formula",
     "deleteFailed": "Failed to delete formula",
     "validSyntax": "Valid formula syntax",
-    "invalidSyntax": "Invalid formula syntax",
     "createTitle": "Create New Formula",
-    "editTitle": "Edit Formula",
     "createDescription": "Define a reusable math formula with variables.",
-    "editDescription": "Update this formula definition.",
-    "noFormulasTitle": "No Formulas Found",
-    "noFormulasDescription": "Create formulas to use in property calculations.",
     "placeholders": {
       "name": "e.g. Area Calculation",
-      "expression": "e.g. width * height",
-      "version": "e.g. 1.0 (optional)",
-      "description": "Describe the formula..."
+      "expression": "e.g. width * height"
     },
-    "selectFormula": "Select a formula",
-    "searchPlaceholder": "Search formulas...",
     "reference": {
       "title": "Formula Reference",
       "description": "Supported operators, functions, and constants",
@@ -980,9 +881,10 @@
         "hyperbolic": "Hyperbolic",
         "logarithmic": "Logarithmic",
         "rounding": "Rounding",
-        "other": "Other"
+        "other": "Other",
+        "conditional": "Conditional & selection"
       },
-      "logNote": "log() is the natural logarithm (base e), not base 10. Use log10() for base 10.",
+      "logNote": "log() and ln() are the natural logarithm (base e). Use log10() for base 10, or lg() for base 2.",
       "constantsTitle": "Built-in Constants",
       "examplesTitle": "Examples",
       "examples": {
@@ -1005,276 +907,54 @@
         "compoundInterest": {
           "formula": "P * (1 + rate)^years",
           "label": "Compound interest"
+        },
+        "conditional": {
+          "formula": "a > b ? a : b",
+          "label": "Pick the larger"
         }
       },
       "unsupportedTitle": "Not Supported",
       "unsupported": {
-        "comparison": "No comparison operators: <, >, <=, >=, ==, !=",
-        "logical": "No logical operators: &&, ||, !",
+        "comparison": "A comparison cannot BE the result — `a < b` yields true/false, not a number. Use one inside a conditional: `a < b ? a : b`",
+        "logical": "No logical operators: &&, ||, !. Use not() and nested conditionals",
         "bitwise": "No bitwise operators: &, |, ~, <<, >>",
-        "ternary": "No ternary expressions: condition ? a : b",
+        "assignment": "No assignment: `a = b` and `f(x) = …` are rejected, so an `==` typo cannot silently become a value",
+        "arrays": "No arrays or member access: [1,2], a[0], a.b — a calc yields ONE number",
+        "sequence": "No `;` sequence operator",
         "implicitMul": "No implicit multiplication — write 2*x, not 2x"
       }
-    }
-  },
-  "groups": {
-    "title": "Groups & Projects",
-    "search": "Search groups...",
-    "create": "Create Group",
-    "filtered": "filtered",
-    "total": "total",
-    "public": "Public",
-    "private": "Private",
-    "showing": "Showing {start}-{end} of {total} groups",
-    "noMatches": "No groups found matching your search.",
-    "noGroups": "No groups available.",
-    "loadError": "Failed to load groups. Please try again.",
-    "confirmDelete": "Are you sure you want to delete \"{name}\"?",
-    "deleteConfirmTitle": "Delete Group?",
-    "deleteConfirmDescription": "This will delete the group \"{name}\". This action cannot be undone.",
-    "groupUuid": "Group UUID",
-    "ownerUuid": "Owner UUID",
-    "userUuid": "User UUID",
-    "userUuidPlaceholder": "Enter user UUID...",
-    "userIdentifierPlaceholder": "Enter user email or certificate CN",
-    "userNotFound": "No user matches this identifier",
-    "searchingUser": "Searching users...",
-    "userSearchError": "Failed to search users. Please try again.",
-    "uuidDetected": "UUID detected — add directly without searching",
-    "addByUuid": "Add by UUID",
-    "identifierType": {
-      "email": "Email",
-      "certificate": "Certificate"
     },
-    "viewDetails": "View Details",
-    "viewObjects": "View Objects",
-    "groupDetails": "Group Details",
-    "deleteGroup": "Delete Group",
-    "owner": "Owner",
-    "ownerDescription": "You are the owner of this group and have full access",
-    "cannotAddOwner": "This is the group owner — they already have full access",
-    "userAlreadyExists": "This user is already a member of the group",
-    "users": "Users",
-    "info": "Info",
-    "sharedUsers": "Shared Users",
-    "addUser": "Add User",
-    "addFirstUser": "Add First User",
-    "noUsers": "No users shared with this group yet.",
-    "usersCount": "{count, plural, =0 {No users} one {# user} other {# users}}",
-    "permissionLevel": "Permission Level",
-    "visibility": "Visibility",
-    "publicDescription": "Anyone can view this group",
-    "privateDescription": "Only shared users can access",
-    "publicShortDescription": "Visible to everyone on the platform",
-    "privateShortDescription": "Restricted to specific users",
-    "yourPermissions": "Your Permissions",
-    "permissionsFromGroup": "Inherited from public group-level rights",
-    "publicReadOnlyHint": "Public groups grant Read-only access to everyone. To give additional permissions, add users by UUID below.",
-    "permissionsSummary": "{count} permissions",
-    "filter": {
-      "label": "Filter",
-      "all": "All",
-      "my": "My Groups",
-      "shared": "Shared With Me"
+    "variables": "Variables",
+    "variablesDerived": "Variables this formula will ask you to bind:",
+    "insertHint": "Click to insert:",
+    "filterInserts": "Filter constants and functions",
+    "noInsertMatches": "Nothing matches that filter",
+    "expressionHint": "A math expression over free variables, e.g. volume * co2_factor",
+    "duplicate": "Duplicate",
+    "duplicateTitle": "Duplicate formula",
+    "duplicateOf": "A new formula copied from “{name}”. The original is unchanged, and anything already using it keeps the original.",
+    "copyName": "{name} (copy)",
+    "copiedFrom": "Copied from",
+    "immutableNote": "Formulas cannot be edited — duplicate one to make a variant. Values already bound to this formula keep using it.",
+    "restored": "Formula restored",
+    "restoreFailed": "Failed to restore formula",
+    "empty": {
+      "title": "No formulas yet",
+      "description": "A formula is a reusable expression you can bind to a value."
     },
-    "selectAtLeastOnePermission": "Please select at least one permission",
-    "permissions": {
-      "READ": "Read",
-      "GROUP_WRITE": "Group Write",
-      "GROUP_WRITE_RECORDS": "Write Records"
-    },
-    "permissionDescription": {
-      "READ": "You can only view this group and its records",
-      "GROUP_WRITE": "You can edit group settings and share with others",
-      "GROUP_WRITE_RECORDS": "Full access: edit group, add and remove records"
-    },
-    "errors": {
-      "updateName": "Failed to update group name. Please try again.",
-      "addUser": "Failed to add user to group. Please try again.",
-      "removeUser": "Failed to remove user from group. Please try again.",
-      "updatePermission": "Failed to update user permissions. Please try again.",
-      "toggleVisibility": "Failed to update group visibility. Please try again."
-    },
-    "form": {
-      "createTitle": "Create New Group",
-      "createDescription": "Create a new group to organize and share objects with other users.",
-      "editTitle": "Edit Group",
-      "viewTitle": "Group Details",
-      "name": "Group Name",
-      "namePlaceholder": "Enter group name...",
-      "creating": "Creating...",
-      "saving": "Saving...",
-      "createGroup": "Create Group",
-      "saveChanges": "Save Changes",
-      "addUsers": "Add Users",
-      "addUsersOptional": "optional",
-      "isPublic": "Make this group public",
-      "publicPermissions": "Public permissions level"
-    }
-  },
-  "import": {
-    "title": "Import Objects",
-    "subtitle": "Import objects from XLSX or CSV files",
-    "rows": "{count} rows",
-    "largeDatasetDetected": "Large dataset detected (estimated {size}MB). Using optimized upload.",
-    "importJobStarted": "Import job started successfully!",
-    "importJobId": "Job ID: {id}",
-    "importFailed": "Import failed",
-    "processingChunks": "Processing {total} objects in {chunks} chunks",
-    "uploadingChunk": "Uploading chunk {current}/{total} ({percent}%)...",
-    "allChunksUploaded": "All chunks uploaded!",
-    "importJobIdLabel": "Import job ID: {id}",
-    "statementDeleteFailed": "Failed to delete statement: {error}",
-    "steps": {
-      "upload": "Upload File",
-      "map": "Map Columns",
-      "preview": "Preview & Import"
-    },
-    "map": {
-      "title": "Map Columns",
-      "description": "Map your spreadsheet columns to object properties",
-      "noData": "No data available to map",
-      "headerRow": "Header Row",
-      "showing": "Showing rows {start}-{end}",
-      "useHeaders": "Use first row as headers",
-      "applyTemplate": "Apply Template",
-      "selectTemplate": "Select a template",
-      "sheetPreview": "Sheet Preview",
-      "row": "Row",
-      "column": "Column",
-      "mapColumns": "Map Columns",
-      "reset": "Reset",
-      "mapAll": "Map All as Properties",
-      "saveTemplate": "Save Template",
-      "saveTemplateTitle": "Save Mapping Template",
-      "saveTemplateDescription": "Save your current column mapping as a template for future imports.",
-      "templateName": "Template Name",
-      "templatePlaceholder": "Enter template name",
-      "mapToProperty": "Map to Property",
-      "preview": "Preview",
-      "dontImport": "Don't Import",
-      "required": "(required)",
-      "back": "Back",
-      "continue": "Continue",
-      "save": "Save",
-      "errors": {
-        "mapRequired": "Please map the required fields before continuing",
-        "templateName": "Please enter a template name",
-        "templateSaved": "Template \"{name}\" saved successfully"
-      }
-    },
-    "preview": {
-      "title": "Preview & Import",
-      "description": "Review your data before importing",
-      "objects": "{count} objects",
-      "properties": "{count} properties",
-      "previewing": "Previewing {shown}/{total}",
-      "allShown": "All rows shown",
-      "note": "Note: All {total} rows will be imported, even though only {shown} are shown in the preview.",
-      "exportJson": "Export JSON",
-      "objectsToImport": "Objects to Import",
-      "importing": "Importing...",
-      "import": "Import {count} Objects"
-    },
-    "limits": {
-      "title": "Import Limits",
-      "exceedsLimits": "Exceeds Limits",
-      "largeImport": "Large Import",
-      "fileSize": "File Size",
-      "maxPerFile": "Max {size} per file",
-      "fileSizeHint": "Split large files if needed",
-      "importSize": "Import Size",
-      "maxPerImport": "Max {size} per import",
-      "importSizeHint": "Total payload size limit",
-      "currentSize": "Current: {size}",
-      "objectCount": "Object Count",
-      "maxObjects": "Max {count} objects",
-      "objectCountHint": "Per single import operation",
-      "currentObjects": "Current: {count} objects",
-      "exceedsDescriptionTitle": "Import exceeds limits.",
-      "largeDescriptionTitle": "Large import detected.",
-      "largeDescriptionBody": "Contact support for assistance with large imports.",
-      "support": {
-        "optimizedStrategies": "Optimized import strategies",
-        "temporaryIncreases": "Temporary limit increases",
-        "validation": "Data validation assistance",
-        "performance": "Performance optimization"
-      },
-      "contactSupport": "Contact Support ({email})",
-      "tips": {
-        "title": "Tips for Large Imports",
-        "breakDatasets": "Break large datasets into smaller chunks",
-        "removeProperties": "Remove unnecessary properties to reduce size",
-        "offPeak": "Import during off-peak hours for better performance",
-        "chunkedUpload": "Use chunked upload for very large files"
-      },
-      "mailSubject": "{acronym} Large Import Request",
-      "mailBody": "Hello,\n\nI would like to request assistance with a large import.\n\nCurrent import details:\n- Objects: {currentObjectCount}\n- Size: {currentSizeMB}MB\n\nCurrent limits:\n- Max objects: {maxObjectsPerImport}\n- Max file size: {maxImportFileSizeMB}MB\n- Max import size: {maxImportPayloadMB}MB\n\nPlease advise on the best approach.\n\nThank you."
-    },
-    "sheet": {
-      "select": "Select Sheet",
-      "placeholder": "Please select a sheet",
-      "noSheets": "No sheets found in file",
-      "noData": "No data found in sheet \"{sheet}\"",
-      "selectPrompt": "Please select a sheet to continue"
-    },
-    "upload": {
-      "processing": "Processing file ({progress}%)...",
-      "dragDrop": "Drag & drop your file here",
-      "browse": "or click to browse",
-      "supports": "Supports XLSX and CSV files up to {size}MB",
-      "title": "Preview Data",
-      "description": "Review and import your data",
-      "objects": "{count} objects",
-      "properties": "{count} properties",
-      "previewing": "Previewing {shown}/{total}",
-      "allShown": "All rows shown",
-      "note": "Note: All {total} rows will be imported, even though only {shown} are shown in the preview.",
-      "exportJson": "Export JSON",
-      "objectsToImport": "Objects to Import",
-      "importing": "Importing...",
-      "import": "Import {count} Objects"
-    },
-    "errors": {
-      "noData": "No data to import"
-    },
-    "toasts": {
-      "largeDataset": "Large dataset detected (estimated {size}MB). Using optimized upload.",
-      "jobStarted": "Import job started successfully!",
-      "failed": "Import failed",
-      "processingChunks": "Processing {total} objects in {chunks} chunks",
-      "uploadingChunk": "Uploading chunk {current}/{total} ({percent}%)...",
-      "allUploaded": "All chunks uploaded!"
-    }
-  },
-  "importStatus": {
-    "back": "Back to Import",
-    "title": "Import Jobs",
-    "jobsFound": "{count} job{count, plural, one {} other {s}} found",
-    "loadingJobs": "Loading import jobs...",
-    "failedJobs": "Failed to load jobs",
-    "tryAgain": "Try Again",
-    "noJobs": "No import jobs found",
-    "startFirst": "Start your first import to see jobs here",
-    "startNew": "Start New Import",
-    "progress": "Progress",
-    "started": "Started",
-    "completed": "Completed",
-    "totalObjects": "Total Objects",
-    "successful": "Successful",
-    "failed": "Failed",
-    "errorDetails": "Error Details",
-    "viewObjects": "View Objects",
-    "autoRefresh": "Auto-refresh",
-    "autoRefreshing": "Auto-refreshing",
-    "jobId": "Job ID:",
-    "loadingDetails": "Loading job details...",
-    "processed": "Processed",
-    "jobTitle": "Import Job {id} - {status}",
-    "cancelJob": "Cancel Import"
-  },
-  "filters": {
-    "filterOptions": "Filter Options"
+    "unit": "Result unit",
+    "unitHint": "Optional. The node works the unit out from the values a formula reads — declare one only when it cannot, such as a width times a height, or a result in a different scale than its inputs.",
+    "unitInferred": "Worked out from the values",
+    "unitNone": "No unit",
+    "unitCanonical": "stored in",
+    "searchUnits": "Search units…",
+    "noUnitMatches": "No units match",
+    "supersededBy": "Corrected by",
+    "supersededWarning": "This formula has been marked wrong and replaced by a correction. Values already using it keep their results.",
+    "useCorrection": "Use the correction",
+    "correct": "Mark as wrong",
+    "correctTitle": "Correct a formula",
+    "correctOf": "A replacement for “{name}”, which will be marked wrong. Values already using it keep their results and are not recalculated."
   },
   "viewSelector": {
     "table": "Table View",
@@ -1297,36 +977,7 @@
     "searchingFor": "Searching for \"{query}\"",
     "search": "Search",
     "complete": "Complete",
-    "close": "Close",
-    "shortcuts": {
-      "search": "Search",
-      "complete": "Complete",
-      "close": "Close"
-    }
-  },
-  "objectSelection": {
-    "title": "Select Object",
-    "dialogDescription": "Search and select an object to add to this process.",
-    "searchObjects": "Search Objects",
-    "availableObjects": "Available Objects",
-    "searching": "Searching objects...",
-    "noObjects": "No objects found matching your search",
-    "typeToSearch": "Type at least 2 characters to search for objects",
-    "quantity": "Quantity",
-    "quantityPlaceholder": "Enter quantity",
-    "unit": "Unit",
-    "selectUnit": "Select unit",
-    "metadata": "Material Metadata (Optional)",
-    "lifecycleStage": "Lifecycle Stage",
-    "selectLifecycleStage": "Select lifecycle stage",
-    "materialCategory": "Material Category",
-    "selectCategory": "Select category",
-    "customProperties": "Custom Properties (Optional)",
-    "propertyName": "Property name",
-    "propertyValue": "Property value",
-    "addProperty": "Add Property",
-    "addMaterial": "Add Material",
-    "updateMaterial": "Update Material"
+    "close": "Close"
   },
   "help": {
     "title": "Help Center",
@@ -1337,95 +988,111 @@
     "certificateInstallation": "Certificate Installation",
     "certificateInstallationDesc": "Follow these steps to install your certificate",
     "windows": "Windows",
+    "macos": "macOS",
+    "usingCertificate": "Using Your Certificate",
+    "usingCertificateDesc": "Learn how to use your certificate with {acronym}",
+    "firstTimeLogin": "First-Time Login",
+    "dailyUsage": "Daily Usage",
+    "commonIssues": "Common Issues",
+    "commonIssuesDesc": "Solutions for common certificate problems",
+    "certificateNotShowing": "Certificate Not Showing",
+    "accessDenied": "Access Denied",
+    "contactSupport": "Contact Support: {email}",
     "windowsSteps": [
       "Double-click the certificate file (.p12 or .pfx)",
       "Select \"Current User\" for store location",
       "Enter your certificate password when prompted",
       "Complete the Certificate Import Wizard"
     ],
-    "macos": "macOS",
     "macosSteps": [
       "Double-click the certificate file",
       "Allow Keychain Access to install",
       "Enter your system password",
       "Enter the certificate password"
     ],
-    "downloadGuide": "Download Full Guide",
-    "usingCertificate": "Using Your Certificate",
-    "usingCertificateDesc": "Learn how to use your certificate with {acronym}",
-    "firstTimeLogin": "First-Time Login",
     "firstTimeLoginSteps": [
       "Open {acronym} application",
       "Click \"Authorize\"",
       "Select your certificate when prompted",
       "Click OK/Allow"
     ],
-    "dailyUsage": "Daily Usage",
     "dailyUsageItems": [
       "Browser remembers your choice",
       "May need to reselect after browser restart",
       "Selection dialog appears if multiple certificates"
     ],
-    "commonIssues": "Common Issues",
-    "commonIssuesDesc": "Solutions for common certificate problems",
-    "certificateNotShowing": "Certificate Not Showing",
     "certificateNotShowingItems": [
       "Check if certificate is installed correctly",
       "Verify certificate hasn't expired",
       "Ensure using supported browser"
     ],
-    "accessDenied": "Access Denied",
     "accessDeniedItems": [
       "Verify correct certificate selected",
       "Check certificate expiration",
       "Contact administrator if issues persist"
-    ],
-    "contactSupport": "Contact Support: {email}"
+    ]
   },
-  "onboarding": {
-    "initialLogin": {
-      "welcome": "Welcome to IoM - Objects",
-      "welcomeDescription": "This is your main workspace where you can browse, manage, and organize all the objects in your system. Objects are the core entities that represent real-world items, documents, or concepts you want to track and manage.",
-      "processes": "I/O Processes",
-      "processesDescription": "Here you can track and monitor processes that transform or move your objects. This section helps you understand how objects flow through different stages, from input to output, giving you complete visibility into your operational workflows.",
-      "groups": "Groups & Projects",
-      "groupsDescription": "Organize your objects into groups and projects. Groups allow you to share collections of objects with other users, control access permissions, and collaborate effectively across your organization.",
-      "models": "Models & Templates",
-      "modelsDescription": "Create reusable models and templates that define the structure and properties of your objects. Models act as blueprints, ensuring consistency when creating new objects and helping standardize your data across the platform.",
-      "import": "Data Import",
-      "importDescription": "Import existing data from external sources, spreadsheets, or other systems. This powerful feature allows you to bring your legacy data into IoM efficiently, supporting various formats and bulk operations to get you started quickly.",
-      "search": "Global Search",
-      "searchDescription": "Use the powerful search functionality to quickly find any object, process, or data across your entire IoM workspace. Press Cmd+K (or Ctrl+K) to open the command center and search through everything with intelligent filtering and suggestions.",
-      "demoTour": "Interactive Demo Tour",
-      "demoTourDescription": "Ready for a hands-on experience? Click \"Demo tour\" anytime to take a comprehensive walkthrough that will guide you through creating your first object, exploring all the features, and understanding how everything works together."
+  "security": {
+    "back": "Back",
+    "title": "Security",
+    "intro": "If you believe you have found a security vulnerability, we want to hear about it. This page explains how to reach us, what is in scope, and what you can expect once you have reported something.",
+    "canonical": "The canonical, always-current version of this policy lives at",
+    "noPublicIssue": {
+      "title": "Never report a vulnerability publicly",
+      "description": "A public report tells everyone — including whoever would exploit it — before there is a fix for anyone to upgrade to. Use one of the private channels below."
     },
-    "demo": {
-      "filters": "Filters",
-      "filtersDescription": "Use filters to refine your view and find exactly what you need. You can filter by various criteria including showing or hiding deleted objects, status, categories, and more. Filters help you focus on the most relevant data for your current task.",
-      "viewOptions": "View Options",
-      "viewOptionsDescription": "Switch between different view modes to see your data in the format that works best for you. Choose from table view for detailed listings or column view for a more visual, card-based layout. Your preference is automatically saved.",
-      "createObjects": "Create New Objects",
-      "createObjectsDescription": "This is where your object creation journey begins. Click this button anytime you want to add a new object to your IoM system. Objects can represent anything from physical items to digital assets, processes, or concepts.",
-      "modelTemplates": "Model Templates",
-      "modelTemplatesDescription": "Choose from predefined templates that automatically populate relevant fields based on the type of object you're creating. Models ensure consistency and save time by providing structured blueprints for common object types in your organization.",
-      "parentRelationships": "Parent Relationships",
-      "parentRelationshipsDescription": "Establish hierarchical connections by linking this object to its parent objects. This creates a structured tree that helps organize your data and enables powerful filtering and navigation through related objects.",
-      "objectMetadata": "Object Metadata",
-      "objectMetadataDescription": "These core fields define your object's identity: Name (the primary identifier), Abbreviation (optional short code for quick reference), Version (for tracking changes over time), and Description (detailed explanation for team understanding). Fill these thoughtfully as they're used throughout the system for search and identification.",
-      "locationInfo": "Location Information",
-      "locationInfoDescription": "Associate a physical address or location with your object when relevant. This is particularly useful for tracking assets, facilities, or any objects that have a geographic component to their identity.",
-      "fileAttachments": "File Attachments",
-      "fileAttachmentsDescription": "Upload supporting documents, images, specifications, or any files that provide additional context about your object. These attachments become part of the object's permanent record and are searchable within the system.",
-      "customProperties": "Custom Properties",
-      "customPropertiesDescription": "Add specialized data fields unique to your object. Each property has a name and value, and you can attach files to individual properties for detailed documentation. This flexibility allows you to capture any specific information your object needs.",
-      "propertyFiles": "Property File Attachments",
-      "propertyFilesDescription": "Properties support file attachments at multiple levels - you can attach files to the property name itself (for documentation about what the property represents) and to individual property values (for evidence or supporting documents). This granular file system creates comprehensive documentation for your objects.",
-      "completeCreation": "Complete Object Creation",
-      "completeCreationDescription": "When you've filled in all the necessary information, click Create to save your new object to the system. The object will then be available for searching, linking, and use in processes throughout your IoM workspace."
+    "status": {
+      "title": "Project status",
+      "description": "io2p is at an early stage. APIs and storage formats are still evolving between releases — pin a version and check the release notes before upgrading. An independent security audit has not been carried out yet; until it has, we would rather hear about a problem early than late."
     },
-    "createObject": {
-      "title": "Create your first object",
-      "description": "Use this button to add a new object to the system."
+    "report": {
+      "title": "How to report",
+      "description": "Two private channels, in order of preference.",
+      "items": [
+        "GitHub private vulnerability reporting — open a draft advisory on the affected repository at github.com/maeconomy-org. This is the preferred route: it stays private, gives us somewhere to develop and test the fix, and handles CVE issuance.",
+        "Email {email} if you do not have a GitHub account or would rather use email. Please put \"security\" in the subject line.",
+        "Machine-readable contact details are published at io2p.org/.well-known/security.txt, per RFC 9116."
+      ]
+    },
+    "include": {
+      "title": "What to include",
+      "description": "The more of this you can give us, the faster we can confirm and fix it.",
+      "items": [
+        "What the issue is, and what an attacker could achieve with it",
+        "Steps to reproduce — ideally a minimal proof of concept",
+        "The affected version, commit, or URL",
+        "Any relevant configuration, logs, or requests, with secrets redacted"
+      ]
+    },
+    "expect": {
+      "title": "What to expect from us",
+      "description": "We are a small team. If you have not heard back inside the acknowledgement window, please send a follow-up rather than assuming you were ignored.",
+      "items": [
+        "Acknowledgement within 3 business days that your report reached us",
+        "An initial assessment — whether we can reproduce it, and our view of the severity — within 10 business days",
+        "Progress updates as we work on a fix, and notice before we publish anything",
+        "Credit in the advisory, unless you would rather stay anonymous — just tell us which"
+      ]
+    },
+    "scope": {
+      "title": "Scope",
+      "description": "In scope: this application and the io2p services behind it. The following are out of scope.",
+      "items": [
+        "Third-party dependencies — report those upstream. If a dependency issue is reachable through io2p in a way upstream would not consider a vulnerability, that part is in scope.",
+        "Any deployed instance we do not operate. io2p is self-hosted software; a particular deployment belongs to whoever runs it.",
+        "Findings from automated scanners with no demonstrated impact, missing hardening headers with no exploit path, and reports requiring an already-compromised host or physical access."
+      ]
+    },
+    "harbour": {
+      "title": "Safe harbour",
+      "description": "We will not pursue or support legal action against anyone who reports a vulnerability in good faith and follows this policy. If you are unsure whether something you want to test falls inside these lines, ask us first at {email}.",
+      "items": [
+        "Report privately through one of the channels above and give us reasonable time to respond",
+        "Act only against your own instance or test data — not other people’s",
+        "Do not access, modify, or destroy data that is not yours",
+        "Do not degrade the availability of any service",
+        "Do not disclose publicly before we have had a chance to release a fix"
+      ]
     }
   },
   "search": {
@@ -1456,78 +1123,505 @@
       }
     }
   },
-  "processDetails": {
-    "unnamedProcess": "Unnamed Process",
-    "input": "Input",
-    "output": "Output",
-    "environmentalImpact": "Environmental Impact",
-    "emissions": "Emissions",
-    "notMeasured": "Not measured",
-    "materialLoss": "Material Loss",
-    "lostInProcess": "Lost in process",
-    "noLoss": "No loss",
-    "quality": "Quality",
-    "qualityChange": "Quality change",
-    "unchanged": "Unchanged",
-    "processProperties": "Process Properties",
-    "inputMaterialDetails": "Input Material Details",
-    "outputMaterialDetails": "Output Material Details",
-    "quantity": "Quantity",
-    "lifecycle": "Lifecycle",
-    "category": "Category",
-    "customProperties": "Custom Properties",
-    "processNotes": "Process Notes",
-    "close": "Close"
+  "constants": {
+    "title": "Constants",
+    "name": "Name",
+    "value": "Value",
+    "newValue": "New value",
+    "currentValue": "Current value",
+    "versions": "Versions",
+    "history": "History",
+    "create": "Create constant",
+    "createTitle": "Create constant",
+    "createDescription": "A named number that formulas can bind to — a CO₂ factor, a density, a rate.",
+    "addVersion": "Add version",
+    "versionAdded": "New version added",
+    "created": "Constant created",
+    "deleted": "Constant deleted",
+    "deleteFailed": "Failed to delete constant",
+    "restored": "Constant restored",
+    "restoreFailed": "Failed to restore constant",
+    "notNumeric": "not a number",
+    "nameImmutable": "A binding records the name, so it cannot change once formulas may be using it.",
+    "pinnedNote": "Adding a version does not change existing formulas — each one keeps the version it was bound to.",
+    "valueHint": "Must be a number, with an optional unit: 0.42, 10 kg, 3.5 m",
+    "placeholders": {
+      "name": "e.g. co2_factor",
+      "value": "e.g. 0.42"
+    },
+    "empty": {
+      "title": "No constants yet",
+      "description": "A constant is a shared, versioned number that formulas can bind to."
+    }
   },
-  "processTable": {
-    "process": "Process",
-    "quantity": "Quantity",
-    "inputMaterial": "Input Material",
-    "outputMaterial": "Output Material",
-    "flow": "Flow",
-    "emissions": "Emissions",
-    "loss": "Loss %",
-    "quality": "Quality",
-    "noRelationshipsFound": "No relationships found",
-    "noRelationshipsOnPage": "No relationships on this page"
+  "access": {
+    "shareTitle": "Share \"{name}\"",
+    "shareDescription": "Choose who can see this and what they can do with it.",
+    "peopleWithAccess": "People with access",
+    "owner": "Owner",
+    "notShared": "Not shared with anyone yet.",
+    "addPeople": "Add people",
+    "searchPeople": "Search people...",
+    "noPeople": "No one left to add.",
+    "publicLabel": "General access",
+    "publicHint": "Anyone signed in to this node can view it",
+    "includeDescendantsHint": "Also everything under this object — including objects added later",
+    "ownerOnly": "Only the owner can see who this is shared with.",
+    "permissionFor": "Permission for {name}",
+    "revokeFor": "Remove access for {name}",
+    "share": "Share",
+    "permission": {
+      "read": "Read",
+      "write": "Write",
+      "share": "Share",
+      "admin": "Admin"
+    },
+    "permissionHint": {
+      "read": "See it",
+      "write": "See and edit it",
+      "share": "Edit and re-share it",
+      "admin": "Full control, including delete"
+    },
+    "saved": "Sharing updated",
+    "redundantRead": "They already have read access through general access. This grant only takes effect if general access is turned off.",
+    "readShareOnly": "This can only be shared for reading — the owner keeps editing rights.",
+    "shareDependencies": "Also share the {count, plural, one {formula or constant} other {formulas and constants}} this template uses ({names}). Without {count, plural, one {it} other {them}}, people you share the template with cannot create objects from it.",
+    "dependenciesDeleted": "This template uses items that no longer exist ({names}). Nobody can create objects from it until they are restored.",
+    "dependenciesNotYours": "This template also uses items owned by someone else ({names}). Only their owner can share them, and until they do, the people you share it with cannot create objects from it.",
+    "dependenciesFailed": "The template was shared, but these could not be: {names}. Until they are, the people you shared it with cannot create objects from it.",
+    "bulkShareTitle": "Share {count, plural, =1 {# item} other {# items}}",
+    "bulkShareDescription": "Everyone you add here gets access to all of the selected items.",
+    "bulkShareAdditive": "This only adds access. Nobody loses access, and existing sharing is left as it is.",
+    "bulkShareNobody": "Add someone to share these with.",
+    "bulkShared": "Shared {count, plural, =1 {# item} other {# items}}",
+    "saveFailedFor": "Could not save access for {names}. Everything else was applied.",
+    "revokedTitle": "Previously had access",
+    "revokedHint": "Shows who was removed and the last permission they held — not a full history of changes.",
+    "saveFailedReason": "Some changes could not be applied.",
+    "viaShare": "via {name}",
+    "viaShareUnnamed": "via a share",
+    "manageBundle": "Manage bundle",
+    "removeFromShare": "Remove from share",
+    "removeFromShareTitle": "Remove {name} from “{share}”?",
+    "removeFromShareBody": "They lose access to {count} items: {items}. A share applies to everyone in it, so this cannot be limited to one item — split the share if you need that.",
+    "removedFromShare": "Removed from the share."
   },
-  "lifecycleStages": {
-    "PRIMARY_INPUT": "Primary Input",
-    "SECONDARY_INPUT": "Secondary Input",
-    "REUSED_COMPONENT": "Reused Component",
-    "PROCESSING": "Processing",
-    "COMPONENT": "Component",
-    "PRODUCT": "Product",
-    "USE_PHASE": "Use Phase",
-    "WASTE": "Waste",
-    "DISPOSAL": "Disposal"
+  "shares": {
+    "title": "Shares",
+    "create": "New share",
+    "tabShares": "Shares",
+    "deleteAction": "Delete share",
+    "deleted": "Share deleted",
+    "deleteFailed": "Could not delete the share",
+    "everyone": "Everyone on this node",
+    "cascadeOn": "Includes contents",
+    "fields": {
+      "name": "Name",
+      "contents": "Contents",
+      "cascade": "Cascade",
+      "updated": "Updated",
+      "resource": "Item",
+      "sharedWith": "Shared with",
+      "permission": "Permission",
+      "resources": "What is shared",
+      "members": "Who it is shared with"
+    },
+    "resourceType": {
+      "object": "Object",
+      "process": "Process",
+      "formula": "Formula",
+      "constant": "Constant",
+      "template": "Template"
+    },
+    "empty": {
+      "title": "No shares yet",
+      "description": "A share bundles items together and gives a group of people access to all of them at once."
+    },
+    "sharedByMeEmpty": {
+      "title": "You haven't shared anything",
+      "description": "Every object and process you give someone access to shows up here — whether through a share or on its own — so you can see and withdraw it in one place."
+    },
+    "mixedPermissions": "Mixed",
+    "manageAccess": "Manage access",
+    "revokeAll": "Revoke all access",
+    "revokeAllTitle": "Revoke all access?",
+    "revokeAllDescription": "This removes the access you granted directly on this item — {count} listed.",
+    "revokeAllBundleWarning": "Anyone who also has access through a share keeps it: shares are revoked separately, from the Shares tab.",
+    "revokedAll": "Access revoked",
+    "duplicate": "Duplicate",
+    "duplicateTitle": "Duplicate share",
+    "copyOf": "Copy of {name}",
+    "created": "Share created",
+    "saved": "Share updated",
+    "editorDescription": "Name the share, choose what it covers and who it is for.",
+    "namePlaceholder": "e.g. Q3 recycling audit",
+    "addResources": "Add to this share",
+    "searchResources": "Search...",
+    "noResources": "Nothing left to add.",
+    "family": {
+      "data": "Objects & processes",
+      "library": "Formulas, constants & templates"
+    },
+    "familyLocked": "A share holds either objects and processes, or library items — not both. Remove everything to switch.",
+    "libraryShareHint": "Library items can only be shared to view. Everyone in this share gets read access.",
+    "noResourcesYet": "Nothing in this share yet.",
+    "noMembersYet": "No one has been added yet.",
+    "removeResource": "Remove {name}",
+    "removeMember": "Remove {name}",
+    "cascadeLabel": "Include everything under these objects",
+    "cascadeHint": "Objects added under them later are shared automatically.",
+    "cascadeBlocked": "Only available for a share made up entirely of objects — nothing else has contents to cascade to.",
+    "incompleteHint": "A share needs a name, at least one item, and at least one person.",
+    "bulk": {
+      "deleteTitle": "Delete these shares?",
+      "deleteDescription": "This deletes {count} shares and revokes every grant they own.",
+      "revokeDescription": "This removes the access you granted directly on {count} items."
+    },
+    "tabOverview": "Overview",
+    "tabDirect": "Direct shares",
+    "lastMemberHint": "A share needs at least one person. To stop sharing entirely, delete the share."
   },
-  "processCategories": {
-    "CONSTRUCTION": "Construction",
-    "DECONSTRUCTION": "Deconstruction",
-    "SORTING": "Sorting",
-    "RECYCLING": "Recycling",
-    "REFURBISHMENT": "Refurbishment",
-    "TRANSPORT": "Transport",
-    "DEMOLITION": "Demolition",
-    "DISPOSAL": "Disposal"
+  "concepts": {
+    "share": {
+      "label": "What is a share?",
+      "body": "A bundle of objects and processes handed to a group of people at once. It replaced Groups: a group mixed people and resources under one word, a share carries only resources and lists who can see them. Access cascades to children, and you can revoke the whole bundle in one go."
+    },
+    "formula": {
+      "label": "What is a formula?",
+      "body": "A reusable expression bound to a property value, recomputed by the server. Formulas are immutable — to change one you duplicate it and bind the new version, so anything already using the old one keeps its meaning."
+    },
+    "constant": {
+      "label": "What is a constant?",
+      "body": "A shared, versioned number that formulas refer to by name. The version is pinned at the moment you bind it, so publishing a new value never silently changes results that were already computed."
+    },
+    "object": {
+      "label": "What is an object?",
+      "body": "Anything you want to track — a machine, a batch, a document. An object carries properties, files, an address and a place in the hierarchy."
+    },
+    "process": {
+      "label": "What is a process?",
+      "body": "A step that turns input objects into output objects. Processes are how you record that something was made, moved or transformed, and what it came from."
+    },
+    "template": {
+      "label": "What is a template?",
+      "body": "A starting point for new objects: the properties they begin with, including formula recipes and the constants those bind to. Picking one fills the form; you can still change anything."
+    },
+    "import": {
+      "label": "How does importing work?",
+      "body": "Bring objects in from a CSV or Excel file in bulk. You map your columns onto object fields once, then the job runs in the background and reports per-row results."
+    },
+    "rollupRule": {
+      "label": "What is a rollup rule?",
+      "body": "A rule that totals one property across everything below an object in the hierarchy. Each distinct descendant counts once, however many paths reach it. Built-in rules apply to everyone; the ones you create apply to your own objects."
+    }
   },
-  "materialCategories": {
-    "CONCRETE": "Concrete and concrete products",
-    "STEEL": "Steel and steel products",
-    "TIMBER": "Timber and wood products",
-    "MASONRY": "Brick, stone, and masonry",
-    "WINDOW_UNIT": "Windows and glazing systems",
-    "DOOR_UNIT": "Doors and door systems",
-    "ROOFING": "Roofing materials and systems",
-    "INSULATION": "Thermal and acoustic insulation",
-    "HVAC": "Heating, ventilation, and air conditioning",
-    "ELECTRICAL": "Electrical systems and components",
-    "PLUMBING": "Plumbing and water systems",
-    "FLOORING": "Flooring materials and systems",
-    "WALL_FINISH": "Wall finishes and cladding",
-    "CEILING": "Ceiling systems and finishes",
-    "MIXED_WASTE": "Mixed construction waste",
-    "HAZARDOUS_WASTE": "Hazardous materials and waste"
+  "onboarding": {
+    "tours": {
+      "create-object": "Create an object",
+      "create-process": "Create a process",
+      "build-template": "Build a template",
+      "write-formula": "Write a formula",
+      "share-objects": "Share objects",
+      "define-constant": "Define a constant",
+      "roll-up-values": "Total values up a tree",
+      "run-import": "Import a spreadsheet",
+      "work-with-drafts": "Work with drafts"
+    },
+    "tourGroups": {
+      "core": "Objects & processes",
+      "library": "Library",
+      "exchange": "Sharing & import"
+    },
+    "startTour": "Start the walkthrough",
+    "hintUnread": "Not read yet"
+  },
+  "import": {
+    "title": "Import",
+    "tabs": {
+      "status": "Your imports",
+      "wizard": "New import"
+    },
+    "actions": {
+      "newImport": "New import",
+      "importCount": "Import {count, number} {count, plural, one {object} other {objects}}"
+    },
+    "steps": {
+      "upload": "Upload",
+      "sheet": "Sheet",
+      "map": "Map columns",
+      "check": "Check",
+      "import": "Import"
+    },
+    "status": {
+      "draft": "Draft",
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "completed_with_errors": "Completed with errors",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "error": {
+      "fileTooBig": "That file is {size, number} MB — the limit is {limit, number} MB",
+      "unsupportedType": "Only .xlsx and .csv files can be imported",
+      "noData": "This file has no data",
+      "unreadable": "That file could not be read"
+    },
+    "problem": {
+      "levelBlank": "Level {level, number} is blank — every level must have a value",
+      "keyBlank": "Key column is blank",
+      "nameBlank": "Name is blank",
+      "duplicateKey": "Duplicate key \"{key}\"",
+      "parentUnresolved": "Parent \"{parent}\" is not a row in this sheet or an object id",
+      "parentDropped": "Parent \"{parent}\" was refused itself, so this row cannot be created either"
+    },
+    "blocked": {
+      "noFile": "Choose a file first",
+      "noName": "Map a column to Name, or pick a hierarchy first",
+      "createsNothing": "This mapping would create nothing",
+      "tooManyObjects": "That is {count, number} objects — the limit is {limit, number} per import"
+    },
+    "upload": {
+      "title": "Upload a spreadsheet",
+      "subtitle": "Excel or CSV. Nothing is created until you confirm at the end.",
+      "reading": "Reading your file…",
+      "dropzone": "Drop a file here, or click to choose",
+      "limits": ".xlsx or .csv — up to {size, number} MB and {objects, number} objects"
+    },
+    "sheet": {
+      "title": "Which sheet, and where does the data start?",
+      "subtitle": "Click a row to mark it as the header, or as the first row of data.",
+      "dimensions": "{rows, number} rows · {columns, number} columns",
+      "guessed": "Guessed row {row, number} as the header — the first filled row with data of the same width beneath it.",
+      "headerBadge": "Header",
+      "dataBadge": "Data starts",
+      "markHeader": "header",
+      "markData": "data",
+      "ignoringAbove": "Rows 1–{count, number} will be ignored.",
+      "reading": "Reading {count, number} rows."
+    },
+    "map": {
+      "title": "What is in each column?",
+      "subtitle": "Guessed from your headers and the values themselves — change anything that is wrong.",
+      "noValues": "no values in this column",
+      "unnamedColumn": "Column {index, number}",
+      "levelBadge": "Level {level, number}",
+      "isLevel": "Level",
+      "makeLevel": "Make level",
+      "attachDeepest": "on the deepest level",
+      "attachEvery": "on every level",
+      "attachTo": "on {level}",
+      "useHierarchy": "Use as hierarchy",
+      "clearHierarchy": "Clear hierarchy",
+      "rowsBecomeObjects": "{rows, number} rows become {objects, number} objects",
+      "split": {
+        "one": "One value",
+        "on": "Split on {char}"
+      },
+      "targets": {
+        "skip": "Don't import",
+        "name": "Name",
+        "description": "Description",
+        "property": "Property",
+        "address": "Address (whole cell)",
+        "fileUrl": "File link",
+        "key": "Key (this row's id)",
+        "parent": "Parent key",
+        "addressPart": {
+          "street": "Address — street",
+          "houseNumber": "Address — number",
+          "postalCode": "Address — postcode",
+          "city": "Address — city",
+          "state": "Address — state / province",
+          "country": "Address — country"
+        }
+      },
+      "suggestionEffect": "Accepting this would create {objects, number} objects from {rows, number} rows.",
+      "inert": {
+        "levelsWin": "Ignored — the hierarchy comes from the level columns, so this value is not imported.",
+        "noParent": "Does nothing on its own — map another column to “Parent key” for this to link rows."
+      },
+      "levelsExplainer": "Does a column repeat down the sheet — a building named on every one of its rooms? Mark those columns as levels and each repeated value becomes a parent.",
+      "askForSuggestion": "Suggest a hierarchy",
+      "proposal": "These columns repeat and each one splits the rows further:",
+      "noneFound": "No column repeats in a way that looks like a hierarchy. Mark one yourself if you know better."
+    },
+    "check": {
+      "title": "Check what will be created",
+      "subtitle": "Nothing has been written yet. These are the objects, not the rows.",
+      "stats": {
+        "objects": "{count, plural, one {object} other {objects}}",
+        "depth": "levels deep",
+        "values": "values",
+        "problems": "{count, plural, one {problem} other {problems}}",
+        "objectsHint": "from {rows, number} rows",
+        "depthHint": "hierarchy",
+        "valuesHint": "across all properties",
+        "problemsHint": "{count, plural, =0 {none} other {rows refused}}"
+      },
+      "willSkip": "{count, number} {count, plural, one {row} other {rows}} will be skipped",
+      "rowPrefix": "Row {row, number}: ",
+      "andMore": "…and {count, number} more",
+      "columns": {
+        "object": "Object",
+        "properties": "Properties",
+        "address": "Address",
+        "files": "Files",
+        "row": "Row"
+      },
+      "valueCount": "({count, number} values)",
+      "showingFirst": "Showing the first {shown, number} of {total, number} objects.",
+      "filter": {
+        "all": "All",
+        "valid": "Valid",
+        "needsFix": "Needs a fix"
+      },
+      "allClear": "Everything checks out. Ready to import.",
+      "fixOrSkip": "Fill the highlighted cells, or leave these {count, number} rows out of the import.",
+      "skipRows": "Skip {count, number} rows",
+      "empty": "empty",
+      "editsAreLocal": "Edits here are not sent yet — this view exists to judge the interaction.",
+      "destination": {
+        "title": "Import under an existing object",
+        "optional": "Optional — leave empty to create them at the top level.",
+        "chosen": "Every top-level object will be created inside {name}.",
+        "fallbackName": "the chosen object",
+        "placeholder": "Choose a parent…",
+        "clear": "Clear destination"
+      }
+    },
+    "outcome": {
+      "created": "{count} created",
+      "failed": "{count} failed",
+      "skipped": "{count} skipped",
+      "of": "of {count}",
+      "summary": "{ok} created, {failed} failed, {skipped} skipped of {total}"
+    },
+    "run": {
+      "refused": "The import was refused — nothing was created",
+      "itemPrefix": "Item {item, number}",
+      "rowPrefix": "Row {row}",
+      "backToMapping": "Back to the mapping",
+      "handedOver": "Handed over to the server",
+      "handedOverDetail": "{count, number} objects are being created. You can close this tab — the job keeps running, and the status page shows what happened to every row.",
+      "seeStatus": "See the import status",
+      "uploading": "Uploading rows",
+      "uploadingDetail": "Keep this tab open until the upload finishes. Nothing has been created yet.",
+      "validating": "Checking your data",
+      "validatingDetail": "Running the same checks the server runs. Still nothing created.",
+      "validatingShort": "Validating…",
+      "uploadedOf": "{staged, number} of {total, number} rows uploaded",
+      "ready": "Ready to import",
+      "readyDetail": "{count, number} objects will be created. This cannot be undone — objects can be deleted afterwards, but not un-created.",
+      "readyDetailWithFile": "{count, number} objects will be created from {file}. This cannot be undone — objects can be deleted afterwards, but not un-created.",
+      "failed": "The import failed"
+    },
+    "list": {
+      "subtitle": "Every import you have run. A job keeps running if you close the tab.",
+      "untitled": "Untitled import",
+      "nothingAttempted": "Nothing attempted",
+      "emptyTitle": "No imports yet",
+      "emptyDescription": "Load objects from a spreadsheet, keeping their hierarchy.",
+      "flat": "Flat",
+      "levelCount": "{count, number} levels deep",
+      "levelProgress": "{current, number} of {total, number}",
+      "columns": {
+        "file": "Import",
+        "status": "Status",
+        "outcome": "Outcome",
+        "depth": "Depth",
+        "started": "Started",
+        "duration": "Duration"
+      }
+    },
+    "detail": {
+      "back": "Back to imports",
+      "startedAt": "Started {time}",
+      "ofRowsUploaded": "of {total, number} rows uploaded",
+      "draftHint": "Nothing has been created yet. Uploading picks up where it stopped.",
+      "objectsCreated": "{count, plural, one {object} other {objects}} created",
+      "allCreated": "Every row in the sheet was created.",
+      "failedOnly": "{failed, number} {failed, plural, one {row} other {rows}} could not be created.",
+      "failedAndSkipped": "{failed, number} {failed, plural, one {row} other {rows}} could not be created and {skipped, number} were skipped because a parent failed.",
+      "startImport": "Start import",
+      "nothingCreated": "Nothing was created",
+      "discardedHint": "This import was discarded before it ran. Its {total, number} staged rows were removed; the entry stays as a record that it happened.",
+      "neverRanHint": "This import ended before it attempted a single row.",
+      "startRefused": "This import cannot be started: {reason}",
+      "startFailed": "This import could not be started. Please try again.",
+      "discard": "Discard",
+      "discardConfirmTitle": "Discard this import?",
+      "discardConfirmDescription": "{file} has created nothing, so there is nothing to undo. Discarding marks the job cancelled — it can never be started, and importing the file again means uploading it from scratch.",
+      "stopping": "Stopping…",
+      "viewObjects": "View objects",
+      "stalledUpload": "This upload stopped after {staged, number} of {total, number} rows, so it cannot be handed over. Nothing was created — import the file again to start over.",
+      "creatingLevel": "Creating level {current, number} of {total, number} — children wait for their parents.",
+      "problemsTitle": "What did not import",
+      "problemsSubtitle": "Fix these rows in your sheet and import just them again.",
+      "downloadCsv": "Download {count, number} rows as CSV",
+      "downloadFailed": "The report could not be downloaded. Please try again.",
+      "showingFirst": "Showing the first {shown} of {total}. Download the report for every row.",
+      "tabs": {
+        "failed": "Failed",
+        "skipped": "Skipped"
+      },
+      "skippedExplainer": "These rows were never attempted — the object they hang from failed first. Fixing the parent usually fixes all of them.",
+      "noRows": {
+        "failed": "No failed rows.",
+        "skipped": "No skipped rows."
+      },
+      "columns": {
+        "item": "Item",
+        "row": "Row",
+        "key": "Key",
+        "reason": "Reason"
+      },
+      "jobLabel": "Job",
+      "polling": "Updating every 2 seconds"
+    }
+  },
+  "rollupRules": {
+    "title": "Rollup rules",
+    "propertyKey": "Property key",
+    "propertyKeys": "Property keys",
+    "aggregation": "Aggregation",
+    "aggregations": {
+      "sum": "Sum"
+    },
+    "create": "{count, plural, =0 {Create rules} one {Create 1 rule} other {Create # rules}}",
+    "createTitle": "Create rollup rules",
+    "createDescription": "A rule totals one property across an object's descendants. Add several keys to create them in one pass.",
+    "addKey": "Add",
+    "removeKey": "Remove {key}",
+    "queued": "{count, plural, one {# key queued} other {# keys queued}}",
+    "alreadyQueued": "That key is already in the list.",
+    "duplicateKey": "You already have a rule for this key.",
+    "normalizedAs": "Saved as {key}",
+    "propertyKeyHint": "Keys are stored lowercase, so Mass and mass are the same key.",
+    "aggregationHint": "Applies to every key in the list.",
+    "created": "{count, plural, one {Rollup rule created} other {# rollup rules created}}",
+    "createdPartial": "{created} created, {failed} failed.",
+    "deleted": "Rollup rule deleted",
+    "deleteFailed": "Failed to delete rollup rule",
+    "restored": "Rollup rule restored",
+    "restoreFailed": "Failed to restore rollup rule",
+    "keyImmutable": "The key is the rule's identity and cannot change.",
+    "replaceToChange": "To change a key, delete this rule and create a new one.",
+    "systemReadOnly": "Built-in rules belong to the node and cannot be changed or deleted.",
+    "placeholders": {
+      "propertyKey": "e.g. weight"
+    },
+    "empty": {
+      "title": "No rollup rules yet",
+      "description": "A rollup rule totals one property across an object's descendants."
+    },
+    "errors": {
+      "notFound": "This rollup rule no longer exists.",
+      "systemReadOnly": "Built-in rules cannot be changed.",
+      "keyTaken": "A rule for this key already exists — possibly a deleted one. Turn on Show deleted to find it.",
+      "invalid": "Rejected: {detail}"
+    },
+    "property": "Property",
+    "nonNumericKey": "This property usually holds text, so the rollup will likely stay empty."
   }
 }

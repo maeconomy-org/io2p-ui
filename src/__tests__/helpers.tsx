@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { vi } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, RenderHookOptions } from '@testing-library/react'
@@ -58,7 +58,7 @@ export const createMockAuthContext = (overrides = {}) => ({
   isAuthenticated: true,
   authLoading: false,
   isRefreshing: false,
-  userUUID: 'test-user-uuid',
+  userId: 'test-user-uuid',
   userInfo: {
     userUUID: 'test-user-uuid',
     email: 'test@example.com',

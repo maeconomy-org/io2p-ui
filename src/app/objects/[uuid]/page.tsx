@@ -1,145 +1,102 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
-import { useTranslations } from 'next-intl'
+import { useCallback, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
-import { PlusCircle, Copy, FolderOpen } from 'lucide-react'
-import type { RowSelectionState, VisibilityState } from '@tanstack/react-table'
+import { useTranslations } from 'next-intl'
+import { PlusCircle, Copy, FileText } from 'lucide-react'
+import type { ObjectListItem } from 'io2p-client'
 
+import { cn } from '@/lib/utils'
+import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
+import { useObjects } from '@/hooks/api/entities'
+import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
+import { usePreference } from '@/hooks/ui/use-preference'
+import { Badge, SplitButton } from '@/components/ui'
+import { FilterMenu, deletedSection } from '@/components/filters'
+import { ObjectBreadcrumb } from '../components/object-breadcrumb'
+import { ViewSelector } from '@/components/view-selector'
+import { ObjectColumnsView } from '../components/columns-view'
 import {
-  useAggregate,
-  useBreadcrumbTrail,
-  useBulkSelection,
-  useViewData,
-} from '@/hooks'
-import { Button } from '@/components/ui'
-import { DeletedFilter } from '@/components/filters'
-import { ObjectBreadcrumb } from '@/components/object-breadcrumb'
-import { isObjectDeleted } from '@/lib'
-import {
-  ObjectsTable,
-  BulkActionsToolbar,
   DataTableColumnToggle,
-} from '@/components/tables'
-import ProtectedRoute from '@/components/protected-route'
+  EntityTable,
+  useEntityListFilters,
+  useEntityListQuery,
+} from '@/components/entity-list'
 import { ContentSkeleton } from '@/components/skeletons'
-import {
-  ObjectDetailsSheet,
-  ObjectAddSheet,
-  CopyObjectsSheet,
-} from '@/components/object-sheets'
-import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 
-const TOGGLEABLE_COLUMNS = [
-  { id: 'name', labelKey: 'objects.fields.name' },
-  { id: 'uuid', labelKey: 'objects.fields.uuid' },
-  { id: 'createdAt', labelKey: 'objects.fields.created' },
-]
+import { ObjectBulkBar } from '../components/object-bulk-bar'
+import { ObjectRowPortals } from '../components/object-row-portals'
+import { OBJECT_TOGGLEABLE_COLUMNS } from '../components/object-columns'
+import { useObjectListPage } from '../components/use-object-list-page'
+import { anchor } from '@/constants'
 
-function ObjectChildrenPageContent() {
+const EntitySheet = dynamic(
+  () => import('@/components/entity-sheet').then((mod) => mod.EntitySheet),
+  { ssr: false }
+)
+const DuplicateObjectsSheet = dynamic(
+  () =>
+    import('@/app/objects/components/duplicate-objects/duplicate-objects-sheet').then(
+      (mod) => mod.DuplicateObjectsSheet
+    ),
+  { ssr: false }
+)
+
+export default function ObjectChildrenPage() {
   const t = useTranslations()
   const params = useParams()
   const router = useRouter()
   const parentUuid = params.uuid as string
 
-  // Filter state
-  const [showDeleted, setShowDeleted] = useState<boolean>(false)
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
+  const [isCopyHereOpen, setIsCopyHereOpen] = useState(false)
 
-  // Row selection state
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-
-  // Hooks
-  const { useAggregateByUUID } = useAggregate()
   const { ancestors, pushAncestor, navigateToAncestor, clearTrail } =
     useBreadcrumbTrail(parentUuid)
 
-  // Get parent object details
-  const { data: parentData, isLoading: parentLoading } = useAggregateByUUID(
-    parentUuid,
+  const { useGet, useList } = useObjects()
+  const { data: parentObject, isLoading: parentLoading } = useGet(parentUuid)
+
+  const listQuery = useEntityListQuery()
+  const setPage = listQuery.setPage
+  const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
+  // The SAME preference as /objects: one table shape, one setting. Two keys for
+  // one set of columns would surprise anyone who hid a column on the list and
+  // found it back on a child page.
+  const [columnVisibility, setColumnVisibility] = useColumnVisibility(
+    'objectColumnsHidden'
+  )
+  // Shares `objectsView` with /objects: the view is a way of reading objects,
+  // not a property of one page, so switching should not depend on where you
+  // switched it.
+  const [viewType, setViewType] = usePreference('objectsView')
+
+  const { data: childrenPage, isFetching } = useList(
     {
-      enabled: !!parentUuid,
-    }
+      ...listQuery.query,
+      parent: parentUuid,
+      size: filters.pageSize,
+      // The node defaults objects to `scope: 'mine'`, which drops children of a
+      // shared parent — the row's childCount honours access, so it still counts them.
+      scope: 'all',
+      deleted: filters.showDeleted ? 'include' : undefined,
+      withChildCounts: true,
+    },
+    { enabled: !!parentUuid, keepPreviousData: true }
   )
 
-  // Get children with pagination using useViewData
-  const viewData = useViewData({
-    viewType: 'table',
-    tablePageSize: DEFAULT_TABLE_PAGE_SIZE,
-    showDeleted,
-    parentUUID: parentUuid,
-  })
+  const state = useObjectListPage({ page: childrenPage })
 
-  // Extract data from viewData (always table type for child pages)
-  const childrenData = viewData.type === 'table' ? viewData.data : []
-  const childrenLoading = viewData.loading
-  const childrenFetching = viewData.type === 'table' ? viewData.fetching : false
-  const pagination = viewData.type === 'table' ? viewData.pagination : null
-
-  // Process parent object data
-  const parentObject = useMemo(() => {
-    if (parentData) {
-      return parentData
-    }
-    return null
-  }, [parentData])
-
-  // Bulk selection hook - consolidates all bulk selection logic
-  const {
-    selectedCount,
-    allSelectedDeleted,
-    hasNonDeletedSelected,
-    clearSelection,
-    handlers: {
-      handleBulkDelete,
-      handleBulkRestore,
-      handleAddToGroup,
-      handleCreateAndAddToGroup,
-      handleSetParent,
-    },
-    mutations: { isDeleting, isRestoring, isAddingToGroup, isSettingParent },
-  } = useBulkSelection({
-    data: childrenData,
-    rowSelection,
-    setRowSelection,
-  })
-
-  // State
-  const [isObjectSheetOpen, setIsObjectSheetOpen] = useState(false)
-  const [isObjectEditSheetOpen, setIsObjectEditSheetOpen] = useState(false)
-  const [selectedObject, setSelectedObject] = useState<any>(null)
-
-  // Copy objects state
-  const [isCopySheetOpen, setIsCopySheetOpen] = useState(false)
-
-  // Pagination info from useViewData
-  const totalPages = pagination?.totalPages || 0
-  const totalElements = pagination?.totalElements || 0
-
-  const handleViewObject = (object: any) => {
-    setSelectedObject(object)
-    setIsObjectSheetOpen(true)
-  }
-
-  // Handle double-click to navigate to sub-children
-  const handleObjectDoubleClick = useCallback(
-    (object: any) => {
-      // Push the current parent onto the breadcrumb trail before navigating
+  const handleDoubleClick = useCallback(
+    (object: ObjectListItem) => {
       if (parentObject) {
-        pushAncestor({
-          uuid: parentUuid,
-          name: (parentObject.name || parentUuid) as string,
-        })
+        pushAncestor({ uuid: parentUuid, name: parentObject.name })
       }
-      router.push(`/objects/${object.uuid}`)
+      router.push(`/objects/${object.id}`)
     },
     [parentObject, parentUuid, pushAncestor, router]
   )
-
-  const handleAddChild = () => {
-    setSelectedObject(null)
-    setIsObjectEditSheetOpen(true)
-  }
 
   if (parentLoading) {
     return <ContentSkeleton />
@@ -147,178 +104,167 @@ function ObjectChildrenPageContent() {
 
   if (!parentObject) {
     return (
-      <div className="flex flex-col flex-1">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-center items-center h-40">
-            <p>{t('objects.childrenPage.parentNotFound')}</p>
-          </div>
+      <div className="container mx-auto px-4">
+        <div className="flex h-40 items-center justify-center">
+          <p>{t('objects.childrenPage.parentNotFound')}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-6 px-4">
+    <div className="container mx-auto px-4 py-6">
       <div className="flex flex-col space-y-4">
-        {/* Breadcrumbs */}
         <ObjectBreadcrumb
-          currentObject={{
-            uuid: parentUuid,
-            name: parentObject.name || parentUuid,
-          }}
+          currentObject={{ uuid: parentUuid, name: parentObject.name }}
           ancestors={ancestors}
           onNavigateToAncestor={navigateToAncestor}
           onNavigateToRoot={clearTrail}
         />
 
-        {/* Header with parent info */}
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold">{parentObject.name}</h1>
+              <h1
+                className={cn(
+                  'text-2xl font-bold',
+                  parentObject.deleted && 'text-destructive line-through'
+                )}
+              >
+                {parentObject.name}
+              </h1>
+              {parentObject.deleted && (
+                <Badge
+                  variant="outline"
+                  className="border-destructive text-destructive"
+                  data-testid="parent-deleted-badge"
+                >
+                  {t('common.deleted')}
+                </Badge>
+              )}
               <p className="text-sm font-medium text-muted-foreground">
                 (
                 {t('objects.childrenPage.childrenCount', {
-                  count: totalElements,
+                  count: childrenPage?.page.totalElements ?? 0,
                 })}
                 )
               </p>
             </div>
-            <p className="text-sm text-muted-foreground font-mono mt-1">
-              {parentObject.uuid}
+            <p className="mt-1 font-mono text-sm text-muted-foreground">
+              {parentObject.id}
             </p>
+            {parentObject.deleted && (
+              <p
+                className="mt-1 text-sm text-destructive"
+                data-testid="parent-deleted-hint"
+              >
+                {t('objects.childrenPage.parentDeleted')}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            <DeletedFilter
-              showDeleted={showDeleted}
-              onShowDeletedChange={setShowDeleted}
-              label={t('objects.showDeleted')}
-              data-tour="filters"
+            <FilterMenu
+              sections={[
+                deletedSection(t, filters.showDeleted, filters.setShowDeleted),
+              ]}
+              {...anchor('filters')}
             />
-            <Button
+            {viewType === 'table' && (
+              <DataTableColumnToggle
+                columns={[...OBJECT_TOGGLEABLE_COLUMNS]}
+                columnVisibility={columnVisibility}
+                onColumnVisibilityChange={setColumnVisibility}
+              />
+            )}
+            <ViewSelector view={viewType} onChange={setViewType} />
+            <SplitButton
               size="sm"
-              variant="outline"
-              onClick={() => setIsCopySheetOpen(true)}
-              data-testid="page-header-copy-button"
+              onClick={() => setIsAddSheetOpen(true)}
+              menuLabel={t('objects.childrenPage.moreChildActions')}
+              actions={[
+                {
+                  key: 'copy-here',
+                  label: t('objects.duplicate.copyHere'),
+                  icon: <Copy className="mr-2 h-4 w-4" />,
+                  onSelect: () => setIsCopyHereOpen(true),
+                },
+              ]}
+              data-testid="page-header-add-child-button"
             >
-              <Copy className="mr-2 h-4 w-4" />
-              {t('objects.duplicate.copyHere')}
-            </Button>
-            <Button onClick={handleAddChild} size="sm">
               <PlusCircle className="mr-2 h-4 w-4" />
               {t('objects.childrenPage.addChild')}
-            </Button>
+            </SplitButton>
           </div>
         </div>
 
-        {/* Bulk Actions Toolbar */}
-        {selectedCount > 0 && (
-          <BulkActionsToolbar
-            selectedCount={selectedCount}
-            allSelectedDeleted={allSelectedDeleted}
-            hasNonDeletedSelected={hasNonDeletedSelected}
-            onBulkDelete={handleBulkDelete}
-            onBulkRestore={handleBulkRestore}
-            onAddToGroup={handleAddToGroup}
-            onCreateAndAddToGroup={handleCreateAndAddToGroup}
-            onSetParent={handleSetParent}
-            onClearSelection={clearSelection}
-            isDeleting={isDeleting}
-            isRestoring={isRestoring}
-            isAddingToGroup={isAddingToGroup}
-            isSettingParent={isSettingParent}
+        {viewType === 'columns' ? (
+          <ObjectColumnsView
+            rootId={parentUuid}
+            rootLabel={parentObject.name}
+            showDeleted={filters.showDeleted}
+            // Hardcoded, exactly as the table query is: the node defaults to
+            // `mine`, which drops children of a shared parent.
+            scope="all"
+            isRestoring={state.isRestoring}
+            onViewObject={state.openDetails}
+            onDelete={state.setObjectToDelete}
+            onDuplicate={state.setDuplicateTarget}
+            onShowQRCode={state.setQrTarget}
+            onCreateTemplate={state.templateFromObject.setSource}
+            onRestore={state.handleRestore}
           />
-        )}
-
-        {/* Children Table or Empty State */}
-        {!childrenLoading && childrenData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12">
-            <FolderOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-2">
-              {t('objects.childrenPage.noChildrenTitle')}
-            </h3>
-            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              {t('objects.childrenPage.noChildrenDescription')}
-            </p>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setIsCopySheetOpen(true)}
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                {t('objects.duplicate.copyHere')}
-              </Button>
-              <Button onClick={handleAddChild}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                {t('objects.childrenPage.addChild')}
-              </Button>
-            </div>
-          </div>
         ) : (
-          <ObjectsTable
-            initialData={childrenData}
-            onViewObject={handleViewObject}
-            onObjectDoubleClick={handleObjectDoubleClick}
-            fetching={childrenFetching}
-            pagination={{
-              currentPage: (pagination?.currentPage || 0) + 1,
-              totalPages,
-              totalElements,
-              pageSize: pagination?.pageSize || DEFAULT_TABLE_PAGE_SIZE,
-              isFirstPage: pagination?.isFirstPage ?? true,
-              isLastPage: pagination?.isLastPage ?? true,
-            }}
-            onPageChange={(page) => pagination?.handlePageChange(page)}
-            onFirstPage={() => pagination?.handleFirst()}
-            onPreviousPage={() => pagination?.handlePrevious()}
-            onNextPage={() => pagination?.handleNext()}
-            onLastPage={() => pagination?.handleLast()}
-            enableRowSelection
-            rowSelection={rowSelection}
-            onRowSelectionChange={setRowSelection}
+          <EntityTable
+            columns={state.columns}
             columnVisibility={columnVisibility}
-            onColumnVisibilityChange={setColumnVisibility}
+            page={childrenPage}
+            getRowId={(o) => o.id}
+            fetching={isFetching}
+            enableRowSelection
+            rowSelection={state.rowSelection}
+            onRowSelectionChange={state.setRowSelection}
+            sort={listQuery.query.sort}
+            onSortChange={listQuery.setSort}
+            onPageChange={listQuery.setPage}
+            onPageSizeChange={filters.handlePageSizeChange}
+            pageSize={filters.pageSize}
+            onRowDoubleClick={handleDoubleClick}
+            emptyIcon={
+              <FileText className="h-10 w-10 text-muted-foreground/50" />
+            }
+            emptyTitle={t('objects.childrenPage.noChildrenTitle')}
+            emptyDescription={t('objects.childrenPage.noChildrenDescription')}
           />
         )}
       </div>
 
-      {/* Child Object Details Sheet */}
-      <ObjectDetailsSheet
-        isOpen={isObjectSheetOpen}
-        onClose={() => setIsObjectSheetOpen(false)}
-        object={selectedObject}
-        uuid={selectedObject?.uuid}
-        isDeleted={isObjectDeleted(selectedObject)}
+      {/* Column view has no row selection, so the bar must not claim a stale
+          table selection. */}
+      <ObjectBulkBar
+        state={state}
+        count={viewType === 'table' ? (state.selectedObjects?.length ?? 0) : 0}
       />
+      <ObjectRowPortals state={state} />
 
-      {/* Add Child Object Sheet */}
-      <ObjectAddSheet
-        isOpen={isObjectEditSheetOpen}
-        onClose={() => {
-          setIsObjectEditSheetOpen(false)
-          setSelectedObject(null)
-        }}
-        defaultParentUuids={[parentUuid]}
-      />
+      {/* "Add child" creates the CHILD with this page's object as its parent — io2p hangs the
+          edge off the child, so there is nothing to PATCH on the parent. */}
+      {isAddSheetOpen && (
+        <EntitySheet
+          open={isAddSheetOpen}
+          onOpenChange={setIsAddSheetOpen}
+          defaultParentIds={[parentUuid]}
+          defaultParentNames={{ [parentUuid]: parentObject.name }}
+        />
+      )}
 
-      {/* Copy Objects Sheet */}
-      {isCopySheetOpen && (
-        <CopyObjectsSheet
-          open={isCopySheetOpen}
-          onOpenChange={setIsCopySheetOpen}
+      {isCopyHereOpen && (
+        <DuplicateObjectsSheet
+          open={isCopyHereOpen}
+          onOpenChange={setIsCopyHereOpen}
           defaultParentUuid={parentUuid}
         />
       )}
     </div>
-  )
-}
-
-// Export the wrapped component
-export default function ObjectChildrenPage() {
-  return (
-    <ProtectedRoute>
-      <ObjectChildrenPageContent />
-    </ProtectedRoute>
   )
 }

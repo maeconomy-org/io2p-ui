@@ -1,0 +1,37 @@
+# gitleaks config for iom-ui. The pre-commit hook runs `gitleaks protect --staged`.
+#
+# Extend the default ruleset rather than replacing it — a bare config would silently disable every
+# built-in rule, which is worse than having no scan at all because it still reports "no leaks".
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+  [rules.allowlist]
+  description = """
+  Test fixtures. An object property in this codebase is literally `{ key, values: [{ data }] }`, so
+  a fixture like `{ key: 'manufacturer', values: [{ data: 'Acme' }] }` matches the generic-api-key
+  pattern — a `key` assignment sitting next to a high-entropy-looking `data` string.
+
+  Scoped to `__tests__` on purpose: a real credential does not belong in a fixture either, but the
+  cost of the false positive is a blocked commit on every property fixture, and the rule still runs
+  over all of `src/`, the API routes and the config files where a real key could land.
+
+  The demo seed carries the same literals outside `__tests__`, so the property KEYS it repeats are
+  listed by value rather than by path. Exempting `scripts/` wholesale was the first attempt and it
+  was wrong: a planted AWS key and GitHub token in that directory both went unreported.
+  """
+  paths = ['''src/__tests__/.*''']
+  regexes = [
+    '''co2-equivalent''',
+    '''energy-consumption''',
+    '''country-of-origin''',
+    '''material-class''',
+    '''expected-lifespan''',
+    '''recycled-content''',
+    '''thermal-conductivity''',
+    '''gross-building-area''',
+    '''construction-year''',
+    '''water-consumption''',
+  ]

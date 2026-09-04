@@ -6,19 +6,64 @@ allowBuilds:
   '@parcel/watcher': true
   '@sentry/cli': true
   '@swc/core': true
+  # protobufjs (via the OTLP proto exporters): its postinstall only stamps a
+  # version file, not needed at runtime — explicitly opted out.
+  protobufjs: false
   sharp: true
 
 # Supply-chain cooldown: refuse any version published in the last 4320 minutes
-# (3 days), stronger than pnpm 11's 1-day default. Excludes our own SDK and the
+# (3 days), stronger than pnpm 11's 1-day default. Excludes our own client and the
 # framework packages we bump deliberately.
 minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
-  - iom-sdk
+  # Our own client: a 3-day cooldown on a version we just published would
+  # block the bump that needs testing.
+  - io2p-client
   - next
   - react
   - react-dom
 
-# Security floor: keep axios on the patched line that iom-sdk's peer requires
-# (^1.17.0). Covers the SDK peer and any other transitive axios consumer.
+# Advisory floors for TRANSITIVE dependencies with no reachable parent bump.
+# THIS FILE is the only place pnpm 11 reads them — `pnpm.overrides` in
+# package.json is ignored with a warning. A lone edit here can report "Already
+# up to date" and skip them; use `pnpm install --force`. Delete an entry once
+# its parent has moved past it, and re-check on `pnpm audit`.
 overrides:
-  axios@>=1.0.0 <1.17.0: '>=1.17.0'
+  # Still dormant on this branch — the new SDK dropped axios entirely (it is
+  # `main`, on the old iom-sdk, that installs 1.17.0). Floor RAISED because
+  # 1.17.0 is itself vulnerable now: proxy inheritance in the Node HTTP adapter
+  # and a form-serializer maxDepth bypass, both fixed in 1.18.0.
+  axios@>=1.0.0 <1.18.0: '>=1.18.0'
+  # postcss > nanoid, reached via next and via tailwind. A custom generator with
+  # size 0 loops forever; nothing here passes either, but the fix is one patch
+  # inside the 3 line. Unversioned key for the same reason as brace-expansion
+  # below — a RANGED key lands in the lockfile but does not move the copy under
+  # postcss. CAPPED TO THE 3 LINE: postcss asks for ^3.3.17 and is CJS, while
+  # nanoid 4+ is ESM-only. An open '>=3.3.18' resolves to 6.x, which happens to
+  # load only because Node 24 can require() ESM.
+  nanoid: '^3.3.18'
+  # 19 of this branch's advisories, all one package. better-auth takes vitest as
+  # an OPTIONAL peer, so jsdom > undici resolves under a prod path and `pnpm
+  # audit --prod` counts it — nothing actually ships it.
+  #
+  # CAPPED TO THE 7 LINE. An open `>=7.28.0` resolves to 8.x, which breaks the
+  # test runner outright: jsdom 29 imports `undici/lib/handler/wrap-handler.js`,
+  # a path that does not exist in undici 8, so every suite dies at collection
+  # with "Cannot find module". 7.28.0 is the advisory floor, so ^7.28.0 fixes it
+  # without crossing the major jsdom cannot follow.
+  undici@<7.28.0: '^7.28.0'
+  # exceljs > archiver subtree — DoS via unbounded/exponential expansion, across
+  # several release lines. Unversioned key on purpose: RANGED keys are recorded
+  # in the lockfile but do not move the 5.0.6 copy under minimatch (same
+  # behaviour in io2p-core). Every copy in the tree is already on the 5 line, so
+  # there is no 1.x/2.x consumer left for a blanket floor to break.
+  brace-expansion: '>=5.0.9'
+  # @sentry/nextjs > @sentry/webpack-plugin > webpack. Host confusion.
+  fast-uri@<3.1.5: '>=3.1.5'
+  # The rest of the exceljs subtree, plus build-time tooling.
+  tmp@<0.2.6: '>=0.2.6'
+  uuid@<11.1.1: '>=11.1.1'
+  ws@<7.5.11: '>=7.5.11'
+  '@babel/core@<7.29.1': '>=7.29.1'
+  '@opentelemetry/core@<2.8.0': '>=2.8.0'
+  vite@<8.0.16: '>=8.0.16'

@@ -1,42 +1,16 @@
 'use client'
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useRef,
-} from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
-import { logger } from '@/lib'
-import { useCommonApi } from '@/hooks/api'
-import type { ParsedSearch } from '@/lib/search-parser'
-import { parseSearchQuery } from '@/lib/search-parser'
-
-import type { AggregateEntity, PageAggregateEntity } from 'iom-sdk'
+import type { ParsedSearch } from '@/components/global-search/search-parser'
+import { parseSearchQuery } from '@/components/global-search/search-parser'
 
 interface SearchContextType {
   searchQuery: string
   setSearchQuery: (query: string) => void
-  isSearching: boolean
-  // New search mode functionality
   isSearchMode: boolean
-  searchViewResults: AggregateEntity[]
-  searchPagination: {
-    currentPage: number
-    totalPages: number
-    totalElements: number
-    pageSize: number
-    isFirstPage: boolean
-    isLastPage: boolean
-    handlePageChange: (page: number) => void
-    handleFirst: () => void
-    handlePrevious: () => void
-    handleNext: () => void
-    handleLast: () => void
-  } | null
-  executeAdvancedSearch: (query: string) => Promise<void>
+  executeAdvancedSearch: (query: string) => void
   executeSearchFromParsed: (parsed: ParsedSearch) => void
   clearSearch: () => void
 }
@@ -45,25 +19,29 @@ const SearchContext = createContext<SearchContextType | undefined>(undefined)
 
 const MIN_SEARCH_CHARS = 2
 
-// Pages where search results are displayed directly
+// Where a search lands. Every other list filters in place.
 const OBJECTS_PAGE = '/objects'
 const MODELS_PAGE = '/templates'
 
+/**
+ * The active search TERM — no results, no requests.
+ *
+ * It used to run its own `searchAggregates` mutation against the retired node and hold the results,
+ * while each page ALSO passed `q` to its io2p list. So `/objects` answered one question with two
+ * backends: the results bar counted the legacy response and the table below rendered the io2p one.
+ *
+ * Worse, the catch set `isSearchMode(false)` — and every page gates its `q` on that flag. A failing
+ * request to a backend nothing else uses therefore turned search off across the WHOLE app, silently
+ * and identically to "no matches".
+ *
+ * So this holds a string and a flag. Each list applies it through its own `q`, which is the only
+ * place that knows what it is listing.
+ */
 export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
-  const [searchPageSize] = useState(15) // Fixed page size for search
   const [isSearchMode, setIsSearchMode] = useState(false)
-  const [searchViewResults, setSearchViewResults] = useState<AggregateEntity[]>(
-    []
-  )
-  const [searchCurrentPage, setSearchCurrentPage] = useState(0)
-  const [searchPaginationData, setSearchPaginationData] =
-    useState<PageAggregateEntity | null>(null)
-  const [currentParsedSearch, setCurrentParsedSearch] =
-    useState<ParsedSearch | null>(null)
-  // Tracks which root page (objects vs templates) the active search belongs
-  // to, so navigating to the other root clears the now-irrelevant results.
+  // Which root page (objects vs templates) the active search belongs to, so crossing to the other
+  // root clears a search that no longer means anything there.
   const [searchAnchor, setSearchAnchor] = useState<
     'objects' | 'templates' | null
   >(null)
@@ -71,245 +49,75 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
 
-  // Use centralized search mutation from useCommonApi
-  const { useSearch: useSearchMutation } = useCommonApi()
-  const searchMutation = useSearchMutation()
-  const searchMutationRef = useRef(searchMutation)
-  searchMutationRef.current = searchMutation
-
-  // Determine the isTemplate value based on the current page and parsed filters
-  const getIsTemplateForSearch = (
-    parsed: ParsedSearch
-  ): boolean | undefined => {
-    // If user explicitly set template: filter, respect it
-    if (parsed.searchBy.isTemplate !== undefined) {
-      return parsed.searchBy.isTemplate as boolean
-    }
-    // On models page, search templates only
-    if (pathname.startsWith(MODELS_PAGE)) {
-      return true
-    }
-    // On objects page (or any other page), search objects only
-    return false
+  const clearSearch = () => {
+    setSearchQuery('')
+    setIsSearchMode(false)
+    setSearchAnchor(null)
   }
 
-  // Determine the correct target page for search and redirect if needed
-  const resolveSearchPage = (parsed: ParsedSearch): void => {
-    const hasTemplateFilter = parsed.searchBy.isTemplate !== undefined
-    const isTemplateSearch = hasTemplateFilter
-      ? (parsed.searchBy.isTemplate as boolean)
-      : pathname.startsWith(MODELS_PAGE)
+  /**
+   * `template:true` routes to /templates, anything else to /objects — and a search started from a
+   * page that cannot show results has to land somewhere.
+   */
+  const resolveSearchPage = (parsed: ParsedSearch) => {
+    const explicit = parsed.searchBy.isTemplate
+    const isTemplateSearch =
+      explicit !== undefined
+        ? (explicit as boolean)
+        : pathname.startsWith(MODELS_PAGE)
+    const target = isTemplateSearch ? MODELS_PAGE : OBJECTS_PAGE
 
-    const targetPage = isTemplateSearch ? MODELS_PAGE : OBJECTS_PAGE
-
-    // If not on a search-capable page, redirect
-    if (
-      !pathname.startsWith(OBJECTS_PAGE) &&
-      !pathname.startsWith(MODELS_PAGE)
-    ) {
-      router.push(targetPage)
-    } else if (isTemplateSearch && !pathname.startsWith(MODELS_PAGE)) {
-      // User used template:true filter while on objects page → redirect to models
-      router.push(MODELS_PAGE)
-    } else if (
-      !isTemplateSearch &&
-      pathname.startsWith(MODELS_PAGE) &&
-      !hasTemplateFilter
-    ) {
-      // On models page but no explicit template filter → stay on models, search templates
+    if (pathname !== target && !pathname.startsWith(target)) {
+      router.push(target)
     }
+    return isTemplateSearch ? 'templates' : 'objects'
   }
 
-  // Execute search with pagination support
-  const executeSearchWithPagination = async (
-    parsed: ParsedSearch,
-    page: number = 0
-  ) => {
-    setIsSearching(true)
-
-    try {
-      // Inject isTemplate based on page context
-      const isTemplate = getIsTemplateForSearch(parsed)
-      const contextSearchBy = {
-        ...parsed.searchBy,
-        ...(isTemplate !== undefined ? { isTemplate } : {}),
-      }
-
-      // Search with pagination parameters using centralized search hook
-      const hasFilters = Object.keys(contextSearchBy).length > 0
-      const results = await searchMutationRef.current.mutateAsync({
-        searchTerm: parsed.searchTerm || undefined,
-        searchBy: hasFilters ? contextSearchBy : undefined,
-        size: searchPageSize,
-        page: page,
-      })
-
-      if (results) {
-        // Store pagination data
-        setSearchPaginationData(results)
-        setSearchCurrentPage(page)
-
-        if (results.content && results.content.length > 0) {
-          // Transform search results to match view data format
-          const transformedResults = results.content.map(
-            (result: AggregateEntity) => ({
-              ...result,
-              hasChildren: result.children && result.children.length > 0,
-              childCount: result.children ? result.children.length : 0,
-            })
-          )
-
-          setSearchViewResults(transformedResults)
-          setIsSearchMode(true)
-        } else {
-          setSearchViewResults([])
-          setIsSearchMode(true)
-        }
-        setSearchAnchor(
-          pathname.startsWith(MODELS_PAGE) ? 'templates' : 'objects'
-        )
-      }
-    } catch (error) {
-      logger.error('Search in view failed:', error)
-      setSearchViewResults([])
-      setSearchPaginationData(null)
-      setIsSearchMode(false)
-    } finally {
-      setIsSearching(false)
-    }
+  const applySearch = (parsed: ParsedSearch, displayQuery: string) => {
+    setSearchQuery(displayQuery)
+    setSearchAnchor(resolveSearchPage(parsed))
+    setIsSearchMode(true)
   }
 
-  // New search in view functionality
-  const executeAdvancedSearch = async (query: string) => {
+  const executeAdvancedSearch = (query: string) => {
     if (!query || query.length < MIN_SEARCH_CHARS) {
       clearSearch()
       return
     }
-
-    // Parse the search query
-    const parsed = parseSearchQuery(query)
-    setCurrentParsedSearch(parsed)
-
-    // Reset to first page when starting new search
-    await executeSearchWithPagination(parsed, 0)
+    applySearch(parseSearchQuery(query), query)
   }
 
-  // Execute search from parsed search object (for CommandCenter)
   const executeSearchFromParsed = (parsed: ParsedSearch) => {
-    // Reconstruct the display query from the parsed search
-    const displayQuery = [
-      parsed.searchTerm,
-      ...parsed.filters
-        .filter((f) => f.type !== 'text')
-        .map((f) => `${f.type}:${f.value}`),
-    ]
-      .filter(Boolean)
-      .join(' ')
-    setSearchQuery(displayQuery || parsed.searchTerm || '')
-    setCurrentParsedSearch(parsed)
-
-    // Redirect to the correct page based on search context
-    resolveSearchPage(parsed)
-
-    executeSearchWithPagination(parsed, 0)
+    const displayQuery =
+      [
+        parsed.searchTerm,
+        ...parsed.filters
+          .filter((f) => f.type !== 'text')
+          .map((f) => `${f.type}:${f.value}`),
+      ]
+        .filter(Boolean)
+        .join(' ') ||
+      parsed.searchTerm ||
+      ''
+    applySearch(parsed, displayQuery)
   }
 
-  // Pagination handlers
-  const handlePageChange = async (page: number) => {
-    if (currentParsedSearch) {
-      await executeSearchWithPagination(currentParsedSearch, page) // page is already 0-based from TablePagination
-    }
-  }
-
-  const handleFirst = async () => {
-    if (currentParsedSearch) {
-      await executeSearchWithPagination(currentParsedSearch, 0)
-    }
-  }
-
-  const handlePrevious = async () => {
-    if (currentParsedSearch && searchCurrentPage > 0) {
-      await executeSearchWithPagination(
-        currentParsedSearch,
-        searchCurrentPage - 1
-      )
-    }
-  }
-
-  const handleNext = async () => {
-    if (
-      currentParsedSearch &&
-      searchPaginationData &&
-      !searchPaginationData.last
-    ) {
-      await executeSearchWithPagination(
-        currentParsedSearch,
-        searchCurrentPage + 1
-      )
-    }
-  }
-
-  const handleLast = async () => {
-    if (currentParsedSearch && searchPaginationData) {
-      await executeSearchWithPagination(
-        currentParsedSearch,
-        searchPaginationData.totalPages - 1
-      )
-    }
-  }
-
-  // Create search pagination object
-  const searchPagination = searchPaginationData
-    ? {
-        currentPage: searchCurrentPage,
-        totalPages: searchPaginationData.totalPages || 0,
-        totalElements: searchPaginationData.totalElements || 0,
-        pageSize: searchPageSize,
-        isFirstPage: searchPaginationData.first || false,
-        isLastPage: searchPaginationData.last || false,
-        handlePageChange,
-        handleFirst,
-        handlePrevious,
-        handleNext,
-        handleLast,
-      }
-    : null
-
-  const clearSearch = () => {
-    setSearchQuery('')
-    setSearchViewResults([])
-    setSearchPaginationData(null)
-    setSearchCurrentPage(0)
-    setIsSearchMode(false)
-    setCurrentParsedSearch(null)
-    setSearchAnchor(null)
-  }
-
-  // Reset search when crossing the objects ↔ templates boundary so stale
-  // results from one root don't leak into the other.
-  useEffect(() => {
-    if (!searchAnchor) return
-    const currentAnchor = pathname.startsWith(MODELS_PAGE)
-      ? 'templates'
-      : pathname.startsWith(OBJECTS_PAGE)
-        ? 'objects'
-        : null
-    if (currentAnchor !== searchAnchor) {
-      clearSearch()
-    }
-    // clearSearch is stable in practice (only setState calls); intentionally omitted to keep deps minimal.
-  }, [pathname, searchAnchor])
+  // Crossing the objects ↔ templates boundary drops a search anchored to the other root — DERIVED,
+  // not synchronised. Clearing it in an effect meant a render where the search still looked active
+  // on a page it does not belong to, and the compiler lint rejects setState in an effect anyway.
+  const currentRoot = pathname.startsWith(MODELS_PAGE)
+    ? 'templates'
+    : pathname.startsWith(OBJECTS_PAGE)
+      ? 'objects'
+      : null
+  const active = isSearchMode && (!searchAnchor || currentRoot === searchAnchor)
 
   return (
     <SearchContext.Provider
       value={{
-        searchQuery,
+        searchQuery: active ? searchQuery : '',
         setSearchQuery,
-        isSearching,
-        // New search mode functionality
-        isSearchMode,
-        searchViewResults,
-        searchPagination,
+        isSearchMode: active,
         executeAdvancedSearch,
         executeSearchFromParsed,
         clearSearch,

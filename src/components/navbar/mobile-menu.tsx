@@ -30,8 +30,10 @@ import {
   Separator,
 } from '@/components/ui'
 import { useTheme } from '@/hooks/use-theme'
+import { useSetLocale } from '@/hooks/ui/use-set-locale'
 import { cn } from '@/lib/utils'
-import { NAV_ITEMS } from '@/constants'
+import { NAV_ITEMS, type NavItem } from '@/constants'
+import { NAV_ICONS } from './nav-icons'
 import { useAuth, useAppConfig } from '@/contexts'
 
 const LOCALES = [
@@ -53,10 +55,11 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
   const t = useTranslations()
   const themeT = useTranslations('theme')
   const [isOpen, setIsOpen] = useState(false)
-  const { userInfo, logout } = useAuth()
+  const { userInfo, logout, userId } = useAuth()
   const config = useAppConfig()
   const locale = useLocale()
   const { theme, setTheme } = useTheme()
+  const setLocale = useSetLocale()
 
   const displayIdentity =
     userInfo?.username ||
@@ -65,10 +68,10 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
     userInfo?.credentials ||
     t('nav.user')
 
-  const handleLocaleChange = useCallback((value: string) => {
-    document.cookie = `NEXT_LOCALE=${value}; path=/; max-age=${60 * 60 * 24 * 365}`
-    window.location.reload()
-  }, [])
+  const handleLocaleChange = useCallback(
+    (value: string) => setLocale(value as 'en' | 'nl'),
+    [setLocale]
+  )
 
   return (
     <>
@@ -110,23 +113,33 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
           {/* Navigation */}
           <div className="flex-1 overflow-y-auto">
             <nav className="flex flex-col py-2">
-              {NAV_ITEMS.map((item) => (
-                <SheetClose asChild key={item.path}>
-                  <Link
-                    href={item.path}
-                    data-tour={item.dataTour}
-                    className={cn(
-                      'flex items-center justify-between py-3 px-4 hover:bg-muted transition-colors',
-                      pathname === item.path || pathname.startsWith(item.path)
-                        ? 'bg-muted text-primary font-medium'
-                        : 'text-foreground'
-                    )}
-                  >
-                    <span>{t(`nav.${item.key}`)}</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-                </SheetClose>
-              ))}
+              {/* A group renders as a labelled section rather than a dropdown: there is room to
+                  list the children outright, and a menu inside a menu is worse on touch. */}
+              {NAV_ITEMS.map((item) =>
+                item.children ? (
+                  <div key={item.key} className="py-1">
+                    <p className="px-4 pb-1 pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {t(`nav.${item.key}`)}
+                    </p>
+                    {item.children.map((child) => (
+                      <NavLink
+                        key={child.path}
+                        item={child}
+                        pathname={pathname}
+                        label={t(`nav.${child.key}`)}
+                        indented
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <NavLink
+                    key={item.path}
+                    item={item}
+                    pathname={pathname}
+                    label={t(`nav.${item.key}`)}
+                  />
+                )
+              )}
             </nav>
           </div>
 
@@ -205,11 +218,8 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
                     )}
                   </div>
                 </div>
-                {userInfo?.userUUID && (
-                  <CopyButton
-                    text={userInfo.userUUID}
-                    className="h-6 w-6 p-0 shrink-0"
-                  />
+                {userId && (
+                  <CopyButton text={userId} className="h-6 w-6 p-0 shrink-0" />
                 )}
               </div>
             </div>
@@ -250,5 +260,41 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
         </SheetContent>
       </Sheet>
     </>
+  )
+}
+
+/** One navigation row. Closes the sheet on tap, since navigating away is always the intent. */
+function NavLink({
+  item,
+  pathname,
+  label,
+  indented,
+}: {
+  item: NavItem
+  pathname: string
+  label: string
+  indented?: boolean
+}) {
+  const active = pathname === item.path || pathname.startsWith(item.path)
+  const Icon = item.icon ? NAV_ICONS[item.icon] : null
+  return (
+    <SheetClose asChild>
+      <Link
+        href={item.path}
+        prefetch
+        data-tour={item.dataTour}
+        className={cn(
+          'flex items-center justify-between py-3 px-4 hover:bg-muted transition-colors',
+          indented && 'pl-8',
+          active ? 'bg-muted text-primary font-medium' : 'text-foreground'
+        )}
+      >
+        <span className="flex items-center gap-2.5">
+          {Icon ? <Icon className="h-4 w-4" aria-hidden="true" /> : null}
+          {label}
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </Link>
+    </SheetClose>
   )
 }

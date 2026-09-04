@@ -1,0 +1,36 @@
+name: ci
+# PR gate: typecheck / lint / format / tests / production build.
+# Docker publishing lives in docker-build.yml (main + version tags only).
+#
+# E2E is deliberately NOT here: it needs a reachable io2p-core, a production
+# build made with E2E_KEEP_TEST_IDS=true, and two real accounts.
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: 0
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version comes from package.json "packageManager"
+      - uses: actions/setup-node@v7
+        # Matches the Dockerfile's node:24-alpine, so the gate runs what ships.
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test:run
+      - run: pnpm build
