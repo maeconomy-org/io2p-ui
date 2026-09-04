@@ -19,6 +19,13 @@ export async function selectView(page: Page, value: string): Promise<void> {
   const option = page.getByTestId(`view-option-${value}`)
   await expect(option).toBeVisible()
 
+  // NO already-there early return here, deliberately — `setLanguage` has one and it does not
+  // transfer. That guard is safe on `/settings`, where a `toPass` tab activation has already proved
+  // hydration. Here the whole point is that the control is clickable BEFORE hydration, and
+  // `aria-pressed` at that moment comes from the first-paint cookie, which can disagree with the
+  // account. Trusting it returned early without clicking, left `/processes` on the Sankey, and
+  // reddened all twelve specs in the folder — a cascade, from a guard that saves one reload.
+
   await expect(async () => {
     await option.click()
     await expect(option).toHaveAttribute('aria-pressed', 'true', {

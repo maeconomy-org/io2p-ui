@@ -19,18 +19,35 @@ test.describe('13 - preferences / self heal', () => {
   })
 
   /**
-   * ⏸ DEFERRED — a known product gap, deliberately not chased. See
-   * `docs/e2e-docs/e2e-run-2026-08-31.md` "Still open" #1.
+   * ⏸ DEFERRED — a known product gap. See `docs/e2e-docs/e2e-run-2026-08-31.md` "Still open" #1.
    *
-   * The account says Dutch, the browser is handed a cookie that has only ever heard English, and on
-   * a FULL page load the navbar stays English — `PreferenceSync`'s locale reconcile does not take.
-   * The spec is RIGHT and reproduces the bug; it is parked so a known gap does not read as an
-   * unstable suite. Delete the `.fixme` when the reconcile is fixed.
+   * `test.fail`, NOT `test.fixme`. The spec is right and reproduces the bug, so `.fixme` would have
+   * left that bug with zero coverage AND let the spec rot against unrelated refactors until someone
+   * deleted it as stale. `.fail` runs it, expects the failure, and turns the suite RED the day it
+   * starts passing — so the reconcile fix announces itself instead of waiting for someone to
+   * remember this file.
+   *
+   * The account says Dutch, the browser is handed a cookie that has only heard English, and on a
+   * FULL page load the navbar stays English — `PreferenceSync`'s locale reconcile does not take.
+   *
+   * `test.fixme`, NOT `test.fail`, and that was measured rather than assumed. `.fail` is the better
+   * tool in the abstract — it runs the case and goes red the day the bug is fixed, where `.fixme`
+   * leaves the bug uncovered and lets the spec rot. But these two are DESTRUCTIVE to a shared
+   * account: they switch the interface language, and their restore is not reliable enough to run
+   * every suite. Armed with `.fail` they left the account in Dutch and reddened eleven specs in
+   * `07-processes` that never touch language, each burning a 60s timeout on `getByLabel(/name/i)`
+   * against a form reading "Naam". `.fixme` is the cheaper wrong answer here.
    */
   test.fixme('a language the cookie does not know applies without a manual reload', async ({
     page,
     context,
   }) => {
+    // English FIRST, explicitly. This case's whole premise is that the account contradicts the
+    // cookie, and `setLanguage` returns early when the language is already the one asked for — so
+    // on a run that inherited a Dutch account the switch below wrote nothing, the contradiction
+    // never existed, and the case passed. It assumed a default, which is the one thing §4.13 says
+    // no spec may do. Measured: alternating start locales gave alternating results.
+    await setLanguage(page, 'en')
     await setLanguage(page, 'nl')
 
     // `PreferenceSync` is the only writer of this cookie and it rewrites it

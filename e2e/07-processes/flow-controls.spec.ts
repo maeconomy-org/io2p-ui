@@ -109,7 +109,7 @@ test.describe('07 - processes / flow controls', () => {
     await expect(legend.getByTestId('flow-depth-prev')).toHaveCount(0)
   })
 
-  test('PR21: picking the other unit changes what the widths are drawn in', async ({
+  test('PR21: picking the other unit re-reads the trigger, positively', async ({
     page,
   }) => {
     await gotoProcesses(page)
@@ -122,15 +122,38 @@ test.describe('07 - processes / flow controls', () => {
 
     const before = (await trigger.textContent())?.trim() ?? ''
     await trigger.click()
-    // The chart is a canvas, so the choice is read back off the control. `activeUnit` is what feeds
-    // the widths, and a trigger that never changes means `onActiveUnitChange` is not wired.
     const other = page
       .getByRole('option')
       .filter({ hasNotText: before })
       .first()
     await expect(other).toBeVisible()
+    const wanted = (await other.textContent())?.trim() ?? ''
     await other.click()
 
-    await expect(trigger).not.toHaveText(before)
+    // POSITIVE, not `.not.toHaveText(before)`. A `.not` text matcher is satisfied by an element
+    // that is GONE, and an element that is gone is precisely the failure this file's product fix
+    // exists to prevent — so the negative form went green against the crash it was meant to guard.
+    await expect(trigger).toBeVisible()
+    await expect(trigger).toHaveText(wanted)
+
+    // ⚠ WHAT THIS CANNOT SEE. If `onValueChange` stopped translating the sentinel back to `''`,
+    // `activeUnit` would become `__unitless__`, the item would still match, and the trigger would
+    // still read correctly — while `process-flow-chart.tsx` matched no link at all and every width
+    // silently dropped out. The chart is a canvas and nothing outside it reflects `activeUnit`, so
+    // that half of the fix is unassertable from the DOM. It is a product observability gap, not a
+    // gap in this case; the sentinel's round trip is covered by unit tests instead.
+  })
+
+  test('PR22: the mixed-unit legend renders at all', async ({ page }) => {
+    await gotoProcesses(page)
+    await selectView(page, 'sankey')
+
+    // Explicitly the crash case. PR19 and PR20 also go red on it, but only INCIDENTALLY — a crash
+    // removes the legend they assert placement within, so relaxing either one later would take the
+    // crash coverage with it and nothing would go red. `units.length > 1` is what mounts the picker,
+    // and an empty-string `SelectItem` value is what Radix throws on, so this fixture's graph is
+    // the smallest one that reaches both.
+    await expect(page.getByTestId('flow-unit-select')).toHaveCount(1)
+    await expect(page.getByTestId('flow-legend')).toBeVisible()
   })
 })
