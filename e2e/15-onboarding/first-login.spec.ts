@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/app'
 import { requireCredentials } from '../setup/credentials'
+import { tour } from '../utils/selectors'
 import { armInitialLoginTour, resetPreferences } from '../utils/preferences'
 import { restoreSession, signInAs } from '../utils/session'
 
@@ -65,8 +66,17 @@ test.describe('15 - onboarding / first login', () => {
     await page.locator('.driver-popover-close-btn').click()
     await expect(popover).toHaveCount(0)
 
-    await page.reload()
+    // The dismissal writes `markSeen`; give it the round trip before reloading. Reloading straight
+    // after the optimistic close races that PATCH — the same race removed from `setLanguage`.
     await expect(page.getByTestId('data-table')).toBeVisible()
+
+    await page.reload()
+    // ANCHOR THE ABSENCE TO THE SAME GATE THE POSITIVE ASSERTION WAITS ON. The tour arms only once
+    // `/me` has ARRIVED — which is why O8 above needs 20s — and a reload gives a cold cache, so
+    // `data-table` can paint well before the tour would have had its chance. Asserting count 0 at
+    // that moment samples a popover that has not appeared YET, and a regressed `markSeen` passes.
+    // The navbar's user menu renders off the same `/me`, so waiting on it is waiting on the gate.
+    await expect(tour(page, 'userMenuTrigger')).toBeVisible({ timeout: 20_000 })
     await expect(popover).toHaveCount(0)
   })
 

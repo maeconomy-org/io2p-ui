@@ -103,7 +103,16 @@ async function pollParentCard(page: Page, want: boolean): Promise<void> {
     await openObjectSheet(page, rowFor(page, PARENT))
     await page.waitForTimeout(4_000)
     const present = (await page.getByTestId('rollup-card').count()) > 0
-    if (present === want) return
+    // TWO CONSECUTIVE SAMPLES for the ABSENT direction. The two directions are not symmetric: when
+    // waiting for a card to APPEAR a premature read just costs an iteration, but when waiting for
+    // one to GO the first negative sample is the verdict — and a sheet whose rollup area is still
+    // fetching is indistinguishable from one whose card is correctly gone. So a deletion could be
+    // reported as proven on a slow node without ever having happened.
+    if (present === want) {
+      if (want) return
+      await page.waitForTimeout(3_000)
+      if ((await page.getByTestId('rollup-card').count()) === 0) return
+    }
     await page.keyboard.press('Escape')
     await page.waitForTimeout(25_000)
   }
@@ -144,7 +153,19 @@ test.describe('16 - rollups / deletions', () => {
     await expect(page.getByTestId('data-table')).toBeVisible()
     for (const key of createdRules) {
       const row = page.getByTestId('data-table-row').filter({ hasText: key })
-      await expect(row).toHaveCount(1, { timeout: 15_000 })
+      // TOLERANT of a rule that was never created. `createRule` records the key BEFORE creating it,
+      // which is the right instinct — but asserting count 1 here THROWS for a key that never
+      // landed, aborting the loop and leaking every remaining rule. A half-failed `beforeAll` is
+      // precisely when such an entry exists, so the cleanup would fail hardest when needed most.
+      let seen = false
+      for (let attempt = 0; attempt < 12; attempt++) {
+        if ((await row.count()) > 0) {
+          seen = true
+          break
+        }
+        await page.waitForTimeout(500)
+      }
+      if (!seen) continue
       const actions = rowActions(page, 'rollup-rule', row)
       await actions.menu.click()
       await actions.action('delete').click()
@@ -176,7 +197,12 @@ test.describe('16 - rollups / deletions', () => {
   test('RU18: soft-deleting the child object removes its contribution', async ({
     page,
   }, testInfo) => {
-    testInfo.setTimeout(420_000)
+    // TWO `pollParentCard` calls, and each is bounded at 8 x (goto + 4s + 25s) ~= 230s — so the
+    // budget has to cover ~490s, not the ~90s the docblock calls worst case. That number is the
+    // EXPECTED settle (a 30s cooldown, then a reaper every 30s); the loop is allowed to run far
+    // longer, and at 420s this died on a Playwright timeout instead of the helper's own message —
+    // losing the one diagnostic it exists to print, in exactly the run that needed it.
+    testInfo.setTimeout(540_000)
 
     // Put the property back first, so this case starts from a card that exists and the deletion is
     // the only thing that could have removed it.

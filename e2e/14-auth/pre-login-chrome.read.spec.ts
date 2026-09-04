@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/app'
 import { PREF_COOKIE } from '../utils/language'
+import { accountPreferences } from '../utils/preference-request'
 
 /**
  * Theme and language are settable BEFORE there is an account to store them on.
@@ -20,16 +21,15 @@ function prefs(theme: 'l' | 'd', locale: 'en' | 'nl'): string {
   return `1.t.t.20.${theme}.${locale}`
 }
 
-const PATCH_PREFERENCES = /\/me\/preferences/
-
 test.describe('14 - auth / pre-login chrome', () => {
   test('AU19: the language chosen before sign-in reaches the SERVER render', async ({
     page,
     context,
-    api,
+    browser,
   }) => {
     await context.addCookies([{ ...PREF_COOKIE, value: prefs('l', 'en') }])
     await page.goto('/')
+    const before = await accountPreferences(browser)
 
     const chrome = page.getByTestId('auth-chrome')
     await chrome.getByTestId('language-select').click()
@@ -47,16 +47,21 @@ test.describe('14 - auth / pre-login chrome', () => {
     expect((await response?.text()) ?? '').toContain('lang="nl"')
     await expect(page.getByText('Hulp nodig met authenticatie?')).toBeVisible()
 
-    expect(api.matching(PATCH_PREFERENCES)).toEqual([])
+    // THE ACCOUNT, not a request pattern. The old form asserted no request MATCHED
+    // `/me/preferences` — and that could never fail: measured, the app's preference PATCH reaches
+    // the node while neither `page.on('request')` nor the `api` fixture records it at all. This
+    // compares the stored bag before and after, which a real write cannot survive.
+    expect(await accountPreferences(browser)).toEqual(before)
   })
 
   test('AU20: the theme chosen before sign-in survives a reload', async ({
     page,
     context,
-    api,
+    browser,
   }) => {
     await context.addCookies([{ ...PREF_COOKIE, value: prefs('l', 'en') }])
     await page.goto('/')
+    const before = await accountPreferences(browser)
     await expect(page.locator('html')).not.toHaveClass(/dark/)
 
     await page.getByTestId('auth-chrome').getByTestId('theme-select').click()
@@ -67,16 +72,21 @@ test.describe('14 - auth / pre-login chrome', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
     await expect(page.locator('html')).toHaveClass(/dark/)
 
-    expect(api.matching(PATCH_PREFERENCES)).toEqual([])
+    // THE ACCOUNT, not a request pattern. The old form asserted no request MATCHED
+    // `/me/preferences` — and that could never fail: measured, the app's preference PATCH reaches
+    // the node while neither `page.on('request')` nor the `api` fixture records it at all. This
+    // compares the stored bag before and after, which a real write cannot survive.
+    expect(await accountPreferences(browser)).toEqual(before)
   })
 
   test('AU21: no account write is attempted for either control', async ({
     page,
     context,
-    api,
+    browser,
   }) => {
     await context.addCookies([{ ...PREF_COOKIE, value: prefs('d', 'nl') }])
     await page.goto('/')
+    const before = await accountPreferences(browser)
 
     await page.getByTestId('auth-chrome').getByTestId('theme-select').click()
     await expect(page.locator('html')).not.toHaveClass(/dark/)
@@ -87,6 +97,10 @@ test.describe('14 - auth / pre-login chrome', () => {
 
     // Both directions, from the opposite starting state to AU19/AU20 — a guard
     // that only skipped the write in one direction would pass those two.
-    expect(api.matching(PATCH_PREFERENCES)).toEqual([])
+    // THE ACCOUNT, not a request pattern. The old form asserted no request MATCHED
+    // `/me/preferences` — and that could never fail: measured, the app's preference PATCH reaches
+    // the node while neither `page.on('request')` nor the `api` fixture records it at all. This
+    // compares the stored bag before and after, which a real write cannot survive.
+    expect(await accountPreferences(browser)).toEqual(before)
   })
 })

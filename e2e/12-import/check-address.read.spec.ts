@@ -111,12 +111,16 @@ test.describe('12 - import / check address', () => {
     // The prompt called the raw setter and skipped the seed entirely — the bug survived a unit test
     // that only covered the toggle, so the entry point is the case rather than the outcome.
     await expect(page.getByTestId(`map-attach-${ADDRESS_COLUMN}`)).toBeVisible()
+    await setAttach(page, 'every')
     await goToCheck(page)
 
+    // I65's assertion, not "some row has an address". Asserting the FIRST row with an address is
+    // visible is true under `every` AND under `deepest` — so the case would have passed whether or
+    // not the suggested path seeded the attach, which is the one thing its name claims to pin.
+    const total = await rows(page).count()
+    expect(total).toBeGreaterThan(0)
     await expect(
-      page
-        .locator('[data-testid^="check-row-"][data-has-address="true"]')
-        .first()
-    ).toBeVisible()
+      page.locator('[data-testid^="check-row-"][data-has-address="true"]')
+    ).toHaveCount(total)
   })
 })
