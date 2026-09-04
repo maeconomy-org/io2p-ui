@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
-import { tour } from '../utils/selectors'
+import { siblingTestId, tour } from '../utils/selectors'
 import {
   addProperty,
   enterEditMode,
@@ -140,7 +140,7 @@ test.describe('03 - object sheet / value markers', () => {
     await page
       .locator('[data-state="open"][role="dialog"]')
       .last()
-      .getByTestId('formula-sibling-Width')
+      .getByTestId(siblingTestId('Width'))
       .click()
 
     // A third property that is unparseable and bound to NOTHING — the control for the claim that

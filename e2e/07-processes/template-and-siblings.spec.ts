@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { addFlow, createObjectWithId } from '../utils/process'
-import { rowActions, tour } from '../utils/selectors'
+import { rowActions, siblingTestId, tour } from '../utils/selectors'
 import {
   addProperty,
   fillProperty,
@@ -180,11 +180,11 @@ test.describe('07 - processes / template and siblings', () => {
     // INPUT one. Fed only its own bag it would be empty here, and an empty picker looks like a
     // formula with nothing to bind rather than a union that was never assembled.
     const open = page.locator('[data-state="open"][role="dialog"]').last()
-    await expect(open.getByTestId('formula-sibling-Width')).toBeVisible()
+    await expect(open.getByTestId(siblingTestId('Width'))).toBeVisible()
 
     // BOTH ARMS. The docblock says the union spans "the process's own properties AND every flow",
     // and the assertion above only proves flow-to-flow. An implementation that unioned the flows
     // and dropped the process-level bag would pass it while breaking half of what D76 promises.
-    await expect(open.getByTestId('formula-sibling-Batch')).toBeVisible()
+    await expect(open.getByTestId(siblingTestId('Batch'))).toBeVisible()
   })
 })

@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
-import { tour } from '../utils/selectors'
+import { siblingTestId, tour } from '../utils/selectors'
 import {
   addProperty,
   expandProperty,
@@ -116,7 +116,7 @@ test.describe('03 - object sheet / template selector', () => {
     await page.getByTestId(`formula-option-${FORMULA}`).click()
     await page.getByTestId('formula-bind-x').click()
     const open = page.locator('[data-state="open"][role="dialog"]').last()
-    await open.getByTestId('formula-sibling-Width').click()
+    await open.getByTestId(siblingTestId('Width')).click()
     await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
     await expect(rowFor(page, CALC_TEMPLATE)).toHaveCount(1)

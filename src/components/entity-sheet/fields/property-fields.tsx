@@ -129,6 +129,9 @@ function collectSiblings(
       if (text !== '' && !Number.isFinite(num)) return
       out.push({
         key,
+        // The raw key, never the resolved label — the label is localized and the option's testid is
+        // built from this.
+        propertyKey: p.key ?? p.label ?? '',
         label: resolvePropertyLabel(p.key, p.label, locale) || '—',
         num: Number.isFinite(num) ? num : undefined,
       })

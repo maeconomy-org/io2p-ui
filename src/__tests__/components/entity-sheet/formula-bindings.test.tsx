@@ -42,9 +42,11 @@ vi.mock('@/hooks/api/leaves', () => ({
   }),
 }))
 
+// `key` is the VALUE id and `propertyKey` the property's — the option's testid is built from the
+// latter, so the two are deliberately different here.
 const SIBLINGS = [
-  { key: 'v-1', label: 'Volume', num: 10 },
-  { key: 'v-2', label: 'Height', num: 3 },
+  { key: 'v-1', propertyKey: 'volume', label: 'Volume', num: 10 },
+  { key: 'v-2', propertyKey: 'height', label: 'Height', num: 3 },
 ]
 
 const EMPTY_CALC: CalcInput = { formulaId: 'f-1', args: [] }
@@ -119,7 +121,7 @@ describe('FormulaBindings', () => {
             { var: 'co2_factor', constantId: 'c-1' },
           ],
         }}
-        siblings={[{ key: 'v-3', label: 'Empty' }]}
+        siblings={[{ key: 'v-3', propertyKey: 'empty', label: 'Empty' }]}
         onChange={vi.fn()}
       />
     )

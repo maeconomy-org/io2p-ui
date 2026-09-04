@@ -39,6 +39,15 @@ import { SEARCH_SIZE } from '@/constants'
  */
 export interface FormulaSibling {
   key: string
+  /**
+   * The PROPERTY's stable key, as distinct from `key` above — which is the value's id.
+   *
+   * Carried only so the option can be addressed by something that does not move: the testid used to
+   * be minted from `label`, and `label` is `resolvePropertyLabel(...)`, so `width` rendered as
+   * `formula-sibling-Width` in English and `formula-sibling-Breedte` in Dutch. Three spec files were
+   * silently coupled to the account's language that way.
+   */
+  propertyKey: string
   label: string
   num?: number
 }
@@ -484,7 +493,7 @@ function BindingPicker({
                   <CommandItem
                     key={s.key}
                     value={`sibling:${s.key}`}
-                    data-testid={`formula-sibling-${s.label}`}
+                    data-testid={`formula-sibling-${s.propertyKey}`}
                     onSelect={choose}
                   >
                     <span className="min-w-0 flex-1 truncate">{s.label}</span>

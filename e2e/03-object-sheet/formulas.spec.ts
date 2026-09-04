@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { E2E_ROUND_TRIP_FORMULAS } from '../utils/formula-fixtures'
-import { tour } from '../utils/selectors'
+import { formulaSibling, siblingTestId, tour } from '../utils/selectors'
 import {
   addProperty,
   enterEditMode,
@@ -130,7 +130,7 @@ test.describe('03 - object sheet / formulas', () => {
     await expect(page.getByTestId('formula-var-x')).toBeVisible()
     await expect(page.getByTestId('formula-preview')).toHaveCount(0)
 
-    await bind(page, 'x', 'formula-sibling-Width')
+    await bind(page, 'x', siblingTestId('Width'))
     await expect(page.getByTestId('formula-preview')).toContainText('20')
     await expect(page.getByTestId('formula-preview')).toHaveAttribute(
       'data-error',
@@ -158,12 +158,12 @@ test.describe('03 - object sheet / formulas', () => {
     await page.getByTestId('formula-bind-a').click()
 
     // A template arrives with blanks already bound, so an empty sibling has to be offerable.
-    await expect(page.getByTestId('formula-sibling-Blank')).toBeVisible()
-    await expect(page.getByTestId('formula-sibling-Numeric')).toBeVisible()
+    await expect(formulaSibling(page, 'Blank')).toBeVisible()
+    await expect(formulaSibling(page, 'Numeric')).toBeVisible()
     // Text would evaluate to NaN, so it is not a binding target at all.
-    await expect(page.getByTestId('formula-sibling-Wordy')).toHaveCount(0)
+    await expect(formulaSibling(page, 'Wordy')).toHaveCount(0)
 
-    await page.getByTestId('formula-sibling-Blank').click()
+    await formulaSibling(page, 'Blank').click()
     // Bound but unfilled: there is nothing honest to preview yet.
     await expect(page.getByTestId('formula-preview')).toHaveCount(0)
   })
@@ -206,7 +206,7 @@ test.describe('03 - object sheet / formulas', () => {
       for (const [variable, property] of Object.entries(
         fixture.variableMapping
       )) {
-        await bind(page, variable, `formula-sibling-${property}`)
+        await bind(page, variable, siblingTestId(property))
       }
       await expect(page.getByTestId('formula-preview')).toContainText(
         fixture.expectedResult
@@ -240,7 +240,7 @@ test.describe('03 - object sheet / formulas', () => {
     await addProperty(page, 1)
     await page.getByTestId('property-name-1').fill('Tripled')
     await chooseFormula(page, 1, formulaName)
-    await bind(page, 'x', 'formula-sibling-Base')
+    await bind(page, 'x', siblingTestId('Base'))
     await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
@@ -270,7 +270,7 @@ test.describe('03 - object sheet / formulas', () => {
     await addProperty(page, 1)
     await page.getByTestId('property-name-1').fill('Quad')
     await chooseFormula(page, 1, formulaName)
-    await bind(page, 'x', 'formula-sibling-Base')
+    await bind(page, 'x', siblingTestId('Base'))
     await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
@@ -312,7 +312,7 @@ test.describe('03 - object sheet / formulas', () => {
     await addProperty(page, 1)
     await page.getByTestId('property-name-1').fill('Answer')
     await chooseFormula(page, 1, formulaName)
-    await bind(page, 'x', 'formula-sibling-Seed')
+    await bind(page, 'x', siblingTestId('Seed'))
     await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
@@ -338,7 +338,7 @@ test.describe('03 - object sheet / formulas', () => {
     await addProperty(page, 1)
     await page.getByTestId('property-name-1').fill('Plus')
     await chooseFormula(page, 1, formulaName)
-    await bind(page, 'x', 'formula-sibling-Start')
+    await bind(page, 'x', siblingTestId('Start'))
     await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 

@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
-import { tour } from '../utils/selectors'
+import { formulaSibling, tour } from '../utils/selectors'
 
 /**
  * Sharing a template offers to share the formulas and constants its recipes bind.
@@ -223,10 +223,10 @@ test.describe('03 - object sheet / binding scope', () => {
     // `collectSiblings` resolves a dictionary key through `resolvePropertyLabel` — so a key the
     // dictionary knows comes back as its display name.
     await page.getByTestId('binding-scope-constants').click()
-    await expect(page.getByTestId('formula-sibling-Width')).toHaveCount(0)
+    await expect(formulaSibling(page, 'Width')).toHaveCount(0)
 
     await page.getByTestId('binding-scope-siblings').click()
-    await expect(page.getByTestId('formula-sibling-Width')).toBeVisible()
+    await expect(formulaSibling(page, 'Width')).toBeVisible()
     await expect(page.getByTestId(/^formula-constant-/)).toHaveCount(0)
   })
 })
