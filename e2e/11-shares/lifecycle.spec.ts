@@ -101,14 +101,18 @@ test.describe('11 - shares / lifecycle', () => {
     // that trigger has no text — an icon and a bare count, so its accessible name is the number.
     await detail.getByTestId('share-detail-tab-members').click()
 
-    // `badge.tsx` states the contract this pins: "Colour is never alone: every tone keeps its text
-    // label, so removing the colour loses nothing." The four tones differ only in hue, so a badge
-    // that lost its label would still LOOK right to anyone who can see it.
-    const badge = detail
-      .locator('span')
-      .filter({ hasText: new RegExp(`^(${PERMISSION_LABELS.join('|')})$`) })
-      .first()
-    await expect(badge).toBeVisible()
+    // EVERY badge, by testid, not the first span whose text happens to match. "Share" is itself a
+    // permission label AND a word all over the shares page, so a bare text match could land on
+    // chrome and pass with every badge stripped. And the contract `badge.tsx` states is universal —
+    // "Colour is never alone: every tone keeps its text label" — so asserting one labelled badge
+    // exists only coincides with it while the fixture has a single member.
+    const badges = detail.getByTestId('permission-badge')
+    await expect(badges.first()).toBeVisible()
+    const labels = await badges.allTextContents()
+    expect(labels.length).toBeGreaterThan(0)
+    for (const label of labels) {
+      expect(PERMISSION_LABELS).toContain(label.trim())
+    }
   })
 
   test('S7: a deleted bundle offers Duplicate, and no restore', async ({
@@ -139,6 +143,11 @@ test.describe('11 - shares / lifecycle', () => {
     await expect(deletedActions.action('duplicate')).toBeVisible()
     await expect(deletedActions.action('delete')).toHaveCount(0)
     await expect(deletedActions.action('edit')).toHaveCount(0)
+    // ⚠ A GUARD FOR THE FUTURE, not a check on the present: `share-action-restore` exists nowhere
+    // in the app, so today this cannot fail. It is kept because `rowActions` mints
+    // `${prefix}-action-${key}`, so a restore action added later would land on exactly this id and
+    // this line would catch it. The two above it are doing real work — `delete` and `edit` DO exist
+    // and are genuinely absent here.
     await expect(page.getByTestId('share-action-restore')).toHaveCount(0)
 
     await page.keyboard.press('Escape')
@@ -193,6 +202,9 @@ test.describe('11 - shares / lifecycle', () => {
     await expect
       .poll(() => deletes.length, { message: 'DELETE /shares calls' })
       .toBe(1)
-    await expect(page.getByTestId('bulk-bar')).toHaveCount(0)
+    // The app KNEW it stopped. `deletes.length === 1` alone is also what "fired one and then fell
+    // over" looks like — a re-render dropping the pending list, the dialog unmounting the handler.
+    // A loop that stopped deliberately reports; one that fell over does not.
+    await expect(page.getByText(/could not delete/i).first()).toBeVisible()
   })
 })

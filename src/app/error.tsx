@@ -27,7 +27,10 @@ export default function Error({ error, reset }: ErrorBoundaryProps) {
   }, [error])
 
   return (
-    <div className="flex items-center justify-center min-h-[60vh] p-4">
+    <div
+      data-testid="error-boundary"
+      className="flex items-center justify-center min-h-[60vh] p-4"
+    >
       <div className="max-w-md w-full text-center">
         <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
         <h2 className="text-xl font-semibold mb-2">

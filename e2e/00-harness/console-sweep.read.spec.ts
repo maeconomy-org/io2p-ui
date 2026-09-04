@@ -48,6 +48,13 @@ const SIGNED_OUT = ['/', '/forgot-password', '/reset-password']
  */
 async function settle(page: Page): Promise<void> {
   await expect(page.getByRole('heading').first()).toBeVisible()
+  // A HEADING IS NOT THE ROUTE. Every segment has an `error.tsx`, and that fallback renders one —
+  // so a route that crashed into its boundary satisfies the assertion above, and a boundary that
+  // swallowed the error (which is its job; production React does not re-throw) leaves nothing for
+  // `consoleGuard` either. Without this line the sweep promises "every route renders" and delivers
+  // "something with a heading appeared and nothing shouted" — and the crash it was written after
+  // was exactly a route unmounting into its boundary.
+  await expect(page.getByTestId('error-boundary')).toHaveCount(0)
   await page.waitForTimeout(1_500)
 }
 
@@ -70,15 +77,17 @@ test.describe('00 - harness / console sweep (en)', () => {
     await settle(page)
   })
 
-  test('H1b: the lab prototype is not reachable from the app', async ({
-    page,
-  }) => {
-    await page.goto('/objects')
-    await expect(page.getByTestId('data-table').last()).toBeVisible()
-
-    // It ships in the production bundle, which is a note for `03-known-issues.md` rather than a
+  test('H1b: no swept route links to the lab prototype', async ({ page }) => {
+    // EVERY swept route, not just `/objects` — the earlier version checked one page and was named
+    // as though it covered the app, so a link from anywhere else passed.
+    //
+    // That it ships in the production bundle at all is a note for `03-known-issues.md` rather than a
     // failure here. What must stay true is that nothing LINKS to it.
-    await expect(page.locator('a[href*="import-lab"]')).toHaveCount(0)
+    for (const path of SIGNED_IN) {
+      await page.goto(path)
+      await expect(page.getByRole('heading').first()).toBeVisible()
+      await expect(page.locator('a[href*="import-lab"]')).toHaveCount(0)
+    }
   })
 })
 

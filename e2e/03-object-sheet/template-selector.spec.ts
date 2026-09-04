@@ -133,6 +133,11 @@ test.describe('03 - object sheet / template selector', () => {
     api,
   }) => {
     await openCreateSheet(page)
+    // Cleared so the set is the SELECTOR's own calls. Asserting over every `/templates?` request in
+    // the test is stronger than the contract: a lean list is the RIGHT shape for a table, so the day
+    // anything else on this path lists templates leanly, C7 would go red on correct behaviour while
+    // wearing the name of a regression it is not.
+    api.clear()
     await openSelector(page, TEMPLATE)
 
     // Every templates call the selector made, not just one of them: `keepPreviousData` and the
@@ -200,7 +205,17 @@ test.describe('03 - object sheet / template selector', () => {
     // `applyTemplate` copies the name ONLY into an empty field — overwriting what someone just
     // typed would be the more obvious implementation and the wrong one. The properties still apply.
     await expect(panel.getByLabel(/name/i).first()).toHaveValue(typed)
-    await expect(page.getByTestId('property-row-0')).toBeVisible()
+    // The property CONTENT, not merely that a row exists. A bare row assertion only catches the
+    // "bails out entirely" variant if a fresh create sheet renders no rows — true today, but a
+    // fixture detail nothing states. This distinguishes "applied the preset" from "rendered an
+    // empty row" without depending on it.
+    //
+    // C6 is the other half of this pair: it pins copy-WHEN-empty, and only together do the two say
+    // "only into an empty field". Deleting C6 silently weakens this case.
+    // Expanded first: a loaded row renders COLLAPSED and Radix unmounts a collapsed body, so the
+    // name input does not exist until it is opened.
+    await expandProperty(page, 0)
+    await expect(page.getByTestId('property-name-0')).toHaveValue(PROPS[0].name)
   })
 
   test('C9: a template formula arrives as a formula, not as text', async ({

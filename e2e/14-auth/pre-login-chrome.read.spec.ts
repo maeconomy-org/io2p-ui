@@ -47,10 +47,10 @@ test.describe('14 - auth / pre-login chrome', () => {
     expect((await response?.text()) ?? '').toContain('lang="nl"')
     await expect(page.getByText('Hulp nodig met authenticatie?')).toBeVisible()
 
-    // THE ACCOUNT, not a request pattern. The old form asserted no request MATCHED
-    // `/me/preferences` — and that could never fail: measured, the app's preference PATCH reaches
-    // the node while neither `page.on('request')` nor the `api` fixture records it at all. This
-    // compares the stored bag before and after, which a real write cannot survive.
+    // THE ACCOUNT, not a request pattern. The old form asserted that no request matched
+    // `/me/preferences`, which tested the carrier rather than the outcome and depended on a regex
+    // nothing verified. Comparing the stored bag before and after is what a real write cannot
+    // survive, whatever route it took to get there.
     expect(await accountPreferences(browser)).toEqual(before)
   })
 
@@ -72,10 +72,10 @@ test.describe('14 - auth / pre-login chrome', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
     await expect(page.locator('html')).toHaveClass(/dark/)
 
-    // THE ACCOUNT, not a request pattern. The old form asserted no request MATCHED
-    // `/me/preferences` — and that could never fail: measured, the app's preference PATCH reaches
-    // the node while neither `page.on('request')` nor the `api` fixture records it at all. This
-    // compares the stored bag before and after, which a real write cannot survive.
+    // THE ACCOUNT, not a request pattern. The old form asserted that no request matched
+    // `/me/preferences`, which tested the carrier rather than the outcome and depended on a regex
+    // nothing verified. Comparing the stored bag before and after is what a real write cannot
+    // survive, whatever route it took to get there.
     expect(await accountPreferences(browser)).toEqual(before)
   })
 
@@ -97,10 +97,10 @@ test.describe('14 - auth / pre-login chrome', () => {
 
     // Both directions, from the opposite starting state to AU19/AU20 — a guard
     // that only skipped the write in one direction would pass those two.
-    // THE ACCOUNT, not a request pattern. The old form asserted no request MATCHED
-    // `/me/preferences` — and that could never fail: measured, the app's preference PATCH reaches
-    // the node while neither `page.on('request')` nor the `api` fixture records it at all. This
-    // compares the stored bag before and after, which a real write cannot survive.
+    // THE ACCOUNT, not a request pattern. The old form asserted that no request matched
+    // `/me/preferences`, which tested the carrier rather than the outcome and depended on a regex
+    // nothing verified. Comparing the stored bag before and after is what a real write cannot
+    // survive, whatever route it took to get there.
     expect(await accountPreferences(browser)).toEqual(before)
   })
 })

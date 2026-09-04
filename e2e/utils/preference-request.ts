@@ -6,14 +6,18 @@ import { AUTH_STATE } from '../setup/credentials'
  * The account's stored preferences, read from an ALREADY-AUTHENTICATED context.
  *
  * The signed-out cases in `14-auth/pre-login-chrome.read.spec.ts` assert that a theme or language
- * click writes NOTHING to the account. They used to assert that no request matched a pattern, and
- * that was vacuous: measured on 2026-09-04, the app's preference PATCH reaches the node — the
- * account really changes — while neither `page.on('request')` nor the `api` fixture ever records
- * it. Sixty-five requests captured on a write that landed, methods GET and POST only. An assertion
- * denying that request could not have failed whatever the app did.
+ * click writes NOTHING to the account. They used to assert that no REQUEST matched
+ * `/me/preferences`, and this reads the stored bag instead — a stronger assertion, because it tests
+ * the outcome rather than the mechanism that carries it. Inverted: a preference written mid-case
+ * fails those cases, where the request form stayed green.
  *
- * The account is the state those cases are actually about, and a write that happened changes it
- * whether or not anything saw the request.
+ * ⚠ CORRECTION, 2026-09-04. An earlier version of this comment said the `api` fixture cannot see a
+ * preference PATCH at all. That was wrong, and it was wrong the same way SH1's header was: the
+ * probe behind it clicked the control BEFORE hydration and without a `toPass` retry, so no write
+ * ever happened — and "no request recorded" got read as "no request recordable". Re-measured with a
+ * hydration-safe click, both `page.on('request')` and the fixture record
+ * `PATCH /api/v1/me/preferences` exactly as the SDK issues it. The fixture is fine. Nothing else in
+ * this suite should be built on the claim that it is not.
  *
  * A SEPARATE context carrying `AUTH_STATE`, never a sign-in on the page under test: io2p-auth keeps
  * one live session per origin, so signing in from the signed-out page would end the session every

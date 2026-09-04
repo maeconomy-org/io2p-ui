@@ -175,7 +175,11 @@ export function ShareDetailSheet({
                   <span className="min-w-0 flex-1 truncate">
                     {member.name ?? member.userId}
                   </span>
-                  <Badge variant={member.permission} className="h-5 shrink-0">
+                  <Badge
+                    variant={member.permission}
+                    data-testid="permission-badge"
+                    className="h-5 shrink-0"
+                  >
                     {t(`access.permission.${member.permission}`)}
                   </Badge>
                 </div>
