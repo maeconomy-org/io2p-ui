@@ -46,8 +46,13 @@ export async function ensureRootObjects(page: Page): Promise<void> {
 
     // `parent=` empty asks for ROOTS, which is what the list renders. Counting every object would
     // top up to a number the page never shows.
+    //
+    // `scope=all` because the objects page reads the `objectsScope` preference, whose default is
+    // `all`, while the endpoint defaults to `mine`. Counting only owned roots over-seeds on an
+    // account holding shared ones — safe in direction, but it writes objects nobody asked for and
+    // says nothing about why.
     const listed = await fetch(
-      `${config.coreBaseUrl}/api/v1/objects?parent=&page=1&size=1`,
+      `${config.coreBaseUrl}/api/v1/objects?parent=&scope=all&page=1&size=1`,
       { headers: auth }
     )
     if (!listed.ok) return `list objects failed: ${listed.status}`
@@ -57,11 +62,18 @@ export async function ensureRootObjects(page: Page): Promise<void> {
     const have = body.page?.totalElements ?? 0
     if (have >= minimum) return null
 
+    const stamp = Date.now()
+
     for (let i = have; i < minimum; i++) {
       const created = await fetch(`${config.coreBaseUrl}/api/v1/objects`, {
         method: 'POST',
         headers: { ...auth, 'content-type': 'application/json' },
-        body: JSON.stringify({ name: `e2e-fixture-root-${i + 1}` }),
+        // A run id, not just the index. `i` starts at the current count, so after the write specs
+        // soft-delete a few roots the next run mints a SECOND `…-root-21` — latent today, and a
+        // strict-mode violation the day a spec searches for one of these names.
+        body: JSON.stringify({
+          name: `e2e-fixture-root-${stamp}-${i + 1}`,
+        }),
       })
       if (!created.ok) return `create object failed: ${created.status}`
     }
