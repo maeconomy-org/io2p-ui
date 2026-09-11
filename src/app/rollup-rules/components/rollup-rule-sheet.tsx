@@ -487,7 +487,10 @@ function RollupRuleEdit({
   const collides = normalized !== '' && normalized === rule.propertyKey
   const nonNumeric = normalized !== '' && isCertainlyNonNumericKey(normalized)
 
-  const current = rule.multiplyBy?.propertyKey ?? ''
+  // BOTH sides normalized. Comparing the resolved draft against the RAW stored key opened
+  // the sheet with Save already enabled on any rule whose key is a dictionary alias, and one
+  // click then re-pointed the multiplier the user never touched.
+  const current = normalizeRollupPropertyKey(rule.multiplyBy?.propertyKey ?? '')
   const changed = normalized !== current
   const canSave = changed && !collides && !updateMutation.isPending
 
@@ -500,7 +503,17 @@ function RollupRuleEdit({
       await updateMutation.mutateAsync({
         id: rule.id,
         body: {
-          multiplyBy: normalized ? { propertyKey: normalized } : null,
+          // `whenMissing` rides along. The node `$set`s the whole sub-document, so omitting
+          // it silently resets a `skip` rule to the `one` default — every total moves, and
+          // the user was never shown the flag to know they had changed it.
+          multiplyBy: normalized
+            ? {
+                propertyKey: normalized,
+                ...(rule.multiplyBy?.whenMissing === undefined
+                  ? {}
+                  : { whenMissing: rule.multiplyBy.whenMissing }),
+              }
+            : null,
         },
       })
       toast.success(t('rollupRules.updated'))

@@ -4,6 +4,7 @@ import {
   buildUpdateObjectBody,
   dtoToDraft,
   findEmptyPropertyKey,
+  findEmptyFlowPropertyKey,
   type EntityDraft,
 } from '@/lib/entity'
 import type { ObjectDTO } from 'io2p-client'
@@ -214,5 +215,51 @@ describe('soft-deleted sub-items from an includeDeleted read', () => {
 
     const body = buildUpdateObjectBody(withDeleted, draft)
     expect(body.properties).toBeUndefined()
+  })
+})
+
+describe('findEmptyFlowPropertyKey', () => {
+  const prop = (key: string, data: string) => ({
+    key,
+    values: [{ data }],
+  })
+  const flow = (properties: ReturnType<typeof prop>[]) => ({
+    ref: 'f1',
+    properties,
+  })
+
+  it('finds a nameless flow property carrying a value', () => {
+    // The process sheet mounts PropertyFields on every flow, and the builder drops a
+    // blank-key property — so this value was silently discarded under a success toast.
+    expect(
+      findEmptyFlowPropertyKey({
+        inputs: [flow([prop('mass', '5'), prop('', '12 kg')])],
+        outputs: [],
+      })
+    ).toBe('inputs.0.properties.1.key')
+  })
+
+  it('finds one on an OUTPUT flow too, and reports the right index', () => {
+    expect(
+      findEmptyFlowPropertyKey({
+        inputs: [],
+        outputs: [flow([]), flow([prop('', '3')])],
+      })
+    ).toBe('outputs.1.properties.0.key')
+  })
+
+  it('ignores a nameless property with nothing in it', () => {
+    // An empty row is how the form starts; only a row carrying something is a loss.
+    expect(
+      findEmptyFlowPropertyKey({
+        inputs: [flow([prop('', '')])],
+        outputs: [],
+      })
+    ).toBeNull()
+  })
+
+  it('returns null for a process with no flows', () => {
+    expect(findEmptyFlowPropertyKey({ inputs: [], outputs: [] })).toBeNull()
+    expect(findEmptyFlowPropertyKey({})).toBeNull()
   })
 })

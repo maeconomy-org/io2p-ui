@@ -630,6 +630,7 @@
       "rollupNoNumbers": "No numeric values",
       "rollupOnlyThisObject": "This object only",
       "rollupSplitLabel": "{own} here, {below} below",
+      "rollupMultipliedBy": "× {key}",
       "rollupDerived": "Derived"
     },
     "duplicate": {

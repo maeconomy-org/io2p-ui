@@ -103,19 +103,40 @@ function useObjectSubtree(
 export const ROLLUP_POLL_MS = 30_000
 
 /**
- * Keep polling while any rule's recompute is still queued. One stale entry is enough — the others
- * being settled says nothing about that one.
+ * How many consecutive ticks a never-computed entry is worth waiting for.
  *
- * `stale` alone is the condition. A never-computed entry (`computedAt: null`) used to be excluded,
- * because a rule armed nothing and the worker only recomputed on a write to the subtree — so such
- * an entry could not change and polling it burned the budget forever. The node now arms every
- * holder when a rule changes, so `computedAt: null` means ARRIVING, and excluding it refused to
- * poll for exactly the entry about to land.
+ * The node returns ONE ENTRY PER VISIBLE RULE on every object, and synthesizes
+ * `{ stale: true, computedAt: null }` for any that has no state row. A row is only ever
+ * materialized for an entity that HOLDS the rule's key or is an ancestor of one — arming
+ * fans out over key-holders, and the reconcile's never-computed scan does too — so an object
+ * whose whole subtree holds none of a rule's key has an entry that is permanently
+ * `stale: true`. With twelve seeded system rules that is almost every object.
+ *
+ * `stale` alone therefore polls forever on nearly every open sheet. But an ARRIVING entry
+ * looks identical on the wire, and refusing to poll it was the previous bug (a correctly
+ * configured rule showed nothing until the sheet was reopened). Nothing distinguishes them,
+ * so the honest answer is a BOUND, not a predicate: wait a few minutes for something that
+ * may be arriving, then stop. Reopening the sheet starts a fresh window.
+ */
+const NEVER_COMPUTED_TICKS = 10 // 10 x 30s = 5 minutes
+
+/**
+ * Keep polling while any rule's recompute is still queued. One stale entry is enough — the
+ * others being settled says nothing about that one.
+ *
+ * An entry with a `computedAt` is a KNOWN recompute of an existing row: it is definitely
+ * moving, so it is polled without limit. An entry that has never computed is polled only
+ * while `ticks` is inside the bound above — see `NEVER_COMPUTED_TICKS` for why the two
+ * cannot be told apart any other way.
  */
 export function rollupPollInterval(
-  data: { data: EntityRollupEntry[] } | undefined
+  data: { data: EntityRollupEntry[] } | undefined,
+  ticks = 0
 ): number | false {
-  return data?.data.some((entry) => entry.stale) ? ROLLUP_POLL_MS : false
+  const stale = data?.data.filter((entry) => entry.stale) ?? []
+  if (stale.length === 0) return false
+  if (stale.some((entry) => entry.computedAt !== null)) return ROLLUP_POLL_MS
+  return ticks < NEVER_COMPUTED_TICKS ? ROLLUP_POLL_MS : false
 }
 
 /**
@@ -138,7 +159,11 @@ function useObjectRollups(
     // The app-wide default is 30s, so without this a poll tick landing inside that window is
     // served from cache: the interval fires and the number never moves.
     staleTime: 0,
-    refetchInterval: (query) => rollupPollInterval(query.state.data),
+    // `dataUpdateCount` is the tick counter: it rises once per settled fetch, so it counts
+    // this query's polls for as long as the sheet holds it. A remount starts it at 0 again,
+    // which is the intended escape hatch — reopening a sheet re-asks.
+    refetchInterval: (query) =>
+      rollupPollInterval(query.state.data, query.state.dataUpdateCount - 1),
   })
 }
 

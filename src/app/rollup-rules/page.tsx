@@ -61,6 +61,7 @@ export default function RollupRulesPage() {
   const locale = useLocale() as PropertyDictionaryLocale
 
   const [sheet, setSheet] = useState<SheetState | null>(null)
+  const [recomputingId, setRecomputingId] = useState<string | null>(null)
   const [owner, setOwner] = useState<OwnerFilterValue>(undefined)
 
   useTourAction(TOUR_ACTIONS.createRollupRule, () =>
@@ -105,15 +106,23 @@ export default function RollupRulesPage() {
    */
   const handleRecompute = useCallback(
     async (rule: RollupRuleDTO) => {
+      // 202 returns instantly and the work is invisible, so this is exactly the button a
+      // user presses again. Each press is a full node-wide fan-out on the bulk lane — the
+      // most expensive thing a single click can start here — and the shared mutation's
+      // `isPending` cannot gate a row action that renders from a menu. Gate on the RULE.
+      if (recomputingId !== null) return
+      setRecomputingId(rule.id)
       try {
         await recomputeMutation.mutateAsync({ id: rule.id })
         toast.success(t('rollupRules.recomputeQueued'))
       } catch (error) {
         const { key, values } = rollupRuleErrorMessage(error)
         toast.error(t(key, values))
+      } finally {
+        setRecomputingId(null)
       }
     },
-    [recomputeMutation, t]
+    [recomputeMutation, recomputingId, t]
   )
 
   const actions: RollupRuleColumnActions = useMemo(

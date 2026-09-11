@@ -696,12 +696,41 @@ export function uploadTasksFrom(
  * property is silently dropped by the builders — so the user would "save" work that never persists.
  * Returns -1 when the draft is clean.
  */
+function carriesSomething(p: DraftProperty): boolean {
+  if (p.deleted || p.key.trim() !== '') return false
+  const hasValue = p.values.some((v) => (v.data ?? '').trim() !== '' || v.calc)
+  return hasValue || (p.files?.length ?? 0) > 0
+}
+
 export function findEmptyPropertyKey(draft: EntityDraft): number {
-  return draft.properties.findIndex((p) => {
-    if (p.deleted || p.key.trim() !== '') return false
-    const hasValue = p.values.some(
-      (v) => (v.data ?? '').trim() !== '' || v.calc
-    )
-    return hasValue || (p.files?.length ?? 0) > 0
-  })
+  return draft.properties.findIndex((p) => carriesSomething(p))
+}
+
+/**
+ * The same guard over a PROCESS's flow properties, which live at
+ * `inputs.N.properties` / `outputs.N.properties` and are not in `draft.properties`.
+ *
+ * The process sheet mounts `PropertyFields` on every flow, and the builder drops a
+ * blank-key property — so a value typed on a nameless flow property was discarded on save,
+ * with a success toast. That is the exact loss the guard exists to prevent, on the one sheet
+ * that could reach it. Returns the RHF path to focus, or `null`.
+ */
+export function findEmptyFlowPropertyKey(
+  draft: Pick<EntityDraft, 'inputs' | 'outputs'>
+):
+  | `inputs.${number}.properties.${number}.key`
+  | `outputs.${number}.properties.${number}.key`
+  | null {
+  for (const side of ['inputs', 'outputs'] as const) {
+    const flows = draft[side] ?? []
+    for (const [flowIndex, flow] of flows.entries()) {
+      const propertyIndex = (flow.properties ?? []).findIndex((p) =>
+        carriesSomething(p)
+      )
+      if (propertyIndex >= 0) {
+        return `${side}.${flowIndex}.properties.${propertyIndex}.key` as const
+      }
+    }
+  }
+  return null
 }

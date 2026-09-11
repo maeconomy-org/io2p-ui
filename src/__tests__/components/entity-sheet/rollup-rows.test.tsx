@@ -819,6 +819,54 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByText('820')).toBeInTheDocument()
   })
 
+  // Two rules on ONE key: the built-in Sum plus a user rule that multiplies. Keying the map by
+  // `propertyKey` kept only the last of them, and the seed id sorts after a uuid, so the scaled
+  // total never rendered at all.
+  it('renders one card per rule when several cover the same key', () => {
+    // The parent from the field report: it authors neither key, so both totals are orphan cards.
+    renderRollups(
+      [],
+      new Map([
+        [
+          'seed:rollup-rule:mass',
+          entry({
+            ruleId: 'seed:rollup-rule:mass',
+            descendantCount: 1,
+            buckets: [
+              bucket({
+                dimension: 'mass',
+                unit: 'kg',
+                num: 7.5,
+                contributorCount: 1,
+              }),
+            ],
+          }),
+        ],
+        [
+          'rule-scaled',
+          entry({
+            ruleId: 'rule-scaled',
+            multipliedBy: 'quantity',
+            descendantCount: 1,
+            buckets: [
+              bucket({
+                dimension: 'mass',
+                unit: 'kg',
+                num: 22.5,
+                unitCount: 3,
+                contributorCount: 1,
+              }),
+            ],
+          }),
+        ],
+      ])
+    )
+
+    expect(screen.getAllByTestId('rollup-card')).toHaveLength(2)
+    expect(screen.getByText('22.5 kg')).toBeInTheDocument()
+    expect(screen.getByTestId('rollup-multiplier')).toBeInTheDocument()
+  })
+
   it('shows totals and orphans in the grid view too', () => {
     view = 'grid'
     renderRollups(

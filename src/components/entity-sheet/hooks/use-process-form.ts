@@ -14,6 +14,7 @@ import { logger } from '@/lib/observability/logger'
 import {
   type EntityDraft,
   findEmptyPropertyKey,
+  findEmptyFlowPropertyKey,
   hasPendingUploads,
   uploadTasksFrom,
   EMPTY_PROCESS_DRAFT,
@@ -96,6 +97,18 @@ export function useProcessForm(
     const nameless = findEmptyPropertyKey(draft)
     if (nameless >= 0) {
       form.setError(`properties.${nameless}.key`, {
+        type: 'required',
+        message: 'objects.saveError.propertyKeyRequired',
+      })
+      toast.error(t('objects.saveError.propertyKeyRequired'))
+      return
+    }
+
+    // Flow properties are a second mount of the same fields and the builder drops a
+    // blank-key one just the same — without this the value vanishes under a success toast.
+    const namelessFlow = findEmptyFlowPropertyKey(draft)
+    if (namelessFlow) {
+      form.setError(namelessFlow, {
         type: 'required',
         message: 'objects.saveError.propertyKeyRequired',
       })

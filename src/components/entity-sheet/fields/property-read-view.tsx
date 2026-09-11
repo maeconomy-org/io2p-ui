@@ -102,7 +102,7 @@ export function PropertyReadView({
 }: {
   properties: DraftProperty[]
   derivedValues: DerivedValues
-  /** Subtree totals keyed by lowercased property key. Objects only; absent elsewhere. */
+  /** Subtree totals keyed by RULE ID — one key can carry several rules. Objects only. */
   rollups?: ReadonlyMap<string, EntityRollupEntry>
   entityId?: string
   onFileChange?: FileChange
@@ -148,7 +148,14 @@ export function PropertyReadView({
    */
   const rollupCards = useMemo(() => {
     if (!liveRollups) return []
-    const byKey = new Map(properties.map((p) => [p.key.toLowerCase(), p]))
+    // LIVE properties only. `liveValues` filters deleted VALUES, not a deleted PROPERTY —
+    // whose values arrive unmarked — while the node sums live search entries. A deleted
+    // `weight` on a parent whose child holds 12 kg made `onlyContributor` true and hid the
+    // card outright; the same map feeds `multiplierValues`, so a deleted `quantity` scaled
+    // a share the node never scaled.
+    const byKey = new Map(
+      properties.filter((p) => !p.deleted).map((p) => [p.key.toLowerCase(), p])
+    )
     return (
       [...liveRollups.values()]
         .map((entry) => {
@@ -207,7 +214,11 @@ export function PropertyReadView({
           }
           return !ownShare(lead, own, multiplierValues)?.onlyContributor
         })
-        .sort((a, b) => a.entry.propertyKey.localeCompare(b.entry.propertyKey))
+        .sort(
+          (a, b) =>
+            a.entry.propertyKey.localeCompare(b.entry.propertyKey) ||
+            a.entry.ruleId.localeCompare(b.entry.ruleId)
+        )
     )
   }, [liveRollups, properties])
 
@@ -360,6 +371,18 @@ function RollupCard({
         <span className="truncate text-sm font-medium">
           {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
         </span>
+        {/* Two rules on one key differ only by their multiplier, so without it both cards read
+            "Weight" and the reader cannot tell which total is which. */}
+        {entry.multipliedBy && (
+          <span
+            className="shrink-0 text-xs text-muted-foreground"
+            data-testid="rollup-multiplier"
+          >
+            {t('objects.properties.rollupMultipliedBy', {
+              key: resolvePropertyLabel(entry.multipliedBy, undefined, locale),
+            })}
+          </span>
+        )}
         <Badge
           variant="secondary"
           className="h-4 shrink-0 px-1 text-[10px] font-normal"

@@ -126,8 +126,11 @@ export function EntitySheet({
     else toast.error(t('objects.drafts.saveFailed'))
   }
 
-  // Subtree totals, keyed by the node's already-lowercased `propertyKey` so the read view can join
-  // on `property.key.toLowerCase()`.
+  // Subtree totals, keyed by RULE ID.
+  //
+  // Not by `propertyKey`: a key can carry several rules — the built-in Sum plus one that multiplies
+  // by `quantity` — and keying by the key silently dropped every rule but the last, so the scaled
+  // total the rule exists to produce never reached the card.
   //
   // Gated on OWNERSHIP, not on `permission`: the node serves this owner-only and answers a
   // non-owner with 404, so a `write` or even `admin` grantee must not ask. `canEdit` is the wrong
@@ -138,7 +141,7 @@ export function EntitySheet({
   })
   const rollups = useMemo(() => {
     const m = new Map<string, EntityRollupEntry>()
-    rollupData?.data.forEach((entry) => m.set(entry.propertyKey, entry))
+    rollupData?.data.forEach((entry) => m.set(entry.ruleId, entry))
     return m
   }, [rollupData])
 

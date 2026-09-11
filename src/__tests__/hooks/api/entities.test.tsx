@@ -209,4 +209,42 @@ describe('entities hooks', () => {
       false
     )
   })
+
+  it('a never-computed entry is polled for a BOUNDED window, not forever', () => {
+    // The node synthesizes `{stale: true, computedAt: null}` for every visible rule with no
+    // state row, and a row exists only for an entity that HOLDS the key or is an ancestor of
+    // one. So an object whose subtree holds none of a rule's key is permanently stale — with
+    // twelve seeded system rules, that is almost every object, and `stale` alone polled every
+    // open sheet every 30s forever.
+    const notYet = {
+      ruleId: 'r1',
+      propertyKey: 'mass',
+      buckets: [],
+      skippedCount: 0,
+      stale: true,
+      computedAt: null,
+    }
+
+    expect(rollupPollInterval({ data: [notYet] }, 0)).toBe(ROLLUP_POLL_MS)
+    expect(rollupPollInterval({ data: [notYet] }, 9)).toBe(ROLLUP_POLL_MS)
+    expect(rollupPollInterval({ data: [notYet] }, 10)).toBe(false)
+    expect(rollupPollInterval({ data: [notYet] }, 99)).toBe(false)
+  })
+
+  it('a stale entry that HAS computed before is polled without a bound', () => {
+    // A `computedAt` proves a row exists, so this is a known recompute of a real total —
+    // it is definitely moving, and giving up on it would strand the number mid-update.
+    const recomputing = {
+      ruleId: 'r1',
+      propertyKey: 'mass',
+      buckets: [],
+      skippedCount: 0,
+      stale: true,
+      computedAt: 1_700_000,
+    }
+
+    expect(rollupPollInterval({ data: [recomputing] }, 500)).toBe(
+      ROLLUP_POLL_MS
+    )
+  })
 })
