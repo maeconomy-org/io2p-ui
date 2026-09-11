@@ -1,155 +1,268 @@
 'use client'
 
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { Preferences, UserDTO } from 'io2p-client'
 
 import { useAuth } from '@/contexts/auth-context'
+import { usePreferenceHints } from '@/contexts/preference-hints-context'
+import { useIomClient } from '@/lib/io2p'
+import { queryKeys } from '@/lib/query-keys'
 import {
-  PREFERENCES_ROOT,
-  PREFERENCES_VERSION,
-  VIEW_PREFERENCES,
-  type ViewPreferenceKey,
-  type ViewPreferenceValues,
+  PREFERENCES,
+  type PreferenceKey,
+  type PreferenceValues,
 } from '@/constants'
 
 /**
- * Account-scoped UI preferences persisted in `localStorage`.
+ * Read + write one account preference, stored on the node.
  *
- * Clones the `useSyncExternalStore` idiom from `use-object-drafts.ts`: a single
- * versioned blob per `userUUID`, a module-level listener set for same-tab sync,
- * a `storage`-event subscription for cross-tab sync, silent-fail `try/catch`,
- * and an SSR-safe server snapshot. All view preferences share one blob, so a
- * single read/write covers them and a future settings page edits the same
- * object with no refactor.
+ * Previously a per-browser `localStorage` blob, which made a preference a
+ * property of the machine rather than of the account: a view set on a laptop
+ * was not the view you got on a phone, and the onboarding seen-flag was shared
+ * by everyone who logged into the same computer.
+ *
+ * The read is free — `users.me()` already runs during auth and carries
+ * `preferences` with it, so this reads out of that cache rather than issuing
+ * anything. The write is a MERGE patch of the single key that changed, which is
+ * what lets two devices edit two different preferences concurrently without one
+ * clobbering the other.
  */
 
-type PreferenceBlob = Partial<ViewPreferenceValues>
-
-const keyFor = (uuid: string) =>
-  `${PREFERENCES_ROOT}:${PREFERENCES_VERSION}:${uuid}`
-
-function readBlob(uuid: string): PreferenceBlob {
-  if (typeof window === 'undefined') return {}
-  try {
-    const raw = localStorage.getItem(keyFor(uuid))
-    if (!raw) return {}
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object'
-      ? (parsed as PreferenceBlob)
-      : {}
-  } catch {
-    return {}
-  }
-}
-
-function isAllowed<K extends ViewPreferenceKey>(
+/**
+ * Validated stored value for `key`, else `fallback`.
+ *
+ * `fallback` is the cookie hint rather than the hardcoded default, so a value
+ * the node has not answered for yet holds the hint continuously. Falling back to
+ * the default instead would flip twice on every cold load: hint, default, real.
+ */
+function resolve<K extends PreferenceKey>(
+  preferences: Preferences | undefined,
   key: K,
-  value: unknown
-): value is ViewPreferenceValues[K] {
-  return (VIEW_PREFERENCES[key].allowed as readonly unknown[]).includes(value)
+  fallback: PreferenceValues[K] = PREFERENCES[key].default
+): PreferenceValues[K] {
+  const spec = PREFERENCES[key]
+  const stored = (
+    preferences?.[spec.ns] as Record<string, unknown> | undefined
+  )?.[spec.key ?? key]
+  return spec.validate(stored) ? stored : fallback
 }
 
-/** Validated stored value for `key`, else the hardcoded default. */
-function resolve<K extends ViewPreferenceKey>(
-  uuid: string | undefined,
-  key: K
-): ViewPreferenceValues[K] {
-  const fallback = VIEW_PREFERENCES[key].default
-  if (!uuid) return fallback
-  const stored = readBlob(uuid)[key]
-  return isAllowed(key, stored) ? stored : fallback
+/** Validated flag read — a flag is set only when the stored value is `true`. */
+function resolveFlag(
+  preferences: Preferences | undefined,
+  ns: string,
+  key: string
+): boolean {
+  return (
+    (preferences?.[ns] as Record<string, unknown> | undefined)?.[key] === true
+  )
 }
 
-function writePreference<K extends ViewPreferenceKey>(
-  uuid: string,
-  key: K,
-  value: ViewPreferenceValues[K]
-) {
-  try {
-    const next = { ...readBlob(uuid), [key]: value }
-    localStorage.setItem(keyFor(uuid), JSON.stringify(next))
-    notify()
-  } catch {
-    // silent fail
-  }
+const emptySubscribe = () => () => {}
+
+/**
+ * `true` once hydrated, and `false` during SSR and the hydrating render.
+ *
+ * A distinct server snapshot is what keeps the first client render identical to
+ * the server's. Same trick the navbar uses to decide ⌘ vs Ctrl.
+ */
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  )
 }
 
-const listeners = new Set<() => void>()
-function notify() {
-  listeners.forEach((l) => l())
-}
-
-function subscribeFactory(uuid: string | undefined) {
-  return (listener: () => void) => {
-    listeners.add(listener)
-    const key = uuid ? keyFor(uuid) : null
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === key || e.key === null) listener()
+/** Two-level merge, `null` deletes — mirrors what the node does server-side. */
+function applyPatch(
+  current: Preferences | undefined,
+  patch: Preferences
+): Preferences {
+  const next: Preferences = { ...current }
+  for (const [ns, bag] of Object.entries(patch)) {
+    const merged = { ...next[ns] }
+    for (const [key, value] of Object.entries(bag)) {
+      if (value === null) delete merged[key]
+      else merged[key] = value
     }
-    window.addEventListener('storage', onStorage)
-    return () => {
-      listeners.delete(listener)
-      window.removeEventListener('storage', onStorage)
-    }
+    next[ns] = merged
   }
-}
-
-function getSnapshotFactory(uuid: string | undefined) {
-  return () => {
-    if (typeof window === 'undefined' || !uuid) return ''
-    // `localStorage` access itself can throw (private mode / blocked storage);
-    // returning '' falls back to defaults instead of crashing the render.
-    try {
-      return localStorage.getItem(keyFor(uuid)) ?? ''
-    } catch {
-      return ''
-    }
-  }
-}
-
-function getServerSnapshot(): string {
-  return ''
+  return next
 }
 
 /**
- * Read + write one account-scoped view preference. Returns `[value, setValue]`
- * like `useState`. `value` is the validated stored value or the hardcoded
- * default. Until `userUUID` resolves (auth init / logged out) it returns the
- * default and `setValue` is a no-op — we never persist without an account.
+ * The WRITE half of the preference layer: optimistic apply, rollback on error,
+ * the server's merged bag wins on success.
+ *
+ * Takes an arbitrary merge patch so the typed hooks above and below it share one
+ * mutation rather than each carrying a copy of this three-way dance.
  */
-export function usePreference<K extends ViewPreferenceKey>(
-  key: K
-): [ViewPreferenceValues[K], (value: ViewPreferenceValues[K]) => void] {
-  const { userUUID } = useAuth()
+function usePreferencePatch(): (patch: Preferences) => void {
+  const iom = useIomClient()
+  const queryClient = useQueryClient()
+  const { isAuthenticated } = useAuth()
 
-  // Recreate subscribe/getSnapshot only when the account changes — the raw
-  // snapshot must keep a stable string identity (parsing happens below).
-  const subscribe = useMemo(() => subscribeFactory(userUUID), [userUUID])
-  const getSnapshot = useMemo(() => getSnapshotFactory(userUUID), [userUUID])
-
-  const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-
-  const value = useMemo<ViewPreferenceValues[K]>(() => {
-    const fallback = VIEW_PREFERENCES[key].default
-    if (!userUUID || !raw) return fallback
-    try {
-      const parsed = JSON.parse(raw) as PreferenceBlob
-      const stored = parsed?.[key]
-      return isAllowed(key, stored) ? stored : fallback
-    } catch {
-      return fallback
-    }
-  }, [raw, key, userUUID])
-
-  const setValue = useCallback(
-    (next: ViewPreferenceValues[K]) => {
-      if (!userUUID) return
-      writePreference(userUUID, key, next)
+  const { mutate } = useMutation({
+    mutationFn: (patch: Preferences) => iom.users.updatePreferences(patch),
+    // A toggle must flip on click, not a round trip later, so patch the cached
+    // user up front and let the response confirm it.
+    // NOT `cancelQueries` first, which is the usual optimistic-update recipe. The query it would
+    // cancel is `/me` — the one whose cached user this very update needs. On a COLD load `/me` is
+    // still in flight when the click lands, so cancelling it means `getQueryData` returns
+    // undefined, the callback below returns `user` untouched, nothing re-renders, and the control
+    // snaps back to the cookie hint. The PATCH still succeeds: the server has the new value and the
+    // screen says otherwise, so the user clicks again. Observed as an aborted `/me` beside a 200
+    // on `/me/preferences`.
+    //
+    // The race `cancelQueries` exists to prevent — an in-flight `/me` resolving afterwards and
+    // overwriting the optimistic value — is handled by re-applying the patch in `onSettled`
+    // instead, which costs nothing when the cache was warm.
+    onMutate: (patch) => {
+      const previous = queryClient.getQueryData<UserDTO>(
+        queryKeys.users.current
+      )
+      queryClient.setQueryData<UserDTO>(queryKeys.users.current, (user) =>
+        user
+          ? { ...user, preferences: applyPatch(user.preferences, patch) }
+          : user
+      )
+      return { previous }
     },
-    [userUUID, key]
-  )
+    onError: (_error, _patch, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.users.current, context.previous)
+      }
+    },
+    // The node returns the FULL merged bag, so trust it over the optimistic
+    // guess — another device may have changed a different key meanwhile.
+    //
+    // `user` can still be undefined here when `/me` has not landed yet, and dropping the write in
+    // that case would discard the one authoritative answer we have. Re-apply it when `/me` arrives
+    // instead: `onSettled` refetches, and the refetch carries the same value the server just
+    // confirmed, so the two agree by construction.
+    onSuccess: (merged) => {
+      queryClient.setQueryData<UserDTO>(queryKeys.users.current, (user) =>
+        user ? { ...user, preferences: merged } : user
+      )
+    },
+    // Covers the cold-load case the removed `cancelQueries` used to (badly): an `/me` that was
+    // already in flight resolves with the value from BEFORE this patch and would overwrite it.
+    // Invalidating makes it refetch once the write has settled, so the cache converges on what the
+    // server actually stores. A no-op when `/me` was already resolved and fresh.
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.current })
+    },
+  })
 
-  return [value, setValue]
+  /**
+   * Signed OUT, the write is SKIPPED rather than attempted and rolled back.
+   *
+   * The auth pages carry a theme and language control of their own, and there is no account yet to
+   * store the choice on — the cookie the caller writes is what the server reads for the next
+   * render, so the change still takes effect. Attempting it anyway 401s on every click, silently
+   * (`onError` only restores the cache), which is a failing request per keystroke for nothing.
+   */
+  return useCallback(
+    (patch: Preferences) => {
+      if (!isAuthenticated) return
+      mutate(patch)
+    },
+    [isAuthenticated, mutate]
+  )
 }
 
-// Test surface + non-hook escape hatch for callers without a React context.
-export { keyFor, readBlob, resolve, writePreference }
+/**
+ * Returns `[value, setValue, resolved]` — `useState` plus a readiness flag.
+ *
+ * `resolved` matters because preferences arrive with `/me`. A caller that
+ * renders the default meanwhile shows the WRONG view and then swaps — a visible
+ * flip on every cold load. Wait on `resolved` and you get one loading state
+ * instead. It follows `authLoading`, so a logged-out or failed auth still
+ * resolves (to the defaults) rather than waiting forever.
+ *
+ * Both returns are HYDRATION-SAFE, and they have to be. A preference lives on
+ * the node, so the server cannot know it: it renders the default and reports
+ * `resolved: false`. The browser restores auth from localStorage synchronously,
+ * so without this its very first render already had the stored value and
+ * `resolved: true` — a guaranteed mismatch on every load of a page that reads
+ * one. It showed up as "Hydration failed" on `/objects` and `/processes`, the
+ * only two pages that gate on `resolved`, while pages that do not were clean.
+ *
+ * `useSyncExternalStore` with a distinct server snapshot is the fix: React uses
+ * that snapshot for SSR *and* for the hydrating render, then re-renders with the
+ * client value. Same trick the navbar uses to decide ⌘ vs Ctrl.
+ *
+ * It stays even though the cookie hint now makes both sides agree by
+ * construction. It is what pins the hydrating render to the hint when React
+ * Query already holds `/me` from an earlier mount — without it the design would
+ * rest on "the cache is definitely cold", which is true today and one refactor
+ * from being false.
+ */
+export function usePreference<K extends PreferenceKey>(
+  key: K
+): [PreferenceValues[K], (value: PreferenceValues[K]) => void, boolean] {
+  const { preferences, authLoading } = useAuth()
+  const hints = usePreferenceHints()
+  const hydrated = useHydrated()
+  const patch = usePreferencePatch()
+
+  const seed = (hints[key as keyof typeof hints] ??
+    PREFERENCES[key].default) as PreferenceValues[K]
+  const stored = useMemo(
+    () => resolve(preferences, key, seed),
+    [preferences, key, seed]
+  )
+  // The seed until hydration, so the first client render matches the server.
+  const value = hydrated ? stored : seed
+
+  const setValue = useCallback(
+    (next: PreferenceValues[K]) => {
+      const { ns, key: storageKey } = PREFERENCES[key]
+      patch({ [ns]: { [storageKey ?? key]: next } })
+    },
+    [patch, key]
+  )
+
+  // `!!preferences` and not just `!authLoading`: a re-created `/me` observer reports settled one
+  // commit before its data lands, and a key with no cookie hint reads as its hardcoded default in
+  // that gap. `onboarding.toursSeen` is the one that matters — an empty list means "never seen".
+  return [value, setValue, hydrated && !authLoading && !!preferences]
+}
+
+/**
+ * One boolean flag under an open key, for a family the registry cannot name
+ * ahead of time — one key per concept hint, rather than one array holding them
+ * all.
+ *
+ * Seven hints means seven independent writers, and the node merges PER KEY: with
+ * an array, two tabs opening two different hints would race and one would lose.
+ * Seven keys cannot.
+ *
+ * The setter takes NO argument. A flag is a one-way latch, so there is no API by
+ * which a caller can clear one by accident.
+ */
+export function useFlagPreference(
+  ns: string,
+  key: string
+): [boolean, () => void, boolean] {
+  const { preferences, authLoading } = useAuth()
+  const hydrated = useHydrated()
+  const patch = usePreferencePatch()
+
+  const stored = resolveFlag(preferences, ns, key)
+  // Never set until hydrated, so the server render and the first client render
+  // agree — a flag is not in the cookie, so the server cannot know it.
+  const value = hydrated ? stored : false
+
+  const mark = useCallback(
+    () => patch({ [ns]: { [key]: true } }),
+    [patch, ns, key]
+  )
+
+  return [value, mark, hydrated && !authLoading]
+}
+
+// Test surface.
+export { resolve, resolveFlag, applyPatch }

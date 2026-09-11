@@ -5,7 +5,7 @@ import { Edit, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/observability/logger'
 import { Button } from '@/components/ui'
 
 export interface EditableSectionProps {
@@ -53,7 +53,7 @@ export function EditableSection({
         toast.success(resolvedSuccessMessage)
       }
     } catch (error) {
-      logger.error('Error saving section:', error)
+      logger.error('Error saving section:', { err: error })
 
       // Always show error toasts
       toast.error(t('common.saveFailed'))

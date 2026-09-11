@@ -77,7 +77,10 @@ export function TablePagination({
     <div className="flex flex-col gap-3 px-2 py-4">
       {/* Results info + rows per page */}
       <div className="flex items-center justify-between gap-2">
-        <div className="text-sm text-muted-foreground">
+        <div
+          className="text-sm text-muted-foreground"
+          data-testid="page-indicator"
+        >
           {t('pagination.showing', {
             start: startItem,
             end: endItem,
@@ -93,7 +96,7 @@ export function TablePagination({
               value={String(pageSize)}
               onValueChange={(value) => onPageSizeChange(Number(value))}
             >
-              <SelectTrigger className="h-8 w-[70px]">
+              <SelectTrigger className="h-8 w-[70px]" data-testid="page-size">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -119,6 +122,8 @@ export function TablePagination({
             disabled={isFirstPage}
             className="size-9 p-0"
             title={t('pagination.first')}
+            aria-label={t('pagination.first')}
+            data-testid="page-first"
           >
             <ChevronsLeft className="size-4" />
           </Button>
@@ -130,6 +135,8 @@ export function TablePagination({
             disabled={isFirstPage}
             className="size-9 p-0"
             title={t('pagination.previous')}
+            aria-label={t('pagination.previous')}
+            data-testid="page-prev"
           >
             <ChevronLeft className="size-4" />
           </Button>
@@ -163,6 +170,7 @@ export function TablePagination({
                       <PaginationLink
                         onClick={() => onPageChange(pageNum)}
                         isActive={currentPage === pageNum}
+                        data-testid={`page-number-${pageNum + 1}`}
                         className="cursor-pointer size-9 p-0 text-xs sm:text-sm"
                       >
                         {pageNum + 1}
@@ -184,6 +192,8 @@ export function TablePagination({
             disabled={isLastPage}
             className="size-9 p-0"
             title={t('pagination.next')}
+            aria-label={t('pagination.next')}
+            data-testid="page-next"
           >
             <ChevronRight className="size-4" />
           </Button>
@@ -195,6 +205,8 @@ export function TablePagination({
             disabled={isLastPage}
             className="size-9 p-0"
             title={t('pagination.last')}
+            aria-label={t('pagination.last')}
+            data-testid="page-last"
           >
             <ChevronsRight className="size-4" />
           </Button>

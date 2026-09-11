@@ -52,8 +52,30 @@ export default [
       // REACT
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
-      'react-hooks/rules-of-hooks': 'off',
-      'react-hooks/exhaustive-deps': 'off',
+      // eslint-plugin-react-hooks v7's `recommended` is no longer just
+      // rules-of-hooks + exhaustive-deps: it carries the React Compiler's
+      // correctness rules (purity, immutability, refs, set-state-in-effect,
+      // preserve-manual-memoization, …). Those are a prerequisite for enabling
+      // the compiler, which silently skips any component that breaks them.
+      ...reactHooks.configs.recommended.rules,
+
+      // ── Adoption ratchet ───────────────────────────────────────────────
+      // Turning the whole set on at once left 72 findings across 40 files. A
+      // category sits at 'warn' until it reaches zero, then moves up to 'error'
+      // so it can never regress. Promote — never demote — and delete the entry
+      // once it is at 'error'.
+      //
+      // Clean and enforced: rules-of-hooks, purity, globals, static-components,
+      // set-state-in-render, error-boundaries, use-memo,
+      // preserve-manual-memoization, config, gating.
+      'react-hooks/set-state-in-effect': 'warn', // 22 left
+      'react-hooks/exhaustive-deps': 'warn', // 15 left
+      'react-hooks/refs': 'warn', // 11 left
+      'react-hooks/immutability': 'warn', // 7 left
+      // Informational, not a defect: flags libraries whose APIs return
+      // functions the compiler cannot memoize (react-hook-form, TanStack
+      // Table). Nothing to fix on our side — it reports skipped compilation.
+      'react-hooks/incompatible-library': 'warn',
 
       // NEXT.JS
       '@next/next/no-html-link-for-pages': 'error',
@@ -72,6 +94,31 @@ export default [
       react: {
         version: 'detect',
       },
+    },
+  },
+  {
+    // The entity sheet's field components, which all take `form` as a PROP.
+    files: ['src/components/entity-sheet/fields/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          // FOUR shipped bugs were this one line, and every one of them was
+          // invisible in dev: `form.watch()` registers a subscription that
+          // re-renders whoever OWNS the `useForm`, not the component that
+          // called it. A reader that receives `form` therefore updates only
+          // when something else happens to re-render it — and under the
+          // production-only React Compiler, nothing does. Soft-deleting a
+          // property did nothing at all in a shipped build while every dev run
+          // stayed green.
+          //
+          // `useWatch({ control: form.control, name })` subscribes the READER.
+          selector:
+            "MemberExpression[object.name='form'][property.name='watch']",
+          message:
+            'A component that receives `form` as a prop must use useWatch({ control: form.control, name }) — form.watch() subscribes the form OWNER, so this component will render stale values in a production build.',
+        },
+      ],
     },
   },
   {
@@ -131,6 +178,52 @@ export default [
     },
   },
   {
+    // E2E specs. Deliberately stricter than `src/__tests__` above, which this
+    // block overrides by coming after it.
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    rules: {
+      // Playwright's fixture signature is `async ({ page }, use) => { await use(x) }`. The rule
+      // reads that parameter as React 19's `use` hook and reports every fixture.
+      'react-hooks/rules-of-hooks': 'off',
+      // An unused import is how a deleted helper announces itself. With this
+      // off, `mock-file-storage` kept importing a hook that no longer existed
+      // and nothing said so for months.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      'no-restricted-syntax': [
+        // Ratchet, per the block above: 30 existing violations, all in specs
+        // that §2 already marks PORT or REWRITE. Promote to 'error' once
+        // `pnpm run lint` reports zero.
+        //
+        // 'warn' is what the repo-wide `lint` sees. lint-staged runs
+        // `--max-warnings 0`, so a file must be clean to be COMMITTED — which
+        // is the ratchet working: legacy files carry a file-level disable
+        // naming the reason, and anything touched from here on has to be
+        // clean.
+        'warn',
+        {
+          // `if (await x.isVisible())` turns a missing element from a failure
+          // into a pass, so the test reports green having asserted nothing —
+          // three of the four import specs never ran a single assertion.
+          // `expect(x).toBeVisible()` auto-retries AND fails on absence.
+          selector:
+            'IfStatement > AwaitExpression CallExpression[callee.property.name=/^(isVisible|isHidden|isEnabled|isDisabled|isChecked|isEditable)$/]',
+          message:
+            'Do not branch on a Playwright state check — the test passes while asserting nothing. Use expect(locator).toBeVisible() etc., which retries and fails on absence. See internal-docs/11-e2e-test-plan.md §2.7.',
+        },
+        {
+          // Same failure, one indirection away.
+          selector:
+            'VariableDeclarator > AwaitExpression CallExpression[callee.property.name=/^(isVisible|isHidden|isEnabled|isDisabled|isChecked|isEditable)$/]',
+          message:
+            'Assigning a Playwright state check to a variable is the same silent-pass pattern as branching on it directly. See internal-docs/11-e2e-test-plan.md §2.7.',
+        },
+      ],
+    },
+  },
+  {
     ignores: [
       'node_modules/**',
       '.next/**',
@@ -140,6 +233,11 @@ export default [
       '**/*.d.ts',
       'coverage/**',
       '.turbo/**',
+      // Gitignored working directories — scratch scripts and notes, not code we
+      // ship. `lint` widened from src/** to the whole repo, which otherwise
+      // starts reporting on files git doesn't track.
+      'docs/**',
+      'internal-docs/**',
     ],
   },
 ]

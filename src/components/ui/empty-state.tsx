@@ -21,7 +21,7 @@ interface EmptyStateProps {
  * ```tsx
  * <EmptyState
  *   icon={<Inbox className="h-10 w-10" />}
- *   title={t('objects.noObjects')}
+ *   title={t('objects.noObjectsTitle')}
  *   description={t('objects.noObjectsDescription')}
  *   action={<Button onClick={onCreate}>{t('objects.create')}</Button>}
  * />
@@ -40,6 +40,7 @@ export function EmptyState({
         'flex flex-col items-center justify-center py-12 text-center',
         className
       )}
+      data-testid="empty-state"
     >
       {icon && <div className="mb-4 text-muted-foreground/60">{icon}</div>}
       <h3 className="text-lg font-medium">{title}</h3>

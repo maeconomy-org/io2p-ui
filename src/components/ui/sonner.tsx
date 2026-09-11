@@ -11,7 +11,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps['theme']}
-      className="toaster group"
+      // `pointer-events-auto`: a Radix modal sets `pointer-events: none` on the BODY, and the
+      // toaster is a sibling of the dialog, so its buttons inherit the lock and cannot be clicked.
+      // A toast raised BY a sheet action fires while that sheet is still open — exactly when its
+      // action matters — so without this the action is decoration.
+      className="toaster group pointer-events-auto"
       toastOptions={{
         classNames: {
           toast:

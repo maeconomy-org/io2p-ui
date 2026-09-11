@@ -1,621 +1,334 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import {
-  PlusCircle,
-  Loader2,
-  Filter,
-  Layers,
-  Focus,
-  X,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react'
+import { useState, useCallback, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import type { UUID } from 'iom-sdk'
+import { PlusCircle, Share2, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { toast } from 'sonner'
+import type { ProcessListItem } from 'io2p-client'
 
-import { EnhancedMaterialRelationship } from '@/types/sankey-metadata'
-import { usePreference } from '@/hooks'
-import { useAppConfig } from '@/contexts'
-import { useProcesses } from '@/hooks/api/use-processes'
-import { useSeedProcesses } from '@/components/processes/dev/use-seed-processes'
-import type { ProcessModelInput } from '@/components/processes/sheets/process-create-sheet'
-import { Card, CardContent, Button, Badge } from '@/components/ui'
+import { Button, FLOATING_BAR_LEVELS } from '@/components/ui'
+import { FilterMenu, deletedSection, scopeSection } from '@/components/filters'
 import {
-  LoadingState,
-  ProcessViewSelector,
-  ProcessCreateSheet,
-  RelationshipDetailsSheet,
-  DashboardView,
-  MaterialSelector,
-  ProcessTableView,
-  useSankeyDiagramData,
-} from '@/components/processes'
+  BulkActionBar,
+  EntityTable,
+  canDelete,
+  canReshare,
+  permissionOf,
+  useEntityListActions,
+  useEntityListFilters,
+  useEntityListQuery,
+} from '@/components/entity-list'
+import { SearchResultsBar } from '@/components/search-results-bar'
+import { DeleteConfirmationDialog } from '@/components/dialogs'
+import { ViewSelector } from '@/components/view-selector'
+import { useProcesses } from '@/hooks/api/entities'
+import { useAuth, useSearch } from '@/contexts'
+import { usePreference } from '@/hooks/ui/use-preference'
+import { useScopePreference } from '@/hooks/ui/use-scope-preference'
+import { anchor, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
-import { logger } from '@/lib'
+import { buildProcessColumns } from './components/process-columns'
+import { ProcessFlowView } from './components/process-flow-view'
+import { RelatedObjectBar } from './components/related-object-bar'
+import { PageHelp } from '@/components/onboarding/page-help'
+import {
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 
-// How many topological levels a single depth slice shows.
-const DEPTH_WINDOW_SIZE = 3
-
-// The pager advances by size − 1, so consecutive slices OVERLAP by one level. That
-// shared level is the handoff: it's the right edge of one slice and the left edge
-// of the next, so a flow crossing the border stays traceable (Concrete→Wall on one
-// page, Wall→Floor on the next). Stepping by the full size would drop those edges
-// into the gap between pages.
-const DEPTH_WINDOW_STEP = DEPTH_WINDOW_SIZE - 1
-
-// Simple loading placeholder for dynamic imports
-const DiagramLoader = () => (
-  <div className="flex items-center justify-center h-96">
-    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-  </div>
-)
-
-// Lazy load heavy diagram components (echarts ~300KB)
-const SankeyDiagram = dynamic(
+const ShareEditorSheet = dynamic(
   () =>
-    import('@/components/processes/views/sankey-view').then(
-      (mod) => mod.SankeyDiagram
+    import('@/app/shares/components/share-editor-sheet').then(
+      (mod) => mod.ShareEditorSheet
     ),
-  { loading: () => <DiagramLoader />, ssr: false }
+  { ssr: false }
+)
+const ShareSheet = dynamic(
+  () => import('@/components/access').then((mod) => mod.ShareSheet),
+  { ssr: false }
 )
 
-const NetworkDiagram = dynamic(
-  () =>
-    import('@/components/processes/views/network-view').then(
-      (mod) => mod.NetworkDiagram
-    ),
-  { loading: () => <DiagramLoader />, ssr: false }
+const ProcessSheet = dynamic(
+  () => import('@/components/entity-sheet').then((mod) => mod.ProcessSheet),
+  { ssr: false }
 )
 
-const MaterialFlowPage = () => {
+const PROCESS_MESSAGES = {
+  deleted: 'processes.deleted',
+  deleteFailed: 'processes.deleteFailed',
+  restored: 'processes.restored',
+  restoreFailed: 'processes.restoreFailed',
+}
+
+export default function ProcessesPage() {
   const t = useTranslations()
-  const searchParams = useSearchParams()
   const router = useRouter()
-  const objectUuid = searchParams.get('objectUuid')
+  const searchParams = useSearchParams()
 
-  // Hidden helper: /processes?seedProcesses=1 reveals a minimal footer link to seed
-  // demo processes from templates (available in all environments, but undiscoverable
-  // without the query param).
-  const showSeed = searchParams.get('seedProcesses') === '1'
-  const { seed, isSeeding } = useSeedProcesses()
-  const handleSeed = useCallback(async () => {
-    try {
-      const { created, skipped, unresolved } = await seed()
-      const extra = [
-        skipped ? `${skipped} skipped` : '',
-        unresolved.length ? `unresolved: ${unresolved.join(', ')}` : '',
-      ]
-        .filter(Boolean)
-        .join(' · ')
-      toast.success(`Seeded ${created} processes${extra ? ` (${extra})` : ''}`)
-    } catch (error) {
-      logger.error('Seed failed', { error })
-      toast.error('Seed failed — see console')
-    }
-  }, [seed])
+  // Arrive here from an object's Relations tab. `ref` mirrors the API parameter it drives, so the
+  // URL says exactly what the request says.
+  //
+  // DELIBERATELY NOT under a Suspense boundary, despite `useSearchParams`. That advice is for a
+  // route that would otherwise be PRERENDERED; every route here is already dynamic, so the server
+  // receives the real params and nothing bails. Adding a boundary made the server render its
+  // fallback while the client rendered the table — a hydration mismatch on every load, with the
+  // fallback's own markup as the diff.
+  const relatedObjectId = searchParams.get('ref')
 
-  const [selectedRelationship, setSelectedRelationship] =
-    useState<EnhancedMaterialRelationship | null>(null)
-  const [isProcessFormOpen, setIsProcessFormOpen] = useState(false)
-  const [isRelationshipSheetOpen, setIsRelationshipSheetOpen] = useState(false)
-  const [storedView, setActiveView] = usePreference('processView')
-  // Dashboard can be hidden via PROCESS_DASHBOARD_ENABLED. If it's off but the
-  // user's saved preference is 'dashboard', fall back to sankey for rendering
-  // without clobbering their stored choice (it returns if the flag is re-enabled).
-  const dashboardEnabled = useAppConfig().processDashboardEnabled === 'true'
-  const activeView =
-    storedView === 'dashboard' && !dashboardEnabled ? 'sankey' : storedView
-  const [selectedMaterialUuids, setSelectedMaterialUuids] = useState<string[]>(
-    []
+  const clearRelated = useCallback(() => router.replace('/processes'), [router])
+
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [openInEditMode, setOpenInEditMode] = useState(false)
+  const [scope, setScope, defaultScope] = useScopePreference('processScope')
+  const [toShare, setToShare] = useState<ProcessListItem | null>(null)
+  const [shareBundleOpen, setShareBundleOpen] = useState(false)
+
+  const [view, setView] = usePreference('processView')
+  const isTable = view === 'table'
+  const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { userId } = useAuth()
+
+  const listQuery = useEntityListQuery()
+  const setPage = listQuery.setPage
+  const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
+  const { useList, useRemove, useRestore, usePrefetchDetail } = useProcesses()
+  // Warm the detail cache on hover so the sheet opens populated.
+  const prefetchDetail = usePrefetchDetail()
+  const removeMutation = useRemove()
+  const restoreMutation = useRestore()
+  const { data: processesPage, isFetching } = useList(
+    {
+      ...listQuery.query,
+      size: filters.pageSize,
+      scope,
+      q: isSearchMode ? searchQuery : undefined,
+      deleted: filters.showDeleted ? 'include' : undefined,
+      // Server-side reverse flow lookup. No `direction`, so both sides come back — the point here is
+      // "everything related", where the Relations tab splits them.
+      ref: relatedObjectId ?? undefined,
+    },
+    // The flow view sweeps its own pages; a paginated list would be a second, unused request.
+    { keepPreviousData: true, enabled: isTable }
   )
-  const [isDepthLimited, setIsDepthLimited] = useState(true)
 
-  // Depth pager: which slice of topological levels is visible. 0 = levels 1–3,
-  // DEPTH_WINDOW_SIZE = levels 4–6, etc. Lets users walk a huge chain a slice at a
-  // time instead of "first 3 levels or all of it".
-  const [depthWindowStart, setDepthWindowStart] = useState(0)
+  const openProcess = useCallback((id: string, edit = false) => {
+    setSelectedId(id)
+    setOpenInEditMode(edit)
+    setSheetOpen(true)
+  }, [])
 
-  // The object filter changes which graph we're looking at, so its level count can
-  // change too — snap back to the first slice to avoid landing past the new end.
-  useEffect(() => {
-    setDepthWindowStart(0)
-  }, [objectUuid])
+  const handleCreate = useCallback(() => {
+    setSelectedId(null)
+    setOpenInEditMode(false)
+    setSheetOpen(true)
+  }, [])
 
-  // Node focus state: click a node to show its direct inputs & outputs (1 hop each
-  // way, via the hook's bidirectional fetch).
-  const [focusedNode, setFocusedNode] = useState<{
-    uuid: string
-    name: string
-  } | null>(null)
+  // The tour opens the sheet through the page's own handler rather than by
+  // synthesising a click, and closes it again when stepping back past the gate.
+  useTourAction(TOUR_ACTIONS.createProcess, handleCreate)
+  useTourAction(TOUR_ACTIONS.closeSheet, () => setSheetOpen(false))
 
-  const clearFilter = useCallback(() => {
-    router.push('/processes')
-  }, [router])
-
-  // Data fetching with depth limiting at the fetch level. When windowed, the hook
-  // only fetches objects within the current slice, avoiding API calls for deep nodes
-  // in large graphs.
-  // The depth window is a Sankey-only concept: it's a left-to-right topological
-  // slice, which only makes sense in the layered Sankey layout. Network is
-  // force-directed and shows the WHOLE graph (cycles included) — that's its job, so
-  // it never windows. Focus still takes over on either view (its own bidirectional
-  // fetch), and Full mode shows everything.
-  const isWindowed = activeView === 'sankey' && isDepthLimited && !focusedNode
-
-  const {
-    materials: allMaterials,
-    relationships: allRelationships,
-    isLoading,
-    totalNodeCount,
-    totalLevels,
-  } = useSankeyDiagramData(objectUuid as UUID | undefined, {
-    maxDepth: isWindowed ? DEPTH_WINDOW_SIZE : undefined,
-    minDepth: isWindowed ? depthWindowStart : undefined,
-    focusNodeBidirectional: focusedNode?.uuid,
+  const list = useEntityListActions({
+    page: processesPage,
+    remove: removeMutation,
+    restore: restoreMutation,
+    entityName: 'process',
+    messages: PROCESS_MESSAGES,
+    // Not `createdBy === userId`: that would also drop rows shared with the viewer at `admin`,
+    // who may delete them. Until the node sends `permission`, `permissionOf` resolves the owner
+    // and returns undefined otherwise, which the ladder reads as unrestricted.
+    canAct: (process) => canDelete(permissionOf(process, userId)),
   })
 
-  // Guard against a stale window: if the graph becomes shallower (e.g. a refetch or
-  // a different object), a previously-deep start could point past the new end, which
-  // would render an empty slice with both pager arrows disabled — a dead end. Clamp
-  // it back to the last valid slice start.
-  useEffect(() => {
-    const maxStart = Math.max(0, totalLevels - DEPTH_WINDOW_SIZE)
-    setDepthWindowStart((s) => Math.min(s, maxStart))
-  }, [totalLevels])
-
-  // "+N" badge: how many of the graph's nodes aren't rendered in the current slice.
-  // (Every node is an edge endpoint, so there are no truly-isolated nodes to skew it.)
-  const truncatedCount = isDepthLimited
-    ? Math.max(0, totalNodeCount - allMaterials.length)
-    : 0
-
-  // Depth pager bounds. Next is available while deeper levels remain unshown; the
-  // last slice simply runs to the final level (it may be shorter than a full slice).
-  // Stepping by DEPTH_WINDOW_STEP keeps a one-level overlap between adjacent slices.
-  const showDepthPager = isWindowed && totalLevels > DEPTH_WINDOW_SIZE
-  const canDepthPrev = showDepthPager && depthWindowStart > 0
-  const canDepthNext =
-    showDepthPager && depthWindowStart + DEPTH_WINDOW_SIZE < totalLevels
-  const windowFrom = depthWindowStart + 1
-  const windowTo = Math.min(depthWindowStart + DEPTH_WINDOW_SIZE, totalLevels)
-
-  // Center-button label doubles as the slice readout: the level range when there's
-  // something to page through, otherwise the plain Limited/Full state.
-  const depthCenterLabel = !isDepthLimited
-    ? t('processes.depthFull')
-    : showDepthPager
-      ? t('processes.depthWindow.label', {
-          from: windowFrom,
-          to: windowTo,
-          total: totalLevels,
-        })
-      : t('processes.depthLimited')
-
-  const handleDepthPrev = useCallback(() => {
-    setDepthWindowStart((s) => Math.max(0, s - DEPTH_WINDOW_STEP))
-  }, [])
-  const handleDepthNext = useCallback(() => {
-    setDepthWindowStart((s) => s + DEPTH_WINDOW_STEP)
-  }, [])
-
-  // Filter data based on selected materials
-  const { materials, relationships } = useMemo(() => {
-    if (selectedMaterialUuids.length === 0) {
-      return { materials: allMaterials, relationships: allRelationships }
-    }
-
-    const filteredRels = allRelationships.filter(
-      (rel) =>
-        selectedMaterialUuids.includes(rel.subject.uuid) ||
-        selectedMaterialUuids.includes(rel.object.uuid)
-    )
-
-    const involvedMaterialUuids = new Set<string>()
-    filteredRels.forEach((rel) => {
-      involvedMaterialUuids.add(rel.subject.uuid)
-      involvedMaterialUuids.add(rel.object.uuid)
-    })
-
-    return {
-      materials: allMaterials.filter((m) => involvedMaterialUuids.has(m.uuid)),
-      relationships: filteredRels,
-    }
-  }, [allMaterials, allRelationships, selectedMaterialUuids])
-
-  // Process create via the codec-backed adapter hook
-  const { useCreateProcess } = useProcesses()
-  const createProcessMutation = useCreateProcess()
-
-  const handleProcessSave = useCallback(
-    async (model: ProcessModelInput) => {
-      try {
-        toast.loading(t('processes.form.createTitle'), {
-          id: 'create-process-flow',
-        })
-        await createProcessMutation.mutateAsync(model)
-        toast.success(t('processes.create'), {
-          id: 'create-process-flow',
-        })
-        setIsProcessFormOpen(false)
-      } catch (error) {
-        logger.error('Failed to save process flow:', { error })
-        toast.error(t('processes.create'), {
-          id: 'create-process-flow',
-        })
-      }
-    },
-    [createProcessMutation, t]
+  // Sharing is its own rung — `canAct` above filters at `admin` for the lifecycle verbs, and a
+  // process shared at `share` may be re-granted without being deletable.
+  const shareableProcesses = useMemo(
+    () => list.selectedRows.filter((p) => canReshare(permissionOf(p, userId))),
+    [list.selectedRows, userId]
   )
 
-  const handleRelationshipSelect = useCallback(
-    (relationship: EnhancedMaterialRelationship) => {
-      // Don't set selectedRelationship to avoid diagram re-render/flicker
-      // Just open the sheet with the relationship data
-      setIsRelationshipSheetOpen(true)
-      // Set the relationship after a brief delay to avoid affecting the diagram
-      setTimeout(() => {
-        setSelectedRelationship(relationship)
-      }, 0)
-    },
-    []
+  const columns = useMemo(
+    () =>
+      buildProcessColumns({
+        t,
+        currentUserId: userId,
+        actions: {
+          onViewDetails: (p) => openProcess(p.id),
+          onEdit: (p) => openProcess(p.id, true),
+          onShare: setToShare,
+          onDelete: list.setToDelete,
+          onRestore: list.handleRestore,
+        },
+      }),
+    [t, openProcess, list.setToDelete, list.handleRestore, userId]
   )
 
-  const handleCloseRelationshipSheet = useCallback(() => {
-    setIsRelationshipSheetOpen(false)
-    setSelectedRelationship(null)
-  }, [])
-
-  const handleCloseProcessForm = useCallback(() => {
-    setIsProcessFormOpen(false)
-  }, [])
-
-  const handleOpenProcessForm = useCallback(() => {
-    setIsProcessFormOpen(true)
-  }, [])
-
-  // Node focus: click a node to show its inputs & outputs (bidirectional 3-level fetch)
-  const handleNodeFocus = useCallback(
-    (nodeUuid: string, nodeName: string) => {
-      // If already focused on this node, clear focus
-      if (focusedNode?.uuid === nodeUuid) {
-        setFocusedNode(null)
-        return
-      }
-      setFocusedNode({ uuid: nodeUuid, name: nodeName })
-    },
-    [focusedNode]
-  )
-
-  const handleClearNodeFocus = useCallback(() => {
-    setFocusedNode(null)
-  }, [])
-
-  // Memoize diagram components to prevent unnecessary re-renders
-  // Remove selectedRelationship from dependencies to prevent flicker on selection
-  const diagramContent = useMemo(() => {
-    if (isLoading || materials.length === 0 || relationships.length === 0) {
-      return (
-        <LoadingState
-          isLoading={isLoading}
-          hasNoData={materials.length === 0 || relationships.length === 0}
-          objectUuid={objectUuid}
-          setIsProcessFormOpen={setIsProcessFormOpen}
-          variant="inline"
-        />
-      )
-    }
-
-    return activeView === 'network' ? (
-      <NetworkDiagram
-        materials={materials}
-        relationships={relationships}
-        selectedRelationship={null} // Always null to prevent visual selection
-        onLinkSelect={handleRelationshipSelect}
-        className="bg-card"
-      />
-    ) : (
-      <SankeyDiagram
-        materials={materials}
-        relationships={relationships}
-        selectedRelationship={null} // Always null to prevent visual selection
-        onLinkSelect={handleRelationshipSelect}
-        onNodeClick={handleNodeFocus}
-        className="bg-card"
-      />
-    )
-  }, [
-    materials,
-    relationships,
-    isLoading,
-    activeView,
-    objectUuid,
-    handleRelationshipSelect,
-    handleNodeFocus,
-  ])
+  // Three bars can be up together. Each one sits above however many are open beneath it, rather than
+  // every caller hardcoding a level and two of them landing on the same one.
+  const selectionOpen = isTable && list.selectedRows.length > 0
+  const searchOpen = isTable && isSearchMode
+  const relatedLevel =
+    FLOATING_BAR_LEVELS[(selectionOpen ? 1 : 0) + (searchOpen ? 1 : 0)]
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-6 flex flex-wrap gap-6 justify-between items-center">
-        <h1 className="text-2xl font-bold">{t('processes.title')}</h1>
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Material Filter Selector */}
-          <MaterialSelector
-            materials={allMaterials}
-            selectedMaterialUuids={selectedMaterialUuids}
-            onMaterialsChange={setSelectedMaterialUuids}
-            placeholder={t('processes.filterObjects')}
-            maxSelections={10}
-          />
-          {/* Depth control: one segmented button. The center toggles Limited(3)/Full
-              and doubles as the slice readout; the flanking arrows page through the
-              depth slices and only light up while limited and more slices exist.
-              Sankey-only — Network always shows the full graph. */}
-          {activeView === 'sankey' && (
-            <div
-              role="group"
-              aria-label={t('processes.depthWindow.groupLabel')}
-              className="inline-flex flex-shrink-0 items-center overflow-hidden rounded-md border"
-            >
+    <>
+      <div className="container mx-auto flex-1 p-4">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-2xl font-semibold">{t('processes.title')}</h2>
+              <PageHelp concept="process" tour="create-process" />
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Deleted processes are a list concern: the flow graph is about what connects to
+                  what, and a soft-deleted process has no place in a chain. */}
+              {isTable && (
+                <FilterMenu
+                  sections={[
+                    scopeSection(t, scope, setScope, defaultScope),
+                    deletedSection(
+                      t,
+                      filters.showDeleted,
+                      filters.setShowDeleted
+                    ),
+                  ]}
+                />
+              )}
+              <ViewSelector
+                view={view}
+                onChange={setView}
+                options={ENABLED_PROCESS_VIEW_TYPES}
+              />
               <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-none"
-                onClick={handleDepthPrev}
-                disabled={!canDepthPrev}
-                aria-label={t('processes.depthWindow.prev')}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant={isDepthLimited ? 'default' : 'ghost'}
                 size="sm"
-                aria-pressed={isDepthLimited}
-                onClick={() => {
-                  setIsDepthLimited((prev) => !prev)
-                  setDepthWindowStart(0)
-                }}
-                className="h-8 min-w-[8.5rem] justify-center gap-1.5 rounded-none border-x tabular-nums"
+                onClick={handleCreate}
+                {...anchor('processesCreate')}
               >
-                <Layers className="h-4 w-4" />
-                {depthCenterLabel}
-                {isDepthLimited && truncatedCount > 0 && (
-                  <Badge
-                    variant="secondary"
-                    aria-label={t('processes.depthWindow.hiddenCount', {
-                      count: truncatedCount,
-                    })}
-                    className="ml-1 h-5 px-1.5 text-[10px]"
-                  >
-                    +{truncatedCount}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-none"
-                onClick={handleDepthNext}
-                disabled={!canDepthNext}
-                aria-label={t('processes.depthWindow.next')}
-              >
-                <ChevronRight className="h-4 w-4" />
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {t('processes.create')}
               </Button>
             </div>
+          </div>
+
+          {isTable && isSearchMode && (
+            <SearchResultsBar
+              searchQuery={searchQuery}
+              resultsCount={processesPage?.page.totalElements ?? 0}
+              onClearSearch={clearSearch}
+              raised={isTable && list.selectedRows.length > 0}
+            />
           )}
-          <ProcessViewSelector
-            view={activeView}
-            onChange={setActiveView}
-            excludedViews={dashboardEnabled ? undefined : ['dashboard']}
-          />
-          <Button
-            size="sm"
-            className="flex-shrink-0"
-            onClick={handleOpenProcessForm}
-            disabled={createProcessMutation.isPending}
-          >
-            {createProcessMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <PlusCircle className="mr-2 h-4 w-4" />
-            )}
-            {t('processes.create')}
-          </Button>
+
+          {isTable ? (
+            <EntityTable
+              onRowHover={(row) => prefetchDetail(row.id)}
+              columns={columns}
+              page={processesPage}
+              getRowId={(process) => process.id}
+              fetching={isFetching}
+              sort={listQuery.query.sort}
+              onSortChange={listQuery.setSort}
+              enableRowSelection
+              rowSelection={list.rowSelection}
+              onRowSelectionChange={list.setRowSelection}
+              onPageChange={listQuery.setPage}
+              onPageSizeChange={filters.handlePageSizeChange}
+              pageSize={filters.pageSize}
+              onRowClick={(process) => openProcess(process.id)}
+              emptyIcon={
+                <Workflow className="h-10 w-10 text-muted-foreground/50" />
+              }
+              emptyTitle={t('processes.empty.title')}
+              emptyDescription={t('processes.empty.description')}
+            />
+          ) : (
+            <ProcessFlowView
+              variant={view}
+              onOpenProcess={openProcess}
+              relatedObjectId={relatedObjectId}
+            />
+          )}
         </div>
       </div>
 
-      {/* Filter Mode Indicator */}
-      {(objectUuid || selectedMaterialUuids.length > 0) && (
-        <div className="mb-4">
-          <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/50 rounded-lg">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex flex-col gap-2 flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                  <span className="text-sm font-medium text-orange-900 dark:text-orange-200">
-                    {t('processes.filters')}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {objectUuid && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-mono text-xs"
-                    >
-                      {t('processes.object')}: {objectUuid.slice(0, 8)}...
-                    </Badge>
-                  )}
-                  {selectedMaterialUuids.map((uuid) => {
-                    const material = allMaterials.find((m) => m.uuid === uuid)
-                    return (
-                      <Badge
-                        key={uuid}
-                        variant="secondary"
-                        className="bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-xs"
-                      >
-                        {material?.name || `${uuid.slice(0, 8)}...`}
-                      </Badge>
-                    )
-                  })}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {selectedMaterialUuids.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedMaterialUuids([])}
-                    className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 flex-shrink-0 text-xs"
-                  >
-                    {t('processes.clearMaterials')}
-                  </Button>
-                )}
-                {objectUuid && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFilter}
-                    className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 flex-shrink-0 text-xs"
-                  >
-                    {t('processes.clearObject')}
-                  </Button>
-                )}
-                {objectUuid && selectedMaterialUuids.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedMaterialUuids([])
-                      clearFilter()
-                    }}
-                    className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40 flex-shrink-0 text-xs"
-                  >
-                    {t('processes.clearAll')}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+      {sheetOpen && (
+        <ProcessSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          processId={selectedId ?? undefined}
+          initialEditing={openInEditMode}
+        />
       )}
 
-      {/* Dashboard View */}
-      {activeView === 'dashboard' && (
-        <>
-          {isLoading || materials.length === 0 || relationships.length === 0 ? (
-            <LoadingState
-              isLoading={isLoading}
-              hasNoData={materials.length === 0 || relationships.length === 0}
-              objectUuid={objectUuid}
-              setIsProcessFormOpen={setIsProcessFormOpen}
-              variant="card"
-            />
-          ) : (
-            <DashboardView
-              materials={materials} // Use filtered materials
-              relationships={relationships} // Use filtered relationships for analytics
-              onCreateProcess={handleOpenProcessForm}
-            />
-          )}
-        </>
+      {relatedObjectId && (
+        <RelatedObjectBar
+          objectId={relatedObjectId}
+          onClear={clearRelated}
+          level={relatedLevel}
+        />
       )}
 
-      {/* Node Focus Indicator */}
-      {focusedNode && (activeView === 'sankey' || activeView === 'network') && (
-        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-lg">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Focus className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-              <span className="text-blue-900 dark:text-blue-200">
-                {t('processes.nodeFocus.viewing')}
-              </span>
-              <Badge
-                variant="secondary"
-                className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
-              >
-                {focusedNode.name}
-              </Badge>
-              <span className="text-blue-700 dark:text-blue-300 text-xs">
-                {t('processes.nodeFocus.description')}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearNodeFocus}
-              className="shrink-0 gap-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-            >
-              <X className="h-3.5 w-3.5" />
-              {t('processes.nodeFocus.clear')}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Diagram Views */}
-      {(activeView === 'sankey' || activeView === 'network') && (
-        <Card>
-          <CardContent>{diagramContent}</CardContent>
-        </Card>
-      )}
-
-      {/* Table View */}
-      {activeView === 'table' && (
-        <div className="space-y-6">
-          <LoadingState
-            isLoading={isLoading}
-            hasNoData={relationships.length === 0}
-            objectUuid={objectUuid}
-            setIsProcessFormOpen={setIsProcessFormOpen}
-            variant="card"
-          />
-          {!isLoading && relationships.length > 0 && (
-            <ProcessTableView
-              relationships={relationships}
-              selectedRelationship={null} // Remove selection highlighting from table too
-              onRelationshipSelect={handleRelationshipSelect}
-              pageSize={15}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Process Form Sheet */}
-      <ProcessCreateSheet
-        isOpen={isProcessFormOpen}
-        onClose={handleCloseProcessForm}
-        onSave={handleProcessSave}
-        isSaving={createProcessMutation.isPending}
+      <BulkActionBar
+        count={isTable ? list.selectedRows.length : 0}
+        onClear={list.clearSelection}
+        canDelete={list.anyLive}
+        canRestore={list.anyDeleted}
+        busy={list.isBusy}
+        onDelete={() => list.setConfirmBulk(true)}
+        onRestore={() => list.runBulk('restore')}
+        actions={[
+          {
+            key: 'share',
+            label: t('access.share'),
+            icon: Share2,
+            hidden: shareableProcesses.length === 0,
+            actionable: shareableProcesses.length,
+            onSelect: () => setShareBundleOpen(true),
+          },
+        ]}
       />
 
-      {/* Relationship Details Sheet */}
-      <RelationshipDetailsSheet
-        relationship={selectedRelationship}
-        isOpen={isRelationshipSheetOpen}
-        onClose={handleCloseRelationshipSheet}
+      {shareBundleOpen && (
+        <ShareEditorSheet
+          open
+          onOpenChange={(open) => !open && setShareBundleOpen(false)}
+          mode="create"
+          seedResources={shareableProcesses.map((p) => ({
+            type: 'process' as const,
+            id: p.id,
+            name: p.name,
+          }))}
+        />
+      )}
+
+      <DeleteConfirmationDialog
+        open={list.confirmBulk}
+        onOpenChange={list.setConfirmBulk}
+        objectName=""
+        title={t('common.bulk.deleteTitle')}
+        description={t('common.bulk.deleteDescription', {
+          count: list.deletableCount,
+        })}
+        onDelete={() => list.runBulk('delete')}
       />
 
-      {/* Hidden seed helper — only when ?seedProcesses=1 (any env). Minimal footer text. */}
-      {showSeed && (
-        <div className="mt-8 border-t pt-3 text-center">
-          <button
-            type="button"
-            onClick={handleSeed}
-            disabled={isSeeding}
-            className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
-          >
-            {isSeeding ? 'Seeding…' : 'Seed demo data'}
-          </button>
-        </div>
+      {toShare && (
+        <ShareSheet
+          open
+          onOpenChange={(open) => !open && setToShare(null)}
+          target={{ type: 'process', id: toShare.id, name: toShare.name }}
+          isOwner={toShare.createdBy === userId}
+        />
       )}
-    </div>
+
+      <DeleteConfirmationDialog
+        open={!!list.toDelete}
+        onOpenChange={(open) => !open && list.setToDelete(null)}
+        onDelete={list.confirmDelete}
+        objectName={list.toDelete?.name ?? ''}
+      />
+    </>
   )
 }
-
-export default MaterialFlowPage

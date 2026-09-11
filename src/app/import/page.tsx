@@ -1,284 +1,92 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { toast } from 'sonner'
 
-import { FileUpload } from './components/file-upload'
-import { ColumnMapper } from './components/column-mapper'
-import { ImportPreview } from './components/import-preview'
-import { Steps, Step } from './components/steps'
-import { useBulkImport } from '@/hooks/import/use-bulk-import'
-import type { SheetData } from '@/hooks'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui'
+import { anchor } from '@/constants'
+import { PageHelp } from '@/components/onboarding/page-help'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  ImportLimitsInfo,
-} from '@/components/ui'
-import {
-  IMPORT_HEADER_ROW_KEY,
-  IMPORT_START_ROW_KEY,
-  IMPORT_COLUMN_MAPPING_KEY,
-} from '@/constants'
-import { logger } from '@/lib'
+  TOUR_ACTIONS,
+  useTourAction,
+} from '@/components/onboarding/use-tour-action'
 
-type ImportStep = 'upload' | 'map-columns' | 'preview'
+import { JobList } from './components/job-list'
+import { JobDetail } from './components/job-detail'
+import { Wizard } from './components/wizard/wizard'
+import type { ImportJob } from './types'
 
+/**
+ * Bulk import: load many objects from a spreadsheet, with their parent/child links intact.
+ *
+ * Status and the wizard are TABS rather than two routes, because they are two views of one task —
+ * you import, then you watch what happened to it, and the second question follows the first
+ * immediately. The predecessor split them across `/import` and `/import-status`, so finishing an
+ * import navigated somewhere else and coming back meant starting over.
+ *
+ * The header follows objects/processes exactly: `container mx-auto flex-1 p-4`, an `h2` with its
+ * PageHelp, and every control on the right of that same row. A page that invents its own heading
+ * size and control placement reads as a different application.
+ */
 export default function ImportPage() {
   const t = useTranslations()
-  const [step, setStep] = useState<ImportStep>('upload')
-  const [sheets, setSheets] = useState<SheetData[]>([])
-  const [selectedSheet, setSelectedSheet] = useState<string>('')
-  const [selectedSheetData, setSelectedSheetData] = useState<any[]>([])
-  const [suggestedStartRow, setSuggestedStartRow] = useState<number>(0)
-  const [mappedData, setMappedData] = useState<any[]>([])
+  const [openJob, setOpenJob] = useState<ImportJob | null>(null)
+  const [tab, setTab] = useState('status')
 
-  // Use the new bulk import hook
-  const { isImporting, startBulkImport } = useBulkImport({
-    onImportStarted: (jobId: string) => {
-      logger.import(`Bulk import job started: ${jobId}`, { jobId })
-    },
-    onImportError: (jobId: string, error: string) => {
-      logger.error(`Bulk import failed: ${jobId}`, { jobId, error })
-    },
-  })
-
-  // Clear session storage when component unmounts or when returning to upload step
-  useEffect(() => {
-    if (step === 'upload') {
-      clearSessionStorage()
-    }
-
-    return () => {
-      clearSessionStorage()
-    }
-  }, [step])
-
-  const clearSessionStorage = () => {
-    sessionStorage.removeItem(IMPORT_HEADER_ROW_KEY)
-    sessionStorage.removeItem(IMPORT_START_ROW_KEY)
-    sessionStorage.removeItem(IMPORT_COLUMN_MAPPING_KEY)
-
-    // Also clear any legacy localStorage mappings to prevent confusion
-    localStorage.removeItem('import_last_column_mapping')
-  }
-
-  const handleFileSelected = (
-    selectedFile: File,
-    parsedSheets: SheetData[]
-  ) => {
-    setSheets(parsedSheets)
-
-    // If there's only one sheet, select it automatically
-    if (parsedSheets.length === 1) {
-      const sheet = parsedSheets[0]
-
-      // Set the sheet data directly instead of calling handleSheetChange to avoid timing issues
-      setSelectedSheet(sheet.name)
-      setSelectedSheetData(sheet.data)
-      setSuggestedStartRow(sheet.suggestedStartRow || 0)
-    } else if (parsedSheets.length > 0) {
-      // Don't auto-select first sheet, leave it empty for user to select
-      setSelectedSheet('')
-      setSelectedSheetData([])
-      setSuggestedStartRow(0)
-    }
-
-    setStep('map-columns')
-  }
-
-  const handleSheetChange = (sheetName: string) => {
-    setSelectedSheet(sheetName)
-
-    // Find the selected sheet data
-    const selectedSheetInfo = sheets.find((s) => s.name === sheetName)
-    if (!selectedSheetInfo) {
-      return
-    }
-
-    // Set the sheet data and suggested start row
-    setSelectedSheetData(selectedSheetInfo.data)
-    setSuggestedStartRow(selectedSheetInfo.suggestedStartRow || 0)
-  }
-
-  const handleColumnMapped = (mapping: Record<string, string>, data: any[]) => {
-    // setColumnMapping(mapping)
-    setMappedData(data)
-    setStep('preview')
-  }
-
-  const handleImport = async () => {
-    if (mappedData.length === 0) {
-      toast.error(t('import.errors.noData'))
-      return
-    }
-
-    // Start bulk import using new API
-    const result = await startBulkImport(mappedData)
-
-    if (result.success) {
-      // Reset form after successful import
-      setStep('upload')
-      setSheets([])
-      setSelectedSheet('')
-      setSelectedSheetData([])
-      setMappedData([])
-      clearSessionStorage()
-    }
-  }
-
-  const handleBack = () => {
-    switch (step) {
-      case 'map-columns':
-        setStep('upload')
-        break
-      case 'preview':
-        setStep('map-columns')
-        break
-    }
-  }
-
-  const getStepTitle = () => {
-    switch (step) {
-      case 'upload':
-        return t('import.steps.upload')
-      case 'map-columns':
-        return t('import.steps.map')
-      case 'preview':
-        return t('import.preview.title')
-    }
-  }
-
-  const getStepDescription = () => {
-    switch (step) {
-      case 'upload':
-        return t('import.subtitle')
-      case 'map-columns':
-        return t('import.map.description')
-      case 'preview':
-        return t('import.preview.description')
-    }
-  }
+  // The wizard is a tab, not a sheet — but it gates the tour the same way: it is
+  // `forceMount`ed and merely hidden, so `querySelector` finds its anchors while
+  // they measure 0x0. The wizard owns the crossings INSIDE itself and calls
+  // `onTourExit` when the tour steps back past its first one, because that last
+  // one is this tab.
+  useTourAction(TOUR_ACTIONS.startImport, () => setTab('wizard'))
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold">{t('import.title')}</h1>
-        <p className="text-muted-foreground mt-2">
-          {t('import.subtitle')}
-          {selectedSheet && (
-            <span className="ml-2">
-              • <span className="font-medium">{selectedSheet}</span>
-              {selectedSheetData.length > 0 && (
-                <span>
-                  {' '}
-                  ({t('import.rows', { count: selectedSheetData.length })})
-                </span>
-              )}
-            </span>
-          )}
-        </p>
-      </div>
-
-      <div className="mb-8">
-        <Steps
-          currentStep={step === 'upload' ? 0 : step === 'map-columns' ? 1 : 2}
-        >
-          <Step title={t('import.steps.upload')} />
-          <Step title={t('import.steps.map')} />
-          <Step title={t('import.steps.preview')} />
-        </Steps>
-      </div>
-
-      {/* Show import limits info */}
-      <div className="mb-6">
-        <ImportLimitsInfo
-          currentObjectCount={mappedData.length}
-          currentSizeMB={
-            mappedData.length > 0
-              ? JSON.stringify(mappedData).length / (1024 * 1024)
-              : 0
-          }
-          showContactForLarge={true}
-        />
-      </div>
-
-      <div className="pt-6">
-        {step === 'upload' && (
-          <FileUpload
-            onFileSelected={handleFileSelected}
-            title={getStepTitle()}
-            description={getStepDescription()}
-          />
-        )}
-
-        {step === 'map-columns' && (
-          <div className="space-y-4">
-            {sheets.length > 1 && (
-              <div className="mb-6">
-                <label className="text-sm font-medium mb-1 block">
-                  {t('import.sheet.select')}
-                </label>
-                <div className="flex gap-4 items-center">
-                  <Select
-                    value={selectedSheet}
-                    onValueChange={handleSheetChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={t('import.sheet.placeholder')}
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sheets.map((sheet) => (
-                        <SelectItem key={sheet.name} value={sheet.name}>
-                          {sheet.name} (
-                          {t('import.rows', { count: sheet.data.length })})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {selectedSheetData.length > 0 ? (
-              <ColumnMapper
-                sheetData={selectedSheetData}
-                onColumnsMapped={handleColumnMapped}
-                onBack={handleBack}
-                suggestedStartRow={suggestedStartRow}
-                title={t('import.map.title')}
-                description={t('import.map.description')}
-              />
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  {sheets.length === 0
-                    ? t('import.sheet.noSheets')
-                    : selectedSheet
-                      ? t('import.sheet.noData', { sheet: selectedSheet })
-                      : t('import.sheet.selectPrompt')}
-                </p>
-              </div>
-            )}
+    <div className="container mx-auto flex-1 p-4">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-2xl font-semibold">{t('import.title')}</h2>
+            <PageHelp concept="import" tour="run-import" />
           </div>
-        )}
+          {/* The tabs ARE this page's control, so they sit where every other page puts its
+              controls rather than under the heading in a block of their own. */}
+          <TabsList data-testid="import-tabs" {...anchor('importTabs')}>
+            <TabsTrigger value="status" data-testid="import-tab-status">
+              {t('import.tabs.status')}
+            </TabsTrigger>
+            <TabsTrigger value="wizard" data-testid="import-tab-wizard">
+              {t('import.tabs.wizard')}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        {step === 'preview' && (
-          <ImportPreview
-            data={mappedData}
-            onImport={handleImport}
-            onBack={handleBack}
-            isImporting={isImporting}
-            title={t('import.preview.title')}
-            description={t('import.preview.description')}
+        <TabsContent value="status" className="mt-0" {...anchor('importJobs')}>
+          {openJob ? (
+            <JobDetail job={openJob} onBack={() => setOpenJob(null)} />
+          ) : (
+            <JobList onNew={() => setTab('wizard')} onOpen={setOpenJob} />
+          )}
+        </TabsContent>
+
+        {/* `forceMount`, so glancing at the status tab does not throw the import away.
+
+            Radix unmounts inactive tab content, and `useImportWizard` lives inside `Wizard` — so
+            switching away destroyed the parsed sheet, the column mapping, the hierarchy and the
+            chosen destination, and coming back showed an empty dropzone. Mapping a 60-column
+            municipal sheet is real work to lose to a curious click, and this is the same failure
+            the redesign notes recorded against the OLD pipeline ("leaving the page destroys the
+            mapping"). Hidden rather than unmounted; nothing here fetches until a file is picked. */}
+        <TabsContent
+          value="wizard"
+          forceMount
+          className="mt-0 data-[state=inactive]:hidden"
+        >
+          <Wizard
+            onFinished={() => setTab('status')}
+            onTourExit={() => setTab('status')}
           />
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

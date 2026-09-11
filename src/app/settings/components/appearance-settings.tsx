@@ -12,11 +12,8 @@ import {
   CardTitle,
 } from '@/components/ui'
 import { useTheme } from '@/hooks/use-theme'
-import {
-  LOCALES,
-  type LocaleValue,
-  setLocaleCookie,
-} from '@/components/language-switcher'
+import { useSetLocale } from '@/hooks/ui/use-set-locale'
+import { LOCALES, type LocaleValue } from '@/components/language-switcher'
 import { SegmentedControl } from './segmented-control'
 
 function Row({
@@ -44,6 +41,7 @@ export function AppearanceSettings() {
   const tTheme = useTranslations('theme')
   const { theme, resolvedTheme, setTheme } = useTheme()
   const locale = useLocale() as LocaleValue
+  const setLocale = useSetLocale()
 
   // `theme` can be 'system'; fall back to the resolved value so a segment is
   // always active.
@@ -54,10 +52,10 @@ export function AppearanceSettings() {
         ? 'dark'
         : 'light'
 
-  const changeLocale = useCallback((next: LocaleValue) => {
-    setLocaleCookie(next)
-    window.location.reload()
-  }, [])
+  const changeLocale = useCallback(
+    (next: LocaleValue) => setLocale(next),
+    [setLocale]
+  )
 
   return (
     <Card>

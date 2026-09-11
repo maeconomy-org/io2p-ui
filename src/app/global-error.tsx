@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import * as Sentry from '@sentry/nextjs'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 
-import { logger } from '@/lib'
+import { logger } from '@/lib/observability/logger'
 
 interface GlobalErrorProps {
   error: Error & { digest?: string }
@@ -13,22 +12,21 @@ interface GlobalErrorProps {
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
-    // Only capture exception if Sentry is initialized (production or explicitly enabled)
-    const shouldCapture =
-      process.env.NODE_ENV === 'production' ||
-      process.env.SENTRY_ENABLED === 'true'
-    if (shouldCapture) {
-      Sentry.captureException(error)
-    } else {
-      // In development, log to console for debugging
-      logger.error('Global Error:', error)
-    }
+    // The real Error travels under `err`; the logger's Sentry sink captures
+    // it when Sentry is initialized, the console/ship sinks handle the rest.
+    logger.error('Unhandled error in root layout', {
+      err: error,
+      ...(error.digest ? { digest: error.digest } : {}),
+    })
   }, [error])
 
   return (
     <html lang="en">
       <body className="bg-background min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-6 text-center">
+        <div
+          data-testid="error-boundary"
+          className="max-w-md w-full bg-card rounded-lg shadow-lg p-6 text-center"
+        >
           <div className="mb-6">
             <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-foreground mb-2">

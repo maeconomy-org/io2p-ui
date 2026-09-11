@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  cn,
-  formatFingerprint,
-  formatUUID,
-  toCapitalize,
-  isObjectDeleted,
-} from '@/lib/utils'
+import { cn, formatBytes, truncateText } from '@/lib/utils'
 
 const isFalse = false
 
@@ -33,78 +27,48 @@ describe('utils', () => {
     })
   })
 
-  describe('formatFingerprint', () => {
-    it('should return empty string for empty input', () => {
-      expect(formatFingerprint('')).toBe('')
+  describe('formatBytes', () => {
+    // `null` rather than "0 B" is the contract: callers render the label only when there is a
+    // size to show, so a missing size must be distinguishable from a real zero-length file.
+    it('returns null when there is no usable size', () => {
+      expect(formatBytes(undefined)).toBeNull()
+      expect(formatBytes(0)).toBeNull()
+      expect(formatBytes(-1)).toBeNull()
+      expect(formatBytes(NaN)).toBeNull()
+      expect(formatBytes(Infinity)).toBeNull()
     })
 
-    it('should return full fingerprint if 24 chars or less', () => {
-      expect(formatFingerprint('abc123')).toBe('abc123')
-      expect(formatFingerprint('a'.repeat(24))).toBe('a'.repeat(24))
+    it('picks the unit from the magnitude', () => {
+      expect(formatBytes(512)).toBe('512 B')
+      expect(formatBytes(2048)).toBe('2.0 KB')
+      expect(formatBytes(5 * 1024 * 1024)).toBe('5.0 MB')
+      expect(formatBytes(3 * 1024 * 1024 * 1024)).toBe('3.00 GB')
     })
 
-    it('should truncate fingerprint longer than 24 chars', () => {
-      const longFingerprint = 'a'.repeat(30)
-      expect(formatFingerprint(longFingerprint)).toBe('a'.repeat(24) + '...')
-    })
-  })
-
-  describe('formatUUID', () => {
-    it('should return full UUID if 12 chars or less', () => {
-      expect(formatUUID('abc123')).toBe('abc123')
-      expect(formatUUID('a'.repeat(12))).toBe('a'.repeat(12))
-    })
-
-    it('should truncate UUID longer than 12 chars with ellipsis', () => {
-      const uuid = '123456789012345678901234'
-      expect(formatUUID(uuid)).toBe('123456789012...345678901234')
-    })
-
-    it('should show first 12 and last 12 chars for long UUIDs', () => {
-      const uuid = 'abcdefghijklmnopqrstuvwxyz'
-      const result = formatUUID(uuid)
-      expect(result).toBe('abcdefghijkl...opqrstuvwxyz')
+    it('switches unit exactly at the boundary, not before', () => {
+      expect(formatBytes(1023)).toBe('1023 B')
+      expect(formatBytes(1024)).toBe('1.0 KB')
+      expect(formatBytes(1024 * 1024 - 1)).toBe('1024.0 KB')
+      expect(formatBytes(1024 * 1024)).toBe('1.0 MB')
     })
   })
 
-  describe('toCapitalize', () => {
-    it('should capitalize first letter', () => {
-      expect(toCapitalize('hello')).toBe('Hello')
+  describe('truncateText', () => {
+    it('leaves text at or under the limit untouched', () => {
+      expect(truncateText('short', 10)).toBe('short')
+      expect(truncateText('exactly10!', 10)).toBe('exactly10!')
     })
 
-    it('should handle already capitalized strings', () => {
-      expect(toCapitalize('Hello')).toBe('Hello')
+    it('truncates from the end by default', () => {
+      expect(truncateText('abcdefghij', 4)).toBe('abcd...')
     })
 
-    it('should handle single character', () => {
-      expect(toCapitalize('a')).toBe('A')
+    it('truncates from the middle when asked, keeping both ends', () => {
+      expect(truncateText('abcdefghij', 4, true)).toBe('ab...ij')
     })
 
-    it('should handle empty string', () => {
-      expect(toCapitalize('')).toBe('')
-    })
-
-    it('should only capitalize first letter, not others', () => {
-      expect(toCapitalize('hELLO')).toBe('HELLO')
-    })
-  })
-
-  describe('isObjectDeleted', () => {
-    it('should return true for softDeleted objects', () => {
-      expect(isObjectDeleted({ softDeleted: true })).toBe(true)
-    })
-
-    it('should return false for non-deleted objects', () => {
-      expect(isObjectDeleted({ softDeleted: false })).toBe(false)
-    })
-
-    it('should return false for objects without softDeleted property', () => {
-      expect(isObjectDeleted({})).toBe(false)
-    })
-
-    it('should return false for null/undefined', () => {
-      expect(isObjectDeleted(null)).toBe(false)
-      expect(isObjectDeleted(undefined)).toBe(false)
+    it('handles empty input', () => {
+      expect(truncateText('', 10)).toBe('')
     })
   })
 })

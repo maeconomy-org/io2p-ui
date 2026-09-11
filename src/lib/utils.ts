@@ -1,26 +1,8 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { v7 as uuidv7 } from 'uuid'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
-}
-
-/**
- * Generates a UUID v7 using the uuid package
- */
-export function generateUUIDv7(): string {
-  // give some properties so that the uuid is more unique as uuidv7 uses the current time
-  return uuidv7()
-}
-
-export function formatSizeMB(mb: number): string {
-  if (!Number.isFinite(mb) || mb <= 0) return '0 MB'
-  if (mb >= 1024) {
-    const gb = mb / 1024
-    return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`
-  }
-  return `${Number.isInteger(mb) ? mb : mb.toFixed(1)} MB`
 }
 
 /**
@@ -37,39 +19,6 @@ export function formatBytes(size?: number): string | null {
   return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
-export const formatFingerprint = (fingerprint: string) => {
-  if (!fingerprint) return ''
-  return fingerprint.length > 24
-    ? `${fingerprint.slice(0, 24)}...`
-    : fingerprint
-}
-
-export function formatUUID(uuid: string) {
-  return uuid.length > 12 ? `${uuid.slice(0, 12)}...${uuid.slice(-12)}` : uuid
-}
-
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-export function isUUID(value: string): boolean {
-  return UUID_REGEX.test(value.trim())
-}
-
-export function isDraftRef(value: string): boolean {
-  return typeof value === 'string' && value.startsWith('draft_')
-}
-
-export function toCapitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1)
-}
-
-export const isObjectDeleted = (object: any): boolean => {
-  return object?.softDeleted === true
-}
-
-/**
- * Truncate long text with ellipsis
- */
 export function truncateText(
   text: string,
   maxLength: number = 100,
@@ -81,39 +30,4 @@ export function truncateText(
     return `${text.substring(0, half)}...${text.substring(text.length - half)}`
   }
   return `${text.substring(0, maxLength)}...`
-}
-
-/**
- * Format a numeric value to a reasonable precision
- * Handles floating point precision issues (e.g., 1.20000000000000730022 -> 1.2)
- * @param value - The value to format (can be string or number)
- * @param maxDecimals - Maximum decimal places (default: 4)
- * @returns Formatted string or original value if not a number
- */
-export function formatNumericValue(
-  value: string | number | null | undefined,
-  maxDecimals: number = 4
-): string {
-  if (value === null || value === undefined || value === '') {
-    return ''
-  }
-
-  const strValue = String(value)
-
-  // Check if it's a numeric value
-  const numValue = parseFloat(strValue)
-  if (isNaN(numValue)) {
-    return strValue // Return original if not a number
-  }
-
-  // Check if it has excessive decimal places
-  if (strValue.includes('.')) {
-    const decimalPart = strValue.split('.')[1]
-    if (decimalPart && decimalPart.length > maxDecimals) {
-      // Round to maxDecimals and remove trailing zeros
-      return parseFloat(numValue.toFixed(maxDecimals)).toString()
-    }
-  }
-
-  return strValue
 }

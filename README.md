@@ -1,128 +1,133 @@
-# IoM (Internet of Materials)
+# io2p-ui
 
-A modern web application for tracking and managing building materials, components, and structures for government and municipal use.
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## Features
+The web application for [io2p](https://io2p.org) — the Internet of Objects Protocol.
 
-### Building Object Management
+## What this is
 
-- Hierarchical structure management (building → floors → rooms → components)
-- Material properties and metadata tracking
-- Component relationship mapping
-- CRUD operations for all building elements
+io2p gives real-world objects a durable digital identity: an append-only, hash-chained record of
+what a thing is, what it is made of, and everything that has happened to it. The protocol itself is
+storage and transport; this repository is the interface people actually use to work with it.
 
-## Technology Stack
+It is built for tracking physical materials through their whole life — a building's components from
+manufacture through installation, renovation, demolition, and reuse. Hence the emphasis you will
+find throughout on hierarchy (a building contains floors contain rooms contain components),
+provenance (who recorded what, and when), and processes (what turned these inputs into those
+outputs).
 
-- **Frontend Framework**: Next.js 16, React 19
-- **Language**: TypeScript
-- **UI Libraries**: Tailwind CSS, Radix UI Components
-- **Form Management**: React Hook Form, Zod validation
-- **Security**: mTLS (Mutual TLS) Authentication
-- **Error Tracking**: Sentry (tunneled through `/api/sentry-tunnel`)
+**Why a separate repository:** io2p is meant to be implementable by anyone. Keeping the protocol
+(`io2p-core`) apart from one particular interface to it is what makes that claim real rather than
+aspirational — this application is _an_ io2p client, not _the_ io2p.
 
-## Getting Started
+## The rest of the project
 
-### Prerequisites
+| Repository                                                                | What it is                                                   |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [io2p-core](https://github.com/maeconomy-org/io2p-core)                   | The storage node — event-sourced, hash-chained, one REST API |
+| [io2p-auth](https://github.com/maeconomy-org/io2p-auth)                   | Token issuance and JWKS publication                          |
+| [io2p-client](https://github.com/maeconomy-org/io2p-client)               | TypeScript client library — what this app talks through      |
+| [io2p-ui](https://github.com/maeconomy-org/io2p-ui)                       | **This repository**                                          |
+| [io2p-auth-admin-ui](https://github.com/maeconomy-org/io2p-auth-admin-ui) | Administrative interface for `io2p-auth`                     |
+| [io2p-iac](https://github.com/maeconomy-org/io2p-iac)                     | Terraform to deploy a node into your own Azure subscription  |
+| [io2p-website](https://github.com/maeconomy-org/io2p-website)             | The source of io2p.org                                       |
 
-- Node.js 20.x or higher
-- pnpm package manager
-- HTTPS certificates for local development
+## What it does
 
-### Installation
+- **Objects** — hierarchical structures (building → floor → room → component) with typed properties,
+  files, and relationships between them
+- **Processes** — record what consumed which inputs and produced which outputs, so material flow is
+  traceable in both directions
+- **Templates, formulas, and constants** — reusable models so recurring structures are described
+  once rather than re-entered
+- **Bulk import** — CSV and Excel, with a wizard that validates before it commits and a job list
+  that reports what actually landed
+- **Sharing and access** — grant reach over a subtree rather than object by object
+- **English and Dutch** throughout
 
-1. Clone the repository
+## Stack
 
-   ```bash
-   git clone https://github.com/maeconomy-org/iom-ui.git
-   cd iom-ui
-   ```
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS + Radix (shadcn/ui) · TanStack Query
+v5 · React Hook Form + Zod · ECharts · next-intl · Playwright + Vitest.
 
-2. Install dependencies
+Authentication is mTLS client certificates or email/password, issued as JWTs by `io2p-auth`. Error
+tracking is browser-only Sentry, tunnelled through `/monitoring`; server-side observability is
+structured NDJSON logging with optional OpenTelemetry.
 
-   ```bash
-   pnpm install
-   ```
+## Getting started
 
-3. Setup environment variables
+**Prerequisites:** Node.js 22 or newer, pnpm 11 (`corepack enable`), and a reachable `io2p-auth` and
+`io2p-core`.
 
-   ```bash
-   cp .env.example .env.local
-   ```
+```bash
+git clone https://github.com/maeconomy-org/io2p-ui.git
+cd io2p-ui
+pnpm install
+cp .env.example .env
+pnpm dev            # https://localhost:3000
+```
 
-   Edit `.env.local` — see `.env.example` for all available variables. The minimum required:
+`BASE_URL` is the fallback for every service; `AUTH_BASE_URL` and `CORE_BASE_URL` override it per
+service. `buildRuntimeConfig()` in `src/constants/client.ts` is the authoritative list of every
+variable the browser can see.
 
-   ```bash
-   BASE_URL=https://example.com    # Base URL for all API services
-   HERE_API_KEY=your-key           # HERE Maps API key
-   REDIS_URL=redis://localhost:6379
-   REDIS_PASSWORD=your-password
-   ```
+### Configuration is read at runtime, not at build time
 
-4. Start the development server
+No environment variable is baked into the bundle, so **one Docker image runs in every environment**.
+Values reach the browser two ways, both from the same `buildRuntimeConfig()` source: an inline
+`<script>` in `layout.tsx` on first paint (no network request), and `/api/config` thereafter, cached
+in localStorage for 24 hours.
 
-   ```bash
-   pnpm dev
-   ```
+The practical consequence for contributors: a bare `process.env.X` read in client code compiles away
+to nothing and silently does something other than what you intended. New browser-visible config goes
+through `buildRuntimeConfig()`.
 
-5. Open your browser at `https://localhost:3000`
+## Development
 
-## Authentication
+```bash
+pnpm dev            # dev server
+pnpm fullcheck      # THE GATE — typecheck + lint + format:check + test + build
+pnpm test           # vitest, watch mode
+pnpm test:e2e       # Playwright (needs the dev server running)
+```
 
-The application uses **user-initiated JWT authentication** with mTLS certificates for secure access.
+`pnpm fullcheck` must be green before every commit. Note the name — the other io2p repositories call
+their equivalent `pnpm verify`.
 
-### Authentication Flow
+> **CI is currently dormant here.** `.github/workflows/ci.yml` is `workflow_dispatch` only, because
+> `io2p-client` is consumed as a `file:` dependency that a GitHub runner cannot resolve. The steps
+> are correct and ready; only the triggers are withheld. Until that is fixed, the local gate is the
+> only gate, so running it is not optional. CodeQL and dependency review do run on every PR —
+> neither needs a dependency install.
 
-1. **User visits the application** — No automatic authentication occurs
-2. **User clicks "Authorize with Certificate"** — Browser prompts for certificate selection
-3. **mTLS authentication** — Certificate is used to obtain JWT token
-4. **JWT token storage** — Token is stored in localStorage for persistence
-5. **Automatic token refresh** — SDK handles token refresh 5 minutes before expiration
-6. **Cross-tab synchronization** — Tokens work across multiple browser tabs
-
-## Project Structure
+## Project structure
 
 ```
 src/
-├── app/                # Next.js app router pages
-│   ├── (auth)/        # Auth page
-│   ├── objects/       # Objects management
-│   ├── groups/        # Groups management
-│   ├── models/        # Models management
-│   ├── processes/     # I/O Processes
-│   ├── import/        # Import workflow
-│   └── help/          # Help documentation
-├── components/        # React components
-│   ├── ui/           # Shared UI components (shadcn/ui)
-│   └── ...           # Feature components
-├── lib/              # Cross-cutting utilities
-├── hooks/            # React hooks
-├── contexts/         # React contexts
-├── constants/        # Application constants
-└── messages/         # i18n translations (en, nl)
+├── app/          # routes — each owns page.tsx, loading.tsx, error.tsx, and its own components/
+├── components/   # shared UI: ui/ (shadcn) · shell/ · entity-list/ · entity-sheet/ · dialogs/ · …
+├── constants/    # static config, nav items, enums
+├── contexts/     # React context providers
+├── hooks/        # api/ (React Query) · data/ · drafts/ · ui/
+├── lib/          # cross-cutting only: auth/ · http/ · entity/ · observability/ · …
+├── messages/     # en.json, nl.json
+└── types/        # shared TypeScript types
 ```
 
-## Available Scripts
+Feature-specific code lives with its feature, not in `lib/`. `AGENTS.md` is the full architectural
+reference and the house rules — read it before a first substantial change.
 
-- `pnpm dev` — Start the development server (webpack)
-- `pnpm build` — Build for production
-- `pnpm start` — Start the production server
-- `pnpm lint` — Run ESLint
-- `pnpm format` — Format code with Prettier
-- `pnpm typecheck` — TypeScript type checking
-- `pnpm test` — Run tests in watch mode
-- `pnpm test:run` — Run tests once
+## Contributing
 
-## Configuration
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the gate, the branch model, and the handful of
+conventions that will otherwise catch you out. By participating you agree to the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
-All configuration is **runtime** — no environment variables are needed at build time. A single Docker image works across all environments.
+## Security
 
-- Environment variables are read at runtime via `buildRuntimeConfig()` in `src/constants/client.ts`
-- The `/api/config` endpoint serves client-side configuration
-- An inline `<script>` tag in `layout.tsx` provides config on first load (zero network requests)
-- Config is cached in localStorage for 24 hours
+**Do not report vulnerabilities in a public issue.** See [SECURITY.md](SECURITY.md) for the private
+channels, scope, and our safe-harbour terms — or <https://io2p.org/security>.
 
-See `CLAUDE.md` for the full environment variable reference.
+## License
 
-## Deployment
-
-See `docs/RELEASE-GUIDE.md` for the complete release, deployment, and source map upload workflow.
+MIT — see [LICENSE](LICENSE).
