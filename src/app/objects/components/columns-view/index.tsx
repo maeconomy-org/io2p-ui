@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import type { ObjectListItem } from 'io2p-client'
 
@@ -61,6 +61,22 @@ export function ObjectColumnsView({
   }
 
   const parentIds = [rootId, ...openPath]
+  const columnCount = parentIds.length
+
+  // Opening a child adds a column off the right edge of the viewport, so the row
+  // the click just produced is the one the user cannot see.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const reduced = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches
+    el.scrollTo({
+      left: el.scrollWidth,
+      behavior: reduced ? 'auto' : 'smooth',
+    })
+  }, [columnCount])
 
   const handleSelect = (columnIndex: number, item: ObjectListItem) => {
     setSelected((prev) => [...prev.slice(0, columnIndex), item.id])
@@ -75,7 +91,7 @@ export function ObjectColumnsView({
   return (
     <div className="flex h-[calc(100vh-180px)] flex-col">
       <div className="flex-1 overflow-hidden rounded-md border">
-        <div className="flex h-full overflow-x-auto">
+        <div ref={scrollRef} className="flex h-full overflow-x-auto">
           {parentIds.map((parentId, index) => (
             <MillerColumn
               key={`${index}-${parentId}`}

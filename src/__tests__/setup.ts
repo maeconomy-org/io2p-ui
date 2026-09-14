@@ -45,6 +45,7 @@ Element.prototype.hasPointerCapture ??= () => false
 Element.prototype.setPointerCapture ??= () => {}
 Element.prototype.releasePointerCapture ??= () => {}
 Element.prototype.scrollIntoView ??= () => {}
+Element.prototype.scrollTo ??= () => {}
 
 // jsdom 29 no longer ships its own Web Storage — it defers to Node's, which stays undefined unless
 // the process is started with `--localstorage-file`. So `localStorage` is absent under test even
