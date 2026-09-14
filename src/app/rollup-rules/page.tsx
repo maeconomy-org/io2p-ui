@@ -203,10 +203,13 @@ export default function RollupRulesPage() {
           onOpenChange={(open) => !open && setSheet(null)}
           mode={sheet.mode}
           rule={sheet.mode === 'create' ? null : sheet.rule}
-          onRecompute={(rule) => {
-            setSheet(null)
-            void handleRecompute(rule)
-          }}
+          onEdit={
+            sheet.mode === 'view' &&
+            !sheet.rule.deleted &&
+            canWriteLibraryItem(sheet.rule, userId)
+              ? (rule) => setSheet({ mode: 'edit', rule })
+              : undefined
+          }
         />
       )}
 

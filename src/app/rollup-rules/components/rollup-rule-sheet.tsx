@@ -54,8 +54,8 @@ interface RollupRuleSheetProps {
   mode: RollupRuleSheetMode
   /** The subject for `view` and `edit`. */
   rule?: RollupRuleDTO | null
-  /** Queue a recompute of the viewed rule. Omitted where the viewer may not run one. */
-  onRecompute?: (rule: RollupRuleDTO) => void
+  /** Switch the open sheet to `edit`. Omitted where the viewer may not change the rule. */
+  onEdit?: (rule: RollupRuleDTO) => void
 }
 
 export function RollupRuleSheet({
@@ -63,7 +63,7 @@ export function RollupRuleSheet({
   onOpenChange,
   mode,
   rule = null,
-  onRecompute,
+  onEdit,
 }: RollupRuleSheetProps) {
   const t = useTranslations()
 
@@ -94,7 +94,7 @@ export function RollupRuleSheet({
             <RollupRuleView
               rule={rule}
               onDone={() => onOpenChange(false)}
-              onRecompute={onRecompute}
+              onEdit={onEdit}
             />
           ) : (
             <RollupRuleForm onDone={() => onOpenChange(false)} />
@@ -622,11 +622,11 @@ function RollupRuleEdit({
 function RollupRuleView({
   rule,
   onDone,
-  onRecompute,
+  onEdit,
 }: {
   rule: RollupRuleDTO
   onDone: () => void
-  onRecompute?: (rule: RollupRuleDTO) => void
+  onEdit?: (rule: RollupRuleDTO) => void
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
@@ -688,16 +688,16 @@ function RollupRuleView({
         >
           {t('common.close')}
         </Button>
-        {/* A system rule fans out across every object on the node, and a deleted one computes
-            nothing — the node refuses both, so neither is offered. */}
-        {onRecompute && !rule.system && !rule.deleted && (
+        {/* Recompute stays in the row menu. A sheet titled "details" ends in the action that
+            changes them, and the one field an edit reaches is the one named two lines above. */}
+        {onEdit && (
           <Button
             type="button"
             className="flex-1"
-            data-testid="rollup-rule-recompute"
-            onClick={() => onRecompute(rule)}
+            data-testid="rollup-rule-view-edit"
+            onClick={() => onEdit(rule)}
           >
-            {t('rollupRules.recompute')}
+            {t('common.edit')}
           </Button>
         )}
       </SheetFooter>
