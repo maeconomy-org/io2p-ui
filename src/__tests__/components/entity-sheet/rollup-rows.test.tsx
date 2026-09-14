@@ -345,6 +345,17 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByTestId('rollup-stale')).toBeInTheDocument()
   })
 
+  it('marks a queued recompute with an icon, not a fourth phrase on the line', () => {
+    // The line already reads "total, count, skipped"; a word there parsed as
+    // another fact about the number.
+    renderRollups([massProperty()], new Map([['mass', entry({ stale: true })]]))
+
+    const badge = screen.getByTestId('rollup-stale')
+    expect(badge).toHaveAccessibleName('objects.properties.rollupProcessing')
+    expect(badge).toHaveTextContent('')
+    expect(screen.getByTestId('rollup-line')).not.toContainElement(badge)
+  })
+
   it('drops the card entirely when nothing below contributes', () => {
     // The leaf case from the field: own value 2400 kg, total 2400 kg, one
     // contributor. Printing the same quantity twice — once authored, once

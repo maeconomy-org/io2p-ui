@@ -31,6 +31,7 @@ import { FilesDisclosure } from '../files'
 import { DeletedRow } from './deleted-row'
 import {
   RollupLine,
+  RollupStaleBadge,
   orderBuckets,
   ownShare,
   rollupSaysSomething,
@@ -372,44 +373,65 @@ function RollupCard({
 }) {
   const t = useTranslations()
 
+  const updating = entry.stale && !entry.error
+
   return (
     <div
-      className="rounded-md border border-dashed bg-muted/20 px-3 py-1.5"
+      className={cn(
+        'rounded-md border border-dashed px-3 py-1.5 transition-colors',
+        updating
+          ? 'border-amber-300/70 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10'
+          : 'bg-muted/20'
+      )}
       data-testid={testId}
     >
       <div className="flex items-center gap-1.5">
-        <Calculator
-          className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <span className="truncate text-sm font-medium">
-          {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
-        </span>
-        {/* Two rules on one key differ only by their multiplier, so without it both cards read
-            "Weight" and the reader cannot tell which total is which. */}
-        {entry.multipliedBy && (
-          <span
-            className="shrink-0 text-xs text-muted-foreground"
-            data-testid="rollup-multiplier"
-          >
-            {t('objects.properties.rollupMultipliedBy', {
-              key: resolvePropertyLabel(entry.multipliedBy, undefined, locale),
-            })}
-          </span>
-        )}
-        <Badge
-          variant="secondary"
-          className="h-4 shrink-0 px-1 text-[10px] font-normal"
+        {/* The number and its name dim TOGETHER, in their own wrapper: opacity does not
+            compose upward, so dimming the card would take the badge down with them. */}
+        <div
+          className={cn(
+            'flex min-w-0 items-center gap-1.5 transition-opacity',
+            updating && 'opacity-60'
+          )}
         >
-          {t('objects.properties.rollupDerived')}
-        </Badge>
+          <Calculator
+            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <span className="truncate text-sm font-medium">
+            {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
+          </span>
+          {/* Two rules on one key differ only by their multiplier, so without it both cards read
+              "Weight" and the reader cannot tell which total is which. */}
+          {entry.multipliedBy && (
+            <span
+              className="shrink-0 text-xs text-muted-foreground"
+              data-testid="rollup-multiplier"
+            >
+              {t('objects.properties.rollupMultipliedBy', {
+                key: resolvePropertyLabel(
+                  entry.multipliedBy,
+                  undefined,
+                  locale
+                ),
+              })}
+            </span>
+          )}
+          <Badge
+            variant="secondary"
+            className="h-4 shrink-0 px-1 text-[10px] font-normal"
+          >
+            {t('objects.properties.rollupDerived')}
+          </Badge>
+        </div>
+        {updating && <RollupStaleBadge className="ml-auto" />}
       </div>
       <RollupLine
         entry={entry}
         ownUnit={unit}
         ownValues={ownValues}
         multiplierValues={multiplierValues}
-        className="mt-0.5"
+        className={cn('mt-0.5 transition-opacity', updating && 'opacity-60')}
       />
     </div>
   )
@@ -482,6 +504,7 @@ function PropertyCard({
             {count}
           </Badge>
         )}
+        {rollup?.stale && !rollup.error && <RollupStaleBadge />}
       </CollapsibleTrigger>
 
       {/* OUTSIDE the collapsible content: the card is collapsed by default, and a total nobody can

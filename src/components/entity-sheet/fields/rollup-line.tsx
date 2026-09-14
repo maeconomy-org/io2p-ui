@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { ChevronRight, Sigma } from 'lucide-react'
+import { ChevronRight, RefreshCw, Sigma } from 'lucide-react'
 import type { EntityRollupEntry, RollupBucket } from 'io2p-client'
 
 import { cn } from '@/lib/utils'
@@ -264,11 +264,6 @@ export function RollupLine({
         </>
       )}
 
-      {entry.stale && !entry.error && (
-        <span data-testid="rollup-stale">
-          {t('objects.properties.rollupProcessing')}
-        </span>
-      )}
       {entry.skippedCount > 0 && (
         <span data-testid="rollup-skipped">
           {t('objects.properties.rollupSkipped', { count: entry.skippedCount })}
@@ -285,6 +280,32 @@ export function RollupLine({
         </ul>
       )}
     </div>
+  )
+}
+
+/**
+ * A queued recompute, as an icon rather than a word: the line it sat on already carries the total,
+ * the value count and the skip count, and a fourth phrase read as another fact about the number.
+ * The label stays in the accessible name — a spinner alone says nothing to a screen reader, and
+ * `motion-reduce` leaves it a static amber mark.
+ */
+export function RollupStaleBadge({ className }: { className?: string }) {
+  const t = useTranslations()
+  const label = t('objects.properties.rollupProcessing')
+
+  return (
+    <span
+      role="status"
+      aria-label={label}
+      title={label}
+      data-testid="rollup-stale"
+      className={cn('flex shrink-0 items-center', className)}
+    >
+      <RefreshCw
+        className="h-3.5 w-3.5 animate-spin text-amber-500 motion-reduce:animate-none dark:text-amber-400"
+        aria-hidden="true"
+      />
+    </span>
   )
 }
 
