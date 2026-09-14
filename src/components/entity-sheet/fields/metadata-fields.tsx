@@ -93,9 +93,17 @@ export function MetadataFields({
           id="entity-name"
           aria-invalid={!!nameError}
           aria-describedby={nameError ? 'entity-name-error' : undefined}
+          /*
+           * NO validation rule here. A rule registered on the field runs INSIDE `handleSubmit`
+           * and short-circuits it, so the submit handler — which owns the toast and the
+           * entity-specific wording — never runs. Worse, the rule unmounts with the tab, so the
+           * same empty name was caught in two different places with two different outcomes
+           * depending on which tab was open. The handler is the only rule; this clears what it set.
+           */
           {...form.register('name', {
-            // A name of spaces passes `required` and the node rejects it anyway.
-            validate: (value) => value.trim().length > 0 || NAME_REQUIRED,
+            onChange: (e) => {
+              if (e.target.value.trim()) form.clearErrors('name')
+            },
           })}
         />
         {nameError && (

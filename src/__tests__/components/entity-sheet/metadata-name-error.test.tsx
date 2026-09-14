@@ -73,28 +73,28 @@ describe('MetadataFields name error', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('common.nameRequired')
   })
 
-  it('refuses a name of only spaces', async () => {
-    const { form, input } = setup()
-
-    fireEvent.change(input(), { target: { value: '   ' } })
-    await act(async () => {
-      await form.trigger('name')
-    })
-
-    expect(screen.getByRole('alert')).toHaveTextContent('common.nameRequired')
-  })
-
-  it('clears once a real name is typed', async () => {
+  it('clears once a real name is typed', () => {
     const { form, input } = setup()
 
     act(() => form.setError('name', { type: 'required' }))
     expect(screen.getByRole('alert')).toBeInTheDocument()
 
     fireEvent.change(input(), { target: { value: 'Wall B' } })
-    await act(async () => {
-      await form.trigger('name')
-    })
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  /**
+   * The refusal is raised by the SUBMIT handler, never by a rule on the field — a field rule runs
+   * inside `handleSubmit` and short-circuits it, so the handler's toast and its entity-specific
+   * wording never fire. Typing spaces must therefore leave the refusal standing.
+   */
+  it('keeps the refusal while the name is still blank', () => {
+    const { form, input } = setup()
+
+    act(() => form.setError('name', { type: 'required' }))
+    fireEvent.change(input(), { target: { value: '   ' } })
+
+    expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 })

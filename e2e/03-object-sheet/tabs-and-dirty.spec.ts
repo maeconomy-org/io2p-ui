@@ -162,7 +162,9 @@ test.describe('03 - object sheet / tabs and dirty', () => {
     await enterEditMode(page)
 
     await switchTab(page, 'details')
-    await page.getByLabel(/name/i).first().fill('')
+    // Scoped to the sheet: unscoped, `/name/i` matches the objects-list column-menu button
+    // ("Name column options") long before the sheet's field, and `fill` refuses a <button>.
+    await sheet(page).locator('#entity-name').fill('')
 
     await switchTab(page, 'properties')
     await expect(page.getByTestId('entity-name-error')).toHaveCount(0)

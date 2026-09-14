@@ -135,6 +135,22 @@ describe('useEntityForm', () => {
       expect(toastError).toHaveBeenCalledWith('objects.saveError.nameRequired')
     })
 
+    // The refusal must reach the user the same way from EVERY tab. A rule on the field would be
+    // caught by RHF before the handler and this toast would never fire.
+    it('toasts even though the field itself carries no rule', async () => {
+      const { result } = renderHook(
+        () => useEntityForm(entity({ name: 'Wall A' })),
+        { wrapper: makeWrapper() }
+      )
+
+      act(() => result.current.form.setValue('name', '', { shouldDirty: true }))
+      await act(async () => {
+        await result.current.submit()
+      })
+
+      expect(toastError).toHaveBeenCalledWith('objects.saveError.nameRequired')
+    })
+
     it('treats whitespace as empty — the node rejects it either way', async () => {
       const { result } = renderHook(
         () => useEntityForm(entity({ name: 'Wall A' })),
