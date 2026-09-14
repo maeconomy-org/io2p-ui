@@ -118,6 +118,20 @@ export function PropertyReadView({
     () => formulaBoundValueIds(derivedValues),
     [derivedValues]
   )
+  // Cards read in name order; the draft keeps authoring order, which is the order
+  // the node happened to return and means nothing to a reader.
+  const sortedProperties = useMemo(
+    () =>
+      [...properties].sort((a, b) =>
+        resolvePropertyLabel(a.key, a.label, locale).localeCompare(
+          resolvePropertyLabel(b.key, b.label, locale),
+          locale,
+          { sensitivity: 'base', numeric: true }
+        )
+      ),
+    [properties, locale]
+  )
+
   // From the RAW map, not `liveRollups` below: an entry with nothing to show still names the key
   // its rule multiplies by, and that key's values are still inputs to a total.
   const multiplierKeys = useMemo(() => multiplierKeysOf(rollups), [rollups])
@@ -257,7 +271,7 @@ export function PropertyReadView({
 
       {view === 'grid' ? (
         <div className="grid grid-cols-2 gap-2">
-          {properties.map((p, i) =>
+          {sortedProperties.map((p, i) =>
             p.deleted ? (
               <DeletedRow
                 key={p.id ?? i}
@@ -301,7 +315,7 @@ export function PropertyReadView({
         </div>
       ) : (
         <div className="space-y-1.5">
-          {properties.map((p, i) => (
+          {sortedProperties.map((p, i) => (
             <PropertyCard
               key={p.id ?? i}
               property={p}
