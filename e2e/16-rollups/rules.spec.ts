@@ -2,6 +2,7 @@ import type { Locator, Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { rowActions, tour } from '../utils/selectors'
+import { deleteRollupRulesByKey } from '../utils/rollup-rules'
 
 /**
  * The rules page had one smoke test — `00-harness/hydration.read.spec.ts` reaches `/rollup-rules`
@@ -11,9 +12,23 @@ import { rowActions, tour } from '../utils/selectors'
  * A rule is a RUNNING COST, not a catalogue entry: every rule is computed for every entity of
  * every user and consumes the node-wide cap that gates user rule creation. So each test here
  * removes what it created.
+ *
+ * The inline deletes below stay where a test ASSERTS the deletion (RR4) or needs the row gone to
+ * make its next assertion. They are not the cleanup: an inline delete only runs when the test
+ * passes, and the run where it matters is the run where the test failed. `afterAll` is what
+ * guarantees the account is left as found — see AGENTS.md, and §3.13 of the rollups hardening
+ * notes, which counted eight leaked rules on the dev node.
  */
 
 const stamp = () => `e2e${Date.now()}`
+
+/** Every key this file creates, whatever happens to the test that created it. */
+const createdKeys: string[] = []
+
+function trackKey(key: string): string {
+  createdKeys.push(key)
+  return key
+}
 
 async function openCreateSheet(page: Page) {
   await tour(page, 'rollupRulesCreate').click()
@@ -22,8 +37,10 @@ async function openCreateSheet(page: Page) {
   return key
 }
 
-/** Create one rule and return its row. Every caller deletes it again — a rule is a running cost. */
+/** Create one rule and return its row. Registered for the sweep BEFORE the submit: a create that
+    times out on the row assertion may still have reached the node. */
 async function createRule(page: Page, key: string): Promise<Locator> {
+  trackKey(key)
   const input = await openCreateSheet(page)
   await input.fill(key)
   await page.getByTestId('rollup-rule-add-key').click()
@@ -64,6 +81,17 @@ test.describe('16 - rollups / rules', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/rollup-rules')
     await expect(page.getByTestId('data-table')).toBeVisible()
+  })
+
+  test.afterAll(async ({ browser }) => {
+    const page = await browser.newPage()
+    await page.goto('/rollup-rules')
+    await expect(page.getByTestId('data-table')).toBeVisible()
+    const failure = await deleteRollupRulesByKey(page, createdKeys)
+    await page.close()
+    // LOUD. A hook failure is reported apart from the test failures, so this does not mask one,
+    // and a sweep that fails quietly is how the dev node reached eight abandoned rules.
+    expect(failure, `rollup rule cleanup: ${failure}`).toBeNull()
   })
 
   test('RR1: a queued key is normalized before it is saved', async ({
@@ -141,7 +169,7 @@ test.describe('16 - rollups / rules', () => {
   })
 
   test('RR8: a rule can name the property it counts by', async ({ page }) => {
-    const unique = stamp()
+    const unique = trackKey(stamp())
     const input = await openCreateSheet(page)
 
     await input.fill(unique)
