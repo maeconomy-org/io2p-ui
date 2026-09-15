@@ -118,8 +118,9 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
   const t = useTranslations()
   const fieldId = useId()
 
-  const { useOwnRules, useCreate } = useRollupRules()
+  const { useOwnRules, useSystemRules, useCreate } = useRollupRules()
   const { data: ownRules } = useOwnRules()
+  const { data: systemRules } = useSystemRules()
   const createMutation = useCreate()
 
   const [draft, setDraft] = useState('')
@@ -134,6 +135,10 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
     () => new Set((ownRules?.data ?? []).map((r) => r.propertyKey)),
     [ownRules]
   )
+  const systemKeys = useMemo(
+    () => new Set((systemRules?.data ?? []).map((r) => r.propertyKey)),
+    [systemRules]
+  )
 
   const normalizedDraft = normalizeRollupPropertyKey(draft)
   // Only when the two differ: echoing an unchanged key would be noise on every keystroke.
@@ -141,6 +146,10 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
   const draftExists = normalizedDraft !== '' && takenKeys.has(normalizedDraft)
   const draftNonNumeric =
     normalizedDraft !== '' && isCertainlyNonNumericKey(normalizedDraft)
+  // After `draftExists`: your own duplicate is refused outright, and saying "you will get two
+  // totals" about a rule that cannot be created reads as the reason it was refused.
+  const draftShadowsSystem =
+    normalizedDraft !== '' && !draftExists && systemKeys.has(normalizedDraft)
   const draftQueued = keys.includes(normalizedDraft)
   const canAdd = normalizedDraft !== '' && !draftExists && !draftQueued
 
@@ -293,6 +302,18 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
             ) : (
               <p className="text-xs text-muted-foreground">
                 {t('rollupRules.propertyKeyHint')}
+              </p>
+            )}
+            {/* A warning, never a block: core's uniqueness is per TIER, so this rule is valid
+                and the pair is the node's answer, not a mistake to prevent. Whether a user rule
+                should SHADOW the built-in is core item 11, undecided. */}
+            {draftShadowsSystem && (
+              <p
+                className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
+                data-testid="rollup-rule-system-key-warning"
+              >
+                <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{t('rollupRules.systemKeyExists')}</span>
               </p>
             )}
             {/* A warning, never a block: the node accepts the rule, and a key

@@ -49,6 +49,22 @@ function useOwnRollupRules() {
   return useRollupRuleList(query)
 }
 
+/**
+ * The built-in rules, for the create form's shadow warning.
+ *
+ * Core's uniqueness is per TIER, so a user rule on a seeded key is accepted and the object then
+ * carries two totals for it. `useOwnRollupRules` cannot see that — `system: false` is the whole
+ * scope of "mine" — which is why this is a second query rather than a filter on the first.
+ */
+function useSystemRollupRules() {
+  const query: ListRollupRulesQuery = {
+    page: 1,
+    size: MAX_LIST_PAGE_SIZE,
+    system: true,
+  }
+  return useRollupRuleList(query)
+}
+
 function useRollupRuleCreate() {
   const client = useIomClient()
   const qc = useQueryClient()
@@ -124,6 +140,7 @@ function useRollupRuleRecompute() {
 const rollupRuleBundle = {
   useList: useRollupRuleList,
   useOwnRules: useOwnRollupRules,
+  useSystemRules: useSystemRollupRules,
   useCreate: useRollupRuleCreate,
   useUpdate: useRollupRuleUpdate,
   useRemove: useRollupRuleRemove,

@@ -1637,6 +1637,7 @@
       "invalid": "Rejected: {detail}"
     },
     "property": "Property",
-    "nonNumericKey": "This property usually holds text, so the rollup will likely stay empty."
+    "nonNumericKey": "This property usually holds text, so the rollup will likely stay empty.",
+    "systemKeyExists": "A built-in rule already totals this property. Yours will not replace it — each object will show both totals."
   }
 }

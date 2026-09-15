@@ -124,6 +124,28 @@ test.describe('16 - rollups / rules', () => {
     await expect(page.getByTestId('rollup-rule-add-key')).toBeEnabled()
   })
 
+  test('RR13: a key a built-in already totals warns without blocking', async ({
+    page,
+  }) => {
+    const key = await openCreateSheet(page)
+
+    // `mass` is seeded on every node. Core's uniqueness is per TIER, so this rule is ACCEPTED and
+    // the object then shows two totals — the warning is the only place a user learns that before
+    // creating it. Typed mixed-case on purpose: the check runs on the normalized draft.
+    await key.fill('Mass')
+    await expect(
+      page.getByTestId('rollup-rule-system-key-warning')
+    ).toBeVisible()
+    await expect(page.getByTestId('rollup-rule-add-key')).toBeEnabled()
+
+    // A key no built-in covers clears it again, so the warning tracks the draft rather than
+    // latching on the first match.
+    await key.fill(stamp())
+    await expect(
+      page.getByTestId('rollup-rule-system-key-warning')
+    ).toHaveCount(0)
+  })
+
   test('RR3: the same key cannot be queued twice', async ({ page }) => {
     const key = await openCreateSheet(page)
     const unique = stamp()
