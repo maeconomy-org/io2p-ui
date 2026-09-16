@@ -62,7 +62,7 @@ export function ValueNormalization({
 
   if (value.num === undefined || !differsFromRaw(value)) return null
 
-  const canonical = `${format.number(value.num)}${value.unit ? ` ${value.unit}` : ''}`
+  const canonical = canonicalText(value, (n) => format.number(n))
   return (
     <Marker
       state="canonical"
@@ -183,3 +183,36 @@ function differsFromRaw(
 }
 
 const bare = (s: string) => s.toLowerCase().replace(/\s+/g, '')
+
+/**
+ * The canonical form as a reader should see it: grouped digits and the unit, `20,000 kg`.
+ *
+ * Shared with the value row, so the ⚖ tooltip and the row it sits on cannot describe the same
+ * number two ways.
+ */
+export function canonicalText(
+  value: Pick<DraftValue, 'num' | 'unit'>,
+  formatNumber: (n: number) => string
+): string {
+  if (value.num === undefined) return ''
+  return `${formatNumber(value.num)}${value.unit ? ` ${value.unit}` : ''}`
+}
+
+/**
+ * What a DERIVED value should read as.
+ *
+ * A recipe that DECLARES a unit gets its display text from the node — `data` is already
+ * "20 t" — so it is left alone. One that declares nothing gets `data` as a bare number, which
+ * is how a derived row came to show `20000` beside two authored `10 t` values. That case is
+ * rebuilt from the canonical fields, which is the same figure the ⚖ marker was already
+ * carrying in its tooltip and nowhere else.
+ */
+export function derivedText(
+  value: Pick<DraftValue, 'data' | 'num' | 'unit'>,
+  provenance: { unitSource?: string } | undefined,
+  formatNumber: (n: number) => string
+): string | undefined {
+  if (provenance?.unitSource === 'declared') return undefined
+  const text = canonicalText(value, formatNumber)
+  return text === '' ? undefined : text
+}

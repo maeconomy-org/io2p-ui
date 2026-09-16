@@ -123,7 +123,27 @@ function newValue(): DraftValue {
  * That made a correctly-applied template look like it had lost its mapping. Values holding actual
  * text stay excluded: a formula computes over numbers, and offering one would only produce NaN.
  */
-function collectSiblings(
+/**
+ * The number the NODE will compute with — its CANONICAL form, which is what `num` holds
+ * ("10 t" is 10000 kg to the evaluator). Re-parsing `data` here fed the preview 10, so every
+ * preview over a value authored in a non-canonical unit was wrong by that unit's factor, and
+ * silently right for kg.
+ *
+ * `num` is absent until the value has been read back, so a just-typed BARE number still previews
+ * off its text. A just-typed "10 t" previews nothing rather than a figure off by 1000 — the same
+ * rule the binding editor already applies to a value nobody has filled in.
+ */
+function previewNum(
+  value: DraftValue,
+  text: string,
+  leading: number
+): number | undefined {
+  if (value.num !== undefined) return value.num
+  if (text === '' || !Number.isFinite(leading)) return undefined
+  return String(leading) === text ? leading : undefined
+}
+
+export function collectSiblings(
   properties: EntityDraft['properties'],
   selfKey: string | undefined,
   locale: PropertyDictionaryLocale
@@ -134,15 +154,16 @@ function collectSiblings(
       const key = v.id ?? v.ref
       if (!key || key === selfKey || v.calc || v.deleted) return // skip self + other formulas
       const text = (v.data ?? '').trim()
-      const num = Number.parseFloat(text)
-      if (text !== '' && !Number.isFinite(num)) return
+      const leading = Number.parseFloat(text)
+      if (text !== '' && !Number.isFinite(leading)) return
       out.push({
         key,
         // The raw key, never the resolved label — the label is localized and the option's testid is
         // built from this.
         propertyKey: p.key ?? p.label ?? '',
         label: resolvePropertyLabel(p.key, p.label, locale) || '—',
-        num: Number.isFinite(num) ? num : undefined,
+        num: previewNum(v, text, leading),
+        unit: v.unit,
       })
     })
   })

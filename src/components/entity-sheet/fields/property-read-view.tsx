@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useCallback, useMemo, useState } from 'react'
+import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import {
   Calculator,
   ChevronRight,
@@ -39,6 +39,7 @@ import {
 import { FormulaSummary } from './formula-value-editor'
 import {
   ValueNormalization,
+  derivedText,
   formulaBoundValueIds,
   multiplierKeysOf,
 } from './value-normalization'
@@ -77,11 +78,35 @@ function ownUnit(p: DraftProperty): string | undefined {
   return liveValues(p).find((v) => v.unit !== undefined)?.unit
 }
 
-function valueSummary(p: DraftProperty, manyLabel: string): string {
+function valueSummary(
+  p: DraftProperty,
+  manyLabel: string,
+  display: (v: DraftValue) => string
+): string {
   const values = liveValues(p)
   if (values.length === 0) return '—'
-  if (values.length === 1) return values[0].data || '—'
+  if (values.length === 1) return display(values[0])
   return manyLabel
+}
+
+/**
+ * How one value READS — one definition for the grid summary, the collapsed header and the row,
+ * so the same number cannot appear three ways in one sheet.
+ */
+function useValueDisplay(derivedValues: DerivedValues) {
+  const format = useFormatter()
+  return useCallback(
+    (value: DraftValue): string => {
+      const fallback = value.data || '—'
+      if (!value.id || !derivedValues.has(value.id)) return fallback
+      return (
+        derivedText(value, derivedValues.get(value.id), (n) =>
+          format.number(n)
+        ) ?? fallback
+      )
+    },
+    [derivedValues, format]
+  )
 }
 
 // Read-only Properties: a collapsible card per property (list) or a compact grid. Files stay inside
@@ -115,6 +140,7 @@ export function PropertyReadView({
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
   const [view, setView] = usePreference('propertiesView')
+  const displayValue = useValueDisplay(derivedValues)
   const boundValueIds = useMemo(
     () => formulaBoundValueIds(derivedValues),
     [derivedValues]
@@ -297,7 +323,8 @@ export function PropertyReadView({
                 <div className="mt-0.5 truncate text-sm text-muted-foreground">
                   {valueSummary(
                     p,
-                    t('objects.values', { count: liveValues(p).length })
+                    t('objects.values', { count: liveValues(p).length }),
+                    displayValue
                   )}
                 </div>
               </div>
@@ -324,6 +351,7 @@ export function PropertyReadView({
               boundValueIds={boundValueIds}
               usedAsMultiplier={multiplierKeys.has(p.key.toLowerCase())}
               labelForValue={(id) => labelForValueId(properties, id, locale)}
+              displayValue={displayValue}
               entityId={entityId}
               onFileChange={onFileChange}
               allowFiles={allowFiles}
@@ -443,6 +471,7 @@ function PropertyCard({
   boundValueIds,
   usedAsMultiplier = false,
   labelForValue,
+  displayValue,
   entityId,
   onFileChange,
   allowFiles,
@@ -454,6 +483,7 @@ function PropertyCard({
   /** A rollup rule scales its totals by this property — so its values are calculation inputs. */
   usedAsMultiplier?: boolean
   labelForValue: LabelForValue
+  displayValue: (value: DraftValue) => string
   entityId?: string
   onFileChange?: FileChange
   allowFiles: boolean
@@ -492,7 +522,8 @@ function PropertyCard({
         <span className="ml-2 min-w-0 flex-1 truncate text-sm text-muted-foreground">
           {valueSummary(
             property,
-            t('objects.values', { count: liveValues(property).length })
+            t('objects.values', { count: liveValues(property).length }),
+            displayValue
           )}
         </span>
         {count > 0 && (
@@ -541,6 +572,7 @@ function PropertyCard({
             boundValueIds={boundValueIds}
             usedAsMultiplier={usedAsMultiplier}
             labelForValue={labelForValue}
+            displayValue={displayValue}
             entityId={entityId}
             onFileChange={onFileChange}
             allowFiles={allowFiles}
@@ -557,6 +589,7 @@ function ValueRow({
   boundValueIds,
   usedAsMultiplier = false,
   labelForValue,
+  displayValue,
   entityId,
   onFileChange,
   allowFiles,
@@ -566,6 +599,7 @@ function ValueRow({
   boundValueIds: ReadonlySet<string>
   usedAsMultiplier?: boolean
   labelForValue: LabelForValue
+  displayValue: (value: DraftValue) => string
   entityId?: string
   onFileChange?: FileChange
   allowFiles: boolean
@@ -606,7 +640,7 @@ function ValueRow({
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span>{value.data || '—'}</span>
+        <span>{displayValue(value)}</span>
         <ValueNormalization
           value={value}
           usedInFormula={!!value.id && boundValueIds.has(value.id)}

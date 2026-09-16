@@ -423,6 +423,10 @@
     },
     "formulaEditor": {
       "expression": "Formule",
+      "dimension-mismatch": "Dit combineert {a} met {b}, wat niet opgeteld kan worden. Het resultaat wordt geweigerd en er wordt geen getal opgeslagen.",
+      "unknown-unit": "De formule geeft eenheid {a} op, die deze node niet kent. Het resultaat wordt geweigerd en er wordt geen getal opgeslagen.",
+      "declaredRescale": "Deze formule geeft het resultaat op in {declared}. De node vermenigvuldigt het daarom met {factor} en slaat het op in {canonical}. Geef alleen een eenheid op als de expressie die zelf oplevert — waarden optellen die al in {canonical} staan geeft {canonical}.",
+      "declaredRescaleStored": "Het wordt opgeslagen als {stored}.",
       "switchToFormula": "Formule gebruiken",
       "switchToText": "Vaste waarde gebruiken",
       "selectFormula": "Kies een formule",
@@ -949,7 +953,7 @@
       "description": "Een formule is een herbruikbare expressie die je aan een waarde kunt koppelen."
     },
     "unit": "Eenheid van het resultaat",
-    "unitHint": "Optioneel. De node leidt de eenheid af uit de waarden die een formule leest — geef er alleen zelf een op als dat niet lukt, bijvoorbeeld bij een breedte maal een hoogte, of een resultaat in een andere schaal dan de invoer.",
+    "unitHint": "Optioneel. Laat het leeg en het resultaat houdt de eenheid van de waarden die het leest. Vul het in om te kiezen in welke eenheid het resultaat wordt getoond — een som van gewichten met t leest in tonnen. Een formule die zelf omrekent, zoals een breedte maal een hoogte, geeft op wat de eigen berekening oplevert (m²).",
     "unitInferred": "Afgeleid uit de waarden",
     "unitNone": "Geen eenheid",
     "unitCanonical": "opgeslagen in",

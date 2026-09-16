@@ -93,6 +93,180 @@ export function parseExpression(expression: string): Expression {
 }
 
 /**
+ * MIRRORED VERBATIM from `io2p-core/src/shared/calc.eval.ts` (`inheritanceSafe` … `callTaint`),
+ * the same way the grammar above mirrors the evaluator. The preview has to decide whether a
+ * declared result unit converts the number or only names it, and that verdict must be the node's
+ * own — a second reading of the rule is a second answer, which is what this file exists to prevent.
+ *
+ * Re-copy it whenever core's walk moves. It has already moved once, from a `scaleFree` that asked
+ * whether a scalar had touched a property to a `keepsArgDimension` that asks only whether the
+ * result still carries the args' dimension — a rename would not have caught that.
+ */
+// ── Unit-inheritance safety (the scalar-aware taint walk) ─────────────────────────────
+// Can this expression's result meaningfully CARRY the unit of its property arguments?
+// Decided structurally, by simulating the evaluator's stack over the compiled instruction
+// stream (the same `.tokens` access `containsSequence` uses) and marking each slot either
+// TAINTED (carries a property variable) or SCALAR (a number literal, an embedded constant —
+// unit-transparent by decision). The rules mirror dimensional analysis, conservatively:
+//   • `+`, binary `-`, `min`/`max` — legal between two tainted or two scalar operands
+//     MIXING them (`a + 500`, `min(a, 100)`, `a + offset`) fails the walk: an additive bare
+//     number is a dimensioned quantity in disguise (500 *what*?), unlike a multiplicative
+//     scalar, which is a genuine ratio. A bare number thus behaves identically whether it
+//     arrives as a literal, an embedded constant, or a unitless sibling (the fold's
+//     mixed-args rule).
+//   • unary `-` — passes taint through.
+//   • `*` — legal with at most ONE tainted operand (`a * 2`, `a * co2factor` inherit
+//     `a * b` over two properties does not — kg × kg is not kg).
+//   • `/` — legal only when the DIVISOR is scalar (`a / 2` inherits; `2 / a` inverts the
+//     dimension).
+//   • `^`, any other function/operator, any unrecognized instruction — not safe.
+// A bail means "no inheritance", never a wrong unit. `propertyVars` = the variables bound
+// to sibling PROPERTIES (constants are scalars). Pure; returns false on any parse failure
+// (the fold must stay total — its caller has already evaluated successfully anyway).
+export function inheritanceSafe(
+  expression: string,
+  propertyVars: ReadonlySet<string>
+): boolean {
+  return taintWalk(expression, propertyVars, false) !== null
+}
+
+// Does the result keep the one dimension of its unit-bearing args (`unitVars`)? The same walk,
+// except a bare number in an additive position (`a + 500`, `max(a, 0)`) passes: the args are
+// canonical, so the number is read in the canonical unit too — as a unitless sibling is.
+// Unitless siblings and constants are scalars here, so `a * n` and `(a + b) / 2` keep it.
+export function keepsArgDimension(
+  expression: string,
+  unitVars: ReadonlySet<string>
+): boolean {
+  return taintWalk(expression, unitVars, true)?.taint === true
+}
+
+function taintWalk(
+  expression: string,
+  propertyVars: ReadonlySet<string>,
+  additiveScalars: boolean
+): TaintSlot | null {
+  let tokens: readonly Instruction[]
+  try {
+    tokens = (
+      parseExpression(expression) as unknown as { tokens: Instruction[] }
+    ).tokens
+  } catch {
+    return null
+  }
+
+  const stack: TaintSlot[] = []
+  for (const token of tokens) {
+    if (!stepTaint(stack, token, propertyVars, additiveScalars)) {
+      return null
+    }
+  }
+  return stack.length === 1 ? stack[0]! : null
+}
+
+// One stack slot: does it carry a property variable? `name` is kept so a function pushed via
+// IVAR ('min') can be recognized when its IFUNCALL pops it.
+type TaintSlot = { taint: boolean; name?: string }
+
+// Apply ONE instruction to the simulated stack. `false` means the expression is not safe —
+// including any instruction the walk does not model, which must refuse rather than be skipped.
+function stepTaint(
+  stack: TaintSlot[],
+  token: Instruction,
+  propertyVars: ReadonlySet<string>,
+  additiveScalars: boolean
+): boolean {
+  switch (token.type) {
+    case 'INUMBER': {
+      stack.push({ taint: false })
+      return true
+    }
+    case 'IVAR': {
+      const name = String(token.value)
+      stack.push({ taint: propertyVars.has(name), name })
+      return true
+    }
+    case 'IOP1': {
+      // Unary minus negates the quantity but keeps its dimension — taint passes through
+      // untouched. Everything else (`not`, the unary-op function forms) bails.
+      return token.value === '-' && stack.length > 0
+    }
+    case 'IOP2': {
+      const b = stack.pop()
+      const a = stack.pop()
+      return pushIfSafe(
+        stack,
+        a && b ? binaryTaint(token.value, a, b, additiveScalars) : null
+      )
+    }
+    case 'IFUNCALL': {
+      return pushIfSafe(stack, callTaint(stack, token.value, additiveScalars))
+    }
+    default: {
+      return false
+    }
+  }
+}
+
+function pushIfSafe(stack: TaintSlot[], slot: TaintSlot | null): boolean {
+  if (!slot) {
+    return false
+  }
+  stack.push(slot)
+  return true
+}
+
+// The binary operators the walk models, or `null` for "not safe".
+function binaryTaint(
+  op: unknown,
+  a: TaintSlot,
+  b: TaintSlot,
+  additiveScalars: boolean
+): TaintSlot | null {
+  switch (op) {
+    case '+':
+    case '-': {
+      return a.taint === b.taint || additiveScalars
+        ? { taint: a.taint || b.taint }
+        : null
+    }
+    case '*': {
+      return a.taint && b.taint ? null : { taint: a.taint || b.taint }
+    }
+    case '/': {
+      return b.taint ? null : { taint: a.taint }
+    }
+    default: {
+      return null
+    }
+  }
+}
+
+// A function call, or `null` for "not safe". The evaluator pops `argCount` args, then the
+// function slot (pushed by IVAR). Only min/max are modelled.
+function callTaint(
+  stack: TaintSlot[],
+  argCount: unknown,
+  additiveScalars: boolean
+): TaintSlot | null {
+  const count = typeof argCount === 'number' ? argCount : -1
+  if (count < 1 || stack.length < count + 1) {
+    return null
+  }
+  const args = stack.splice(stack.length - count, count)
+  const fn = stack.pop()
+  if (!fn || (fn.name !== 'min' && fn.name !== 'max')) {
+    return null
+  }
+  // min/max are order statistics — additive-family: all-tainted or all-scalar.
+  const taint = args.some((arg) => arg.taint)
+  if (!additiveScalars && args.some((arg) => arg.taint !== taint)) {
+    return null
+  }
+  return { taint }
+}
+
+/**
  * The free variables an expression references, builtins excluded — the exact set a binding must
  * fill, and byte-identical to the `variables[]` the server derives on create.
  */

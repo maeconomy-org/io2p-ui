@@ -422,6 +422,10 @@
     },
     "formulaEditor": {
       "expression": "Expression",
+      "dimension-mismatch": "This mixes {a} with {b}, which cannot be added. The result will be refused and no number is stored.",
+      "unknown-unit": "The formula declares the unit {a}, which this node does not know. The result will be refused and no number is stored.",
+      "declaredRescale": "This formula declares its result in {declared}, so the node multiplies it by {factor} to store {canonical}. Declare a unit only when the expression itself produces it — adding values already stored in {canonical} produces {canonical}.",
+      "declaredRescaleStored": "It will be stored as {stored}.",
       "switchToFormula": "Use a formula",
       "switchToText": "Use a plain value",
       "selectFormula": "Select a formula",
@@ -949,7 +953,7 @@
       "description": "A formula is a reusable expression you can bind to a value."
     },
     "unit": "Result unit",
-    "unitHint": "Optional. The node works the unit out from the values a formula reads — declare one only when it cannot, such as a width times a height, or a result in a different scale than its inputs.",
+    "unitHint": "Optional. Leave it empty and the result keeps the unit of the values it reads. Set it to choose the unit the result is shown in — a sum of weights declared t reads in tonnes. A formula that converts by itself, such as a width times a height, declares what its own arithmetic produces (m²).",
     "unitInferred": "Worked out from the values",
     "unitNone": "No unit",
     "unitCanonical": "stored in",

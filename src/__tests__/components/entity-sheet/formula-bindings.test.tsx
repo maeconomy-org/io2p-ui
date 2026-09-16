@@ -29,8 +29,26 @@ const CONSTANT = {
   ],
 }
 
+const UNITS = [
+  {
+    symbol: 'kg',
+    dimension: 'mass',
+    aliases: [],
+    canonical: true,
+    toCanonical: 1,
+  },
+  {
+    symbol: 't',
+    dimension: 'mass',
+    aliases: [],
+    canonical: false,
+    toCanonical: 1000,
+  },
+]
+
 vi.mock('@/hooks/api/leaves', () => ({
   useFormulas: () => ({ useGet: () => ({ data: FORMULA }) }),
+  useUnits: () => ({ data: UNITS }),
   useConstants: () => ({
     useList: () => ({ data: { data: [CONSTANT] } }),
     // A bound constant is resolved BY ID, not found in the search page — that is what keeps its
