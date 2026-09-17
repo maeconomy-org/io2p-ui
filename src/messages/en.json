@@ -422,8 +422,9 @@
     },
     "formulaEditor": {
       "expression": "Expression",
-      "dimension-mismatch": "This mixes {a} with {b}, which cannot be added. The result will be refused and no number is stored.",
-      "unknown-unit": "The formula declares the unit {a}, which this node does not know. The result will be refused and no number is stored.",
+      "unitUnverified": "This result multiplies or divides values that carry units, so the node cannot check that it really is in the declared unit. The value is saved and shown, but it is left out of every total.",
+      "dimension-mismatch": "These units cannot be combined ({detail}). The result will be refused and no number is stored.",
+      "unknown-unit": "The formula declares the unit {detail}, which this node does not know. The result will be refused and no number is stored.",
       "declaredRescale": "This formula declares its result in {declared}, so the node multiplies it by {factor} to store {canonical}. Declare a unit only when the expression itself produces it — adding values already stored in {canonical} produces {canonical}.",
       "declaredRescaleStored": "It will be stored as {stored}.",
       "switchToFormula": "Use a formula",

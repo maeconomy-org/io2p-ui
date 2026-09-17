@@ -31,6 +31,9 @@ const UNITS = [
   unit('t', 'mass', false, 1000),
   unit('m', 'length', true, 1),
   unit('m2', 'area', true, 1),
+  unit('kWh', 'energy', true, 1),
+  unit('kgCO2e', 'co2e', true, 1),
+  unit('tCO2e', 'co2e', false, 1000),
 ]
 
 vi.mock('next-intl', () => ({
@@ -130,6 +133,33 @@ describe('the bind preview for a declared result unit', () => {
     expect(preview()).toContain('10.5 t')
   })
 
+  it('leaves a DIMENSION-CHANGING factor alone — arm C', () => {
+    // `a * n`, a = 5 kWh, n = 0.4 unitless. The sibling carries the change of dimension, so the
+    // declaration converts as before and the reader sees the expression result: "2 tCO2e".
+    // A shortcut that divided whenever an argument had a unit printed 0.002 here.
+    formula.current = {
+      ...formula.current,
+      expression: 'a * n',
+      variables: ['a', 'n'],
+      unit: 'tCO2e',
+    }
+    render(
+      <FormulaBindings
+        calc={{
+          formulaId: 'f-1',
+          args: [
+            { var: 'a', ref: 'v-a' },
+            { var: 'n', ref: 'v-b' },
+          ],
+        }}
+        siblings={[sib('v-a', 5, 'kWh'), sib('v-b', 0.4)]}
+        onChange={vi.fn()}
+      />
+    )
+
+    expect(preview()).toContain('2 tCO2e')
+  })
+
   it('SCALES when no argument carries a unit', () => {
     // Only then is the declaration giving the number a unit rather than naming one it already has.
     formula.current = { ...formula.current, expression: 'a + b' }
@@ -190,6 +220,23 @@ describe('refusals the node makes before any factor', () => {
     renderBindings()
 
     expect(problem()).toBeNull()
+  })
+
+  it('warns that a product of unit-bearing args is left out of totals — arm D', () => {
+    // 10 kg × 10 kg declared t. The node stores it and shows it, but nothing checked that the
+    // result has the mass dimension, so it never reaches a total.
+    formula.current = { ...formula.current, expression: 'a * b', unit: 't' }
+    renderBindings([sib('v-a', 10, 'kg'), sib('v-b', 10, 'kg')])
+
+    expect(screen.getByTestId('formula-unit-unverified')).toBeInTheDocument()
+    expect(problem()).toBeNull()
+  })
+
+  it('does not call a verified result unverified', () => {
+    formula.current = { ...formula.current, expression: 'a + b', unit: 't' }
+    renderBindings()
+
+    expect(screen.queryByTestId('formula-unit-unverified')).toBeNull()
   })
 
   it('stays silent on a multiplicative expression, which may cross dimensions', () => {

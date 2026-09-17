@@ -93,14 +93,14 @@ export function parseExpression(expression: string): Expression {
 }
 
 /**
- * MIRRORED VERBATIM from `io2p-core/src/shared/calc.eval.ts` (`inheritanceSafe` … `callTaint`),
- * the same way the grammar above mirrors the evaluator. The preview has to decide whether a
- * declared result unit converts the number or only names it, and that verdict must be the node's
- * own — a second reading of the rule is a second answer, which is what this file exists to prevent.
+ * MIRRORED VERBATIM from `io2p-core/src/shared/calc.eval.ts` at commit c721daa, the same way the
+ * grammar above mirrors the evaluator. The preview has to decide whether a declared result unit
+ * converts the number or only names it, and that verdict must be the node's own — a second reading
+ * of the rule is a second answer, which is what this file exists to prevent.
  *
- * Re-copy it whenever core's walk moves. It has already moved once, from a `scaleFree` that asked
- * whether a scalar had touched a property to a `keepsArgDimension` that asks only whether the
- * result still carries the args' dimension — a rename would not have caught that.
+ * `formula-walk-mirror.test.ts` compares this block against that commit, so it cannot go stale
+ * unnoticed. Re-copy it and move the pin in the same change: the walk has moved three times, and
+ * one of those moves changed the meaning while keeping every name.
  */
 // ── Unit-inheritance safety (the scalar-aware taint walk) ─────────────────────────────
 // Can this expression's result meaningfully CARRY the unit of its property arguments?
@@ -131,9 +131,12 @@ export function inheritanceSafe(
 }
 
 // Does the result keep the one dimension of its unit-bearing args (`unitVars`)? The same walk,
-// except a bare number in an additive position (`a + 500`, `max(a, 0)`) passes: the args are
-// canonical, so the number is read in the canonical unit too — as a unitless sibling is.
-// Unitless siblings and constants are scalars here, so `a * n` and `(a + b) / 2` keep it.
+// with two more rules: a bare number in an additive position (`a + 500`, `max(a, 0)`) passes —
+// the args are canonical, so the number is read in the canonical unit too, as a unitless
+// sibling is; and rounding keeps the dimension (`round`, `abs`, `floor`, `ceil`, `trunc`,
+// `roundTo(x, scalar)`). Unitless siblings and constants are scalars here, so `a * n` and
+// `(a + b) / 2` keep it. The rounding rule stays out of `inheritanceSafe`: there it would
+// start giving `round(a)` with no declaration a unit it has never had.
 export function keepsArgDimension(
   expression: string,
   unitVars: ReadonlySet<string>
@@ -144,7 +147,7 @@ export function keepsArgDimension(
 function taintWalk(
   expression: string,
   propertyVars: ReadonlySet<string>,
-  additiveScalars: boolean
+  declaredRules: boolean
 ): TaintSlot | null {
   let tokens: readonly Instruction[]
   try {
@@ -157,7 +160,7 @@ function taintWalk(
 
   const stack: TaintSlot[] = []
   for (const token of tokens) {
-    if (!stepTaint(stack, token, propertyVars, additiveScalars)) {
+    if (!stepTaint(stack, token, propertyVars, declaredRules)) {
       return null
     }
   }
@@ -174,7 +177,7 @@ function stepTaint(
   stack: TaintSlot[],
   token: Instruction,
   propertyVars: ReadonlySet<string>,
-  additiveScalars: boolean
+  declaredRules: boolean
 ): boolean {
   switch (token.type) {
     case 'INUMBER': {
@@ -188,19 +191,23 @@ function stepTaint(
     }
     case 'IOP1': {
       // Unary minus negates the quantity but keeps its dimension — taint passes through
-      // untouched. Everything else (`not`, the unary-op function forms) bails.
-      return token.value === '-' && stack.length > 0
+      // untouched, as the rounding forms do under the declared rules. Everything else
+      // (`not`, `sqrt`, `sign`, the other unary-op function forms) bails.
+      const keeps =
+        token.value === '-' ||
+        (declaredRules && ROUNDING.has(String(token.value)))
+      return keeps && stack.length > 0
     }
     case 'IOP2': {
       const b = stack.pop()
       const a = stack.pop()
       return pushIfSafe(
         stack,
-        a && b ? binaryTaint(token.value, a, b, additiveScalars) : null
+        a && b ? binaryTaint(token.value, a, b, declaredRules) : null
       )
     }
     case 'IFUNCALL': {
-      return pushIfSafe(stack, callTaint(stack, token.value, additiveScalars))
+      return pushIfSafe(stack, callTaint(stack, token.value, declaredRules))
     }
     default: {
       return false
@@ -216,17 +223,21 @@ function pushIfSafe(stack: TaintSlot[], slot: TaintSlot | null): boolean {
   return true
 }
 
+// The one-argument functions that keep their argument's dimension (the parser compiles
+// them as unary operators).
+const ROUNDING = new Set(['round', 'abs', 'floor', 'ceil', 'trunc'])
+
 // The binary operators the walk models, or `null` for "not safe".
 function binaryTaint(
   op: unknown,
   a: TaintSlot,
   b: TaintSlot,
-  additiveScalars: boolean
+  declaredRules: boolean
 ): TaintSlot | null {
   switch (op) {
     case '+':
     case '-': {
-      return a.taint === b.taint || additiveScalars
+      return a.taint === b.taint || declaredRules
         ? { taint: a.taint || b.taint }
         : null
     }
@@ -243,11 +254,12 @@ function binaryTaint(
 }
 
 // A function call, or `null` for "not safe". The evaluator pops `argCount` args, then the
-// function slot (pushed by IVAR). Only min/max are modelled.
+// function slot (pushed by IVAR). Only min/max are modelled, plus `roundTo(x, digits)`
+// under the declared rules.
 function callTaint(
   stack: TaintSlot[],
   argCount: unknown,
-  additiveScalars: boolean
+  declaredRules: boolean
 ): TaintSlot | null {
   const count = typeof argCount === 'number' ? argCount : -1
   if (count < 1 || stack.length < count + 1) {
@@ -255,12 +267,15 @@ function callTaint(
   }
   const args = stack.splice(stack.length - count, count)
   const fn = stack.pop()
+  if (fn?.name === 'roundTo' && declaredRules && count === 2) {
+    return args[1]!.taint ? null : { taint: args[0]!.taint }
+  }
   if (!fn || (fn.name !== 'min' && fn.name !== 'max')) {
     return null
   }
   // min/max are order statistics — additive-family: all-tainted or all-scalar.
   const taint = args.some((arg) => arg.taint)
-  if (!additiveScalars && args.some((arg) => arg.taint !== taint)) {
+  if (!declaredRules && args.some((arg) => arg.taint !== taint)) {
     return null
   }
   return { taint }

@@ -9,12 +9,7 @@ import {
   ChevronsUpDown,
   Loader2,
 } from 'lucide-react'
-import type {
-  CalcArgInput,
-  CalcInput,
-  ConstantDTO,
-  UnitEntry,
-} from 'io2p-client'
+import type { CalcArgInput, CalcInput, ConstantDTO } from 'io2p-client'
 
 import {
   Button,
@@ -32,11 +27,8 @@ import {
 import { cn } from '@/lib/utils'
 import { OwnerHint } from '@/components/entity-list'
 import { useConstants, useFormulas, useUnits } from '@/hooks/api/leaves'
-import {
-  evaluateExpression,
-  inheritanceSafe,
-  keepsArgDimension,
-} from '@/lib/formula-expression'
+import { evaluateExpression } from '@/lib/formula-expression'
+import { resolveResultUnit, resultDisplay } from '@/lib/formula-result-unit'
 import { SEARCH_SIZE } from '@/constants'
 
 /**
@@ -198,87 +190,6 @@ export function argFromChoice(
     : { var: variable, ref: value }
 }
 
-/** The node's own rounding policy, 12 significant digits. */
-const round = (n: number) => Number(n.toPrecision(12))
-
-/**
- * The number the sheet will SHOW for a declared result, mirroring `resolveResultUnit` +
- * `formatDisplay` in `io2p-core/src/shared/calc.derive.fold.ts`.
- *
- * Property args reach the evaluator already canonical, so when the result still KEEPS their
- * dimension it is canonical too: the node applies no factor and the declaration only picks the
- * symbol to read it in. Everything else — a product of two unit-bearing args, a power, or a
- * recipe over unitless args alone — is scaled by the declared factor, and the display is then
- * the expression result unchanged.
- *
- * Without this the preview printed the canonical sum under the declared symbol — "20000 t" for
- * a value the sheet shows as "20 t".
- */
-function declaredDisplay(
-  result: number,
-  declared: string,
-  units: UnitEntry[] | undefined,
-  expression: string,
-  unitVars: ReadonlySet<string>
-): string | null {
-  const spec = units?.find((u) => u.symbol === declared)
-  if (!spec || spec.toCanonical === 0) return null
-  const keeps = unitVars.size > 0 && keepsArgDimension(expression, unitVars)
-  const shown = keeps ? result / spec.toCanonical : result
-  return `${round(shown)} ${spec.symbol}`
-}
-
-/**
- * The refusals `resolveResultUnit` makes BEFORE it ever reaches a factor — mirrored so the bind
- * editor can say so while the binding is being made, rather than the node writing an error row
- * the reader meets later with no idea which choice caused it.
- *
- * Both only apply to an inheritance-safe expression: a multiplicative one may legitimately cross
- * dimensions (kg / m3 is a density), which is why the node gates them the same way.
- */
-function dimensionProblem(
-  declared: string | undefined,
-  units: UnitEntry[] | undefined,
-  expression: string,
-  propertyVars: ReadonlySet<string>,
-  unitVars: ReadonlySet<string>,
-  argUnits: readonly string[]
-): {
-  code: 'dimension-mismatch' | 'unknown-unit'
-  a: string
-  b: string
-} | null {
-  if (!units) return null
-  const dimensionOf = (symbol: string) =>
-    units.find((u) => u.symbol === symbol)?.dimension
-  const foreign = argUnits.find(
-    (u) => dimensionOf(u) !== dimensionOf(argUnits[0]!)
-  )
-
-  // Adding two dimensions is refused whatever the recipe declares — `inheritanceSafe` over the
-  // PROPERTY args, which is the node's own first step.
-  if (foreign && inheritanceSafe(expression, propertyVars)) {
-    return { code: 'dimension-mismatch', a: argUnits[0]!, b: foreign }
-  }
-
-  if (!declared) return null
-  const spec = units.find((u) => u.symbol === declared)
-  if (!spec) return { code: 'unknown-unit', a: declared, b: '' }
-
-  // The declaration is only checked where it NAMES the result rather than scaling it, so the
-  // set is `unitVars` and the question is `keepsArgDimension`.
-  if (unitVars.size === 0 || !keepsArgDimension(expression, unitVars)) {
-    return null
-  }
-  if (foreign) {
-    return { code: 'dimension-mismatch', a: argUnits[0]!, b: foreign }
-  }
-  if (spec.dimension !== dimensionOf(argUnits[0]!)) {
-    return { code: 'dimension-mismatch', a: declared, b: argUnits[0]! }
-  }
-  return null
-}
-
 // Variable binding + live preview for the chosen formula. Rendered below the value row.
 export function FormulaBindings({
   calc,
@@ -347,50 +258,41 @@ export function FormulaBindings({
     }
   }, [formula, calc.args, siblings, boundConstants])
 
-  const bindings = useMemo(() => {
-    // Two different sets, and mixing them is the bug this shape prevents: `inheritanceSafe`
-    // asks about PROPERTY args, `keepsArgDimension` asks only about the ones carrying a UNIT —
-    // a unitless sibling is a scalar to it, exactly like a constant or a literal.
-    const propertyVars = new Set<string>()
-    const unitVars = new Set<string>()
-    const argUnits: string[] = []
-    for (const arg of calc.args) {
-      if (!arg.ref) continue
-      propertyVars.add(arg.var)
-      const unit = siblings.find((sib) => sib.key === arg.ref)?.unit
-      if (unit) {
-        unitVars.add(arg.var)
-        argUnits.push(unit)
+  // ONE resolution, mirroring the node's `resolveResultUnit` — the preview number and the
+  // refusals are two readings of the same verdict, and deriving them separately is how the
+  // preview came to print a figure the sheet never showed.
+  const resolution = useMemo(() => {
+    if (!formula || !units) return null
+    const propertyArgs: { var: string; unit?: string }[] = []
+    const constantVars = new Set<string>()
+    for (const variable of formula.variables) {
+      const arg = calc.args.find((a) => a.var === variable)
+      if (!arg) return null // a half-made binding cannot be resolved
+      if (arg.constantId) {
+        constantVars.add(variable)
+        continue
       }
+      const unit = siblings.find((sib) => sib.key === arg.ref)?.unit
+      propertyArgs.push({ var: variable, ...(unit ? { unit } : {}) })
     }
-    return { propertyVars, unitVars, argUnits }
-  }, [calc.args, siblings])
-
-  const problem = useMemo(
-    () =>
-      formula
-        ? dimensionProblem(
-            formula.unit,
-            units,
-            formula.expression,
-            bindings.propertyVars,
-            bindings.unitVars,
-            bindings.argUnits
-          )
-        : null,
-    [formula, units, bindings]
-  )
-
-  const declaredShown = useMemo(() => {
-    if (!formula?.unit || preview?.result == null) return null
-    return declaredDisplay(
-      preview.result,
-      formula.unit,
-      units,
+    return resolveResultUnit(
       formula.expression,
-      bindings.unitVars
+      formula.unit,
+      propertyArgs,
+      constantVars,
+      units
     )
-  }, [formula, preview, bindings, units])
+  }, [formula, calc.args, siblings, units])
+
+  const problem = resolution?.kind === 'error' ? resolution : null
+  // The node stores this number but leaves it out of every total, because nothing checked that it
+  // HAS the declared dimension. Computed here rather than read from `unitVerified`: at bind time
+  // there is no stored value to read it from. The value ROW waits for the field.
+  const unverified = resolution?.kind === 'declared' && !resolution.verified
+  const shown =
+    resolution && preview?.result != null
+      ? resultDisplay(preview.result, resolution)
+      : undefined
 
   if (!formula) return null
 
@@ -455,6 +357,17 @@ export function FormulaBindings({
         </>
       )}
 
+      {/* AMBER: the value is stored and shown, it is only left out of totals. */}
+      {unverified && (
+        <p
+          data-testid="formula-unit-unverified"
+          className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
+        >
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{t('objects.formulaEditor.unitUnverified')}</span>
+        </p>
+      )}
+
       {/* RED, not amber: the node refuses these outright and writes an error row with no number,
           so this is not advice — it is what will happen. */}
       {problem && (
@@ -465,8 +378,7 @@ export function FormulaBindings({
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
             {t(`objects.formulaEditor.${problem.code}`, {
-              a: problem.a,
-              b: problem.b,
+              detail: problem.detail,
             })}
           </span>
         </p>
@@ -493,9 +405,7 @@ export function FormulaBindings({
                 {/* The DECLARED symbol — what the recipe claims to produce, and what the value
                     row prints too. The canonical figure it is STORED as is the warning below,
                     because those two numbers differ by a factor nothing else on screen names. */}
-                {t('objects.formulaEditor.result')}:{' '}
-                {declaredShown ??
-                  `${preview.result}${formula?.unit ? ` ${formula.unit}` : ''}`}
+                {t('objects.formulaEditor.result')}: {shown ?? preview.result}
               </span>
             </>
           )}

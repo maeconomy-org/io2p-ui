@@ -423,8 +423,9 @@
     },
     "formulaEditor": {
       "expression": "Formule",
-      "dimension-mismatch": "Dit combineert {a} met {b}, wat niet opgeteld kan worden. Het resultaat wordt geweigerd en er wordt geen getal opgeslagen.",
-      "unknown-unit": "De formule geeft eenheid {a} op, die deze node niet kent. Het resultaat wordt geweigerd en er wordt geen getal opgeslagen.",
+      "unitUnverified": "Dit resultaat vermenigvuldigt of deelt waarden met eenheden, dus de node kan niet controleren of het echt in de opgegeven eenheid staat. De waarde wordt opgeslagen en getoond, maar telt in geen enkel totaal mee.",
+      "dimension-mismatch": "Deze eenheden kunnen niet gecombineerd worden ({detail}). Het resultaat wordt geweigerd en er wordt geen getal opgeslagen.",
+      "unknown-unit": "De formule geeft eenheid {detail} op, die deze node niet kent. Het resultaat wordt geweigerd en er wordt geen getal opgeslagen.",
       "declaredRescale": "Deze formule geeft het resultaat op in {declared}. De node vermenigvuldigt het daarom met {factor} en slaat het op in {canonical}. Geef alleen een eenheid op als de expressie die zelf oplevert — waarden optellen die al in {canonical} staan geeft {canonical}.",
       "declaredRescaleStored": "Het wordt opgeslagen als {stored}.",
       "switchToFormula": "Formule gebruiken",
