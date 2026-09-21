@@ -134,8 +134,10 @@ export function wasErrorReported(error: unknown): boolean {
   return (error as Record<symbol, unknown>)[REPORTED] === true
 }
 
-// The problem+json `detail` — server prose naming the rule that rejected the write. Only worth
-// surfacing for 422, where it tells the user which field to fix.
+// The problem+json `detail` — server prose naming the rule that rejected the write. Worth
+// surfacing wherever it names what to fix: 422 for a business rule, 400 for a schema one. The
+// 400 text is the framework's own (`body/resources must NOT have more than 200 items`), which is
+// blunt but names the field and the limit — and nothing else on that path names either.
 export function iomDetail(error: unknown): string | undefined {
   if (error instanceof ApiError) return error.detail
   if (typeof error === 'object' && error !== null && 'detail' in error) {
@@ -158,11 +160,23 @@ export function saveErrorMessage(error: unknown): SaveErrorMessage {
       return { key: 'common.sessionExpired' }
     case 403:
       return { key: 'objects.permissionDenied' }
+    // Says "or you cannot see it", where `rollupRuleErrorMessage` deliberately says only "no
+    // longer exists". Both are honest about a 404 the node refuses to disambiguate, and neither
+    // asserts which half is true — but a rule is never shared, so a user cannot legitimately reach
+    // a 404 on someone else's. Here they can: a grant or share on a formula, template or constant
+    // they cannot see answers 404, and telling that user the thing is gone sends them hunting for
+    // data nobody lost.
     case 404:
       return { key: 'objects.saveError.notFound' }
     case 409:
     case 412:
       return { key: 'objects.saveError.conflict' }
+    // Both mean "the node read the request and refused it", and both carry prose naming what to
+    // fix — 400 from the schema (a length, a count, a type), 422 from a business rule. One frame
+    // for both: a second key would say the same thing in different words, and the user cannot
+    // tell a schema cap from a rule anyway. Input caps land here: the formula expression at 1024,
+    // 100 calc args, 100 parents, 200 share items — none of which the forms cap themselves.
+    case 400:
     case 422: {
       const detail = iomDetail(error)
       return detail

@@ -22,6 +22,9 @@ import {
   wasErrorReported,
 } from '@/lib/io2p-errors'
 
+import en from '@/messages/en.json'
+import nl from '@/messages/nl.json'
+
 function problem(status: number, detail?: string) {
   return { type: 'about:blank', title: 'Error', status, detail }
 }
@@ -83,10 +86,46 @@ describe('saveErrorMessage', () => {
     })
   })
 
+  // A 400 is the SCHEMA refusing the request — a length, a count, a type — and its detail is the
+  // framework's own prose. Blunt, but it names the field and the limit, and until this landed
+  // every input cap in the app (formula expression 1024, 100 calc args, 100 parents, 200 share
+  // items) rendered as "Could not save" with nothing else on screen naming either.
+  it('surfaces the server detail on a schema refusal too', () => {
+    expect(
+      saveErrorMessage(
+        new ApiError(
+          problem(400, 'body/resources must NOT have more than 200 items')
+        )
+      )
+    ).toEqual({
+      key: 'objects.saveError.invalid',
+      values: { detail: 'body/resources must NOT have more than 200 items' },
+    })
+  })
+
+  it('falls back to the generic message when a 400 carries no detail', () => {
+    expect(saveErrorMessage(new ApiError(problem(400)))).toEqual({
+      key: 'common.saveFailed',
+    })
+  })
+
   it('falls back to the generic message when a 422 carries no detail', () => {
     expect(saveErrorMessage(new ValidationError(problem(422)))).toEqual({
       key: 'common.saveFailed',
     })
+  })
+
+  // The 404 and the conflict are the two messages every write path lands on — `saveErrorMessage`
+  // has 13 callers across objects, processes, constants, formulas, templates and shares — so
+  // neither may name a type. The 404 also covers a grant on a library item the caller cannot see,
+  // which is why it offers both halves rather than asserting the thing is gone.
+  it('names no entity type in the messages every caller shares', () => {
+    for (const locale of [en, nl]) {
+      const save = locale.objects.saveError
+      expect(save.notFound.toLowerCase()).not.toContain('object')
+      expect(save.conflict.toLowerCase()).not.toContain('object')
+    }
+    expect(en.objects.saveError.notFound.toLowerCase()).toContain('cannot see')
   })
 
   it('maps the remaining statuses', () => {

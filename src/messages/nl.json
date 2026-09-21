@@ -671,9 +671,9 @@
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
     "saveError": {
-      "conflict": "Dit object is elders gewijzigd sinds u het opende. Kopieer uw wijzigingen, open het object opnieuw en pas ze opnieuw toe.",
+      "conflict": "Dit is elders gewijzigd sinds u het opende. Kopieer uw wijzigingen, open het opnieuw en pas ze opnieuw toe.",
       "invalid": "Opslaan mislukt — {detail}",
-      "notFound": "Dit object bestaat niet meer.",
+      "notFound": "Dit bestaat niet meer, of u kunt het niet zien.",
       "propertyKeyRequired": "Geef elke eigenschap een naam voordat u opslaat.",
       "nameRequired": "Een object heeft een naam nodig"
     },

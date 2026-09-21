@@ -671,9 +671,9 @@
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
     "saveError": {
-      "conflict": "This object changed elsewhere since you opened it. Copy your changes, reopen the object, and apply them again.",
+      "conflict": "This changed elsewhere since you opened it. Copy your changes, reopen it, and apply them again.",
       "invalid": "Could not save — {detail}",
-      "notFound": "This object no longer exists.",
+      "notFound": "That item no longer exists, or you cannot see it.",
       "propertyKeyRequired": "Give every property a name before saving.",
       "nameRequired": "An object needs a name"
     },
