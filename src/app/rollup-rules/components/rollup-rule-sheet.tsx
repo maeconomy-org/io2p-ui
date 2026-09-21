@@ -144,12 +144,19 @@ function WhenMissingField({
 }) {
   const t = useTranslations()
 
+  const labelId = `${fieldId}-when-missing-label`
+
   return (
     <div className="space-y-2">
-      <Label>{t('rollupRules.whenMissing')}</Label>
+      {/* `id` + `aria-labelledby`, not a bare `Label`: the group owns no input to point `htmlFor`
+          at, so without this a screen reader announces "Count them once" and "Leave them out of
+          the total" with no statement of what is being chosen — and the question is the only
+          thing that makes those two mean anything. */}
+      <Label id={labelId}>{t('rollupRules.whenMissing')}</Label>
       <RadioGroup
         value={value}
         onValueChange={(next) => onChange(next as NonNullable<WhenMissing>)}
+        aria-labelledby={labelId}
         data-testid="rollup-rule-when-missing"
       >
         <div className="flex items-center gap-2">
@@ -169,11 +176,13 @@ function WhenMissingField({
           >
             {t('rollupRules.whenMissingSkip')}
           </Label>
-          <ConceptHint label={t('rollupRules.whenMissingSkipHintLabel')}>
-            {t('rollupRules.whenMissingSkipHint')}
-          </ConceptHint>
         </div>
       </RadioGroup>
+      {/* OUTSIDE the group. `role="radiogroup"` should contain radios, and Radix's roving focus
+          on the root swallows the arrow keys while a button inside it holds focus. */}
+      <ConceptHint label={t('rollupRules.whenMissingSkipHintLabel')}>
+        {t('rollupRules.whenMissingSkipHint')}
+      </ConceptHint>
     </div>
   )
 }

@@ -1603,7 +1603,7 @@
   "rollupRules": {
     "title": "Rollup-regels",
     "propertyKey": "Eigenschapssleutel",
-    "replacedByYours": "Vervangen door de jouwe",
+    "replacedByYours": "Vervangen door uw regel",
     "propertyKeys": "Eigenschapssleutels",
     "aggregation": "Aggregatie",
     "aggregations": {
@@ -1658,6 +1658,6 @@
     },
     "property": "Eigenschap",
     "nonNumericKey": "Deze eigenschap bevat meestal tekst, dus de optelling blijft waarschijnlijk leeg.",
-    "systemKeyExists": "Een ingebouwde regel telt deze eigenschap al op. De jouwe vervangt die op je eigen objecten — verwijder je de jouwe, dan komt het ingebouwde totaal terug."
+    "systemKeyExists": "Een ingebouwde regel telt deze eigenschap al op. Uw regel vervangt die op uw eigen objecten — verwijdert u uw regel, dan komt het ingebouwde totaal terug."
   }
 }
