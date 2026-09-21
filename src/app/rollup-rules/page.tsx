@@ -70,7 +70,8 @@ export default function RollupRulesPage() {
   useTourAction(TOUR_ACTIONS.closeSheet, () => setSheet(null))
 
   const listQuery = useEntityListQuery()
-  const { useList, useRemove, useRestore, useRecompute } = useRollupRules()
+  const { useList, useRemove, useRestore, useRecompute, useOwnRules } =
+    useRollupRules()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
   const recomputeMutation = useRecompute()
@@ -136,9 +137,18 @@ export default function RollupRulesPage() {
     [list.setToDelete, list.handleRestore, handleRecompute]
   )
 
+  // Own rules in full, not the rows on screen: the list is paginated and owner-filtered, so the
+  // rule that replaces a built-in is usually not beside it. The node caps a user well under one
+  // page, and this is the same query the create sheet runs, so it is served from the cache there.
+  const { data: ownRules } = useOwnRules()
+  const replacedKeys = useMemo(
+    () => new Set((ownRules?.data ?? []).map((rule) => rule.propertyKey)),
+    [ownRules]
+  )
+
   const columns = useMemo(
-    () => buildRollupRuleColumns({ t, locale, actions }),
-    [t, locale, actions]
+    () => buildRollupRuleColumns({ t, locale, actions, replacedKeys }),
+    [t, locale, actions, replacedKeys]
   )
 
   return (

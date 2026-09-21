@@ -65,6 +65,8 @@ vi.mock('@/app/rollup-rules/hooks/use-rollup-rules', () => ({
     useRemove: () => ({}),
     useRestore: () => ({}),
     useRecompute: () => ({ mutateAsync: vi.fn() }),
+    // The page reads the viewer's own rules to mark the built-ins they replace.
+    useOwnRules: () => list,
   }),
 }))
 vi.mock('@/hooks/api/leaves', () => ({

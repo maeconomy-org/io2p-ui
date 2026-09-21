@@ -50,11 +50,11 @@ function useOwnRollupRules() {
 }
 
 /**
- * The built-in rules, for the create form's shadow warning.
+ * The built-in rules, for the create form's replacement warning.
  *
- * Core's uniqueness is per TIER, so a user rule on a seeded key is accepted and the object then
- * carries two totals for it. `useOwnRollupRules` cannot see that — `system: false` is the whole
- * scope of "mine" — which is why this is a second query rather than a filter on the first.
+ * A user rule on a seeded key is accepted and REPLACES the built-in on that user's own objects,
+ * so the totals there move. `useOwnRollupRules` cannot see a built-in — `system: false` is the
+ * whole scope of "mine" — which is why this is a second query rather than a filter on the first.
  */
 function useSystemRollupRules() {
   const query: ListRollupRulesQuery = {

@@ -7,9 +7,12 @@ import { rowActions, tour } from '../utils/selectors'
  * Two rules can carry the same `propertyKey`, and one of them is yours.
  *
  * The node's uniqueness index is `(propertyKey, system, ownerUserId)`, so a user rule for `mass`
- * sits BESIDE the built-in `mass` rather than shadowing it — the create succeeds, no 409, and the
- * list comes back holding two entries with the same key. A table keyed on `propertyKey` breaks
- * there, which is why the duplicate is the case rather than the create.
+ * is STORED beside the built-in `mass` — the create succeeds, no 409, and the list comes back
+ * holding two entries with the same key. A table keyed on `propertyKey` breaks there, which is why
+ * the duplicate is the case rather than the create.
+ *
+ * Stored beside is not computed beside: on the user's own objects their rule REPLACES the built-in,
+ * so the key still yields one total. This file is about the LIST, where both rows are real.
  *
  * The client-side half is the opposite refusal: a key you ALREADY own never reaches the node at
  * all. That is a different message from the same-session queue guard RR3 covers, and the two are
@@ -148,7 +151,7 @@ test.describe('16 - rollups / duplicate keys', () => {
     await page.close()
   })
 
-  test('RR5: a user rule duplicates a built-in one rather than shadowing it', async ({
+  test('RR5: a user rule is stored beside the built-in it replaces', async ({
     page,
   }) => {
     await page.goto('/rollup-rules')

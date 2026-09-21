@@ -1594,6 +1594,7 @@
   "rollupRules": {
     "title": "Rollup rules",
     "propertyKey": "Property key",
+    "replacedByYours": "Replaced by yours",
     "propertyKeys": "Property keys",
     "aggregation": "Aggregation",
     "aggregations": {
@@ -1643,6 +1644,6 @@
     },
     "property": "Property",
     "nonNumericKey": "This property usually holds text, so the rollup will likely stay empty.",
-    "systemKeyExists": "A built-in rule already totals this property. Yours will not replace it — each object will show both totals."
+    "systemKeyExists": "A built-in rule already totals this property. Yours replaces it on your own objects — delete yours and the built-in total comes back."
   }
 }

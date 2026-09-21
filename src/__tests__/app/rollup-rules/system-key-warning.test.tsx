@@ -1,6 +1,6 @@
-// Core's uniqueness is per TIER, so a user rule on a seeded key is ACCEPTED and the object then
-// carries two totals for it. The form can only warn — whether a user rule should shadow the
-// built-in is core item 11, and it is undecided.
+// A user rule on a seeded key is ACCEPTED and REPLACES the built-in on that user's own objects,
+// so the totals there move. The form can only warn: replacing is usually the point, because a
+// built-in cannot be edited and a second rule is the only way to scale a seeded key.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -44,7 +44,7 @@ describe('a key the node already totals', () => {
     typeKey('weight')
 
     expect(warning()).toBeInTheDocument()
-    // The rule is valid; the pair is the node's answer, not a mistake to prevent.
+    // The rule is valid; replacing the built-in is the node's answer, not a mistake to prevent.
     expect(screen.getByTestId('rollup-rule-add-key')).toBeEnabled()
   })
 
@@ -63,8 +63,8 @@ describe('a key the node already totals', () => {
   })
 
   it('yields to your own duplicate, which is refused outright', () => {
-    // "You will get two totals" describes a rule that cannot be created — it would read as the
-    // reason the key was refused.
+    // Describing what a rule would replace, when that rule cannot be created at all, would read
+    // as the reason the key was refused.
     ownRules.data = [{ propertyKey: 'weight' }]
     typeKey('weight')
 

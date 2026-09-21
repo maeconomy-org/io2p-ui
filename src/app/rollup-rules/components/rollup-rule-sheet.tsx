@@ -146,8 +146,8 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
   const draftExists = normalizedDraft !== '' && takenKeys.has(normalizedDraft)
   const draftNonNumeric =
     normalizedDraft !== '' && isCertainlyNonNumericKey(normalizedDraft)
-  // After `draftExists`: your own duplicate is refused outright, and saying "you will get two
-  // totals" about a rule that cannot be created reads as the reason it was refused.
+  // After `draftExists`: your own duplicate is refused outright, and describing what a rule
+  // would replace, when that rule cannot be created at all, reads as the reason it was refused.
   const draftShadowsSystem =
     normalizedDraft !== '' && !draftExists && systemKeys.has(normalizedDraft)
   const draftQueued = keys.includes(normalizedDraft)
@@ -304,9 +304,10 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
                 {t('rollupRules.propertyKeyHint')}
               </p>
             )}
-            {/* A warning, never a block: core's uniqueness is per TIER, so this rule is valid
-                and the pair is the node's answer, not a mistake to prevent. Whether a user rule
-                should SHADOW the built-in is core item 11, undecided. */}
+            {/* A warning, never a block: replacing the built-in is usually the point — it is the
+                only way to scale a seeded key by a quantity, since built-ins cannot be edited.
+                It warns because the totals on the user's own objects will move, which nothing
+                else on this form says. */}
             {draftShadowsSystem && (
               <p
                 className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"

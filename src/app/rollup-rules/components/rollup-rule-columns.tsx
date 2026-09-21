@@ -37,12 +37,21 @@ interface BuildRollupRuleColumnsOptions {
   t: (key: string) => string
   locale: PropertyDictionaryLocale
   actions: RollupRuleColumnActions
+  /**
+   * Keys the viewer owns a rule for. A built-in on one of these still EXISTS — the node stores
+   * both — but it no longer computes on the viewer's own objects, so the row stands for a total
+   * they will not see. It keeps computing for everyone else, which is why the mark says whose
+   * objects it means. Not derived from the rows: the list is paginated and owner-filtered, so the
+   * viewer's rule is often on another page, and the mark would come and go with the filter.
+   */
+  replacedKeys: ReadonlySet<string>
 }
 
 export function buildRollupRuleColumns({
   t,
   locale,
   actions,
+  replacedKeys,
 }: BuildRollupRuleColumnsOptions): ColumnDef<RollupRuleDTO, unknown>[] {
   return [
     selectColumn<RollupRuleDTO>(),
@@ -60,8 +69,21 @@ export function buildRollupRuleColumns({
       'propertyKey',
       t('rollupRules.propertyKey'),
       (rule): ReactNode => (
-        <span className="font-mono text-xs text-muted-foreground">
-          {rule.propertyKey}
+        <span className="flex items-center gap-1.5">
+          <span className="font-mono text-xs text-muted-foreground">
+            {rule.propertyKey}
+          </span>
+          {rule.system &&
+            !rule.deleted &&
+            replacedKeys.has(rule.propertyKey) && (
+              <Badge
+                variant="outline"
+                className="h-5 shrink-0 font-normal"
+                data-testid="rollup-rule-replaced"
+              >
+                {t('rollupRules.replacedByYours')}
+              </Badge>
+            )}
         </span>
       )
     ),

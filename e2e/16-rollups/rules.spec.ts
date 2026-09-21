@@ -129,9 +129,9 @@ test.describe('16 - rollups / rules', () => {
   }) => {
     const key = await openCreateSheet(page)
 
-    // `mass` is seeded on every node. Core's uniqueness is per TIER, so this rule is ACCEPTED and
-    // the object then shows two totals — the warning is the only place a user learns that before
-    // creating it. Typed mixed-case on purpose: the check runs on the normalized draft.
+    // `mass` is seeded on every node. The rule is ACCEPTED and REPLACES the built-in on this
+    // user's own objects, so their totals move — the warning is the only place a user learns that
+    // before creating it. Typed mixed-case on purpose: the check runs on the normalized draft.
     await key.fill('Mass')
     await expect(
       page.getByTestId('rollup-rule-system-key-warning')
