@@ -57,6 +57,17 @@ describe('a refused import', () => {
     expect(screen.queryByText('body')).toBeNull()
   })
 
+  // The commonest of the four names core sends, and the one already on the line: the tempId's
+  // VALUE is printed two spans earlier, so naming the field too reads as the value followed by
+  // the word for the value.
+  it('does not name the field whose value it already printed', () => {
+    renderRefused([problem({ field: 'tempId', tempId: 'wall-a' })])
+
+    const line = screen.getByTestId('run-refused').querySelector('li')
+    expect(line?.textContent).toContain('wall-a')
+    expect(line?.textContent).not.toContain('tempId')
+  })
+
   // The node sends `field` only "when known". With none, the line is the row and the message and
   // nothing between them — an empty element there would show as a stray gap mid-sentence.
   it('leaves the line alone when the node named no field', () => {
