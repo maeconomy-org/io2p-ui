@@ -37,8 +37,10 @@ function useRollupRuleList(
  *
  * `system: false` IS "mine": another account's rules 404 on every route, so the tier filter is the
  * whole scope. The per-user cap is env-tunable on the node, so a deployment allowing more than
- * `MAX_LIST_PAGE_SIZE` rules would leave this page short and the check would miss a duplicate —
- * the node's 409 is what actually enforces it.
+ * `MAX_LIST_PAGE_SIZE` rules would leave this page short. For the duplicate check that is benign —
+ * the node's 409 is what actually enforces it. The rules list reads the same query to mark a
+ * built-in its owner has replaced, and THAT failure is silent: the mark simply does not appear,
+ * and nothing downstream catches it.
  */
 function useOwnRollupRules() {
   const query: ListRollupRulesQuery = {

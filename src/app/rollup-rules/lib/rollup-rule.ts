@@ -6,6 +6,11 @@ export const ROLLUP_AGGREGATIONS = ['sum'] as const
 
 export type RollupAggregation = RollupRuleDTO['aggregation']
 
+/** What a rule does with an object that holds no value under the multiplier's key. */
+export type WhenMissing = NonNullable<
+  RollupRuleDTO['multiplyBy']
+>['whenMissing']
+
 /**
  * Turn a typed rule key into the key a property would actually be stored under.
  *
@@ -94,18 +99,28 @@ export function isCertainlyNonNumericKey(key: string): boolean {
  * The create body for one queued key, under the form's shared aggregation and multiplier.
  *
  * `multiplyBy` is OMITTED rather than sent empty — the field is optional on the node, and an empty
- * object would be a rule that multiplies by nothing.
+ * object would be a rule that multiplies by nothing. `whenMissing` follows the same rule for the
+ * same reason: `one` IS the node's default, so writing it would store our copy of a default that
+ * is not ours to hold.
  */
 export function rollupRuleCreateBody(
   propertyKey: string,
   aggregation: RollupAggregation,
-  multiplierKey?: string
+  multiplierKey?: string,
+  whenMissing?: WhenMissing
 ): CreateRollupRuleBody {
   const multiplyBy = normalizeRollupPropertyKey(multiplierKey ?? '')
   return {
     propertyKey,
     aggregation,
-    ...(multiplyBy ? { multiplyBy: { propertyKey: multiplyBy } } : {}),
+    ...(multiplyBy
+      ? {
+          multiplyBy: {
+            propertyKey: multiplyBy,
+            ...(whenMissing === 'skip' ? { whenMissing } : {}),
+          },
+        }
+      : {}),
   }
 }
 

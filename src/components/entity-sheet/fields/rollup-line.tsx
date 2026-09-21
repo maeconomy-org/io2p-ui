@@ -56,6 +56,11 @@ type WhenMissing = NonNullable<EntityRollupEntry['multiplyBy']>['whenMissing']
  * leaf, the card then claimed "This object only" about a number nobody could attribute to it.
  * Beside any OTHER dimension a bare number keeps its own unitless bucket, where the units match
  * anyway.
+ *
+ * Exactly one bucket can ever answer true for a bare value, because the node DELETES the unitless
+ * bucket when it folds it into the count one. That is a property of the node's compute, not of the
+ * wire type — nothing in `RollupBucket` forbids both — so if a total ever arrives carrying the two
+ * together, this attributes the object's value to whichever the ordering put first.
  */
 function measures(bucket: RollupBucket, unit?: string): boolean {
   return (

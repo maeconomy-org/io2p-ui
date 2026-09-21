@@ -151,6 +151,30 @@ describe('rollupRuleCreateBody', () => {
       propertyKey: normalizeRollupPropertyKey('Aantal'),
     })
   })
+
+  // `one` IS the node's default, so writing it would store our copy of a default that is not
+  // ours to hold — and a rule created before the control looks identical to one created with it.
+  it('omits whenMissing when the rule counts a missing value once', () => {
+    const body = rollupRuleCreateBody('mass', 'sum', 'quantity', 'one')
+    expect(body.multiplyBy).toEqual({ propertyKey: 'quantity' })
+    expect(rollupRuleCreateBody('mass', 'sum', 'quantity').multiplyBy).toEqual({
+      propertyKey: 'quantity',
+    })
+  })
+
+  it('sends whenMissing when the rule skips a missing value', () => {
+    expect(
+      rollupRuleCreateBody('mass', 'sum', 'quantity', 'skip').multiplyBy
+    ).toEqual({ propertyKey: 'quantity', whenMissing: 'skip' })
+  })
+
+  // No multiplier, nothing to be missing: `skip` has nothing to act on and must not smuggle a
+  // sub-document into a rule that scales by nothing.
+  it('still omits multiplyBy when skip is chosen without a key', () => {
+    expect(
+      'multiplyBy' in rollupRuleCreateBody('mass', 'sum', '', 'skip')
+    ).toBe(false)
+  })
 })
 
 describe('multiplierCollides', () => {

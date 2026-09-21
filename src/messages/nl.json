@@ -1594,7 +1594,7 @@
   "rollupRules": {
     "title": "Rollup-regels",
     "propertyKey": "Eigenschapssleutel",
-    "replacedByYours": "Vervangen door die van jou",
+    "replacedByYours": "Vervangen door de jouwe",
     "propertyKeys": "Eigenschapssleutels",
     "aggregation": "Aggregatie",
     "aggregations": {
@@ -1619,6 +1619,11 @@
     "multiplyByHint": "Optioneel. Schaalt elke waarde met een andere eigenschap op hetzelfde object, zodat 10 stoelen van 12 kg samen 120 kg zijn.",
     "multiplyBySelf": "Een regel kan zichzelf niet tellen. Haal deze sleutel uit de lijst of tel met een andere.",
     "multiplyByNonNumeric": "Deze eigenschap bevat meestal tekst. Een waarde die niet leesbaar is, valt volledig buiten het totaal.",
+    "whenMissing": "Objecten zonder deze eigenschap",
+    "whenMissingOne": "Tel ze één keer mee",
+    "whenMissingSkip": "Laat ze buiten het totaal",
+    "whenMissingSkipHintLabel": "Wat dit betekent",
+    "whenMissingSkipHint": "Een object zonder waarde onder deze sleutel telt helemaal niet mee. Zijn eigen getallen verdwijnen uit het totaal en het object wordt als overgeslagen gemeld.",
     "recompute": "Nu herberekenen",
     "recomputeQueued": "Herberekening in de wachtrij. Totalen verschijnen zodra ze klaar zijn.",
     "deleted": "Rollup-regel verwijderd",

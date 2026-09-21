@@ -139,7 +139,7 @@ export default function RollupRulesPage() {
 
   // Own rules in full, not the rows on screen: the list is paginated and owner-filtered, so the
   // rule that replaces a built-in is usually not beside it. The node caps a user well under one
-  // page, and this is the same query the create sheet runs, so it is served from the cache there.
+  // page. Same query key as the create sheet, so visiting this page warms what the sheet reads.
   const { data: ownRules } = useOwnRules()
   const replacedKeys = useMemo(
     () => new Set((ownRules?.data ?? []).map((rule) => rule.propertyKey)),

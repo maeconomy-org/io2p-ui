@@ -8,7 +8,10 @@ import { Loader2, Plus, TriangleAlert, X } from 'lucide-react'
 import {
   Badge,
   Button,
+  ConceptHint,
   Label,
+  RadioGroup,
+  RadioGroupItem,
   Select,
   SelectContent,
   SelectItem,
@@ -43,6 +46,7 @@ import {
   rollupRuleCreateBody,
   ROLLUP_AGGREGATIONS,
   type RollupAggregation,
+  type WhenMissing,
 } from '../lib/rollup-rule'
 import { anchor } from '@/constants'
 
@@ -114,6 +118,66 @@ type KeyFailure = { key: string; message: string }
  * node keys the uniqueness conflict on `propertyKey` alone, so a second rule for the same key is a
  * 409 whatever it aggregates.
  */
+/**
+ * The `whenMissing` choice, shown only once a multiplier names a key.
+ *
+ * `one` is the node's own default and what every rule created before this control does, so it is
+ * preselected and needs no explanation: "no quantity" and "quantity 1" say the same thing. `skip`
+ * is the surprising half — an object vanishes from a total it visibly belongs to — so it carries
+ * the ⓘ. The explanation stops at absence on purpose: a quantity that is PRESENT but unusable is
+ * skipped under either setting, and saying so here would read as a third option.
+ */
+function WhenMissingField({
+  fieldId,
+  value,
+  onChange,
+}: {
+  fieldId: string
+  /**
+   * NonNullable on purpose. `whenMissing` is OPTIONAL on a stored rule, so the bare alias admits
+   * `undefined` — and a caller handing `rule.multiplyBy?.whenMissing` straight in would get a
+   * radio group with nothing selected and no compile error. That empty third state is the one
+   * thing the node does not have: absent MEANS `one`, and every caller resolves it before here.
+   */
+  value: NonNullable<WhenMissing>
+  onChange: (value: NonNullable<WhenMissing>) => void
+}) {
+  const t = useTranslations()
+
+  return (
+    <div className="space-y-2">
+      <Label>{t('rollupRules.whenMissing')}</Label>
+      <RadioGroup
+        value={value}
+        onValueChange={(next) => onChange(next as NonNullable<WhenMissing>)}
+        data-testid="rollup-rule-when-missing"
+      >
+        <div className="flex items-center gap-2">
+          <RadioGroupItem value="one" id={`${fieldId}-when-missing-one`} />
+          <Label
+            htmlFor={`${fieldId}-when-missing-one`}
+            className="text-xs font-normal"
+          >
+            {t('rollupRules.whenMissingOne')}
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <RadioGroupItem value="skip" id={`${fieldId}-when-missing-skip`} />
+          <Label
+            htmlFor={`${fieldId}-when-missing-skip`}
+            className="text-xs font-normal"
+          >
+            {t('rollupRules.whenMissingSkip')}
+          </Label>
+          <ConceptHint label={t('rollupRules.whenMissingSkipHintLabel')}>
+            {t('rollupRules.whenMissingSkipHint')}
+          </ConceptHint>
+        </div>
+      </RadioGroup>
+    </div>
+  )
+}
+
 function RollupRuleForm({ onDone }: { onDone: () => void }) {
   const t = useTranslations()
   const fieldId = useId()
@@ -130,6 +194,8 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
   )
   const [failures, setFailures] = useState<KeyFailure[]>([])
   const [multiplyBy, setMultiplyBy] = useState('')
+  const [whenMissing, setWhenMissing] =
+    useState<NonNullable<WhenMissing>>('one')
 
   const takenKeys = useMemo(
     () => new Set((ownRules?.data ?? []).map((r) => r.propertyKey)),
@@ -148,7 +214,7 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
     normalizedDraft !== '' && isCertainlyNonNumericKey(normalizedDraft)
   // After `draftExists`: your own duplicate is refused outright, and describing what a rule
   // would replace, when that rule cannot be created at all, reads as the reason it was refused.
-  const draftShadowsSystem =
+  const draftReplacesSystem =
     normalizedDraft !== '' && !draftExists && systemKeys.has(normalizedDraft)
   const draftQueued = keys.includes(normalizedDraft)
   const canAdd = normalizedDraft !== '' && !draftExists && !draftQueued
@@ -206,7 +272,7 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
     for (const key of keys) {
       try {
         await createMutation.mutateAsync({
-          body: rollupRuleCreateBody(key, aggregation, multiplyBy),
+          body: rollupRuleCreateBody(key, aggregation, multiplyBy, whenMissing),
         })
         created.push(key)
       } catch (error) {
@@ -308,7 +374,7 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
                 only way to scale a seeded key by a quantity, since built-ins cannot be edited.
                 It warns because the totals on the user's own objects will move, which nothing
                 else on this form says. */}
-            {draftShadowsSystem && (
+            {draftReplacesSystem && (
               <p
                 className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
                 data-testid="rollup-rule-system-key-warning"
@@ -419,6 +485,15 @@ function RollupRuleForm({ onDone }: { onDone: () => void }) {
               </p>
             )}
           </div>
+          {/* Nothing to answer until a key is named: with no multiplier the rule counts every
+              object once, and no object can be "missing" the property it never scales by. */}
+          {normalizedMultiplier !== '' && (
+            <WhenMissingField
+              fieldId={fieldId}
+              value={whenMissing}
+              onChange={setWhenMissing}
+            />
+          )}
         </div>
 
         <div className="space-y-2">
@@ -501,6 +576,11 @@ function RollupRuleEdit({
   const [multiplyBy, setMultiplyBy] = useState(
     () => rule.multiplyBy?.propertyKey ?? ''
   )
+  // Absent reads as `one`: that is what the node does with it, so the form must not offer a
+  // third state for a rule that simply predates the control.
+  const storedWhenMissing = rule.multiplyBy?.whenMissing ?? 'one'
+  const [whenMissing, setWhenMissing] =
+    useState<NonNullable<WhenMissing>>(storedWhenMissing)
 
   const normalized = normalizeRollupPropertyKey(multiplyBy)
   const showNormalized = normalized !== '' && normalized !== multiplyBy
@@ -513,7 +593,11 @@ function RollupRuleEdit({
   // the sheet with Save already enabled on any rule whose key is a dictionary alias, and one
   // click then re-pointed the multiplier the user never touched.
   const current = normalizeRollupPropertyKey(rule.multiplyBy?.propertyKey ?? '')
-  const changed = normalized !== current
+  // `whenMissing` counts as a change only while a multiplier survives the edit: clearing the key
+  // sends `null`, which takes the whole sub-document with it.
+  const changed =
+    normalized !== current ||
+    (normalized !== '' && whenMissing !== storedWhenMissing)
   const canSave = changed && !collides && !updateMutation.isPending
 
   const submit = async (event: React.FormEvent) => {
@@ -525,16 +609,12 @@ function RollupRuleEdit({
       await updateMutation.mutateAsync({
         id: rule.id,
         body: {
-          // `whenMissing` rides along. The node `$set`s the whole sub-document, so omitting
-          // it silently resets a `skip` rule to the `one` default — every total moves, and
-          // the user was never shown the flag to know they had changed it.
+          // `whenMissing` is sent explicitly, always. The node `$set`s the whole sub-document,
+          // so an omitted flag resets the rule to `one` — which is right only when `one` is
+          // what the form shows. Saying it outright also makes a change back from `skip`
+          // unambiguous, where omission would be indistinguishable from "leave it alone".
           multiplyBy: normalized
-            ? {
-                propertyKey: normalized,
-                ...(rule.multiplyBy?.whenMissing === undefined
-                  ? {}
-                  : { whenMissing: rule.multiplyBy.whenMissing }),
-              }
+            ? { propertyKey: normalized, whenMissing }
             : null,
         },
       })
@@ -608,6 +688,13 @@ function RollupRuleEdit({
               </p>
             )}
           </div>
+          {normalized !== '' && (
+            <WhenMissingField
+              fieldId={fieldId}
+              value={whenMissing}
+              onChange={setWhenMissing}
+            />
+          )}
         </div>
 
         <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
@@ -680,6 +767,17 @@ function RollupRuleView({
             </span>
             <span className="ml-1.5 font-mono text-xs text-muted-foreground">
               {rule.multiplyBy.propertyKey}
+            </span>
+          </Fact>
+        )}
+        {rule.multiplyBy && (
+          // Absent reads as `one` — the node's default, and what the rule actually does. Leaving
+          // the row out for a rule that predates the control would hide a real setting.
+          <Fact label={t('rollupRules.whenMissing')}>
+            <span data-testid="rollup-rule-view-when-missing">
+              {rule.multiplyBy.whenMissing === 'skip'
+                ? t('rollupRules.whenMissingSkip')
+                : t('rollupRules.whenMissingOne')}
             </span>
           </Fact>
         )}
