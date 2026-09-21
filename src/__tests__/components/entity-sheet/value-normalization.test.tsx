@@ -120,7 +120,10 @@ describe('ValueNormalization', () => {
   it('warns when a rollup scales its totals by an unreadable value', () => {
     renderValue(
       {
-        data: '5 stuks',
+        // `stuks` until the node learned the Dutch aliases; the fixture then described a value
+        // the node reads fine. Any word no table knows will do — the case is about what the card
+        // says when a parse FAILED, not about which word fails.
+        data: '5 zakken',
         parse: { ok: false, normVersion: 1, reason: 'unknown-unit' },
       },
       false,

@@ -22,9 +22,11 @@ import { rowActions, tour } from '../utils/selectors'
  *   contributor, and the card is normally hidden then because the total would restate the property
  *   row. With a multiplier it does not restate it — the row reads 12 kg and the total reads 60 kg —
  *   so hiding it lost the one figure the rule was created to produce.
- * - a quantity the normalizer cannot read (`"5 stuks"`; the unit table carries English aliases only)
- *   makes the node drop that object's WHOLE contribution. Nothing on the value said so, because the
- *   marker fired only for values bound by a FORMULA.
+ * - a quantity the normalizer cannot read (`"5 zakken"`) makes the node drop that object's WHOLE
+ *   contribution. Nothing on the value said so, because the marker fired only for values bound by
+ *   a FORMULA. This used to read `"5 stuks"`, which the table now parses as a count — so the case
+ *   was passing for the wrong reason. If `zakken` is ever added as a unit, pick another word; the
+ *   test needs a quantity the node genuinely cannot read, not merely an unusual one.
  *
  * Own fixture rather than a shared one: this needs two properties per object and a rule carrying a
  * multiplier, which no other file in this folder builds.
@@ -99,7 +101,7 @@ test.describe('16 - rollups / the quantity multiplier', () => {
     await page.goto('/objects')
     await expect(page.getByTestId('data-table')).toBeVisible()
     await createScaledObject(page, LEAF, '12 kg', '5')
-    await createScaledObject(page, BAD, '7 kg', '5 stuks')
+    await createScaledObject(page, BAD, '7 kg', '5 zakken')
 
     await page.goto('/rollup-rules')
     await expect(page.getByTestId('data-table')).toBeVisible()
@@ -185,9 +187,9 @@ test.describe('16 - rollups / the quantity multiplier', () => {
       .first()
       .click()
 
-    // "5 stuks" — the unit table carries English aliases only, so this never parses and the node
-    // refuses it rather than defaulting to one, dropping this object's whole contribution. The
-    // marker used to fire only for values a FORMULA bound, so nothing on screen said so.
+    // "5 zakken" is not a unit in any table, so it never parses, and the node refuses it rather
+    // than defaulting to one — dropping this object's whole contribution. The marker used to fire
+    // only for values a FORMULA bound, so nothing on screen said so.
     await expect(
       page.locator(
         '[data-testid="value-normalization"][data-marker="excluded"]'
