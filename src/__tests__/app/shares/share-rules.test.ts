@@ -152,9 +152,13 @@ describe('the bundle caps', () => {
 })
 
 /**
- * Which rule applies to which write. The node has two and they are not interchangeable: a whole
- * bundle is refused on resources x members, a delta on the number of grant writes it makes. Only
- * the first has a client-side equivalent.
+ * Which rule applies to which write — and an earlier version of this file had BOTH of them
+ * backwards, locking in a rule the node does not have.
+ *
+ * The pair cap applies to both: the node checks the resulting bundle on an edit exactly as on a
+ * create, before it computes any delta. The item cap applies to a whole bundle only: an edit's
+ * request carries a delta, and each of its arrays is capped separately, so a share already at the
+ * limit can still be edited.
  */
 describe('shareCapRefusal', () => {
   it('applies the pair cap to a whole-bundle write', () => {
@@ -163,17 +167,25 @@ describe('shareCapRefusal', () => {
     )
   })
 
-  // Not "the check passes here" — there is no check. The node counts the WRITES an edit makes,
-  // which is a function of a delta it derives from the stored bundle; a client copy would drift
-  // the first time either side moved, and the node's 422 names the number anyway.
-  it('applies no pair cap to a delta write', () => {
-    expect(shareCapRefusal('delta', 200, 3)).toBeNull()
+  // The case this got wrong: a 100-resource share given a sixth member is 600 pairs, and the node
+  // refuses it on the resulting bundle. Save used to stay enabled and the user met the raw 422
+  // that this whole feature exists to pre-empt.
+  it('applies the pair cap to a delta write too', () => {
+    expect(shareCapRefusal('delta', 100, 6)?.key).toBe(
+      'shares.caps.tooManyPairs'
+    )
+  })
+
+  // The other direction: 201 items is legal on an edit, because the request adds ONE. Refusing it
+  // also refused the edit that would have removed resources to get back under the cap.
+  it('applies no item cap to a delta write', () => {
+    expect(shareCapRefusal('delta', 201, 1)).toBeNull()
   })
 
   // A duplicate posts a whole bundle exactly as a create does. Keying this on the sheet's mode
   // rather than on what the node writes is how that comes to be missed.
-  it('still applies the item caps to a delta write', () => {
-    expect(shareCapRefusal('delta', 201, 1)?.key).toBe(
+  it('applies the item cap to a whole-bundle write', () => {
+    expect(shareCapRefusal('bundle', 201, 1)?.key).toBe(
       'shares.caps.tooManyResources'
     )
   })

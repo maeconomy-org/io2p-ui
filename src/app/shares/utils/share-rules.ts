@@ -69,6 +69,11 @@ export interface ShareCapRefusal {
  * Enforced at the schema, so it answers 400 with framework prose. That reads badly and is the
  * only thing the user would otherwise see — the bulk paths seed their resources pre-loaded, so
  * nothing else in the form has had a chance to say the set is too big.
+ *
+ * A WHOLE-BUNDLE write only. The edit request carries a delta, and the node caps each of its
+ * arrays separately, so counting the resulting bundle here refused edits the node accepts — and
+ * on a bundle already over the cap it refused every edit including the one that would bring it
+ * back under.
  */
 export function itemCapRefusal(
   resources: number,
@@ -100,9 +105,13 @@ export type ShareWrite = 'bundle' | 'delta'
 /**
  * Every cap that applies to this save, first one first.
  *
- * The item caps apply to both. The pair cap applies to a `bundle` write only — see
- * `pairCapRefusal` for why a `delta` write has no client-side equivalent rather than a check that
- * happens to pass.
+ * The PAIR cap applies to both writes. The node checks the resulting bundle on an edit exactly as
+ * it does on a create — `shares.service.ts` calls the same `assertBundleConsistent` before it
+ * computes any delta — so the two are one rule, not two.
+ *
+ * The ITEM cap applies to a whole-bundle write only. On an edit the node caps each DELTA array
+ * (`resources.add`, `members.remove`, …) at 200 and never counts the resulting bundle, so a share
+ * already holding 200 can legally be given a 201st: the request carries one item, not 201.
  */
 export function shareCapRefusal(
   write: ShareWrite,
@@ -110,18 +119,19 @@ export function shareCapRefusal(
   members: number
 ): ShareCapRefusal | null {
   return (
-    itemCapRefusal(resources, members) ??
-    (write === 'bundle' ? pairCapRefusal(resources, members) : null)
+    (write === 'bundle' ? itemCapRefusal(resources, members) : null) ??
+    pairCapRefusal(resources, members)
   )
 }
 
 /**
- * Resources x members, the node's CREATE rule (`shares.rules.ts`).
+ * Resources x members, against the RESULTING bundle — the node's rule on both writes
+ * (`shares.rules.ts`, reached from create and from edit alike).
  *
- * Deliberately has no edit counterpart. The node's edit rule counts the WRITES a change makes —
- * revokes plus grants — not the pairs the bundle holds, and that is a function of a delta the node
- * derives from the stored bundle. A client copy of it would drift the first time either side
- * moved, and on edit the node's 422 already carries a detail that names the number.
+ * An edit has a SECOND pair rule on top of this one, counting the grant writes the change makes
+ * (revokes plus grants). That one is not mirrored: it is a function of a delta the node derives
+ * from the stored bundle, so a client copy would drift the first time either side moved, and its
+ * 422 already carries a detail naming the number.
  *
  * The product of two counts, never a sum: the form's own unsaved-changes bar shows
  * `resources + members`, so a message quoting one number beside a badge showing the other reads

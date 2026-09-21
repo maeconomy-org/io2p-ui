@@ -1294,7 +1294,7 @@
     "tabDirect": "Direct shares",
     "lastMemberHint": "A share needs at least one person. To stop sharing entirely, delete the share.",
     "caps": {
-      "tooManyResources": "At most {max, number} items in one share — this has {count, number}. Share a parent with descendants included instead, or split it.",
+      "tooManyResources": "At most {max, number} items in one share — this has {count, number}. Split it into more than one share.",
       "tooManyMembers": "At most {max, number} people in one share — this has {count, number}. Split it into more than one share.",
       "tooManyPairs": "One share links at most {max, number} item–person pairs. {resources, number} items × {members, number} people is {pairs, number}."
     }
