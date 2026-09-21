@@ -11,6 +11,16 @@ import { formatTempId } from '@/app/import/lib/build-items'
 import type { ImportWizard } from '@/app/import/hooks/use-import-wizard'
 
 /**
+ * How many refusals to list before counting the rest.
+ *
+ * The check step lists 5 of its own problems the same way; this one shows 8 because a refusal
+ * here ends the run, so the list is the whole account of what went wrong rather than a preview
+ * of what will be skipped. The two thresholds are deliberately separate — that is also why the
+ * overflow line is a second message rather than a shared one.
+ */
+const PROBLEM_LIMIT = 8
+
+/**
  * Staging and the hand-off, as two visibly different things.
  *
  * They have different rules and the difference matters: while rows are being UPLOADED the tab has
@@ -68,9 +78,9 @@ export function StepImport({
         <AlertDescription>
           <p className="font-medium">{t('import.run.refused')}</p>
           <ul className="mt-1 space-y-0.5 text-sm">
-            {problems.slice(0, 8).map((problem, index) => {
-              // `ImportProblem` carries only `seq`. It indexes the array the browser just
-              // submitted, so the file row can be resolved here without the node sending it.
+            {problems.slice(0, PROBLEM_LIMIT).map((problem, index) => {
+              // `seq` indexes the array the browser just submitted, so the file row can be
+              // resolved here without the node sending it.
               const sourceRef = wizard.items[problem.seq]?.sourceRef
               return (
                 <li key={index}>
@@ -81,11 +91,23 @@ export function StepImport({
                       ? t('import.run.rowPrefix', { row: sourceRef })
                       : t('import.run.itemPrefix', { item: problem.seq + 1 })}
                   </span>
-                  {problem.tempId && ` (${formatTempId(problem.tempId)})`}:{' '}
-                  {problem.message}
+                  {problem.tempId && ` (${formatTempId(problem.tempId)})`}
+                  {/* The node names the field when it knows which one — on a schema refusal it
+                      is `body`, which is not a column the user mapped and would read as one. */}
+                  {problem.field && problem.field !== 'body' && (
+                    <span className="font-mono text-xs"> {problem.field}</span>
+                  )}
+                  : {problem.message}
                 </li>
               )
             })}
+            {problems.length > PROBLEM_LIMIT && (
+              <li className="text-muted-foreground" data-testid="run-more">
+                {t('import.run.andMore', {
+                  count: problems.length - PROBLEM_LIMIT,
+                })}
+              </li>
+            )}
           </ul>
         </AlertDescription>
       </Alert>

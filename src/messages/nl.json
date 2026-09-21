@@ -1532,7 +1532,8 @@
       "ready": "Klaar om te importeren",
       "readyDetail": "{count, number} objecten worden aangemaakt. Dit kan niet ongedaan worden gemaakt — objecten kunnen daarna wel worden verwijderd, maar niet on-aangemaakt.",
       "readyDetailWithFile": "{count, number} objecten worden aangemaakt uit {file}. Dit kan niet ongedaan worden gemaakt — objecten kunnen daarna wel worden verwijderd, maar niet on-aangemaakt.",
-      "failed": "De import is mislukt"
+      "failed": "De import is mislukt",
+      "andMore": "…en nog {count, number}"
     },
     "list": {
       "subtitle": "Elke import die je hebt uitgevoerd. Een taak loopt door als je het tabblad sluit.",

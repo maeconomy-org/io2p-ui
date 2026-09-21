@@ -1532,7 +1532,8 @@
       "ready": "Ready to import",
       "readyDetail": "{count, number} objects will be created. This cannot be undone — objects can be deleted afterwards, but not un-created.",
       "readyDetailWithFile": "{count, number} objects will be created from {file}. This cannot be undone — objects can be deleted afterwards, but not un-created.",
-      "failed": "The import failed"
+      "failed": "The import failed",
+      "andMore": "…and {count, number} more"
     },
     "list": {
       "subtitle": "Every import you have run. A job keeps running if you close the tab.",
