@@ -112,13 +112,6 @@ export function RollupRuleSheet({
 type KeyFailure = { key: string; message: string }
 
 /**
- * Create N rules in one pass: many property keys, one aggregation.
- *
- * The reverse — one key under several aggregations — is not offered because it cannot exist: the
- * node keys the uniqueness conflict on `propertyKey` alone, so a second rule for the same key is a
- * 409 whatever it aggregates.
- */
-/**
  * The `whenMissing` choice, shown only once a multiplier names a key.
  *
  * `one` is the node's own default and what every rule created before this control does, so it is
@@ -187,6 +180,13 @@ function WhenMissingField({
   )
 }
 
+/**
+ * Create N rules in one pass: many property keys, one aggregation.
+ *
+ * The reverse — one key under several aggregations — is not offered because it cannot exist: the
+ * node keys the uniqueness conflict on `propertyKey` alone, so a second rule for the same key is a
+ * 409 whatever it aggregates.
+ */
 function RollupRuleForm({ onDone }: { onDone: () => void }) {
   const t = useTranslations()
   const fieldId = useId()

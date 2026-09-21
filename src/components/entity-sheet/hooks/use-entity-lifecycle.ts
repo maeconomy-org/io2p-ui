@@ -47,7 +47,11 @@ export function useEntityLifecycle(
         status: iomStatus(error),
         err: error,
       })
-      toast.error(t(saveErrorMessage(error).key))
+      // Destructured, not `.key` alone: 400 and 422 both answer `saveError.invalid`, whose text
+      // interpolates the node's own detail — and next-intl renders the key path when an argument
+      // it needs is missing.
+      const { key, values } = saveErrorMessage(error)
+      toast.error(t(key, values))
     }
   }
 

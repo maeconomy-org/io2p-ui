@@ -3,7 +3,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+import { ApiError } from 'io2p-client'
+
 import { ShareSheet } from '@/components/access'
+
+const problemOf = (status: number) => ({
+  type: 'about:blank',
+  title: 'Error',
+  status,
+})
 import en from '@/messages/en.json'
 import nl from '@/messages/nl.json'
 
@@ -68,9 +76,13 @@ function grantRow(over: Record<string, unknown> = {}) {
   return row
 }
 
-function renderSheet(rows: unknown[], canViewGrants = true, fails = false) {
-  if (fails) {
-    list.mockRejectedValue(new Error('403'))
+function renderSheet(
+  rows: unknown[],
+  canViewGrants = true,
+  fails: false | number = false
+) {
+  if (fails !== false) {
+    list.mockRejectedValue(new ApiError(problemOf(fails)))
   } else {
     list.mockResolvedValue({
       data: rows,
@@ -597,16 +609,41 @@ describe('a grants read that fails', () => {
   })
 
   it('says so instead of showing an empty list', async () => {
-    renderSheet([], true, true)
+    renderSheet([], true, 500)
 
     expect(await screen.findByTestId('share-read-failed')).toBeInTheDocument()
   })
 
   it('keeps the editable form off the screen entirely', async () => {
-    renderSheet([], true, true)
+    renderSheet([], true, 500)
 
     await screen.findByTestId('share-read-failed')
     expect(screen.queryByTestId('share-form')).toBeNull()
+  })
+})
+
+/**
+ * A refusal is not a failure, and the remedy differs. "Close this and open it again" can be
+ * followed forever by someone the node will never let read this list — and one caller reaches
+ * here by ASSERTING the viewer may, having nothing to decide it from.
+ */
+describe('telling a refusal from a failure', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('offers no retry on a refusal', async () => {
+    renderSheet([], true, 403)
+
+    const message = await screen.findByTestId('share-read-failed')
+    expect(message).toHaveTextContent('access.ownerOnly')
+  })
+
+  it('does offer one on anything else', async () => {
+    renderSheet([], true, 500)
+
+    const message = await screen.findByTestId('share-read-failed')
+    expect(message).toHaveTextContent('access.grantsUnavailable')
   })
 })
 

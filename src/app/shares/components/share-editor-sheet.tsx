@@ -480,8 +480,8 @@ function ShareForm({
         )}
 
         {/* Destructive where the incomplete hint is muted: that one asks for something missing,
-            this one states a refusal. Same slot, so the two cannot both claim the space under
-            Save. */}
+            this one states a refusal. Both can be true at once — 201 resources and nobody picked
+            — and they stack, which is right: they are two different things to fix. */}
         {capRefusal && (
           <p
             className="text-xs text-destructive"
