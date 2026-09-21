@@ -82,6 +82,29 @@ describe('ownShare', () => {
     expect(ownShare(bucket(160, 2), [])).toBeNull()
   })
 
+  // The node merges a bare `5` into the key's `pcs` bucket — one quantity, written two ways. On
+  // the units alone this object read as a non-contributor to the very total it is inside.
+  it('counts a bare own number as part of a count total', () => {
+    const pcs = {
+      dimension: 'count',
+      unit: 'pcs',
+      num: 12,
+      unitCount: 3,
+      contributorCount: 3,
+    } as RollupBucket
+    expect(ownShare(pcs, [{ num: 5 }])).toEqual({
+      own: 5,
+      below: 7,
+      onlyContributor: false,
+    })
+  })
+
+  // Only a COUNT absorbs a bare number. Beside a mass total it keeps its own unitless bucket,
+  // and calling it 5 kg would invent a unit the author never wrote.
+  it('never lends a bare number the unit of another dimension', () => {
+    expect(ownShare(bucket(160, 2), [{ num: 5 }])).toBeNull()
+  })
+
   // The bug: own 100 at a quantity of 3 contributes 300, and calling it 100 put the other 200
   // "below" — a number the reader cannot find anywhere in the tree.
   it('scales the own value before subtracting', () => {

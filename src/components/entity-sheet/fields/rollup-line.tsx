@@ -48,6 +48,22 @@ type NumericValues = readonly { num?: number; unit?: string }[]
 type WhenMissing = NonNullable<EntityRollupEntry['multiplyBy']>['whenMissing']
 
 /**
+ * Whether a bucket measures what a value holding `unit` is made of.
+ *
+ * A BARE number is a count, not a dimension of its own: the node merges `5` into the key's `pcs`
+ * bucket, because `5` and `5 pcs` are one quantity. Comparing the units alone missed that, so an
+ * object whose own value is bare looked like a non-contributor to the very total it is in — on a
+ * leaf, the card then claimed "This object only" about a number nobody could attribute to it.
+ * Beside any OTHER dimension a bare number keeps its own unitless bucket, where the units match
+ * anyway.
+ */
+function measures(bucket: RollupBucket, unit?: string): boolean {
+  return (
+    bucket.unit === unit || (unit === undefined && bucket.dimension === 'count')
+  )
+}
+
+/**
  * The factor the node applied to THIS object's contribution, mirroring how it resolves a
  * multiplier per row. `undefined` values mean the rule does not multiply at all.
  *
@@ -100,7 +116,7 @@ export function ownShare(
   whenMissing?: WhenMissing
 ): { own: number; below: number; onlyContributor: boolean } | null {
   const contributing = ownValues.filter(
-    (v) => v.num !== undefined && v.unit === bucket.unit
+    (v) => v.num !== undefined && measures(bucket, v.unit)
   )
   if (contributing.length === 0) return null
 
@@ -161,7 +177,8 @@ export function orderBuckets(
 ): RollupBucket[] {
   return [...buckets].sort(
     (a, b) =>
-      Number(b.unit === ownUnit) - Number(a.unit === ownUnit) || b.num - a.num
+      Number(measures(b, ownUnit)) - Number(measures(a, ownUnit)) ||
+      b.num - a.num
   )
 }
 
@@ -214,7 +231,7 @@ export function RollupLine({
   const t = useTranslations()
   const buckets = orderBuckets(entry.buckets, ownUnit)
   const [lead, ...rest] = buckets
-  const foreign = rest.some((b) => b.unit !== ownUnit)
+  const foreign = rest.some((b) => !measures(b, ownUnit))
   const [open, setOpen] = useState(!compact && foreign)
 
   const share = lead

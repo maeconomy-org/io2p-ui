@@ -195,6 +195,25 @@ describe('rollup rows in the property read view', () => {
     expect(orderBuckets([m3, big, kg], undefined)).toEqual([big, m3, kg])
   })
 
+  // A bare own number is a COUNT to the node, so the `pcs` total is the one this object is in —
+  // even though its value says nothing about `pcs`, and even though another bucket is larger.
+  it('headlines the count total for an object whose own value is bare', () => {
+    const pcs = bucket({
+      dimension: 'count',
+      unit: 'pcs',
+      num: 12,
+      contributorCount: 3,
+    })
+    const heavy = bucket({
+      dimension: 'mass',
+      unit: 'kg',
+      num: 4120,
+      contributorCount: 9,
+    })
+
+    expect(orderBuckets([heavy, pcs], undefined)).toEqual([pcs, heavy])
+  })
+
   // The card is collapsed by default, so a total rendered inside the disclosure would be invisible
   // until clicked — which is the same as not shipping it.
   it('renders a rollup as its own card, never inside the property', () => {
