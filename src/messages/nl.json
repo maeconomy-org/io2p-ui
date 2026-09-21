@@ -619,6 +619,8 @@
       "rollupUnitCount": "{count, plural, one {# stuk} other {# stuks}}",
       "rollupContributors": "{count, plural, one {# waarde} other {# waarden}}",
       "rollupSkipped": "{count, plural, one {# niet meegeteld} other {# niet meegeteld}}",
+      "rollupMultiValue": "{count, plural, one {# object heeft meerdere waarden} other {# objecten hebben meerdere waarden}}",
+      "rollupMultiValueAllCounted": "{count, plural, one {# object heeft meerdere waarden, alle meegeteld} other {# objecten hebben meerdere waarden, alle meegeteld}}",
       "rollupMoreDimensions": "{count, plural, one {+# andere eenheid} other {+# andere eenheden}}",
       "rollupProcessing": "Bijwerken…",
       "rollupSubtreeTooLarge": "Te veel items om te totaliseren",

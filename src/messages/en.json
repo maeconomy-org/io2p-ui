@@ -619,6 +619,8 @@
       "rollupUnitCount": "{count, plural, one {# item} other {# items}}",
       "rollupContributors": "{count, plural, one {# value} other {# values}}",
       "rollupSkipped": "{count, plural, one {# not counted} other {# not counted}}",
+      "rollupMultiValue": "{count, plural, one {# object has several values} other {# objects have several values}}",
+      "rollupMultiValueAllCounted": "{count, plural, one {# object has several values, all counted} other {# objects have several values, all counted}}",
       "rollupMoreDimensions": "{count, plural, one {+# more unit} other {+# more units}}",
       "rollupProcessing": "Updating…",
       "rollupSubtreeTooLarge": "Too many items to total",

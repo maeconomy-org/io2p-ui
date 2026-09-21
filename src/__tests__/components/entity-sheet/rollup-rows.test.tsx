@@ -620,6 +620,68 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByTestId('rollup-stale')).toBeInTheDocument()
   })
 
+  // Every value under the key counts. Correcting a number by ADDING a second value rather than
+  // editing the first therefore inflates the total, and this count is the only thing that says so.
+  // The node counts this entity too, not only the ones below it.
+  it('says how many objects hold more than one value, and that they all counted', () => {
+    renderRollups(
+      [massProperty()],
+      new Map([['mass', entry({ multiValueCount: 2 })]])
+    )
+    const note = screen.getByTestId('rollup-multi-value')
+    expect(note).toHaveTextContent('2')
+    expect(note).toHaveTextContent('AllCounted')
+  })
+
+  // The node counts multi-value objects from the stored values alone, BEFORE anything is summed,
+  // so the figure knows nothing about what was then skipped. An object holding two values and an
+  // unreadable quantity is dropped whole — it is in this count and not in the total, and "all
+  // counted" would be a claim the same line contradicts two words earlier.
+  it('drops the all-counted claim as soon as anything was skipped', () => {
+    renderRollups(
+      [massProperty()],
+      new Map([['mass', entry({ multiValueCount: 1, skippedCount: 2 })]])
+    )
+    const note = screen.getByTestId('rollup-multi-value')
+    expect(note).toHaveTextContent('1')
+    expect(note).not.toHaveTextContent('AllCounted')
+  })
+
+  // Nothing summed, so there is no total for the count to explain. Printing it beside "no numbers
+  // under this key" reads as a contradiction: things counted, under a key that counted nothing.
+  it('says nothing about multi-value objects when there is no total', () => {
+    renderRollups(
+      [massProperty()],
+      new Map([
+        [
+          'mass',
+          entry({
+            buckets: [],
+            skippedCount: 4,
+            multiValueCount: 2,
+            computedAt: 1_700_000,
+          }),
+        ],
+      ])
+    )
+    expect(screen.queryByTestId('rollup-multi-value')).toBeNull()
+  })
+
+  it('says nothing when every object holds at most one', () => {
+    renderRollups(
+      [massProperty()],
+      new Map([['mass', entry({ multiValueCount: 0 })]])
+    )
+    expect(screen.queryByTestId('rollup-multi-value')).toBeNull()
+  })
+
+  // Absent is NOT zero: the node omits the field on an error entry and on rows computed before it
+  // existed. Claiming "none" there would answer a question the node never answered.
+  it('says nothing when the node did not report the count at all', () => {
+    renderRollups([massProperty()], new Map([['mass', entry()]]))
+    expect(screen.queryByTestId('rollup-multi-value')).toBeNull()
+  })
+
   it('drops the line entirely once the worker has run and found no numbers', () => {
     // The node answers with one entry per rule on every object, so a rule that
     // matched nothing here is noise, not information.

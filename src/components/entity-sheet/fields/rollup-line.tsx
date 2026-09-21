@@ -239,6 +239,21 @@ export function RollupLine({
   const foreign = rest.some((b) => !measures(b, ownUnit))
   const [open, setOpen] = useState(!compact && foreign)
 
+  // How many entities here or below hold MORE THAN ONE numeric value under the key — this one
+  // included, so a leaf can report itself. Every such value counts toward the total, so a number
+  // corrected by ADDING a second value instead of editing the first inflates it, and nothing else
+  // on the card says so.
+  //
+  // The node counts these from the stored values alone, before any total is accumulated, so the
+  // figure knows nothing about what was then skipped. Only with NOTHING skipped is "all counted"
+  // provable; otherwise the count stands on its own as something to look at. Shown only beside a
+  // total, because with no total there is nothing for it to explain.
+  //
+  // `?? 0` covers a row computed before the field existed. It is NOT what keeps the note off an
+  // error card — the node omits the field entirely on that path, and the span renders outside the
+  // error branch. If core ever sent both, this would count things it just said it could not total.
+  const multiValue = entry.multiValueCount ?? 0
+
   const share = lead
     ? ownShare(
         lead,
@@ -309,6 +324,17 @@ export function RollupLine({
       {entry.skippedCount > 0 && (
         <span data-testid="rollup-skipped">
           {t('objects.properties.rollupSkipped', { count: entry.skippedCount })}
+        </span>
+      )}
+
+      {lead !== undefined && multiValue > 0 && (
+        <span data-testid="rollup-multi-value">
+          {t(
+            entry.skippedCount === 0
+              ? 'objects.properties.rollupMultiValueAllCounted'
+              : 'objects.properties.rollupMultiValue',
+            { count: multiValue }
+          )}
         </span>
       )}
 
