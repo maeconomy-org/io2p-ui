@@ -196,8 +196,8 @@ describe('multiplierKeysOf', () => {
   it('collects every key a rule multiplies by, lowercased', () => {
     const keys = multiplierKeysOf(
       new Map([
-        ['weight', { multipliedBy: 'Quantity' }],
-        ['volume', { multipliedBy: 'quantity' }],
+        ['weight', { multiplyBy: { propertyKey: 'Quantity' } }],
+        ['volume', { multiplyBy: { propertyKey: 'quantity' } }],
         ['cost', {}],
       ])
     )

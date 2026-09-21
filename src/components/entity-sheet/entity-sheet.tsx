@@ -128,9 +128,9 @@ export function EntitySheet({
 
   // Subtree totals, keyed by RULE ID.
   //
-  // Not by `propertyKey`: a key can carry several rules — the built-in Sum plus one that multiplies
-  // by `quantity` — and keying by the key silently dropped every rule but the last, so the scaled
-  // total the rule exists to produce never reached the card.
+  // Not by `propertyKey`: the rule id is the entry's own identity, and what a recompute speaks.
+  // A user rule now REPLACES the built-in on the same key for that user's objects, so a key yields
+  // one entry; keying by the key dropped all but the last back when two could share one.
   //
   // Gated on OWNERSHIP, not on `permission`: the node serves this owner-only and answers a
   // non-owner with 404, so a `write` or even `admin` grantee must not ask. `canEdit` is the wrong

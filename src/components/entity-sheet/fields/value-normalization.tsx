@@ -96,11 +96,14 @@ export function formulaBoundValueIds(
  * it drops that object's whole contribution.
  */
 export function multiplierKeysOf(
-  rollups: ReadonlyMap<string, { multipliedBy?: string }> | undefined
+  rollups:
+    | ReadonlyMap<string, { multiplyBy?: { propertyKey: string } }>
+    | undefined
 ): Set<string> {
   const keys = new Set<string>()
   for (const entry of rollups?.values() ?? []) {
-    if (entry.multipliedBy) keys.add(entry.multipliedBy.toLowerCase())
+    const key = entry.multiplyBy?.propertyKey
+    if (key) keys.add(key.toLowerCase())
   }
   return keys
 }

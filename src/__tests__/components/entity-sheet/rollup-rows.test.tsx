@@ -406,7 +406,7 @@ describe('rollup rows in the property read view', () => {
         [
           'mass',
           entry({
-            multipliedBy: 'quantity',
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
             // `descendantCount: 0` is what the node actually sends for a leaf, and omitting it is
             // why this passed while the real page hid the card: the count check short-circuits
             // BEFORE the own/below split is consulted. An e2e run found it.
@@ -451,7 +451,7 @@ describe('rollup rows in the property read view', () => {
         [
           'mass',
           entry({
-            multipliedBy: 'quantity',
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
             buckets: [
               bucket({
                 dimension: 'mass',
@@ -495,7 +495,7 @@ describe('rollup rows in the property read view', () => {
         [
           'mass',
           entry({
-            multipliedBy: 'quantity',
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
             descendantCount: 0,
             buckets: [
               bucket({
@@ -539,7 +539,7 @@ describe('rollup rows in the property read view', () => {
         [
           'mass',
           entry({
-            multipliedBy: 'quantity',
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
             descendantCount: 1,
             buckets: [
               bucket({
@@ -830,10 +830,9 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByText('820')).toBeInTheDocument()
   })
 
-  // Two rules on ONE key: the built-in Sum plus a user rule that multiplies. Keying the map by
-  // `propertyKey` kept only the last of them, and the seed id sorts after a uuid, so the scaled
-  // total never rendered at all.
-  it('renders one card per rule when several cover the same key', () => {
+  // One card per RULE, and a scaled one names its multiplier. A scaled total is not the sum of the
+  // values below it, so without that name "22.5 kg" over three 7.5 kg values reads as an error.
+  it('renders one card per rule and names the multiplier on a scaled one', () => {
     // The parent from the field report: it authors neither key, so both totals are orphan cards.
     renderRollups(
       [],
@@ -857,7 +856,8 @@ describe('rollup rows in the property read view', () => {
           'rule-scaled',
           entry({
             ruleId: 'rule-scaled',
-            multipliedBy: 'quantity',
+            propertyKey: 'load',
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
             descendantCount: 1,
             buckets: [
               bucket({

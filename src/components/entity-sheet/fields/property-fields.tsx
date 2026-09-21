@@ -69,7 +69,7 @@ interface PropertyFieldsProps {
    */
   derivedValues: DerivedValues
   /**
-   * Subtree totals keyed by RULE ID — one key can carry several rules. Objects only — templates
+   * Subtree totals keyed by RULE ID — one rule per key, per owner. Objects only — templates
    * and process flows have no rollups, and pass nothing.
    */
   rollups?: ReadonlyMap<string, EntityRollupEntry>

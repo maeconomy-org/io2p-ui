@@ -128,7 +128,7 @@ export function PropertyReadView({
 }: {
   properties: DraftProperty[]
   derivedValues: DerivedValues
-  /** Subtree totals keyed by RULE ID — one key can carry several rules. Objects only. */
+  /** Subtree totals keyed by RULE ID — one rule per key, per owner. Objects only. */
   rollups?: ReadonlyMap<string, EntityRollupEntry>
   entityId?: string
   onFileChange?: FileChange
@@ -203,13 +203,14 @@ export function PropertyReadView({
           // `undefined` when the rule names no multiplier; an EMPTY array when it names one this
           // object has no value for. `ownFactor` reads those two as different things — the first
           // is "no scaling", the second is "absent, so one".
-          const multiplied = entry.multipliedBy
-            ? byKey.get(entry.multipliedBy.toLowerCase())
+          const multiplierKey = entry.multiplyBy?.propertyKey
+          const multiplied = multiplierKey
+            ? byKey.get(multiplierKey.toLowerCase())
             : undefined
           return {
             entry,
             property: byKey.get(entry.propertyKey),
-            multiplierValues: entry.multipliedBy
+            multiplierValues: multiplierKey
               ? multiplied
                 ? liveValues(multiplied)
                 : []
@@ -241,7 +242,7 @@ export function PropertyReadView({
           // the property row reads 12 kg and the total reads 60 kg, so the card carries the one
           // figure the rule was created to produce. "Nothing below" stops meaning "nothing to say"
           // the moment a contributor is scaled.
-          if (entry.descendantCount === 0 && !entry.multipliedBy) return false
+          if (entry.descendantCount === 0 && !entry.multiplyBy) return false
 
           const lead = orderBuckets(entry.buckets, ownUnit(property))[0]
           // With no bucket the entry can only report skips, and `ownShare` has
@@ -429,16 +430,16 @@ function RollupCard({
           <span className="truncate text-sm font-medium">
             {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
           </span>
-          {/* Two rules on one key differ only by their multiplier, so without it both cards read
-              "Weight" and the reader cannot tell which total is which. */}
-          {entry.multipliedBy && (
+          {/* A scaled total is not the sum of the values on the rows: 12 kg at a quantity of 5
+              reads 60 kg. Naming the multiplier is what stops that looking like an error. */}
+          {entry.multiplyBy && (
             <span
               className="shrink-0 text-xs text-muted-foreground"
               data-testid="rollup-multiplier"
             >
               {t('objects.properties.rollupMultipliedBy', {
                 key: resolvePropertyLabel(
-                  entry.multipliedBy,
+                  entry.multiplyBy.propertyKey,
                   undefined,
                   locale
                 ),
@@ -475,7 +476,6 @@ function PropertyCard({
   entityId,
   onFileChange,
   allowFiles,
-  rollup,
 }: {
   property: DraftProperty
   derivedValues: DerivedValues
@@ -487,8 +487,6 @@ function PropertyCard({
   entityId?: string
   onFileChange?: FileChange
   allowFiles: boolean
-  /** The subtree total for this property's key, when a rule covers it. */
-  rollup?: EntityRollupEntry
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
@@ -535,19 +533,7 @@ function PropertyCard({
             {count}
           </Badge>
         )}
-        {rollup?.stale && !rollup.error && <RollupStaleBadge />}
       </CollapsibleTrigger>
-
-      {/* OUTSIDE the collapsible content: the card is collapsed by default, and a total nobody can
-          see without expanding is a total nobody reads. */}
-      {rollup && (
-        <RollupLine
-          entry={rollup}
-          ownUnit={ownUnit(property)}
-          ownValues={liveValues(property)}
-          className="px-3 pb-1.5 pl-8"
-        />
-      )}
 
       <CollapsibleContent className="space-y-2 border-t bg-muted/10 px-3 py-2">
         {/* Property-level files first (under the header), then each value with its own files. */}
