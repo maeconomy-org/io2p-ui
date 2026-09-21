@@ -1179,7 +1179,7 @@
     "publicLabel": "Algemene toegang",
     "publicHint": "Iedereen die is aangemeld bij deze node kan het bekijken",
     "includeDescendantsHint": "Ook alles onder dit object — inclusief later toegevoegde objecten",
-    "ownerOnly": "U kunt dit delen. Alleen een eigenaar of beheerder ziet wie er verder toegang heeft — wat u zelf hebt gedeeld staat bij Delen, Directe shares.",
+    "ownerOnly": "Alleen een eigenaar of beheerder kan hier het delen beheren. Wat u zelf hebt gedeeld staat bij Delen, Directe shares.",
     "permissionFor": "Rechten voor {name}",
     "revokeFor": "Toegang intrekken voor {name}",
     "share": "Delen",
@@ -1217,7 +1217,8 @@
     "removeFromShare": "Uit share verwijderen",
     "removeFromShareTitle": "{name} uit “{share}” verwijderen?",
     "removeFromShareBody": "Zij verliezen toegang tot {count} items: {items}. Een share geldt voor iedereen erin, dus dit kan niet tot één item worden beperkt — splits de share als dat nodig is.",
-    "removedFromShare": "Uit de share verwijderd."
+    "removedFromShare": "Uit de share verwijderd.",
+    "grantsUnavailable": "Kan niet laden wie toegang heeft. Sluit dit en open het opnieuw — zolang het niet is geladen, kunt u hier niets veilig wijzigen."
   },
   "shares": {
     "title": "Delen",

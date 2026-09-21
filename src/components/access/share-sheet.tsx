@@ -179,7 +179,11 @@ export function ShareSheet({
   // `source` narrows by ORIGIN at the node, so `directOnly` never sees a bundle row at all — every
   // section below (members, revoked history, the bundle group) reads the same narrowed set and
   // cannot disagree about what is on screen.
-  const { data: grantsPage, isLoading } = useList(
+  const {
+    data: grantsPage,
+    isLoading,
+    isError,
+  } = useList(
     resource,
     { revoked: 'include', source: directOnly ? 'direct' : 'all' },
     { enabled: open && canViewGrants }
@@ -208,6 +212,19 @@ export function ShareSheet({
           </p>
         )}
 
+        {/* A failed read must not reach the form. `grants` would fall back to an empty array and
+            render as "shared with nobody" — a finished answer, stated to someone who may have just
+            seen the opposite on the previous screen — and the draft seeded from it would then
+            REVOKE everyone on save. A request that did not arrive is not an empty result. */}
+        {canViewGrants && isError && (
+          <p
+            className="flex-1 px-6 py-4 text-sm text-destructive"
+            data-testid="share-read-failed"
+          >
+            {t('access.grantsUnavailable')}
+          </p>
+        )}
+
         {canViewGrants && isLoading && (
           <div className="flex-1 space-y-3 px-6 py-6">
             <Skeleton className="h-8 w-full" />
@@ -219,7 +236,7 @@ export function ShareSheet({
         {/* Mounted only once the grants are in, so the draft is seeded from them AT MOUNT rather
             than synced by an effect — which the compiler lint rejects, and which would let a
             background refetch quietly overwrite edits in progress. */}
-        {canViewGrants && !isLoading && (
+        {canViewGrants && !isLoading && !isError && (
           <ShareForm
             target={target}
             grants={grantsPage?.data ?? []}
@@ -600,7 +617,7 @@ function ShareForm({
 
   return (
     <>
-      <SheetBody className="space-y-4">
+      <SheetBody className="space-y-4" data-testid="share-form">
         <p className="text-sm text-muted-foreground">
           {t('access.shareDescription')}
         </p>

@@ -4,6 +4,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { ShareSheet } from '@/components/access'
+import en from '@/messages/en.json'
+import nl from '@/messages/nl.json'
 
 const list = vi.fn()
 const grant = vi.fn()
@@ -66,11 +68,15 @@ function grantRow(over: Record<string, unknown> = {}) {
   return row
 }
 
-function renderSheet(rows: unknown[], canViewGrants = true) {
-  list.mockResolvedValue({
-    data: rows,
-    page: { number: 1, size: 20, totalElements: rows.length, totalPages: 1 },
-  })
+function renderSheet(rows: unknown[], canViewGrants = true, fails = false) {
+  if (fails) {
+    list.mockRejectedValue(new Error('403'))
+  } else {
+    list.mockResolvedValue({
+      data: rows,
+      page: { number: 1, size: 20, totalElements: rows.length, totalPages: 1 },
+    })
+  }
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -562,10 +568,66 @@ describe('ShareSheet grant-list gate', () => {
     expect(list).not.toHaveBeenCalled()
   })
 
-  // Not "only the owner": the message is the one thing a `share` grantee ever reads here, and
-  // their own grants ARE visible — on the Shares page, under Direct shares.
-  it('points a viewer who cannot read it at where their own shares live', () => {
+  it('says why, where the list would have been', () => {
     renderSheet([], false)
     expect(screen.getByText('access.ownerOnly')).toBeInTheDocument()
+  })
+})
+
+/**
+ * The COPY, asserted against the real strings rather than the message key.
+ *
+ * This file mocks the translator to return the key, which is right for every other case here and
+ * useless for this one: an earlier version asserted `getByText('access.ownerOnly')` under the name
+ * "points the viewer at where their own shares live", and would have passed just as well against
+ * the old wording, which pointed nowhere.
+ */
+/**
+ * A request that did not arrive is not an empty result.
+ *
+ * The sheet read only `data` and `isLoading`, so any failure — a 403 on a resource the viewer
+ * turned out not to hold admin on, a 404, a dropped connection — resolved to "no grants" and
+ * rendered as a finished answer. Two harms, and the second is the worse one: the reader is told
+ * the thing is shared with nobody, and the editable draft seeded from that empty list would
+ * REVOKE everyone still on it the moment they saved.
+ */
+describe('a grants read that fails', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('says so instead of showing an empty list', async () => {
+    renderSheet([], true, true)
+
+    expect(await screen.findByTestId('share-read-failed')).toBeInTheDocument()
+  })
+
+  it('keeps the editable form off the screen entirely', async () => {
+    renderSheet([], true, true)
+
+    await screen.findByTestId('share-read-failed')
+    expect(screen.queryByTestId('share-form')).toBeNull()
+  })
+})
+
+describe('what the message actually says', () => {
+  it('names where a viewer can find what they shared themselves, in both locales', () => {
+    expect(en.access.ownerOnly).toContain('Direct shares')
+    expect(nl.access.ownerOnly).toContain('Directe shares')
+    // The Dutch page is called Delen, not Shares — a route naming a label that is not on screen
+    // is worse than no route.
+    expect(nl.access.ownerOnly).toContain('Delen')
+  })
+
+  // It used to open "You can share this." — but the granting form is gated on the same permission
+  // as the list, so the sentence promised an action the panel never offers.
+  it('promises no action this panel cannot offer', () => {
+    expect(en.access.ownerOnly).not.toMatch(/you can share/i)
+  })
+
+  it('tells a viewer whose read failed not to trust what they see', () => {
+    for (const locale of [en, nl]) {
+      expect(locale.access.grantsUnavailable).toBeTypeOf('string')
+    }
   })
 })
