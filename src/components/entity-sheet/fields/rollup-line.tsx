@@ -175,16 +175,37 @@ export function ownShare(
  * Exported because `property-read-view` picks the same lead to decide whether the card is worth
  * rendering at all. Two copies of this rule drift, and then they disagree about which bucket the
  * object is the sole contributor to.
+ *
+ * `ownValues` is not optional decoration. TWO different situations reach here as
+ * `ownUnit: undefined` — the object holds a bare NUMBER, and the object holds nothing at all
+ * (an orphan card, where no property carries the rule's key). Only the first is a count. Reading
+ * the second as one pinned a `3 pcs` bucket above a `5000 kg` one and hid the larger total behind
+ * the disclosure, which is this function's own failure case, inverted.
  */
 export function orderBuckets(
   buckets: readonly RollupBucket[],
-  ownUnit?: string
+  ownUnit?: string,
+  ownValues?: NumericValues
 ): RollupBucket[] {
+  const leads = ownLead(ownUnit, ownValues)
   return [...buckets].sort(
-    (a, b) =>
-      Number(measures(b, ownUnit)) - Number(measures(a, ownUnit)) ||
-      b.num - a.num
+    (a, b) => Number(leads(b)) - Number(leads(a)) || b.num - a.num
   )
+}
+
+/**
+ * Whether a bucket measures what this OBJECT holds — the ordering question, not the per-value one.
+ *
+ * With an own unit it is that unit. Without one it is a count, but only when the object actually
+ * holds a bare number: no own value is not a bare number, and both arrive as `undefined`.
+ */
+function ownLead(
+  ownUnit?: string,
+  ownValues?: NumericValues
+): (bucket: RollupBucket) => boolean {
+  if (ownUnit !== undefined) return (bucket) => bucket.unit === ownUnit
+  const bare = (ownValues ?? []).some((v) => v.num !== undefined)
+  return (bucket) => bare && measures(bucket, undefined)
 }
 
 /**
@@ -234,9 +255,12 @@ export function RollupLine({
   className?: string
 }) {
   const t = useTranslations()
-  const buckets = orderBuckets(entry.buckets, ownUnit)
+  const buckets = orderBuckets(entry.buckets, ownUnit, ownValues)
   const [lead, ...rest] = buckets
-  const foreign = rest.some((b) => !measures(b, ownUnit))
+  // Same question as the ordering, so the same answer: a hidden bucket is foreign when it is not
+  // the one measuring what this object holds. An orphan card holds nothing, so every bucket is.
+  const leads = ownLead(ownUnit, ownValues)
+  const foreign = rest.some((b) => !leads(b))
   const [open, setOpen] = useState(!compact && foreign)
 
   // How many entities here or below hold MORE THAN ONE numeric value under the key — this one

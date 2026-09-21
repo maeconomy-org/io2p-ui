@@ -244,7 +244,7 @@ export function PropertyReadView({
           // the moment a contributor is scaled.
           if (entry.descendantCount === 0 && !entry.multiplyBy) return false
 
-          const lead = orderBuckets(entry.buckets, ownUnit(property))[0]
+          const lead = orderBuckets(entry.buckets, ownUnit(property), own)[0]
           // With no bucket the entry can only report skips, and `ownShare` has
           // nothing to compare — which kept the card on every leaf whose values are
           // all unreadable ("5 lux"). Its own skips covering the count means the

@@ -211,7 +211,36 @@ describe('rollup rows in the property read view', () => {
       contributorCount: 9,
     })
 
-    expect(orderBuckets([heavy, pcs], undefined)).toEqual([pcs, heavy])
+    expect(orderBuckets([heavy, pcs], undefined, [{ num: 5 }])).toEqual([
+      pcs,
+      heavy,
+    ])
+  })
+
+  // An ORPHAN card — no property here carries the rule's key — reaches the same `undefined` own
+  // unit as a bare number, and means the opposite: there is no own value for any bucket to match.
+  // Reading it as a count pinned `12 pcs` above `4120 kg` and hid the larger total behind the
+  // disclosure, which is the failure this ordering exists to prevent, inverted.
+  it('orders an orphan card by size, having nothing of its own to match', () => {
+    const pcs = bucket({
+      dimension: 'count',
+      unit: 'pcs',
+      num: 12,
+      contributorCount: 3,
+    })
+    const heavy = bucket({
+      dimension: 'mass',
+      unit: 'kg',
+      num: 4120,
+      contributorCount: 9,
+    })
+
+    expect(orderBuckets([pcs, heavy], undefined, undefined)).toEqual([
+      heavy,
+      pcs,
+    ])
+    // A property that exists but holds nothing numeric is the same case.
+    expect(orderBuckets([pcs, heavy], undefined, [])).toEqual([heavy, pcs])
   })
 
   // The card is collapsed by default, so a total rendered inside the disclosure would be invisible

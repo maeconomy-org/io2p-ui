@@ -16,6 +16,7 @@ import {
   canReshare,
   canViewGrants,
   permissionOf,
+  permissionWhenKnown,
   useEntityListActions,
   useEntityListFilters,
   useEntityListQuery,
@@ -89,7 +90,7 @@ export default function ProcessesPage() {
   const [view, setView] = usePreference('processView')
   const isTable = view === 'table'
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
-  const { userId } = useAuth()
+  const { userId, authLoading } = useAuth()
 
   const listQuery = useEntityListQuery()
   const setPage = listQuery.setPage
@@ -321,8 +322,13 @@ export default function ProcessesPage() {
           onOpenChange={(open) => !open && setToShare(null)}
           target={{ type: 'process', id: toShare.id, name: toShare.name }}
           // The node's own verdict, not ownership: an `admin` grantee may read this list, and
-          // the owner is only the commonest way to hold admin.
-          canViewGrants={canViewGrants(permissionOf(toShare, userId))}
+          // the owner is only the commonest way to hold admin. Loading-SAFE, like the row action
+          // that opened this sheet: `userId` resolves after the rows do, and for those frames an
+          // unresolved viewer would otherwise fall through to the permissive default and fire a
+          // request on someone else's process.
+          canViewGrants={canViewGrants(
+            permissionWhenKnown(toShare, userId, authLoading)
+          )}
         />
       )}
 

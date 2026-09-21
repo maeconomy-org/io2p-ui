@@ -22,7 +22,7 @@ import {
   DataTableColumnToggle,
   EntityTable,
   canViewGrants,
-  permissionOf,
+  permissionWhenKnown,
   useEntityListFilters,
   useEntityListQuery,
 } from '@/components/entity-list'
@@ -64,7 +64,7 @@ export default function ObjectsPage() {
 
   const { clearTrail } = useBreadcrumbTrail(undefined)
   const { isSearchMode, searchQuery, clearSearch } = useSearch()
-  const { userId } = useAuth()
+  const { userId, authLoading } = useAuth()
 
   const { drafts, deleteDraft } = useObjectDrafts()
   const listQuery = useEntityListQuery({ scope })
@@ -258,8 +258,13 @@ export default function ObjectsPage() {
             name: shareTarget.name,
           }}
           // The node's own verdict, not ownership: an `admin` grantee may read this list, and
-          // the owner is only the commonest way to hold admin.
-          canViewGrants={canViewGrants(permissionOf(shareTarget, userId))}
+          // the owner is only the commonest way to hold admin. Loading-SAFE, like the row action
+          // that opened this sheet: `userId` resolves after the rows do, and for those frames an
+          // unresolved viewer would otherwise fall through to the permissive default and fire a
+          // request on someone else's object.
+          canViewGrants={canViewGrants(
+            permissionWhenKnown(shareTarget, userId, authLoading)
+          )}
         />
       )}
 
