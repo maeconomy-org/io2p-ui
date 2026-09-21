@@ -50,8 +50,9 @@ export function ObjectActionsCell({
   // The node's verdict, falling back to the owner — objects have no separate owner, so their author
   // holds `admin` on them.
   const permission = permissionWhenKnown(object, userId, authLoading)
-  // Reading the grant list needs `share`; the node 403s anything less, so offering it to a plain
-  // reader would open a sheet that can only fail.
+  // GRANTING needs `share`; the node 403s anything less, so offering the sheet to a plain reader
+  // would open one that can only fail. Reading the grant list inside it is stricter still — the
+  // node wants `admin` — which the sheet decides for itself from the same verdict.
   const canShare = !!actions.onShare && canReshare(permission)
 
   const rowActions: EntityRowAction[] = []

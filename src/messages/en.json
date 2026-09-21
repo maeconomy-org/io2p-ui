@@ -1179,7 +1179,7 @@
     "publicLabel": "General access",
     "publicHint": "Anyone signed in to this node can view it",
     "includeDescendantsHint": "Also everything under this object — including objects added later",
-    "ownerOnly": "Only the owner can see who this is shared with.",
+    "ownerOnly": "You can share this. Only an owner or admin can see who else has access — what you have shared yourself is under Shares, Direct shares.",
     "permissionFor": "Permission for {name}",
     "revokeFor": "Remove access for {name}",
     "share": "Share",

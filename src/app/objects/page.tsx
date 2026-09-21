@@ -21,6 +21,8 @@ import { ObjectColumnsView } from '@/app/objects/components/columns-view'
 import {
   DataTableColumnToggle,
   EntityTable,
+  canViewGrants,
+  permissionOf,
   useEntityListFilters,
   useEntityListQuery,
 } from '@/components/entity-list'
@@ -255,7 +257,9 @@ export default function ObjectsPage() {
             id: shareTarget.id,
             name: shareTarget.name,
           }}
-          isOwner={shareTarget.createdBy === userId}
+          // The node's own verdict, not ownership: an `admin` grantee may read this list, and
+          // the owner is only the commonest way to hold admin.
+          canViewGrants={canViewGrants(permissionOf(shareTarget, userId))}
         />
       )}
 

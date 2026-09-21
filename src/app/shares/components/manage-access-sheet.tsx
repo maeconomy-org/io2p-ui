@@ -35,9 +35,15 @@ export function ManageAccessSheet({
         id: resource.id,
         name,
       }}
-      // The rollup only ever returns what the CALLER has shared, so they granted it and therefore
-      // hold admin — no ownership check to make.
-      isOwner
+      // Asserted, not computed: `SharedByMeItem` carries no permission and no owner, so there is
+      // nothing here to decide it from.
+      //
+      // True for the common case, and the reasoning it replaces was not: granting needs `share`,
+      // NOT admin, so "they granted it, therefore they hold admin" does not follow. A `share`
+      // grantee who granted this row lands on a 403 they cannot act on. Rare — the usual granter
+      // is the owner, who does hold admin — and not fixable from here: the row would have to carry
+      // the caller's permission for this to be an answer rather than a guess.
+      canViewGrants
       // This sheet opens from the DIRECT shares tab. A Share's grants are managed on the Share, so
       // showing them here would put back the mixture that tab exists to separate.
       directOnly

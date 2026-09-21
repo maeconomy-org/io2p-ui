@@ -43,9 +43,25 @@ export function canEdit(permission?: Permission): boolean {
   return meets(permission, 'write')
 }
 
-/** May the viewer share this entity onward? Reading the grant list needs `share`. */
+/** May the viewer share this entity onward? Granting is guarded at `share`. */
 export function canReshare(permission?: Permission): boolean {
   return meets(permission, 'share')
+}
+
+/**
+ * May the viewer read WHO ELSE can reach this entity? Guarded at `admin`.
+ *
+ * The node draws three lines across one sheet, and they are not the same line: granting needs
+ * `share`, reading the grant list needs `admin`, revoking needs `admin` or having granted it
+ * yourself. Reading the list is the strictest because it exposes other people's access, where
+ * granting only adds your own.
+ *
+ * Objects and processes only. A formula, constant or template carries no `permission` at all, so
+ * `meets` would read the absence as unrestricted and answer TRUE for a stranger — ownership is
+ * the whole answer for those, and their pages compare the owner directly.
+ */
+export function canViewGrants(permission?: Permission): boolean {
+  return meets(permission, 'admin')
 }
 
 /** May the viewer soft-delete this entity? Guarded at `admin`, not `write`. */

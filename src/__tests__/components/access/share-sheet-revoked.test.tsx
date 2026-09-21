@@ -66,7 +66,7 @@ function grantRow(over: Record<string, unknown> = {}) {
   return row
 }
 
-function renderSheet(rows: unknown[]) {
+function renderSheet(rows: unknown[], canViewGrants = true) {
   list.mockResolvedValue({
     data: rows,
     page: { number: 1, size: 20, totalElements: rows.length, totalPages: 1 },
@@ -82,7 +82,7 @@ function renderSheet(rows: unknown[]) {
         open: true,
         onOpenChange: vi.fn(),
         target: { type: 'object' as const, id: 'obj-1', name: 'Wall A' },
-        isOwner: true,
+        canViewGrants,
       })
     )
   )
@@ -472,7 +472,7 @@ describe('ShareSheet directOnly — the Direct shares tab stays direct', () => {
           open: true,
           onOpenChange: vi.fn(),
           target: { type: 'object' as const, id: 'obj-1', name: 'Wall A' },
-          isOwner: true,
+          canViewGrants: true,
           directOnly: true,
         })
       )
@@ -538,5 +538,34 @@ describe('ShareSheet directOnly — the Direct shares tab stays direct', () => {
     ])
 
     expect(await screen.findByText('access.manageBundle')).toBeTruthy()
+  })
+})
+
+/**
+ * The node guards the grant list at `admin` and 403s everyone else, so a viewer below that must
+ * not ask. The sheet used to gate this on `createdBy === userId`, which got both halves wrong: an
+ * `admin` grantee was refused a list the node would have served, and a `share` grantee — who may
+ * legitimately grant from this very sheet — was told only the owner could ever see one.
+ */
+describe('ShareSheet grant-list gate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('asks for the list when the viewer may read it', async () => {
+    renderSheet([])
+    await waitFor(() => expect(list).toHaveBeenCalled())
+  })
+
+  it('sends no request at all when the viewer may not', () => {
+    renderSheet([], false)
+    expect(list).not.toHaveBeenCalled()
+  })
+
+  // Not "only the owner": the message is the one thing a `share` grantee ever reads here, and
+  // their own grants ARE visible — on the Shares page, under Direct shares.
+  it('points a viewer who cannot read it at where their own shares live', () => {
+    renderSheet([], false)
+    expect(screen.getByText('access.ownerOnly')).toBeInTheDocument()
   })
 })

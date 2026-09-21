@@ -4,6 +4,7 @@ import {
   canDelete,
   canEdit,
   canReshare,
+  canViewGrants,
   canRestore,
   permissionOf,
 } from '@/components/entity-list/permission'
@@ -65,5 +66,35 @@ describe('permissionOf', () => {
     const mine = permissionOf({ createdBy: 'me' }, 'me')
     expect(canDelete(mine)).toBe(true)
     expect(canReshare(mine)).toBe(true)
+  })
+})
+
+/**
+ * Reading WHO ELSE can reach a resource is the strictest of the node's three sharing bars:
+ * granting needs `share`, reading the grant list needs `admin`, revoking needs `admin` or having
+ * granted it yourself. The sheet used to gate the list on `createdBy === userId`, which refused an
+ * `admin` grantee something the node would have answered, and promised a `share` grantee a list
+ * they could never get.
+ */
+describe('canViewGrants', () => {
+  it('answers only at admin', () => {
+    expect(canViewGrants('admin')).toBe(true)
+    expect(canViewGrants('share')).toBe(false)
+    expect(canViewGrants('write')).toBe(false)
+    expect(canViewGrants('read')).toBe(false)
+  })
+
+  // One rung above `canReshare`, on purpose: granting adds your own access, reading the list
+  // exposes everyone else's. A `share` grantee may do the first and not the second.
+  it('is stricter than resharing', () => {
+    expect(canReshare('share')).toBe(true)
+    expect(canViewGrants('share')).toBe(false)
+  })
+
+  // Absent means the node does not send the field — an older deployment, not a denial. Losing
+  // every control on a version skew is the worse failure, and the node still enforces.
+  it('treats an absent permission as unrestricted, like every other rung', () => {
+    expect(canViewGrants(undefined)).toBe(true)
+    expect(canDelete(undefined)).toBe(true)
   })
 })

@@ -137,14 +137,22 @@ export function ShareSheet({
   open,
   onOpenChange,
   target,
-  isOwner,
+  canViewGrants,
   directOnly = false,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   target: ShareTarget
-  /** Only an owner/admin may read the grant list; the node 403s everyone else. */
-  isOwner: boolean
+  /**
+   * May THIS viewer read the grant list? The node guards it at `admin` and 403s everyone else,
+   * so a sheet that asks on their behalf only produces a refusal they cannot act on.
+   *
+   * A plain boolean the caller computes, deliberately. The answer comes from two different places
+   * depending on the resource: objects and processes carry the node's own `permission`, while a
+   * formula, constant or template carries none — ownership is the whole answer there, and running
+   * those through the permission helper would read the missing field as unrestricted.
+   */
+  canViewGrants: boolean
   /**
    * Show ONLY ad-hoc grants — nothing a Share owns, in any section.
    *
@@ -174,7 +182,7 @@ export function ShareSheet({
   const { data: grantsPage, isLoading } = useList(
     resource,
     { revoked: 'include', source: directOnly ? 'direct' : 'all' },
-    { enabled: open && isOwner }
+    { enabled: open && canViewGrants }
   )
 
   return (
@@ -194,13 +202,13 @@ export function ShareSheet({
           </SheetDescription>
         </SheetHeader>
 
-        {!isOwner && (
+        {!canViewGrants && (
           <p className="flex-1 px-6 py-4 text-sm text-muted-foreground">
             {t('access.ownerOnly')}
           </p>
         )}
 
-        {isOwner && isLoading && (
+        {canViewGrants && isLoading && (
           <div className="flex-1 space-y-3 px-6 py-6">
             <Skeleton className="h-8 w-full" />
             <Skeleton className="h-24 w-full" />
@@ -211,7 +219,7 @@ export function ShareSheet({
         {/* Mounted only once the grants are in, so the draft is seeded from them AT MOUNT rather
             than synced by an effect — which the compiler lint rejects, and which would let a
             background refetch quietly overwrite edits in progress. */}
-        {isOwner && !isLoading && (
+        {canViewGrants && !isLoading && (
           <ShareForm
             target={target}
             grants={grantsPage?.data ?? []}

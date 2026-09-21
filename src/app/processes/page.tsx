@@ -14,6 +14,7 @@ import {
   EntityTable,
   canDelete,
   canReshare,
+  canViewGrants,
   permissionOf,
   useEntityListActions,
   useEntityListFilters,
@@ -319,7 +320,9 @@ export default function ProcessesPage() {
           open
           onOpenChange={(open) => !open && setToShare(null)}
           target={{ type: 'process', id: toShare.id, name: toShare.name }}
-          isOwner={toShare.createdBy === userId}
+          // The node's own verdict, not ownership: an `admin` grantee may read this list, and
+          // the owner is only the commonest way to hold admin.
+          canViewGrants={canViewGrants(permissionOf(toShare, userId))}
         />
       )}
 

@@ -208,7 +208,9 @@ export default function ConstantsPage() {
             id: shareTarget.id,
             name: shareTarget.name,
           }}
-          isOwner={shareTarget.ownerUserId === userId}
+          // Ownership, NOT the permission helper: a library item carries no `permission`, and
+          // the helper reads an absent one as unrestricted — it would answer true for a stranger.
+          canViewGrants={shareTarget.ownerUserId === userId}
         />
       )}
 

@@ -1179,7 +1179,7 @@
     "publicLabel": "Algemene toegang",
     "publicHint": "Iedereen die is aangemeld bij deze node kan het bekijken",
     "includeDescendantsHint": "Ook alles onder dit object — inclusief later toegevoegde objecten",
-    "ownerOnly": "Alleen de eigenaar kan zien met wie dit is gedeeld.",
+    "ownerOnly": "U kunt dit delen. Alleen een eigenaar of beheerder ziet wie er verder toegang heeft — wat u zelf hebt gedeeld staat bij Delen, Directe shares.",
     "permissionFor": "Rechten voor {name}",
     "revokeFor": "Toegang intrekken voor {name}",
     "share": "Delen",

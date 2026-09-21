@@ -152,8 +152,9 @@ function rowActions(
           },
         ]
       : []),
-    // Reading the grant list needs `share`, which an ADMIN grantee also holds — `createdBy` denied
-    // them a control the node would have allowed.
+    // GRANTING needs `share`, which an ADMIN grantee also holds — `createdBy` denied them a
+    // control the node would have allowed. Reading the grant list inside the sheet is stricter
+    // still, at `admin`, and the sheet decides that for itself from the same verdict.
     ...(canReshare(permission)
       ? [
           {
