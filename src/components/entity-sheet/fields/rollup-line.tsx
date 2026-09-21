@@ -44,18 +44,28 @@ const round = (n: number) => Number(n.toPrecision(12))
 
 type NumericValues = readonly { num?: number; unit?: string }[]
 
+/** The rule's answer for an object that has no value under the multiplier's key. */
+type WhenMissing = NonNullable<EntityRollupEntry['multiplyBy']>['whenMissing']
+
 /**
  * The factor the node applied to THIS object's contribution, mirroring how it resolves a
  * multiplier per row. `undefined` values mean the rule does not multiply at all.
  *
  * `null` means the node SKIPPED this object: a multiplier that is present but unreadable is
  * refused, never defaulted to one, because summing a contributor unscaled is the silent wrongness
- * the multiplier exists to prevent. Only an ABSENT multiplier falls back to one — "no quantity"
- * and "quantity 1" say the same thing.
+ * the multiplier exists to prevent.
+ *
+ * An ABSENT multiplier is the rule's own choice. `one` counts the object once — "no quantity" and
+ * "quantity 1" say the same thing — and `skip` leaves it out of the total altogether, so no share
+ * of that total is this object's. The default mirrors the node, which fills `one` when the rule
+ * stores nothing.
  */
-export function ownFactor(values: NumericValues | undefined): number | null {
+export function ownFactor(
+  values: NumericValues | undefined,
+  whenMissing: WhenMissing = 'one'
+): number | null {
   if (values === undefined) return 1 // the rule names no multiplier
-  if (values.length === 0) return 1 // absent -> one
+  if (values.length === 0) return whenMissing === 'skip' ? null : 1
   if (values.length > 1) return null // several live values -> ambiguous
   const [only] = values
   if (only?.num === undefined) return null // present but never parsed
@@ -85,14 +95,16 @@ export function ownShare(
   bucket: RollupBucket,
   ownValues: NumericValues,
   /** The object's live values under the key the rule multiplies by; omit when it names none. */
-  multiplierValues?: NumericValues
+  multiplierValues?: NumericValues,
+  /** What the rule does with an object holding no such value; the node's default is `one`. */
+  whenMissing?: WhenMissing
 ): { own: number; below: number; onlyContributor: boolean } | null {
   const contributing = ownValues.filter(
     (v) => v.num !== undefined && v.unit === bucket.unit
   )
   if (contributing.length === 0) return null
 
-  const factor = ownFactor(multiplierValues)
+  const factor = ownFactor(multiplierValues, whenMissing)
   if (factor === null) {
     // The node dropped this object's values, so none of the total is its own and it is not in
     // `contributorCount` either — everything shown belongs to the subtree below.
@@ -186,9 +198,10 @@ export function RollupLine({
    */
   ownValues?: NumericValues
   /**
-   * The object's own live values under `entry.multipliedBy`. Absent when the rule names no
-   * multiplier — which is NOT the same as an empty array, since that means the key is named and
-   * this object simply has no value for it.
+   * The object's own live values under `entry.multiplyBy.propertyKey`. Absent when the rule names
+   * no multiplier — which is NOT the same as an empty array, since that means the key is named and
+   * this object simply has no value for it. What an empty array costs is the rule's `whenMissing`,
+   * read from the entry itself.
    */
   multiplierValues?: NumericValues
   /**
@@ -204,7 +217,14 @@ export function RollupLine({
   const foreign = rest.some((b) => b.unit !== ownUnit)
   const [open, setOpen] = useState(!compact && foreign)
 
-  const share = lead ? ownShare(lead, ownValues ?? [], multiplierValues) : null
+  const share = lead
+    ? ownShare(
+        lead,
+        ownValues ?? [],
+        multiplierValues,
+        entry.multiplyBy?.whenMissing
+      )
+    : null
 
   return (
     <div

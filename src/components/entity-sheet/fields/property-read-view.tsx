@@ -254,7 +254,12 @@ export function PropertyReadView({
             const unreadable = own.filter((v) => v.parse?.ok === false).length
             return entry.skippedCount > unreadable
           }
-          return !ownShare(lead, own, multiplierValues)?.onlyContributor
+          return !ownShare(
+            lead,
+            own,
+            multiplierValues,
+            entry.multiplyBy?.whenMissing
+          )?.onlyContributor
         })
         .sort(
           (a, b) =>

@@ -37,6 +37,19 @@ describe('ownFactor', () => {
   // "No quantity" and "quantity 1" say the same thing, so this is the one case that defaults.
   it('is one when the key is named but this object has no value for it', () => {
     expect(ownFactor([])).toBe(1)
+    expect(ownFactor([], 'one')).toBe(1)
+  })
+
+  // Under `skip` the node left this object out of the total entirely, so none of that total is
+  // its own. Defaulting to one here claimed a share of someone else's number.
+  it('refuses the absent multiplier the rule chose to skip', () => {
+    expect(ownFactor([], 'skip')).toBeNull()
+  })
+
+  // `skip` is about ABSENCE only. A value that is there decides the factor by itself, either way.
+  it('ignores whenMissing once a value is present', () => {
+    expect(ownFactor([{ num: 5 }], 'skip')).toBe(5)
+    expect(ownFactor([{ num: -3 }], 'one')).toBeNull()
   })
 
   it('is the number when exactly one value parsed', () => {
@@ -87,6 +100,21 @@ describe('ownShare', () => {
   it('still suppresses an UNMULTIPLIED sole contributor', () => {
     const share = ownShare(bucket(12, 1), [kg(12)], [])
     expect(share?.onlyContributor).toBe(true)
+  })
+
+  // Same object, same total, opposite rules. Under `one` its 12 kg is part of the 48 kg; under
+  // `skip` the node never counted it, so the whole 48 kg is below and none of it is its own.
+  it('reads an absent quantity the way the rule chose to', () => {
+    expect(ownShare(bucket(48, 2), [kg(12)], [], 'one')).toEqual({
+      own: 12,
+      below: 36,
+      onlyContributor: false,
+    })
+    expect(ownShare(bucket(48, 2), [kg(12)], [], 'skip')).toEqual({
+      own: 0,
+      below: 48,
+      onlyContributor: false,
+    })
   })
 
   // The node dropped this object's values entirely, so they are in neither the sum nor the
