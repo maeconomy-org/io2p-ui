@@ -1292,7 +1292,12 @@
     },
     "tabOverview": "Overzicht",
     "tabDirect": "Directe shares",
-    "lastMemberHint": "Een share heeft minstens één persoon nodig. Verwijder de share om het delen helemaal te stoppen."
+    "lastMemberHint": "Een share heeft minstens één persoon nodig. Verwijder de share om het delen helemaal te stoppen.",
+    "caps": {
+      "tooManyResources": "Maximaal {max, number} items in één share — dit zijn er {count, number}. Deel een bovenliggend object inclusief onderliggende, of splits het.",
+      "tooManyMembers": "Maximaal {max, number} personen in één share — dit zijn er {count, number}. Splits het in meerdere shares.",
+      "tooManyPairs": "Eén share koppelt maximaal {max, number} item–persoon-paren. {resources, number} items × {members, number} personen is {pairs, number}."
+    }
   },
   "concepts": {
     "share": {

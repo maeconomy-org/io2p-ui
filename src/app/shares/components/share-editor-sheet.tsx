@@ -44,6 +44,7 @@ import {
   canCascade,
   familyOfBundle,
   pinPermissions,
+  shareCapRefusal,
 } from '../utils/share-rules'
 
 export type ShareEditorMode = 'create' | 'edit' | 'duplicate'
@@ -215,6 +216,13 @@ function ShareForm({
     ? Object.keys(delta).length
     : resources.length + members.length
   const dirty = mode !== 'edit' || Object.keys(delta ?? {}).length > 0
+
+  // A duplicate posts a whole bundle exactly as a create does; only an edit sends a delta.
+  const capRefusal = shareCapRefusal(
+    mode === 'edit' ? 'delta' : 'bundle',
+    resources.length,
+    effectiveMembers.length
+  )
 
   const save = async () => {
     setSaving(true)
@@ -470,6 +478,18 @@ function ShareForm({
             {t('shares.incompleteHint')}
           </p>
         )}
+
+        {/* Destructive where the incomplete hint is muted: that one asks for something missing,
+            this one states a refusal. Same slot, so the two cannot both claim the space under
+            Save. */}
+        {capRefusal && (
+          <p
+            className="text-xs text-destructive"
+            data-testid="share-cap-refusal"
+          >
+            {t(capRefusal.key, capRefusal.values)}
+          </p>
+        )}
       </SheetBody>
 
       {complete && dirty && <UnsavedBar count={changeCount} />}
@@ -488,7 +508,7 @@ function ShareForm({
           type="button"
           className="flex-1"
           data-testid="share-save"
-          disabled={!complete || !dirty || saving}
+          disabled={!complete || !dirty || saving || !!capRefusal}
           onClick={save}
         >
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
