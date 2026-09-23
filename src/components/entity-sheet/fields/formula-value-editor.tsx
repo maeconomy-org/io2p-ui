@@ -33,14 +33,13 @@ import { SEARCH_SIZE } from '@/constants'
 import { calcErrorText, uncheckedState } from './value-provenance'
 import { FormulaWarnings } from './formula-warnings'
 import { UnitsHelp } from './units-help'
-import { ruleKey } from './value-normalization'
 
 /**
  * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
  *
  * `num` is OPTIONAL because a bindable value is not always filled in yet — a template preset arrives
- * blank but already bound. Such a sibling can be selected and displayed; it just can't contribute to
- * the live preview until it holds a number.
+ * blank but already bound. Such a sibling can be selected and displayed; the node is asked about the
+ * formula only once every bound value holds something.
  */
 export interface FormulaSibling {
   key: string
@@ -66,6 +65,8 @@ export interface FormulaSibling {
    * just-typed "10 t" has no number yet, and its text is the only truth there is.
    */
   data?: string
+  /** The key a rollup rule matches this value's property by — see `ruleKey`. */
+  ruleKey?: string
 }
 
 // The formula chooser — sits inline in the value row (replaces the text input in formula mode).
@@ -202,7 +203,7 @@ export function argFromChoice(
     : { var: variable, ref: value }
 }
 
-// Variable binding + live preview for the chosen formula. Rendered below the value row.
+// Variable binding for the chosen formula, and what the node says about it. Below the value row.
 export function FormulaBindings({
   calc,
   siblings,
@@ -219,7 +220,7 @@ export function FormulaBindings({
   const { data: formula } = useFormulas().useGet(calc.formulaId)
 
   // Every constant this recipe already binds, fetched BY ID rather than looked up in the picker's
-  // search page — a bound constant has to keep its label and its preview number whatever the user
+  // search page — a bound constant has to keep its label and its number whatever the user
   // last typed into the search box, and it may not be on that page at all.
   const boundIds = useMemo(
     () =>
@@ -295,7 +296,8 @@ export function FormulaBindings({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the body's VALUE, not its identity
   }, [bodyKey])
 
-  const { data: settledAnswer } = useFormulas().usePreview(settledBody)
+  const { data: settledAnswer, isFetching } =
+    useFormulas().usePreview(settledBody)
   // Until the wait ends, the answer is about the previous binding.
   const settledKey =
     settledBody === undefined ? '' : JSON.stringify(settledBody)
@@ -309,13 +311,13 @@ export function FormulaBindings({
 
   // The rule already scales this property's totals by that quantity, so a formula reading it too
   // puts it in the total twice. Known here, before any answer: it is the binding, not the result.
-  // A result the node leaves out of totals is not counted even once.
+  // A result the node refuses or leaves out of totals is not counted even once.
   const countedTwice =
-    countedBy && unchecked !== 'left-out'
+    countedBy && !preview?.error && unchecked !== 'left-out'
       ? siblings.find(
           (sibling) =>
-            ruleKey(sibling.propertyKey) === countedBy &&
-            calc.args.some((arg) => arg.ref === sibling.key)
+            (sibling.ruleKey ?? sibling.propertyKey.toLowerCase()) ===
+              countedBy && calc.args.some((arg) => arg.ref === sibling.key)
         )
       : undefined
 
@@ -384,7 +386,14 @@ export function FormulaBindings({
 
       {/* Always mounted: a live region announces what APPEARS in it, and these answers arrive
           after the settle wait, with nothing else to tell a screen reader they came. */}
-      <div role="status" aria-live="polite" className="space-y-2">
+      {/* Busy while an answer is on its way: the old one is hidden meanwhile, and without this a
+          screen reader would read the same warnings again after every pause in typing. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-busy={settledKey !== bodyKey || !!isFetching}
+        className="space-y-2"
+      >
         {/* RED, not amber: the node refuses this outright and writes an error row with no number,
             so it is not advice — it is what will happen. It arrives INSIDE a successful preview,
             which is what keeps it distinct from not having reached the node at all. */}

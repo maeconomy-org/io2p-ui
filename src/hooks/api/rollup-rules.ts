@@ -93,8 +93,9 @@ export function ruleMultipliers(
 
 /**
  * The multipliers the node would apply to an object the caller is creating. A saved object's own
- * rollup entries say what the node actually applied, so this is for the create form only. The
- * caller's own rules fit on one page (the per-user cap is far below it).
+ * rollup entries say what the node actually applied, so this is for the create form only. Reads
+ * page 1, like the duplicate check: a deployment whose per-user cap exceeds a page misses the rest,
+ * and the warning then simply does not appear.
  */
 function useRuleMultipliers(enabled: boolean) {
   const { data: own } = useOwnRollupRules({ enabled })

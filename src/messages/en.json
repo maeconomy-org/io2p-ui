@@ -421,11 +421,8 @@
       "children": "Children"
     },
     "formulaEditor": {
-      "expression": "Expression",
       "unitUnverified": "The node cannot check this result against its result unit, so the value will be saved and shown but left out of every total. This happens with the logarithm of a value that has a unit, a variable exponent, if/else branches in different units, or an input that was itself not checked. To count it, duplicate the formula and change the expression, or leave out the result unit so it counts as a plain number.",
       "unitUnverifiedPlain": "The node cannot check this result's unit, so it will be counted as a plain number. If the result has a real unit, duplicate the formula and set it as the result unit so the node can check it. If a rollup rule uses this value as its multiplier, that object is left out of the total.",
-      "declaredRescale": "This formula declares its result in {declared}, so the node multiplies it by {factor} to store {canonical}. Declare a unit only when the expression itself produces it — adding values already stored in {canonical} produces {canonical}.",
-      "declaredRescaleStored": "It will be stored as {stored}.",
       "switchToFormula": "Use a formula",
       "switchToText": "Use a plain value",
       "selectFormula": "Select a formula",
@@ -441,12 +438,10 @@
       "noVariables": "This formula has no variables",
       "noNumericValues": "No numeric values to bind",
       "noConstants": "No constants found",
-      "expressionPlaceholder": "e.g. w * h",
       "bindVariables": "Bind variables",
       "selectValue": "Select a value",
       "editFormula": "Edit formula",
       "inlineExpression": "This value uses a one-off expression, which can only be changed through the API",
-      "unknownConstant": "A constant this formula uses could not be found",
       "unbound": "Not bound",
       "siblingValues": "Values on this entity",
       "constants": "Constants",
@@ -464,7 +459,7 @@
         "handConversionUp": "This formula makes the result {literal} times larger, which looks like a conversion to {unit}. The values it reads are already in standard units, so this scales the result instead of converting it. {unit} is already the result unit and converts by itself. Formulas cannot be edited: duplicate this one without that conversion."
       },
       "unitsHelp": "How units work",
-      "countedTwice": "A rollup rule already multiplies this property by “{quantity}” in totals, and this formula reads “{quantity}” too. If the formula multiplies by it, totals count it twice. Change the formula so it gives the value for one item, or make the rule stop multiplying: edit your rule, or for a built-in rule add your own rule for this property without a multiplier."
+      "countedTwice": "A rollup rule already multiplies this property by “{quantity}” in totals, and this formula reads “{quantity}” too. If the formula multiplies by it, totals count it twice. Duplicate the formula so it gives the value for one item, or make the rule stop multiplying: edit your rule, or for a built-in rule add your own rule for this property without a multiplier."
     },
     "detailsSheet": {
       "noParents": "No parents",

@@ -1,20 +1,7 @@
-// The formula grammar, mirrored from the server.
-//
-// This is a DELIBERATE mirror of `io2p-core/src/shared/calc.eval.ts` — same library, same pinned
-// version, same parser options, same rounding. Not a re-implementation.
-//
-// The reason is that the client previews a derived value before saving it, so a second evaluator is
-// a second answer. The file this replaced was written against `exp4j` — a JAVA library from the
-// previous backend — and listed its divergences from it as "known limitations", including that
-// `-1^2` parsed differently. Those divergences meant the preview could show a number the server
-// would never store: right-looking and wrong, with nothing on screen to say so.
-//
-// If core bumps its parser pin, its parser options, or `CURRENT_EVAL_VERSION`, this bumps too.
-// `formula-expression.test.ts` asserts the alignment rather than trusting this comment.
-//
-// Moved with core from `expr-eval` (abandoned 2019, no published fix for its two advisories) to
-// the `@expr-eval/js` fork — core's `evalVersion` 3. Evaluation is unchanged; the fork additionally
-// refuses a function reaching `evaluate` through the scope, which cannot happen here either.
+// The formula grammar, parsed the way the server parses it: same library (`@expr-eval/js`), same
+// pinned version, same parser options as `io2p-core/src/shared/calc.eval.ts`. Used to validate an
+// expression and list its variables while it is written. Nothing here evaluates: every number and
+// unit comes from the node. If core changes its parser pin or options, this changes too.
 
 import { Parser, type Expression } from '@expr-eval/js'
 
@@ -110,6 +97,10 @@ export function isValidExpression(expression: string): boolean {
   }
 }
 
+/**
+ * Names that need a collection to be useful. The `array` grammar is disabled, so there is no way to
+ * build an argument for them — offering them would hand the user a formula that cannot be written.
+ */
 const COLLECTION_ONLY = new Set([
   'filter',
   'fold',

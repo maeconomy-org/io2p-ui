@@ -100,4 +100,24 @@ describe('collectSiblings', () => {
 
     expect(collectSiblings(properties, undefined, 'en')).toHaveLength(0)
   })
+
+  // What a rollup rule matches the sibling's property by: the saved key as core compares it, or
+  // the dictionary resolution of a label when there is no key yet.
+  it('carries the key a rollup rule matches its property by', () => {
+    const saved = [property('items_per_box', { id: 'v-1', data: '4' })]
+    expect(collectSiblings(saved, undefined, 'en')[0].ruleKey).toBe(
+      'items_per_box'
+    )
+
+    const unsaved: EntityDraft['properties'] = [
+      {
+        key: undefined as unknown as string,
+        label: 'Aantal',
+        values: [{ ref: 'r', data: '4' }],
+      },
+    ]
+    expect(collectSiblings(unsaved, undefined, 'en')[0].ruleKey).toBe(
+      'quantity'
+    )
+  })
 })

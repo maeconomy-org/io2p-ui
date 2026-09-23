@@ -362,7 +362,13 @@ describe('a quantity counted twice', () => {
       <FormulaBindings
         calc={bind('a', 'b')}
         siblings={[
-          { key: 'v-a', propertyKey: 'Aantal', label: 'Aantal', num: 4 },
+          {
+            key: 'v-a',
+            propertyKey: 'Aantal',
+            ruleKey: 'quantity',
+            label: 'Aantal',
+            num: 4,
+          },
           TWO_TONNES[1],
         ]}
         onChange={vi.fn()}
@@ -370,6 +376,24 @@ describe('a quantity counted twice', () => {
       />
     )
     expect(screen.getByTestId('formula-counted-twice')).toBeInTheDocument()
+  })
+
+  // A refused result stores no number, so it is not counted even once.
+  it('says nothing when the node refuses the result', () => {
+    preview.data = {
+      error: { code: 'dimension-mismatch', detail: 'kg + m' },
+      warnings: [],
+    }
+    render(
+      <FormulaBindings
+        calc={bind('a', 'b')}
+        siblings={withQuantity}
+        onChange={vi.fn()}
+        countedBy="quantity"
+      />
+    )
+    expect(screen.getByTestId('formula-dimension-problem')).toBeInTheDocument()
+    expect(screen.queryByTestId('formula-counted-twice')).toBeNull()
   })
 
   // Left out of every total, it is not counted even once.
@@ -401,6 +425,36 @@ describe('a quantity counted twice', () => {
 })
 
 describe('authoring warnings', () => {
+  // While the answer is on its way the old one is hidden; busy keeps a screen reader from reading
+  // the same warnings again after every pause.
+  it('marks the region busy while the answer is not in yet', () => {
+    vi.useFakeTimers()
+    try {
+      const { rerender } = render(
+        <FormulaBindings
+          calc={bind('a', 'b')}
+          siblings={[sib('v-a', undefined, undefined, '10 m'), TWO_TONNES[1]]}
+          onChange={vi.fn()}
+        />
+      )
+      expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'false')
+
+      rerender(
+        <FormulaBindings
+          calc={bind('a', 'b')}
+          siblings={[sib('v-a', undefined, undefined, '10 t'), TWO_TONNES[1]]}
+          onChange={vi.fn()}
+        />
+      )
+      expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
+
+      act(() => vi.advanceTimersByTime(400))
+      expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'false')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   // A live region announces what appears in it, so it has to be there before the answer is.
   it('announces the answer in a region that exists before it arrives', () => {
     renderBindings()

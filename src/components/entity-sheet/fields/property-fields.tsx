@@ -172,6 +172,7 @@ export function collectSiblings(
         label: resolvePropertyLabel(p.key, p.label, locale) || '—',
         num: previewNum(num, text, leading),
         unit: current ? v.unit : undefined,
+        ruleKey: ruleKey(p.key, p.label),
         // Only where there is no number to send instead: the node can read "10 t" and we cannot.
         ...(num === undefined && text !== '' && { data: text }),
       })
@@ -686,6 +687,17 @@ function PropertyRow({
                       <span className="min-w-0 flex-1 truncate">
                         {value?.data || '—'}
                       </span>
+                      {/* The same marks the read view shows, so a refused quantity says so while
+                          it is being edited too. */}
+                      {value && (
+                        <ValueNormalization
+                          value={value}
+                          unitVerified={provenance?.unitVerified}
+                          usedAsMultiplier={multiplierKeys.has(
+                            ruleKey(propKey, propLabel)
+                          )}
+                        />
+                      )}
                       {provenance ? (
                         <ValueProvenanceDisplay
                           provenance={provenance}
@@ -827,9 +839,9 @@ function PropertyRow({
                         usedInFormula={
                           !!value.id && boundValueIds.has(value.id)
                         }
-                        usedAsMultiplier={
-                          !!propKey && multiplierKeys.has(propKey.toLowerCase())
-                        }
+                        usedAsMultiplier={multiplierKeys.has(
+                          ruleKey(propKey, propLabel)
+                        )}
                       />
                     )}
                     <Button
@@ -863,11 +875,9 @@ function PropertyRow({
                           shouldDirty: true,
                         })
                       }
-                      countedBy={
-                        propKey
-                          ? ruleMultipliers?.get(ruleKey(propKey))
-                          : undefined
-                      }
+                      countedBy={ruleMultipliers?.get(
+                        ruleKey(propKey, propLabel)
+                      )}
                     />
                   )}
                   {allowFiles && (

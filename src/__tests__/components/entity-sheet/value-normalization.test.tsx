@@ -279,10 +279,16 @@ describe('rollupMultipliers', () => {
 })
 
 describe('ruleKey', () => {
-  // A property with no key yet carries its label; the rule form resolves it through the
-  // dictionary, so a Dutch label reaches the same key the rule stores.
-  it('resolves a label the way the rule form does', () => {
-    expect(ruleKey('quantity')).toBe('quantity')
-    expect(ruleKey('Aantal')).toBe(ruleKey('quantity'))
+  // Core compares a saved key lower-cased and otherwise untouched; slugging it would miss a key
+  // written through the API.
+  it('keeps a saved key as core compares it', () => {
+    expect(ruleKey('Mass')).toBe('mass')
+    expect(ruleKey('items_per_box')).toBe('items_per_box')
+  })
+
+  // A property with no key yet has only its label; the rule form resolves it through the
+  // dictionary, so a Dutch label reaches the key the rule stores.
+  it('resolves a label the way the rule form does when there is no key', () => {
+    expect(ruleKey(undefined, 'Aantal')).toBe('quantity')
   })
 })

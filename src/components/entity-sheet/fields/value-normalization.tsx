@@ -110,15 +110,12 @@ export function formulaBoundValueIds(
 }
 
 /**
- * Every property key some rollup rule multiplies by. A value under one of these keys is an input to
- * a total even though nothing on the row says so — an unreadable one does not make the total empty,
- * it drops that object's whole contribution.
+ * The key a rollup rule matches a property by. A saved key is compared as core compares it, lower
+ * case and otherwise untouched (`items_per_box` stays). A property with no key yet has only its
+ * label, which the rule form resolves through the dictionary ("Aantal" is `quantity`).
  */
-/**
- * A property key as a rule stores it. A property with no key yet carries its label, and the rule
- * form resolves a label through the dictionary ("Aantal" is `quantity`), so this does too.
- */
-export const ruleKey = (typed: string) => resolveKey(typed).key.toLowerCase()
+export const ruleKey = (key: string | undefined, label?: string) =>
+  key ? key.toLowerCase() : resolveKey(label ?? '').key.toLowerCase()
 
 /** Property key → the key its rule multiplies by, as the node applied it (both lower case). */
 export function rollupMultipliers(
@@ -137,6 +134,11 @@ export function rollupMultipliers(
   return out
 }
 
+/**
+ * Every property key some rollup rule multiplies by. A value under one of these keys is an input to
+ * a total even though nothing on the row says so — an unreadable one does not make the total empty,
+ * it drops that object's whole contribution.
+ */
 export function multiplierKeysOf(
   rollups:
     | ReadonlyMap<string, { multiplyBy?: { propertyKey: string } }>

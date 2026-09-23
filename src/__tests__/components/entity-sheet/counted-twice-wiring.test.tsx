@@ -3,6 +3,7 @@ import { fireEvent, render, renderHook, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 
+import type { EntityRollupEntry } from 'io2p-client'
 import type { EntityDraft } from '@/lib/entity'
 
 vi.mock('next-intl', () => ({
@@ -102,5 +103,77 @@ describe('a quantity counted twice, through the property form', () => {
 
     fireEvent.click(screen.getByTestId('property-toggle-2'))
     expect(screen.getByTestId('formula-counted-twice')).toBeInTheDocument()
+  })
+
+  // The read view marks a quantity the rule refuses; the edit form showed only the grey badge, so
+  // an author editing the object lost the one mark saying it drops out of the total.
+  it('marks a refused quantity in edit mode too', () => {
+    const { result } = renderHook(() =>
+      useForm<EntityDraft>({
+        defaultValues: {
+          name: 'Shelf',
+          description: null,
+          address: null,
+          parentIds: [],
+          properties: [
+            {
+              id: 'p-c',
+              key: 'count',
+              label: 'Count',
+              values: [
+                {
+                  id: 'v-c',
+                  data: '1200',
+                  num: 1200,
+                  parse: { ok: true, normVersion: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      })
+    )
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <PropertyFields
+          form={result.current}
+          editing
+          derivedValues={
+            new Map([
+              [
+                'v-c',
+                {
+                  expression: 'v * q',
+                  evalVersion: 1,
+                  args: [],
+                  unitVerified: false,
+                },
+              ],
+            ])
+          }
+          rollups={
+            new Map([
+              [
+                'rule-mass',
+                {
+                  ruleId: 'rule-mass',
+                  propertyKey: 'mass',
+                  multiplyBy: { propertyKey: 'count', whenMissing: 'one' },
+                  buckets: [],
+                  skippedCount: 0,
+                  stale: false,
+                  computedAt: 0,
+                } as unknown as EntityRollupEntry,
+              ],
+            ])
+          }
+        />
+      </QueryClientProvider>
+    )
+    fireEvent.click(screen.getByTestId('property-toggle-0'))
+
+    expect(
+      screen.getByRole('button', { name: 'objects.properties.unitNotChecked' })
+    ).toBeInTheDocument()
   })
 })

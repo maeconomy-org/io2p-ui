@@ -17,9 +17,9 @@ import {
 
 /**
  * A derived value is the one thing on this sheet the user does not type. The rules that make it
- * trustworthy are all invisible: the preview must be the number the SERVER will store, a constant
- * pins its version at bind time, and turning a formula back into text has to send `calc: null` —
- * `undefined` leaves the server recomputing forever.
+ * trustworthy are all invisible: the number is the SERVER's (the editor shows none of its own), a
+ * constant pins its version at bind time, and turning a formula back into text has to send
+ * `calc: null` — `undefined` leaves the server recomputing forever.
  */
 
 const stamp = () => `e2e-${Date.now()}`
@@ -94,6 +94,20 @@ async function chooseFormula(
   await page.getByTestId(`formula-option-${formulaName}`).click()
 }
 
+/** Save, reopen in edit mode, and return the stored derived value of property `index`. */
+async function savedDerivedValue(
+  page: Page,
+  objectName: string,
+  index: number
+) {
+  await saveSheet(page)
+  await expect(sheet(page)).toBeHidden()
+  await openObjectSheet(page, rowFor(page, objectName))
+  await enterEditMode(page)
+  await expandProperty(page, index)
+  return page.getByTestId(`derived-value-${index}-0`)
+}
+
 async function bind(
   page: Page,
   variable: string,
@@ -109,7 +123,7 @@ async function bind(
 }
 
 test.describe('03 - object sheet / formulas', () => {
-  test('F1/F2/F3: mode flips, bindings render, and the preview computes', async ({
+  test('F1/F2/F3: mode flips, bindings render, and the server computes on save', async ({
     page,
   }) => {
     const tag = stamp()
@@ -128,14 +142,18 @@ test.describe('03 - object sheet / formulas', () => {
 
     // The variables come from the formula record, so an unbound one still has to be listed.
     await expect(page.getByTestId('formula-var-x')).toBeVisible()
-    await expect(page.getByTestId('formula-preview')).toHaveCount(0)
 
     await bind(page, 'x', siblingTestId('Width'))
-    await expect(page.getByTestId('formula-preview')).toContainText('20')
-    await expect(page.getByTestId('formula-preview')).toHaveAttribute(
-      'data-error',
-      'false'
+    // No figure while binding: the editor says the server calculates it, and raises nothing.
+    const bindings = page.getByTestId('formula-bindings')
+    await expect(bindings.getByRole('status')).toContainText(
+      /calculated when you save/i
     )
+    await expect(page.getByTestId('formula-dimension-problem')).toHaveCount(0)
+
+    const derived = await savedDerivedValue(page, `${tag}-obj`, 1)
+    await expect(derived).toContainText('20')
+    await expect(derived.getByTestId('provenance-error')).toHaveCount(0)
   })
 
   test('F10/F11: a blank sibling is bindable, a text one is not', async ({
@@ -163,9 +181,20 @@ test.describe('03 - object sheet / formulas', () => {
     // Text would evaluate to NaN, so it is not a binding target at all.
     await expect(formulaSibling(page, 'Wordy')).toHaveCount(0)
 
+    // Bound but unfilled: there is no question to ask yet, so the server is not asked one.
+    let previews = 0
+    page.on('request', (request) => {
+      if (request.url().includes('/formulas/preview')) previews++
+    })
     await formulaSibling(page, 'Blank').click()
-    // Bound but unfilled: there is nothing honest to preview yet.
-    await expect(page.getByTestId('formula-preview')).toHaveCount(0)
+    await bind(page, 'b', siblingTestId('Numeric'))
+    // Past the settle wait, so a request that was going to be sent has been.
+    await page.waitForTimeout(1_000)
+    expect(previews).toBe(0)
+
+    // The counter itself: once every binding holds something, the question does go out.
+    await bind(page, 'a', siblingTestId('Numeric'))
+    await expect.poll(() => previews).toBeGreaterThan(0)
   })
 
   test('F12: a constants-only formula evaluates with no sibling bindings', async ({
@@ -183,11 +212,13 @@ test.describe('03 - object sheet / formulas', () => {
     await chooseFormula(page, 0, formulaName)
 
     await bind(page, 'f', `formula-constant-${constantName}`)
-    await expect(page.getByTestId('formula-preview')).toContainText('42')
+    await expect(await savedDerivedValue(page, `${tag}-obj`, 0)).toContainText(
+      '42'
+    )
   })
 
   for (const fixture of E2E_ROUND_TRIP_FORMULAS) {
-    test(`F4/F5/F14: ${fixture.label} — the preview is what the server stores`, async ({
+    test(`F4/F5/F14: ${fixture.label} — the server stores the right number`, async ({
       page,
     }) => {
       const tag = stamp()
@@ -208,15 +239,10 @@ test.describe('03 - object sheet / formulas', () => {
       )) {
         await bind(page, variable, siblingTestId(property))
       }
-      await expect(page.getByTestId('formula-preview')).toContainText(
-        fixture.expectedResult
-      )
-
       await saveSheet(page)
       await expect(sheet(page)).toBeHidden()
 
-      // The client mirrors core's expr-eval and its 12-significant-figure rounding, so the number
-      // the preview showed has to be the number the node computed — not an approximation of it.
+      // The number is the node's own: the editor computes nothing, so this is the only check.
       await openObjectSheet(page, rowFor(page, objectName))
       await enterEditMode(page)
       await expandProperty(page, formulaIndex)
@@ -248,6 +274,7 @@ test.describe('03 - object sheet / formulas', () => {
     await enterEditMode(page)
     await expandProperty(page, 1)
 
+    await expect(page.getByTestId('derived-value-1-0')).toContainText('21')
     const pencil = page.getByTestId('derived-value-edit-1-0')
     await expect(pencil).toBeEnabled()
     await pencil.click()
@@ -255,7 +282,6 @@ test.describe('03 - object sheet / formulas', () => {
     // Hydration rebuilds the recipe from the node's trace — the editor comes back bound, not blank.
     await expect(page.getByTestId('formula-bindings')).toBeVisible()
     await expect(page.getByTestId('formula-bind-x')).toContainText('Base')
-    await expect(page.getByTestId('formula-preview')).toContainText('21')
   })
 
   test('F7: an un-hydratable formula disables the pencil and says why', async ({
@@ -380,7 +406,6 @@ test.describe('03 - object sheet / formulas', () => {
     await page.getByTestId('property-name-0').fill('Pinned')
     await chooseFormula(page, 0, formulaName)
     await bind(page, 'r', `formula-constant-${constantName}`)
-    await expect(page.getByTestId('formula-preview')).toContainText('20')
     await saveSheet(page)
     await expect(sheet(page)).toBeHidden()
 
