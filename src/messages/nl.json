@@ -463,7 +463,8 @@
         "perItem": "stuk",
         "handConversionDown": "Deze formule maakt het resultaat {literal} keer kleiner; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening.",
         "handConversionUp": "Deze formule maakt het resultaat {literal} keer groter; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening."
-      }
+      },
+      "unitsHelp": "Hoe eenheden werken"
     },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",
@@ -951,6 +952,14 @@
         "arrays": "Geen arrays of member-toegang: [1,2], a[0], a.b — een berekening geeft ÉÉN getal",
         "sequence": "Geen `;`-reeksoperator",
         "implicitMul": "Geen impliciete vermenigvuldiging — schrijf 2*x, niet 2x"
+      },
+      "unitsTitle": "Eenheden",
+      "units": {
+        "keep": "Een waarde houdt haar eenheid. 10 t wordt gelezen als 10.000 kg: formules rekenen in standaardeenheden (kg, m, kWh, …).",
+        "resultUnit": "De eenheid van het resultaat bepaalt in welke eenheid het resultaat wordt getoond. Hebben de invoerwaarden eenheden, dan rekent zij zelf om: deelt u dan niet ook nog door 1000 (de node waarschuwt als een formule dat lijkt te doen). Zijn de invoerwaarden gewone getallen, dan geeft zij de eenheid aan die de formule oplevert: een eventuele omrekening schrijft u zelf, en de node waarschuwt daar niet over.",
+        "inherit": "Zonder eenheid van het resultaat houdt een som haar eenheid (kg + kg is kg), houdt een vermenigvuldiging met een constante haar ook, en krijgen sommige producten een naam (kW × h is kWh). Voor andere combinaties, zoals V × Ah, kan de node de eenheid niet benoemen en vraagt u er daarom een in te stellen.",
+        "factor": "Een getal zonder eenheid, zoals een emissiefactor, wordt alleen als factor gelezen als de formule een eenheid van het resultaat heeft: dan is het kgCO2e per kWh, niet per MWh. Zonder eenheid van het resultaat is een constante een gewone vermenigvuldiger en houdt het resultaat de eenheid van de invoer (100 kWh × 0,5 is 50 kWh), en vraagt een waarde zonder eenheid u er een in te stellen.",
+        "unchecked": "Sommige resultaten kunnen niet worden gecontroleerd, zoals de logaritme van een waarde met een eenheid of een variabele exponent. Met een eenheid van het resultaat telt zo'n waarde in geen enkel totaal mee; zonder die eenheid telt zij mee als een gewoon getal. In beide gevallen laat een rollup-regel die haar als vermenigvuldiger gebruikt dat object weg uit het totaal."
       }
     },
     "variables": "Variabelen",

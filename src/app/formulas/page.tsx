@@ -57,7 +57,7 @@ const FormulaSheet = dynamic(
 
 const FormulaReferenceDialog = dynamic(
   () =>
-    import('@/app/formulas/components/formula-reference-dialog').then(
+    import('@/components/dialogs/formula-reference-dialog').then(
       (m) => m.FormulaReferenceDialog
     ),
   { ssr: false }

@@ -462,7 +462,8 @@
         "perItem": "item",
         "handConversionDown": "This formula makes the result {literal} times smaller, which looks like a conversion to {unit}. The values it reads are already in standard units, so this scales the result instead of converting it. {unit} is already the result unit and converts by itself. Formulas cannot be edited: duplicate this one without that conversion.",
         "handConversionUp": "This formula makes the result {literal} times larger, which looks like a conversion to {unit}. The values it reads are already in standard units, so this scales the result instead of converting it. {unit} is already the result unit and converts by itself. Formulas cannot be edited: duplicate this one without that conversion."
-      }
+      },
+      "unitsHelp": "How units work"
     },
     "detailsSheet": {
       "noParents": "No parents",
@@ -951,6 +952,14 @@
         "arrays": "No arrays or member access: [1,2], a[0], a.b — a calc yields ONE number",
         "sequence": "No `;` sequence operator",
         "implicitMul": "No implicit multiplication — write 2*x, not 2x"
+      },
+      "unitsTitle": "Units",
+      "units": {
+        "keep": "A value keeps its unit. 10 t is read as 10,000 kg: formulas work in standard units (kg, m, kWh, …).",
+        "resultUnit": "The result unit chooses the unit the result is shown in. When the inputs have units, it converts by itself: do not also divide by 1000 (the node warns when a formula looks like it does). When the inputs are plain numbers, it names the unit the formula produces: any conversion is yours to write, and the node does not warn about it.",
+        "inherit": "Without a result unit, a sum keeps its unit (kg + kg is kg), multiplying by a constant keeps it too, and some products are named (kW × h is kWh). For other combinations, such as V × Ah, the node cannot name the unit and asks you to set a result unit.",
+        "factor": "A number without a unit, such as an emission factor, is read as a factor only when the formula has a result unit: then it is kgCO2e per kWh, not per MWh. Without a result unit, a constant is a plain multiplier and the result keeps its input's unit (100 kWh × 0.5 is 50 kWh), and a value without a unit makes the node ask you to set one.",
+        "unchecked": "Some results cannot be checked, such as the logarithm of a value with a unit, or a variable exponent. With a result unit such a value is left out of totals; without one it counts as a plain number. Either way, a rollup rule that uses it as its multiplier leaves that object out of the total."
       }
     },
     "variables": "Variables",

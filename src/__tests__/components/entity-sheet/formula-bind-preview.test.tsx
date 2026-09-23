@@ -33,6 +33,12 @@ const preview = vi.hoisted(() => ({
   bodies: [] as unknown[],
 }))
 
+const unitsHint = vi.hoisted(() => ({ read: false, markRead: () => {} }))
+
+vi.mock('@/hooks/ui/use-preference', () => ({
+  useFlagPreference: () => [unitsHint.read, unitsHint.markRead, true],
+}))
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
@@ -99,6 +105,7 @@ beforeEach(() => {
   preview.isPending = false
   preview.lastBody = undefined
   preview.bodies = []
+  unitsHint.read = false
 })
 
 describe('the question the editor asks', () => {
@@ -273,6 +280,35 @@ describe('an unchecked unit', () => {
     renderBindings()
 
     expect(screen.queryByTestId('formula-unit-unverified')).toBeNull()
+  })
+})
+
+// Rendered whether or not the formula has variables: a result unit converts either way.
+describe('how units work', () => {
+  it('offers the explanation, marked unread until opened', () => {
+    renderBindings()
+
+    expect(
+      screen.getByRole('button', {
+        name: 'objects.formulaEditor.unitsHelp — onboarding.hintUnread',
+      })
+    ).toBeInTheDocument()
+  })
+
+  it('drops the unread mark once the user has read it', () => {
+    unitsHint.read = true
+    renderBindings()
+
+    expect(
+      screen.getByRole('button', { name: 'objects.formulaEditor.unitsHelp' })
+    ).toBeInTheDocument()
+  })
+
+  it('offers it for a formula with no variables too', () => {
+    formula.current = { ...formula.current, variables: [], expression: '2 * 3' }
+    renderBindings()
+
+    expect(screen.getByTestId('formula-units-help')).toBeInTheDocument()
   })
 })
 

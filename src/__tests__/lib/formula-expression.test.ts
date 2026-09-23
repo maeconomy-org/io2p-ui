@@ -1,4 +1,4 @@
-import { groupedFunctions } from '@/app/formulas/components/formula-reference-dialog'
+import { groupedFunctions } from '@/components/dialogs/formula-reference-dialog'
 import { describe, it, expect } from 'vitest'
 
 import {

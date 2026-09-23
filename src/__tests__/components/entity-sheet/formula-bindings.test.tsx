@@ -8,6 +8,10 @@ import {
   choiceOf,
 } from '@/components/entity-sheet/fields/formula-value-editor'
 
+vi.mock('@/hooks/ui/use-preference', () => ({
+  useFlagPreference: () => [false, () => {}, true],
+}))
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useFormatter: () => ({

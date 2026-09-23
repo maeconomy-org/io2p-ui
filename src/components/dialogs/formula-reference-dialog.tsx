@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { FunctionSquare, Ban } from 'lucide-react'
 
@@ -19,6 +20,10 @@ import {
 interface FormulaReferenceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Open scrolled to one section — the formula editor sends a reader straight to `units`. */
+  section?: 'units'
+  /** With no `DialogTrigger`, Radix has nowhere to return focus on close; the opener says where. */
+  onCloseAutoFocus?: (event: Event) => void
 }
 
 const OPERATORS = [
@@ -98,6 +103,14 @@ const EXAMPLE_KEYS = [
   'conditional',
 ] as const
 
+const UNIT_RULE_KEYS = [
+  'keep',
+  'resultUnit',
+  'inherit',
+  'factor',
+  'unchecked',
+] as const
+
 // `ternary` is GONE from this list: `a > b ? a : b` parses AND evaluates. The grammar keeps
 // comparison and conditional operators precisely so they can be used inside `?:` — what it refuses
 // is a comparison as the whole result, because a calc must yield a number and `a < b` yields a
@@ -115,12 +128,27 @@ const UNSUPPORTED_KEYS = [
 export function FormulaReferenceDialog({
   open,
   onOpenChange,
+  section,
+  onCloseAutoFocus,
 }: FormulaReferenceDialogProps) {
   const t = useTranslations('formulas.reference')
+  const unitsRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (!open || section !== 'units') return
+    // After the dialog's content has mounted into its portal.
+    const id = requestAnimationFrame(() =>
+      unitsRef.current?.scrollIntoView?.({ block: 'start' })
+    )
+    return () => cancelAnimationFrame(id)
+  }, [open, section])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl p-0 gap-0">
+      <DialogContent
+        className="sm:max-w-2xl p-0 gap-0"
+        onCloseAutoFocus={onCloseAutoFocus}
+      >
         <DialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
@@ -236,6 +264,18 @@ export function FormulaReferenceDialog({
                   </div>
                 ))}
               </div>
+            </section>
+
+            <Separator />
+
+            {/* Units */}
+            <section ref={unitsRef} data-testid="formula-reference-units">
+              <SectionHeading>{t('unitsTitle')}</SectionHeading>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+                {UNIT_RULE_KEYS.map((key) => (
+                  <li key={key}>{t(`units.${key}`)}</li>
+                ))}
+              </ul>
             </section>
 
             <Separator />

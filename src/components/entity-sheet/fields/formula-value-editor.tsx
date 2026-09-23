@@ -32,6 +32,7 @@ import { SEARCH_SIZE } from '@/constants'
 
 import { calcErrorText, uncheckedState } from './value-provenance'
 import { FormulaWarnings } from './formula-warnings'
+import { UnitsHelp } from './units-help'
 
 /**
  * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
@@ -424,6 +425,8 @@ export function FormulaBindings({
           )}
         </p>
       </div>
+
+      <UnitsHelp />
     </div>
   )
 }
