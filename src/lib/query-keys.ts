@@ -126,6 +126,18 @@ export const queryKeys = {
       [...queryKeys.formulas.lists(), query] as const,
     details: () => [...queryKeys.formulas.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.formulas.details(), id] as const,
+    /**
+     * A preview is keyed by the WHOLE request, expression and arguments together, because that is
+     * what it is an answer to. Changing one binding is a different question, not a stale answer to
+     * the same one — and keying it this way is what stops a slow reply to an abandoned binding
+     * landing on top of a newer one.
+     *
+     * `args` is an ARRAY, so its order is part of the identity. The caller builds it by walking
+     * the formula's own `variables`, which is fixed for a given formula — reorder that and every
+     * cached preview misses.
+     */
+    preview: (body: unknown) =>
+      [...queryKeys.formulas.all, 'preview', body] as const,
   },
 
   // ─── Templates (io2p-client entity resource) ─────────────

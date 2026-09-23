@@ -28,7 +28,13 @@ const numFor = (
 describe('collectSiblings', () => {
   it('uses the canonical number, not the authored text', () => {
     const properties = [
-      property('weight', { id: 'v-1', data: '10 t', num: 10000, unit: 'kg' }),
+      property('weight', {
+        id: 'v-1',
+        data: '10 t',
+        num: 10000,
+        unit: 'kg',
+        parsedFrom: '10 t',
+      }),
     ]
 
     expect(numFor(properties, 'weight')).toBe(10000)
@@ -36,10 +42,35 @@ describe('collectSiblings', () => {
 
   it('carries the canonical unit, so a declared-unit warning can compare against it', () => {
     const properties = [
-      property('weight', { id: 'v-1', data: '10 t', num: 10000, unit: 'kg' }),
+      property('weight', {
+        id: 'v-1',
+        data: '10 t',
+        num: 10000,
+        unit: 'kg',
+        parsedFrom: '10 t',
+      }),
     ]
 
     expect(collectSiblings(properties, undefined, 'en')[0].unit).toBe('kg')
+  })
+
+  // `num` and `unit` describe the text as it was read. "10 t" edited to "10 m" still carries
+  // 10000 kg, and sending that asked the node about a value the author had already replaced.
+  it('sends the new text, not the old number, once a stored value is edited', () => {
+    const properties = [
+      property('weight', {
+        id: 'v-1',
+        data: '10 m',
+        num: 10000,
+        unit: 'kg',
+        parsedFrom: '10 t',
+      }),
+    ]
+
+    const [s] = collectSiblings(properties, undefined, 'en')
+    expect(s.num).toBeUndefined()
+    expect(s.unit).toBeUndefined()
+    expect(s.data).toBe('10 m')
   })
 
   it('falls back to a just-typed BARE number, which has no canonical form yet', () => {

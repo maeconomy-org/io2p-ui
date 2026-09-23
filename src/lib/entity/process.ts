@@ -78,6 +78,7 @@ function propertyToDraft(
       num: v.num,
       unit: v.unit,
       parse: v.parse,
+      parsedFrom: v.data,
       deleted: v.deleted,
       files: readFiles(v.files),
     })),

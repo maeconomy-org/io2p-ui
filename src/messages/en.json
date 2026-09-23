@@ -423,8 +423,6 @@
     "formulaEditor": {
       "expression": "Expression",
       "unitUnverified": "This result multiplies or divides values that carry units, so the node cannot check that it really is in the declared unit. The value is saved and shown, but it is left out of every total.",
-      "dimension-mismatch": "These units cannot be combined ({detail}). The result will be refused and no number is stored.",
-      "unknown-unit": "The formula declares the unit {detail}, which this node does not know. The result will be refused and no number is stored.",
       "declaredRescale": "This formula declares its result in {declared}, so the node multiplies it by {factor} to store {canonical}. Declare a unit only when the expression itself produces it — adding values already stored in {canonical} produces {canonical}.",
       "declaredRescaleStored": "It will be stored as {stored}.",
       "switchToFormula": "Use a formula",
@@ -445,13 +443,13 @@
       "expressionPlaceholder": "e.g. w * h",
       "bindVariables": "Bind variables",
       "selectValue": "Select a value",
-      "result": "Result",
       "editFormula": "Edit formula",
       "inlineExpression": "This value uses a one-off expression, which can only be changed through the API",
       "unknownConstant": "A constant this formula uses could not be found",
       "unbound": "Not bound",
       "siblingValues": "Values on this entity",
-      "constants": "Constants"
+      "constants": "Constants",
+      "calculatedOnSave": "The value will be calculated when you save."
     },
     "detailsSheet": {
       "noParents": "No parents",

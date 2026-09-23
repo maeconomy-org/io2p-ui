@@ -40,10 +40,20 @@ function makeWrapper() {
 describe('leaf hooks', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('useFormulas exposes list/get/create/remove/restore (no update)', () => {
+  // No update: a formula is immutable, replaced by a correction rather than edited. `usePreview`
+  // is a READ of what one would produce — the app used to answer that itself from a copy of the
+  // node's rules, which drifted.
+  it('useFormulas exposes list/get/preview/create/remove/restore (no update)', () => {
     const api = useFormulas()
     expect(Object.keys(api).sort()).toEqual(
-      ['useCreate', 'useGet', 'useList', 'useRemove', 'useRestore'].sort()
+      [
+        'useCreate',
+        'useGet',
+        'useList',
+        'usePreview',
+        'useRemove',
+        'useRestore',
+      ].sort()
     )
   })
 

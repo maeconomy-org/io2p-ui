@@ -142,7 +142,7 @@ export function ValueProvenanceDisplay({
               along as a secondary line rather than being the whole message. */}
           {error && (
             <div className="space-y-0.5 text-destructive">
-              <p>{calcErrorMessage(error.code, t)}</p>
+              <p>{calcErrorText(error.code, t)}</p>
               {error.detail && (
                 <p className="text-[10px] opacity-80">{error.detail}</p>
               )}
@@ -196,7 +196,10 @@ function argSource(
  * The node's codes are an OPEN set and `detail` is English by contract, so an unrecognised code
  * falls back to a generic sentence rather than printing an identifier at the user.
  */
-function calcErrorMessage(code: string, t: (key: string) => string): string {
+export function calcErrorText(
+  code: string,
+  t: (key: string) => string
+): string {
   const known = new Set([
     'arg-not-numeric',
     'div-by-zero',

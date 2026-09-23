@@ -424,8 +424,6 @@
     "formulaEditor": {
       "expression": "Formule",
       "unitUnverified": "Dit resultaat vermenigvuldigt of deelt waarden met eenheden, dus de node kan niet controleren of het echt in de opgegeven eenheid staat. De waarde wordt opgeslagen en getoond, maar telt in geen enkel totaal mee.",
-      "dimension-mismatch": "Deze eenheden kunnen niet gecombineerd worden ({detail}). Het resultaat wordt geweigerd en er wordt geen getal opgeslagen.",
-      "unknown-unit": "De formule geeft eenheid {detail} op, die deze node niet kent. Het resultaat wordt geweigerd en er wordt geen getal opgeslagen.",
       "declaredRescale": "Deze formule geeft het resultaat op in {declared}. De node vermenigvuldigt het daarom met {factor} en slaat het op in {canonical}. Geef alleen een eenheid op als de expressie die zelf oplevert — waarden optellen die al in {canonical} staan geeft {canonical}.",
       "declaredRescaleStored": "Het wordt opgeslagen als {stored}.",
       "switchToFormula": "Formule gebruiken",
@@ -446,13 +444,13 @@
       "expressionPlaceholder": "bijv. b * h",
       "bindVariables": "Variabelen koppelen",
       "selectValue": "Kies een waarde",
-      "result": "Resultaat",
       "editFormula": "Formule bewerken",
       "inlineExpression": "Deze waarde gebruikt een eenmalige expressie die alleen via de API kan worden gewijzigd",
       "unknownConstant": "Een constante die deze formule gebruikt kon niet worden gevonden",
       "unbound": "Niet gekoppeld",
       "siblingValues": "Waarden op deze entiteit",
-      "constants": "Constanten"
+      "constants": "Constanten",
+      "calculatedOnSave": "De waarde wordt berekend zodra u opslaat."
     },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",

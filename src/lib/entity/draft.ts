@@ -81,6 +81,8 @@ export interface DraftValue {
   num?: number
   unit?: string
   parse?: ValueParse
+  /** The text `num`/`unit`/`parse` were derived from. Editing `data` leaves them describing this. */
+  parsedFrom?: string
   /**
    * Soft-deleted. Arrives from a read asked for `includeDeleted`, and is set when THIS session
    * removes it. Removing an existing value MARKS it — nothing is dropped from the draft, so the
@@ -242,6 +244,7 @@ export function dtoToDraft(dto: ObjectDTO): EntityDraft {
         num: v.num,
         unit: v.unit,
         parse: v.parse,
+        parsedFrom: v.data,
         files: readFiles(v.files),
       })),
     })),

@@ -14,6 +14,7 @@ import {
 import type {
   ConstantDTO,
   CreateFormulaBody,
+  PreviewFormulaInput,
   CreateConstantBody,
   AppendConstantVersionBody,
   ListFormulasQuery,
@@ -101,9 +102,36 @@ function useFormulaRestore() {
   })
 }
 
+/**
+ * What a formula would produce, asked of the node rather than worked out here.
+ *
+ * The app used to evaluate the expression itself and resolve the result's unit from a copy of the
+ * node's rules. Two implementations of one thing drift, and this one did: it kept rules the node
+ * had replaced, so the figure on screen was not the figure that would be stored.
+ *
+ * `body: undefined` while the bindings are incomplete — there is no question to ask yet, and
+ * asking half of one would answer about a formula nobody is writing.
+ *
+ * Deliberately NOT retried and NOT refetched in the background. A preview is an affordance: when
+ * it cannot be had the editor says the value will be calculated on save, and the user saves
+ * anyway. Retrying would spend requests on a screen where being briefly silent costs nothing.
+ */
+function useFormulaPreview(body: PreviewFormulaInput | undefined) {
+  const client = useIomClient()
+  return useQuery({
+    queryKey: queryKeys.formulas.preview(body),
+    queryFn: ({ signal }) => client.formulas.preview(body!, { signal }),
+    enabled: body !== undefined,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: LEAF_STALE_TIME,
+  })
+}
+
 const formulaBundle = {
   useList: useFormulaList,
   useGet: useFormulaGet,
+  usePreview: useFormulaPreview,
   useCreate: useFormulaCreate,
   useRemove: useFormulaRemove,
   useRestore: useFormulaRestore,

@@ -6,6 +6,7 @@ import { ChevronRight, RefreshCw, Sigma } from 'lucide-react'
 import type { EntityRollupEntry, RollupBucket } from 'io2p-client'
 
 import { cn } from '@/lib/utils'
+import { round } from '@/lib/round'
 
 /**
  * Whether an entry says anything worth a line.
@@ -33,14 +34,6 @@ export function rollupSaysSomething(entry: EntityRollupEntry): boolean {
     entry.skippedCount > 0
   )
 }
-
-/**
- * The node's own rounding policy, 12 significant digits (`shared/entity.normalize.ts`). Applied to
- * the browser-side own sum so it is comparable with a total the server already rounded: `0.1 + 0.2`
- * is `0.30000000000000004` here and `0.3` there, and the difference decides whether this object is
- * the whole total or is 4e-17 short of it.
- */
-const round = (n: number) => Number(n.toPrecision(12))
 
 type NumericValues = readonly { num?: number; unit?: string }[]
 

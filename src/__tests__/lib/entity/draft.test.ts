@@ -686,7 +686,7 @@ describe('dtoToDraft', () => {
           key: 'height',
           label: 'Height',
           description: undefined,
-          values: [{ id: 'v1', data: '3m' }],
+          values: [{ id: 'v1', data: '3m', parsedFrom: '3m' }],
         },
       ],
     })

@@ -29,26 +29,13 @@ const CONSTANT = {
   ],
 }
 
-const UNITS = [
-  {
-    symbol: 'kg',
-    dimension: 'mass',
-    aliases: [],
-    canonical: true,
-    toCanonical: 1,
-  },
-  {
-    symbol: 't',
-    dimension: 'mass',
-    aliases: [],
-    canonical: false,
-    toCanonical: 1000,
-  },
-]
-
 vi.mock('@/hooks/api/leaves', () => ({
-  useFormulas: () => ({ useGet: () => ({ data: FORMULA }) }),
-  useUnits: () => ({ data: UNITS }),
+  useFormulas: () => ({
+    useGet: () => ({ data: FORMULA }),
+    // This file is about the binding CONTROLS. What the preview says, and when it says nothing,
+    // is `formula-bind-preview.test.tsx` — it moved there when the app stopped computing it.
+    usePreview: () => ({ data: undefined, isPending: false }),
+  }),
   useConstants: () => ({
     useList: () => ({ data: { data: [CONSTANT] } }),
     // A bound constant is resolved BY ID, not found in the search page — that is what keeps its
@@ -108,49 +95,6 @@ describe('FormulaBindings', () => {
     expect(screen.getAllByRole('combobox')[0]).toHaveTextContent('Volume')
   })
 
-  it('previews the result once every variable is bound', () => {
-    // 10 * 0.42, resolved across BOTH kinds — a sibling and a constant.
-    renderBindings({
-      formulaId: 'f-1',
-      args: [
-        { var: 'volume', ref: 'v-1' },
-        { var: 'co2_factor', constantId: 'c-1' },
-      ],
-    })
-
-    expect(screen.getByText(/4\.2/)).toBeInTheDocument()
-  })
-
-  it('previews nothing while a variable is unbound', () => {
-    // Half an answer is worse than none: it would look like the stored value.
-    renderBindings({ formulaId: 'f-1', args: [{ var: 'volume', ref: 'v-1' }] })
-
-    expect(screen.queryByText(/objects.formulaEditor.result/)).toBeNull()
-  })
-
-  it('previews nothing when a sibling has no number yet', () => {
-    // A template preset arrives blank but already bound.
-    render(
-      <FormulaBindings
-        calc={{
-          formulaId: 'f-1',
-          args: [
-            { var: 'volume', ref: 'v-3' },
-            { var: 'co2_factor', constantId: 'c-1' },
-          ],
-        }}
-        siblings={[{ key: 'v-3', propertyKey: 'empty', label: 'Empty' }]}
-        onChange={vi.fn()}
-      />
-    )
-
-    expect(screen.queryByText(/objects.formulaEditor.result/)).toBeNull()
-  })
-})
-
-// The picker's option values encode WHICH KIND of binding was chosen. Radix Select cannot be opened
-// in jsdom, so the exclusivity is asserted on the pure functions behind it — which is where it lives.
-describe('binding choice', () => {
   it('writes a constant binding with no ref', () => {
     // `ref` XOR `constantId`: a stray `ref` alongside would be an arg the server rejects.
     expect(argFromChoice('v', 'constant:c-1')).toEqual({

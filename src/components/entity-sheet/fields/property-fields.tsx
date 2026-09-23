@@ -134,11 +134,11 @@ function newValue(): DraftValue {
  * rule the binding editor already applies to a value nobody has filled in.
  */
 function previewNum(
-  value: DraftValue,
+  stored: number | undefined,
   text: string,
   leading: number
 ): number | undefined {
-  if (value.num !== undefined) return value.num
+  if (stored !== undefined) return stored
   if (text === '' || !Number.isFinite(leading)) return undefined
   return String(leading) === text ? leading : undefined
 }
@@ -152,18 +152,28 @@ export function collectSiblings(
   properties.forEach((p) => {
     p.values.forEach((v) => {
       const key = v.id ?? v.ref
-      if (!key || key === selfKey || v.calc || v.deleted) return // skip self + other formulas
+      // Skips self and every other FORMULA. That second half is load-bearing beyond the picker:
+      // a derived value is the only kind that can carry `unitVerified: false`, and a
+      // `FormulaSibling` has nowhere to put it — so the preview request cannot say "this input is
+      // unchecked" and the node would answer about a checked one. Offering derived values as
+      // inputs means giving the sibling its provenance in the same change.
+      if (!key || key === selfKey || v.calc || v.deleted) return
       const text = (v.data ?? '').trim()
       const leading = Number.parseFloat(text)
       if (text !== '' && !Number.isFinite(leading)) return
+      // An edited value still carries the number read for its OLD text.
+      const current = v.parsedFrom?.trim() === text
+      const num = current ? v.num : undefined
       out.push({
         key,
         // The raw key, never the resolved label — the label is localized and the option's testid is
         // built from this.
         propertyKey: p.key ?? p.label ?? '',
         label: resolvePropertyLabel(p.key, p.label, locale) || '—',
-        num: previewNum(v, text, leading),
-        unit: v.unit,
+        num: previewNum(num, text, leading),
+        unit: current ? v.unit : undefined,
+        // Only where there is no number to send instead: the node can read "10 t" and we cannot.
+        ...(num === undefined && text !== '' && { data: text }),
       })
     })
   })

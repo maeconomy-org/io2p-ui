@@ -1,15 +1,16 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { AlertTriangle, ChevronsUpDown, Loader2 } from 'lucide-react'
 import {
-  AlertCircle,
-  AlertTriangle,
-  CheckCircle2,
-  ChevronsUpDown,
-  Loader2,
-} from 'lucide-react'
-import type { CalcArgInput, CalcInput, ConstantDTO } from 'io2p-client'
+  previewArgFromValue,
+  type CalcArgInput,
+  type CalcInput,
+  type ConstantDTO,
+  type PreviewArg,
+  type PreviewFormulaInput,
+} from 'io2p-client'
 
 import {
   Button,
@@ -26,10 +27,10 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import { OwnerHint } from '@/components/entity-list'
-import { useConstants, useFormulas, useUnits } from '@/hooks/api/leaves'
-import { evaluateExpression } from '@/lib/formula-expression'
-import { resolveResultUnit, resultDisplay } from '@/lib/formula-result-unit'
+import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { SEARCH_SIZE } from '@/constants'
+
+import { calcErrorText } from './value-provenance'
 
 /**
  * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
@@ -54,6 +55,15 @@ export interface FormulaSibling {
   num?: number
   /** The canonical unit `num` is expressed in. Absent on a unitless value. */
   unit?: string
+  /**
+   * What the author actually typed, for a value the node has not normalized yet.
+   *
+   * Sent ONLY when there is no `num`. A stored value's text is display text — a derived one reads
+   * "0.02 MWh" while its number is 20 in kWh — so reading it as typed would change the scale. A
+   * just-typed "10 t" has no number yet, and its text is the only truth there is; before this it
+   * previewed nothing at all.
+   */
+  data?: string
 }
 
 // The formula chooser — sits inline in the value row (replaces the text input in formula mode).
@@ -226,73 +236,69 @@ export function FormulaBindings({
     onChange({ ...calc, args: arg ? [...others, arg] : others })
   }
 
-  // A declared unit needs the table to convert; a dimension clash needs it to compare.
-  const { data: units } = useUnits({ enabled: !!formula })
-
-  const preview = useMemo(() => {
-    if (!formula) return null
-    const scope: Record<string, number> = {}
-    for (const v of formula.variables) {
-      const arg = calc.args.find((a) => a.var === v)
-      // A constant resolves to its CURRENT version here. The server pins the version at bind time,
-      // so once saved this value is fixed — the preview shows what binding now would produce.
-      const num = arg?.constantId
-        ? boundConstants.get(arg.constantId)?.versions.at(-1)?.num
-        : siblings.find((s) => s.key === arg?.ref)?.num
-      // Unbound, or bound to a value the user hasn't filled in yet — either way there is nothing
-      // honest to preview.
-      if (num === undefined || !Number.isFinite(num)) return null
-      scope[v] = num
-    }
-    try {
-      // Same parser, options and rounding the server uses, over the same CANONICAL numbers
-      // (`num`, never the raw text). A DECLARED unit is applied on top of this by the node, so
-      // what is stored is this figure times the declaration's factor — named in the warning below,
-      // never silently folded in here, because this line is what the recipe claims to produce.
-      return {
-        result: evaluateExpression(formula.expression, scope),
-        error: null,
-      }
-    } catch (e) {
-      return { result: null, error: (e as Error).message }
-    }
-  }, [formula, calc.args, siblings, boundConstants])
-
-  // ONE resolution, mirroring the node's `resolveResultUnit` — the preview number and the
-  // refusals are two readings of the same verdict, and deriving them separately is how the
-  // preview came to print a figure the sheet never showed.
-  const resolution = useMemo(() => {
-    if (!formula || !units) return null
-    const propertyArgs: { var: string; unit?: string }[] = []
-    const constantVars = new Set<string>()
+  /**
+   * The request, or `undefined` while there is nothing honest to ask about.
+   *
+   * Every variable must be bound and every binding must carry something the node can read — a
+   * number, a typed string, or a constant id. A half-made binding is not a smaller question, it
+   * is a different one, and answering it would describe a formula nobody is writing.
+   */
+  const previewBody = useMemo((): PreviewFormulaInput | undefined => {
+    if (!formula) return undefined
+    const args: PreviewArg[] = []
     for (const variable of formula.variables) {
       const arg = calc.args.find((a) => a.var === variable)
-      if (!arg) return null // a half-made binding cannot be resolved
+      if (!arg) return undefined
+
       if (arg.constantId) {
-        constantVars.add(variable)
+        // No version: the node pins one at bind time, so the preview shows what binding NOW would
+        // produce, which is what the user is deciding.
+        args.push({ var: variable, constantId: arg.constantId })
         continue
       }
-      const unit = siblings.find((sib) => sib.key === arg.ref)?.unit
-      propertyArgs.push({ var: variable, ...(unit ? { unit } : {}) })
-    }
-    return resolveResultUnit(
-      formula.expression,
-      formula.unit,
-      propertyArgs,
-      constantVars,
-      units
-    )
-  }, [formula, calc.args, siblings, units])
 
-  const problem = resolution?.kind === 'error' ? resolution : null
-  // The node stores this number but leaves it out of every total, because nothing checked that it
-  // HAS the declared dimension. Computed here rather than read from `unitVerified`: at bind time
-  // there is no stored value to read it from. The value ROW waits for the field.
-  const unverified = resolution?.kind === 'declared' && !resolution.verified
-  const shown =
-    resolution && preview?.result != null
-      ? resultDisplay(preview.result, resolution)
-      : undefined
+      const sibling = siblings.find((sib) => sib.key === arg.ref)
+      if (!sibling) return undefined
+      // `previewArgFromValue` is the SDK's own rule for this and returns `undefined` with no
+      // number, which is exactly when the typed text is the only truth there is.
+      const stored = previewArgFromValue(variable, sibling)
+      if (stored) {
+        args.push(stored)
+      } else if (sibling.data) {
+        args.push({ var: variable, data: sibling.data })
+      } else {
+        return undefined
+      }
+    }
+    return {
+      expression: formula.expression,
+      ...(formula.unit ? { unit: formula.unit } : {}),
+      args,
+    }
+  }, [formula, calc.args, siblings])
+
+  /**
+   * Settled bindings only. `siblings` is rebuilt on every render of the sheet, and now carries
+   * each value's typed TEXT, so a neighbouring field being typed into changes this body on every
+   * keystroke — "1", "10", "10 ", "10 t" is four different questions and, before this, four
+   * requests.
+   *
+   * Nothing on screen waits for the answer any more: there is no figure to show, only a refusal
+   * or an unchecked unit to report. So the wait can be generous, and 400ms costs the user nothing.
+   */
+  const [settledBody, setSettledBody] = useState(previewBody)
+  const bodyKey = previewBody === undefined ? '' : JSON.stringify(previewBody)
+  useEffect(() => {
+    const id = setTimeout(() => setSettledBody(previewBody), 400)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the body's VALUE, not its identity
+  }, [bodyKey])
+
+  const { data: settledAnswer } = useFormulas().usePreview(settledBody)
+  // Until the wait ends, the answer is about the previous binding.
+  const settledKey =
+    settledBody === undefined ? '' : JSON.stringify(settledBody)
+  const preview = settledKey === bodyKey ? settledAnswer : undefined
 
   if (!formula) return null
 
@@ -357,8 +363,39 @@ export function FormulaBindings({
         </>
       )}
 
-      {/* AMBER: the value is stored and shown, it is only left out of totals. */}
-      {unverified && (
+      {/* RED, not amber: the node refuses this outright and writes an error row with no number,
+          so it is not advice — it is what will happen. It arrives INSIDE a successful preview,
+          which is what keeps it distinct from not having reached the node at all. */}
+      {preview?.error && (
+        <p
+          data-testid="formula-dimension-problem"
+          className="flex items-start gap-1.5 text-xs text-destructive"
+        >
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {/* The same six sentences the value row shows, not a second set. The node's `detail` is
+              English by contract, so surfacing it would mix languages for a Dutch reader — and the
+              row already decided that. One wording, whether the refusal is predicted or stored. */}
+          <span>
+            {calcErrorText(preview.error.code, t)}
+            {/* The node's `detail` is English by contract, so it is DEMOTED rather than dropped —
+                the same shape the value row uses for the same refusal. It matters most for a code
+                this app does not know: the sentence above is generic there, and this is the only
+                thing that says what actually went wrong. */}
+            {preview.error.detail && (
+              <span className="mt-0.5 block text-[10px] opacity-80">
+                {preview.error.detail}
+              </span>
+            )}
+          </span>
+        </p>
+      )}
+
+      {/* AMBER: the value is stored and shown, it is only left out of totals.
+          Read as `=== false` and never as falsy: the node sends `true` when it checked the unit,
+          `false` when it could not, and NOTHING when there was nothing to check — which is the
+          commonest case and means an ordinary number. Collapsing absent into false would put this
+          warning on almost every derived value. */}
+      {preview?.unitVerified === false && (
         <p
           data-testid="formula-unit-unverified"
           className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
@@ -368,49 +405,14 @@ export function FormulaBindings({
         </p>
       )}
 
-      {/* RED, not amber: the node refuses these outright and writes an error row with no number,
-          so this is not advice — it is what will happen. */}
-      {problem && (
-        <p
-          data-testid="formula-dimension-problem"
-          className="flex items-start gap-1.5 text-xs text-destructive"
-        >
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>
-            {t(`objects.formulaEditor.${problem.code}`, {
-              detail: problem.detail,
-            })}
-          </span>
-        </p>
-      )}
-
-      {preview && (
-        <div
-          data-testid="formula-preview"
-          data-error={preview.error !== null}
-          className={cn(
-            'flex items-center gap-1.5 text-sm',
-            preview.error ? 'text-destructive' : 'text-emerald-600'
-          )}
-        >
-          {preview.error ? (
-            <>
-              <AlertCircle className="h-4 w-4" />
-              <span>{preview.error}</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4" />
-              <span>
-                {/* The DECLARED symbol — what the recipe claims to produce, and what the value
-                    row prints too. The canonical figure it is STORED as is the warning below,
-                    because those two numbers differ by a factor nothing else on screen names. */}
-                {t('objects.formulaEditor.result')}: {shown ?? preview.result}
-              </span>
-            </>
-          )}
-        </div>
-      )}
+      {/* No figure here, deliberately (product owner, 2026-09-21). The value row shows what was
+          actually stored, moments later and from the same source; a second number in a second
+          place is what drifted before, and the one that was wrong was always this one. What stays
+          is only what the row CANNOT say afterwards — a refusal, and a unit the node could not
+          check. */}
+      <p className="text-xs text-muted-foreground">
+        {t('objects.formulaEditor.calculatedOnSave')}
+      </p>
     </div>
   )
 }
