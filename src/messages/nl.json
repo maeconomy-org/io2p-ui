@@ -464,7 +464,8 @@
         "handConversionDown": "Deze formule maakt het resultaat {literal} keer kleiner; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening.",
         "handConversionUp": "Deze formule maakt het resultaat {literal} keer groter; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening."
       },
-      "unitsHelp": "Hoe eenheden werken"
+      "unitsHelp": "Hoe eenheden werken",
+      "countedTwice": "Een rollup-regel vermenigvuldigt deze eigenschap in totalen al met ‘{quantity}’, en deze formule leest ‘{quantity}’ ook. Vermenigvuldigt de formule ermee, dan tellen totalen het dubbel. Past u de formule aan zodat zij de waarde voor één stuk geeft, of laat u de regel niet meer vermenigvuldigen: bewerkt u uw regel, of voegt u bij een ingebouwde regel een eigen regel voor deze eigenschap toe zonder vermenigvuldiger."
     },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",

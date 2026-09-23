@@ -35,7 +35,7 @@ import {
   buildRollupRuleColumns,
   type RollupRuleColumnActions,
 } from './components/rollup-rule-columns'
-import { useRollupRules } from './hooks/use-rollup-rules'
+import { useRollupRules } from '@/hooks/api/rollup-rules'
 import type { RollupRuleDTO } from 'io2p-client'
 
 const RollupRuleSheet = dynamic(

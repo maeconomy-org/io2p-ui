@@ -9,6 +9,7 @@ import { Badge, Label } from '@/components/ui'
 import { canDelete, canEdit } from '@/components/entity-list'
 import { useAuth } from '@/contexts/auth-context'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
+import { useRollupRules } from '@/hooks/api/rollup-rules'
 import { useObjectDrafts } from '@/hooks/drafts'
 import { hasPendingUploads, type ValueProvenance } from '@/lib/entity'
 import type { EntityRollupEntry } from 'io2p-client'
@@ -31,6 +32,7 @@ import {
   PropertyFields,
   RelationsField,
 } from './fields'
+import { rollupMultipliers } from './fields/value-normalization'
 
 export interface EntitySheetProps {
   open: boolean
@@ -139,11 +141,21 @@ export function EntitySheet({
   const { data: rollupData } = objects.useRollups(entityId ?? undefined, {
     enabled: isOwner,
   })
+  // For the formula editor's "counted twice" warning, on totals of the caller's own objects: a
+  // saved one says what the node applied in its rollup entries, a new one has only the caller's
+  // rules. Another owner's totals use that owner's rules, which this caller cannot see.
+  const createMultipliers = useRollupRules().useMultipliers(isCreate)
+
   const rollups = useMemo(() => {
     const m = new Map<string, EntityRollupEntry>()
     rollupData?.data.forEach((entry) => m.set(entry.ruleId, entry))
     return m
   }, [rollupData])
+  const ownedMultipliers = useMemo(
+    () => (isOwner ? rollupMultipliers(rollups) : undefined),
+    [isOwner, rollups]
+  )
+  const ruleMultipliers = isCreate ? createMultipliers : ownedMultipliers
 
   // Keyed by value id: presence means the value is derived, the payload is the node's evaluation
   // trace. A derived value always has a source; `provenance` is what it was computed FROM.
@@ -239,6 +251,7 @@ export function EntitySheet({
           editing={editing}
           derivedValues={derivedValues}
           rollups={rollups}
+          ruleMultipliers={ruleMultipliers}
         />
       ),
     },
@@ -363,7 +376,11 @@ export function EntitySheet({
         />
       )}
     >
-      <CreateForm form={form} parentNames={parentNames} />
+      <CreateForm
+        form={form}
+        parentNames={parentNames}
+        ruleMultipliers={ruleMultipliers}
+      />
     </EntitySheetShell>
   )
 }

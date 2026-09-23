@@ -8,7 +8,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 const ownRules = { data: [] as { propertyKey: string }[] }
 const systemRules = { data: [] as { propertyKey: string }[] }
 
-vi.mock('@/app/rollup-rules/hooks/use-rollup-rules', () => ({
+vi.mock('@/hooks/api/rollup-rules', () => ({
   useRollupRules: () => ({
     useOwnRules: () => ({ data: ownRules }),
     useSystemRules: () => ({ data: systemRules }),

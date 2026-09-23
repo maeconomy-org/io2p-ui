@@ -53,6 +53,7 @@ import {
   ValueNormalization,
   formulaBoundValueIds,
   multiplierKeysOf,
+  ruleKey,
 } from './value-normalization'
 import {
   ValueProvenanceDisplay,
@@ -73,6 +74,8 @@ interface PropertyFieldsProps {
    * and process flows have no rollups, and pass nothing.
    */
   rollups?: ReadonlyMap<string, EntityRollupEntry>
+  /** Property key → the key its rollup rule multiplies by, both lower case. Objects only. */
+  ruleMultipliers?: ReadonlyMap<string, string>
   entityId?: string
   /** Renders a header row (label + Add) instead of a trailing Add button — used by the create shell. */
   label?: string
@@ -182,6 +185,7 @@ export function PropertyFields({
   editing,
   derivedValues,
   rollups,
+  ruleMultipliers,
   entityId,
   label,
   allowFiles = true,
@@ -295,6 +299,7 @@ export function PropertyFields({
           basePath={basePath}
           siblingSource={siblingSource}
           multiplierKeys={multiplierKeys}
+          ruleMultipliers={ruleMultipliers}
         />
       ))}
       {!label && addButton}
@@ -317,6 +322,7 @@ function PropertyRow({
   basePath,
   siblingSource,
   multiplierKeys,
+  ruleMultipliers,
 }: {
   form: UseFormReturn<EntityDraft>
   index: number
@@ -330,6 +336,7 @@ function PropertyRow({
   siblingSource?: EntityDraft['properties']
   /** Property keys some rollup rule multiplies by — their values are calculation inputs. */
   multiplierKeys: ReadonlySet<string>
+  ruleMultipliers?: ReadonlyMap<string, string>
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
@@ -855,6 +862,11 @@ function PropertyRow({
                         form.setValue(`${base}.calc`, calc, {
                           shouldDirty: true,
                         })
+                      }
+                      countedBy={
+                        propKey
+                          ? ruleMultipliers?.get(ruleKey(propKey))
+                          : undefined
                       }
                     />
                   )}

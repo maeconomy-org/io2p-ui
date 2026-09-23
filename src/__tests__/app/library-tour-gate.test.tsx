@@ -59,7 +59,7 @@ vi.mock('@/app/constants/components/constant-sheet', () => ({
 }))
 
 const list = { data: undefined, isFetching: false }
-vi.mock('@/app/rollup-rules/hooks/use-rollup-rules', () => ({
+vi.mock('@/hooks/api/rollup-rules', () => ({
   useRollupRules: () => ({
     useList: () => list,
     useRemove: () => ({}),

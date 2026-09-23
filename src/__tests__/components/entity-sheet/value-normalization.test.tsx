@@ -7,6 +7,8 @@ import {
   formulaBoundValueIds,
   multiplierKeysOf,
   excludedFromKey,
+  rollupMultipliers,
+  ruleKey,
 } from '@/components/entity-sheet/fields/value-normalization'
 import type { DraftValue, ValueProvenance } from '@/lib/entity'
 
@@ -263,5 +265,24 @@ describe('excludedFromKey', () => {
     expect(excludedFromKey(true, true)).toBe(
       'objects.properties.excludedFromBoth'
     )
+  })
+})
+
+describe('rollupMultipliers', () => {
+  it('maps what the node applied, key to multiplier, in lower case', () => {
+    const rollups = new Map([
+      ['r1', { propertyKey: 'Mass', multiplyBy: { propertyKey: 'Quantity' } }],
+      ['r2', { propertyKey: 'volume' }],
+    ])
+    expect(rollupMultipliers(rollups)).toEqual(new Map([['mass', 'quantity']]))
+  })
+})
+
+describe('ruleKey', () => {
+  // A property with no key yet carries its label; the rule form resolves it through the
+  // dictionary, so a Dutch label reaches the same key the rule stores.
+  it('resolves a label the way the rule form does', () => {
+    expect(ruleKey('quantity')).toBe('quantity')
+    expect(ruleKey('Aantal')).toBe(ruleKey('quantity'))
   })
 })

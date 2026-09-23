@@ -312,6 +312,94 @@ describe('how units work', () => {
   })
 })
 
+// A rule that multiplies this property's totals by a quantity, and a formula that reads the same
+// quantity, put it in the total twice. Known from the binding alone, before any answer.
+describe('a quantity counted twice', () => {
+  const withQuantity: FormulaSibling[] = [
+    { key: 'v-a', propertyKey: 'Quantity', label: 'Aantal', num: 4 },
+    TWO_TONNES[1],
+  ]
+
+  it('warns when the formula reads the key the rule multiplies by', () => {
+    render(
+      <FormulaBindings
+        calc={bind('a', 'b')}
+        siblings={withQuantity}
+        onChange={vi.fn()}
+        countedBy="quantity"
+      />
+    )
+    expect(screen.getByTestId('formula-counted-twice').textContent).toContain(
+      '"quantity":"Aantal"'
+    )
+  })
+
+  it('says nothing when the formula does not read it', () => {
+    render(
+      <FormulaBindings
+        calc={bind('a', 'b')}
+        siblings={TWO_TONNES}
+        onChange={vi.fn()}
+        countedBy="quantity"
+      />
+    )
+    expect(screen.queryByTestId('formula-counted-twice')).toBeNull()
+  })
+
+  it('says nothing when no rule multiplies this property', () => {
+    render(
+      <FormulaBindings
+        calc={bind('a', 'b')}
+        siblings={withQuantity}
+        onChange={vi.fn()}
+      />
+    )
+    expect(screen.queryByTestId('formula-counted-twice')).toBeNull()
+  })
+
+  it('matches a quantity that has only a label yet', () => {
+    render(
+      <FormulaBindings
+        calc={bind('a', 'b')}
+        siblings={[
+          { key: 'v-a', propertyKey: 'Aantal', label: 'Aantal', num: 4 },
+          TWO_TONNES[1],
+        ]}
+        onChange={vi.fn()}
+        countedBy="quantity"
+      />
+    )
+    expect(screen.getByTestId('formula-counted-twice')).toBeInTheDocument()
+  })
+
+  // Left out of every total, it is not counted even once.
+  it('says nothing when the result is left out of totals', () => {
+    preview.data = { num: 5, unit: 'kg', unitVerified: false, warnings: [] }
+    render(
+      <FormulaBindings
+        calc={bind('a', 'b')}
+        siblings={withQuantity}
+        onChange={vi.fn()}
+        countedBy="quantity"
+      />
+    )
+    expect(screen.queryByTestId('formula-counted-twice')).toBeNull()
+  })
+
+  // A sibling offered but not bound is not read by the formula.
+  it('says nothing for a quantity that is on the object but not bound', () => {
+    render(
+      <FormulaBindings
+        calc={{ formulaId: 'f-1', args: [{ var: 'a', ref: 'v-b' }] }}
+        siblings={withQuantity}
+        onChange={vi.fn()}
+        countedBy="quantity"
+      />
+    )
+    expect(screen.queryByTestId('formula-counted-twice')).toBeNull()
+  })
+})
+
 describe('authoring warnings', () => {
   // A live region announces what appears in it, so it has to be there before the answer is.
   it('announces the answer in a region that exists before it arrives', () => {

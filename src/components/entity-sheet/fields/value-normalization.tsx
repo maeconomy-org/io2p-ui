@@ -11,6 +11,7 @@ import {
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import type { DraftValue, ValueParse } from '@/lib/entity'
+import { resolveKey } from '@/constants/property-dictionary'
 import type { DerivedValues } from './value-provenance'
 
 /**
@@ -113,6 +114,29 @@ export function formulaBoundValueIds(
  * a total even though nothing on the row says so — an unreadable one does not make the total empty,
  * it drops that object's whole contribution.
  */
+/**
+ * A property key as a rule stores it. A property with no key yet carries its label, and the rule
+ * form resolves a label through the dictionary ("Aantal" is `quantity`), so this does too.
+ */
+export const ruleKey = (typed: string) => resolveKey(typed).key.toLowerCase()
+
+/** Property key → the key its rule multiplies by, as the node applied it (both lower case). */
+export function rollupMultipliers(
+  rollups:
+    | ReadonlyMap<
+        string,
+        { propertyKey: string; multiplyBy?: { propertyKey: string } }
+      >
+    | undefined
+): Map<string, string> {
+  const out = new Map<string, string>()
+  for (const entry of rollups?.values() ?? []) {
+    const by = entry.multiplyBy?.propertyKey
+    if (by) out.set(entry.propertyKey.toLowerCase(), by.toLowerCase())
+  }
+  return out
+}
+
 export function multiplierKeysOf(
   rollups:
     | ReadonlyMap<string, { multiplyBy?: { propertyKey: string } }>

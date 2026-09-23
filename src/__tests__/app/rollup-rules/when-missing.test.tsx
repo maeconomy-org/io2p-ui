@@ -18,7 +18,7 @@ const systemRules = { data: [] as { propertyKey: string }[] }
 const createMutate = vi.fn()
 const updateMutate = vi.fn()
 
-vi.mock('@/app/rollup-rules/hooks/use-rollup-rules', () => ({
+vi.mock('@/hooks/api/rollup-rules', () => ({
   useRollupRules: () => ({
     useOwnRules: () => ({ data: ownRules }),
     useSystemRules: () => ({ data: systemRules }),

@@ -35,9 +35,11 @@ const NO_DERIVED_VALUES = new Map<string, never>()
 export function CreateForm({
   form,
   parentNames,
+  ruleMultipliers,
 }: {
   form: UseFormReturn<EntityDraft>
   parentNames: Map<string, string>
+  ruleMultipliers?: ReadonlyMap<string, string>
 }) {
   const t = useTranslations()
   const [template, setTemplate] = useState<TemplateChoice | null>(null)
@@ -104,6 +106,7 @@ export function CreateForm({
           form={form}
           editing
           derivedValues={NO_DERIVED_VALUES}
+          ruleMultipliers={ruleMultipliers}
           label={t('objects.fields.properties')}
         />
       </div>

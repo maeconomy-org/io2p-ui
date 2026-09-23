@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import {
   useQuery,
   useMutation,
@@ -7,6 +8,7 @@ import {
   keepPreviousData,
 } from '@tanstack/react-query'
 import type {
+  RollupRuleDTO,
   CreateRollupRuleBody,
   ListRollupRulesQuery,
   UpdateRollupRuleBody,
@@ -42,13 +44,13 @@ function useRollupRuleList(
  * built-in its owner has replaced, and THAT failure is silent: the mark simply does not appear,
  * and nothing downstream catches it.
  */
-function useOwnRollupRules() {
+function useOwnRollupRules(options?: { enabled?: boolean }) {
   const query: ListRollupRulesQuery = {
     page: 1,
     size: MAX_LIST_PAGE_SIZE,
     system: false,
   }
-  return useRollupRuleList(query)
+  return useRollupRuleList(query, options)
 }
 
 /**
@@ -58,13 +60,52 @@ function useOwnRollupRules() {
  * so the totals there move. `useOwnRollupRules` cannot see a built-in — `system: false` is the
  * whole scope of "mine" — which is why this is a second query rather than a filter on the first.
  */
-function useSystemRollupRules() {
+function useSystemRollupRules(options?: { enabled?: boolean }) {
   const query: ListRollupRulesQuery = {
     page: 1,
     size: MAX_LIST_PAGE_SIZE,
     system: true,
   }
-  return useRollupRuleList(query)
+  return useRollupRuleList(query, options)
+}
+
+type MultiplyingRule = Pick<RollupRuleDTO, 'propertyKey' | 'multiplyBy'>
+
+/**
+ * Which key each rule multiplies its total by, keyed by the rule's property key (lower case). A
+ * user's own rule REPLACES the built-in on the same key for that user's objects, so it wins here
+ * too, including when it multiplies by nothing.
+ */
+export function ruleMultipliers(
+  own: readonly MultiplyingRule[],
+  system: readonly MultiplyingRule[]
+): Map<string, string> {
+  const byKey = new Map<string, MultiplyingRule>()
+  for (const rule of system) byKey.set(rule.propertyKey.toLowerCase(), rule)
+  for (const rule of own) byKey.set(rule.propertyKey.toLowerCase(), rule)
+  const out = new Map<string, string>()
+  for (const [key, rule] of byKey) {
+    const by = rule.multiplyBy?.propertyKey
+    if (by) out.set(key, by.toLowerCase())
+  }
+  return out
+}
+
+/**
+ * The multipliers the node would apply to an object the caller is creating. A saved object's own
+ * rollup entries say what the node actually applied, so this is for the create form only. The
+ * caller's own rules fit on one page (the per-user cap is far below it).
+ */
+function useRuleMultipliers(enabled: boolean) {
+  const { data: own } = useOwnRollupRules({ enabled })
+  const { data: system } = useSystemRollupRules({ enabled })
+  return useMemo(
+    () =>
+      enabled
+        ? ruleMultipliers(own?.data ?? [], system?.data ?? [])
+        : undefined,
+    [enabled, own, system]
+  )
 }
 
 function useRollupRuleCreate() {
@@ -143,6 +184,7 @@ const rollupRuleBundle = {
   useList: useRollupRuleList,
   useOwnRules: useOwnRollupRules,
   useSystemRules: useSystemRollupRules,
+  useMultipliers: useRuleMultipliers,
   useCreate: useRollupRuleCreate,
   useUpdate: useRollupRuleUpdate,
   useRemove: useRollupRuleRemove,

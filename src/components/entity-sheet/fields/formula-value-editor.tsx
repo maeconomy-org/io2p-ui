@@ -33,6 +33,7 @@ import { SEARCH_SIZE } from '@/constants'
 import { calcErrorText, uncheckedState } from './value-provenance'
 import { FormulaWarnings } from './formula-warnings'
 import { UnitsHelp } from './units-help'
+import { ruleKey } from './value-normalization'
 
 /**
  * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
@@ -206,10 +207,13 @@ export function FormulaBindings({
   calc,
   siblings,
   onChange,
+  countedBy,
 }: {
   calc: CalcInput
   siblings: FormulaSibling[]
   onChange: (calc: CalcInput) => void
+  /** The key a rollup rule multiplies this property's totals by (lower case), if one does. */
+  countedBy?: string
 }) {
   const t = useTranslations()
   const { data: formula } = useFormulas().useGet(calc.formulaId)
@@ -302,6 +306,18 @@ export function FormulaBindings({
     preview &&
     !warnings.some((w) => w.code === 'declare-unit') &&
     uncheckedState(preview, preview.unit)
+
+  // The rule already scales this property's totals by that quantity, so a formula reading it too
+  // puts it in the total twice. Known here, before any answer: it is the binding, not the result.
+  // A result the node leaves out of totals is not counted even once.
+  const countedTwice =
+    countedBy && unchecked !== 'left-out'
+      ? siblings.find(
+          (sibling) =>
+            ruleKey(sibling.propertyKey) === countedBy &&
+            calc.args.some((arg) => arg.ref === sibling.key)
+        )
+      : undefined
 
   if (!formula) return null
 
@@ -409,6 +425,20 @@ export function FormulaBindings({
                   ? 'objects.formulaEditor.unitUnverified'
                   : 'objects.formulaEditor.unitUnverifiedPlain'
               )}
+            </span>
+          </p>
+        )}
+
+        {countedTwice && (
+          <p
+            data-testid="formula-counted-twice"
+            className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              {t('objects.formulaEditor.countedTwice', {
+                quantity: countedTwice.label,
+              })}
             </span>
           </p>
         )}
