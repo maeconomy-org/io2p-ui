@@ -460,7 +460,9 @@
         "factorNoPer": "{count, plural, one {{vars} wordt gelezen} other {{vars} worden gelezen}} in {unit} per standaardeenheid van wat ermee wordt vermenigvuldigd. Controleert u of de waarde in die eenheid staat.",
         "declareUnit": "De node leidt de eenheid van dit resultaat niet af uit de invoer, dus het telt mee als een gewoon getal. Gebruikt een rollup-regel het als vermenigvuldiger, dan telt dat object niet mee in het totaal. Wilt u het laten controleren, dupliceert u dan de formule en stelt u de echte eenheid in als eenheid van het resultaat.",
         "declareUnitSuggested": "Dit resultaat is alleen {unit} als een waarde zonder eenheid als factor wordt gelezen, dus voorlopig telt het mee als een gewoon getal. Gebruikt een rollup-regel het als vermenigvuldiger, dan telt dat object niet mee in het totaal. Wilt u het die eenheid geven en laten controleren, dupliceert u dan de formule en stelt u {unit} in als eenheid van het resultaat.",
-        "perItem": "stuk"
+        "perItem": "stuk",
+        "handConversionDown": "Deze formule maakt het resultaat {literal} keer kleiner; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening.",
+        "handConversionUp": "Deze formule maakt het resultaat {literal} keer groter; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening."
       }
     },
     "detailsSheet": {

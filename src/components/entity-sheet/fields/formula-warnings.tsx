@@ -21,15 +21,16 @@ type Format = {
  * contract, so it is used only for a code this app does not know — the set is open.
  *
  * A literal conversion's number is the product of every scaling literal, inverted below 1 (`* 10
- * * 100` and `* 0.001` both send 1000), and the fields do not say whether it divides or multiplies
- * — so the text never claims the number is written in the formula.
+ * * 100` and `* 0.001` both send 1000), so the text never claims the number is written in the
+ * formula. `scales` is the net effect, not the operator (`* 0.001` has no division to remove); a
+ * node that predates it gets the sentence naming both directions.
  */
 export function warningText(
   warning: FormulaPreviewWarning,
   t: Translate,
   format: Format
 ): string {
-  const { code, literal, unit, vars = [], per } = warning
+  const { code, literal, scales, unit, vars = [], per } = warning
   const key = 'objects.formulaEditor.warning'
   switch (code) {
     case 'hand-conversion':
@@ -40,7 +41,14 @@ export function warningText(
             literal: format.number(literal),
             unit,
           })
-        : t(`${key}.handConversion`, { literal: format.number(literal), unit })
+        : t(
+            scales === 'down'
+              ? `${key}.handConversionDown`
+              : scales === 'up'
+                ? `${key}.handConversionUp`
+                : `${key}.handConversion`,
+            { literal: format.number(literal), unit }
+          )
     case 'factor':
       if (vars.length === 0 || !unit) break
       return t(per ? `${key}.factor` : `${key}.factorNoPer`, {

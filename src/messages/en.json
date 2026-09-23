@@ -459,7 +459,9 @@
         "factorNoPer": "{count, plural, one {{vars} is read} other {{vars} are read}} in {unit} per standard unit of what it multiplies. Check that the value is given in that unit.",
         "declareUnit": "The node does not name this result's unit from its inputs, so it counts as a plain number. If a rollup rule uses it as its multiplier, that object is left out of the total. To have it checked, duplicate the formula and set its real unit as the result unit.",
         "declareUnitSuggested": "This result is {unit} only if a value without a unit is read as a factor, so for now it counts as a plain number. If a rollup rule uses it as its multiplier, that object is left out of the total. To give it that unit and have it checked, duplicate the formula and set {unit} as the result unit.",
-        "perItem": "item"
+        "perItem": "item",
+        "handConversionDown": "This formula makes the result {literal} times smaller, which looks like a conversion to {unit}. The values it reads are already in standard units, so this scales the result instead of converting it. {unit} is already the result unit and converts by itself. Formulas cannot be edited: duplicate this one without that conversion.",
+        "handConversionUp": "This formula makes the result {literal} times larger, which looks like a conversion to {unit}. The values it reads are already in standard units, so this scales the result instead of converting it. {unit} is already the result unit and converts by itself. Formulas cannot be edited: duplicate this one without that conversion."
       }
     },
     "detailsSheet": {

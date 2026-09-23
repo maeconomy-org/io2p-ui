@@ -34,6 +34,25 @@ describe('FormulaWarnings', () => {
     expect(text).toContain('duplicate this one')
   })
 
+  // The net effect, not the operator: `* 0.001` scales down too, and has no division to remove.
+  it('names the effect when the node sends it', () => {
+    const text = textOf(w({ literal: 1000, scales: 'down', unit: 't' }))
+    expect(text).toContain('makes the result 1,000 times smaller')
+    expect(text).toContain('without that conversion')
+  })
+
+  it('names a result made larger too', () => {
+    expect(textOf(w({ literal: 3600000, scales: 'up', unit: 'J' }))).toContain(
+      'makes the result 3,600,000 times larger'
+    )
+  })
+
+  it('writes the effect the Dutch way', () => {
+    expect(
+      textOf(w({ literal: 1000, scales: 'down', unit: 't' }), 'nl')
+    ).toContain('maakt het resultaat 1.000 keer kleiner')
+  })
+
   it('names the variable a conversion constant is bound to', () => {
     expect(textOf(w({ literal: 1000, unit: 't', vars: ['k'] }))).toContain(
       'The constant bound to k (1,000)'
