@@ -164,22 +164,6 @@ describe('ownShare', () => {
     expect(share).toEqual({ own: 12, below: 48, onlyContributor: false })
   })
 
-  // Without a unit it is counted like any plain number.
-  it('keeps an unchecked own value without a unit in a count total', () => {
-    const pcs = {
-      dimension: 'count',
-      unit: 'pcs',
-      num: 12,
-      unitCount: 3,
-      contributorCount: 3,
-    } as RollupBucket
-    expect(ownShare(pcs, [{ num: 5, unitVerified: false }])).toEqual({
-      own: 5,
-      below: 7,
-      onlyContributor: false,
-    })
-  })
-
   it('gives the whole total to the subtree when the multiplier is unchecked', () => {
     const share = ownShare(
       bucket(48, 1),
@@ -208,5 +192,50 @@ describe('ownShare', () => {
   it('survives float noise when the object is the whole total', () => {
     const share = ownShare(bucket(0.3, 2), [kg(0.1), kg(0.2)])
     expect(share).toEqual({ own: 0.3, below: 0, onlyContributor: true })
+  })
+
+  // The node counts an unchecked number without a unit in the unit-less total, never in a count:
+  // it is the evaluator's canonical number (joules), not pieces. A plain bare number still joins
+  // the count, so one entry carries both totals.
+  it('splits a plain and an unchecked bare number across the count and unit-less totals', () => {
+    const pcs = {
+      dimension: 'count',
+      unit: 'pcs',
+      num: 8,
+      unitCount: 8,
+      contributorCount: 2,
+    } as RollupBucket
+    const unitless = {
+      dimension: 'unitless',
+      num: 36_000_000,
+      unitCount: 1,
+      contributorCount: 1,
+    } as RollupBucket
+    const buckets = [pcs, unitless]
+    const own = [{ num: 5 }, { num: 36_000_000, unitVerified: false }]
+    expect(ownShare(pcs, own, undefined, undefined, buckets)).toEqual({
+      own: 5,
+      below: 3,
+      onlyContributor: false,
+    })
+    expect(ownShare(unitless, own, undefined, undefined, buckets)).toEqual({
+      own: 36_000_000,
+      below: 0,
+      onlyContributor: true,
+    })
+  })
+
+  it('keeps a plain bare number in the unit-less total where no count total exists', () => {
+    const unitless = {
+      dimension: 'unitless',
+      num: 12,
+      unitCount: 2,
+      contributorCount: 2,
+    } as RollupBucket
+    expect(ownShare(unitless, [{ num: 5 }])).toEqual({
+      own: 5,
+      below: 7,
+      onlyContributor: false,
+    })
   })
 })

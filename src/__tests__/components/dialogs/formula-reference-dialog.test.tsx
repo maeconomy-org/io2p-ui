@@ -56,7 +56,7 @@ describe('FormulaReferenceDialog — units', () => {
   // the object either way.
   it('says what an unchecked result means for totals and for a multiplier', () => {
     const units = renderDialog()
-    expect(units).toContain('without one it counts as a plain number')
+    expect(units).toContain('without one it counts in the total without a unit')
     expect(units).toContain('multiplier leaves that object out of the total')
   })
 

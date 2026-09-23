@@ -158,7 +158,7 @@ describe('labelForValueId', () => {
 })
 
 // The node's four states. Only an explicit `false` is unchecked, and the value's unit decides
-// what that means for a total: with one it is left out, without one it counts as a plain number.
+// what that means for a total: with one it is left out, without one it counts in the no-unit total.
 describe('a result whose unit the node could not check', () => {
   it('marks nothing when the answer says nothing about the unit', () => {
     renderProvenance(PROVENANCE, 'kg')

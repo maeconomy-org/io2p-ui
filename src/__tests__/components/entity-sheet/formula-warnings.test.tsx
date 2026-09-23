@@ -92,7 +92,7 @@ describe('FormulaWarnings', () => {
 
   it('says a unit-less result still counts, and what a multiplier does with it', () => {
     const text = textOf(w({ code: 'declare-unit' }))
-    expect(text).toContain('counts as a plain number')
+    expect(text).toContain('counts in the total without a unit')
     expect(text).toContain('left out of the total')
     expect(text).toContain('set its real unit as the result unit')
   })

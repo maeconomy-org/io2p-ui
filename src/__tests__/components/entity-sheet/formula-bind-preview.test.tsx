@@ -271,8 +271,8 @@ describe('an unchecked unit', () => {
     )
   })
 
-  // Without a unit the node counts it like a plain number, so "left out" would be false.
-  it('warns that a result without a unit counts as a plain number', () => {
+  // Without a unit the node counts it in the no-unit total, so "left out" would be false.
+  it('warns that a result without a unit counts in the total without a unit', () => {
     preview.data = { num: 5, unitVerified: false, warnings: [] }
     renderBindings()
 

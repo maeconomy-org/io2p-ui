@@ -48,24 +48,27 @@ export type NumericValues = readonly {
 type WhenMissing = NonNullable<EntityRollupEntry['multiplyBy']>['whenMissing']
 
 /**
- * Whether a bucket measures what a value holding `unit` is made of.
+ * Whether the node sums this value into `bucket`, one of the entry's `buckets`.
  *
- * A BARE number is a count, not a dimension of its own: the node merges `5` into the key's `pcs`
- * bucket, because `5` and `5 pcs` are one quantity. Comparing the units alone missed that, so an
- * object whose own value is bare looked like a non-contributor to the very total it is in — on a
- * leaf, the card then claimed "This object only" about a number nobody could attribute to it.
- * Beside any OTHER dimension a bare number keeps its own unitless bucket, where the units match
- * anyway.
- *
- * Exactly one bucket can ever answer true for a bare value, because the node DELETES the unitless
- * bucket when it folds it into the count one. That is a property of the node's compute, not of the
- * wire type — nothing in `RollupBucket` forbids both — so if a total ever arrives carrying the two
- * together, this attributes the object's value to whichever the ordering put first.
+ * A value with a unit goes to that unit's bucket. A BARE number is a count: the node merges `5`
+ * into the key's `pcs` bucket, because `5` and `5 pcs` are one quantity, and keeps it unit-less
+ * only where no count total exists. An unchecked number without a unit is the evaluator's
+ * canonical number (joules, not pieces), so it is always unit-less and never inside a count. Both
+ * a count and a unit-less total can therefore arrive together, which is why the answer for a bare
+ * value needs the whole list.
  */
-export function measures(bucket: RollupBucket, unit?: string): boolean {
-  return (
-    bucket.unit === unit || (unit === undefined && bucket.dimension === 'count')
-  )
+export function holds(
+  bucket: RollupBucket,
+  v: NumericValues[number],
+  buckets: readonly RollupBucket[]
+): boolean {
+  if (uncheckedState(v, v.unit) === 'plain')
+    return bucket.dimension === 'unitless'
+  if (v.unit) return bucket.unit === v.unit
+  const pile = buckets.some((b) => b.dimension === 'count')
+    ? 'count'
+    : 'unitless'
+  return bucket.dimension === pile
 }
 
 export const leftOut = (v: NumericValues[number]) =>
@@ -119,10 +122,12 @@ export function ownShare(
   /** The object's live values under the key the rule multiplies by; omit when it names none. */
   multiplierValues?: NumericValues,
   /** What the rule does with an object holding no such value; the node's default is `one`. */
-  whenMissing?: WhenMissing
+  whenMissing?: WhenMissing,
+  /** Every bucket of the entry, `bucket` included: where a bare value lands depends on them all. */
+  buckets: readonly RollupBucket[] = [bucket]
 ): { own: number; below: number; onlyContributor: boolean } | null {
   const contributing = ownValues.filter(
-    (v) => v.num !== undefined && !leftOut(v) && measures(bucket, v.unit)
+    (v) => v.num !== undefined && !leftOut(v) && holds(bucket, v, buckets)
   )
   if (contributing.length === 0) return null
 
@@ -188,7 +193,7 @@ export function orderBuckets(
   ownUnit?: string,
   ownValues?: NumericValues
 ): RollupBucket[] {
-  const leads = ownLead(ownUnit, ownValues)
+  const leads = ownLead(buckets, ownUnit, ownValues)
   return [...buckets].sort(
     (a, b) => Number(leads(b)) - Number(leads(a)) || b.num - a.num
   )
@@ -197,16 +202,19 @@ export function orderBuckets(
 /**
  * Whether a bucket measures what this OBJECT holds — the ordering question, not the per-value one.
  *
- * With an own unit it is that unit. Without one it is a count, but only when the object actually
- * holds a bare number: no own value is not a bare number, and both arrive as `undefined`.
+ * With an own unit it is that unit. Without one it is the bucket some own bare number lands in:
+ * no own value is not a bare number, and both arrive as `undefined`.
  */
 function ownLead(
+  buckets: readonly RollupBucket[],
   ownUnit?: string,
   ownValues?: NumericValues
 ): (bucket: RollupBucket) => boolean {
   if (ownUnit !== undefined) return (bucket) => bucket.unit === ownUnit
-  const bare = (ownValues ?? []).some((v) => v.num !== undefined)
-  return (bucket) => bare && measures(bucket, undefined)
+  const counted = (ownValues ?? []).filter(
+    (v) => v.num !== undefined && !leftOut(v)
+  )
+  return (bucket) => counted.some((v) => holds(bucket, v, buckets))
 }
 
 /**
@@ -260,7 +268,7 @@ export function RollupLine({
   const [lead, ...rest] = buckets
   // Same question as the ordering, so the same answer: a hidden bucket is foreign when it is not
   // the one measuring what this object holds. An orphan card holds nothing, so every bucket is.
-  const leads = ownLead(ownUnit, ownValues)
+  const leads = ownLead(entry.buckets, ownUnit, ownValues)
   const foreign = rest.some((b) => !leads(b))
   const [open, setOpen] = useState(!compact && foreign)
 
@@ -291,7 +299,8 @@ export function RollupLine({
           lead,
           ownValues ?? [],
           multiplierValues,
-          entry.multiplyBy?.whenMissing
+          entry.multiplyBy?.whenMissing,
+          entry.buckets
         )
       : null
 

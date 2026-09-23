@@ -177,6 +177,56 @@ describe('rollup rows in the property read view', () => {
     expect(line.indexOf('4120 kg')).toBeLessThan(line.indexOf('99999'))
   })
 
+  // A value left out of every total says nothing about which total the object is in.
+  it('headlines the total the counted values are in, not a left-out value’s unit', () => {
+    renderRollups(
+      [
+        {
+          id: 'p1',
+          key: 'mass',
+          label: 'Mass',
+          values: [
+            { id: 'v1', data: '2.3 kg', num: 2.3, unit: 'kg' },
+            { id: 'v2', data: '5', num: 5 },
+          ],
+        },
+      ],
+      new Map([
+        [
+          'mass',
+          entry({
+            buckets: [
+              bucket({
+                dimension: 'mass',
+                unit: 'kg',
+                num: 4120,
+                contributorCount: 312,
+              }),
+              bucket({ dimension: 'unitless', num: 65, contributorCount: 2 }),
+            ],
+            skippedCount: 1,
+            unverifiedUnitCount: 1,
+          }),
+        ],
+      ]),
+      new Map([
+        [
+          'v1',
+          {
+            expression: 'log(a)',
+            evalVersion: 1,
+            args: [],
+            unitVerified: false,
+          },
+        ],
+      ]) as DerivedValues
+    )
+
+    const line = screen.getByTestId('rollup-line').textContent ?? ''
+    expect(line).toContain('65')
+    expect(line.indexOf('65')).toBeLessThan(line.indexOf('4120 kg'))
+  })
+
   it('orders a matching bucket ahead of a larger one, then by size', () => {
     const kg = bucket({
       dimension: 'mass',
@@ -217,6 +267,28 @@ describe('rollup rows in the property read view', () => {
       pcs,
       heavy,
     ])
+  })
+
+  // The node counts an unchecked number without a unit only in the unit-less total, even beside a
+  // count total, so that is the one this object is in.
+  it('headlines the unit-less total for an object whose own bare value is unchecked', () => {
+    const pcs = bucket({
+      dimension: 'count',
+      unit: 'pcs',
+      num: 3,
+      contributorCount: 3,
+    })
+    const unitless = bucket({
+      dimension: 'unitless',
+      num: 2,
+      contributorCount: 1,
+    })
+
+    expect(
+      orderBuckets([pcs, unitless], undefined, [
+        { num: 2, unitVerified: false },
+      ])
+    ).toEqual([unitless, pcs])
   })
 
   // An ORPHAN card — no property here carries the rule's key — reaches the same `undefined` own

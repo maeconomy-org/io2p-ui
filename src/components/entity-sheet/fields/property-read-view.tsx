@@ -32,8 +32,8 @@ import { DeletedRow } from './deleted-row'
 import {
   RollupLine,
   RollupStaleBadge,
+  holds,
   leftOut,
-  measures,
   orderBuckets,
   type NumericValues,
   ownFactor,
@@ -85,8 +85,9 @@ function fileCount(p: DraftProperty): number {
  * multi-bucket row. A bucket carries the canonical unit of its dimension and a value's `unit` is
  * canonical too, so the two are directly comparable.
  */
-function ownUnit(p: DraftProperty): string | undefined {
-  return liveValues(p).find((v) => v.unit !== undefined)?.unit
+function ownUnit(values: NumericValues): string | undefined {
+  // A left-out value is in no total, so its unit must not pick the headline.
+  return values.find((v) => v.unit !== undefined && !leftOut(v))?.unit
 }
 
 function valueSummary(
@@ -290,7 +291,7 @@ export function PropertyReadView({
           // the moment a contributor is scaled.
           if (entry.descendantCount === 0 && !entry.multiplyBy) return false
 
-          const lead = orderBuckets(entry.buckets, ownUnit(property), own)[0]
+          const lead = orderBuckets(entry.buckets, ownUnit(own), own)[0]
           // With no bucket the entry can only report skips, and `ownShare` has
           // nothing to compare — which kept the card on every leaf whose values are
           // all unreadable ("5 lux"). Its own skips covering the count means the
@@ -309,7 +310,9 @@ export function PropertyReadView({
           if (entry.stale) {
             const mine = own.filter(
               (v) =>
-                v.num !== undefined && !leftOut(v) && measures(lead, v.unit)
+                v.num !== undefined &&
+                !leftOut(v) &&
+                holds(lead, v, entry.buckets)
             ).length
             return !(
               mine > 0 &&
@@ -321,7 +324,8 @@ export function PropertyReadView({
             lead,
             own,
             multiplierValues,
-            entry.multiplyBy?.whenMissing
+            entry.multiplyBy?.whenMissing,
+            entry.buckets
           )?.onlyContributor
         })
         .sort(
@@ -405,7 +409,7 @@ export function PropertyReadView({
                 key={entry.ruleId}
                 entry={entry}
                 locale={locale}
-                ownUnit={property ? ownUnit(property) : undefined}
+                ownUnit={property ? ownUnit(ownValues) : undefined}
                 ownValues={property ? ownValues : undefined}
                 multiplierValues={multiplierValues}
               />
@@ -434,7 +438,7 @@ export function PropertyReadView({
                 key={entry.ruleId}
                 entry={entry}
                 locale={locale}
-                ownUnit={property ? ownUnit(property) : undefined}
+                ownUnit={property ? ownUnit(ownValues) : undefined}
                 ownValues={property ? ownValues : undefined}
                 multiplierValues={multiplierValues}
               />

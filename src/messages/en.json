@@ -421,8 +421,8 @@
       "children": "Children"
     },
     "formulaEditor": {
-      "unitUnverified": "The node cannot check this result against its result unit, so the value will be saved and shown but left out of every total. This happens with the logarithm of a value that has a unit, a variable exponent, if/else branches in different units, or an input that was itself not checked. To count it, duplicate the formula and change the expression, or leave out the result unit so it counts as a plain number.",
-      "unitUnverifiedPlain": "The node cannot check this result's unit, so it will be counted as a plain number. If the result has a real unit, duplicate the formula and set it as the result unit so the node can check it. If a rollup rule uses this value as its multiplier, that object is left out of the total.",
+      "unitUnverified": "The node cannot check this result against its result unit, so the value will be saved and shown but left out of every total. This happens with the logarithm of a value that has a unit, a variable exponent, if/else branches in different units, or an input that was itself not checked. To count it, duplicate the formula and change the expression, or leave out the result unit so it counts in the total without a unit.",
+      "unitUnverifiedPlain": "The node cannot check this result's unit, so it will be counted in the total without a unit. If the result has a real unit, duplicate the formula and set it as the result unit so the node can check it. If a rollup rule uses this value as its multiplier, that object is left out of the total.",
       "switchToFormula": "Use a formula",
       "switchToText": "Use a plain value",
       "selectFormula": "Select a formula",
@@ -452,8 +452,8 @@
         "handConversionConstant": "The constant bound to {name} ({literal}) looks like a conversion to {unit}. The values the formula reads are already in standard units, so it scales the result instead of converting it. {unit} is already the result unit and converts by itself. Formulas cannot be edited: duplicate this one without {name}.",
         "factor": "{count, plural, one {{vars} is read} other {{vars} are read}} in {unit} per {per}. Check that the value is given in that unit.",
         "factorNoPer": "{count, plural, one {{vars} is read} other {{vars} are read}} in {unit} per standard unit of what it multiplies. Check that the value is given in that unit.",
-        "declareUnit": "The node does not name this result's unit from its inputs, so it counts as a plain number. If a rollup rule uses it as its multiplier, that object is left out of the total. To have it checked, duplicate the formula and set its real unit as the result unit.",
-        "declareUnitSuggested": "This result is {unit} only if a value without a unit is read as a factor, so for now it counts as a plain number. If a rollup rule uses it as its multiplier, that object is left out of the total. To give it that unit and have it checked, duplicate the formula and set {unit} as the result unit.",
+        "declareUnit": "The node does not name this result's unit from its inputs, so it counts in the total without a unit. If a rollup rule uses it as its multiplier, that object is left out of the total. To have it checked, duplicate the formula and set its real unit as the result unit.",
+        "declareUnitSuggested": "This result is {unit} only if a value without a unit is read as a factor, so for now it counts in the total without a unit. If a rollup rule uses it as its multiplier, that object is left out of the total. To give it that unit and have it checked, duplicate the formula and set {unit} as the result unit.",
         "perItem": "item",
         "handConversionDown": "This formula makes the result {literal} times smaller, which looks like a conversion to {unit}. The values it reads are already in standard units, so this scales the result instead of converting it. {unit} is already the result unit and converts by itself. Formulas cannot be edited: duplicate this one without that conversion.",
         "handConversionUp": "This formula makes the result {literal} times larger, which looks like a conversion to {unit}. The values it reads are already in standard units, so this scales the result instead of converting it. {unit} is already the result unit and converts by itself. Formulas cannot be edited: duplicate this one without that conversion."
@@ -628,9 +628,9 @@
       "rollupContributors": "{count, plural, one {# value} other {# values}}",
       "rollupSkipped": "{count, plural, one {# not counted} other {# not counted}}",
       "unitNotCounted": "Not counted",
-      "unitNotCountedDetail": "The node could not check this value against the formula's result unit, so it is left out of every total. This happens with the logarithm of a value that has a unit, a variable exponent, if/else branches in different units, or an input that was itself not checked. To count it, duplicate the formula and change the expression, or leave out the result unit so it counts as a plain number.",
+      "unitNotCountedDetail": "The node could not check this value against the formula's result unit, so it is left out of every total. This happens with the logarithm of a value that has a unit, a variable exponent, if/else branches in different units, or an input that was itself not checked. To count it, duplicate the formula and change the expression, or leave out the result unit so it counts in the total without a unit.",
       "unitNotChecked": "Unit not checked",
-      "unitNotCheckedDetail": "The node could not check this result's unit, so it is counted as a plain number. If the result has a real unit, duplicate the formula and set it as the result unit so the node can check it. If a rollup rule uses this value as its multiplier, that object is left out of the total.",
+      "unitNotCheckedDetail": "The node could not check this result's unit, so it is counted in the total without a unit. If the result has a real unit, duplicate the formula and set it as the result unit so the node can check it. If a rollup rule uses this value as its multiplier, that object is left out of the total.",
       "rollupUnverified": "{count, plural, one {# of them marked “Not counted”} other {# of them marked “Not counted”}}",
       "rollupMultiValue": "{count, plural, one {# object has several values} other {# objects have several values}}",
       "rollupMultiValueAllCounted": "{count, plural, one {# object has several values, all counted} other {# objects have several values, all counted}}",
@@ -957,7 +957,7 @@
         "resultUnit": "The result unit chooses the unit the result is shown in. When the inputs have units, it converts by itself: do not also divide by 1000 (the node warns when a formula looks like it does). When the inputs are plain numbers, it names the unit the formula produces: any conversion is yours to write, and the node does not warn about it.",
         "inherit": "Without a result unit, a sum keeps its unit (kg + kg is kg), multiplying by a constant keeps it too, and some products are named (kW × h is kWh). For other combinations, such as V × Ah, the node cannot name the unit and asks you to set a result unit.",
         "factor": "A number without a unit, such as an emission factor, is read as a factor only when the formula has a result unit: then it is kgCO2e per kWh, not per MWh. Without a result unit, a constant is a plain multiplier and the result keeps its input's unit (100 kWh × 0.5 is 50 kWh), and a value without a unit makes the node ask you to set one.",
-        "unchecked": "Some results cannot be checked, such as the logarithm of a value with a unit, or a variable exponent. With a result unit such a value is left out of totals; without one it counts as a plain number. Either way, a rollup rule that uses it as its multiplier leaves that object out of the total."
+        "unchecked": "Some results cannot be checked, such as the logarithm of a value with a unit, or a variable exponent. With a result unit such a value is left out of totals; without one it counts in the total without a unit. Either way, a rollup rule that uses it as its multiplier leaves that object out of the total."
       }
     },
     "variables": "Variables",
