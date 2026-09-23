@@ -61,9 +61,10 @@ describe('object row actions against the ladder', () => {
     expect(screen.queryByTestId('object-action-share')).toBeNull()
   })
 
-  it('offers share at the share rung, still without delete', async () => {
+  // The sheet reads the grant list, which the node serves at admin only.
+  it('withholds share and delete at the share rung', async () => {
     await openMenu(row({ permission: 'share' }))
-    expect(screen.getByTestId('object-action-share')).toBeInTheDocument()
+    expect(screen.queryByTestId('object-action-share')).toBeNull()
     expect(screen.queryByTestId('object-action-delete')).toBeNull()
   })
 

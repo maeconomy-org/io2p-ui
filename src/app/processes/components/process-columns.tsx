@@ -15,7 +15,7 @@ import {
   actionsColumn,
   canDelete,
   canEdit,
-  canReshare,
+  canViewGrants,
   permissionWhenKnown,
   idColumn,
   nameColumn,
@@ -152,10 +152,9 @@ function rowActions(
           },
         ]
       : []),
-    // GRANTING needs `share`, which an ADMIN grantee also holds — `createdBy` denied them a
-    // control the node would have allowed. Reading the grant list inside the sheet is stricter
-    // still, at `admin`, and the sheet decides that for itself from the same verdict.
-    ...(canReshare(permission)
+    // Offered where the sheet can do something: it works from the grant list, which the node serves
+    // at `admin` only (an admin grantee included — `createdBy` would deny them).
+    ...(canViewGrants(permission)
       ? [
           {
             key: 'share',

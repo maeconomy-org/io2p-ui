@@ -8,7 +8,7 @@ import {
   EntityActionsCell,
   type EntityRowAction,
   canDelete,
-  canReshare,
+  canViewGrants,
   permissionWhenKnown,
 } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
@@ -50,10 +50,9 @@ export function ObjectActionsCell({
   // The node's verdict, falling back to the owner — objects have no separate owner, so their author
   // holds `admin` on them.
   const permission = permissionWhenKnown(object, userId, authLoading)
-  // GRANTING needs `share`; the node 403s anything less, so offering the sheet to a plain reader
-  // would open one that can only fail. Reading the grant list inside it is stricter still — the
-  // node wants `admin` — which the sheet decides for itself from the same verdict.
-  const canShare = !!actions.onShare && canReshare(permission)
+  // The sheet works from the grant list, which the node serves at `admin` only: below that it can
+  // show nothing but "owner only", so the action is offered where the sheet can do something.
+  const canShare = !!actions.onShare && canViewGrants(permission)
 
   const rowActions: EntityRowAction[] = []
 

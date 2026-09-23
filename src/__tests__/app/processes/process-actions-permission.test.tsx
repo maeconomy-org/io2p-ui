@@ -69,10 +69,10 @@ describe('process row actions against the ladder', () => {
     expect(screen.queryByTestId('process-action-delete')).toBeNull()
   })
 
-  it('offers share to a share grantee, who is not the author', async () => {
-    // The bug this closes: `createdBy === userId` denied this row's Share entirely.
+  // The sheet reads the grant list, which the node serves at admin only.
+  it('withholds share and delete from a share grantee', async () => {
     await openMenu(row({ permission: 'share' }))
-    expect(screen.getByTestId('process-action-share')).toBeInTheDocument()
+    expect(screen.queryByTestId('process-action-share')).toBeNull()
     expect(screen.queryByTestId('process-action-delete')).toBeNull()
   })
 
