@@ -64,6 +64,14 @@ describe('ownFactor', () => {
     expect(ownFactor([{ num: -3 }])).toBeNull()
   })
 
+  // The node refuses an unchecked multiplier with or without a unit: its scale is unknown, so
+  // the object is skipped, never scaled by it.
+  it('refuses a multiplier the node could not check', () => {
+    expect(ownFactor([{ num: 1200, unitVerified: false }])).toBeNull()
+    expect(ownFactor([{ num: 4, unit: 'pcs', unitVerified: false }])).toBeNull()
+    expect(ownFactor([{ num: 4, unitVerified: true }])).toBe(4)
+  })
+
   // The unit is IGNORED: the rolled-up key already carries the result unit, so a multiplier
   // scales magnitude only. "5" and "5 pcs" are the same quantity.
   it('ignores the multiplier’s own unit', () => {
@@ -144,6 +152,40 @@ describe('ownShare', () => {
   // count — everything showing belongs to the subtree below.
   it('gives the whole total to the subtree when the node skipped this object', () => {
     const share = ownShare(bucket(48, 1), [kg(12)], [{ num: undefined }])
+    expect(share).toEqual({ own: 0, below: 48, onlyContributor: false })
+  })
+
+  // Four states: an unchecked value WITH a unit is left out of the total, so it is not "here".
+  it('leaves an unchecked own value with a unit out of its own share', () => {
+    const share = ownShare(bucket(60, 2), [
+      kg(12),
+      { num: 500, unit: 'kg', unitVerified: false },
+    ])
+    expect(share).toEqual({ own: 12, below: 48, onlyContributor: false })
+  })
+
+  // Without a unit it is counted like any plain number.
+  it('keeps an unchecked own value without a unit in a count total', () => {
+    const pcs = {
+      dimension: 'count',
+      unit: 'pcs',
+      num: 12,
+      unitCount: 3,
+      contributorCount: 3,
+    } as RollupBucket
+    expect(ownShare(pcs, [{ num: 5, unitVerified: false }])).toEqual({
+      own: 5,
+      below: 7,
+      onlyContributor: false,
+    })
+  })
+
+  it('gives the whole total to the subtree when the multiplier is unchecked', () => {
+    const share = ownShare(
+      bucket(48, 1),
+      [kg(12)],
+      [{ num: 4, unitVerified: false }]
+    )
     expect(share).toEqual({ own: 0, below: 48, onlyContributor: false })
   })
 

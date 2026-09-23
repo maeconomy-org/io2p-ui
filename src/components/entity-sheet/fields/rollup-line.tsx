@@ -7,6 +7,7 @@ import type { EntityRollupEntry, RollupBucket } from 'io2p-client'
 
 import { cn } from '@/lib/utils'
 import { round } from '@/lib/round'
+import { uncheckedState } from './value-provenance'
 
 /**
  * Whether an entry says anything worth a line.
@@ -35,7 +36,11 @@ export function rollupSaysSomething(entry: EntityRollupEntry): boolean {
   )
 }
 
-type NumericValues = readonly { num?: number; unit?: string }[]
+export type NumericValues = readonly {
+  num?: number
+  unit?: string
+  unitVerified?: boolean
+}[]
 
 /** The rule's answer for an object that has no value under the multiplier's key. */
 type WhenMissing = NonNullable<EntityRollupEntry['multiplyBy']>['whenMissing']
@@ -61,6 +66,9 @@ function measures(bucket: RollupBucket, unit?: string): boolean {
   )
 }
 
+export const leftOut = (v: NumericValues[number]) =>
+  uncheckedState(v, v.unit) === 'left-out'
+
 /**
  * The factor the node applied to THIS object's contribution, mirroring how it resolves a
  * multiplier per row. `undefined` values mean the rule does not multiply at all.
@@ -83,6 +91,7 @@ export function ownFactor(
   if (values.length > 1) return null // several live values -> ambiguous
   const [only] = values
   if (only?.num === undefined) return null // present but never parsed
+  if (only.unitVerified === false) return null // unchecked, with or without a unit
   return only.num < 0 ? null : only.num
 }
 
@@ -114,7 +123,7 @@ export function ownShare(
   whenMissing?: WhenMissing
 ): { own: number; below: number; onlyContributor: boolean } | null {
   const contributing = ownValues.filter(
-    (v) => v.num !== undefined && measures(bucket, v.unit)
+    (v) => v.num !== undefined && !leftOut(v) && measures(bucket, v.unit)
   )
   if (contributing.length === 0) return null
 

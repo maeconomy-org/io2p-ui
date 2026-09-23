@@ -18,11 +18,13 @@ vi.mock('next-intl', () => ({
 function renderValue(
   value: Partial<DraftValue>,
   usedInFormula = false,
-  usedAsMultiplier = false
+  usedAsMultiplier = false,
+  unitVerified?: boolean
 ) {
   return render(
     React.createElement(ValueNormalization, {
       value: value as DraftValue,
+      unitVerified,
       usedInFormula,
       usedAsMultiplier,
     })
@@ -65,6 +67,40 @@ describe('ValueNormalization', () => {
     })
 
     expect(container).toBeEmptyDOMElement()
+  })
+
+  // A rule will not scale a total by a quantity the node could not check, with or without a
+  // unit: the object drops out of that total, so the row says so where the grey badge would not.
+  it('marks an unchecked quantity that a rule multiplies by as excluded', () => {
+    renderValue({ data: '1200', num: 1200, parse: OK }, false, true, false)
+
+    expect(
+      screen.getByRole('button', { name: 'objects.properties.unitNotChecked' })
+    ).toBeInTheDocument()
+  })
+
+  it('leaves an unchecked value alone when no rule multiplies by it', () => {
+    const { container } = renderValue(
+      { data: '1200', num: 1200, parse: OK },
+      false,
+      false,
+      false
+    )
+
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('leaves a checked or plain quantity alone', () => {
+    for (const unitVerified of [true, undefined]) {
+      const { container, unmount } = renderValue(
+        { data: '4', num: 4, parse: OK },
+        false,
+        true,
+        unitVerified
+      )
+      expect(container).toBeEmptyDOMElement()
+      unmount()
+    }
   })
 
   it('marks a real unit conversion, with the canonical form on the label', () => {

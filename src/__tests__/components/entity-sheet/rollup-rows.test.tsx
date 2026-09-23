@@ -14,6 +14,7 @@ import type { EntityRollupEntry, RollupBucket } from 'io2p-client'
 import { PropertyFields } from '@/components/entity-sheet/fields'
 import { orderBuckets } from '@/components/entity-sheet/fields/rollup-line'
 import type { EntityDraft } from '@/lib/entity'
+import type { DerivedValues } from '@/components/entity-sheet/fields/value-provenance'
 
 const objects = { list: vi.fn(), get: vi.fn() }
 const files = { preview: vi.fn(), download: vi.fn(), get: vi.fn() }
@@ -81,7 +82,8 @@ function massProperty(unit = 'kg') {
 
 function renderRollups(
   properties: EntityDraft['properties'],
-  rollups: Map<string, EntityRollupEntry>
+  rollups: Map<string, EntityRollupEntry>,
+  derivedValues: DerivedValues = NO_DERIVED
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -104,7 +106,7 @@ function renderRollups(
       React.createElement(PropertyFields, {
         form: result.current,
         editing: false,
-        derivedValues: NO_DERIVED,
+        derivedValues,
         rollups,
       })
     )
@@ -835,6 +837,82 @@ describe('rollup rows in the property read view', () => {
             propertyKey: 'pressure',
             buckets: [],
             skippedCount: 1,
+          }),
+        ],
+      ])
+    )
+    expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
+  })
+
+  // A leaf a rule MULTIPLIES — the realistic way past the descendantCount check. Its only value
+  // has a unit the node could not check, so the node skipped it: the skip is its own.
+  it('drops the card on a multiplied leaf whose own value was left out as unchecked', () => {
+    renderRollups(
+      [
+        {
+          id: 'p1',
+          key: 'energy',
+          label: 'Energy',
+          values: [{ id: 'v1', data: '2.3 kg', num: 2.3, unit: 'kg' }],
+        },
+      ],
+      new Map([
+        [
+          'energy',
+          entry({
+            ruleId: 'rule-energy',
+            propertyKey: 'energy',
+            buckets: [],
+            skippedCount: 1,
+            unverifiedUnitCount: 1,
+            descendantCount: 0,
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
+          }),
+        ],
+      ]),
+      new Map([
+        [
+          'v1',
+          {
+            expression: 'log(a)',
+            evalVersion: 1,
+            args: [],
+            unitVerified: false,
+          },
+        ],
+      ]) as DerivedValues
+    )
+    expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
+  })
+
+  // A calc error stores `data: ''`, which the node normalizes to `parse.ok: false`: the same
+  // unreadable own value as "5 lux", reached through a formula.
+  it('drops the card on a multiplied leaf whose own formula failed', () => {
+    renderRollups(
+      [
+        {
+          id: 'p1',
+          key: 'energy',
+          label: 'Energy',
+          values: [
+            {
+              id: 'v1',
+              data: '',
+              parse: { ok: false, normVersion: 1, reason: 'no-number' },
+            },
+          ],
+        },
+      ],
+      new Map([
+        [
+          'energy',
+          entry({
+            ruleId: 'rule-energy',
+            propertyKey: 'energy',
+            buckets: [],
+            skippedCount: 1,
+            descendantCount: 0,
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
           }),
         ],
       ])

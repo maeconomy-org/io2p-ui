@@ -32,7 +32,9 @@ import { DeletedRow } from './deleted-row'
 import {
   RollupLine,
   RollupStaleBadge,
+  leftOut,
   orderBuckets,
+  type NumericValues,
   ownShare,
   rollupSaysSomething,
 } from './rollup-line'
@@ -187,6 +189,16 @@ export function PropertyReadView({
    * property it relates to (when there is one), which is what lets the card show
    * the own/below split without pretending to be that property.
    */
+  // The flag lives on the trace, not the value: the row's badge reads the same map.
+  const withUnitCheck = useCallback(
+    (values: DraftValue[]) =>
+      values.map((v) => ({
+        ...v,
+        unitVerified: v.id ? derivedValues.get(v.id)?.unitVerified : undefined,
+      })),
+    [derivedValues]
+  )
+
   const rollupCards = useMemo(() => {
     if (!liveRollups) return []
     // LIVE properties only. `liveValues` filters deleted VALUES, not a deleted PROPERTY —
@@ -207,12 +219,14 @@ export function PropertyReadView({
           const multiplied = multiplierKey
             ? byKey.get(multiplierKey.toLowerCase())
             : undefined
+          const property = byKey.get(entry.propertyKey)
           return {
             entry,
-            property: byKey.get(entry.propertyKey),
+            property,
+            ownValues: property ? withUnitCheck(liveValues(property)) : [],
             multiplierValues: multiplierKey
               ? multiplied
-                ? liveValues(multiplied)
+                ? withUnitCheck(liveValues(multiplied))
                 : []
               : undefined,
           }
@@ -221,9 +235,8 @@ export function PropertyReadView({
         // sitting directly above it — in canonical units, so it reads as a second
         // number. A leaf has nothing below to total; the card returns when a child
         // does.
-        .filter(({ entry, property, multiplierValues }) => {
+        .filter(({ entry, property, ownValues: own, multiplierValues }) => {
           if (!property || entry.error) return true
-          const own = liveValues(property)
           // `num`/`parse` are normalizer output and land with the READ, so a value
           // authored a moment ago carries neither. "Does anything below contribute?"
           // has no answer yet, and answering it "yes" flashed a card that vanished
@@ -249,9 +262,13 @@ export function PropertyReadView({
           // nothing to compare — which kept the card on every leaf whose values are
           // all unreadable ("5 lux"). Its own skips covering the count means the
           // object is again the sole contributor. Still reached when the count is
-          // absent, which is the over-bound case.
+          // absent, which is the over-bound case. A value skipped because of the
+          // object's own MULTIPLIER is deliberately not counted here: the card is the
+          // only place that says it was dropped.
           if (!lead) {
-            const unreadable = own.filter((v) => v.parse?.ok === false).length
+            const unreadable = own.filter(
+              (v) => v.parse?.ok === false || leftOut(v)
+            ).length
             return entry.skippedCount > unreadable
           }
           return !ownShare(
@@ -267,7 +284,7 @@ export function PropertyReadView({
             a.entry.ruleId.localeCompare(b.entry.ruleId)
         )
     )
-  }, [liveRollups, properties])
+  }, [liveRollups, properties, withUnitCheck])
 
   // Not `properties.length` — an object whose rules all cover keys it never authored has only
   // orphan rows, and testing the properties alone would discard exactly those.
@@ -336,16 +353,18 @@ export function PropertyReadView({
               </div>
             )
           )}
-          {rollupCards.map(({ entry, property, multiplierValues }) => (
-            <RollupCard
-              key={entry.ruleId}
-              entry={entry}
-              locale={locale}
-              ownUnit={property ? ownUnit(property) : undefined}
-              ownValues={property ? liveValues(property) : undefined}
-              multiplierValues={multiplierValues}
-            />
-          ))}
+          {rollupCards.map(
+            ({ entry, property, ownValues, multiplierValues }) => (
+              <RollupCard
+                key={entry.ruleId}
+                entry={entry}
+                locale={locale}
+                ownUnit={property ? ownUnit(property) : undefined}
+                ownValues={property ? ownValues : undefined}
+                multiplierValues={multiplierValues}
+              />
+            )
+          )}
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -363,16 +382,18 @@ export function PropertyReadView({
               allowFiles={allowFiles}
             />
           ))}
-          {rollupCards.map(({ entry, property, multiplierValues }) => (
-            <RollupCard
-              key={entry.ruleId}
-              entry={entry}
-              locale={locale}
-              ownUnit={property ? ownUnit(property) : undefined}
-              ownValues={property ? liveValues(property) : undefined}
-              multiplierValues={multiplierValues}
-            />
-          ))}
+          {rollupCards.map(
+            ({ entry, property, ownValues, multiplierValues }) => (
+              <RollupCard
+                key={entry.ruleId}
+                entry={entry}
+                locale={locale}
+                ownUnit={property ? ownUnit(property) : undefined}
+                ownValues={property ? ownValues : undefined}
+                multiplierValues={multiplierValues}
+              />
+            )
+          )}
         </div>
       )}
     </div>
@@ -400,8 +421,8 @@ function RollupCard({
 }: {
   entry: EntityRollupEntry
   locale: PropertyDictionaryLocale
-  ownValues?: readonly { num?: number; unit?: string }[]
-  multiplierValues?: readonly { num?: number; unit?: string }[]
+  ownValues?: NumericValues
+  multiplierValues?: NumericValues
   ownUnit?: string
   'data-testid'?: string
 }) {
@@ -634,6 +655,7 @@ function ValueRow({
         <span>{displayValue(value)}</span>
         <ValueNormalization
           value={value}
+          unitVerified={provenance?.unitVerified}
           usedInFormula={!!value.id && boundValueIds.has(value.id)}
           usedAsMultiplier={usedAsMultiplier}
         />

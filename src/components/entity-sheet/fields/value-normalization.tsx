@@ -32,11 +32,14 @@ import type { DerivedValues } from './value-provenance'
  */
 export function ValueNormalization({
   value,
+  unitVerified,
   usedInFormula = false,
   usedAsMultiplier = false,
   className,
 }: {
   value: Pick<DraftValue, 'data' | 'num' | 'unit' | 'parse'>
+  /** A derived value's `provenance.unitVerified`. */
+  unitVerified?: boolean
   /** True when some derived value binds this one — see `formulaBoundValueIds`. */
   usedInFormula?: boolean
   /** True when a rollup rule scales its totals by this value's key — see `multiplierKeysOf`. */
@@ -55,6 +58,21 @@ export function ValueNormalization({
         className={cn('text-destructive', className)}
         label={detail}
         tooltip={`${detail} — ${t(excludedFromKey(usedInFormula, usedAsMultiplier))}`}
+        icon={<AlertTriangle className="h-3.5 w-3.5" />}
+      />
+    )
+  }
+
+  // The node will not scale a total by a quantity it could not check, with or without a unit, so
+  // the object is dropped from that rule's total.
+  if (usedAsMultiplier && unitVerified === false) {
+    const detail = t('objects.properties.unitNotChecked')
+    return (
+      <Marker
+        state="excluded"
+        className={cn('text-destructive', className)}
+        label={detail}
+        tooltip={`${detail} — ${t(excludedFromKey(false, true))}`}
         icon={<AlertTriangle className="h-3.5 w-3.5" />}
       />
     )
