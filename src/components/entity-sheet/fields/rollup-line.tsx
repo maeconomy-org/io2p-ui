@@ -270,6 +270,10 @@ export function RollupLine({
   // error card — the node omits the field entirely on that path, and the span renders outside the
   // error branch. If core ever sent both, this would count things it just said it could not total.
   const multiValue = entry.multiValueCount ?? 0
+  const unverified = Math.min(
+    entry.unverifiedUnitCount ?? 0,
+    entry.skippedCount
+  )
 
   const share = lead
     ? ownShare(
@@ -341,6 +345,13 @@ export function RollupLine({
       {entry.skippedCount > 0 && (
         <span data-testid="rollup-skipped">
           {t('objects.properties.rollupSkipped', { count: entry.skippedCount })}
+          {/* Part of the skipped count, not added to it; absent on older rows means "not reported". */}
+          {unverified > 0 && (
+            <span data-testid="rollup-unverified">
+              {' · '}
+              {t('objects.properties.rollupUnverified', { count: unverified })}
+            </span>
+          )}
         </span>
       )}
 

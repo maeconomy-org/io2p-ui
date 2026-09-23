@@ -640,6 +640,7 @@ function ValueRow({
         {provenance ? (
           <ValueProvenanceDisplay
             provenance={provenance}
+            unit={value.unit}
             labelForValue={labelForValue}
           />
         ) : (

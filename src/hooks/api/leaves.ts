@@ -103,11 +103,8 @@ function useFormulaRestore() {
 }
 
 /**
- * What a formula would produce, asked of the node rather than worked out here.
- *
- * The app used to evaluate the expression itself and resolve the result's unit from a copy of the
- * node's rules. Two implementations of one thing drift, and this one did: it kept rules the node
- * had replaced, so the figure on screen was not the figure that would be stored.
+ * What a formula would produce, asked of the node rather than worked out here: one set of unit
+ * rules, the node's.
  *
  * `body: undefined` while the bindings are incomplete — there is no question to ask yet, and
  * asking half of one would answer about a formula nobody is writing.
@@ -124,7 +121,8 @@ function useFormulaPreview(body: PreviewFormulaInput | undefined) {
     enabled: body !== undefined,
     retry: false,
     refetchOnWindowFocus: false,
-    staleTime: LEAF_STALE_TIME,
+    // A constant gains versions and the body names none, so a cached answer can be about the old one.
+    staleTime: 0,
   })
 }
 

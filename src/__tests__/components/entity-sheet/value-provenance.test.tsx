@@ -5,6 +5,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import {
   ValueProvenanceDisplay,
   labelForValueId,
+  uncheckedState,
 } from '@/components/entity-sheet/fields/value-provenance'
 import type { DraftProperty, ValueProvenance } from '@/lib/entity'
 
@@ -25,10 +26,11 @@ const PROVENANCE: ValueProvenance = {
   ],
 }
 
-function renderProvenance(provenance: ValueProvenance) {
+function renderProvenance(provenance: ValueProvenance, unit?: string) {
   return render(
     React.createElement(ValueProvenanceDisplay, {
       provenance,
+      unit,
       labelForValue: (id: string) => (id === 'val-1' ? 'Height' : undefined),
     })
   )
@@ -152,5 +154,66 @@ describe('labelForValueId', () => {
 
   it('returns undefined for a value outside the draft', () => {
     expect(labelForValueId(properties, 'missing')).toBeUndefined()
+  })
+})
+
+// The node's four states. Only an explicit `false` is unchecked, and the value's unit decides
+// what that means for a total: with one it is left out, without one it counts as a plain number.
+describe('a result whose unit the node could not check', () => {
+  it('marks nothing when the answer says nothing about the unit', () => {
+    renderProvenance(PROVENANCE, 'kg')
+
+    expect(screen.queryByTestId('provenance-unit-left-out')).toBeNull()
+    expect(screen.queryByTestId('provenance-unit-unchecked')).toBeNull()
+  })
+
+  it('marks nothing when the node checked the unit', () => {
+    renderProvenance({ ...PROVENANCE, unitVerified: true }, 'kg')
+
+    expect(screen.queryByTestId('provenance-unit-left-out')).toBeNull()
+    expect(screen.queryByTestId('provenance-unit-unchecked')).toBeNull()
+  })
+
+  it('says a value with a unit is left out of totals, and why', () => {
+    renderProvenance({ ...PROVENANCE, unitVerified: false }, 'kg')
+
+    expect(screen.getByTestId('provenance-unit-left-out')).toHaveTextContent(
+      'objects.properties.unitNotCounted'
+    )
+    fireEvent.click(screen.getByRole('button'))
+    expect(
+      screen.getByText('objects.properties.unitNotCountedDetail')
+    ).toBeInTheDocument()
+  })
+
+  // Without a unit it IS counted, so "not counted" would be false.
+  it('says only "not checked" for a number without a unit', () => {
+    renderProvenance({ ...PROVENANCE, unitVerified: false })
+
+    expect(screen.queryByTestId('provenance-unit-left-out')).toBeNull()
+    expect(screen.getByTestId('provenance-unit-unchecked')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button'))
+    expect(
+      screen.getByText('objects.properties.unitNotCheckedDetail')
+    ).toBeInTheDocument()
+  })
+
+  // An error has no number at all; the error mark already says everything.
+  it('leaves an error to the error mark', () => {
+    renderProvenance({
+      ...PROVENANCE,
+      unitVerified: false,
+      error: { code: 'domain', detail: 'x' },
+    })
+
+    expect(screen.queryByTestId('provenance-unit-left-out')).toBeNull()
+    expect(screen.queryByTestId('provenance-unit-unchecked')).toBeNull()
+  })
+
+  it('reads the three values of unitVerified as three answers', () => {
+    expect(uncheckedState({}, 'kg')).toBeUndefined()
+    expect(uncheckedState({ unitVerified: true }, 'kg')).toBeUndefined()
+    expect(uncheckedState({ unitVerified: false }, 'kg')).toBe('left-out')
+    expect(uncheckedState({ unitVerified: false }, undefined)).toBe('plain')
   })
 })

@@ -30,7 +30,7 @@ import { OwnerHint } from '@/components/entity-list'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { SEARCH_SIZE } from '@/constants'
 
-import { calcErrorText } from './value-provenance'
+import { calcErrorText, uncheckedState } from './value-provenance'
 
 /**
  * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
@@ -60,8 +60,7 @@ export interface FormulaSibling {
    *
    * Sent ONLY when there is no `num`. A stored value's text is display text — a derived one reads
    * "0.02 MWh" while its number is 20 in kWh — so reading it as typed would change the scale. A
-   * just-typed "10 t" has no number yet, and its text is the only truth there is; before this it
-   * previewed nothing at all.
+   * just-typed "10 t" has no number yet, and its text is the only truth there is.
    */
   data?: string
 }
@@ -278,13 +277,9 @@ export function FormulaBindings({
   }, [formula, calc.args, siblings])
 
   /**
-   * Settled bindings only. `siblings` is rebuilt on every render of the sheet, and now carries
-   * each value's typed TEXT, so a neighbouring field being typed into changes this body on every
-   * keystroke — "1", "10", "10 ", "10 t" is four different questions and, before this, four
-   * requests.
-   *
-   * Nothing on screen waits for the answer any more: there is no figure to show, only a refusal
-   * or an unchecked unit to report. So the wait can be generous, and 400ms costs the user nothing.
+   * Settled bindings only. `siblings` carries each value's typed TEXT, so typing into a
+   * neighbouring field changes this body on every keystroke. Nothing on screen waits for the
+   * answer — there is no figure, only a refusal or an unchecked unit — so the wait is free.
    */
   const [settledBody, setSettledBody] = useState(previewBody)
   const bodyKey = previewBody === undefined ? '' : JSON.stringify(previewBody)
@@ -299,6 +294,7 @@ export function FormulaBindings({
   const settledKey =
     settledBody === undefined ? '' : JSON.stringify(settledBody)
   const preview = settledKey === bodyKey ? settledAnswer : undefined
+  const unchecked = preview && uncheckedState(preview, preview.unit)
 
   if (!formula) return null
 
@@ -372,15 +368,11 @@ export function FormulaBindings({
           className="flex items-start gap-1.5 text-xs text-destructive"
         >
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          {/* The same six sentences the value row shows, not a second set. The node's `detail` is
-              English by contract, so surfacing it would mix languages for a Dutch reader — and the
-              row already decided that. One wording, whether the refusal is predicted or stored. */}
+          {/* The same sentences the value row shows. The node's `detail` is English by contract,
+              so it is demoted, not dropped: for a code this app does not know, it is the only
+              thing that says what went wrong. */}
           <span>
             {calcErrorText(preview.error.code, t)}
-            {/* The node's `detail` is English by contract, so it is DEMOTED rather than dropped —
-                the same shape the value row uses for the same refusal. It matters most for a code
-                this app does not know: the sentence above is generic there, and this is the only
-                thing that says what actually went wrong. */}
             {preview.error.detail && (
               <span className="mt-0.5 block text-[10px] opacity-80">
                 {preview.error.detail}
@@ -390,28 +382,35 @@ export function FormulaBindings({
         </p>
       )}
 
-      {/* AMBER: the value is stored and shown, it is only left out of totals.
+      {/* AMBER: the value is stored and shown either way.
           Read as `=== false` and never as falsy: the node sends `true` when it checked the unit,
           `false` when it could not, and NOTHING when there was nothing to check — which is the
           commonest case and means an ordinary number. Collapsing absent into false would put this
           warning on almost every derived value. */}
-      {preview?.unitVerified === false && (
+      {unchecked && (
         <p
           data-testid="formula-unit-unverified"
           className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
         >
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>{t('objects.formulaEditor.unitUnverified')}</span>
+          <span>
+            {t(
+              unchecked === 'left-out'
+                ? 'objects.formulaEditor.unitUnverified'
+                : 'objects.formulaEditor.unitUnverifiedPlain'
+            )}
+          </span>
         </p>
       )}
 
-      {/* No figure here, deliberately (product owner, 2026-09-21). The value row shows what was
-          actually stored, moments later and from the same source; a second number in a second
-          place is what drifted before, and the one that was wrong was always this one. What stays
-          is only what the row CANNOT say afterwards — a refusal, and a unit the node could not
-          check. */}
+      {/* No result figure: the value row shows what was stored. The panel keeps only what the
+          row cannot tell the author in time — a refusal, and a unit the node could not check. */}
       <p className="text-xs text-muted-foreground">
-        {t('objects.formulaEditor.calculatedOnSave')}
+        {t(
+          preview?.error
+            ? 'objects.formulaEditor.errorOnSave'
+            : 'objects.formulaEditor.calculatedOnSave'
+        )}
       </p>
     </div>
   )

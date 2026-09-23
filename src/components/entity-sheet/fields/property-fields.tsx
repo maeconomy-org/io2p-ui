@@ -125,13 +125,10 @@ function newValue(): DraftValue {
  */
 /**
  * The number the NODE will compute with — its CANONICAL form, which is what `num` holds
- * ("10 t" is 10000 kg to the evaluator). Re-parsing `data` here fed the preview 10, so every
- * preview over a value authored in a non-canonical unit was wrong by that unit's factor, and
- * silently right for kg.
+ * ("10 t" is 10000 kg to the evaluator), never a re-parse of the text.
  *
- * `num` is absent until the value has been read back, so a just-typed BARE number still previews
- * off its text. A just-typed "10 t" previews nothing rather than a figure off by 1000 — the same
- * rule the binding editor already applies to a value nobody has filled in.
+ * `num` is absent until the value has been read back. A just-typed bare number is its own
+ * canonical form; anything else just typed ("10 t") has no number here and is sent as text.
  */
 function previewNum(
   stored: number | undefined,
@@ -685,6 +682,7 @@ function PropertyRow({
                       {provenance ? (
                         <ValueProvenanceDisplay
                           provenance={provenance}
+                          unit={value?.unit}
                           labelForValue={(id) =>
                             labelForValueId(
                               siblingSource ?? ownProperties,

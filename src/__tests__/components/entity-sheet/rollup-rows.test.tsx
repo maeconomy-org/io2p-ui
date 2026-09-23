@@ -744,6 +744,70 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByTestId('rollup-skipped')).toBeInTheDocument()
   })
 
+  // `unverifiedUnitCount` is PART of `skippedCount`: one note saying "of which", never a second
+  // count beside it. Absent means an older row that did not report it, not zero.
+  it('says how many of the skipped values had a unit the node could not check', () => {
+    renderRollups(
+      [massProperty()],
+      new Map([
+        [
+          'mass',
+          entry({
+            buckets: [],
+            computedAt: 1_700_000,
+            stale: false,
+            skippedCount: 3,
+            unverifiedUnitCount: 2,
+          }),
+        ],
+      ])
+    )
+    expect(screen.getByTestId('rollup-skipped')).toBeInTheDocument()
+    expect(screen.getByTestId('rollup-unverified')).toBeInTheDocument()
+  })
+
+  it('adds no note when nothing was skipped', () => {
+    renderRollups(
+      [massProperty()],
+      new Map([['mass', entry({ skippedCount: 0, unverifiedUnitCount: 2 })]])
+    )
+    expect(screen.getByTestId('rollup-line')).toBeInTheDocument()
+    expect(screen.queryByTestId('rollup-unverified')).toBeNull()
+  })
+
+  // Core promises a subset; a row that breaks it must not read "3 not counted · 5 of them".
+  it('never claims more unchecked values than were skipped', () => {
+    renderRollups(
+      [massProperty()],
+      new Map([['mass', entry({ skippedCount: 3, unverifiedUnitCount: 5 })]])
+    )
+    expect(screen.getByTestId('rollup-unverified').textContent).toContain(
+      '"count":3'
+    )
+  })
+
+  it('adds no note when the node did not report unchecked values', () => {
+    for (const unverifiedUnitCount of [undefined, 0]) {
+      const { unmount } = renderRollups(
+        [massProperty()],
+        new Map([
+          [
+            'mass',
+            entry({
+              buckets: [],
+              computedAt: 1_700_000,
+              stale: false,
+              skippedCount: 3,
+              ...(unverifiedUnitCount !== undefined && { unverifiedUnitCount }),
+            }),
+          ],
+        ])
+      )
+      expect(screen.queryByTestId('rollup-unverified')).toBeNull()
+      unmount()
+    }
+  })
+
   // A leaf holding `5 bar` under a `pressure` rule: `bar` is in no dimension, so
   // the entry has NO bucket — and the sole-contributor test used to read the lead
   // bucket, leaving every such leaf with a card claiming something is below it.

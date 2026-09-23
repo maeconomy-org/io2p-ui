@@ -422,7 +422,8 @@
     },
     "formulaEditor": {
       "expression": "Expression",
-      "unitUnverified": "This result multiplies or divides values that carry units, so the node cannot check that it really is in the declared unit. The value is saved and shown, but it is left out of every total.",
+      "unitUnverified": "The node cannot check this result against its result unit, so the value will be saved and shown but left out of every total. This happens with the logarithm of a value that has a unit, a variable exponent, if/else branches in different units, or an input that was itself not checked. To count it, change the expression, or remove the result unit so it counts as a plain number.",
+      "unitUnverifiedPlain": "The node cannot check this result's unit, so it will be counted as a plain number. If the result has a real unit, set it as the formula's result unit so the node can check it. If a rollup rule uses this value as its multiplier, that object is left out of the total.",
       "declaredRescale": "This formula declares its result in {declared}, so the node multiplies it by {factor} to store {canonical}. Declare a unit only when the expression itself produces it — adding values already stored in {canonical} produces {canonical}.",
       "declaredRescaleStored": "It will be stored as {stored}.",
       "switchToFormula": "Use a formula",
@@ -449,7 +450,8 @@
       "unbound": "Not bound",
       "siblingValues": "Values on this entity",
       "constants": "Constants",
-      "calculatedOnSave": "The value will be calculated when you save."
+      "calculatedOnSave": "The value will be calculated when you save.",
+      "errorOnSave": "No number will be stored: the value will show this error."
     },
     "detailsSheet": {
       "noParents": "No parents",
@@ -617,6 +619,11 @@
       "rollupUnitCount": "{count, plural, one {# item} other {# items}}",
       "rollupContributors": "{count, plural, one {# value} other {# values}}",
       "rollupSkipped": "{count, plural, one {# not counted} other {# not counted}}",
+      "unitNotCounted": "Not counted",
+      "unitNotCountedDetail": "The node could not check this value against the formula's result unit, so it is left out of every total. This happens with the logarithm of a value that has a unit, a variable exponent, if/else branches in different units, or an input that was itself not checked. To count it, change the expression, or remove the result unit so it counts as a plain number.",
+      "unitNotChecked": "Unit not checked",
+      "unitNotCheckedDetail": "The node could not check this result's unit, so it is counted as a plain number. If the result has a real unit, set it as the formula's result unit so the node can check it. If a rollup rule uses this value as its multiplier, that object is left out of the total.",
+      "rollupUnverified": "{count, plural, one {# of them marked “Not counted”} other {# of them marked “Not counted”}}",
       "rollupMultiValue": "{count, plural, one {# object has several values} other {# objects have several values}}",
       "rollupMultiValueAllCounted": "{count, plural, one {# object has several values, all counted} other {# objects have several values, all counted}}",
       "rollupMoreDimensions": "{count, plural, one {+# more unit} other {+# more units}}",

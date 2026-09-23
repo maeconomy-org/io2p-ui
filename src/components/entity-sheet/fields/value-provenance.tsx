@@ -30,10 +30,13 @@ export type DerivedValues = ReadonlyMap<string, ValueProvenanceData | undefined>
  */
 export function ValueProvenanceDisplay({
   provenance,
+  unit,
   labelForValue,
   className,
 }: {
   provenance: ValueProvenanceData
+  /** The value's own canonical unit. Decides what an unchecked result means for totals. */
+  unit?: string
   /** Property label for an arg bound to a sibling value. Falls back to the variable name alone. */
   labelForValue?: (valueId: string) => string | undefined
   className?: string
@@ -42,6 +45,7 @@ export function ValueProvenanceDisplay({
   const [open, setOpen] = useState(false)
   const detailsId = useId()
   const { error } = provenance
+  const unchecked = !error && uncheckedState(provenance, unit)
 
   return (
     <div className={cn('space-y-1', className)}>
@@ -65,6 +69,26 @@ export function ValueProvenanceDisplay({
           >
             <AlertTriangle className="h-2.5 w-2.5" />
             {t('objects.properties.formulaError')}
+          </Badge>
+        )}
+
+        {unchecked === 'left-out' && (
+          <Badge
+            variant="outline"
+            data-testid="provenance-unit-left-out"
+            className="h-4 shrink-0 gap-0.5 border-amber-600 px-1 text-[10px] text-amber-600 dark:border-amber-500 dark:text-amber-500"
+          >
+            <AlertTriangle className="h-2.5 w-2.5" />
+            {t('objects.properties.unitNotCounted')}
+          </Badge>
+        )}
+        {unchecked === 'plain' && (
+          <Badge
+            variant="outline"
+            data-testid="provenance-unit-unchecked"
+            className="h-4 shrink-0 px-1 text-[10px] text-muted-foreground"
+          >
+            {t('objects.properties.unitNotChecked')}
           </Badge>
         )}
 
@@ -138,6 +162,20 @@ export function ValueProvenanceDisplay({
             </div>
           )}
 
+          {unchecked && (
+            <p
+              className={cn(
+                unchecked === 'left-out' && 'text-amber-600 dark:text-amber-500'
+              )}
+            >
+              {t(
+                unchecked === 'left-out'
+                  ? 'objects.properties.unitNotCountedDetail'
+                  : 'objects.properties.unitNotCheckedDetail'
+              )}
+            </p>
+          )}
+
           {/* The CODE is translated; `detail` is English diagnostic text by contract, so it rides
               along as a secondary line rather than being the whole message. */}
           {error && (
@@ -152,6 +190,20 @@ export function ValueProvenanceDisplay({
       )}
     </div>
   )
+}
+
+/**
+ * What an unchecked result means for totals. Only an explicit `false` is unchecked: an absent
+ * `unitVerified` is an ordinary number with nothing to check, the commonest derived value there is.
+ * With a unit the node leaves the value out of every total; without one it counts it like any
+ * plain number.
+ */
+export function uncheckedState(
+  provenance: Pick<ValueProvenanceData, 'unitVerified'>,
+  unit: string | undefined
+): 'left-out' | 'plain' | undefined {
+  if (provenance.unitVerified !== false) return undefined
+  return unit ? 'left-out' : 'plain'
 }
 
 /**

@@ -238,11 +238,23 @@ describe('the answer it shows', () => {
 // absent field is an answer that says nothing about it, and warning on it would be the green tick
 // this replaced, inverted.
 describe('an unchecked unit', () => {
-  it('warns when the node says it could not check the unit', () => {
+  it('warns that a result with a unit will be left out of totals', () => {
     preview.data = { num: 5, unit: 'kg', unitVerified: false, warnings: [] }
     renderBindings()
 
-    expect(screen.getByTestId('formula-unit-unverified')).toBeInTheDocument()
+    expect(screen.getByTestId('formula-unit-unverified')).toHaveTextContent(
+      'objects.formulaEditor.unitUnverified'
+    )
+  })
+
+  // Without a unit the node counts it like a plain number, so "left out" would be false.
+  it('warns that a result without a unit counts as a plain number', () => {
+    preview.data = { num: 5, unitVerified: false, warnings: [] }
+    renderBindings()
+
+    expect(screen.getByTestId('formula-unit-unverified')).toHaveTextContent(
+      'objects.formulaEditor.unitUnverifiedPlain'
+    )
   })
 
   it('stays quiet when the node checked it', () => {
@@ -275,6 +287,22 @@ describe('what it says instead of a result', () => {
     expect(
       screen.getByText('objects.formulaEditor.calculatedOnSave')
     ).toBeInTheDocument()
+  })
+
+  // "Calculated when you save" beside a refusal would promise a number that will not come.
+  it('says no number will be stored when the node refuses', () => {
+    preview.data = {
+      error: { code: 'dimension-mismatch', detail: 'kg + m' },
+      warnings: [],
+    }
+    renderBindings()
+
+    expect(
+      screen.getByText('objects.formulaEditor.errorOnSave')
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('objects.formulaEditor.calculatedOnSave')
+    ).toBeNull()
   })
 
   it('says the same thing when the request failed outright', () => {
