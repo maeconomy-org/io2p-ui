@@ -1,3 +1,5 @@
+import type { UpdateShareBody } from 'io2p-client'
+
 import type { ShareResourceType } from '@/components/access'
 
 /**
@@ -116,12 +118,41 @@ export type ShareWrite = 'bundle' | 'delta'
 export function shareCapRefusal(
   write: ShareWrite,
   resources: number,
-  members: number
+  members: number,
+  /** An edit's change lists, as the save sends them. */
+  changes?: ShareChanges
 ): ShareCapRefusal | null {
   return (
-    (write === 'bundle' ? itemCapRefusal(resources, members) : null) ??
-    pairCapRefusal(resources, members)
+    (write === 'bundle'
+      ? itemCapRefusal(resources, members)
+      : changeCapRefusal(changes)) ?? pairCapRefusal(resources, members)
   )
+}
+
+/** The lists an edit sends; each is capped on its own, not the bundle they add up to. */
+// The edit body's own lists, so the cap cannot read a key the save no longer sends.
+export type ShareChanges = Pick<UpdateShareBody, 'resources' | 'members'>
+
+/**
+ * An edit's cap: the node takes at most `shareItems` entries in EACH list it is sent (resources to
+ * add, to remove; members to add, change, remove), and 400s a longer one with framework text.
+ */
+export function changeCapRefusal(
+  changes: ShareChanges | undefined
+): ShareCapRefusal | null {
+  const lists = [
+    changes?.resources?.add,
+    changes?.resources?.remove,
+    changes?.members?.add,
+    changes?.members?.update,
+    changes?.members?.remove,
+  ]
+  const count = Math.max(0, ...lists.map((list) => list?.length ?? 0))
+  if (count <= MAX_SHARE_ITEMS) return null
+  return {
+    key: 'shares.caps.tooManyChanges',
+    values: { max: MAX_SHARE_ITEMS, count },
+  }
 }
 
 /**

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Info, Loader2, UserPlus, X } from 'lucide-react'
-import type { ShareDTO } from 'io2p-client'
+import type { ShareDTO, UpdateShareBody } from 'io2p-client'
 
 import {
   Badge,
@@ -221,7 +221,8 @@ function ShareForm({
   const capRefusal = shareCapRefusal(
     mode === 'edit' ? 'delta' : 'bundle',
     resources.length,
-    effectiveMembers.length
+    effectiveMembers.length,
+    delta ?? undefined
   )
 
   const save = async () => {
@@ -554,7 +555,7 @@ export function buildDelta(
     .filter((m) => !nowMembers.has(m.userId))
     .map((m) => m.userId)
 
-  const body: Record<string, unknown> = {}
+  const body: UpdateShareBody = {}
   if (next.name !== original.name) body.name = next.name
   if (next.cascade !== !!original.includeDescendants) {
     body.includeDescendants = next.cascade

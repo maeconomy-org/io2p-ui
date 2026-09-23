@@ -5,6 +5,7 @@ import nl from '@/messages/nl.json'
 
 import {
   canCascade,
+  changeCapRefusal,
   familyOf,
   familyOfBundle,
   itemCapRefusal,
@@ -187,6 +188,40 @@ describe('shareCapRefusal', () => {
   it('applies the item cap to a whole-bundle write', () => {
     expect(shareCapRefusal('bundle', 201, 1)?.key).toBe(
       'shares.caps.tooManyResources'
+    )
+  })
+
+  // An edit caps each list it sends, not the bundle: 250 added in one save is a 400 from the node.
+  it('refuses an edit that adds more than the node takes in one list', () => {
+    const add = Array.from({ length: 250 }, (_, i) => ({
+      type: 'object' as const,
+      id: `o${i}`,
+    }))
+    expect(shareCapRefusal('delta', 251, 1, { resources: { add } })).toEqual({
+      key: 'shares.caps.tooManyChanges',
+      values: { max: 200, count: 250 },
+    })
+  })
+
+  it('caps each list on its own', () => {
+    const resources = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        type: 'object' as const,
+        id: `o${i}`,
+      }))
+    const members = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        userId: `u${i}`,
+        permission: 'read' as const,
+      }))
+    expect(
+      changeCapRefusal({
+        resources: { add: resources(150), remove: resources(150) },
+      })
+    ).toBeNull()
+    expect(changeCapRefusal({ resources: { add: resources(200) } })).toBeNull()
+    expect(changeCapRefusal({ members: { update: members(201) } })?.key).toBe(
+      'shares.caps.tooManyChanges'
     )
   })
 

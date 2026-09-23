@@ -1320,7 +1320,8 @@
     "caps": {
       "tooManyResources": "Maximaal {max, number} items in één share — dit zijn er {count, number}. Splits het in meerdere shares.",
       "tooManyMembers": "Maximaal {max, number} personen in één share — dit zijn er {count, number}. Splits het in meerdere shares.",
-      "tooManyPairs": "Eén share koppelt maximaal {max, number} item–persoon-paren. {resources, number} items × {members, number} personen is {pairs, number}."
+      "tooManyPairs": "Eén share koppelt maximaal {max, number} item–persoon-paren. {resources, number} items × {members, number} personen is {pairs, number}.",
+      "tooManyChanges": "Eén keer opslaan kan per lijst maximaal {max, number} items of personen toevoegen, wijzigen of verwijderen — deze heeft er {count, number}. Slaat u in kleinere stappen op."
     }
   },
   "concepts": {

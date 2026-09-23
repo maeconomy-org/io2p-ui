@@ -1320,7 +1320,8 @@
     "caps": {
       "tooManyResources": "At most {max, number} items in one share — this has {count, number}. Split it into more than one share.",
       "tooManyMembers": "At most {max, number} people in one share — this has {count, number}. Split it into more than one share.",
-      "tooManyPairs": "One share links at most {max, number} item–person pairs. {resources, number} items × {members, number} people is {pairs, number}."
+      "tooManyPairs": "One share links at most {max, number} item–person pairs. {resources, number} items × {members, number} people is {pairs, number}.",
+      "tooManyChanges": "One save can add, change or remove at most {max, number} items or people in one list — this one has {count, number}. Save in smaller steps."
     }
   },
   "concepts": {
