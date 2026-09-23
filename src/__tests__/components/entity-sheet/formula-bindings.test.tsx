@@ -10,6 +10,10 @@ import {
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useFormatter: () => ({
+    number: (n: number) => String(n),
+    list: (items: string[]) => items.join(', '),
+  }),
 }))
 
 const FORMULA = {

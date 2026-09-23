@@ -31,6 +31,7 @@ import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { SEARCH_SIZE } from '@/constants'
 
 import { calcErrorText, uncheckedState } from './value-provenance'
+import { FormulaWarnings } from './formula-warnings'
 
 /**
  * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
@@ -278,8 +279,8 @@ export function FormulaBindings({
 
   /**
    * Settled bindings only. `siblings` carries each value's typed TEXT, so typing into a
-   * neighbouring field changes this body on every keystroke. Nothing on screen waits for the
-   * answer — there is no figure, only a refusal or an unchecked unit — so the wait is free.
+   * neighbouring field changes this body on every keystroke. No figure waits on the answer, only
+   * advice about the formula, so a short wait costs nothing.
    */
   const [settledBody, setSettledBody] = useState(previewBody)
   const bodyKey = previewBody === undefined ? '' : JSON.stringify(previewBody)
@@ -294,7 +295,12 @@ export function FormulaBindings({
   const settledKey =
     settledBody === undefined ? '' : JSON.stringify(settledBody)
   const preview = settledKey === bodyKey ? settledAnswer : undefined
-  const unchecked = preview && uncheckedState(preview, preview.unit)
+  const warnings = preview?.warnings ?? []
+  // The declare-unit warning says the same thing as the plain unchecked line, and more precisely.
+  const unchecked =
+    preview &&
+    !warnings.some((w) => w.code === 'declare-unit') &&
+    uncheckedState(preview, preview.unit)
 
   if (!formula) return null
 
@@ -359,59 +365,65 @@ export function FormulaBindings({
         </>
       )}
 
-      {/* RED, not amber: the node refuses this outright and writes an error row with no number,
-          so it is not advice — it is what will happen. It arrives INSIDE a successful preview,
-          which is what keeps it distinct from not having reached the node at all. */}
-      {preview?.error && (
-        <p
-          data-testid="formula-dimension-problem"
-          className="flex items-start gap-1.5 text-xs text-destructive"
-        >
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          {/* The same sentences the value row shows. The node's `detail` is English by contract,
-              so it is demoted, not dropped: for a code this app does not know, it is the only
-              thing that says what went wrong. */}
-          <span>
-            {calcErrorText(preview.error.code, t)}
-            {preview.error.detail && (
-              <span className="mt-0.5 block text-[10px] opacity-80">
-                {preview.error.detail}
-              </span>
-            )}
-          </span>
-        </p>
-      )}
-
-      {/* AMBER: the value is stored and shown either way.
-          Read as `=== false` and never as falsy: the node sends `true` when it checked the unit,
-          `false` when it could not, and NOTHING when there was nothing to check — which is the
-          commonest case and means an ordinary number. Collapsing absent into false would put this
-          warning on almost every derived value. */}
-      {unchecked && (
-        <p
-          data-testid="formula-unit-unverified"
-          className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
-        >
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>
-            {t(
-              unchecked === 'left-out'
-                ? 'objects.formulaEditor.unitUnverified'
-                : 'objects.formulaEditor.unitUnverifiedPlain'
-            )}
-          </span>
-        </p>
-      )}
-
-      {/* No result figure: the value row shows what was stored. The panel keeps only what the
-          row cannot tell the author in time — a refusal, and a unit the node could not check. */}
-      <p className="text-xs text-muted-foreground">
-        {t(
-          preview?.error
-            ? 'objects.formulaEditor.errorOnSave'
-            : 'objects.formulaEditor.calculatedOnSave'
+      {/* Always mounted: a live region announces what APPEARS in it, and these answers arrive
+          after the settle wait, with nothing else to tell a screen reader they came. */}
+      <div role="status" aria-live="polite" className="space-y-2">
+        {/* RED, not amber: the node refuses this outright and writes an error row with no number,
+            so it is not advice — it is what will happen. It arrives INSIDE a successful preview,
+            which is what keeps it distinct from not having reached the node at all. */}
+        {preview?.error && (
+          <p
+            data-testid="formula-dimension-problem"
+            className="flex items-start gap-1.5 text-xs text-destructive"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            {/* The same sentences the value row shows. The node's `detail` is English by contract,
+                so it is demoted, not dropped: for a code this app does not know, it is the only
+                thing that says what went wrong. */}
+            <span>
+              {calcErrorText(preview.error.code, t)}
+              {preview.error.detail && (
+                <span className="mt-0.5 block text-[10px] opacity-80">
+                  {preview.error.detail}
+                </span>
+              )}
+            </span>
+          </p>
         )}
-      </p>
+
+        {/* AMBER: the value is stored and shown either way.
+            Read as `=== false` and never as falsy: the node sends `true` when it checked the unit,
+            `false` when it could not, and NOTHING when there was nothing to check — which is the
+            commonest case and means an ordinary number. Collapsing absent into false would put this
+            warning on almost every derived value. */}
+        {unchecked && (
+          <p
+            data-testid="formula-unit-unverified"
+            className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              {t(
+                unchecked === 'left-out'
+                  ? 'objects.formulaEditor.unitUnverified'
+                  : 'objects.formulaEditor.unitUnverifiedPlain'
+              )}
+            </span>
+          </p>
+        )}
+
+        <FormulaWarnings warnings={warnings} />
+
+        {/* No result figure: the value row shows what was stored. The panel keeps only what the
+            row cannot tell the author in time — a refusal, an unchecked unit, and the warnings. */}
+        <p className="text-xs text-muted-foreground">
+          {t(
+            preview?.error
+              ? 'objects.formulaEditor.errorOnSave'
+              : 'objects.formulaEditor.calculatedOnSave'
+          )}
+        </p>
+      </div>
     </div>
   )
 }

@@ -36,6 +36,10 @@ const preview = vi.hoisted(() => ({
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
+  useFormatter: () => ({
+    number: (n: number) => String(n),
+    list: (items: string[]) => items.join(', '),
+  }),
 }))
 
 vi.mock('@/hooks/api/leaves', () => ({
@@ -268,6 +272,50 @@ describe('an unchecked unit', () => {
     preview.data = { num: 5, unit: 'kg', warnings: [] }
     renderBindings()
 
+    expect(screen.queryByTestId('formula-unit-unverified')).toBeNull()
+  })
+})
+
+describe('authoring warnings', () => {
+  // A live region announces what appears in it, so it has to be there before the answer is.
+  it('announces the answer in a region that exists before it arrives', () => {
+    renderBindings()
+    const region = screen.getByRole('status')
+
+    expect(region).toHaveAttribute('aria-live', 'polite')
+    expect(region).toHaveTextContent('objects.formulaEditor.calculatedOnSave')
+  })
+
+  it('shows each warning the node sends', () => {
+    preview.data = {
+      num: 1.5,
+      unit: 'kg',
+      unitVerified: true,
+      warnings: [
+        { code: 'hand-conversion', detail: 'x', literal: 1000, unit: 't' },
+        { code: 'factor', detail: 'y', vars: ['f'], unit: 'kg' },
+      ],
+    }
+    renderBindings()
+
+    expect(
+      screen.getByTestId('formula-warning-hand-conversion')
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('formula-warning-factor')).toBeInTheDocument()
+  })
+
+  // The declare-unit warning is the precise version of the plain unchecked line: one, not both.
+  it('replaces the plain unchecked line when the node asks for a unit', () => {
+    preview.data = {
+      num: 1200,
+      unitVerified: false,
+      warnings: [{ code: 'declare-unit', detail: 'x' }],
+    }
+    renderBindings()
+
+    expect(
+      screen.getByTestId('formula-warning-declare-unit')
+    ).toBeInTheDocument()
     expect(screen.queryByTestId('formula-unit-unverified')).toBeNull()
   })
 })

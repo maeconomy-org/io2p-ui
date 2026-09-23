@@ -423,8 +423,8 @@
     },
     "formulaEditor": {
       "expression": "Formule",
-      "unitUnverified": "De node kan dit resultaat niet controleren tegen de eenheid van het resultaat, dus de waarde wordt opgeslagen en getoond, maar telt in geen enkel totaal mee. Dat gebeurt bij de logaritme van een waarde met een eenheid, een variabele exponent, vertakkingen (als/anders) in verschillende eenheden, of een invoer die zelf niet gecontroleerd is. Wilt u de waarde laten meetellen, past u dan de expressie aan of verwijdert u de eenheid van het resultaat, zodat zij als gewoon getal meetelt.",
-      "unitUnverifiedPlain": "De node kan de eenheid van dit resultaat niet controleren, dus het telt mee als een gewoon getal. Heeft het resultaat een echte eenheid, stelt u die dan in als eenheid van het resultaat, zodat de node haar kan controleren. Gebruikt een rollup-regel deze waarde als vermenigvuldiger, dan telt dat object niet mee in het totaal.",
+      "unitUnverified": "De node kan dit resultaat niet controleren tegen de eenheid van het resultaat, dus de waarde wordt opgeslagen en getoond, maar telt in geen enkel totaal mee. Dat gebeurt bij de logaritme van een waarde met een eenheid, een variabele exponent, vertakkingen (als/anders) in verschillende eenheden, of een invoer die zelf niet gecontroleerd is. Wilt u de waarde laten meetellen, dupliceert u dan de formule en past u de expressie aan, of laat u de eenheid van het resultaat weg, zodat zij als gewoon getal meetelt.",
+      "unitUnverifiedPlain": "De node kan de eenheid van dit resultaat niet controleren, dus het telt mee als een gewoon getal. Heeft het resultaat een echte eenheid, dupliceert u dan de formule en stelt u die in als eenheid van het resultaat, zodat de node deze kan controleren. Gebruikt een rollup-regel deze waarde als vermenigvuldiger, dan telt dat object niet mee in het totaal.",
       "declaredRescale": "Deze formule geeft het resultaat op in {declared}. De node vermenigvuldigt het daarom met {factor} en slaat het op in {canonical}. Geef alleen een eenheid op als de expressie die zelf oplevert — waarden optellen die al in {canonical} staan geeft {canonical}.",
       "declaredRescaleStored": "Het wordt opgeslagen als {stored}.",
       "switchToFormula": "Formule gebruiken",
@@ -452,7 +452,16 @@
       "siblingValues": "Waarden op deze entiteit",
       "constants": "Constanten",
       "calculatedOnSave": "De waarde wordt berekend zodra u opslaat.",
-      "errorOnSave": "Er wordt geen getal opgeslagen: de waarde toont deze fout."
+      "errorOnSave": "Er wordt geen getal opgeslagen: de waarde toont deze fout.",
+      "warning": {
+        "handConversion": "De getallen in deze formule vermenigvuldigen het resultaat met {literal} of delen het door {literal}; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening.",
+        "handConversionConstant": "De constante die aan {name} is gekoppeld ({literal}), lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus deze constante schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder {name}.",
+        "factor": "{count, plural, one {{vars} wordt gelezen} other {{vars} worden gelezen}} in {unit} per {per}. Controleert u of de waarde in die eenheid staat.",
+        "factorNoPer": "{count, plural, one {{vars} wordt gelezen} other {{vars} worden gelezen}} in {unit} per standaardeenheid van wat ermee wordt vermenigvuldigd. Controleert u of de waarde in die eenheid staat.",
+        "declareUnit": "De node leidt de eenheid van dit resultaat niet af uit de invoer, dus het telt mee als een gewoon getal. Gebruikt een rollup-regel het als vermenigvuldiger, dan telt dat object niet mee in het totaal. Wilt u het laten controleren, dupliceert u dan de formule en stelt u de echte eenheid in als eenheid van het resultaat.",
+        "declareUnitSuggested": "Dit resultaat is alleen {unit} als een waarde zonder eenheid als factor wordt gelezen, dus voorlopig telt het mee als een gewoon getal. Gebruikt een rollup-regel het als vermenigvuldiger, dan telt dat object niet mee in het totaal. Wilt u het die eenheid geven en laten controleren, dupliceert u dan de formule en stelt u {unit} in als eenheid van het resultaat.",
+        "perItem": "stuk"
+      }
     },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",
@@ -620,9 +629,9 @@
       "rollupContributors": "{count, plural, one {# waarde} other {# waarden}}",
       "rollupSkipped": "{count, plural, one {# niet meegeteld} other {# niet meegeteld}}",
       "unitNotCounted": "Niet meegeteld",
-      "unitNotCountedDetail": "De node kon deze waarde niet controleren tegen de eenheid van het resultaat van de formule, dus zij telt in geen enkel totaal mee. Dat gebeurt bij de logaritme van een waarde met een eenheid, een variabele exponent, vertakkingen (als/anders) in verschillende eenheden, of een invoer die zelf niet gecontroleerd is. Wilt u de waarde laten meetellen, past u dan de expressie aan of verwijdert u de eenheid van het resultaat, zodat zij als gewoon getal meetelt.",
+      "unitNotCountedDetail": "De node kon deze waarde niet controleren tegen de eenheid van het resultaat van de formule, dus zij telt in geen enkel totaal mee. Dat gebeurt bij de logaritme van een waarde met een eenheid, een variabele exponent, vertakkingen (als/anders) in verschillende eenheden, of een invoer die zelf niet gecontroleerd is. Wilt u de waarde laten meetellen, dupliceert u dan de formule en past u de expressie aan, of laat u de eenheid van het resultaat weg, zodat zij als gewoon getal meetelt.",
       "unitNotChecked": "Eenheid niet gecontroleerd",
-      "unitNotCheckedDetail": "De node kon de eenheid van dit resultaat niet controleren, dus het telt mee als een gewoon getal. Heeft het resultaat een echte eenheid, stelt u die dan in als eenheid van het resultaat, zodat de node haar kan controleren. Gebruikt een rollup-regel deze waarde als vermenigvuldiger, dan telt dat object niet mee in het totaal.",
+      "unitNotCheckedDetail": "De node kon de eenheid van dit resultaat niet controleren, dus het telt mee als een gewoon getal. Heeft het resultaat een echte eenheid, dupliceert u dan de formule en stelt u die in als eenheid van het resultaat, zodat de node deze kan controleren. Gebruikt een rollup-regel deze waarde als vermenigvuldiger, dan telt dat object niet mee in het totaal.",
       "rollupUnverified": "{count, plural, one {waarvan # gemarkeerd als ‘Niet meegeteld’} other {waarvan # gemarkeerd als ‘Niet meegeteld’}}",
       "rollupMultiValue": "{count, plural, one {# object heeft meerdere waarden} other {# objecten hebben meerdere waarden}}",
       "rollupMultiValueAllCounted": "{count, plural, one {# object heeft meerdere waarden, alle meegeteld} other {# objecten hebben meerdere waarden, alle meegeteld}}",
