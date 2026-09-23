@@ -253,7 +253,9 @@ export function dtoToDraft(dto: ObjectDTO): EntityDraft {
 
 // A calc is only real once it has a source (a stored formula or an inline expression). A value in
 // "formula mode" before a formula is picked (`{ args: [] }`) is NOT a value — the node would 422 it.
-function isRealCalc(calc: CalcInput | null | undefined): calc is CalcInput {
+export function isRealCalc(
+  calc: CalcInput | null | undefined
+): calc is CalcInput {
   return !!calc && (!!calc.formulaId || !!calc.expression)
 }
 

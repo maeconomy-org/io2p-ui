@@ -56,6 +56,12 @@ import {
   ruleKey,
 } from './value-normalization'
 import {
+  draftNum,
+  draftQuantityValues,
+  resolveQuantity,
+  type ResolvedQuantity,
+} from './quantity'
+import {
   ValueProvenanceDisplay,
   labelForValueId,
   type DerivedValues,
@@ -126,53 +132,39 @@ function newValue(): DraftValue {
  * That made a correctly-applied template look like it had lost its mapping. Values holding actual
  * text stay excluded: a formula computes over numbers, and offering one would only produce NaN.
  */
-/**
- * The number the NODE will compute with — its CANONICAL form, which is what `num` holds
- * ("10 t" is 10000 kg to the evaluator), never a re-parse of the text.
- *
- * `num` is absent until the value has been read back. A just-typed bare number is its own
- * canonical form; anything else just typed ("10 t") has no number here and is sent as text.
- */
-function previewNum(
-  stored: number | undefined,
-  text: string,
-  leading: number
-): number | undefined {
-  if (stored !== undefined) return stored
-  if (text === '' || !Number.isFinite(leading)) return undefined
-  return String(leading) === text ? leading : undefined
-}
-
 export function collectSiblings(
   properties: EntityDraft['properties'],
   selfKey: string | undefined,
-  locale: PropertyDictionaryLocale
+  locale: PropertyDictionaryLocale,
+  derivedValues?: DerivedValues
 ): FormulaSibling[] {
   const out: FormulaSibling[] = []
   properties.forEach((p) => {
     p.values.forEach((v) => {
       const key = v.id ?? v.ref
-      // Skips self and every other FORMULA. That second half is load-bearing beyond the picker:
-      // a derived value is the only kind that can carry `unitVerified: false`, and a
-      // `FormulaSibling` has nowhere to put it — so the preview request cannot say "this input is
-      // unchecked" and the node would answer about a checked one. Offering derived values as
-      // inputs means giving the sibling its provenance in the same change.
+      // Skips self and a formula being written (`calc` in the draft). A SAVED formula value has no
+      // `calc` here and is offered: core chains it, and an unchecked one makes the result unchecked,
+      // so its `unitVerified` travels with it into the preview.
       if (!key || key === selfKey || v.calc || v.deleted) return
       const text = (v.data ?? '').trim()
-      const leading = Number.parseFloat(text)
-      if (text !== '' && !Number.isFinite(leading)) return
+      if (text !== '' && !Number.isFinite(Number.parseFloat(text))) return
       // An edited value still carries the number read for its OLD text.
       const current = v.parsedFrom?.trim() === text
-      const num = current ? v.num : undefined
+      const num = draftNum(v)
       out.push({
         key,
         // The raw key, never the resolved label — the label is localized and the option's testid is
         // built from this.
         propertyKey: p.key ?? p.label ?? '',
         label: resolvePropertyLabel(p.key, p.label, locale) || '—',
-        num: previewNum(num, text, leading),
+        num,
         unit: current ? v.unit : undefined,
         ruleKey: ruleKey(p.key, p.label),
+        ...(v.id &&
+          v.calc === undefined &&
+          derivedValues?.get(v.id)?.unitVerified === false && {
+            unitVerified: false,
+          }),
         // Only where there is no number to send instead: the node can read "10 t" and we cannot.
         ...(num === undefined && text !== '' && { data: text }),
       })
@@ -206,6 +198,22 @@ export function PropertyFields({
   // does not change with `editing`.
   const readProperties = useWatch({ control: form.control, name: basePath })
   const multiplierKeys = useMemo(() => multiplierKeysOf(rollups), [rollups])
+  // Once per change of the form, for every key a row needs: its own key when a rule multiplies by
+  // it, and the key its own rule multiplies by (for "counted twice").
+  const quantities = useMemo(() => {
+    const keys = new Set([
+      ...multiplierKeys,
+      ...(ruleMultipliers?.values() ?? []),
+    ])
+    return new Map(
+      [...keys].map((key) => [
+        key,
+        resolveQuantity(
+          draftQuantityValues(readProperties ?? [], key, derivedValues)
+        ),
+      ])
+    )
+  }, [multiplierKeys, ruleMultipliers, readProperties, derivedValues])
 
   /**
    * Patch one file anywhere under the properties tree, found by its `_localId` (unique across the
@@ -301,6 +309,7 @@ export function PropertyFields({
           siblingSource={siblingSource}
           multiplierKeys={multiplierKeys}
           ruleMultipliers={ruleMultipliers}
+          quantities={quantities}
         />
       ))}
       {!label && addButton}
@@ -324,6 +333,7 @@ function PropertyRow({
   siblingSource,
   multiplierKeys,
   ruleMultipliers,
+  quantities,
 }: {
   form: UseFormReturn<EntityDraft>
   index: number
@@ -338,6 +348,7 @@ function PropertyRow({
   /** Property keys some rollup rule multiplies by — their values are calculation inputs. */
   multiplierKeys: ReadonlySet<string>
   ruleMultipliers?: ReadonlyMap<string, string>
+  quantities: ReadonlyMap<string, ResolvedQuantity>
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
@@ -408,6 +419,17 @@ function PropertyRow({
 
   const propKey = row?.key
   const propLabel = row?.label
+  const rowKey = ruleKey(propKey, propLabel)
+  // How the node will resolve the quantity under this row's key, and — for "counted twice" — the
+  // key this row's rule multiplies by, only when that quantity is one the rule can use.
+  const quantity = multiplierKeys.has(rowKey)
+    ? quantities.get(rowKey)
+    : undefined
+  const multipliedBy = ruleMultipliers?.get(rowKey)
+  // Refused, the object counts zero times; not yet known, a warning is still worth showing.
+  const usable = multipliedBy ? quantities.get(multipliedBy)?.kind : undefined
+  const countedBy =
+    usable === 'number' || usable === 'pending' ? multipliedBy : undefined
   // One resolved name for the whole row: the collapsed header, the deleted row and the Name field
   // must agree, or expanding a property appears to rename it.
   const displayLabel = resolvePropertyLabel(propKey, propLabel, locale)
@@ -692,10 +714,8 @@ function PropertyRow({
                       {value && (
                         <ValueNormalization
                           value={value}
-                          unitVerified={provenance?.unitVerified}
-                          usedAsMultiplier={multiplierKeys.has(
-                            ruleKey(propKey, propLabel)
-                          )}
+                          quantity={quantity}
+                          usedAsMultiplier={quantity !== undefined}
                         />
                       )}
                       {provenance ? (
@@ -839,9 +859,8 @@ function PropertyRow({
                         usedInFormula={
                           !!value.id && boundValueIds.has(value.id)
                         }
-                        usedAsMultiplier={multiplierKeys.has(
-                          ruleKey(propKey, propLabel)
-                        )}
+                        quantity={quantity}
+                        usedAsMultiplier={quantity !== undefined}
                       />
                     )}
                     <Button
@@ -868,16 +887,15 @@ function PropertyRow({
                       siblings={collectSiblings(
                         siblingSource ?? ownProperties,
                         selfKey,
-                        locale
+                        locale,
+                        derivedValues
                       )}
                       onChange={(calc) =>
                         form.setValue(`${base}.calc`, calc, {
                           shouldDirty: true,
                         })
                       }
-                      countedBy={ruleMultipliers?.get(
-                        ruleKey(propKey, propLabel)
-                      )}
+                      countedBy={countedBy}
                     />
                   )}
                   {allowFiles && (

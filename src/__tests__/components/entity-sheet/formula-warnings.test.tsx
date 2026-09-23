@@ -54,15 +54,15 @@ describe('FormulaWarnings', () => {
   })
 
   it('names the variable a conversion constant is bound to', () => {
-    expect(textOf(w({ literal: 1000, unit: 't', vars: ['k'] }))).toContain(
-      'The constant bound to k (1,000)'
-    )
+    expect(
+      textOf(w({ literal: 1000, scales: 'down', unit: 't', vars: ['k'] }))
+    ).toContain('The constant bound to k (1,000)')
   })
 
   it('prints a small conversion constant in full, not as 0', () => {
-    expect(textOf(w({ literal: 0.000001, unit: 'mg', vars: ['k'] }))).toContain(
-      '(0.000001)'
-    )
+    expect(
+      textOf(w({ literal: 0.000001, scales: 'down', unit: 'mg', vars: ['k'] }))
+    ).toContain('(0.000001)')
   })
 
   it('lists several factor variables as a sentence, in the reader’s language', () => {

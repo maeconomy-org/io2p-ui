@@ -145,6 +145,23 @@ export function ValueProvenanceDisplay({
             </div>
           )}
 
+          {/* A unit reached through a factor is the author's to check: the node read these
+              unitless inputs per standard unit and cannot know they are given in it. The same
+              sentence the editor shows before saving, with the inputs named as the row names them. */}
+          {provenance.unitCheck === 'factor' &&
+            (provenance.factorVars?.length ?? 0) > 0 &&
+            unit && (
+              <div data-testid="provenance-factor">
+                {t('objects.formulaEditor.warning.factorNoPer', {
+                  vars: (provenance.factorVars ?? [])
+                    .map((name) => factorLabel(provenance, name, labelForValue))
+                    .join(', '),
+                  count: provenance.factorVars?.length ?? 0,
+                  unit,
+                })}
+              </div>
+            )}
+
           {provenance.args.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {provenance.args.map((arg) => (
@@ -204,6 +221,16 @@ export function uncheckedState(
 ): 'left-out' | 'plain' | undefined {
   if (provenance.unitVerified !== false) return undefined
   return unit ? 'left-out' : 'plain'
+}
+
+// A factor as the row names it: the property it was bound to, else its variable.
+function factorLabel(
+  provenance: ValueProvenanceData,
+  name: string,
+  labelForValue?: (valueId: string) => string | undefined
+): string {
+  const arg = provenance.args.find((a) => a.var === name)
+  return (arg && argSource(arg, labelForValue)) ?? name
 }
 
 /**

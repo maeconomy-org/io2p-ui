@@ -8,6 +8,7 @@ import type { EntityRollupEntry, RollupBucket } from 'io2p-client'
 import { cn } from '@/lib/utils'
 import { round } from '@/lib/round'
 import { uncheckedState } from './value-provenance'
+import { resolveQuantity } from './quantity'
 
 /**
  * Whether an entry says anything worth a line.
@@ -40,6 +41,7 @@ export type NumericValues = readonly {
   num?: number
   unit?: string
   unitVerified?: boolean
+  failed?: boolean
 }[]
 
 /** The rule's answer for an object that has no value under the multiplier's key. */
@@ -60,7 +62,7 @@ type WhenMissing = NonNullable<EntityRollupEntry['multiplyBy']>['whenMissing']
  * wire type — nothing in `RollupBucket` forbids both — so if a total ever arrives carrying the two
  * together, this attributes the object's value to whichever the ordering put first.
  */
-function measures(bucket: RollupBucket, unit?: string): boolean {
+export function measures(bucket: RollupBucket, unit?: string): boolean {
   return (
     bucket.unit === unit || (unit === undefined && bucket.dimension === 'count')
   )
@@ -87,12 +89,9 @@ export function ownFactor(
   whenMissing: WhenMissing = 'one'
 ): number | null {
   if (values === undefined) return 1 // the rule names no multiplier
-  if (values.length === 0) return whenMissing === 'skip' ? null : 1
-  if (values.length > 1) return null // several live values -> ambiguous
-  const [only] = values
-  if (only?.num === undefined) return null // present but never parsed
-  if (only.unitVerified === false) return null // unchecked, with or without a unit
-  return only.num < 0 ? null : only.num
+  const quantity = resolveQuantity(values)
+  if (quantity.kind === 'missing') return whenMissing === 'skip' ? null : 1
+  return quantity.kind === 'number' ? quantity.value : null
 }
 
 /**
@@ -284,14 +283,17 @@ export function RollupLine({
     entry.skippedCount
   )
 
-  const share = lead
-    ? ownShare(
-        lead,
-        ownValues ?? [],
-        multiplierValues,
-        entry.multiplyBy?.whenMissing
-      )
-    : null
+  // No split on a stale total: it may predate the own values and the rule's current multiplier,
+  // and subtracting across that gap prints a "below" nobody can find.
+  const share =
+    lead && !entry.stale
+      ? ownShare(
+          lead,
+          ownValues ?? [],
+          multiplierValues,
+          entry.multiplyBy?.whenMissing
+        )
+      : null
 
   return (
     <div

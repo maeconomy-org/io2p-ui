@@ -48,9 +48,88 @@ vi.mock('@/contexts/query-context', () => ({
 
 import { PropertyFields } from '@/components/entity-sheet/fields'
 
+function renderShelf(
+  quantityValues: EntityDraft['properties'][number]['values']
+) {
+  const { result } = renderHook(() =>
+    useForm<EntityDraft>({
+      defaultValues: {
+        name: 'Shelf',
+        description: null,
+        address: null,
+        parentIds: [],
+        properties: [
+          {
+            key: 'unit-mass',
+            label: 'Unit mass',
+            values: [{ ref: 'r-u', data: '2' }],
+          },
+          { key: 'quantity', label: 'Quantity', values: quantityValues },
+          {
+            key: 'mass',
+            label: 'Mass',
+            values: [
+              {
+                ref: 'r-m',
+                calc: {
+                  formulaId: 'f-1',
+                  args: [
+                    { var: 'u', ref: 'r-u' },
+                    { var: 'q', ref: 'r-q' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+    })
+  )
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <PropertyFields
+        form={result.current}
+        editing
+        derivedValues={new Map()}
+        ruleMultipliers={new Map([['mass', 'quantity']])}
+      />
+    </QueryClientProvider>
+  )
+  fireEvent.click(screen.getByTestId('property-toggle-2'))
+}
+
 // The property form hands each formula the key its property's rule multiplies by; without that
 // hop the editor's warning never fires, whatever the rules say.
 describe('a quantity counted twice, through the property form', () => {
+  // The rule refuses these and counts the object zero times, so nothing is counted twice.
+  it.each([
+    ['a negative quantity', [{ ref: 'r-q', data: '-4' }]],
+    [
+      'several quantities',
+      [
+        { ref: 'r-q', data: '4' },
+        { ref: 'r-q2', data: '2' },
+      ],
+    ],
+    [
+      'a number beside text the node cannot read',
+      [
+        { ref: 'r-q', data: '4' },
+        { ref: 'r-q2', data: 'about ten' },
+      ],
+    ],
+  ])('says nothing for %s', (_, values) => {
+    renderShelf(values)
+    expect(screen.getByTestId('formula-bindings')).toBeInTheDocument()
+    expect(screen.queryByTestId('formula-counted-twice')).toBeNull()
+  })
+
+  // Typed and not yet read by the node: its answer is unknown, and the warning is still worth it.
+  it('warns while a typed quantity has not been read yet', () => {
+    renderShelf([{ ref: 'r-q', data: '4 stuks' }])
+    expect(screen.getByTestId('formula-counted-twice')).toBeInTheDocument()
+  })
+
   it('warns on a formula under a multiplied property that reads the quantity', () => {
     const { result } = renderHook(() =>
       useForm<EntityDraft>({

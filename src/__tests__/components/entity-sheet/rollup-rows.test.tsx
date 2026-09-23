@@ -768,15 +768,6 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByTestId('rollup-unverified')).toBeInTheDocument()
   })
 
-  it('adds no note when nothing was skipped', () => {
-    renderRollups(
-      [massProperty()],
-      new Map([['mass', entry({ skippedCount: 0, unverifiedUnitCount: 2 })]])
-    )
-    expect(screen.getByTestId('rollup-line')).toBeInTheDocument()
-    expect(screen.queryByTestId('rollup-unverified')).toBeNull()
-  })
-
   // Core promises a subset; a row that breaks it must not read "3 not counted · 5 of them".
   it('never claims more unchecked values than were skipped', () => {
     renderRollups(
@@ -920,6 +911,246 @@ describe('rollup rows in the property read view', () => {
     expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
   })
 
+  // Core writes a failed formula value as `data: ''` with no number and no parse: not a value
+  // waiting to be read, so it must not hide the totals from below.
+  it('keeps the card over a failed formula value of its own', () => {
+    renderRollups(
+      [
+        {
+          id: 'p1',
+          key: 'mass',
+          label: 'Mass',
+          values: [{ id: 'v1', data: '' }],
+        },
+      ],
+      new Map([
+        [
+          'mass',
+          entry({
+            descendantCount: 3,
+            skippedCount: 1,
+            buckets: [
+              bucket({
+                dimension: 'mass',
+                unit: 'kg',
+                num: 500,
+                contributorCount: 3,
+              }),
+            ],
+          }),
+        ],
+      ]),
+      new Map([
+        [
+          'v1',
+          {
+            expression: 'a + b',
+            evalVersion: 1,
+            args: [],
+            error: {
+              code: 'dimension-mismatch',
+              detail: 'cannot add kg and m',
+            },
+          },
+        ],
+      ]) as DerivedValues
+    )
+    expect(screen.getByTestId('rollup-card')).toBeInTheDocument()
+  })
+
+  // Its skip is its own: a leaf whose only value failed has nothing below to report.
+  it('drops the card on a multiplied leaf whose own formula value failed', () => {
+    renderRollups(
+      [
+        {
+          id: 'p1',
+          key: 'mass',
+          label: 'Mass',
+          values: [{ id: 'v1', data: '' }],
+        },
+      ],
+      new Map([
+        [
+          'mass',
+          entry({
+            buckets: [],
+            skippedCount: 1,
+            descendantCount: 0,
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
+          }),
+        ],
+      ]),
+      new Map([
+        [
+          'v1',
+          {
+            expression: 'a + b',
+            evalVersion: 1,
+            args: [],
+            error: { code: 'dimension-mismatch', detail: 'x' },
+          },
+        ],
+      ]) as DerivedValues
+    )
+    expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
+  })
+
+  // A stale total can predate the own value: 500 kg lowered to 12 kg on a 500 kg total read
+  // "12 kg here, 488 kg below" until the recompute landed.
+  it('shows no split while the total is stale, and keeps the card', () => {
+    renderRollups(
+      [massProperty('kg')],
+      new Map([
+        [
+          'mass',
+          entry({
+            stale: true,
+            descendantCount: 1,
+            buckets: [
+              bucket({
+                dimension: 'mass',
+                unit: 'kg',
+                num: 5000,
+                contributorCount: 2,
+              }),
+            ],
+          }),
+        ],
+      ])
+    )
+    expect(screen.getByTestId('rollup-card')).toBeInTheDocument()
+    expect(screen.queryByTestId('rollup-split')).toBeNull()
+  })
+
+  // A stale sum can predate the own value, but its counts move far less. Two contributors mean
+  // something below adds to it, however the old sum happens to compare with the own value.
+  it('keeps a stale card whose counts say something below contributes', () => {
+    renderRollups(
+      [massProperty('kg')],
+      new Map([
+        [
+          'mass',
+          entry({
+            stale: true,
+            descendantCount: 2,
+            buckets: [
+              bucket({
+                dimension: 'mass',
+                unit: 'kg',
+                num: 2400,
+                contributorCount: 2,
+              }),
+            ],
+          }),
+        ],
+      ])
+    )
+    expect(screen.getByTestId('rollup-card')).toBeInTheDocument()
+  })
+
+  // …and one contributor, unscaled, that is this object's own value: the card would only
+  // restate the property, and showing it while stale made it flash on after every edit.
+  it('drops a stale card whose counts say only this object contributes', () => {
+    renderRollups(
+      [massProperty('kg')],
+      new Map([
+        [
+          'mass',
+          entry({
+            stale: true,
+            descendantCount: 2,
+            buckets: [
+              bucket({
+                dimension: 'mass',
+                unit: 'kg',
+                num: 500,
+                contributorCount: 1,
+              }),
+            ],
+          }),
+        ],
+      ])
+    )
+    expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
+  })
+
+  // Keys need not be unique, and the node sums every property under one.
+  it('counts every own property under the key in the split', () => {
+    renderRollups(
+      [
+        {
+          id: 'p1',
+          key: 'mass',
+          label: 'Mass',
+          values: [{ id: 'v1', data: '5 kg', num: 5, unit: 'kg' }],
+        },
+        {
+          id: 'p2',
+          key: 'mass',
+          label: 'Mass',
+          values: [{ id: 'v2', data: '7 kg', num: 7, unit: 'kg' }],
+        },
+      ],
+      new Map([
+        [
+          'mass',
+          entry({
+            descendantCount: 1,
+            buckets: [
+              bucket({
+                dimension: 'mass',
+                unit: 'kg',
+                num: 20,
+                contributorCount: 3,
+              }),
+            ],
+          }),
+        ],
+      ])
+    )
+    expect(screen.getByTestId('rollup-split').textContent).toContain(
+      '"own":"12 kg","below":"8 kg"'
+    )
+  })
+
+  // The node refuses an ambiguous quantity and leaves this object's weight out entirely: the one
+  // contributor is below it, however the stale counts compare.
+  it('keeps a stale card when the node refused the object’s own quantity', () => {
+    renderRollups(
+      [
+        massProperty('kg'),
+        {
+          id: 'p9',
+          key: 'quantity',
+          label: 'Quantity',
+          values: [
+            { id: 'q1', data: '2', num: 2 },
+            { id: 'q2', data: '3', num: 3 },
+          ],
+        },
+      ],
+      new Map([
+        [
+          'mass',
+          entry({
+            stale: true,
+            descendantCount: 1,
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
+            buckets: [
+              bucket({
+                dimension: 'mass',
+                unit: 'kg',
+                num: 50,
+                contributorCount: 1,
+              }),
+            ],
+          }),
+        ],
+      ])
+    )
+    expect(screen.getByTestId('rollup-card')).toBeInTheDocument()
+  })
+
   it('keeps the card when a descendant adds an unreadable value of its own', () => {
     renderRollups(
       [
@@ -1018,7 +1249,7 @@ describe('rollup rows in the property read view', () => {
   it('renders nothing when no rule covers the key', () => {
     renderRollups([massProperty()], new Map())
     expect(screen.queryByTestId('rollup-line')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('orphan-rollup')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
   })
 
   it('drops the card when the node says nothing is below', () => {

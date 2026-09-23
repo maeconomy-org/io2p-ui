@@ -67,6 +67,8 @@ export interface FormulaSibling {
   data?: string
   /** The key a rollup rule matches this value's property by — see `ruleKey`. */
   ruleKey?: string
+  /** A saved formula value's `provenance.unitVerified`, present only when `false`. */
+  unitVerified?: false
 }
 
 // The formula chooser — sits inline in the value row (replaces the text input in formula mode).
@@ -213,7 +215,10 @@ export function FormulaBindings({
   calc: CalcInput
   siblings: FormulaSibling[]
   onChange: (calc: CalcInput) => void
-  /** The key a rollup rule multiplies this property's totals by (lower case), if one does. */
+  /**
+   * The key a rollup rule multiplies this property's totals by (lower case) — passed only when
+   * the object's quantity under it is one the rule can use.
+   */
   countedBy?: string
 }) {
   const t = useTranslations()
@@ -267,7 +272,11 @@ export function FormulaBindings({
       if (!sibling) return undefined
       // `previewArgFromValue` is the SDK's own rule for this and returns `undefined` with no
       // number, which is exactly when the typed text is the only truth there is.
-      const stored = previewArgFromValue(variable, sibling)
+      const stored = previewArgFromValue(variable, {
+        num: sibling.num,
+        unit: sibling.unit,
+        provenance: { unitVerified: sibling.unitVerified },
+      })
       if (stored) {
         args.push(stored)
       } else if (sibling.data) {
@@ -311,7 +320,9 @@ export function FormulaBindings({
 
   // The rule already scales this property's totals by that quantity, so a formula reading it too
   // puts it in the total twice. Known here, before any answer: it is the binding, not the result.
-  // A result the node refuses or leaves out of totals is not counted even once.
+  // `countedBy` arrives only when the rule can use the quantity (or cannot tell yet); a refused one
+  // counts the object zero times. A result the node refuses or leaves out of totals is not
+  // counted even once.
   const countedTwice =
     countedBy && !preview?.error && unchecked !== 'left-out'
       ? siblings.find(

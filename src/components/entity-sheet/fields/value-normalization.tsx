@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import type { DraftValue, ValueParse } from '@/lib/entity'
 import { resolveKey } from '@/constants/property-dictionary'
 import type { DerivedValues } from './value-provenance'
+import type { ResolvedQuantity } from './quantity'
 
 /**
  * A quiet marker at the end of a value row, explaining on hover what the node made of the value.
@@ -33,14 +34,14 @@ import type { DerivedValues } from './value-provenance'
  */
 export function ValueNormalization({
   value,
-  unitVerified,
+  quantity,
   usedInFormula = false,
   usedAsMultiplier = false,
   className,
 }: {
   value: Pick<DraftValue, 'data' | 'num' | 'unit' | 'parse'>
-  /** A derived value's `provenance.unitVerified`. */
-  unitVerified?: boolean
+  /** How the node resolves the multiplier under this value's key — see `resolveQuantity`. */
+  quantity?: ResolvedQuantity
   /** True when some derived value binds this one — see `formulaBoundValueIds`. */
   usedInFormula?: boolean
   /** True when a rollup rule scales its totals by this value's key — see `multiplierKeysOf`. */
@@ -64,10 +65,9 @@ export function ValueNormalization({
     )
   }
 
-  // The node will not scale a total by a quantity it could not check, with or without a unit, so
-  // the object is dropped from that rule's total.
-  if (usedAsMultiplier && unitVerified === false) {
-    const detail = t('objects.properties.unitNotChecked')
+  const refused = usedAsMultiplier ? refusedReason(quantity) : undefined
+  if (refused) {
+    const detail = t(`objects.properties.${refused}`)
     return (
       <Marker
         state="excluded"
@@ -91,6 +91,24 @@ export function ValueNormalization({
       icon={<Scale className="h-3.5 w-3.5" />}
     />
   )
+}
+
+/**
+ * Why a rule refuses the quantity under this key, as a message key. Unreadable text already has its
+ * own mark, so it is not repeated here.
+ */
+export function refusedReason(
+  quantity: ResolvedQuantity | undefined
+):
+  | 'quantitySeveral'
+  | 'formulaError'
+  | 'unitNotChecked'
+  | 'quantityNegative'
+  | undefined {
+  if (quantity?.kind === 'ambiguous') return 'quantitySeveral'
+  if (quantity?.kind === 'unusable' && quantity.reason !== 'unreadable')
+    return quantity.reason
+  return undefined
 }
 
 /**

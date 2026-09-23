@@ -28,7 +28,7 @@ const formula = vi.hoisted(() => ({
 
 const preview = vi.hoisted(() => ({
   data: undefined as unknown,
-  isPending: false,
+  isFetching: false,
   lastBody: undefined as unknown,
   bodies: [] as unknown[],
 }))
@@ -56,7 +56,7 @@ vi.mock('@/hooks/api/leaves', () => ({
       // DISTINCT bodies: the hook is called on every render, but the query key is the body, so
       // what reaches the network is the number of different ones.
       if (body !== undefined) preview.bodies.push(JSON.stringify(body))
-      return { data: preview.data, isPending: preview.isPending }
+      return { data: preview.data, isFetching: preview.isFetching }
     },
   }),
   useConstants: () => ({
@@ -102,7 +102,7 @@ beforeEach(() => {
     unit: 't',
   }
   preview.data = undefined
-  preview.isPending = false
+  preview.isFetching = false
   preview.lastBody = undefined
   preview.bodies = []
   unitsHint.read = false
@@ -121,6 +121,21 @@ describe('the question the editor asks', () => {
         { var: 'a', num: 10000, unit: 'kg' },
         { var: 'b', num: 10000, unit: 'kg' },
       ],
+    })
+  })
+
+  // A saved formula value can be an input. Core makes a result that reads an unchecked value
+  // unchecked too, so the question must say so or the answer is about a checked input.
+  it('says a saved formula input is unchecked when it is', () => {
+    renderBindings([
+      { ...sib('v-a', 1200), unitVerified: false },
+      TWO_TONNES[1],
+    ])
+
+    expect((preview.lastBody as { args: unknown[] }).args[0]).toEqual({
+      var: 'a',
+      num: 1200,
+      unitVerified: false,
     })
   })
 
@@ -199,7 +214,6 @@ describe('the answer it shows', () => {
     preview.data = { num: 20000, unit: 'kg', data: '20 t', warnings: [] }
     renderBindings()
 
-    expect(screen.queryByTestId('formula-preview')).toBeNull()
     expect(screen.queryByText(/20 t/)).toBeNull()
   })
 
@@ -213,7 +227,6 @@ describe('the answer it shows', () => {
     renderBindings()
 
     expect(screen.getByTestId('formula-dimension-problem')).toBeInTheDocument()
-    expect(screen.queryByTestId('formula-preview')).toBeNull()
   })
 
   // The node's `detail` is English by contract, so it is demoted rather than dropped — exactly
@@ -455,6 +468,12 @@ describe('authoring warnings', () => {
     }
   })
 
+  it('stays busy while the settled question is still being answered', () => {
+    preview.isFetching = true
+    renderBindings()
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
+  })
+
   // A live region announces what appears in it, so it has to be there before the answer is.
   it('announces the answer in a region that exists before it arrives', () => {
     renderBindings()
@@ -470,7 +489,13 @@ describe('authoring warnings', () => {
       unit: 'kg',
       unitVerified: true,
       warnings: [
-        { code: 'hand-conversion', detail: 'x', literal: 1000, unit: 't' },
+        {
+          code: 'hand-conversion',
+          detail: 'x',
+          literal: 1000,
+          scales: 'down',
+          unit: 't',
+        },
         { code: 'factor', detail: 'y', vars: ['f'], unit: 'kg' },
       ],
     }

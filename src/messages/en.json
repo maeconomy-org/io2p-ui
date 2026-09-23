@@ -651,7 +651,9 @@
       "rollupOnlyThisObject": "This object only",
       "rollupSplitLabel": "{own} here, {below} below",
       "rollupMultipliedBy": "× {key}",
-      "rollupDerived": "Derived"
+      "rollupDerived": "Derived",
+      "quantitySeveral": "Several quantities",
+      "quantityNegative": "Negative quantity"
     },
     "duplicate": {
       "title": "Copy Objects",

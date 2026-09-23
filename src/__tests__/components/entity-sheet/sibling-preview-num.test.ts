@@ -120,4 +120,46 @@ describe('collectSiblings', () => {
       'quantity'
     )
   })
+
+  // A saved formula value has no `calc` in the draft, so it is offered; its unchecked flag comes
+  // from the trace and travels with it. Absent and `true` both mean "nothing to say".
+  it('carries a saved formula value’s unchecked flag, and only that', () => {
+    const properties = [
+      property('a', { id: 'v-1', data: '1200', num: 1200, parsedFrom: '1200' }),
+      property('b', { id: 'v-2', data: '5', num: 5, parsedFrom: '5' }),
+      property('c', { id: 'v-3', data: '7', num: 7, parsedFrom: '7' }),
+    ]
+    const trace = (unitVerified?: boolean) => ({
+      expression: 'x',
+      evalVersion: 1,
+      args: [],
+      ...(unitVerified !== undefined && { unitVerified }),
+    })
+    const derived = new Map([
+      ['v-1', trace(false)],
+      ['v-2', trace(true)],
+      ['v-3', trace()],
+    ])
+    const [a, b, c] = collectSiblings(properties, undefined, 'en', derived)
+    expect(a.unitVerified).toBe(false)
+    expect(b).not.toHaveProperty('unitVerified')
+    expect(c).not.toHaveProperty('unitVerified')
+  })
+
+  // Turned back into text, the value is typed input the normalizer checks; the old trace's flag
+  // no longer applies to it.
+  it('drops the unchecked flag of a formula value turned back into text', () => {
+    const properties = [
+      property('a', { id: 'v-1', data: '20', calc: null, parsedFrom: '1200' }),
+    ]
+    const derived = new Map([
+      [
+        'v-1',
+        { expression: 'x', evalVersion: 1, args: [], unitVerified: false },
+      ],
+    ])
+    expect(
+      collectSiblings(properties, undefined, 'en', derived)[0]
+    ).not.toHaveProperty('unitVerified')
+  })
 })

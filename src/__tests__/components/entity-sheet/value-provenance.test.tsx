@@ -217,3 +217,31 @@ describe('a result whose unit the node could not check', () => {
     expect(uncheckedState({ unitVerified: false }, undefined)).toBe('plain')
   })
 })
+
+describe('a unit reached through a factor', () => {
+  it('says which input was read as a factor, and in what unit', () => {
+    renderProvenance(
+      {
+        ...PROVENANCE,
+        unitVerified: true,
+        unitCheck: 'factor',
+        factorVars: ['a'],
+      },
+      'kgCO2e'
+    )
+    fireEvent.click(screen.getByRole('button'))
+    expect(screen.getByTestId('provenance-factor')).toHaveTextContent(
+      'objects.formulaEditor.warning.factorNoPer'
+    )
+  })
+
+  it('says nothing for a unit computed from the inputs', () => {
+    renderProvenance({
+      ...PROVENANCE,
+      unitVerified: true,
+      unitCheck: 'computed',
+    })
+    fireEvent.click(screen.getByRole('button'))
+    expect(screen.queryByTestId('provenance-factor')).toBeNull()
+  })
+})

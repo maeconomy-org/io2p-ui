@@ -651,7 +651,9 @@
       "rollupOnlyThisObject": "Alleen dit object",
       "rollupSplitLabel": "{own} hier, {below} eronder",
       "rollupMultipliedBy": "× {key}",
-      "rollupDerived": "Afgeleid"
+      "rollupDerived": "Afgeleid",
+      "quantitySeveral": "Meerdere aantallen",
+      "quantityNegative": "Negatief aantal"
     },
     "duplicate": {
       "title": "Objecten kopiëren",

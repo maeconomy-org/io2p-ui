@@ -33,8 +33,10 @@ import {
   RollupLine,
   RollupStaleBadge,
   leftOut,
+  measures,
   orderBuckets,
   type NumericValues,
+  ownFactor,
   ownShare,
   rollupSaysSomething,
 } from './rollup-line'
@@ -44,7 +46,14 @@ import {
   derivedText,
   formulaBoundValueIds,
   multiplierKeysOf,
+  ruleKey,
 } from './value-normalization'
+import {
+  resolveQuantity,
+  savedQuantityValues,
+  valuesUnder,
+  type ResolvedQuantity,
+} from './quantity'
 import {
   ValueProvenanceDisplay,
   labelForValueId,
@@ -164,6 +173,16 @@ export function PropertyReadView({
   // From the RAW map, not `liveRollups` below: an entry with nothing to show still names the key
   // its rule multiplies by, and that key's values are still inputs to a total.
   const multiplierKeys = useMemo(() => multiplierKeysOf(rollups), [rollups])
+  const quantities = useMemo(
+    () =>
+      new Map(
+        [...multiplierKeys].map((key) => [
+          key,
+          resolveQuantity(savedQuantityValues(properties, key, derivedValues)),
+        ])
+      ),
+    [multiplierKeys, properties, derivedValues]
+  )
 
   /**
    * Every consumer below reads THIS map, not the prop.
@@ -189,13 +208,19 @@ export function PropertyReadView({
    * property it relates to (when there is one), which is what lets the card show
    * the own/below split without pretending to be that property.
    */
-  // The flag lives on the trace, not the value: the row's badge reads the same map.
-  const withUnitCheck = useCallback(
+  // A formula value's facts live on its trace, not on the value. `failed`: core writes a failed
+  // formula as `data: ''` with no number and NO parse, and skips it.
+  const withTrace = useCallback(
     (values: DraftValue[]) =>
-      values.map((v) => ({
-        ...v,
-        unitVerified: v.id ? derivedValues.get(v.id)?.unitVerified : undefined,
-      })),
+      values.map((v) => {
+        const trace = v.id ? derivedValues.get(v.id) : undefined
+        return {
+          ...v,
+          derived: !!v.id && derivedValues.has(v.id),
+          failed: !!trace?.error,
+          unitVerified: trace?.unitVerified,
+        }
+      }),
     [derivedValues]
   )
 
@@ -216,18 +241,21 @@ export function PropertyReadView({
           // object has no value for. `ownFactor` reads those two as different things — the first
           // is "no scaling", the second is "absent, so one".
           const multiplierKey = entry.multiplyBy?.propertyKey
-          const multiplied = multiplierKey
-            ? byKey.get(multiplierKey.toLowerCase())
-            : undefined
           const property = byKey.get(entry.propertyKey)
           return {
             entry,
             property,
-            ownValues: property ? withUnitCheck(liveValues(property)) : [],
+            // Every property under the key, as the node sums them: keys need not be unique.
+            ownValues: property
+              ? withTrace(valuesUnder(properties, entry.propertyKey))
+              : [],
+            // Every property under the key: keys need not be unique, and the node reads them all.
             multiplierValues: multiplierKey
-              ? multiplied
-                ? withUnitCheck(liveValues(multiplied))
-                : []
+              ? savedQuantityValues(
+                  properties,
+                  multiplierKey.toLowerCase(),
+                  derivedValues
+                )
               : undefined,
           }
         })
@@ -241,8 +269,13 @@ export function PropertyReadView({
           // authored a moment ago carries neither. "Does anything below contribute?"
           // has no answer yet, and answering it "yes" flashed a card that vanished
           // on the next fetch.
+          // Not for a formula value: it never gets a parse, and a failed one has no number either,
+          // so it would read as "not yet read" for good and hide the card with its totals.
           const notYetRead = (v: (typeof own)[number]) =>
-            v.data !== undefined && v.num === undefined && v.parse === undefined
+            !v.derived &&
+            v.data !== undefined &&
+            v.num === undefined &&
+            v.parse === undefined
           if (own.some(notYetRead)) {
             return false
           }
@@ -267,9 +300,22 @@ export function PropertyReadView({
           // only place that says it was dropped.
           if (!lead) {
             const unreadable = own.filter(
-              (v) => v.parse?.ok === false || leftOut(v)
+              (v) => v.parse?.ok === false || leftOut(v) || v.failed
             ).length
             return entry.skippedCount > unreadable
+          }
+          // A stale sum can predate the own values, but its counts move far less: this object is
+          // the only contributor when every value in the lead total is its own, none scaled.
+          if (entry.stale) {
+            const mine = own.filter(
+              (v) =>
+                v.num !== undefined && !leftOut(v) && measures(lead, v.unit)
+            ).length
+            return !(
+              mine > 0 &&
+              mine === lead.contributorCount &&
+              ownFactor(multiplierValues, entry.multiplyBy?.whenMissing) === 1
+            )
           }
           return !ownShare(
             lead,
@@ -284,7 +330,7 @@ export function PropertyReadView({
             a.entry.ruleId.localeCompare(b.entry.ruleId)
         )
     )
-  }, [liveRollups, properties, withUnitCheck])
+  }, [liveRollups, properties, withTrace, derivedValues])
 
   // Not `properties.length` — an object whose rules all cover keys it never authored has only
   // orphan rows, and testing the properties alone would discard exactly those.
@@ -374,7 +420,7 @@ export function PropertyReadView({
               property={p}
               derivedValues={derivedValues}
               boundValueIds={boundValueIds}
-              usedAsMultiplier={multiplierKeys.has(p.key.toLowerCase())}
+              quantity={quantities.get(ruleKey(p.key, p.label))}
               labelForValue={(id) => labelForValueId(properties, id, locale)}
               displayValue={displayValue}
               entityId={entityId}
@@ -496,7 +542,7 @@ function PropertyCard({
   property,
   derivedValues,
   boundValueIds,
-  usedAsMultiplier = false,
+  quantity,
   labelForValue,
   displayValue,
   entityId,
@@ -506,8 +552,8 @@ function PropertyCard({
   property: DraftProperty
   derivedValues: DerivedValues
   boundValueIds: ReadonlySet<string>
-  /** A rollup rule scales its totals by this property — so its values are calculation inputs. */
-  usedAsMultiplier?: boolean
+  /** Set when a rollup rule scales its totals by this key: how the node resolves that quantity. */
+  quantity?: ResolvedQuantity
   labelForValue: LabelForValue
   displayValue: (value: DraftValue) => string
   entityId?: string
@@ -582,7 +628,7 @@ function PropertyCard({
             value={v}
             derivedValues={derivedValues}
             boundValueIds={boundValueIds}
-            usedAsMultiplier={usedAsMultiplier}
+            quantity={quantity}
             labelForValue={labelForValue}
             displayValue={displayValue}
             entityId={entityId}
@@ -599,7 +645,7 @@ function ValueRow({
   value,
   derivedValues,
   boundValueIds,
-  usedAsMultiplier = false,
+  quantity,
   labelForValue,
   displayValue,
   entityId,
@@ -609,7 +655,7 @@ function ValueRow({
   value: DraftValue
   derivedValues: DerivedValues
   boundValueIds: ReadonlySet<string>
-  usedAsMultiplier?: boolean
+  quantity?: ResolvedQuantity
   labelForValue: LabelForValue
   displayValue: (value: DraftValue) => string
   entityId?: string
@@ -655,9 +701,9 @@ function ValueRow({
         <span>{displayValue(value)}</span>
         <ValueNormalization
           value={value}
-          unitVerified={provenance?.unitVerified}
+          quantity={quantity}
           usedInFormula={!!value.id && boundValueIds.has(value.id)}
-          usedAsMultiplier={usedAsMultiplier}
+          usedAsMultiplier={quantity !== undefined}
         />
         {provenance ? (
           <ValueProvenanceDisplay
