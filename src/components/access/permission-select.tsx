@@ -25,6 +25,7 @@ export function PermissionSelect({
   disabled,
   className,
   testId,
+  max,
   'aria-label': ariaLabel,
 }: {
   value: Permission
@@ -32,6 +33,8 @@ export function PermissionSelect({
   disabled?: boolean
   className?: string
   testId?: string
+  /** The strongest level offered; the rungs above it are not choices here. */
+  max?: Permission
   'aria-label'?: string
 }) {
   const t = useTranslations()
@@ -54,7 +57,10 @@ export function PermissionSelect({
         <span className="truncate">{t(`access.permission.${value}`)}</span>
       </SelectTrigger>
       <SelectContent>
-        {PERMISSIONS.map((permission) => (
+        {PERMISSIONS.slice(
+          0,
+          max ? PERMISSIONS.indexOf(max) + 1 : undefined
+        ).map((permission) => (
           <SelectItem key={permission} value={permission}>
             <span className="flex flex-col items-start">
               <span>{t(`access.permission.${permission}`)}</span>

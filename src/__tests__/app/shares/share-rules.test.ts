@@ -3,14 +3,16 @@ import { describe, it, expect } from 'vitest'
 import en from '@/messages/en.json'
 import nl from '@/messages/nl.json'
 
+import type { Permission } from '@/components/access'
 import {
   canCascade,
+  capPermissions,
   changeCapRefusal,
   familyOf,
   familyOfBundle,
   itemCapRefusal,
+  memberCeiling,
   pairCapRefusal,
-  pinPermissions,
   shareCapRefusal,
 } from '@/app/shares/utils/share-rules'
 
@@ -63,35 +65,49 @@ describe('canCascade', () => {
   })
 })
 
-describe('pinPermissions', () => {
-  const members = [
-    { userId: 'anna', permission: 'write' },
+describe('memberCeiling', () => {
+  const object = (permission?: Permission) => ({ permission })
+
+  it('is admin when every level is admin or unknown', () => {
+    expect(memberCeiling([object('admin'), object()], 'data')).toBe('admin')
+    expect(memberCeiling([], null)).toBe('admin')
+  })
+
+  // The node needs the granter's level on EVERY resource, so the weakest one sets it.
+  it('is the weakest level the granter holds among the resources', () => {
+    expect(
+      memberCeiling([object('admin'), object('share'), object()], 'data')
+    ).toBe('share')
+  })
+
+  it('is read for a library bundle', () => {
+    expect(memberCeiling([object()], 'library')).toBe('read')
+  })
+})
+
+describe('capPermissions', () => {
+  const members: { userId: string; permission: Permission }[] = [
+    { userId: 'anna', permission: 'admin' },
     { userId: 'bob', permission: 'read' },
   ]
 
-  it('leaves a data bundle exactly as authored', () => {
-    expect(pinPermissions(members, 'data')).toBe(members)
-  })
-
-  it('leaves an empty bundle alone — no family, no rule to apply yet', () => {
-    expect(pinPermissions(members, null)).toBe(members)
+  it('leaves the members exactly as authored under an admin ceiling', () => {
+    expect(capPermissions(members, 'admin')).toBe(members)
   })
 
   /**
-   * The order that breaks a control-only guard: add someone at `write`, THEN drop a formula in.
-   * The select is disabled from that point on, but the staged `write` is already there — and it is
-   * what Save would have sent.
+   * The order that breaks a control-only guard: add someone at `admin`, THEN add a resource held
+   * at `share` (or a formula). The staged `admin` is what Save would have sent.
    */
-  it('pins every member to read once the bundle is library', () => {
-    expect(pinPermissions(members, 'library')).toEqual([
-      { userId: 'anna', permission: 'read' },
+  it('lowers every member above the ceiling to it', () => {
+    expect(capPermissions(members, 'share')).toEqual([
+      { userId: 'anna', permission: 'share' },
       { userId: 'bob', permission: 'read' },
     ])
   })
 
-  it('does not clone a member that is already read', () => {
-    const pinned = pinPermissions(members, 'library')
-    expect(pinned[1]).toBe(members[1])
+  it('does not clone a member already within the ceiling', () => {
+    expect(capPermissions(members, 'read')[1]).toBe(members[1])
   })
 })
 

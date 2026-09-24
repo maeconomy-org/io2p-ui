@@ -38,6 +38,11 @@ function meets(
   return RANK[permission] >= RANK[required]
 }
 
+/** Where a level sits on the ladder, weakest first — for comparing two known levels. */
+export function permissionRank(permission: Permission): number {
+  return RANK[permission]
+}
+
 /** May the viewer change this entity? PATCH is guarded at `write`. */
 export function canEdit(permission?: Permission): boolean {
   return meets(permission, 'write')

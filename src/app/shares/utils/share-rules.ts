@@ -1,6 +1,7 @@
 import type { UpdateShareBody } from 'io2p-client'
 
-import type { ShareResourceType } from '@/components/access'
+import type { Permission, ShareResourceType } from '@/components/access'
+import { permissionRank } from '@/components/entity-list'
 
 /**
  * The two families a bundle may hold, and MAY NOT MIX.
@@ -34,19 +35,44 @@ export function canCascade(resources: { type: ShareResourceType }[]) {
 }
 
 /**
- * Pin a library bundle's members to `read` at the point of the WRITE.
+ * The strongest level a member may get in this bundle.
  *
- * Disabling the control is not enough: someone can add a member at `write` and only then drop a
- * formula into the bundle, at which point the staged permission is one the node refuses. Correcting
- * it here means the rule holds however the form got into that state.
+ * The node grants a bundle only when the granter holds at least the strongest member level on
+ * EVERY resource, so the ceiling is the granter's weakest level among them. A library bundle is
+ * read-share only. A resource whose level is not known here (a saved share lists none) sets no
+ * limit: the node still decides, and says why.
  */
-export function pinPermissions<T extends { permission: string }>(
-  members: T[],
+export function memberCeiling(
+  resources: readonly { permission?: Permission }[],
   family: ShareResourceFamily | null
+): Permission {
+  if (family === 'library') return 'read'
+  return resources.reduce<Permission>(
+    (ceiling, r) =>
+      r.permission && permissionRank(r.permission) < permissionRank(ceiling)
+        ? r.permission
+        : ceiling,
+    'admin'
+  )
+}
+
+/**
+ * Lower every member above `ceiling` to it, at the point of the WRITE.
+ *
+ * Limiting the control is not enough: someone can add a member at `admin` and only then add a
+ * resource held at `share`, or drop a formula into the bundle, at which point the staged level is
+ * one the node refuses. Correcting it here means the rule holds however the form got into that
+ * state.
+ */
+export function capPermissions<T extends { permission: Permission }>(
+  members: T[],
+  ceiling: Permission
 ): T[] {
-  if (family !== 'library') return members
+  if (ceiling === 'admin') return members
   return members.map((m) =>
-    m.permission === 'read' ? m : { ...m, permission: 'read' }
+    permissionRank(m.permission) <= permissionRank(ceiling)
+      ? m
+      : { ...m, permission: ceiling }
   )
 }
 

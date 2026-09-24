@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Info, Loader2, UserPlus, X } from 'lucide-react'
+import { AlertTriangle, Info, Loader2, UserPlus, X } from 'lucide-react'
 import type { ShareDTO, UpdateShareBody } from 'io2p-client'
 
 import {
@@ -30,6 +30,7 @@ import {
   SheetTitle,
 } from '@/components/ui'
 import { PermissionSelect, type Permission } from '@/components/access'
+import { permissionRank } from '@/components/entity-list'
 import { UnsavedBar } from '@/components/entity-sheet/sheet-lifecycle-footer'
 import { useAuth } from '@/contexts'
 import { useShares } from '@/hooks/api/access'
@@ -42,8 +43,9 @@ import { anchor } from '@/constants'
 import { ResourcePicker, type ShareResource } from './resource-picker'
 import {
   canCascade,
+  capPermissions,
   familyOfBundle,
-  pinPermissions,
+  memberCeiling,
   shareCapRefusal,
 } from '../utils/share-rules'
 
@@ -188,7 +190,19 @@ function ShareForm({
   const cascadeAllowed = canCascade(resources)
   const effectiveCascade = cascadeAllowed && cascade
 
-  const effectiveMembers = pinPermissions(members, family)
+  const ceiling = memberCeiling(resources, family)
+  const effectiveMembers = capPermissions(members, ceiling)
+  // The level is per bundle, so saving lowers anyone SAVED above the ceiling on EVERY item here,
+  // not only the one that set it. A member not yet saved has nothing to lose.
+  const staying = new Set(members.map((m) => m.userId))
+  const lowered =
+    mode === 'edit'
+      ? (share?.members ?? []).filter(
+          (m) =>
+            staying.has(m.userId) &&
+            permissionRank(m.permission as Permission) > permissionRank(ceiling)
+        ).length
+      : 0
 
   const memberIds = new Set(members.map((m) => m.userId))
   const candidates = users.filter(
@@ -323,11 +337,38 @@ function ShareForm({
               <span>{t('shares.libraryShareHint')}</span>
             </p>
           )}
+          {!libraryShare && ceiling !== 'admin' && (
+            <p
+              data-testid="share-member-ceiling"
+              className="flex items-start gap-1.5 text-xs text-muted-foreground"
+            >
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                {t('shares.memberCeilingHint', {
+                  level: t(`access.permission.${ceiling}`),
+                })}
+              </span>
+            </p>
+          )}
+          {lowered > 0 && (
+            <p
+              data-testid="share-member-lowered"
+              className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
+            >
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                {t('shares.memberLoweredHint', {
+                  count: lowered,
+                  level: t(`access.permission.${ceiling}`),
+                })}
+              </span>
+            </p>
+          )}
         </div>
 
         <div className="space-y-2" {...anchor('shareMembers')}>
           <Label>{t('shares.fields.members')}</Label>
-          {members.map((member) => (
+          {members.map((member, index) => (
             <div
               key={member.userId}
               className="space-y-2 rounded-md border px-3 py-2"
@@ -367,7 +408,8 @@ function ShareForm({
                   showing it would render rungs the node refuses. */}
               <PermissionSelect
                 className="w-full"
-                value={libraryShare ? 'read' : member.permission}
+                value={effectiveMembers[index].permission}
+                max={ceiling}
                 disabled={libraryShare}
                 aria-label={t('access.permissionFor', {
                   name: nameOf(member.userId),

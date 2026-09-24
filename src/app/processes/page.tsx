@@ -301,6 +301,7 @@ export default function ProcessesPage() {
             type: 'process' as const,
             id: p.id,
             name: p.name,
+            permission: permissionOf(p, userId),
           }))}
         />
       )}

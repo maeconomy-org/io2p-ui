@@ -4,6 +4,8 @@ import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 
 import { DeleteConfirmationDialog } from '@/components/dialogs'
+import { permissionOf } from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 
 import type { ObjectListPageState } from './use-object-list-page'
 
@@ -57,6 +59,7 @@ const ShareEditorSheet = dynamic(
  * presets a parent), single-object share (root only) and duplicate-into-this-parent (children only).
  */
 export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
+  const { userId } = useAuth()
   const t = useTranslations()
 
   return (
@@ -122,6 +125,7 @@ export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
             type: 'object' as const,
             id: o.id,
             name: o.name,
+            permission: permissionOf(o, userId),
           }))}
         />
       )}

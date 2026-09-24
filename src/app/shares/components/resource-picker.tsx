@@ -17,8 +17,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui'
-import { OwnerHint } from '@/components/entity-list'
-import type { ShareResourceType } from '@/components/access'
+import { canReshare, OwnerHint, permissionOf } from '@/components/entity-list'
+import type { Permission, ShareResourceType } from '@/components/access'
+import { useAuth } from '@/contexts'
 import { useObjects, useProcesses, useTemplates } from '@/hooks/api/entities'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
 
@@ -34,6 +35,8 @@ export interface ShareResource {
   system?: boolean
   ownerUserId?: string
   ownerName?: string
+  /** The viewer's own level on it, where known; it limits the member levels the bundle offers. */
+  permission?: Permission
 }
 
 /**
@@ -56,6 +59,7 @@ export function ResourcePicker({
   onAdd: (resource: ShareResource) => void
 }) {
   const t = useTranslations()
+  const { userId } = useAuth()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [browsing, setBrowsing] = useState<ShareResourceFamily>('data')
@@ -96,6 +100,7 @@ export function ResourcePicker({
             name: o.name,
             ownerUserId: o.createdBy,
             ownerName: o.createdByName,
+            permission: permissionOf(o, userId),
           })),
           ...(processes?.data ?? []).map((p) => ({
             type: 'process' as const,
@@ -103,6 +108,7 @@ export function ResourcePicker({
             name: p.name,
             ownerUserId: p.createdBy,
             ownerName: p.createdByName,
+            permission: permissionOf(p, userId),
           })),
         ]
       : [
@@ -198,6 +204,8 @@ export function ResourcePicker({
                   value={resource.id}
                   data-testid={`resource-option-${resource.id}`}
                   className="cursor-pointer"
+                  // The node refuses the whole bundle for a resource held below `share`.
+                  disabled={!canReshare(resource.permission)}
                   onSelect={() => {
                     setOpen(false)
                     setQuery('')
@@ -213,6 +221,11 @@ export function ResourcePicker({
                     ownerUserId={resource.ownerUserId}
                     ownerName={resource.ownerName}
                   />
+                  {!canReshare(resource.permission) && (
+                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                      {t('shares.needsShareAccess')}
+                    </span>
+                  )}
                 </CommandItem>
               ))}
             </CommandGroup>
