@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/app'
+import { patchPreferences } from '../utils/preferences'
 
 /**
  * The preference cookie is the FIRST-PAINT mirror of the account's settings.
@@ -15,6 +16,15 @@ import { expect, test } from '../fixtures/app'
 const COOKIE = { name: 'iom_prefs', domain: 'localhost', path: '/' }
 
 test.describe('13 - preferences / first paint', () => {
+  // The size case stores 50 on the account; put the default back whatever happened.
+  test.afterAll(async ({ browser }) => {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    await page.goto('/objects')
+    await patchPreferences(page, { defaults: { pageSize: 20 } })
+    await context.close()
+  })
+
   test('the server renders the stored view, not the default', async ({
     page,
     context,
@@ -69,25 +79,40 @@ test.describe('13 - preferences / first paint', () => {
     await expect(page.getByTestId('data-table')).toBeVisible()
   })
 
+  // A returning user whose account and cookie both say 50. `/me` is HELD until the list has asked,
+  // so the size can only have come from the cookie: without the hold the account answers first on
+  // a fast node, and the case passes whether or not the hint is read.
   test('the stored page size drives the FIRST list request', async ({
     page,
     context,
     api,
   }) => {
+    await page.goto('/objects')
+    await patchPreferences(page, { defaults: { pageSize: 50 } })
     await context.addCookies([{ ...COOKIE, value: '1.t.t.50.y.en' }])
 
-    await page.goto('/objects')
-    await expect(page.getByTestId('data-table')).toBeVisible()
-
-    // Asserted on the REQUEST, not on the size Select. The control reads its
-    // value back off the response, so it would show 50 even if the request had
-    // asked for 20 and the server had simply echoed what it was given.
-    // `_rsc` filtered out: Next's own route prefetch also hits `/objects?`, and
-    // it arrives FIRST, so an unfiltered match reads the navigation instead of
-    // the list call.
     const listCalls = () =>
       api.matching(/\/objects\?/).filter((r) => !r.path.includes('_rsc'))
-    await expect.poll(() => listCalls().length).toBeGreaterThan(0)
+    let release: () => void = () => {}
+    const listAsked = new Promise<void>((resolve) => (release = resolve))
+    page.on('request', (r) => {
+      if (/\/api\/v1\/objects\?/.test(r.url())) release()
+    })
+    await page.route('**/api/v1/me', async (route) => {
+      await listAsked
+      await route.continue()
+    })
+
+    api.clear()
+    await page.goto('/objects')
+    // Asserted on the REQUEST, not on the size Select, which reads its value back off the response.
+    await expect
+      .poll(() => listCalls().length, {
+        message:
+          'the list never asked while /me was held — it waits for the account',
+      })
+      .toBeGreaterThan(0)
     expect(listCalls()[0].path).toContain('size=50')
+    await expect(page.getByTestId('data-table')).toBeVisible()
   })
 })
