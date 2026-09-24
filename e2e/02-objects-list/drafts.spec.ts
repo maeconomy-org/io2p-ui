@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '../fixtures/app'
 import { secondCredentials } from '../setup/credentials'
 import { tour } from '../utils/selectors'
-import { restoreSession, signInAs } from '../utils/session'
+import { restoreSession, signedOutContext, signInAs } from '../utils/session'
 import {
   addProperty,
   expandProperty,
@@ -60,7 +60,7 @@ async function saveAsDraft(page: Page, name: string) {
  */
 test.afterAll(async ({ browser }) => {
   if (!secondCredentials()) return
-  const context = await browser.newContext()
+  const context = await signedOutContext(browser)
   const page = await context.newPage()
   await restoreSession(page)
   await context.close()

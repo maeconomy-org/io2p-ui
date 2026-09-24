@@ -1,4 +1,10 @@
-import { expect, test, type Page } from '@playwright/test'
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from '@playwright/test'
 
 import {
   AUTH_STATE,
@@ -9,7 +15,6 @@ import {
 /**
  * io2p-auth keeps ONE live session per origin, so signing in as a second account ENDS the first
  * account's session server-side — for every browser context, not just the one that signed in.
- * `browser.newContext()` isolates cookies, not the session record on the node.
  *
  * That is correct product behaviour and reproduces by hand: sign in as A, sign in as B in the same
  * browser, and A is logged out. It means a spec that switches accounts is DESTRUCTIVE to the shared
@@ -18,6 +23,18 @@ import {
  *
  * So a spec that signs in as anyone else owes a `restoreSession` afterwards.
  */
+/**
+ * A context with no stored sign-in, for a spec that signs someone in.
+ *
+ * `browser.newContext()` is NOT empty in this runner: the project's `storageState` applies to it,
+ * so it opens signed in as the primary account (cookies, and the core token in localStorage). The
+ * app then navigates off the sign-in form while it is being filled, which a production build does
+ * fast enough to detach the field mid-fill.
+ */
+export function signedOutContext(browser: Browser): Promise<BrowserContext> {
+  return browser.newContext({ storageState: { cookies: [], origins: [] } })
+}
+
 export async function signInAs(page: Page, who: Credentials): Promise<void> {
   // Callers arrive here right after clicking sign-out, which fires its OWN redirect to `/`. A
   // `goto` racing that redirect is cancelled by the browser as `net::ERR_ABORTED`, so let the

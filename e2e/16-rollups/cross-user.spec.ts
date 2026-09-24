@@ -1,6 +1,6 @@
 import { expect, test } from '../fixtures/app'
 import { requireCredentials, secondCredentials } from '../setup/credentials'
-import { restoreSession, signInAs } from '../utils/session'
+import { restoreSession, signedOutContext, signInAs } from '../utils/session'
 import { tour } from '../utils/selectors'
 import { createObjectWithId } from '../utils/process'
 
@@ -16,11 +16,13 @@ import { createObjectWithId } from '../utils/process'
  */
 const second = secondCredentials()
 
-test.afterAll(async ({ browser }) => {
+test.afterAll(async ({ browser }, testInfo) => {
   if (!second) return
+  // A hook gets the default budget, not the test's 180s, and a sign-in can outlast it.
+  testInfo.setTimeout(120_000)
   // Signing in as the grantee ends the primary session for the whole ORIGIN, so every write spec
   // scheduled after this file would otherwise run signed out.
-  const context = await browser.newContext()
+  const context = await signedOutContext(browser)
   const page = await context.newPage()
   await restoreSession(page)
   await context.close()
@@ -40,7 +42,7 @@ test.describe('16 - rollups / cross-user', () => {
     const objectName = `${tag}-rollup-shared`
     const shareName = `${tag}-rollup-grant`
 
-    const ownerContext = await browser.newContext()
+    const ownerContext = await signedOutContext(browser)
     const owner = await ownerContext.newPage()
     await signInAs(owner, requireCredentials())
     await createObjectWithId(owner, objectName)
@@ -63,7 +65,7 @@ test.describe('16 - rollups / cross-user', () => {
       owner.getByTestId('data-table-row').filter({ hasText: shareName }).first()
     ).toBeVisible()
 
-    const granteeContext = await browser.newContext()
+    const granteeContext = await signedOutContext(browser)
     const grantee = await granteeContext.newPage()
 
     // Assert on the REQUEST, not on the absence of a card: no card is also what a correct empty

@@ -5,7 +5,7 @@ import { requireCredentials, secondCredentials } from '../setup/credentials'
 import { rowActions, tour } from '../utils/selectors'
 import { createObjectWithId, createProcess } from '../utils/process'
 import { patchPreferences } from '../utils/preferences'
-import { restoreSession, signInAs } from '../utils/session'
+import { restoreSession, signedOutContext, signInAs } from '../utils/session'
 import { gotoList, sheet, switchTab } from '../utils/sheet'
 
 /**
@@ -94,7 +94,7 @@ async function deleteRow(
 test.afterAll(async ({ browser }, testInfo) => {
   if (!second) return
   testInfo.setTimeout(240_000)
-  const context = await browser.newContext()
+  const context = await signedOutContext(browser)
   const page = await context.newPage()
   try {
     // The artefacts belong to the SECOND account, so only that account can remove them — a grantee
@@ -119,7 +119,7 @@ test.afterAll(async ({ browser }, testInfo) => {
 test.afterAll(async ({ browser }, testInfo) => {
   if (!second) return
   testInfo.setTimeout(120_000)
-  const context = await browser.newContext()
+  const context = await signedOutContext(browser)
   const page = await context.newPage()
   // Unconditional, and to a known account. One live session per origin, so leaving the second
   // account signed in 401s every later write spec.
@@ -148,7 +148,7 @@ test.describe('11 - shares / a process shared with you', () => {
     created.processName = processName
     created.share = shareName
 
-    const owner = await (await browser.newContext()).newPage()
+    const owner = await (await signedOutContext(browser)).newPage()
     await signInAs(owner, second!)
 
     // ENGLISH ON THE SECOND ACCOUNT, set rather than assumed — and this is not defensive padding.
@@ -201,7 +201,7 @@ test.describe('11 - shares / a process shared with you', () => {
     await expect(rowFor(owner, shareName)).toBeVisible()
 
     // Back to the primary account, which is now the GRANTEE.
-    const grantee = await (await browser.newContext()).newPage()
+    const grantee = await (await signedOutContext(browser)).newPage()
     await restoreSession(grantee)
 
     await gotoList(grantee, '/processes')

@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { requireCredentials, secondCredentials } from '../setup/credentials'
-import { restoreSession, signInAs } from '../utils/session'
+import { restoreSession, signedOutContext, signInAs } from '../utils/session'
 import { gotoList, openCreateSheet, saveSheet, sheet } from '../utils/sheet'
 import { rowActions, tour } from '../utils/selectors'
 
@@ -35,7 +35,7 @@ const second = secondCredentials()
  */
 test.afterAll(async ({ browser }) => {
   if (!second) return
-  const context = await browser.newContext()
+  const context = await signedOutContext(browser)
   const page = await context.newPage()
   await restoreSession(page)
 
@@ -157,7 +157,7 @@ test.describe('11 - shares / hierarchy', () => {
     created.objects.push(childA, childB, parent)
     created.share = shareName
 
-    const ownerContext = await browser.newContext()
+    const ownerContext = await signedOutContext(browser)
     const owner = await ownerContext.newPage()
     await signInAs(owner, requireCredentials())
 
@@ -175,7 +175,7 @@ test.describe('11 - shares / hierarchy', () => {
     // grantee's children request need `scope: 'all'` — `mine` drops every one of them.
     await shareWithSecond(owner, shareName, [parent, childA, childB])
 
-    const granteeContext = await browser.newContext()
+    const granteeContext = await signedOutContext(browser)
     const grantee = await granteeContext.newPage()
     await signInAs(grantee, second!)
 

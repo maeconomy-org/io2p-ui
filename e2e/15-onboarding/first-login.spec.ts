@@ -2,7 +2,7 @@ import { expect, test } from '../fixtures/app'
 import { requireCredentials } from '../setup/credentials'
 import { tour } from '../utils/selectors'
 import { armInitialLoginTour, resetPreferences } from '../utils/preferences'
-import { restoreSession, signInAs } from '../utils/session'
+import { restoreSession, signedOutContext, signInAs } from '../utils/session'
 
 /**
  * The welcome tour on a FIRST login, which nothing drives today.
@@ -29,7 +29,7 @@ test.describe('15 - onboarding / first login', () => {
   }) => {
     // Arming needs a session, and the assertion needs a browser that has never had one. Two
     // contexts, in that order.
-    const armer = await browser.newContext()
+    const armer = await signedOutContext(browser)
     const armerPage = await armer.newPage()
     await signInAs(armerPage, primary)
     await armInitialLoginTour(armerPage)
@@ -86,7 +86,7 @@ test.describe('15 - onboarding / first login', () => {
    * click timeout that names nothing.
    */
   test.afterAll(async ({ browser }) => {
-    const context = await browser.newContext()
+    const context = await signedOutContext(browser)
     const page = await context.newPage()
     await restoreSession(page)
     await resetPreferences(page)

@@ -1,7 +1,7 @@
 import { expect, test } from '../fixtures/app'
 import { requireCredentials, secondCredentials } from '../setup/credentials'
 import { createObjectWithId } from '../utils/process'
-import { restoreSession, signInAs } from '../utils/session'
+import { restoreSession, signedOutContext, signInAs } from '../utils/session'
 
 /**
  * A revoke is only proved by a RELOAD.
@@ -18,7 +18,7 @@ const second = secondCredentials()
 
 test.afterAll(async ({ browser }) => {
   if (!second) return
-  const context = await browser.newContext()
+  const context = await signedOutContext(browser)
   const page = await context.newPage()
   await restoreSession(page)
   await context.close()
@@ -35,7 +35,7 @@ test.describe('11 - shares / revoke', () => {
   }) => {
     const objectName = `e2e-${Date.now()}-revoked`
 
-    const ownerContext = await browser.newContext()
+    const ownerContext = await signedOutContext(browser)
     const owner = await ownerContext.newPage()
     await signInAs(owner, requireCredentials())
     await createObjectWithId(owner, objectName)

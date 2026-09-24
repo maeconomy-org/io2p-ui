@@ -4,7 +4,7 @@ import { expect, test } from '../fixtures/app'
 import { requireCredentials, secondCredentials } from '../setup/credentials'
 import { createObjectWithId } from '../utils/process'
 import { tour } from '../utils/selectors'
-import { restoreSession, signInAs } from '../utils/session'
+import { restoreSession, signedOutContext, signInAs } from '../utils/session'
 
 /**
  * What the row menu OFFERS is the access check the user actually sees.
@@ -20,7 +20,7 @@ const second = secondCredentials()
 
 test.afterAll(async ({ browser }) => {
   if (!second) return
-  const context = await browser.newContext()
+  const context = await signedOutContext(browser)
   const page = await context.newPage()
   await restoreSession(page)
   await context.close()
@@ -79,13 +79,13 @@ test.describe('11 - shares / permission gating', () => {
     const tag = `e2e-${Date.now()}`
     const objectName = `${tag}-gated`
 
-    const ownerContext = await browser.newContext()
+    const ownerContext = await signedOutContext(browser)
     const owner = await ownerContext.newPage()
     await signInAs(owner, requireCredentials())
     await createObjectWithId(owner, objectName)
     await shareObjectWith(owner, objectName, `${tag}-bundle`, second!.email)
 
-    const granteeContext = await browser.newContext()
+    const granteeContext = await signedOutContext(browser)
     const grantee = await granteeContext.newPage()
     await signInAs(grantee, second!)
 
