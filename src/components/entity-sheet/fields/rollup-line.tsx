@@ -42,6 +42,8 @@ export type NumericValues = readonly {
   unit?: string
   unitVerified?: boolean
   failed?: boolean
+  /** A formula value: without a unit it is never a count. */
+  derived?: boolean
 }[]
 
 /** The rule's answer for an object that has no value under the multiplier's key. */
@@ -50,19 +52,19 @@ type WhenMissing = NonNullable<EntityRollupEntry['multiplyBy']>['whenMissing']
 /**
  * Whether the node sums this value into `bucket`, one of the entry's `buckets`.
  *
- * A value with a unit goes to that unit's bucket. A BARE number is a count: the node merges `5`
- * into the key's `pcs` bucket, because `5` and `5 pcs` are one quantity, and keeps it unit-less
- * only where no count total exists. An unchecked number without a unit is the evaluator's
- * canonical number (joules, not pieces), so it is always unit-less and never inside a count. Both
- * a count and a unit-less total can therefore arrive together, which is why the answer for a bare
- * value needs the whole list.
+ * A value with a unit goes to that unit's bucket. A TYPED bare number is a count: the node merges
+ * `5` into the key's `pcs` bucket, because `5` and `5 pcs` are one quantity, and keeps it unit-less
+ * only where no count total exists. A formula result without a unit (a density, a ratio, an
+ * unchecked canonical number) says nothing about pieces, so it is always unit-less. Both a count
+ * and a unit-less total can therefore arrive together, which is why the answer for a bare value
+ * needs the whole list.
  */
 export function holds(
   bucket: RollupBucket,
   v: NumericValues[number],
   buckets: readonly RollupBucket[]
 ): boolean {
-  if (uncheckedState(v, v.unit) === 'plain')
+  if (!v.unit && (v.derived || uncheckedState(v, v.unit) === 'plain'))
     return bucket.dimension === 'unitless'
   if (v.unit) return bucket.unit === v.unit
   const pile = buckets.some((b) => b.dimension === 'count')

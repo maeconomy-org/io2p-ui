@@ -225,6 +225,28 @@ describe('ownShare', () => {
     })
   })
 
+  // A checked formula result without a unit (2400 kg / 1 m3) is not pieces either.
+  it('keeps a checked formula number without a unit out of the count total', () => {
+    const pcs = {
+      dimension: 'count',
+      unit: 'pcs',
+      num: 3,
+      unitCount: 3,
+      contributorCount: 1,
+    } as RollupBucket
+    const unitless = {
+      dimension: 'unitless',
+      num: 2400,
+      unitCount: 1,
+      contributorCount: 1,
+    } as RollupBucket
+    const own = [{ num: 2400, derived: true }]
+    expect(ownShare(pcs, own, undefined, undefined, [pcs, unitless])).toBeNull()
+    expect(
+      ownShare(unitless, own, undefined, undefined, [pcs, unitless])
+    ).toEqual({ own: 2400, below: 0, onlyContributor: true })
+  })
+
   it('keeps a plain bare number in the unit-less total where no count total exists', () => {
     const unitless = {
       dimension: 'unitless',
