@@ -55,24 +55,23 @@ test.describe('12 - import / shell', () => {
     page,
     api,
   }) => {
-    // The page opens on the status tab, whose job list loads first; one still in flight would land
-    // after `clear()`. Switching tabs unmounts that list, so nothing of its own follows.
-    const listed = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'GET' &&
-        /\/v1\/imports$/.test(new URL(r.url()).pathname)
-    )
-    await page.goto('/import')
-    await listed
-    await expect(page.getByTestId('import-tab-wizard')).toBeVisible()
-
+    // The wizard is force-mounted, so a fetch on mount would fire during `goto`: record from before
+    // it. The status tab's job-list read is the one allowed request; it cannot be told apart from
+    // a wizard reading the same list, but any other import call (a draft, a POST, staging) can.
     api.clear()
+    await page.goto('/import')
+    await expect(page.getByTestId('import-tab-wizard')).toBeVisible()
     await page.getByTestId('import-tab-wizard').click()
     await expect(page.getByTestId('import-dropzone')).toBeVisible()
 
     // Absence is only proven over a window: a count sampled once reads 0 before a late request.
     await page.waitForTimeout(1_500)
-    expect(api.count(/\/v1\/imports/)).toBe(0)
+    const others = api
+      .matching(/\/v1\/imports/)
+      .filter(
+        (r) => !(r.method === 'GET' && /\/v1\/imports(\?|$)/.test(r.path))
+      )
+    expect(others.map((r) => `${r.method} ${r.path}`)).toEqual([])
   })
 
   test('I5: the stepper is back-only — an unreached step is disabled', async ({

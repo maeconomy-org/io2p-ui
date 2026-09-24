@@ -103,10 +103,9 @@ test.describe('16 - rollups / an unreadable unit', () => {
 
     const cardVisible = async () => {
       await page.goto('/objects')
-      // `.first()`: an object sheet renders its OWN `data-table`, so a bare locator here is a
-      // strict-mode violation whenever the previous iteration's sheet is still mounted — and
-      // `Escape` closing it is not something to depend on.
-      await expect(page.getByTestId('data-table').first()).toBeVisible()
+      // Strict on purpose. A run once saw two `data-table`s on /objects; no page renders two, and it
+      // did not reproduce (2026-09-24). If it returns, the strict-mode error names both elements.
+      await expect(page.getByTestId('data-table')).toBeVisible()
       await openObjectSheet(page, rowFor(page, PARENT))
       await page.waitForTimeout(4_000)
       return (await page.getByTestId('rollup-card').count()) > 0

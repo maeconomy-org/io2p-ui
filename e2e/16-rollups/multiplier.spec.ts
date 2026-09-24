@@ -211,7 +211,12 @@ test.describe('16 - rollups / the quantity multiplier', () => {
     )
     await page.goto('/objects')
     await expect(page.getByTestId('data-table')).toBeVisible()
+    // Read mode learns which key is a quantity from the object's rollup entries.
+    const entries = page.waitForResponse(
+      (r) => r.request().method() === 'GET' && /\/rollups(\?|$)/.test(r.url())
+    )
     await openObjectSheet(page, rowFor(page, NEG))
+    await entries
 
     await page
       .getByRole('button', { name: new RegExp(QTY) })

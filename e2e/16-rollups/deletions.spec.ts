@@ -11,7 +11,6 @@ import {
   saveSheet,
   saveSheetAndSettle,
   sheet,
-  listTable,
 } from '../utils/sheet'
 import { rowActions, tour } from '../utils/selectors'
 
@@ -84,7 +83,7 @@ async function createObject(
 /** Open the child through its PARENT: `/objects` asks `parent=''`, so a child is not in that list. */
 async function openChild(page: Page): Promise<void> {
   await page.goto('/objects')
-  await expect(listTable(page)).toBeVisible()
+  await expect(page.getByTestId('data-table')).toBeVisible()
   await rowFor(page, PARENT).dblclick()
   await expect(page).toHaveURL(/\/objects\/[0-9a-f-]{8,}/i)
   await openObjectSheet(page, rowFor(page, CHILD))
@@ -101,7 +100,7 @@ async function openChild(page: Page): Promise<void> {
 async function pollParentCard(page: Page, want: boolean): Promise<void> {
   for (let attempt = 0; attempt < 8; attempt++) {
     await page.goto('/objects')
-    await expect(listTable(page)).toBeVisible()
+    await expect(page.getByTestId('data-table')).toBeVisible()
     await openObjectSheet(page, rowFor(page, PARENT))
     await page.waitForTimeout(4_000)
     const present = (await page.getByTestId('rollup-card').count()) > 0
@@ -138,7 +137,7 @@ test.describe('16 - rollups / deletions', () => {
     await createRule(page, KEY)
 
     await page.goto('/objects')
-    await expect(listTable(page)).toBeVisible()
+    await expect(page.getByTestId('data-table')).toBeVisible()
     // The parent authors NOTHING under this key: it must be the child that puts the card there, or
     // an absent card later would prove nothing about the child.
     await createObject(page, PARENT)
@@ -232,7 +231,7 @@ test.describe('16 - rollups / deletions', () => {
     testInfo.setTimeout(300_000)
 
     await page.goto('/objects')
-    await expect(listTable(page)).toBeVisible()
+    await expect(page.getByTestId('data-table')).toBeVisible()
     await rowFor(page, PARENT).dblclick()
     await expect(page).toHaveURL(/\/objects\/[0-9a-f-]{8,}/i)
 

@@ -15,13 +15,6 @@ export function sheet(page: Page): Locator {
   return page.getByTestId('entity-sheet')
 }
 
-/** The page's list table. An open object sheet renders its own `data-table`, which this skips. */
-export function listTable(page: Page): Locator {
-  return page.locator(
-    '[data-testid="data-table"]:not([data-testid="entity-sheet"] *)'
-  )
-}
-
 /** The object create sheet is linear — it renders no tabs. */
 export async function openCreateSheet(page: Page): Promise<Locator> {
   await tour(page, 'createObject').click()

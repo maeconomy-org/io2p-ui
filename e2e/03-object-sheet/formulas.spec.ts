@@ -435,22 +435,28 @@ test.describe('03 - object sheet / formulas', () => {
 
     const warning = page.getByTestId('formula-warning-hand-conversion')
     await expect(warning).toBeVisible()
-    await expect(warning).toContainText(/1[,.]?000/)
+    // The direction and the unit, not just the number: "1,000 times larger" would be the wrong advice.
+    await expect(warning).toContainText(/1[,.]?000 times smaller/)
+    await expect(warning).toContainText(/conversion to t\b/)
     await expect(page.getByTestId('formula-dimension-problem')).toHaveCount(0)
   })
 
+  // Declared in kg, so the value will be left out of totals: the stronger of the two texts on this
+  // testid (without a result unit it would only be counted as a plain number).
   test('F16: a result the node cannot check says so before save', async ({
     page,
   }) => {
     const tag = stamp()
-    await createFormula(page, `${tag}-log`, 'log(a)')
+    await createFormula(page, `${tag}-log`, 'log(a)', 'kg')
     await sheetWithFormula(page, tag, `${tag}-log`, [
       { name: 'Mass', value: '1500 kg' },
     ])
 
     await bindAndSettle(page, 'a', siblingTestId('Mass'))
 
-    await expect(page.getByTestId('formula-unit-unverified')).toBeVisible()
+    await expect(page.getByTestId('formula-unit-unverified')).toContainText(
+      /left out of every total/
+    )
     await expect(page.getByTestId('formula-dimension-problem')).toHaveCount(0)
   })
 

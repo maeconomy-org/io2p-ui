@@ -7,7 +7,6 @@ import { siblingTestId, tour } from '../utils/selectors'
 import {
   addProperty,
   fillProperty,
-  listTable,
   openCreateSheet,
   openObjectSheet,
   saveSheet,
@@ -34,7 +33,7 @@ const rowFor = (page: Page, name: string) =>
 async function pollParent(page: Page): Promise<void> {
   for (let attempt = 0; attempt < 8; attempt++) {
     await page.goto('/objects')
-    await expect(listTable(page)).toBeVisible()
+    await expect(page.getByTestId('data-table')).toBeVisible()
     await openObjectSheet(page, rowFor(page, PARENT))
     await page.waitForTimeout(4_000)
     if ((await page.getByTestId('rollup-unverified').count()) > 0) return

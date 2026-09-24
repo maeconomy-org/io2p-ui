@@ -148,10 +148,13 @@ test.describe('16 - rollups / duplicate keys', () => {
   test.afterAll(async ({ browser }, testInfo) => {
     testInfo.setTimeout(120_000)
     const page = await browser.newPage()
-    await removeUserRule(page, SYSTEM_KEY)
-    // RR5 raises the saved page size; the read specs expect the default back.
-    await setPageSize(page, '20')
-    await page.close()
+    try {
+      await removeUserRule(page, SYSTEM_KEY)
+    } finally {
+      // RR5 raises the saved page size; the read specs expect the default back, whatever failed.
+      await setPageSize(page, '20')
+      await page.close()
+    }
   })
 
   test('RR5: a user rule is stored beside the built-in it replaces', async ({
