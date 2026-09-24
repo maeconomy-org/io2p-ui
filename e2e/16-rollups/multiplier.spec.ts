@@ -3,6 +3,8 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '../fixtures/app'
 import {
   addProperty,
+  enterEditMode,
+  expandProperty,
   fillProperty,
   openCreateSheet,
   openObjectSheet,
@@ -37,6 +39,7 @@ const KEY = `mass${runId}`
 const QTY = `qty${runId}`
 const LEAF = `e2e-${runId}-mult-leaf`
 const BAD = `e2e-${runId}-mult-unreadable`
+const NEG = `e2e-${runId}-mult-negative`
 
 const rowFor = (page: Page, name: string) =>
   page.getByTestId('data-table-row').filter({ hasText: name }).first()
@@ -102,6 +105,7 @@ test.describe('16 - rollups / the quantity multiplier', () => {
     await expect(page.getByTestId('data-table')).toBeVisible()
     await createScaledObject(page, LEAF, '12 kg', '5')
     await createScaledObject(page, BAD, '7 kg', '5 zakken')
+    await createScaledObject(page, NEG, '9 kg', '-2')
 
     await page.goto('/rollup-rules')
     await expect(page.getByTestId('data-table')).toBeVisible()
@@ -195,5 +199,28 @@ test.describe('16 - rollups / the quantity multiplier', () => {
         '[data-testid="value-normalization"][data-marker="excluded"]'
       )
     ).toBeVisible()
+  })
+
+  // Negative is one of the quantities the node refuses rather than reads: the object drops out of
+  // the total, so the value says so in read mode AND while it is being edited.
+  test('RU27: a negative quantity is marked in read and edit mode', async ({
+    page,
+  }) => {
+    const excluded = page.locator(
+      '[data-testid="value-normalization"][data-marker="excluded"]'
+    )
+    await page.goto('/objects')
+    await expect(page.getByTestId('data-table')).toBeVisible()
+    await openObjectSheet(page, rowFor(page, NEG))
+
+    await page
+      .getByRole('button', { name: new RegExp(QTY) })
+      .first()
+      .click()
+    await expect(excluded).toBeVisible()
+
+    await enterEditMode(page)
+    await expandProperty(page, 1)
+    await expect(excluded).toBeVisible()
   })
 })
