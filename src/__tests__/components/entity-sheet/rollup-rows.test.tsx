@@ -506,6 +506,55 @@ describe('rollup rows in the property read view', () => {
     expect(screen.queryByTestId('rollup-line')).not.toBeInTheDocument()
   })
 
+  // The object's own `m / v` (2400, no unit) is alone in the no-unit total, but a child's `3 pcs`
+  // sits in the count total beside it. Judged by the lead total only, the card was dropped.
+  it('keeps the card when the own value fills one total and a child fills another', () => {
+    const stock = (unverified: boolean) =>
+      new Map([
+        [
+          'v1',
+          {
+            expression: 'm / v',
+            evalVersion: 3,
+            args: [],
+            ...(unverified && { unitVerified: false }),
+          },
+        ],
+      ]) as DerivedValues
+    const rollups = new Map([
+      [
+        'stock',
+        entry({
+          ruleId: 'rule-stock',
+          propertyKey: 'stock',
+          descendantCount: 1,
+          buckets: [
+            bucket({ dimension: 'unitless', num: 2400, contributorCount: 1 }),
+            bucket({
+              dimension: 'count',
+              unit: 'pcs',
+              num: 3,
+              contributorCount: 1,
+            }),
+          ],
+        }),
+      ],
+    ])
+    const property = {
+      id: 'p1',
+      key: 'stock',
+      label: 'Stock',
+      values: [{ id: 'v1', data: '2400', num: 2400 }],
+    }
+
+    renderRollups([property], rollups, stock(false))
+    expect(screen.getByTestId('rollup-card')).toBeInTheDocument()
+    cleanup()
+
+    renderRollups([property], rollups, stock(true))
+    expect(screen.getByTestId('rollup-card')).toBeInTheDocument()
+  })
+
   // The same leaf, but a rule that MULTIPLIES. The property row reads 12 kg and the total reads
   // 60 kg, so they are not the same quantity printed twice — suppressing the card would hide the
   // one figure the rule was created to produce.

@@ -307,26 +307,32 @@ export function PropertyReadView({
           }
           // A stale sum can predate the own values, but its counts move far less: this object is
           // the only contributor when every value in the lead total is its own, none scaled.
+          // EVERY total, not only the lead: an own formula number without a unit leads the no-unit
+          // total while a child's `3 pcs` sits in the count total, and judging the lead alone hid
+          // the card with the child's total in it.
           if (entry.stale) {
-            const mine = own.filter(
-              (v) =>
-                v.num !== undefined &&
-                !leftOut(v) &&
-                holds(lead, v, entry.buckets)
-            ).length
-            return !(
-              mine > 0 &&
-              mine === lead.contributorCount &&
+            const unscaled =
               ownFactor(multiplierValues, entry.multiplyBy?.whenMissing) === 1
-            )
+            return !entry.buckets.every((bucket) => {
+              const mine = own.filter(
+                (v) =>
+                  v.num !== undefined &&
+                  !leftOut(v) &&
+                  holds(bucket, v, entry.buckets)
+              ).length
+              return unscaled && mine > 0 && mine === bucket.contributorCount
+            })
           }
-          return !ownShare(
-            lead,
-            own,
-            multiplierValues,
-            entry.multiplyBy?.whenMissing,
-            entry.buckets
-          )?.onlyContributor
+          return !entry.buckets.every(
+            (bucket) =>
+              ownShare(
+                bucket,
+                own,
+                multiplierValues,
+                entry.multiplyBy?.whenMissing,
+                entry.buckets
+              )?.onlyContributor
+          )
         })
         .sort(
           (a, b) =>
