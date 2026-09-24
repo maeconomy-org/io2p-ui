@@ -1,6 +1,6 @@
 import { expect, test } from '../fixtures/app'
 import { setLanguage } from '../utils/language'
-import { patchPreferences } from '../utils/preferences'
+import { patchPreferences, setPageSize } from '../utils/preferences'
 
 /**
  * Preferences are a property of the ACCOUNT, not of this browser.
@@ -11,34 +11,6 @@ import { patchPreferences } from '../utils/preferences'
  */
 
 test.describe.configure({ mode: 'serial' })
-
-/**
- * Two silent failures here: a click landing before hydration does nothing, and the write is
- * optimistic — two writes in flight can land out of order and the later response wins. Waiting for
- * the cookie mirror makes each call a completed step.
- */
-async function setPageSize(
-  page: import('@playwright/test').Page,
-  size: string
-) {
-  await page.goto('/settings')
-  await page.getByTestId('settings-tab-preferences').click()
-  await expect(async () => {
-    await page.getByTestId('pref-page-size-trigger').click()
-    await page.getByTestId(`pref-page-size-${size}`).click()
-    await expect(page.getByTestId('pref-page-size-trigger')).toContainText(
-      size,
-      { timeout: 3_000 }
-    )
-  }).toPass({ timeout: 30_000 })
-
-  await expect
-    .poll(async () => {
-      const jar = await page.context().cookies()
-      return jar.find((c) => c.name === 'iom_prefs')?.value ?? ''
-    })
-    .toContain(`.${size}.`)
-}
 
 test.describe('13 - preferences / persistence', () => {
   // Restores after EVERY case, so no test relies on what a previous one set.

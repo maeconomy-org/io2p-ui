@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 import type { TourId } from '@/components/onboarding/tour-registry'
 import { ONBOARDING_EPOCH, PREFERENCES } from '@/constants/preferences'
@@ -121,4 +121,29 @@ export async function armInitialLoginTour(page: Page): Promise<void> {
       [PREFERENCES.onboardingEpoch.key ?? 'onboardingEpoch']: ONBOARDING_EPOCH,
     },
   })
+}
+
+/**
+ * Two silent failures here: a click landing before hydration does nothing, and the write is
+ * optimistic — two writes in flight can land out of order and the later response wins. Waiting for
+ * the cookie mirror makes each call a completed step.
+ */
+export async function setPageSize(page: Page, size: string) {
+  await page.goto('/settings')
+  await page.getByTestId('settings-tab-preferences').click()
+  await expect(async () => {
+    await page.getByTestId('pref-page-size-trigger').click()
+    await page.getByTestId(`pref-page-size-${size}`).click()
+    await expect(page.getByTestId('pref-page-size-trigger')).toContainText(
+      size,
+      { timeout: 3_000 }
+    )
+  }).toPass({ timeout: 30_000 })
+
+  await expect
+    .poll(async () => {
+      const jar = await page.context().cookies()
+      return jar.find((c) => c.name === 'iom_prefs')?.value ?? ''
+    })
+    .toContain(`.${size}.`)
 }

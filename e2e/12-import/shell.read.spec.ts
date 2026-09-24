@@ -55,14 +55,24 @@ test.describe('12 - import / shell', () => {
     page,
     api,
   }) => {
+    // The page opens on the status tab, whose job list loads first; one still in flight would land
+    // after `clear()`. Switching tabs unmounts that list, so nothing of its own follows.
+    const listed = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'GET' &&
+        /\/v1\/imports$/.test(new URL(r.url()).pathname)
+    )
     await page.goto('/import')
+    await listed
     await expect(page.getByTestId('import-tab-wizard')).toBeVisible()
 
     api.clear()
     await page.getByTestId('import-tab-wizard').click()
     await expect(page.getByTestId('import-dropzone')).toBeVisible()
 
-    await expect.poll(() => api.count(/\/v1\/imports/)).toBe(0)
+    // Absence is only proven over a window: a count sampled once reads 0 before a late request.
+    await page.waitForTimeout(1_500)
+    expect(api.count(/\/v1\/imports/)).toBe(0)
   })
 
   test('I5: the stepper is back-only — an unreached step is disabled', async ({

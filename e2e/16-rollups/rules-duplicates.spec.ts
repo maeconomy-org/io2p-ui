@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { rowActions, tour } from '../utils/selectors'
+import { setPageSize } from '../utils/preferences'
 
 /**
  * Two rules can carry the same `propertyKey`, and one of them is yours.
@@ -148,12 +149,18 @@ test.describe('16 - rollups / duplicate keys', () => {
     testInfo.setTimeout(120_000)
     const page = await browser.newPage()
     await removeUserRule(page, SYSTEM_KEY)
+    // RR5 raises the saved page size; the read specs expect the default back.
+    await setPageSize(page, '20')
     await page.close()
   })
 
   test('RR5: a user rule is stored beside the built-in it replaces', async ({
     page,
   }) => {
+    // The list is newest-first and has no key search, so the built-in sits on the LAST page once
+    // the account holds more rules than one page. At most 20 own rules plus the built-ins fit in
+    // 100. Set through Settings rather than the table's control, which is absent on a single page.
+    await setPageSize(page, '100')
     await page.goto('/rollup-rules')
     await expect(page.getByTestId('data-table')).toBeVisible()
 
