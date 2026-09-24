@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { E2E_ROUND_TRIP_FORMULAS } from '../utils/formula-fixtures'
+import { bind, chooseFormula, createFormula } from '../utils/formulas'
 import { formulaSibling, siblingTestId, tour } from '../utils/selectors'
 import {
   addProperty,
@@ -9,7 +10,6 @@ import {
   expandProperty,
   fillProperty,
   gotoList,
-  openDialog,
   openObjectSheet,
   saveSheet,
   sheet,
@@ -26,24 +26,6 @@ const stamp = () => `e2e-${Date.now()}`
 
 function rowFor(page: Page, name: string) {
   return page.getByTestId('data-table-row').filter({ hasText: name }).first()
-}
-
-/** Formulas are immutable, so each run mints its own rather than binding to a shared one. */
-async function createFormula(
-  page: Page,
-  name: string,
-  expression: string
-): Promise<void> {
-  await gotoList(page, '/formulas')
-  await tour(page, 'formulasCreate').click()
-  const dialog = await openDialog(page)
-  await dialog.getByLabel(/name/i).first().fill(name)
-  await dialog.getByLabel(/expression/i).fill(expression)
-  await page
-    .getByRole('button', { name: /create formula/i })
-    .last()
-    .click()
-  await expect(rowFor(page, name)).toHaveCount(1)
 }
 
 async function createConstant(
@@ -79,21 +61,6 @@ async function openSheetWith(
   }
 }
 
-/** Switch value 0 of `index` into formula mode and choose `formulaName`. */
-async function chooseFormula(
-  page: Page,
-  index: number,
-  formulaName: string
-): Promise<void> {
-  await page.getByTestId(`value-mode-${index}-0`).click()
-  await expect(page.getByTestId(`value-mode-${index}-0`)).toHaveAttribute(
-    'data-mode',
-    'formula'
-  )
-  await page.getByTestId('formula-select').click()
-  await page.getByTestId(`formula-option-${formulaName}`).click()
-}
-
 /** Save, reopen in edit mode, and return the stored derived value of property `index`. */
 async function savedDerivedValue(
   page: Page,
@@ -108,18 +75,41 @@ async function savedDerivedValue(
   return page.getByTestId(`derived-value-${index}-0`)
 }
 
-async function bind(
+/**
+ * Bind, then wait for the node's answer about the new bindings. The panel asks after a pause, so
+ * an assertion that something is ABSENT passes at once, before any answer, unless it waits here.
+ * Each call needs bindings not yet asked in this page: a cached answer sends no request to wait for.
+ */
+async function bindAndSettle(
   page: Page,
   variable: string,
   optionTestId: string
 ): Promise<void> {
-  await page.getByTestId(`formula-bind-${variable}`).click()
-  // The picker is a Popover, not a Select: it ANIMATES out, so binding a second variable while the
-  // first popover is still unmounting puts two option lists in the DOM and the click resolves to
-  // two elements. Scope to the open one rather than waiting on a duration.
-  const open = page.locator('[data-state="open"][role="dialog"]').last()
-  await open.getByTestId(optionTestId).click()
-  await expect(page.getByTestId(optionTestId)).toHaveCount(0)
+  // The request must carry this binding: an earlier one's answer can still be on its way.
+  const answered = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'POST' &&
+      r.url().includes('/formulas/preview') &&
+      (r.request().postData() ?? '').includes(`"var":"${variable}"`)
+  )
+  await bind(page, variable, optionTestId)
+  await answered
+  await expect(
+    page.getByTestId('formula-bindings').getByRole('status')
+  ).toHaveAttribute('aria-busy', 'false')
+}
+
+/** A create sheet with `sources` and an empty property 1 set to `formulaName`. */
+async function sheetWithFormula(
+  page: Page,
+  tag: string,
+  formulaName: string,
+  sources: { name: string; value: string }[]
+): Promise<void> {
+  await openSheetWith(page, `${tag}-obj`, sources)
+  await addProperty(page, sources.length)
+  await page.getByTestId(`property-name-${sources.length}`).fill('Result')
+  await chooseFormula(page, sources.length, formulaName)
 }
 
 test.describe('03 - object sheet / formulas', () => {
@@ -143,7 +133,7 @@ test.describe('03 - object sheet / formulas', () => {
     // The variables come from the formula record, so an unbound one still has to be listed.
     await expect(page.getByTestId('formula-var-x')).toBeVisible()
 
-    await bind(page, 'x', siblingTestId('Width'))
+    await bindAndSettle(page, 'x', siblingTestId('Width'))
     // No figure while binding: the editor says the server calculates it, and raises nothing.
     const bindings = page.getByTestId('formula-bindings')
     await expect(bindings.getByRole('status')).toContainText(
@@ -428,5 +418,77 @@ test.describe('03 - object sheet / formulas', () => {
     // Version-pinned at BIND time: appending 5 must not turn the stored 20 into 50, or every
     // historical calculation would silently restate itself.
     await expect(page.getByTestId('derived-value-0-0')).toContainText('20')
+  })
+
+  // The inputs are already in standard units, so a formula that divides by 1000 AND declares `t`
+  // converts twice. The node answers before save; the result would otherwise read 0.0015 t.
+  test('F15: a hand conversion is flagged before the value is saved', async ({
+    page,
+  }) => {
+    const tag = stamp()
+    await createFormula(page, `${tag}-tonnes`, 'a / 1000', 't')
+    await sheetWithFormula(page, tag, `${tag}-tonnes`, [
+      { name: 'Mass', value: '1500 kg' },
+    ])
+
+    await bindAndSettle(page, 'a', siblingTestId('Mass'))
+
+    const warning = page.getByTestId('formula-warning-hand-conversion')
+    await expect(warning).toBeVisible()
+    await expect(warning).toContainText(/1[,.]?000/)
+    await expect(page.getByTestId('formula-dimension-problem')).toHaveCount(0)
+  })
+
+  test('F16: a result the node cannot check says so before save', async ({
+    page,
+  }) => {
+    const tag = stamp()
+    await createFormula(page, `${tag}-log`, 'log(a)')
+    await sheetWithFormula(page, tag, `${tag}-log`, [
+      { name: 'Mass', value: '1500 kg' },
+    ])
+
+    await bindAndSettle(page, 'a', siblingTestId('Mass'))
+
+    await expect(page.getByTestId('formula-unit-unverified')).toBeVisible()
+    await expect(page.getByTestId('formula-dimension-problem')).toHaveCount(0)
+  })
+
+  // Red, not amber: the node will store an error row with no number, and the panel says so.
+  test('F17: a refused formula says no number will be stored', async ({
+    page,
+  }) => {
+    const tag = stamp()
+    await createFormula(page, `${tag}-sum`, 'a + b')
+    await sheetWithFormula(page, tag, `${tag}-sum`, [
+      { name: 'Mass', value: '1500 kg' },
+      { name: 'Length', value: '2 m' },
+    ])
+
+    await bind(page, 'a', siblingTestId('Mass'))
+    await bindAndSettle(page, 'b', siblingTestId('Length'))
+
+    await expect(page.getByTestId('formula-dimension-problem')).toBeVisible()
+    await expect(
+      page.getByTestId('formula-bindings').getByRole('status')
+    ).toContainText(/no number will be stored|geen getal/i)
+  })
+
+  test('F18: "How units work" opens the reference at its Units section', async ({
+    page,
+  }) => {
+    const tag = stamp()
+    await createFormula(page, `${tag}-mul`, 'x * 2')
+    await sheetWithFormula(page, tag, `${tag}-mul`, [
+      { name: 'Width', value: '10' },
+    ])
+
+    const help = page.getByTestId('formula-units-help')
+    await help.click()
+    await expect(page.getByTestId('formula-reference-units')).toBeInViewport()
+
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('formula-reference-units')).toBeHidden()
+    await expect(help).toBeFocused()
   })
 })
