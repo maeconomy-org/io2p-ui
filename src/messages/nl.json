@@ -1301,6 +1301,7 @@
     },
     "familyLocked": "Een deling bevat óf objecten en processen, óf bibliotheekitems — niet allebei. Verwijder alles om te wisselen.",
     "needsShareAccess": "Vereist deeltoegang",
+    "ownerOnlyShare": "Alleen de eigenaar kan dit delen",
     "libraryShareHint": "Bibliotheekitems kunnen alleen ter inzage worden gedeeld. Iedereen in deze deling krijgt leestoegang.",
     "memberCeilingHint": "U heeft op minstens één item {level}-toegang, dus mensen in deze deling krijgen hoogstens {level}.",
     "memberLoweredHint": "Opslaan verlaagt {count, plural, one {# persoon} other {# personen}} naar {level} op elk item in deze deling.",

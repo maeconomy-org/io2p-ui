@@ -1301,6 +1301,7 @@
     },
     "familyLocked": "A share holds either objects and processes, or library items — not both. Remove everything to switch.",
     "needsShareAccess": "Needs share access",
+    "ownerOnlyShare": "Only its owner can share this",
     "libraryShareHint": "Library items can only be shared to view. Everyone in this share gets read access.",
     "memberCeilingHint": "You hold {level} access on at least one item, so people in this share can get at most {level}.",
     "memberLoweredHint": "Saving lowers {count, plural, one {# person} other {# people}} to {level} on every item in this share.",

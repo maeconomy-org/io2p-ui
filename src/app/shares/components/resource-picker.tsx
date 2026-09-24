@@ -17,13 +17,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui'
-import { canReshare, OwnerHint, permissionOf } from '@/components/entity-list'
+import {
+  canReshare,
+  canWriteLibraryItem,
+  OwnerHint,
+  permissionOf,
+} from '@/components/entity-list'
 import type { Permission, ShareResourceType } from '@/components/access'
 import { useAuth } from '@/contexts'
 import { useObjects, useProcesses, useTemplates } from '@/hooks/api/entities'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
 
-import type { ShareResourceFamily } from '../utils/share-rules'
+import { familyOf, type ShareResourceFamily } from '../utils/share-rules'
 
 const SEARCH_SIZE = 8
 
@@ -60,6 +65,16 @@ export function ResourcePicker({
 }) {
   const t = useTranslations()
   const { userId } = useAuth()
+  // Objects and processes carry the viewer's level. A library item is shared read-only and only by
+  // its owner, so ownership is the whole answer there (a built-in item has no user owner).
+  const refusal = (resource: ShareResource): string | null => {
+    if (familyOf(resource.type) === 'library') {
+      return canWriteLibraryItem(resource, userId)
+        ? null
+        : 'shares.ownerOnlyShare'
+    }
+    return canReshare(resource.permission) ? null : 'shares.needsShareAccess'
+  }
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [browsing, setBrowsing] = useState<ShareResourceFamily>('data')
@@ -204,8 +219,8 @@ export function ResourcePicker({
                   value={resource.id}
                   data-testid={`resource-option-${resource.id}`}
                   className="cursor-pointer"
-                  // The node refuses the whole bundle for a resource held below `share`.
-                  disabled={!canReshare(resource.permission)}
+                  // The node refuses the whole bundle for a resource the viewer cannot share.
+                  disabled={!!refusal(resource)}
                   onSelect={() => {
                     setOpen(false)
                     setQuery('')
@@ -221,9 +236,9 @@ export function ResourcePicker({
                     ownerUserId={resource.ownerUserId}
                     ownerName={resource.ownerName}
                   />
-                  {!canReshare(resource.permission) && (
+                  {refusal(resource) && (
                     <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                      {t('shares.needsShareAccess')}
+                      {t(refusal(resource)!)}
                     </span>
                   )}
                 </CommandItem>

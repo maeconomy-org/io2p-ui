@@ -27,6 +27,7 @@ export function PermissionSelect({
   testId,
   max,
   'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
 }: {
   value: Permission
   onChange: (next: Permission) => void
@@ -36,6 +37,7 @@ export function PermissionSelect({
   /** The strongest level offered; the rungs above it are not choices here. */
   max?: Permission
   'aria-label'?: string
+  'aria-describedby'?: string
 }) {
   const t = useTranslations()
 
@@ -52,6 +54,7 @@ export function PermissionSelect({
       <SelectTrigger
         className={cn('h-9', className)}
         aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
         data-testid={testId}
       >
         <span className="truncate">{t(`access.permission.${value}`)}</span>

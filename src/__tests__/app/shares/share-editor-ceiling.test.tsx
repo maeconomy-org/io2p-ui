@@ -10,12 +10,13 @@ vi.mock('next-intl', () => ({
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('@/contexts', () => ({ useAuth: () => ({ userId: 'me' }) }))
 
-const { create, noList, objectsList } = vi.hoisted(() => ({
+const { create, noList, objectsList, formulasList } = vi.hoisted(() => ({
   create: vi.fn(async (_: unknown) => ({})),
   noList: () => ({
     useList: () => ({ data: undefined, isFetching: false }),
   }),
   objectsList: { data: undefined as unknown },
+  formulasList: { data: undefined as unknown },
 }))
 vi.mock('@/hooks/api/access', () => ({
   useShares: () => ({
@@ -38,8 +39,23 @@ vi.mock('@/hooks/api/entities', () => ({
 }))
 vi.mock('@/hooks/api/leaves', () => ({
   useConstants: noList,
-  useFormulas: noList,
+  useFormulas: () => ({
+    useList: () => ({ data: formulasList.data, isFetching: false }),
+  }),
 }))
+
+const { capSpy } = vi.hoisted(() => ({ capSpy: vi.fn() }))
+vi.mock('@/app/shares/utils/share-rules', async (importOriginal) => {
+  const real =
+    await importOriginal<typeof import('@/app/shares/utils/share-rules')>()
+  return {
+    ...real,
+    shareCapRefusal: (...args: Parameters<typeof real.shareCapRefusal>) => {
+      capSpy(...args)
+      return real.shareCapRefusal(...args)
+    },
+  }
+})
 
 import { ResourcePicker } from '@/app/shares/components/resource-picker'
 import { ShareEditorSheet } from '@/app/shares/components/share-editor-sheet'
@@ -104,8 +120,9 @@ describe('share editor member levels', () => {
 
     await pick(user, 'o2')
 
-    expect(screen.getByTestId('share-member-ceiling')).toBeInTheDocument()
+    const note = screen.getByTestId('share-member-ceiling')
     expect(annaSelect()).toHaveTextContent('access.permission.share')
+    expect(annaSelect()).toHaveAttribute('aria-describedby', note.id)
     await user.click(annaSelect())
     const options = screen.getAllByRole('option').map((o) => o.textContent)
     expect(options.some((o) => o?.includes('access.permission.admin'))).toBe(
@@ -137,6 +154,9 @@ describe('share editor member levels', () => {
     expect(screen.getByTestId('share-member-lowered')).toHaveTextContent(
       'shares.memberLoweredHint:{"count":1,"level":"access.permission.share"}'
     )
+    expect(
+      screen.getByTestId('share-member-lowered').closest('[role=status]')
+    ).not.toBeNull()
   })
 
   // Raised in this edit, then capped back: the saved level does not change, so nothing is lowered.
@@ -155,6 +175,58 @@ describe('share editor member levels', () => {
 
     expect(screen.getByTestId('share-member-ceiling')).toBeInTheDocument()
     expect(screen.queryByTestId('share-member-lowered')).toBeNull()
+  })
+})
+
+describe('share editor edits', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    objectsList.data = { data: [object('o2', 'share')] }
+  })
+
+  // Removed in this edit, so the save does not lower them; only the member who stays is counted.
+  it('does not count a member removed in the same edit as lowered', async () => {
+    const share = savedShare('admin')
+    share.members = [
+      ...share.members!,
+      { userId: 'bob', name: 'Bob', permission: 'admin' },
+    ] as ShareDTO['members']
+    render(
+      <ShareEditorSheet open onOpenChange={vi.fn()} mode="edit" share={share} />
+    )
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole('button', {
+        name: 'shares.removeMember:{"name":"Anna"}',
+      })
+    )
+    await pick(user, 'o2')
+
+    expect(screen.getByTestId('share-member-lowered')).toHaveTextContent(
+      'shares.memberLoweredHint:{"count":1,"level":"access.permission.share"}'
+    )
+  })
+
+  // An edit is capped per change list, so the check needs the delta, not only the bundle.
+  it('checks the edit delta against the node limits', async () => {
+    render(
+      <ShareEditorSheet
+        open
+        onOpenChange={vi.fn()}
+        mode="edit"
+        share={savedShare('read')}
+      />
+    )
+    await pick(userEvent.setup(), 'o2')
+
+    expect(capSpy).toHaveBeenLastCalledWith(
+      'delta',
+      2,
+      1,
+      expect.objectContaining({
+        resources: { add: [{ type: 'object', id: 'o2' }] },
+      })
+    )
   })
 })
 
@@ -188,5 +260,36 @@ describe('share resource picker', () => {
     await user.click(option)
 
     expect(onAdd).not.toHaveBeenCalled()
+  })
+
+  // Library items are shared read-only and only by their owner: a built-in one or someone else's
+  // carries no level, and the node refuses the bundle for it.
+  it('offers only the library items the viewer owns', async () => {
+    formulasList.data = {
+      data: [
+        { id: 'f-own', name: 'Mine', ownerUserId: 'me' },
+        { id: 'f-sys', name: 'Built in', system: true },
+        { id: 'f-other', name: 'Theirs', ownerUserId: 'them' },
+      ],
+    }
+    const onAdd = vi.fn()
+    render(
+      <ResourcePicker selectedIds={new Set()} family={null} onAdd={onAdd} />
+    )
+    const user = userEvent.setup()
+    await user.click(screen.getByTestId('resource-picker'))
+    await user.click(
+      screen.getByRole('button', { name: 'shares.family.library' })
+    )
+
+    for (const id of ['f-sys', 'f-other']) {
+      const option = screen.getByTestId(`resource-option-${id}`)
+      expect(option).toHaveTextContent('shares.ownerOnlyShare')
+      await user.click(option)
+    }
+    expect(onAdd).not.toHaveBeenCalled()
+
+    await user.click(screen.getByTestId('resource-option-f-own'))
+    expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ id: 'f-own' }))
   })
 })

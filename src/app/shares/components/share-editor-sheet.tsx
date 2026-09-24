@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { AlertTriangle, Info, Loader2, UserPlus, X } from 'lucide-react'
@@ -191,6 +191,8 @@ function ShareForm({
   const effectiveCascade = cascadeAllowed && cascade
 
   const ceiling = memberCeiling(resources, family)
+  const showCeilingNote = !libraryShare && ceiling !== 'admin'
+  const ceilingNoteId = useId()
   const effectiveMembers = capPermissions(members, ceiling)
   // The level is per bundle, so saving lowers anyone SAVED above the ceiling on EVERY item here,
   // not only the one that set it. A member not yet saved has nothing to lose.
@@ -337,8 +339,9 @@ function ShareForm({
               <span>{t('shares.libraryShareHint')}</span>
             </p>
           )}
-          {!libraryShare && ceiling !== 'admin' && (
+          {showCeilingNote && (
             <p
+              id={ceilingNoteId}
               data-testid="share-member-ceiling"
               className="flex items-start gap-1.5 text-xs text-muted-foreground"
             >
@@ -350,20 +353,23 @@ function ShareForm({
               </span>
             </p>
           )}
-          {lowered > 0 && (
-            <p
-              data-testid="share-member-lowered"
-              className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
-            >
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>
-                {t('shares.memberLoweredHint', {
-                  count: lowered,
-                  level: t(`access.permission.${ceiling}`),
-                })}
-              </span>
-            </p>
-          )}
+          {/* Always mounted: a live region announces what APPEARS in it. */}
+          <div role="status" aria-live="polite">
+            {lowered > 0 && (
+              <p
+                data-testid="share-member-lowered"
+                className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
+              >
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  {t('shares.memberLoweredHint', {
+                    count: lowered,
+                    level: t(`access.permission.${ceiling}`),
+                  })}
+                </span>
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="space-y-2" {...anchor('shareMembers')}>
@@ -411,6 +417,7 @@ function ShareForm({
                 value={effectiveMembers[index].permission}
                 max={ceiling}
                 disabled={libraryShare}
+                aria-describedby={showCeilingNote ? ceilingNoteId : undefined}
                 aria-label={t('access.permissionFor', {
                   name: nameOf(member.userId),
                 })}
