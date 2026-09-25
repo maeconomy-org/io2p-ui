@@ -154,7 +154,7 @@ describe('FormulaWarnings', () => {
     )
     const item = screen.getByTestId('formula-warning-hand-conversion')
     expect(item).toHaveTextContent(
-      'Looks like a conversion by hand: the result is 1,000 times smaller.'
+      'Looks like a conversion to t by hand: the result is 1,000 times smaller.'
     )
     expect(item).not.toHaveTextContent('duplicate this one')
 
