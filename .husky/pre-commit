@@ -10,4 +10,19 @@ else
   echo "warning: gitleaks not installed; skipping secret scan. Install with: brew install gitleaks"
 fi
 
+# Local SDK testing points io2p-client at the sibling checkout two ways: a
+# `link:` override that `pnpm link` writes into pnpm-workspace.yaml, or a
+# `file:` specifier edited into package.json. Both dirty TRACKED files, both
+# break `--frozen-lockfile` on CI and in Docker, and neither is undone by
+# `pnpm unlink`. Restore with:
+#   git checkout -- package.json pnpm-workspace.yaml pnpm-lock.yaml && pnpm install
+if git diff --cached -- package.json pnpm-workspace.yaml pnpm-lock.yaml |
+  grep -qE '^\+.*(link:\.\.|file:\.\.)'; then
+  echo ""
+  echo "Pre-commit BLOCKED: io2p-client is staged as a LOCAL path."
+  echo "This breaks CI and the Docker build. Restore the published version:"
+  echo "  git checkout -- package.json pnpm-workspace.yaml pnpm-lock.yaml && pnpm install"
+  exit 1
+fi
+
 npx lint-staged

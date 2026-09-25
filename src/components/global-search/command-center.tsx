@@ -27,7 +27,7 @@ import {
   type SearchFilter,
   type FilterSuggestion,
   type ParsedSearch,
-} from '@/lib/search-parser'
+} from './search-parser'
 import {
   Badge,
   Dialog,
@@ -53,7 +53,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Hash,
 }
 
-// Recent searches (could be persisted to localStorage in future)
+const EMPTY_RECENT: string[] = []
+
 const getRecentSearches = (): string[] => {
   if (typeof window === 'undefined') return []
   try {
@@ -83,44 +84,50 @@ export function CommandCenter({
   initialQuery = '',
 }: CommandCenterProps) {
   const t = useTranslations()
-  const [inputValue, setInputValue] = React.useState(initialQuery)
-  const [parsedSearch, setParsedSearch] = React.useState<ParsedSearch>({
-    searchTerm: '',
-    filters: [],
-    searchBy: {},
-  })
+  /**
+   * One opening of the dialog. Everything the dialog used to RESET in an effect — the input, the
+   * highlighted suggestion, the recent-search list — is instead stamped with this, so it starts
+   * fresh by simply not matching the previous session's stamp.
+   */
+  const session = `${open}:${initialQuery}`
+  const [typed, setTyped] = React.useState<{
+    session: string
+    value: string
+  } | null>(null)
+  const inputValue = typed?.session === session ? typed.value : initialQuery
+  const setInputValue = (value: string) => setTyped({ session, value })
+
+  const [highlight, setHighlight] = React.useState({ session, index: 0 })
+  const selectedIndex = highlight.session === session ? highlight.index : 0
+  const setSelectedIndex = (next: number | ((prev: number) => number)) =>
+    setHighlight({
+      session,
+      index: typeof next === 'function' ? next(selectedIndex) : next,
+    })
+
   const [showSuggestions] = React.useState(true)
-  const [selectedIndex, setSelectedIndex] = React.useState(0)
-  const [recentSearches, setRecentSearches] = React.useState<string[]>([])
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  // Load recent searches on mount
+  // Computed, not stored. As state written by an effect, `parsedSearch` was always one render
+  // behind the input it described. `getRecentSearches` is an SSR-safe localStorage read and the
+  // list only renders while the dialog is open, so reading it here costs nothing and cannot be
+  // stale after a search is saved.
+  const recentSearches = open ? getRecentSearches() : EMPTY_RECENT
+  const parsedSearch: ParsedSearch = React.useMemo(
+    () => parseSearchQuery(inputValue),
+    [inputValue]
+  )
+
+  // A real side effect: moving focus is something only the DOM can do.
   React.useEffect(() => {
-    setRecentSearches(getRecentSearches())
+    if (!open) return
+    const id = setTimeout(() => {
+      inputRef.current?.focus()
+      // Select all text so the user can simply type over it.
+      inputRef.current?.select()
+    }, 50)
+    return () => clearTimeout(id)
   }, [open])
-
-  // Parse input whenever it changes
-  React.useEffect(() => {
-    const parsed = parseSearchQuery(inputValue)
-    setParsedSearch(parsed)
-  }, [inputValue])
-
-  // Focus input when dialog opens and pre-fill with initial query
-  React.useEffect(() => {
-    if (open) {
-      // Pre-fill with initial query when opening
-      if (initialQuery) {
-        setInputValue(initialQuery)
-      }
-      setTimeout(() => {
-        inputRef.current?.focus()
-        // Select all text so user can easily replace
-        inputRef.current?.select()
-      }, 50)
-    } else {
-      setSelectedIndex(0)
-    }
-  }, [open, initialQuery])
 
   // Get current suggestions based on input
   const currentSuggestions = React.useMemo(() => {

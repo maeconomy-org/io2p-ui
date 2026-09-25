@@ -1,0 +1,85 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file this.
+
+        **If this is a security vulnerability, close this form and follow
+        [SECURITY.md](https://github.com/maeconomy-org/io2p-ui/blob/main/SECURITY.md)
+        instead.** A public issue tells everyone before there is a fix to upgrade to.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+      placeholder: |
+        I called POST /v1/objects with … and got a 500.
+        I expected a 201 with the created object.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: >
+        The smallest sequence that shows the problem. A request/response pair or a failing test is
+        worth more than a description.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      description: Where you believe the problem is. Pick "Not sure" rather than guessing.
+      options:
+        - Not sure
+        - Login / session
+        - Objects
+        - Processes / templates / formulas
+        - Import
+        - Sharing and access
+        - File upload / download
+        - Search
+        - Translations (en / nl)
+        - UI rendering / layout
+        - Build, CI, or tooling
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The release you are on, or the commit SHA if you are running from source.
+      placeholder: "0.1.0 — or — a1b2c3d"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Node, pnpm, and OS
+      placeholder: "Node 22.14.0 · pnpm 11.9.0 · macOS 15.5"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and context
+      description: >
+        Relevant error output or a minimal reproduction. **Redact tokens, keys, and connection
+        strings** — this issue is public.
+      render: shell
+    validations:
+      required: false

@@ -5,78 +5,21 @@
 #   Logs:     docker compose logs -f
 #   Rollback: ./deploy.sh rollback
 
-# Two networks for defense-in-depth:
-#   - frontend: carries the host-published port (nginx -> ui)
-#   - backend (internal): no route to the outside world; only used for ui<->redis
-# Even if Redis is exploited, it has no route off the host to exfiltrate data
-# or pull a second-stage payload.
+# One network: `frontend` carries the host-published port (nginx -> ui).
+#
+# There was a second, internal `backend` network here, and a Redis alongside it. Both are gone:
+# Redis backed the OLD import pipeline — a job system that ran in this Next.js process — and the
+# storage node now owns that work end to end.
+#
+# The telemetry ingest route also rate-limited through it, and that limiter is now in process
+# memory: it always had that fallback for when Redis was unavailable, and running a container to
+# throttle one endpoint is the tail wagging the dog. The trade is that the counter is per replica,
+# which is exactly right while this stack runs a single UI container — revisit if it scales out.
 networks:
   frontend:
     driver: bridge
-  backend:
-    driver: bridge
-    internal: true
 
 services:
-  # ===========================================================================
-  # Redis - Required for import queue
-  # ===========================================================================
-  redis:
-    image: redis:7-alpine
-    container_name: ${CONTAINER_NAME}-redis
-    restart: unless-stopped
-    networks: [backend]
-    # Run as the redis user inside the alpine image (uid 999) so a write-anywhere
-    # exploit can't easily escalate to root inside the container.
-    user: '999:999'
-    # Security: password + dangerous commands disabled + idle timeouts.
-    # The renamed commands (CONFIG/SHUTDOWN/KEYS/FLUSHDB/FLUSHALL/DEBUG) are
-    # *not* used by the application (verified via grep of src/lib/redis-utils.ts
-    # and friends — the code uses SCAN, never KEYS, and never CONFIG/DEBUG).
-    command: >
-      redis-server
-      --requirepass ${REDIS_PASSWORD}
-      --appendonly yes
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-      --rename-command FLUSHDB ""
-      --rename-command FLUSHALL ""
-      --rename-command DEBUG ""
-      --rename-command CONFIG ""
-      --rename-command SHUTDOWN ""
-      --rename-command KEYS ""
-      --protected-mode yes
-      --timeout 60
-      --tcp-keepalive 30
-    volumes:
-      - ./redis-data:/data
-    read_only: true
-    tmpfs:
-      - /tmp
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      # Read the password from the container env (REDIS_PASSWORD is exported by
-      # docker compose into the container) so it never appears in `ps` / `docker
-      # inspect` command args.
-      test:
-        [
-          'CMD-SHELL',
-          'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG',
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    logging:
-      driver: 'json-file'
-      options:
-        max-size: '10m'
-        max-file: '3'
-
   # ===========================================================================
   # IoM UI Application
   # ===========================================================================
@@ -84,10 +27,7 @@ services:
     image: ghcr.io/${GH_ORG}/${IMAGE_NAME}:${IMAGE_TAG}
     container_name: ${CONTAINER_NAME}
     restart: unless-stopped
-    networks: [frontend, backend]
-    depends_on:
-      redis:
-        condition: service_healthy
+    networks: [frontend]
     env_file:
       - .env
     # Bind to loopback so the app is only reachable through nginx on this host.
@@ -102,8 +42,6 @@ services:
       # healthcheck and nginx upstream can reach it regardless of EXTERNAL_PORT.
       - PORT=3000
       - HOST=0.0.0.0
-      # Override Redis URL for container networking (can't be in .env file)
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       # SENTRY_RELEASE is auto-detected from APP_VERSION baked into the image
       # Only set to override: SENTRY_RELEASE=1.0.12
       # All other variables are loaded from .env file automatically

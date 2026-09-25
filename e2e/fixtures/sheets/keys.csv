@@ -1,0 +1,5 @@
+id,parent_id,name,floor_area
+B1,,North Building,1200
+F1,B1,Ground Floor,600
+F2,B1,First Floor,600
+R1,F1,Reception,80

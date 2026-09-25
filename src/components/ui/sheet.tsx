@@ -72,7 +72,11 @@ const SheetContent = React.forwardRef<
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+        {/* `h-7` matches the title's line box (`text-lg` is 1.75rem tall), so an icon centred in
+            this box lands on the title's centre line. A bare 1rem icon at `top-4` sits 6px high of
+            it — the header's padding starts them level, but their heights differ. Bigger hit
+            target too. */}
+        <SheetPrimitive.Close className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
@@ -95,6 +99,24 @@ const SheetHeader = ({
   />
 )
 SheetHeader.displayName = 'SheetHeader'
+
+/**
+ * The scrolling middle of a sheet.
+ *
+ * Exists so the three chrome measurements — `px-6 py-4`, the `min-h-0` that lets a flex child
+ * actually scroll, and `flex-1` — live in ONE place. They were being retyped per sheet, and every
+ * sheet that mistyped one drifted visibly from the others.
+ */
+const SheetBody = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn('min-h-0 flex-1 overflow-y-auto px-6 py-4', className)}
+    {...props}
+  />
+)
+SheetBody.displayName = 'SheetBody'
 
 const SheetFooter = ({
   className,
@@ -139,6 +161,7 @@ export {
   SheetPortal,
   SheetOverlay,
   SheetTrigger,
+  SheetBody,
   SheetClose,
   SheetContent,
   SheetHeader,

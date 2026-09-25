@@ -1,10 +1,4 @@
-import {
-  Table,
-  Columns,
-  BarChart3,
-  Network,
-  LayoutDashboard,
-} from 'lucide-react'
+import { Table, Columns, BarChart3, Network } from 'lucide-react'
 
 // Object view types configuration
 export const OBJECT_VIEW_TYPES = [
@@ -22,12 +16,13 @@ export const OBJECT_VIEW_TYPES = [
   },
 ] as const
 
-// Process view types configuration
+// Process view types configuration. Only views that exist belong here — a stored preference for a
+// view nobody renders is a setting that silently does nothing.
 export const PROCESS_VIEW_TYPES = [
   {
-    value: 'dashboard',
-    labelKey: 'dashboard',
-    icon: LayoutDashboard,
+    value: 'table',
+    labelKey: 'table',
+    icon: Table,
     enabled: true,
   },
   {
@@ -40,12 +35,6 @@ export const PROCESS_VIEW_TYPES = [
     value: 'network',
     labelKey: 'network',
     icon: Network,
-    enabled: true,
-  },
-  {
-    value: 'table',
-    labelKey: 'table',
-    icon: Table,
     enabled: true,
   },
 ] as const

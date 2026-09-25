@@ -73,6 +73,7 @@ export function ThemeSelect({ className }: { className?: string }) {
       size="icon"
       className={className}
       onClick={handleToggle}
+      data-testid="theme-select"
       aria-label={t('toggle')}
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -105,13 +106,8 @@ export function ThemeDropdownItem() {
               value={item.value}
               className="cursor-pointer"
             >
-              <span className="flex items-center gap-2 justify-between w-full">
-                <span className="flex items-center gap-2">
-                  <item.icon className="h-4 w-4" />
-                  {t(item.value)}
-                </span>
-                {theme === item.value && <Check className="h-3 w-3" />}
-              </span>
+              <item.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+              {t(item.value)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

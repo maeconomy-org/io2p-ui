@@ -1,0 +1,14 @@
+# Force the forms above; no blank free-form issues.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    # Requires "Private vulnerability reporting" to be enabled on this repository —
+    # without it this link 404s and reporters fall back to the public tracker.
+    url: https://github.com/maeconomy-org/io2p-ui/security/advisories/new
+    about: Report privately. Never open a public issue for a security problem.
+  - name: Security policy
+    url: https://io2p.org/security
+    about: What is in scope, what to expect from us, and the safe-harbour terms.
+  - name: Questions and general discussion
+    url: https://io2p.org/docs
+    about: Documentation first. If it does not answer you, email info@maeconomy.org.

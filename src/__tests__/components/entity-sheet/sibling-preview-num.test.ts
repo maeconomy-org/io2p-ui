@@ -1,0 +1,165 @@
+// The bind preview computes on the number the NODE computes on — the canonical one. Re-parsing the
+// authored text gave `10 t` the value 10 while the evaluator used 10000, so every preview over a
+// value authored in a non-canonical unit was wrong by that unit's factor, and silently right for kg.
+
+import { describe, it, expect } from 'vitest'
+
+import { collectSiblings } from '@/components/entity-sheet/fields/property-fields'
+import type { EntityDraft } from '@/lib/entity'
+
+const property = (
+  key: string,
+  value: EntityDraft['properties'][number]['values'][number]
+): EntityDraft['properties'][number] => ({
+  id: `p-${key}`,
+  key,
+  label: key,
+  values: [value],
+})
+
+const numFor = (
+  properties: EntityDraft['properties'],
+  key: string
+): number | undefined =>
+  collectSiblings(properties, undefined, 'en').find(
+    (s) => s.propertyKey === key
+  )?.num
+
+describe('collectSiblings', () => {
+  it('uses the canonical number, not the authored text', () => {
+    const properties = [
+      property('weight', {
+        id: 'v-1',
+        data: '10 t',
+        num: 10000,
+        unit: 'kg',
+        parsedFrom: '10 t',
+      }),
+    ]
+
+    expect(numFor(properties, 'weight')).toBe(10000)
+  })
+
+  it('carries the canonical unit, so a declared-unit warning can compare against it', () => {
+    const properties = [
+      property('weight', {
+        id: 'v-1',
+        data: '10 t',
+        num: 10000,
+        unit: 'kg',
+        parsedFrom: '10 t',
+      }),
+    ]
+
+    expect(collectSiblings(properties, undefined, 'en')[0].unit).toBe('kg')
+  })
+
+  // `num` and `unit` describe the text as it was read. "10 t" edited to "10 m" still carries
+  // 10000 kg, and sending that asked the node about a value the author had already replaced.
+  it('sends the new text, not the old number, once a stored value is edited', () => {
+    const properties = [
+      property('weight', {
+        id: 'v-1',
+        data: '10 m',
+        num: 10000,
+        unit: 'kg',
+        parsedFrom: '10 t',
+      }),
+    ]
+
+    const [s] = collectSiblings(properties, undefined, 'en')
+    expect(s.num).toBeUndefined()
+    expect(s.unit).toBeUndefined()
+    expect(s.data).toBe('10 m')
+  })
+
+  it('falls back to a just-typed BARE number, which has no canonical form yet', () => {
+    // `num` lands with the READ, so a value authored a moment ago carries neither num nor unit.
+    const properties = [property('count', { ref: 'r-1', data: '42' })]
+
+    expect(numFor(properties, 'count')).toBe(42)
+  })
+
+  it('previews nothing for a just-typed value that carries a unit', () => {
+    // "10 t" with no `num` yet: 10 is the wrong answer by 1000 and there is no right one to give.
+    // The editor already renders such a sibling as selectable but unpreviewable.
+    const properties = [property('weight', { ref: 'r-1', data: '10 t' })]
+
+    expect(numFor(properties, 'weight')).toBeUndefined()
+  })
+
+  it('still offers a value nobody has filled in', () => {
+    const properties = [property('weight', { ref: 'r-1', data: '' })]
+
+    expect(collectSiblings(properties, undefined, 'en')).toHaveLength(1)
+    expect(numFor(properties, 'weight')).toBeUndefined()
+  })
+
+  it('leaves text out — a formula over it would only produce NaN', () => {
+    const properties = [property('supplier', { id: 'v-9', data: 'Acme' })]
+
+    expect(collectSiblings(properties, undefined, 'en')).toHaveLength(0)
+  })
+
+  // What a rollup rule matches the sibling's property by: the saved key as core compares it, or
+  // the dictionary resolution of a label when there is no key yet.
+  it('carries the key a rollup rule matches its property by', () => {
+    const saved = [property('items_per_box', { id: 'v-1', data: '4' })]
+    expect(collectSiblings(saved, undefined, 'en')[0].ruleKey).toBe(
+      'items_per_box'
+    )
+
+    const unsaved: EntityDraft['properties'] = [
+      {
+        key: undefined as unknown as string,
+        label: 'Aantal',
+        values: [{ ref: 'r', data: '4' }],
+      },
+    ]
+    expect(collectSiblings(unsaved, undefined, 'en')[0].ruleKey).toBe(
+      'quantity'
+    )
+  })
+
+  // A saved formula value has no `calc` in the draft, so it is offered; its unchecked flag comes
+  // from the trace and travels with it. Absent and `true` both mean "nothing to say".
+  it('carries a saved formula value’s unchecked flag, and only that', () => {
+    const properties = [
+      property('a', { id: 'v-1', data: '1200', num: 1200, parsedFrom: '1200' }),
+      property('b', { id: 'v-2', data: '5', num: 5, parsedFrom: '5' }),
+      property('c', { id: 'v-3', data: '7', num: 7, parsedFrom: '7' }),
+    ]
+    const trace = (unitVerified?: boolean) => ({
+      expression: 'x',
+      evalVersion: 1,
+      args: [],
+      ...(unitVerified !== undefined && { unitVerified }),
+    })
+    const derived = new Map([
+      ['v-1', trace(false)],
+      ['v-2', trace(true)],
+      ['v-3', trace()],
+    ])
+    const [a, b, c] = collectSiblings(properties, undefined, 'en', derived)
+    expect(a.unitVerified).toBe(false)
+    expect(b).not.toHaveProperty('unitVerified')
+    expect(c).not.toHaveProperty('unitVerified')
+  })
+
+  // Turned back into text, the value is typed input the normalizer checks; the old trace's flag
+  // no longer applies to it.
+  it('drops the unchecked flag of a formula value turned back into text', () => {
+    const properties = [
+      property('a', { id: 'v-1', data: '20', calc: null, parsedFrom: '1200' }),
+    ]
+    const derived = new Map([
+      [
+        'v-1',
+        { expression: 'x', evalVersion: 1, args: [], unitVerified: false },
+      ],
+    ])
+    expect(
+      collectSiblings(properties, undefined, 'en', derived)[0]
+    ).not.toHaveProperty('unitVerified')
+  })
+})

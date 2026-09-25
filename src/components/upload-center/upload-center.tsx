@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { createElement, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   AlertTriangle,
@@ -19,11 +19,11 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { useOptionalUploadQueue } from '@/contexts'
+import { useOptionalUploadQueue } from '@/contexts/upload-queue-context'
 import { Button, Card, Progress } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import { formatBytes, truncateText } from '@/lib'
-import type { FileUploadTask } from '@/lib/upload-service'
+import { formatBytes, truncateText } from '@/lib/utils'
+import type { UploadTask } from '@/lib/upload-queue'
 
 function mimeIcon(mimeType?: string): LucideIcon {
   if (!mimeType) return FileIcon
@@ -40,9 +40,7 @@ export function UploadCenter() {
   const upload = useOptionalUploadQueue()
   const [isExpanded, setIsExpanded] = useState(true)
   const [announcement, setAnnouncement] = useState('')
-  const previousStatuses = useRef<Map<string, FileUploadTask['status']>>(
-    new Map()
-  )
+  const previousStatuses = useRef<Map<string, UploadTask['status']>>(new Map())
 
   // Live announcer: emit a single sentence whenever a task crosses into a
   // terminal state. We diff status against the previous render rather than
@@ -50,40 +48,40 @@ export function UploadCenter() {
   // just visually saw.
   useEffect(() => {
     if (!upload) return
-    const next = new Map<string, FileUploadTask['status']>()
+    const next = new Map<string, UploadTask['status']>()
     let message = ''
     for (const task of upload.tasks) {
       const prev = previousStatuses.current.get(task.id)
       next.set(task.id, task.status)
       if (prev === task.status) continue
-      const fileName = task.attachment?.fileName || task.id
+      const fileName = task.fileName || task.id
       if (task.status === 'completed') {
-        message = t('objects.uploadCenterAnnounceCompleted', { fileName })
+        message = t('uploads.centerAnnounceCompleted', { fileName })
       } else if (task.status === 'failed') {
         const isCancelled = task.error === 'Cancelled'
         message = t(
           isCancelled
-            ? 'objects.uploadCenterAnnounceCancelled'
-            : 'objects.uploadCenterAnnounceFailed',
+            ? 'uploads.centerAnnounceCancelled'
+            : 'uploads.centerAnnounceFailed',
           { fileName }
         )
       }
     }
     previousStatuses.current = next
+    // This detects a TRANSITION (a task crossing into completed/failed) by
+    // comparing against the previous render's statuses. That is not derivable
+    // from current state, so "you might not need an effect" does not apply:
+    // no render-time expression yields "this just changed". Revisit with the
+    // rest of the set-state-in-effect pass — the honest fix is a task-level
+    // event from UploadQueue rather than diffing here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (message) setAnnouncement(message)
   }, [upload, t])
 
   if (!upload) return null
 
-  const {
-    tasks,
-    summary,
-    isIdle,
-    clearCompleted,
-    cancelTask,
-    retryTask,
-    removeTask,
-  } = upload
+  const { tasks, summary, isIdle, clearCompleted, cancel, retry, remove } =
+    upload
 
   // Always render the idle sentinel so e2e tests can deterministically wait
   // for "no uploads pending" (replacement for brittle waitForTimeout).
@@ -138,15 +136,15 @@ export function UploadCenter() {
               )}
               <span className="text-sm font-medium truncate">
                 {isProcessing
-                  ? t('objects.uploadCenterInProgress', {
+                  ? t('uploads.centerInProgress', {
                       done,
                       total: summary.total,
                     })
                   : summary.failed > 0
-                    ? t('objects.uploadCenterFailed', {
+                    ? t('uploads.centerFailed', {
                         count: summary.failed,
                       })
-                    : t('objects.uploadCenterIdle')}
+                    : t('uploads.centerIdle')}
               </span>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -160,7 +158,7 @@ export function UploadCenter() {
                     e.stopPropagation()
                     clearCompleted()
                   }}
-                  aria-label={t('objects.uploadCenterClear')}
+                  aria-label={t('uploads.centerClear')}
                   data-testid="upload-center-clear"
                 >
                   <X className="h-3 w-3" />
@@ -198,9 +196,9 @@ export function UploadCenter() {
                 <UploadTaskRow
                   key={task.id}
                   task={task}
-                  onCancel={cancelTask}
-                  onRetry={retryTask}
-                  onRemove={removeTask}
+                  onCancel={cancel}
+                  onRetry={retry}
+                  onRemove={remove}
                 />
               ))}
             </ul>
@@ -212,7 +210,7 @@ export function UploadCenter() {
 }
 
 type UploadTaskRowProps = {
-  task: FileUploadTask
+  task: UploadTask
   onCancel: (id: string) => void
   onRetry: (id: string) => void
   onRemove: (id: string) => void
@@ -225,10 +223,9 @@ function UploadTaskRow({
   onRemove,
 }: UploadTaskRowProps) {
   const t = useTranslations()
-  const name = task.attachment?.fileName || task.id
+  const name = task.fileName || task.id
   const isCancelled = task.status === 'failed' && task.error === 'Cancelled'
-  const Icon = mimeIcon(task.attachment?.mimeType)
-  const sizeLabel = formatBytes(task.attachment?.size)
+  const sizeLabel = formatBytes(task.size)
 
   return (
     <li
@@ -242,7 +239,15 @@ function UploadTaskRow({
         {task.progress}
       </span>
       <div className="relative shrink-0 pt-0.5">
-        <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+        {/* createElement, not a capitalised local: `mimeIcon` picks one of five
+            module-level lucide icons, but assigning it to `const Icon` and
+            rendering <Icon/> reads to react-hooks/static-components as a
+            component built during render (which would reset state on every
+            render). Nothing is constructed here — this makes that explicit. */}
+        {createElement(mimeIcon(task.contentType), {
+          className: 'h-5 w-5 text-muted-foreground',
+          'aria-hidden': true,
+        })}
         <span className="absolute -bottom-0.5 -right-0.5 inline-flex items-center justify-center rounded-full bg-background">
           <StatusIcon status={task.status} />
         </span>
@@ -282,7 +287,7 @@ function UploadTaskRow({
           size="sm"
           className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           onClick={() => onCancel(task.id)}
-          aria-label={t('objects.uploadCenterCancel')}
+          aria-label={t('uploads.centerCancel')}
           data-testid={`upload-task-cancel-${task.id}`}
         >
           <X className="h-3 w-3" />
@@ -295,7 +300,7 @@ function UploadTaskRow({
           size="sm"
           className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           onClick={() => onRetry(task.id)}
-          aria-label={t('objects.uploadCenterRetry')}
+          aria-label={t('uploads.centerRetry')}
           data-testid={`upload-task-retry-${task.id}`}
         >
           <RotateCw className="h-3 w-3" />
@@ -308,7 +313,7 @@ function UploadTaskRow({
           size="sm"
           className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           onClick={() => onRemove(task.id)}
-          aria-label={t('objects.uploadCenterRemove')}
+          aria-label={t('uploads.centerRemove')}
           data-testid={`upload-task-remove-${task.id}`}
         >
           <X className="h-3 w-3" />
@@ -318,32 +323,32 @@ function UploadTaskRow({
   )
 }
 
-function StatusBadge({ task }: { task: FileUploadTask }) {
+function StatusBadge({ task }: { task: UploadTask }) {
   const t = useTranslations()
   const isCancelled = task.status === 'failed' && task.error === 'Cancelled'
   switch (task.status) {
     case 'pending':
-      return <span>{t('objects.uploadCenterStatusPending')}</span>
+      return <span>{t('uploads.centerStatusPending')}</span>
     case 'uploading':
       return (
         <span className="text-blue-600 dark:text-blue-400">
-          {t('objects.uploadCenterStatusUploading')}
+          {t('uploads.centerStatusUploading')}
         </span>
       )
     case 'cancelling':
-      return <span>{t('objects.uploadCenterCancelling')}</span>
+      return <span>{t('uploads.centerCancelling')}</span>
     case 'completed':
       return (
         <span className="text-green-600 dark:text-green-400">
-          {t('objects.uploadCenterStatusDone')}
+          {t('uploads.centerStatusDone')}
         </span>
       )
     case 'failed':
       return (
         <span className="text-red-600 dark:text-red-400">
           {isCancelled
-            ? t('objects.uploadCenterStatusCancelled')
-            : t('objects.uploadCenterStatusFailed')}
+            ? t('uploads.centerStatusCancelled')
+            : t('uploads.centerStatusFailed')}
         </span>
       )
     default:
@@ -351,7 +356,7 @@ function StatusBadge({ task }: { task: FileUploadTask }) {
   }
 }
 
-function StatusIcon({ status }: { status: FileUploadTask['status'] }) {
+function StatusIcon({ status }: { status: UploadTask['status'] }) {
   const t = useTranslations()
   switch (status) {
     case 'completed':
@@ -362,7 +367,7 @@ function StatusIcon({ status }: { status: FileUploadTask['status'] }) {
       return (
         <Loader2
           className={cn('h-3 w-3 animate-spin text-muted-foreground shrink-0')}
-          aria-label={t('objects.uploadCenterCancelling')}
+          aria-label={t('uploads.centerCancelling')}
         />
       )
     case 'uploading':

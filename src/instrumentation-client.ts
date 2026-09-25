@@ -4,20 +4,23 @@
 import * as Sentry from '@sentry/nextjs'
 import {
   sharedSentryOptions,
-  consoleLevels,
   beforeSend,
-  tracesSampler,
-} from '@/lib/sentry-config'
+  shouldInitSentry,
+} from '@/lib/observability/sentry-config'
+import { getCachedConfig } from '@/constants/client'
+import { initWebVitals } from '@/lib/observability/web-vitals'
 
-// Fetch Sentry DSN from runtime config and initialize
-async function initSentry() {
+// Read the DSN from the inline __IOM_CONFIG__ script rather than fetching
+// /api/config. The script runs in <head> before this module, so the config is
+// already present — the fetch was a round trip for data sitting in the page,
+// and it delayed Sentry init past the errors most worth catching (those thrown
+// during hydration).
+function initSentry() {
   try {
-    const res = await fetch('/api/config')
-    const config = await res.json()
+    const config = getCachedConfig()
+    if (!config) return
 
-    // Only initialize in production or when explicitly enabled for testing
-    const shouldInit =
-      config.nodeEnv === 'production' || config.sentryEnabled === 'true'
+    const shouldInit = shouldInitSentry(config.nodeEnv, config.sentryEnabled)
 
     if (shouldInit && config.sentryDsn) {
       Sentry.init({
@@ -26,7 +29,9 @@ async function initSentry() {
         release: config.sentryRelease || undefined,
 
         ...sharedSentryOptions,
-        tracesSampler,
+        // Errors only, by design (observability plan §1.3): no tracesSampler
+        // and no tracesSampleRate AT ALL — even a constant 0 still enables
+        // the tracing machinery. Performance lives in OTel.
 
         // Browser-specific integrations
         integrations: [
@@ -34,10 +39,15 @@ async function initSentry() {
           Sentry.browserApiErrorsIntegration(),
           Sentry.globalHandlersIntegration(),
           Sentry.dedupeIntegration(), // Remove duplicate errors
-          Sentry.consoleLoggingIntegration({ levels: [...consoleLevels] }),
+          // Session health (crash rates): the v8 autoSessionTracking option
+          // is gone in v9+, and with defaultIntegrations: false this
+          // integration is the ONLY thing that produces sessions.
+          Sentry.browserSessionIntegration(),
+          // URL + headers context on events (no PII beyond the URL).
+          Sentry.httpContextIntegration(),
           // Breadcrumbs for debugging context (no PII)
           Sentry.breadcrumbsIntegration({
-            console: false, // Don't capture console logs as breadcrumbs (we use consoleLoggingIntegration)
+            console: false, // Console logs flow through the logger's ship sink
             dom: true, // Capture click events for debugging
             fetch: false, // Don't capture fetch requests (may contain PII)
             history: true, // Capture navigation for debugging
@@ -54,5 +64,9 @@ async function initSentry() {
 }
 
 initSentry()
+
+// Web vitals ride the ship pipeline (→ /api/telemetry), not Sentry. No-ops
+// when the ship sink is dark (dev default).
+initWebVitals()
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart

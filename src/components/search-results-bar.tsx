@@ -3,74 +3,71 @@
 import { Search, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { Badge, Button } from '@/components/ui'
-
-interface SearchPagination {
-  totalElements: number
-  currentPage: number
-  totalPages: number
-}
+import {
+  Badge,
+  Button,
+  FloatingActionBar,
+  FloatingActionBarSeparator,
+} from '@/components/ui'
 
 interface SearchResultsBarProps {
-  /** The search query string */
+  /** The active query. Also gates the bar: an empty one hides it. */
   searchQuery: string
-  /** Number of results (for non-paginated view) */
   resultsCount?: number
-  /** Pagination info (for paginated view) */
-  pagination?: SearchPagination
-  /** Callback when clear search is clicked */
   onClearSearch: () => void
-  /** Optional className */
-  className?: string
+  /** True when a selection bar is also up, so this one clears it. */
+  raised?: boolean
 }
 
 /**
- * Search results information bar.
- * Shows search query, result count/pagination, and clear button.
+ * What the list is currently filtered by, and the way out of it.
+ *
+ * FLOATING rather than inline, for the reason the selection bar already floats: an inline strip
+ * appears the instant a search resolves and pushes the whole table down, moving the rows the user
+ * was reading. This costs no layout at all, and stays reachable however far the results scroll.
  */
 export function SearchResultsBar({
   searchQuery,
   resultsCount = 0,
-  pagination,
   onClearSearch,
-  className,
+  raised = false,
 }: SearchResultsBarProps) {
   const t = useTranslations()
 
   return (
-    <div
-      className={`mb-4 p-3 bg-muted/50 border border-border rounded-lg ${className || ''}`}
+    <FloatingActionBar
+      open={!!searchQuery}
+      label={t('objects.searchResults', { query: searchQuery })}
+      level={raised ? 'raised' : 'base'}
+      data-testid="search-results-bar"
     >
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-primary flex-shrink-0" />
-            <span className="text-sm font-medium truncate">
-              {t('objects.searchResults', { query: searchQuery })}
-            </span>
-          </div>
-          <Badge variant="secondary" className="whitespace-nowrap">
-            {pagination
-              ? t('objects.resultsPage', {
-                  count: pagination.totalElements,
-                  page: pagination.currentPage + 1,
-                  pages: pagination.totalPages,
-                })
-              : t('objects.results', {
-                  count: resultsCount,
-                })}
-          </Badge>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClearSearch}
-          className="flex-shrink-0"
+      <div className="flex min-w-0 items-center gap-2 px-1 sm:pl-2">
+        <Search className="h-4 w-4 shrink-0 text-primary" />
+        <span className="max-w-[12rem] truncate text-sm font-medium sm:max-w-xs">
+          {searchQuery}
+        </span>
+        <Badge
+          variant="secondary"
+          className="shrink-0 whitespace-nowrap"
+          data-testid="search-results-count"
         >
-          <X className="h-4 w-4 mr-1" />
-          {t('objects.clearSearch')}
-        </Button>
+          {t('objects.results', { count: resultsCount })}
+        </Badge>
       </div>
-    </div>
+
+      <FloatingActionBarSeparator />
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-8 shrink-0 rounded-full"
+        data-testid="search-clear"
+        onClick={onClearSearch}
+      >
+        <X className="mr-1 h-4 w-4" />
+        {t('objects.clearSearch')}
+      </Button>
+    </FloatingActionBar>
   )
 }

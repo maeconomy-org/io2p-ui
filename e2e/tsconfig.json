@@ -1,0 +1,15 @@
+{
+  // Lives INSIDE `e2e/` on purpose. An editor resolves a file by walking up from it to the nearest
+  // tsconfig; the root one does not include this folder, so without this every spec landed in an
+  // inferred project with no `@/*` mapping and reported errors the build never saw.
+  //
+  // Deliberately NOT merged into the root config: `next build` typechecks whatever that config
+  // includes, so a broken spec would break the production build.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["**/*.ts", "../playwright.config.ts"],
+  "exclude": ["../node_modules", "../.next"]
+}

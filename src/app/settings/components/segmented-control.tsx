@@ -2,7 +2,7 @@
 
 import { type LucideIcon } from 'lucide-react'
 
-import { cn } from '@/lib'
+import { cn } from '@/lib/utils'
 
 export interface SegmentOption<T extends string> {
   value: T

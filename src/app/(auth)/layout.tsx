@@ -5,7 +5,9 @@ import { Building2, HelpCircle, Shield } from 'lucide-react'
 import Link from 'next/link'
 
 import { useAppConfig } from '@/contexts'
-import { AuthCarousel, AuthPattern } from '@/components/auth'
+import { ThemeSelect } from '@/components/ui'
+import { LanguageSelect } from '@/components/language-switcher'
+import { AuthCarousel, AuthPattern } from './components'
 
 export default function AuthLayout({
   children,
@@ -16,7 +18,15 @@ export default function AuthLayout({
   const config = useAppConfig()
 
   return (
-    <div className="flex flex-1">
+    <div className="relative flex flex-1">
+      <div
+        data-testid="auth-chrome"
+        className="absolute right-4 top-4 z-20 flex items-center gap-1"
+      >
+        <LanguageSelect className="size-9" />
+        <ThemeSelect className="size-9" />
+      </div>
+
       {/* Left Column - Info Panel */}
       <div className="hidden lg:flex lg:w-1/2 p-6">
         <div className="relative w-full rounded-3xl overflow-hidden">

@@ -5,7 +5,8 @@ import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 
-import { logger, cn } from '@/lib'
+import { copyText } from '@/lib/clipboard'
+import { cn } from '@/lib/utils'
 import { Button } from './button'
 import {
   Tooltip,
@@ -42,24 +43,18 @@ export function CopyButton({
 
     if (!text) return
 
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-
-      if (showToast) {
-        toast.success(
-          label ? t('copiedWithLabel', { label }) : t('copiedToClipboard')
-        )
-      }
-
-      // Reset the copied state after 2 seconds
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      if (showToast) {
-        toast.error(t('failedToCopy'))
-      }
-      logger.error('Failed to copy:', error)
+    if (!(await copyText(text))) {
+      if (showToast) toast.error(t('failedToCopy'))
+      return
     }
+
+    setCopied(true)
+    if (showToast) {
+      toast.success(
+        label ? t('copiedWithLabel', { label }) : t('copiedToClipboard')
+      )
+    }
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const iconClassName = cn(
@@ -84,6 +79,8 @@ export function CopyButton({
       <Tooltip>
         <TooltipTrigger asChild tabIndex={-1}>
           <Button
+            // Without this it defaults to submit, so copying an id inside a sheet saves the form.
+            type="button"
             variant={variant}
             size={size}
             onClick={copyToClipboard}

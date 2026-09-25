@@ -27,13 +27,15 @@ const nlMessages = JSON.parse(
  * through to the raw key string in production).
  */
 
+// Every entry must be RENDERED somewhere in src/ — a key listed here but bound
+// by nothing passes parity while the prune rule reads it as dead and removes it.
 const requiredKeys: Array<[section: string, key: string]> = [
   ['objects.attachments', 'tooManyFiles'],
   ['objects.attachments', 'dragDrop'],
   ['objects.attachments', 'externalUrl'],
   ['objects.attachments', 'labelOptional'],
   ['objects.attachments', 'maxSize'],
-  ['objects.attachments', 'noAttachments'],
+  ['objects.files', 'noFiles'],
 ]
 
 function read(obj: any, path: string): unknown {

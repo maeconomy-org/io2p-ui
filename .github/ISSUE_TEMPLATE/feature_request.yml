@@ -1,0 +1,48 @@
+name: Feature request
+description: Propose a capability or a change in behaviour
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project deliberately defers work until there is a need for it, so the most useful thing
+        you can tell us is **what problem you hit**, not what you would build. A well-described
+        problem often has a smaller solution than the one it arrived with.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >
+        What are you trying to do that you cannot do today, and what did you try instead? Describe
+        the situation, not the feature.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: If you have a concrete proposal, describe it. It is fine to leave this empty.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: >
+        Including workarounds that already work. If one of them is adequate, say so — that is useful
+        information, not a reason to close the issue.
+    validations:
+      required: false
+
+  - type: textarea
+    id: why-now
+    attributes:
+      label: Why now
+      description: >
+        Is this blocking you, or is it something that would be nice eventually? Both are legitimate
+        answers and we would rather know which.
+    validations:
+      required: true
