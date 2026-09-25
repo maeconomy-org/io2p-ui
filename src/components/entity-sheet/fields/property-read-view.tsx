@@ -7,6 +7,7 @@ import {
   Calculator,
   ChevronDown,
   ChevronRight,
+  ChevronsDownUp,
   LayoutGrid,
   List,
   Paperclip,
@@ -14,6 +15,7 @@ import {
 
 import {
   Badge,
+  Button,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -29,7 +31,8 @@ import {
 } from '@/constants/property-dictionary'
 import type { EntityRollupEntry } from 'io2p-client'
 
-import { FilesDisclosure } from '../files'
+import { FileList, FilesToggle } from '../files'
+import { CollapseAllContext, useCollapsible } from '../collapse-all'
 import { DeletedRow } from './deleted-row'
 import {
   RollupLine,
@@ -104,15 +107,77 @@ function ownUnit(values: NumericValues): string | undefined {
   return values.find((v) => v.unit !== undefined && !leftOut(v))?.unit
 }
 
+/** The first values, then how many more: `12 kg · 30 kg · +1` says more than "3 values". */
 function valueSummary(
   p: DraftProperty,
-  manyLabel: string,
   display: (v: DraftValue) => string
 ): string {
   const values = liveValues(p)
   if (values.length === 0) return '—'
-  if (values.length === 1) return display(values[0])
-  return manyLabel
+  const shown = values.slice(0, 2).map(display)
+  const more = values.length - shown.length
+  return more > 0 ? [...shown, `+${more}`].join(' · ') : shown.join(' · ')
+}
+
+// Short, plain words: a colour, a material, a code. Anything with a number, a file, a formula or a
+// mark to show keeps its own row, where there is room for them.
+const CHIP_MAX = 24
+
+function chipsFit(
+  values: DraftValue[],
+  derivedValues: DerivedValues,
+  boundValueIds: ReadonlySet<string>
+): boolean {
+  return (
+    values.length > 1 &&
+    values.every(
+      (v) =>
+        v.num === undefined &&
+        !v.calc &&
+        !(v.files?.length ?? 0) &&
+        (v.data ?? '').length > 0 &&
+        (v.data ?? '').length <= CHIP_MAX &&
+        !(v.id && (derivedValues.has(v.id) || boundValueIds.has(v.id)))
+    )
+  )
+}
+
+const CHIPS_SHOWN = 5
+
+function ValueChips({ values }: { values: DraftValue[] }) {
+  const t = useTranslations()
+  const [all, setAll] = useCollapsible()
+  const shown = all ? values : values.slice(0, CHIPS_SHOWN)
+  const hidden = values.length - shown.length
+  return (
+    <ul
+      className="flex flex-wrap items-center gap-1.5"
+      data-testid="value-chips"
+    >
+      {shown.map((v, i) => (
+        <li
+          key={v.id ?? i}
+          className="rounded-full border bg-background px-2.5 py-0.5 text-sm"
+        >
+          {v.data}
+        </li>
+      ))}
+      {(hidden > 0 || all) && values.length > CHIPS_SHOWN && (
+        <li>
+          <button
+            type="button"
+            onClick={() => setAll((v) => !v)}
+            aria-expanded={all}
+            className="text-sm text-primary underline-offset-2 hover:underline"
+          >
+            {all
+              ? t('objects.properties.fewerValues')
+              : t('objects.properties.moreValues', { count: hidden })}
+          </button>
+        </li>
+      )}
+    </ul>
+  )
 }
 
 /**
@@ -177,6 +242,7 @@ export function PropertyReadView({
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
   const [view, setView] = usePreference('propertiesView')
+  const [generation, setGeneration] = useState(0)
   const displayValue = useValueDisplay(derivedValues)
   const boundValueIds = useMemo(
     () => formulaBoundValueIds(derivedValues),
@@ -199,6 +265,13 @@ export function PropertyReadView({
   // From the RAW map, not `liveRollups` below: an entry with nothing to show still names the key
   // its rule multiplies by, and that key's values are still inputs to a total.
   const multiplierKeys = useMemo(() => multiplierKeysOf(rollups), [rollups])
+  const totalledKeys = useMemo(
+    () =>
+      new Set(
+        [...(rollups?.values() ?? [])].map((e) => e.propertyKey.toLowerCase())
+      ),
+    [rollups]
+  )
   const quantities = useMemo(
     () =>
       new Map(
@@ -378,110 +451,116 @@ export function PropertyReadView({
   }
 
   return (
-    <div className="space-y-3">
-      {allowViewToggle && (
-        <div className="flex justify-end">
-          <ViewToggle
-            value={view}
-            onChange={setView}
-            options={[
-              {
-                value: 'detailed',
-                icon: List,
-                label: t('objects.properties.detailedView'),
-              },
-              {
-                value: 'grid',
-                icon: LayoutGrid,
-                label: t('objects.properties.gridView'),
-              },
-            ]}
-          />
-        </div>
-      )}
-
-      {view === 'grid' ? (
-        <div className="grid grid-cols-2 gap-2">
-          {sortedProperties.map((p, i) =>
-            p.deleted ? (
-              <DeletedRow
-                key={p.id ?? i}
-                label={resolvePropertyLabel(p.key, p.label, locale)}
-              />
-            ) : (
-              <div key={p.id ?? i} className="rounded-md border p-2.5">
-                <div className="flex items-center gap-1.5 text-sm font-medium">
-                  <span className="truncate">
-                    {resolvePropertyLabel(p.key, p.label, locale)}
-                  </span>
-                  {allowFiles && fileCount(p) > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="h-4 shrink-0 gap-0.5 px-1 text-[10px]"
-                    >
-                      <Paperclip className="h-2.5 w-2.5" />
-                      {fileCount(p)}
-                    </Badge>
-                  )}
-                </div>
-                <div className="mt-0.5 truncate text-sm text-muted-foreground">
-                  {valueSummary(
-                    p,
-                    t('objects.values', { count: liveValues(p).length }),
-                    displayValue
-                  )}
-                </div>
-              </div>
-            )
-          )}
-          {rollupCards.map(
-            ({ entry, property, ownValues, multiplierValues }) => (
-              <RollupCard
-                key={entry.ruleId}
-                entry={entry}
-                locale={locale}
-                ownUnit={property ? ownUnit(ownValues) : undefined}
-                ownValues={property ? ownValues : undefined}
-                multiplierValues={multiplierValues}
-              />
-            )
-          )}
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          {sortedProperties.map((p, i) => (
-            <PropertyCard
-              key={p.id ?? i}
-              property={p}
-              derivedValues={derivedValues}
-              boundValueIds={boundValueIds}
-              quantity={quantities.get(ruleKey(p.key, p.label))}
-              labelForValue={(id) => labelForValueId(properties, id, locale)}
-              textForValue={(id) => {
-                const v = valueById(properties, id)
-                return v && displayValue(v)
-              }}
-              displayValue={displayValue}
-              entityId={entityId}
-              onFileChange={onFileChange}
-              allowFiles={allowFiles}
+    <CollapseAllContext.Provider value={generation}>
+      <div className="space-y-3">
+        {allowViewToggle && (
+          <div className="flex items-center justify-end gap-1">
+            {/* Every open property, formula, file list and total closes at once. The grid has
+                nothing that opens. */}
+            {view !== 'grid' && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground"
+                onClick={() => setGeneration((g) => g + 1)}
+                aria-label={t('objects.properties.collapseAll')}
+                title={t('objects.properties.collapseAll')}
+                data-testid="collapse-all"
+              >
+                <ChevronsDownUp className="h-4 w-4" />
+              </Button>
+            )}
+            <ViewToggle
+              value={view}
+              onChange={setView}
+              options={[
+                {
+                  value: 'detailed',
+                  icon: List,
+                  label: t('objects.properties.detailedView'),
+                },
+                {
+                  value: 'grid',
+                  icon: LayoutGrid,
+                  label: t('objects.properties.gridView'),
+                },
+              ]}
             />
-          ))}
-          {rollupCards.map(
-            ({ entry, property, ownValues, multiplierValues }) => (
-              <RollupCard
-                key={entry.ruleId}
-                entry={entry}
-                locale={locale}
-                ownUnit={property ? ownUnit(ownValues) : undefined}
-                ownValues={property ? ownValues : undefined}
-                multiplierValues={multiplierValues}
+          </div>
+        )}
+
+        {view === 'grid' ? (
+          <div className="grid grid-cols-2 gap-2">
+            {sortedProperties.map((p, i) =>
+              p.deleted ? (
+                <DeletedRow
+                  key={p.id ?? i}
+                  label={resolvePropertyLabel(p.key, p.label, locale)}
+                />
+              ) : (
+                <div key={p.id ?? i} className="rounded-md border p-2.5">
+                  {/* The grid is for scanning names and values; files and marks are on the rows. */}
+                  <div className="truncate text-sm font-medium">
+                    {resolvePropertyLabel(p.key, p.label, locale)}
+                  </div>
+                  <div className="mt-0.5 truncate text-sm text-muted-foreground">
+                    {valueSummary(p, displayValue)}
+                  </div>
+                </div>
+              )
+            )}
+            {rollupCards.map(
+              ({ entry, property, ownValues, multiplierValues }) => (
+                <RollupCard
+                  compact
+                  key={entry.ruleId}
+                  entry={entry}
+                  locale={locale}
+                  ownUnit={property ? ownUnit(ownValues) : undefined}
+                  ownValues={property ? ownValues : undefined}
+                  multiplierValues={multiplierValues}
+                />
+              )
+            )}
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {sortedProperties.map((p, i) => (
+              <PropertyCard
+                key={p.id ?? i}
+                property={p}
+                derivedValues={derivedValues}
+                boundValueIds={boundValueIds}
+                quantity={quantities.get(ruleKey(p.key, p.label))}
+                totalled={totalledKeys.has(ruleKey(p.key, p.label))}
+                labelForValue={(id) => labelForValueId(properties, id, locale)}
+                textForValue={(id) => {
+                  const v = valueById(properties, id)
+                  return v && displayValue(v)
+                }}
+                displayValue={displayValue}
+                entityId={entityId}
+                onFileChange={onFileChange}
+                allowFiles={allowFiles}
               />
-            )
-          )}
-        </div>
-      )}
-    </div>
+            ))}
+            {rollupCards.map(
+              ({ entry, property, ownValues, multiplierValues }) => (
+                <RollupCard
+                  key={entry.ruleId}
+                  entry={entry}
+                  locale={locale}
+                  ownUnit={property ? ownUnit(ownValues) : undefined}
+                  ownValues={property ? ownValues : undefined}
+                  multiplierValues={multiplierValues}
+                />
+              )
+            )}
+          </div>
+        )}
+      </div>
+    </CollapseAllContext.Provider>
   )
 }
 
@@ -502,6 +581,7 @@ function RollupCard({
   ownValues,
   multiplierValues,
   ownUnit: unit,
+  compact = false,
   'data-testid': testId = 'rollup-card',
 }: {
   entry: EntityRollupEntry
@@ -509,16 +589,46 @@ function RollupCard({
   ownValues?: NumericValues
   multiplierValues?: NumericValues
   ownUnit?: string
+  /** Grid tile: the name and the total only; the breakdown and the marks are in the list view. */
+  compact?: boolean
   'data-testid'?: string
 }) {
   const t = useTranslations()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useCollapsible()
   const detailsId = useId()
 
   const updating = entry.stale && !entry.error
   // Something below was not added in. At rest the card says only that there is something to look
   // at; the counts and reasons are in the expanded part.
   const issue = entry.skippedCount > 0
+
+  if (compact) {
+    return (
+      <div
+        className="rounded-md border border-dashed bg-muted/20 p-2.5"
+        data-testid={testId}
+      >
+        <div className="flex items-center gap-1.5">
+          <Calculator
+            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <span className="truncate text-sm font-medium">
+            {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
+          </span>
+          {updating && <RollupStaleBadge className="ml-auto" />}
+        </div>
+        <RollupLine
+          entry={entry}
+          ownUnit={unit}
+          ownValues={ownValues}
+          multiplierValues={multiplierValues}
+          part="value"
+          className={cn('mt-0.5', updating && 'opacity-60')}
+        />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -634,6 +744,7 @@ function PropertyCard({
   derivedValues,
   boundValueIds,
   quantity,
+  totalled = false,
   labelForValue,
   textForValue,
   displayValue,
@@ -646,6 +757,8 @@ function PropertyCard({
   boundValueIds: ReadonlySet<string>
   /** Set when a rollup rule scales its totals by this key: how the node resolves that quantity. */
   quantity?: ResolvedQuantity
+  /** A rollup rule adds up this property's values. */
+  totalled?: boolean
   labelForValue: LabelForValue
   textForValue: LabelForValue
   displayValue: (value: DraftValue) => string
@@ -655,8 +768,12 @@ function PropertyCard({
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useCollapsible()
+  const [filesOpen, setFilesOpen] = useCollapsible()
+  const filesId = useId()
   const count = allowFiles ? fileCount(property) : 0
+  const ownFiles = allowFiles ? (property.files?.length ?? 0) : 0
+  const live = liveValues(property)
   // A dictionary term reads in the viewer's own language; anything else keeps the authored text.
   const displayLabel = resolvePropertyLabel(
     property.key,
@@ -674,40 +791,57 @@ function PropertyCard({
       onOpenChange={setOpen}
       className={cn('rounded-md border', open && 'shadow-sm')}
     >
-      <CollapsibleTrigger className="flex w-full items-center gap-1.5 px-3 py-1.5 text-left hover:bg-muted/50">
-        <ChevronRight
-          className={cn(
-            'h-3.5 w-3.5 shrink-0 transition-transform',
-            open && 'rotate-90'
-          )}
-        />
-        <span className="truncate text-sm font-medium">{displayLabel}</span>
-        <span className="ml-2 min-w-0 flex-1 truncate text-sm text-muted-foreground">
-          {valueSummary(
-            property,
-            t('objects.values', { count: liveValues(property).length }),
-            displayValue
-          )}
-        </span>
-        {count > 0 && (
-          <Badge
-            variant="secondary"
-            className="h-4 shrink-0 gap-0.5 px-1 text-[10px]"
-          >
-            <Paperclip className="h-2.5 w-2.5" />
-            {count}
-          </Badge>
+      <div className="flex items-center hover:bg-muted/50">
+        <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pl-3 pr-2 text-left">
+          <ChevronRight
+            className={cn(
+              'h-3.5 w-3.5 shrink-0 transition-transform motion-reduce:transition-none',
+              open && 'rotate-90'
+            )}
+          />
+          <span className="truncate text-sm font-medium">{displayLabel}</span>
+          {/* Open, the values are right below; the header would only repeat them. */}
+          <span className="ml-2 min-w-0 flex-1 truncate text-sm text-muted-foreground">
+            {!open && valueSummary(property, displayValue)}
+          </span>
+        </CollapsibleTrigger>
+        {/* The property's own files open from its header, beside the trigger (a button cannot
+            nest in one). Files on its values open from each value's line; while the property is
+            closed, their count is only a hint. */}
+        {ownFiles > 0 ? (
+          <FilesToggle
+            count={ownFiles}
+            open={filesOpen}
+            onToggle={() => {
+              setFilesOpen((v) => !v)
+              setOpen(true)
+            }}
+            controls={filesId}
+            label={t('objects.files.onProperty')}
+            className="mr-2"
+          />
+        ) : (
+          count > 0 &&
+          !open && (
+            <span
+              className="mr-3 flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground"
+              title={t('objects.files.onValues', { count })}
+              aria-label={t('objects.files.onValues', { count })}
+              role="img"
+            >
+              <Paperclip className="h-3 w-3" />
+              {count}
+            </span>
+          )
         )}
-      </CollapsibleTrigger>
+      </div>
 
       <CollapsibleContent className="space-y-2 border-t bg-muted/10 px-3 py-2">
-        {/* Property-level files first (under the header), then each value with its own files. */}
-        {allowFiles && (
-          <FilesDisclosure
+        {filesOpen && (
+          <FileList
+            id={filesId}
             files={property.files ?? []}
-            editing={false}
             entityId={entityId}
-            onChange={onFileChange}
           />
         )}
         {liveValues(property).length === 0 && (
@@ -715,21 +849,46 @@ function PropertyCard({
             {t('objects.detailsSheet.noProperties')}
           </span>
         )}
-        {property.values.map((v, vi) => (
-          <ValueRow
-            key={v.id ?? vi}
-            value={v}
-            derivedValues={derivedValues}
-            boundValueIds={boundValueIds}
-            quantity={quantity}
-            labelForValue={labelForValue}
-            textForValue={textForValue}
-            displayValue={displayValue}
-            entityId={entityId}
-            onFileChange={onFileChange}
-            allowFiles={allowFiles}
-          />
-        ))}
+        {chipsFit(live, derivedValues, boundValueIds) ? (
+          <>
+            <ValueChips values={live} />
+            {property.values
+              .filter((v) => v.deleted)
+              .map((v, vi) => (
+                <DeletedRow key={v.id ?? vi} label={v.data || '—'} />
+              ))}
+          </>
+        ) : (
+          <div className="divide-y divide-border/60 [&>*]:py-1.5 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
+            {property.values.map((v, vi) => (
+              <ValueRow
+                key={v.id ?? vi}
+                value={v}
+                derivedValues={derivedValues}
+                boundValueIds={boundValueIds}
+                quantity={quantity}
+                labelForValue={labelForValue}
+                textForValue={textForValue}
+                displayValue={displayValue}
+                entityId={entityId}
+                onFileChange={onFileChange}
+                allowFiles={allowFiles}
+              />
+            ))}
+          </div>
+        )}
+        {/* Several numbers under a key a total adds up: each one is added, which is easy to miss
+            when a second value was meant to correct the first. */}
+        {totalled && live.filter((v) => v.num !== undefined).length > 1 && (
+          <p
+            className="text-xs text-muted-foreground"
+            data-testid="values-totalled"
+          >
+            {t('objects.properties.valuesTotalled', {
+              count: live.filter((v) => v.num !== undefined).length,
+            })}
+          </p>
+        )}
       </CollapsibleContent>
     </Collapsible>
   )
@@ -760,6 +919,8 @@ function ValueRow({
 }) {
   const t = useTranslations()
   const files = allowFiles ? (value.files ?? []) : []
+  const [filesOpen, setFilesOpen] = useCollapsible()
+  const filesId = useId()
 
   if (value.deleted) {
     return <DeletedRow label={value.data || '—'} />
@@ -778,14 +939,7 @@ function ValueRow({
       <div className="space-y-1">
         <FormulaSummary calc={value.calc} labelForValue={labelForValue} />
         {files.length > 0 && (
-          <div className="border-l pl-3">
-            <FilesDisclosure
-              files={files}
-              editing={false}
-              entityId={entityId}
-              onChange={onFileChange}
-            />
-          </div>
+          <FileList id={filesId} files={files} entityId={entityId} />
         )}
       </div>
     )
@@ -801,6 +955,17 @@ function ValueRow({
     />
   )
 
+  // At the right end of the value's line, like the formula's toggle: they belong to this value.
+  const filesToggle = files.length > 0 && (
+    <FilesToggle
+      count={files.length}
+      open={filesOpen}
+      onToggle={() => setFilesOpen((v) => !v)}
+      controls={filesId}
+      label={t('objects.files.onValue')}
+    />
+  )
+
   return (
     <div className="space-y-1">
       {provenance ? (
@@ -812,6 +977,7 @@ function ValueRow({
           labelForValue={labelForValue}
           textForValue={textForValue}
           marker={marker}
+          trailing={filesToggle}
         />
       ) : (
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -822,19 +988,10 @@ function ValueRow({
               {t('objects.propertyEditor.derived')}
             </Badge>
           )}
+          {filesToggle && <span className="ml-auto">{filesToggle}</span>}
         </div>
       )}
-      {/* Indent the value's files so they read as belonging to the value above, not the property. */}
-      {files.length > 0 && (
-        <div className="border-l pl-3">
-          <FilesDisclosure
-            files={files}
-            editing={false}
-            entityId={entityId}
-            onChange={onFileChange}
-          />
-        </div>
-      )}
+      {filesOpen && <FileList id={filesId} files={files} entityId={entityId} />}
     </div>
   )
 }

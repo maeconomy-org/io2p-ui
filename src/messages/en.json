@@ -514,6 +514,9 @@
     "files": {
       "preview": "Preview in new tab",
       "attach": "Attach",
+      "onProperty": "Files on this property",
+      "onValue": "Files on this value",
+      "onValues": "{count, plural, one {# file on its values} other {# files on its values}}",
       "addFiles": "Add files",
       "external": "Link",
       "filesCount": "Files ({count})",
@@ -623,6 +626,7 @@
     "properties": {
       "detailedView": "Detailed View",
       "gridView": "Grid Overview",
+      "collapseAll": "Collapse all",
       "formula": "Formula",
       "formulaError": "Could not be calculated",
       "showFormula": "Show formula details",
@@ -635,6 +639,9 @@
       "excludedFromBoth": "excluded from the formulas and the totals that use it",
       "rollupTotal": "Subtree total",
       "rollupAlso": "Also:",
+      "moreValues": "+{count} more",
+      "fewerValues": "Show fewer",
+      "valuesTotalled": "{count} values · a total adds each one",
       "rollupNoUnit": "no unit",
       "rollupUnitCount": "{count, plural, one {# item} other {# items}}",
       "rollupContributors": "{count, plural, one {# value} other {# values}}",

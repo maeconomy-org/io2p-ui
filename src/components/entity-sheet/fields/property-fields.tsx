@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import {
   ChevronRight,
   FunctionSquare,
@@ -52,6 +52,7 @@ import { PropertyReadView } from './property-read-view'
 import {
   ValueNormalization,
   formulaBoundValueIds,
+  derivedText,
   multiplierKeysOf,
   ruleKey,
 } from './value-normalization'
@@ -351,6 +352,7 @@ function PropertyRow({
   quantities: ReadonlyMap<string, ResolvedQuantity>
 }) {
   const t = useTranslations()
+  const format = useFormatter()
   const locale = useLocale() as PropertyDictionaryLocale
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -700,77 +702,101 @@ function PropertyRow({
                 const hydration = provenance
                   ? calcFromProvenance(provenance)
                   : null
+                const siblings = siblingSource ?? ownProperties
+                const rowButtons = (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      disabled={!hydration?.ok}
+                      aria-label={t('objects.formulaEditor.editFormula')}
+                      data-testid={`derived-value-edit-${index}-${vIndex}`}
+                      title={
+                        hydration?.ok || !hydration
+                          ? t('objects.formulaEditor.editFormula')
+                          : t(`objects.formulaEditor.${hydration.reason}`)
+                      }
+                      onClick={() =>
+                        hydration?.ok &&
+                        form.setValue(`${base}.calc`, hydration.calc, {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      aria-label={t('common.remove')}
+                      onClick={() =>
+                        form.setValue(`${base}.deleted`, true, {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                )
                 return (
                   <div key={field.id} className="space-y-1">
+                    {/* The read view's own row, so a formula reads the same while editing: the
+                        equation on the line and the details opening below it, full width. */}
                     <div
-                      className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                      className="rounded-md border bg-muted/30 px-3 py-2 text-sm"
                       data-testid={`derived-value-${index}-${vIndex}`}
                     >
-                      <span className="min-w-0 flex-1 truncate">
-                        {value?.data || '—'}
-                      </span>
-                      {/* The same marks the read view shows, so a refused quantity says so while
-                          it is being edited too. */}
-                      {value && (
-                        <ValueNormalization
-                          value={value}
-                          quantity={quantity}
-                          usedAsMultiplier={quantity !== undefined}
-                        />
-                      )}
-                      {provenance ? (
+                      {provenance && value ? (
                         <ValueProvenanceDisplay
                           provenance={provenance}
-                          unit={value?.unit}
-                          labelForValue={(id) =>
-                            labelForValueId(
-                              siblingSource ?? ownProperties,
-                              id,
-                              locale
-                            )
+                          unit={value.unit}
+                          display={
+                            derivedText(value, provenance, (n) =>
+                              format.number(n, { maximumFractionDigits: 3 })
+                            ) ??
+                            (value.data || '—')
                           }
+                          exact={value.data}
+                          labelForValue={(id) =>
+                            labelForValueId(siblings, id, locale)
+                          }
+                          textForValue={(id) => {
+                            for (const p of siblings) {
+                              const v = p.values.find(
+                                (x) => x.id === id || x.ref === id
+                              )
+                              if (v) return v.data || undefined
+                            }
+                            return undefined
+                          }}
+                          // The same marks the read view shows, so a refused quantity says so while
+                          // it is being edited too.
+                          marker={
+                            <ValueNormalization
+                              value={value}
+                              quantity={quantity}
+                              usedAsMultiplier={quantity !== undefined}
+                              derived
+                            />
+                          }
+                          trailing={rowButtons}
                         />
                       ) : (
-                        <Badge variant="outline" className="text-[10px]">
-                          {t('objects.propertyEditor.derived')}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1 truncate">
+                            {value?.data || '—'}
+                          </span>
+                          <Badge variant="outline" className="text-[10px]">
+                            {t('objects.propertyEditor.derived')}
+                          </Badge>
+                          {rowButtons}
+                        </div>
                       )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0"
-                        disabled={!hydration?.ok}
-                        aria-label={t('objects.formulaEditor.editFormula')}
-                        data-testid={`derived-value-edit-${index}-${vIndex}`}
-                        title={
-                          hydration?.ok || !hydration
-                            ? t('objects.formulaEditor.editFormula')
-                            : t(`objects.formulaEditor.${hydration.reason}`)
-                        }
-                        onClick={() =>
-                          hydration?.ok &&
-                          form.setValue(`${base}.calc`, hydration.calc, {
-                            shouldDirty: true,
-                          })
-                        }
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0"
-                        aria-label={t('common.remove')}
-                        onClick={() =>
-                          form.setValue(`${base}.deleted`, true, {
-                            shouldDirty: true,
-                          })
-                        }
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
                     </div>
                     {allowFiles && (
                       <FilesDisclosure

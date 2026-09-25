@@ -59,12 +59,12 @@ describe('one value, three places', () => {
   it('reads the same in the collapsed header and the expanded row', () => {
     renderAs('detailed')
 
-    // The header is the collapsed trigger; expanding reveals the row underneath it.
+    // The header is the collapsed trigger; expanding reveals the row underneath it, and the
+    // header stops repeating what the row now shows.
     expect(screen.getByText('20,000 kg')).toBeInTheDocument()
     fireEvent.click(screen.getByText('calculate'))
 
-    const shown = screen.getAllByText('20,000 kg')
-    expect(shown.length).toBe(2)
+    expect(screen.getAllByText('20,000 kg')).toHaveLength(1)
   })
 
   it('reads the same in the grid tile', () => {
@@ -119,8 +119,7 @@ describe('a formula result reads rounded', () => {
   it('to three decimals, with the stored text on hover', () => {
     renderDeclared('2.30258509299 kg', 2.30258509299, 'kg')
 
-    expect(screen.getAllByText('2.303 kg')).toHaveLength(2)
-    expect(screen.getAllByText('2.303 kg')[1]).toHaveAttribute(
+    expect(screen.getByText('2.303 kg')).toHaveAttribute(
       'title',
       '2.30258509299 kg'
     )
@@ -129,6 +128,6 @@ describe('a formula result reads rounded', () => {
   it('keeps a number below one readable, not rounded to zero', () => {
     renderDeclared('0.0015 t', 1.5, 'kg')
 
-    expect(screen.getAllByText('0.0015 t')).toHaveLength(2)
+    expect(screen.getByText('0.0015 t')).toBeInTheDocument()
   })
 })

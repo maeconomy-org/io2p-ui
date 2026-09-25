@@ -593,6 +593,9 @@
     "files": {
       "preview": "Voorbeeld in nieuw tabblad",
       "attach": "Bijlage",
+      "onProperty": "Bestanden bij deze eigenschap",
+      "onValue": "Bestanden bij deze waarde",
+      "onValues": "{count, plural, one {# bestand bij de waarden} other {# bestanden bij de waarden}}",
       "addFiles": "Bestanden toevoegen",
       "external": "Link",
       "filesCount": "Bestanden ({count})",
@@ -623,6 +626,7 @@
     "properties": {
       "detailedView": "Gedetailleerde weergave",
       "gridView": "Rasteroverzicht",
+      "collapseAll": "Alles inklappen",
       "formula": "Formule",
       "formulaError": "Kon niet worden berekend",
       "showFormula": "Formuledetails tonen",
@@ -635,6 +639,9 @@
       "excludedFromBoth": "uitgesloten van de formules en de totalen die deze gebruiken",
       "rollupTotal": "Totaal substructuur",
       "rollupAlso": "Ook:",
+      "moreValues": "+{count} meer",
+      "fewerValues": "Minder tonen",
+      "valuesTotalled": "{count} waarden · een totaal telt elke waarde mee",
       "rollupNoUnit": "geen eenheid",
       "rollupUnitCount": "{count, plural, one {# stuk} other {# stuks}}",
       "rollupContributors": "{count, plural, one {# waarde} other {# waarden}}",

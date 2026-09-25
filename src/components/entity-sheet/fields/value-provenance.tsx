@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useId, useMemo, useState } from 'react'
+import { Fragment, useId, useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { AlertTriangle, Check, ChevronDown, Sigma } from 'lucide-react'
 
@@ -16,6 +16,7 @@ import type {
   ValueProvenance as ValueProvenanceData,
 } from '@/lib/entity'
 
+import { useCollapsible } from '../collapse-all'
 import { equationText } from './formula-equation'
 
 /**
@@ -41,6 +42,7 @@ export function ValueProvenanceDisplay({
   labelForValue,
   textForValue,
   marker,
+  trailing,
   className,
 }: {
   provenance: ValueProvenanceData
@@ -56,11 +58,13 @@ export function ValueProvenanceDisplay({
   textForValue?: (valueId: string) => string | undefined
   /** A value marker (the multiplier refusal) placed with the marks, before the toggle. */
   marker?: React.ReactNode
+  /** Another row toggle (the value's files), after the formula's. */
+  trailing?: React.ReactNode
   className?: string
 }) {
   const t = useTranslations()
   const format = useFormatter()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useCollapsible()
   const detailsId = useId()
   const { error } = provenance
   const unchecked = !error && uncheckedState(provenance, unit)
@@ -154,6 +158,7 @@ export function ValueProvenanceDisplay({
             )}
           />
         </button>
+        {trailing}
       </div>
 
       {reason && (

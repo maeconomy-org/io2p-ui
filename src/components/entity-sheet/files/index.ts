@@ -9,3 +9,4 @@ export {
   newReferenceDraft,
   newUploadDraft,
 } from './file-helpers'
+export { FileList, FilesToggle } from './files-toggle'
