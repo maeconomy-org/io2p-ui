@@ -109,7 +109,7 @@ export function ValueProvenanceDisplay({
           <Badge
             variant="outline"
             data-testid="provenance-error"
-            className="h-5 shrink-0 gap-1 border-destructive/60 bg-destructive/10 px-1.5 text-[11px] font-medium text-destructive"
+            className="h-5 shrink-0 whitespace-nowrap gap-1 border-destructive/60 bg-destructive/10 px-1.5 text-[11px] font-medium text-destructive"
           >
             <AlertTriangle className="h-3 w-3" />
             {t('objects.properties.formulaError')}
@@ -119,7 +119,7 @@ export function ValueProvenanceDisplay({
           <Badge
             variant="outline"
             data-testid="provenance-unit-left-out"
-            className="h-5 shrink-0 gap-1 border-amber-500/60 bg-amber-50 px-1.5 text-[11px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+            className="h-5 shrink-0 whitespace-nowrap gap-1 border-amber-500/60 bg-amber-50 px-1.5 text-[11px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
           >
             <AlertTriangle className="h-3 w-3" />
             {t('objects.properties.unitNotCounted')}
@@ -130,7 +130,7 @@ export function ValueProvenanceDisplay({
           <Badge
             variant="secondary"
             data-testid="provenance-unit-unchecked"
-            className="h-5 shrink-0 px-1.5 text-[11px] font-medium"
+            className="h-5 shrink-0 whitespace-nowrap px-1.5 text-[11px] font-medium"
           >
             {t('objects.properties.noUnit')}
           </Badge>

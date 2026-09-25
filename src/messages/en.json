@@ -625,6 +625,17 @@
     },
     "properties": {
       "detailedView": "Detailed View",
+      "legend": {
+        "open": "What do the marks mean?",
+        "title": "What the marks mean",
+        "noUnit": "A plain number: it is counted in the total without a unit.",
+        "notCounted": "Shown, but its unit could not be checked, so it is in no total.",
+        "error": "The formula could not make a number. The line under it says why.",
+        "excluded": "A formula or a total reads this value, but its number could not be read (for example an unknown unit), so it is left out.",
+        "totalIssue": "On a total: something below was not added in. Open the card to see how many.",
+        "formula": "Opens how a formula value is made: the formula, its inputs and its unit.",
+        "files": "Opens the files on a value, or on the property from its header."
+      },
       "gridView": "Grid Overview",
       "collapseAll": "Collapse all",
       "formula": "Formula",

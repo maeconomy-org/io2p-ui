@@ -33,6 +33,7 @@ import type { EntityRollupEntry } from 'io2p-client'
 
 import { FileList, FilesToggle } from '../files'
 import { CollapseAllContext, useCollapsible } from '../collapse-all'
+import { MarksLegend } from './marks-legend'
 import { DeletedRow } from './deleted-row'
 import {
   RollupLine,
@@ -471,6 +472,7 @@ export function PropertyReadView({
                 <ChevronsDownUp className="h-4 w-4" />
               </Button>
             )}
+            <MarksLegend />
             <ViewToggle
               value={view}
               onChange={setView}

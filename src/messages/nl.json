@@ -625,6 +625,17 @@
     },
     "properties": {
       "detailedView": "Gedetailleerde weergave",
+      "legend": {
+        "open": "Wat betekenen de markeringen?",
+        "title": "Wat de markeringen betekenen",
+        "noUnit": "Een getal zonder eenheid: het telt mee in het totaal zonder eenheid.",
+        "notCounted": "Getoond, maar de eenheid kon niet worden gecontroleerd, dus het telt in geen enkel totaal mee.",
+        "error": "De formule kon geen getal maken. De regel eronder zegt waarom.",
+        "excluded": "Een formule of een totaal leest deze waarde, maar het getal kon niet worden gelezen (bijvoorbeeld een onbekende eenheid), dus het wordt weggelaten.",
+        "totalIssue": "Bij een totaal: iets eronder is niet meegeteld. Opent u de kaart om te zien hoeveel.",
+        "formula": "Toont hoe een formulewaarde is gemaakt: de formule, de invoer en de eenheid.",
+        "files": "Toont de bestanden bij een waarde, of bij de eigenschap via de kop."
+      },
       "gridView": "Rasteroverzicht",
       "collapseAll": "Alles inklappen",
       "formula": "Formule",

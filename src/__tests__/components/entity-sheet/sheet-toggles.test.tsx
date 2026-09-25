@@ -147,3 +147,18 @@ describe('the grid', () => {
     expect(screen.queryByTestId('collapse-all')).toBeNull()
   })
 })
+
+describe('the marks legend', () => {
+  it('explains every mark from one button beside the view toggle', () => {
+    view.current = 'detailed'
+    renderView([withFiles])
+    fireEvent.click(screen.getByTestId('marks-legend'))
+
+    const dialog = screen.getByRole('dialog')
+    expect(screen.getByRole('heading', { name: 'title' })).toBeInTheDocument()
+    // The samples use the rows' own labels, so the legend cannot drift from them.
+    expect(dialog).toHaveTextContent('noUnit')
+    expect(dialog).toHaveTextContent('unitNotCounted')
+    expect(dialog).toHaveTextContent('formulaError')
+  })
+})
