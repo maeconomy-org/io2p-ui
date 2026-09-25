@@ -4,11 +4,13 @@
 //
 // The eight hand-written CSVs beside this file are committed on purpose — a reviewer can read them.
 
-import { mkdir, stat, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import ExcelJS from 'exceljs'
+
+import { writeUnlessSize } from '../write-unless-size.mjs'
 
 const outDir = dirname(fileURLToPath(import.meta.url))
 
@@ -93,14 +95,10 @@ async function emptyCells() {
 async function ensure(name, produce) {
   const path = resolve(outDir, name)
   const data = await produce()
-  try {
-    const existing = await stat(path)
-    if (existing.size === data.length) return { name, status: 'ok' }
-  } catch {
-    // missing — fall through to write
-  }
-  await writeFile(path, data)
-  return { name, status: 'written', bytes: data.length }
+  const written = await writeUnlessSize(path, data.length, () => data)
+  return written === null
+    ? { name, status: 'ok' }
+    : { name, status: 'written', bytes: written }
 }
 
 export async function generateSheets() {
