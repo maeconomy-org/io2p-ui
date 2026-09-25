@@ -454,9 +454,9 @@ test.describe('03 - object sheet / formulas', () => {
 
     await bindAndSettle(page, 'a', siblingTestId('Mass'))
 
-    await expect(page.getByTestId('formula-unit-unverified')).toContainText(
-      /left out of every total/
-    )
+    const line = page.getByTestId('formula-unit-unverified')
+    await expect(line).toContainText(/Not counted/)
+    await expect(line).toHaveAttribute('data-tone', 'warn')
     await expect(page.getByTestId('formula-dimension-problem')).toHaveCount(0)
   })
 

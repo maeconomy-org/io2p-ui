@@ -447,6 +447,10 @@
       "siblingValues": "Waarden op deze entiteit",
       "constants": "Constanten",
       "calculatedOnSave": "De waarde wordt berekend zodra u opslaat.",
+      "why": "Waarom?",
+      "unitUnverifiedShort": "Niet meegeteld: de node kan de eenheid van dit resultaat niet controleren.",
+      "unitUnverifiedPlainShort": "Geen eenheid: meegeteld in het totaal zonder eenheid.",
+      "countedTwiceShort": "‘{quantity}’ wordt mogelijk twee keer geteld: een rollup-regel vermenigvuldigt er al mee.",
       "errorOnSave": "Er wordt geen getal opgeslagen: de waarde toont deze fout.",
       "warning": {
         "handConversion": "De getallen in deze formule vermenigvuldigen het resultaat met {literal} of delen het door {literal}; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening.",
@@ -456,6 +460,12 @@
         "declareUnit": "De node leidt de eenheid van dit resultaat niet af uit de invoer, dus het telt mee in het totaal zonder eenheid. Gebruikt een rollup-regel het als vermenigvuldiger, dan telt dat object niet mee in het totaal. Wilt u het laten controleren, dupliceert u dan de formule en stelt u de echte eenheid in als eenheid van het resultaat.",
         "declareUnitSuggested": "Dit resultaat is alleen {unit} als een waarde zonder eenheid als factor wordt gelezen, dus voorlopig telt het mee in het totaal zonder eenheid. Gebruikt een rollup-regel het als vermenigvuldiger, dan telt dat object niet mee in het totaal. Wilt u het die eenheid geven en laten controleren, dupliceert u dan de formule en stelt u {unit} in als eenheid van het resultaat.",
         "perItem": "stuk",
+        "handConversionShort": "Dit lijkt een omrekening naar {unit} met de hand.",
+        "handConversionDownShort": "Dit lijkt een omrekening met de hand: het resultaat wordt {literal} keer kleiner.",
+        "handConversionUpShort": "Dit lijkt een omrekening met de hand: het resultaat wordt {literal} keer groter.",
+        "handConversionConstantShort": "De constante gekoppeld aan {name} ({literal}) lijkt een omrekening naar {unit}.",
+        "declareUnitShort": "Geen eenheid: meegeteld in het totaal zonder eenheid.",
+        "declareUnitSuggestedShort": "Nog geen eenheid: het is alleen {unit} als een waarde zonder eenheid als factor wordt gelezen.",
         "handConversionDown": "Deze formule maakt het resultaat {literal} keer kleiner; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening.",
         "handConversionUp": "Deze formule maakt het resultaat {literal} keer groter; dat lijkt een omrekening naar {unit}. De waarden die de formule leest staan al in standaardeenheden, dus dit schaalt het resultaat in plaats van het om te rekenen. {unit} is al de eenheid van het resultaat en rekent zelf om. Formules kunnen niet worden bewerkt: dupliceert u deze formule zonder die omrekening."
       },

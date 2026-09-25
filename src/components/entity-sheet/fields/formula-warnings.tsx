@@ -1,5 +1,6 @@
 'use client'
 
+import { useId, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { AlertTriangle, Info } from 'lucide-react'
 import type { FormulaPreviewWarning } from 'io2p-client'
@@ -66,8 +67,106 @@ export function warningText(
   return warning.detail
 }
 
-/** A factor reading asks the author to check a value; the other codes say the result is off. */
-const isAdvice = (warning: FormulaPreviewWarning) => warning.code === 'factor'
+/**
+ * The one line a warning shows before "Why?". `undefined` means the full text is already one line
+ * (a factor reading) or the code is unknown, so the full text is the line and there is no "Why?".
+ */
+export function warningShort(
+  warning: FormulaPreviewWarning,
+  t: Translate,
+  format: Format
+): string | undefined {
+  const { code, literal, scales, unit, vars = [] } = warning
+  const key = 'objects.formulaEditor.warning'
+  switch (code) {
+    case 'hand-conversion':
+      if (literal === undefined || !unit) return undefined
+      return vars.length > 0
+        ? t(`${key}.handConversionConstantShort`, {
+            name: vars[0],
+            literal: format.number(literal),
+            unit,
+          })
+        : t(
+            scales === 'down'
+              ? `${key}.handConversionDownShort`
+              : scales === 'up'
+                ? `${key}.handConversionUpShort`
+                : `${key}.handConversionShort`,
+            { literal: format.number(literal), unit }
+          )
+    case 'declare-unit':
+      return unit
+        ? t(`${key}.declareUnitSuggestedShort`, { unit })
+        : t(`${key}.declareUnitShort`)
+  }
+  return undefined
+}
+
+/**
+ * How loud a line is. Grey is information: the value is stored and counted (a factor reading, a
+ * result counted without a unit). Amber says a number leaves a total or is probably wrong.
+ */
+export type MessageTone = 'info' | 'warn'
+
+const toneOf = (warning: FormulaPreviewWarning): MessageTone =>
+  warning.code === 'factor' || warning.code === 'declare-unit' ? 'info' : 'warn'
+
+/** One line, with the longer reason behind "Why?" when there is one. */
+export function FormulaMessage({
+  tone,
+  text,
+  why,
+  'data-testid': testId,
+}: {
+  tone: MessageTone | 'error'
+  text: string
+  why?: string
+  'data-testid'?: string
+}) {
+  const t = useTranslations()
+  const [open, setOpen] = useState(false)
+  const whyId = useId()
+  const Icon = tone === 'info' ? Info : AlertTriangle
+  return (
+    <li
+      data-testid={testId}
+      data-tone={tone}
+      className={cn(
+        'text-xs',
+        tone === 'info' && 'text-muted-foreground',
+        tone === 'warn' && 'text-amber-700 dark:text-amber-400',
+        tone === 'error' && 'text-destructive'
+      )}
+    >
+      <span className="flex items-start gap-1.5">
+        <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <span>
+          {text}
+          {why && (
+            <>
+              {' '}
+              <button
+                type="button"
+                aria-expanded={open}
+                aria-controls={whyId}
+                onClick={() => setOpen((v) => !v)}
+                className="text-primary underline underline-offset-2"
+              >
+                {t('objects.formulaEditor.why')}
+              </button>
+            </>
+          )}
+        </span>
+      </span>
+      {why && open && (
+        <p id={whyId} className="mt-1 pl-5 text-muted-foreground">
+          {why}
+        </p>
+      )}
+    </li>
+  )
+}
 
 export function FormulaWarnings({
   warnings,
@@ -85,22 +184,16 @@ export function FormulaWarnings({
   return (
     <ul className="space-y-1" data-testid="formula-warnings">
       {warnings.map((warning, i) => {
-        const advice = isAdvice(warning)
-        const Icon = advice ? Info : AlertTriangle
+        const full = warningText(warning, t, text)
+        const short = warningShort(warning, t, text)
         return (
-          <li
+          <FormulaMessage
             key={`${warning.code}-${i}`}
             data-testid={`formula-warning-${warning.code}`}
-            className={cn(
-              'flex items-start gap-1.5 text-xs',
-              advice
-                ? 'text-muted-foreground'
-                : 'text-amber-600 dark:text-amber-500'
-            )}
-          >
-            <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>{warningText(warning, t, text)}</span>
-          </li>
+            tone={toneOf(warning)}
+            text={short ?? full}
+            why={short ? full : undefined}
+          />
         )
       })}
     </ul>

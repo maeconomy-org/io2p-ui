@@ -31,7 +31,7 @@ import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { SEARCH_SIZE } from '@/constants'
 
 import { calcErrorText, uncheckedState } from './value-provenance'
-import { FormulaWarnings } from './formula-warnings'
+import { FormulaMessage, FormulaWarnings } from './formula-warnings'
 import { UnitsHelp } from './units-help'
 
 /**
@@ -428,52 +428,62 @@ export function FormulaBindings({
           </p>
         )}
 
-        {/* AMBER: the value is stored and shown either way.
-            Read as `=== false` and never as falsy: the node sends `true` when it checked the unit,
+        {/* Read as `=== false` and never as falsy: the node sends `true` when it checked the unit,
             `false` when it could not, and NOTHING when there was nothing to check — which is the
             commonest case and means an ordinary number. Collapsing absent into false would put this
-            warning on almost every derived value. */}
-        {unchecked && (
-          <p
-            data-testid="formula-unit-unverified"
-            className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
-          >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>
-              {t(
-                unchecked === 'left-out'
-                  ? 'objects.formulaEditor.unitUnverified'
-                  : 'objects.formulaEditor.unitUnverifiedPlain'
-              )}
-            </span>
-          </p>
-        )}
-
-        {countedTwice && (
-          <p
-            data-testid="formula-counted-twice"
-            className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
-          >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>
-              {t('objects.formulaEditor.countedTwice', {
-                quantity: countedTwice.label,
-              })}
-            </span>
-          </p>
+            line on almost every derived value. Grey when the value is still counted (no unit),
+            amber when it leaves every total. */}
+        {(unchecked || countedTwice) && (
+          <ul className="space-y-1">
+            {unchecked && (
+              <FormulaMessage
+                data-testid="formula-unit-unverified"
+                tone={unchecked === 'left-out' ? 'warn' : 'info'}
+                text={t(
+                  unchecked === 'left-out'
+                    ? 'objects.formulaEditor.unitUnverifiedShort'
+                    : 'objects.formulaEditor.unitUnverifiedPlainShort'
+                )}
+                why={t(
+                  unchecked === 'left-out'
+                    ? 'objects.formulaEditor.unitUnverified'
+                    : 'objects.formulaEditor.unitUnverifiedPlain'
+                )}
+              />
+            )}
+            {countedTwice && (
+              <FormulaMessage
+                data-testid="formula-counted-twice"
+                tone="warn"
+                text={t('objects.formulaEditor.countedTwiceShort', {
+                  quantity: countedTwice.label,
+                })}
+                why={t('objects.formulaEditor.countedTwice', {
+                  quantity: countedTwice.label,
+                })}
+              />
+            )}
+          </ul>
         )}
 
         <FormulaWarnings warnings={warnings} />
 
         {/* No result figure: the value row shows what was stored. The panel keeps only what the
-            row cannot tell the author in time — a refusal, an unchecked unit, and the warnings. */}
-        <p className="text-xs text-muted-foreground">
-          {t(
-            preview?.error
-              ? 'objects.formulaEditor.errorOnSave'
-              : 'objects.formulaEditor.calculatedOnSave'
-          )}
-        </p>
+            row cannot tell the author in time. "Calculated on save" only when nothing else is said,
+            so a problem is not followed by a line that reads like an all-clear. */}
+        {preview?.error ? (
+          <p className="text-xs text-muted-foreground">
+            {t('objects.formulaEditor.errorOnSave')}
+          </p>
+        ) : (
+          !unchecked &&
+          !countedTwice &&
+          warnings.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              {t('objects.formulaEditor.calculatedOnSave')}
+            </p>
+          )
+        )}
       </div>
 
       <UnitsHelp />

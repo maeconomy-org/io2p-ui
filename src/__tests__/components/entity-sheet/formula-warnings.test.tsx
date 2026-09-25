@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import type { FormulaPreviewWarning } from 'io2p-client'
 
@@ -22,7 +22,11 @@ function textOf(warning: FormulaPreviewWarning, locale: 'en' | 'nl' = 'en') {
       <FormulaWarnings warnings={[warning]} />
     </NextIntlClientProvider>
   )
-  return screen.getByTestId(`formula-warning-${warning.code}`).textContent
+  const item = screen.getByTestId(`formula-warning-${warning.code}`)
+  // The full sentence waits behind "Why?"; open it so the whole text is asserted.
+  const why = within(item).queryByRole('button')
+  if (why) fireEvent.click(why)
+  return item.textContent
 }
 
 describe('FormulaWarnings', () => {
@@ -114,22 +118,61 @@ describe('FormulaWarnings', () => {
     expect(textOf(w({ literal: 1000, unit: 't' }), 'nl')).toContain('met 1.000')
   })
 
-  it('shows a factor as advice and the rest as a warning', () => {
+  // Grey when the value is stored and counted; amber when a number is probably wrong.
+  it('shows a factor and a result without a unit as information, a conversion as a warning', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
         <FormulaWarnings
           warnings={[
             w({ literal: 1000, unit: 't' }),
             w({ code: 'factor', vars: ['f'], unit: 'kg' }),
+            w({ code: 'declare-unit' }),
           ]}
         />
       </NextIntlClientProvider>
     )
-    expect(screen.getByTestId('formula-warning-factor').className).toContain(
-      'text-muted-foreground'
+    expect(screen.getByTestId('formula-warning-factor')).toHaveAttribute(
+      'data-tone',
+      'info'
+    )
+    expect(screen.getByTestId('formula-warning-declare-unit')).toHaveAttribute(
+      'data-tone',
+      'info'
     )
     expect(
-      screen.getByTestId('formula-warning-hand-conversion').className
-    ).toContain('text-amber-600')
+      screen.getByTestId('formula-warning-hand-conversion')
+    ).toHaveAttribute('data-tone', 'warn')
+  })
+
+  it('shows one short line, and the full sentence only behind "Why?"', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <FormulaWarnings
+          warnings={[w({ literal: 1000, scales: 'down', unit: 't' })]}
+        />
+      </NextIntlClientProvider>
+    )
+    const item = screen.getByTestId('formula-warning-hand-conversion')
+    expect(item).toHaveTextContent(
+      'Looks like a conversion by hand: the result is 1,000 times smaller.'
+    )
+    expect(item).not.toHaveTextContent('duplicate this one')
+
+    fireEvent.click(within(item).getByRole('button', { name: 'Why?' }))
+    expect(item).toHaveTextContent('duplicate this one')
+  })
+
+  // A factor sentence is already one line; a "Why?" there would repeat it.
+  it('offers no "Why?" for a factor reading', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <FormulaWarnings
+          warnings={[w({ code: 'factor', vars: ['f'], unit: 'kg' })]}
+        />
+      </NextIntlClientProvider>
+    )
+    expect(
+      within(screen.getByTestId('formula-warning-factor')).queryByRole('button')
+    ).toBeNull()
   })
 })
