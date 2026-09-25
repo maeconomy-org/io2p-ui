@@ -167,7 +167,7 @@ test.describe('16 - rollups / the quantity multiplier', () => {
     const card = page.getByTestId('rollup-card')
     await expect(card).toContainText('60')
 
-    await openRollupCards(page)
+    await openRollupCards(page, { waitForCard: true })
     const unitCount = page.getByTestId('rollup-unit-count')
     await expect(unitCount).toContainText('5')
 

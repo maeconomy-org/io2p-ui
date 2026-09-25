@@ -162,7 +162,7 @@ test.describe('16 - rollups / object sheet', () => {
     // Plain text, not a bar. A partly-filled pill read as a progress meter, and the remainder on
     // its own ("10 kg below") read as a subtraction — so both halves are named, and the number
     // every reader needs is no longer carried by an aria-label only.
-    await openRollupCards(page)
+    await openRollupCards(page, { waitForCard: true })
     await expect(page.getByTestId('rollup-split')).toBeVisible()
     await expect(page.getByTestId('rollup-split')).toContainText('10 kg')
   })
