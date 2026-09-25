@@ -128,13 +128,14 @@ function redactValueInner(
   if (Array.isArray(value)) {
     out = value.map((v) => redactValueInner(v, depth - 1, seen))
   } else {
-    const obj: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      obj[k] = isRedactedKey(k)
-        ? REDACTED
-        : redactValueInner(v, depth - 1, seen)
-    }
-    out = obj
+    // fromEntries, not `obj[k] =`: the keys come from browser input, and assigning a
+    // `__proto__` key would swap the copy's prototype instead of copying the data.
+    out = Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+        k,
+        isRedactedKey(k) ? REDACTED : redactValueInner(v, depth - 1, seen),
+      ])
+    )
   }
   seen.delete(value)
   return out

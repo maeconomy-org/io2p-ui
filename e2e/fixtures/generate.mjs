@@ -6,11 +6,12 @@
 // Binaries are intentionally not committed — they're regenerated on each
 // `pnpm test:e2e` via the `pretest:e2e` npm script.
 
-import { mkdir, stat, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { generateSheets } from './sheets/generate.mjs'
+import { writeUnlessSize } from './write-unless-size.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = resolve(here, 'uploads')
@@ -76,16 +77,14 @@ async function ensureFile(name, seed, size, content) {
       : null
   const expectedSize = data ? data.length : size
 
-  try {
-    const s = await stat(path)
-    if (s.size === expectedSize) return { name, status: 'ok' }
-  } catch {
-    // missing — fall through to write
-  }
-
-  const buf = data ?? randomBytes(seed, size)
-  await writeFile(path, buf)
-  return { name, status: 'written', bytes: buf.length }
+  const written = await writeUnlessSize(
+    path,
+    expectedSize,
+    () => data ?? randomBytes(seed, size)
+  )
+  return written === null
+    ? { name, status: 'ok' }
+    : { name, status: 'written', bytes: written }
 }
 
 async function main() {

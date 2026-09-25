@@ -52,7 +52,7 @@ test.describe('11 - shares / template dependencies', () => {
     const total = await rows.count()
     let found = false
 
-    for (let i = 0; i < total && !found; i++) {
+    for (let i = 0; i < total; i++) {
       await rows.nth(i).getByTestId('template-actions-dropdown').click()
       const share = page.getByTestId('template-action-share')
       if ((await share.count()) === 0) {

@@ -57,11 +57,13 @@ function clampDeep(value: unknown, depth = CLAMP_DEPTH): unknown {
   if (value === null || typeof value !== 'object') return value
   if (depth <= 0) return undefined
   if (Array.isArray(value)) return value.map((v) => clampDeep(v, depth - 1))
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    out[k] = clampDeep(v, depth - 1)
-  }
-  return out
+  // fromEntries keeps a hostile `__proto__` key as data (see redactValue).
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+      k,
+      clampDeep(v, depth - 1),
+    ])
+  )
 }
 
 function sanitizeRecord(raw: unknown): LogRecord | null {

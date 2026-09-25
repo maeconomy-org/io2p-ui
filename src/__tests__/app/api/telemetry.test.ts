@@ -203,6 +203,20 @@ describe('POST /api/telemetry', () => {
     expect((cause.message as string).length).toBe(4 * 1024)
   })
 
+  it('keeps a __proto__ key as data, never as the prototype of the logged record', async () => {
+    // A raw body: an object literal would set the prototype before the route ever saw it.
+    await POST(
+      post(
+        '{"records":[{"level":"error","time":"2026-08-05T10:00:00.000Z","msg":"x","ctx":{"__proto__":{"polluted":true}}}]}'
+      )
+    )
+    const rec = ndjsonWrite.mock.calls[0][0] as Record<string, unknown>
+    const ctx = rec.ctx as Record<string, unknown>
+    expect(Object.getPrototypeOf(ctx)).toBe(Object.prototype)
+    expect(ctx.polluted).toBeUndefined()
+    expect(Object.hasOwn(ctx, '__proto__')).toBe(true)
+  })
+
   it('tells a throttled caller when the window rolls over', async () => {
     rateLimit.mockResolvedValueOnce({ allowed: false, current: 61 })
     const res = await POST(
