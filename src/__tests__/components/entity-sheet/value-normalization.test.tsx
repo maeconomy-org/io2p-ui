@@ -102,6 +102,19 @@ describe('ValueNormalization', () => {
     expect(screen.getByRole('button', { name: '2000 kg' })).toBeInTheDocument()
   })
 
+  // The node stores a formula result's unit beside a bare `data`; the row already shows `10 kWh`,
+  // so a conversion mark would claim a conversion nobody typed.
+  it('marks no conversion on a formula result', () => {
+    render(
+      React.createElement(ValueNormalization, {
+        value: { data: '10', num: 10, unit: 'kWh' } as DraftValue,
+        derived: true,
+      })
+    )
+
+    expect(screen.queryByTestId('value-normalization')).toBeNull()
+  })
+
   // A barcode or a serial number never parses as a quantity. That is not a mistake, and flagging it
   // would put a warning on half the properties in the system.
   it('stays silent on an unparseable value nothing computes with', () => {

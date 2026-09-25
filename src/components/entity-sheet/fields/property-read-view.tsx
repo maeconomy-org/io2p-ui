@@ -63,6 +63,18 @@ import {
 /** Resolves a value id named in a formula trace to the label of the property holding it. */
 type LabelForValue = (valueId: string) => string | undefined
 
+// Matches `ref` as well as `id`, like `labelForValueId`: an unsaved or template value has only a ref.
+function valueById(
+  properties: DraftProperty[],
+  valueId: string
+): DraftValue | undefined {
+  for (const p of properties) {
+    const v = p.values.find((x) => x.id === valueId || x.ref === valueId)
+    if (v) return v
+  }
+  return undefined
+}
+
 // Deleted values still render (struck through), but they don't count toward a summary or a badge —
 // "3 values" should mean three live ones.
 function liveValues(p: DraftProperty) {
@@ -111,14 +123,25 @@ function useValueDisplay(derivedValues: DerivedValues) {
     (value: DraftValue): string => {
       const fallback = value.data || '—'
       if (!value.id || !derivedValues.has(value.id)) return fallback
+      // The node keeps 12 significant digits; a reader needs a few. The row's title keeps them all.
+      const readable = (n: number) =>
+        Math.abs(n) >= 1 || n === 0
+          ? format.number(n, { maximumFractionDigits: 3 })
+          : format.number(n, { maximumSignificantDigits: 4 })
       return (
-        derivedText(value, derivedValues.get(value.id), (n) =>
-          format.number(n)
-        ) ?? fallback
+        derivedText(value, derivedValues.get(value.id), readable) ??
+        readableData(fallback, readable)
       )
     },
     [derivedValues, format]
   )
+}
+
+// A declared result arrives as text in its declared unit (`2.30258509299 kg`), so only its leading
+// number is reformatted; anything else passes through.
+function readableData(data: string, readable: (n: number) => string): string {
+  const match = /^(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)(.*)$/i.exec(data)
+  return match ? `${readable(Number(match[1]))}${match[2]}` : data
 }
 
 // Read-only Properties: a collapsible card per property (list) or a compact grid. Files stay inside
@@ -432,6 +455,10 @@ export function PropertyReadView({
               boundValueIds={boundValueIds}
               quantity={quantities.get(ruleKey(p.key, p.label))}
               labelForValue={(id) => labelForValueId(properties, id, locale)}
+              textForValue={(id) => {
+                const v = valueById(properties, id)
+                return v && displayValue(v)
+              }}
               displayValue={displayValue}
               entityId={entityId}
               onFileChange={onFileChange}
@@ -554,6 +581,7 @@ function PropertyCard({
   boundValueIds,
   quantity,
   labelForValue,
+  textForValue,
   displayValue,
   entityId,
   onFileChange,
@@ -565,6 +593,7 @@ function PropertyCard({
   /** Set when a rollup rule scales its totals by this key: how the node resolves that quantity. */
   quantity?: ResolvedQuantity
   labelForValue: LabelForValue
+  textForValue: LabelForValue
   displayValue: (value: DraftValue) => string
   entityId?: string
   onFileChange?: FileChange
@@ -640,6 +669,7 @@ function PropertyCard({
             boundValueIds={boundValueIds}
             quantity={quantity}
             labelForValue={labelForValue}
+            textForValue={textForValue}
             displayValue={displayValue}
             entityId={entityId}
             onFileChange={onFileChange}
@@ -657,6 +687,7 @@ function ValueRow({
   boundValueIds,
   quantity,
   labelForValue,
+  textForValue,
   displayValue,
   entityId,
   onFileChange,
@@ -667,6 +698,7 @@ function ValueRow({
   boundValueIds: ReadonlySet<string>
   quantity?: ResolvedQuantity
   labelForValue: LabelForValue
+  textForValue: LabelForValue
   displayValue: (value: DraftValue) => string
   entityId?: string
   onFileChange?: FileChange
@@ -705,30 +737,39 @@ function ValueRow({
     )
   }
 
+  const marker = (
+    <ValueNormalization
+      value={value}
+      quantity={quantity}
+      usedInFormula={!!value.id && boundValueIds.has(value.id)}
+      usedAsMultiplier={quantity !== undefined}
+      derived={isDerived}
+    />
+  )
+
   return (
     <div className="space-y-1">
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span>{displayValue(value)}</span>
-        <ValueNormalization
-          value={value}
-          quantity={quantity}
-          usedInFormula={!!value.id && boundValueIds.has(value.id)}
-          usedAsMultiplier={quantity !== undefined}
+      {provenance ? (
+        <ValueProvenanceDisplay
+          provenance={provenance}
+          unit={value.unit}
+          display={displayValue(value)}
+          exact={value.data}
+          labelForValue={labelForValue}
+          textForValue={textForValue}
+          marker={marker}
         />
-        {provenance ? (
-          <ValueProvenanceDisplay
-            provenance={provenance}
-            unit={value.unit}
-            labelForValue={labelForValue}
-          />
-        ) : (
-          isDerived && (
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span>{displayValue(value)}</span>
+          {marker}
+          {isDerived && (
             <Badge variant="outline" className="text-[10px]">
               {t('objects.propertyEditor.derived')}
             </Badge>
-          )
-        )}
-      </div>
+          )}
+        </div>
+      )}
       {/* Indent the value's files so they read as belonging to the value above, not the property. */}
       {files.length > 0 && (
         <div className="border-l pl-3">
