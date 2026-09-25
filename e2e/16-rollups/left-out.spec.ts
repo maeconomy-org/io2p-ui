@@ -12,6 +12,7 @@ import {
   saveSheet,
   sheet,
 } from '../utils/sheet'
+import { openRollupCards } from '../utils/rollups'
 
 /**
  * A formula value whose unit the node cannot check is stored and shown, but left out of every
@@ -36,6 +37,7 @@ async function pollParent(page: Page): Promise<void> {
     await expect(page.getByTestId('data-table')).toBeVisible()
     await openObjectSheet(page, rowFor(page, PARENT))
     await page.waitForTimeout(4_000)
+    await openRollupCards(page)
     if ((await page.getByTestId('rollup-unverified').count()) > 0) return
     await page.keyboard.press('Escape')
     await page.waitForTimeout(25_000)

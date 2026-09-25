@@ -80,7 +80,19 @@ function massProperty(unit = 'kg') {
   }
 }
 
+/** Renders the cards EXPANDED, so every detail below the total can be asserted. */
 function renderRollups(
+  properties: EntityDraft['properties'],
+  rollups: Map<string, EntityRollupEntry>,
+  derivedValues: DerivedValues = NO_DERIVED
+) {
+  const view = renderRollupsAtRest(properties, rollups, derivedValues)
+  for (const toggle of screen.queryAllByTestId('rollup-toggle'))
+    fireEvent.click(toggle)
+  return view
+}
+
+function renderRollupsAtRest(
   properties: EntityDraft['properties'],
   rollups: Map<string, EntityRollupEntry>,
   derivedValues: DerivedValues = NO_DERIVED
@@ -170,11 +182,10 @@ describe('rollup rows in the property read view', () => {
       ])
     )
 
-    // The bare-number bucket is still SHOWN — a foreign one opens the disclosure by itself,
-    // because it usually means a value is mis-keyed somewhere below. It just no longer leads.
-    const line = screen.getByTestId('rollup-line').textContent ?? ''
-    expect(line).toContain('4120 kg')
-    expect(line.indexOf('4120 kg')).toBeLessThan(line.indexOf('99999'))
+    // The bare-number bucket is still SHOWN, among the other totals. It just does not lead.
+    expect(screen.getByTestId('rollup-line')).toHaveTextContent('4120 kg')
+    expect(screen.getByTestId('rollup-line')).not.toHaveTextContent('99999')
+    expect(screen.getByTestId('rollup-other-totals')).toHaveTextContent('99999')
   })
 
   // A value left out of every total says nothing about which total the object is in.
@@ -222,9 +233,10 @@ describe('rollup rows in the property read view', () => {
       ]) as DerivedValues
     )
 
-    const line = screen.getByTestId('rollup-line').textContent ?? ''
-    expect(line).toContain('65')
-    expect(line.indexOf('65')).toBeLessThan(line.indexOf('4120 kg'))
+    expect(screen.getByTestId('rollup-line')).toHaveTextContent('65')
+    expect(screen.getByTestId('rollup-other-totals')).toHaveTextContent(
+      '4120 kg'
+    )
   })
 
   it('orders a matching bucket ahead of a larger one, then by size', () => {
@@ -242,9 +254,10 @@ describe('rollup rows in the property read view', () => {
       contributorCount: 1,
     })
 
-    expect(orderBuckets([big, m3, kg], 'kg')).toEqual([kg, big, m3])
-    // No own unit — the unitless bucket is the one that matches what the object holds.
-    expect(orderBuckets([m3, big, kg], undefined)).toEqual([big, m3, kg])
+    expect(orderBuckets([big, m3, kg], 'kg')).toEqual([kg, m3, big])
+    // Nothing of its own to match (an orphan card): a total with a unit leads a bare figure,
+    // however large the bare one is.
+    expect(orderBuckets([m3, big, kg], undefined)).toEqual([m3, kg, big])
   })
 
   // A bare own number is a COUNT to the node, so the `pcs` total is the one this object is in —
@@ -389,7 +402,7 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getAllByTestId('rollup-card')[0]).toBeInTheDocument()
   })
 
-  it('never adds buckets together, and counts the ones it hides', () => {
+  it('never adds buckets together, and shows each other total beside the lead', () => {
     const mixed = entry({
       buckets: [
         bucket({
@@ -409,9 +422,9 @@ describe('rollup rows in the property read view', () => {
     renderRollups([massProperty()], new Map([['mass', mixed]]))
 
     expect(screen.getByText('4120 kg')).toBeInTheDocument()
-    expect(
-      screen.getByText('objects.properties.rollupMoreDimensions:{"count":1}')
-    ).toBeInTheDocument()
+    expect(screen.getByTestId('rollup-other-totals')).toHaveTextContent(
+      '1650 m3'
+    )
     // 5770 is 4120 + 1650 — the number that must never appear.
     expect(screen.queryByText(/5770/)).not.toBeInTheDocument()
   })
@@ -439,8 +452,9 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByText('1650 m3')).toBeInTheDocument()
   })
 
-  it('keeps a same-unit bucket behind the expander', () => {
-    const twoMass = entry({
+  // A bare figure beside a total in a unit is named as having none, so it cannot pass for one.
+  it('labels a total without a unit among the other totals', () => {
+    const mixed = entry({
       buckets: [
         bucket({
           dimension: 'mass',
@@ -448,17 +462,48 @@ describe('rollup rows in the property read view', () => {
           num: 4120,
           contributorCount: 312,
         }),
-        bucket({ dimension: 'mass', unit: 'kg', num: 90, contributorCount: 3 }),
+        bucket({ dimension: 'unitless', num: 9000, contributorCount: 3 }),
       ],
     })
-    renderRollups([massProperty()], new Map([['mass', twoMass]]))
+    renderRollups([massProperty()], new Map([['mass', mixed]]))
 
-    expect(screen.queryByText('90 kg')).not.toBeInTheDocument()
-    // By text, not by role: the property card's own collapsible trigger is a collapsed button too.
-    fireEvent.click(
-      screen.getByText('objects.properties.rollupMoreDimensions:{"count":1}')
+    expect(screen.getByText('4120 kg')).toBeInTheDocument()
+    expect(screen.getByTestId('rollup-other-totals')).toHaveTextContent(
+      '9000 objects.properties.rollupNoUnit'
     )
-    expect(screen.getByText('90 kg')).toBeInTheDocument()
+  })
+
+  // At rest the card is the name and the total. Everything that explains it opens on request.
+  it('shows only the total until the card is opened', () => {
+    renderRollupsAtRest(
+      [massProperty()],
+      new Map([['mass', entry({ skippedCount: 2 })]])
+    )
+
+    expect(screen.getByTestId('rollup-line')).toHaveTextContent('4120 kg')
+    expect(screen.queryByTestId('rollup-skipped')).toBeNull()
+    expect(screen.getByTestId('rollup-toggle')).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    )
+
+    fireEvent.click(screen.getByTestId('rollup-toggle'))
+    expect(screen.getByTestId('rollup-skipped')).toBeInTheDocument()
+  })
+
+  it('marks a card with values left out, and only such a card', () => {
+    renderRollupsAtRest(
+      [massProperty()],
+      new Map([['mass', entry({ skippedCount: 2 })]])
+    )
+    expect(screen.getByTestId('rollup-issue')).toHaveAttribute(
+      'aria-label',
+      'objects.properties.rollupSkipped:{"count":2}'
+    )
+    cleanup()
+
+    renderRollupsAtRest([massProperty()], new Map([['mass', entry()]]))
+    expect(screen.queryByTestId('rollup-issue')).toBeNull()
   })
 
   it('keeps the last number visible while a recompute is queued', () => {

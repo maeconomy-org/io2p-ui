@@ -10,6 +10,7 @@ import {
   sheet,
 } from '../utils/sheet'
 import { rowActions, tour } from '../utils/selectors'
+import { openRollupCards } from '../utils/rollups'
 
 /**
  * Rollups render as read-only PROPERTIES in the object sheet, and that surface had no e2e at all —
@@ -161,6 +162,7 @@ test.describe('16 - rollups / object sheet', () => {
     // Plain text, not a bar. A partly-filled pill read as a progress meter, and the remainder on
     // its own ("10 kg below") read as a subtraction — so both halves are named, and the number
     // every reader needs is no longer carried by an aria-label only.
+    await openRollupCards(page)
     await expect(page.getByTestId('rollup-split')).toBeVisible()
     await expect(page.getByTestId('rollup-split')).toContainText('10 kg')
   })
@@ -206,6 +208,7 @@ test.describe('16 - rollups / object sheet', () => {
     // The regression `6842843` fixed. A leaf is the sole contributor to its own total, so a card
     // restating its own value in canonical units asserts something below that the reader cannot
     // see. The own/below split is the specific claim that must not appear.
+    await openRollupCards(page)
     await expect(page.getByTestId('rollup-split')).toHaveCount(0)
   })
 })

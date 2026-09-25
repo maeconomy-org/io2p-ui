@@ -1,9 +1,11 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useId, useMemo, useState } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import {
+  AlertTriangle,
   Calculator,
+  ChevronDown,
   ChevronRight,
   LayoutGrid,
   List,
@@ -510,40 +512,99 @@ function RollupCard({
   'data-testid'?: string
 }) {
   const t = useTranslations()
+  const [open, setOpen] = useState(false)
+  const detailsId = useId()
 
   const updating = entry.stale && !entry.error
+  // Something below was not added in. At rest the card says only that there is something to look
+  // at; the counts and reasons are in the expanded part.
+  const issue = entry.skippedCount > 0
 
   return (
     <div
       className={cn(
-        'rounded-md border border-dashed px-3 py-1.5 transition-colors',
+        'rounded-md border border-dashed transition-colors',
         updating
           ? 'border-amber-300/70 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10'
           : 'bg-muted/20'
       )}
       data-testid={testId}
     >
-      <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={detailsId}
+        data-testid="rollup-toggle"
+        className="flex w-full items-start gap-1.5 rounded-md px-3 py-1.5 text-left hover:bg-muted/40"
+      >
         {/* The number and its name dim TOGETHER, in their own wrapper: opacity does not
-            compose upward, so dimming the card would take the badge down with them. */}
+            compose upward, so dimming the card would take the badges down with them. */}
         <div
           className={cn(
-            'flex min-w-0 items-center gap-1.5 transition-opacity',
+            'min-w-0 flex-1 transition-opacity',
             updating && 'opacity-60'
           )}
         >
-          <Calculator
-            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Calculator
+              className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <span className="truncate text-sm font-medium">
+              {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
+            </span>
+            <Badge
+              variant="secondary"
+              className="h-4 shrink-0 px-1 text-[10px] font-normal"
+            >
+              {t('objects.properties.rollupTotal')}
+            </Badge>
+          </div>
+          <RollupLine
+            entry={entry}
+            ownUnit={unit}
+            ownValues={ownValues}
+            multiplierValues={multiplierValues}
+            part="value"
+            className="mt-0.5"
+          />
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 pt-0.5">
+          {issue && (
+            <AlertTriangle
+              className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400"
+              role="img"
+              aria-label={t('objects.properties.rollupSkipped', {
+                count: entry.skippedCount,
+              })}
+              data-testid="rollup-issue"
+            />
+          )}
+          {updating && <RollupStaleBadge />}
+          <ChevronDown
+            className={cn(
+              'h-3.5 w-3.5 text-muted-foreground transition-transform motion-reduce:transition-none',
+              open && 'rotate-180'
+            )}
             aria-hidden="true"
           />
-          <span className="truncate text-sm font-medium">
-            {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
-          </span>
+        </span>
+      </button>
+
+      {open && (
+        <div
+          id={detailsId}
+          className={cn(
+            'space-y-1 border-t border-dashed px-3 py-1.5 transition-opacity',
+            updating && 'opacity-60'
+          )}
+        >
           {/* A scaled total is not the sum of the values on the rows: 12 kg at a quantity of 5
               reads 60 kg. Naming the multiplier is what stops that looking like an error. */}
           {entry.multiplyBy && (
-            <span
-              className="shrink-0 text-xs text-muted-foreground"
+            <p
+              className="text-xs text-muted-foreground"
               data-testid="rollup-multiplier"
             >
               {t('objects.properties.rollupMultipliedBy', {
@@ -553,24 +614,17 @@ function RollupCard({
                   locale
                 ),
               })}
-            </span>
+            </p>
           )}
-          <Badge
-            variant="secondary"
-            className="h-4 shrink-0 px-1 text-[10px] font-normal"
-          >
-            {t('objects.properties.rollupDerived')}
-          </Badge>
+          <RollupLine
+            entry={entry}
+            ownUnit={unit}
+            ownValues={ownValues}
+            multiplierValues={multiplierValues}
+            part="details"
+          />
         </div>
-        {updating && <RollupStaleBadge className="ml-auto" />}
-      </div>
-      <RollupLine
-        entry={entry}
-        ownUnit={unit}
-        ownValues={ownValues}
-        multiplierValues={multiplierValues}
-        className={cn('mt-0.5 transition-opacity', updating && 'opacity-60')}
-      />
+      )}
     </div>
   )
 }

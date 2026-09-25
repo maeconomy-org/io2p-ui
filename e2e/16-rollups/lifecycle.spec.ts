@@ -12,6 +12,7 @@ import {
   sheet,
 } from '../utils/sheet'
 import { rowActions, tour } from '../utils/selectors'
+import { openRollupCards } from '../utils/rollups'
 
 /**
  * The mutation cases, where the fragility is. Rollups are not properties — they arrive from a
@@ -252,8 +253,12 @@ test.describe('16 - rollups / lifecycle', () => {
         0,
       'a card totalling the tonnes the child authored'
     )
+    await openRollupCards(page)
     await expect(
-      page.getByTestId('rollup-card').filter({ hasText: key })
-    ).not.toContainText(/more unit/i)
+      page
+        .getByTestId('rollup-card')
+        .filter({ hasText: key })
+        .getByTestId('rollup-other-totals')
+    ).toHaveCount(0)
   })
 })

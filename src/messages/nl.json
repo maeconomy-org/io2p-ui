@@ -634,6 +634,8 @@
       "excludedFromRollups": "uitgesloten van de totalen die hiermee tellen",
       "excludedFromBoth": "uitgesloten van de formules en de totalen die deze gebruiken",
       "rollupTotal": "Totaal substructuur",
+      "rollupAlso": "Ook:",
+      "rollupNoUnit": "geen eenheid",
       "rollupUnitCount": "{count, plural, one {# stuk} other {# stuks}}",
       "rollupContributors": "{count, plural, one {# waarde} other {# waarden}}",
       "rollupSkipped": "{count, plural, one {# niet meegeteld} other {# niet meegeteld}}",
@@ -675,7 +677,6 @@
       "rollupOnlyThisObject": "Alleen dit object",
       "rollupSplitLabel": "{own} hier, {below} eronder",
       "rollupMultipliedBy": "× {key}",
-      "rollupDerived": "Afgeleid",
       "quantitySeveral": "Meerdere aantallen",
       "quantityNegative": "Negatief aantal"
     },
