@@ -276,12 +276,13 @@ export function PropertyFields({
     // RHF focuses the last registered input of the appended item — the value field — but a new
     // property wants its NAME first. Suppress that and let the row focus its own name input.
     append({ key: '', label: '', values: [newValue()] }, { shouldFocus: false })
-  const addButton = (
+  const addButton = (testId: string, className?: string) => (
     <Button
       type="button"
       variant="outline"
       size="sm"
-      data-testid="add-property"
+      className={className}
+      data-testid={testId}
       onClick={addProperty}
     >
       <Plus className="mr-2 h-4 w-4" />
@@ -294,7 +295,7 @@ export function PropertyFields({
       {label && (
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium">{label}</h3>
-          {addButton}
+          {addButton('add-property')}
         </div>
       )}
       {fields.map((field, index) => (
@@ -315,15 +316,19 @@ export function PropertyFields({
           quantities={quantities}
         />
       ))}
-      {!label && addButton}
+      {/* A new property lands at the end, so the button that adds the next one sits there too;
+          the header one alone meant scrolling up and down for every property. */}
+      {!label
+        ? addButton('add-property', 'w-full')
+        : fields.length > 0 && addButton('add-property-end', 'w-full')}
     </div>
   )
 }
 
-// The modal target within a row: the property itself, or one of its values (by field index).
 // The open-files key for the property's own list; values use their field id.
 const PROPERTY_FILES = 'property'
 
+// The modal target within a row: the property itself, or one of its values (by field index).
 type ModalTarget = { kind: 'property' } | { kind: 'value'; vIndex: number }
 
 function PropertyRow({
