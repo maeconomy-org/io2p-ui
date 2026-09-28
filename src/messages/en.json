@@ -513,6 +513,7 @@
     "files": {
       "preview": "Preview in new tab",
       "attach": "Attach",
+      "attachMore": "Attach file or link",
       "onProperty": "Files on this property",
       "onValue": "Files on this value",
       "onValues": "{count, plural, one {# file on its values} other {# files on its values}}",

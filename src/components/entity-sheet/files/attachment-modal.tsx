@@ -106,8 +106,18 @@ export function AttachmentModal({
   const removePending = (localId: string) =>
     setPending((prev) => prev.filter((f) => f._localId !== localId))
 
+  // A url typed but never Added is almost always meant: Done takes it too. The same guard as Add
+  // decides — an unsafe url keeps the dialog open with the error, rather than vanishing on close.
   const done = () => {
-    if (pending.length) onAdd(pending)
+    const typed = url.trim()
+    if (typed && !isAllowedExternalFileReference(typed)) {
+      setError(t('objects.files.invalidUrl'))
+      return
+    }
+    const batch = typed
+      ? [...pending, newReferenceDraft(typed, label)]
+      : pending
+    if (batch.length) onAdd(batch)
     reset()
     onOpenChange(false)
   }
@@ -220,7 +230,7 @@ export function AttachmentModal({
           <Button
             type="button"
             onClick={done}
-            disabled={pending.length === 0}
+            disabled={pending.length === 0 && !url.trim()}
             data-testid="attachment-modal-done"
           >
             {t('common.done')}

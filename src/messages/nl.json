@@ -592,6 +592,7 @@
     "files": {
       "preview": "Voorbeeld in nieuw tabblad",
       "attach": "Bijlage",
+      "attachMore": "Bestand of link toevoegen",
       "onProperty": "Bestanden bij deze eigenschap",
       "onValue": "Bestanden bij deze waarde",
       "onValues": "{count, plural, one {# bestand bij de waarden} other {# bestanden bij de waarden}}",

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import {
   ChevronRight,
@@ -46,7 +46,7 @@ import {
   FormulaBindings,
   type FormulaSibling,
 } from './formula-value-editor'
-import { AttachmentModal, FilesDisclosure } from '../files'
+import { AttachmentModal, FileList, FilesToggle } from '../files'
 import { DeletedRow } from './deleted-row'
 import { PropertyReadView } from './property-read-view'
 import {
@@ -320,6 +320,9 @@ export function PropertyFields({
 }
 
 // The modal target within a row: the property itself, or one of its values (by field index).
+// The open-files key for the property's own list; values use their field id.
+const PROPERTY_FILES = 'property'
+
 type ModalTarget = { kind: 'property' } | { kind: 'value'; vIndex: number }
 
 function PropertyRow({
@@ -360,6 +363,12 @@ function PropertyRow({
     name: `${basePath}.${index}.values`,
   })
   const [modalTarget, setModalTarget] = useState<ModalTarget | null>(null)
+  // Which file lists are open: the property's own, and each value's by its field id (an index
+  // would hand an open list to the next value when one above it is removed).
+  const [openFiles, setOpenFiles] = useState<ReadonlySet<string>>(
+    () => new Set()
+  )
+  const filesId = useId()
   const [confirmDelete, setConfirmDelete] = useState(false)
   // New properties (no key yet) open expanded to edit; loaded ones start collapsed to stay compact.
   const [isNew] = useState(() => !form.getValues(`${basePath}.${index}.key`))
@@ -462,7 +471,53 @@ function PropertyRow({
         : (`${basePath}.${index}.values.${modalTarget.vIndex}.files` as const)
     const current = form.getValues(path) ?? []
     form.setValue(path, [...current, ...files], { shouldDirty: true })
+    // Open the list it went into, so what was just attached is in view.
+    const key =
+      modalTarget.kind === 'property'
+        ? PROPERTY_FILES
+        : fields[modalTarget.vIndex]?.id
+    if (key) setOpenFiles((prev) => new Set(prev).add(key))
   }
+
+  const toggleFiles = (key: string) =>
+    setOpenFiles((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
+
+  /**
+   * The field's own paperclip is its one files control: with nothing attached it opens the dialog;
+   * with files it shows the count and opens the list under the field, which ends with "Attach".
+   */
+  const fieldFiles = (
+    key: string,
+    files: DraftFile[],
+    label: string,
+    attachTestId: string,
+    onAttach: () => void
+  ) =>
+    files.length === 0 ? (
+      <button
+        type="button"
+        onClick={onAttach}
+        title={t('objects.files.attach')}
+        aria-label={t('objects.files.attach')}
+        data-testid={attachTestId}
+        className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <Paperclip className="h-4 w-4" />
+      </button>
+    ) : (
+      <FilesToggle
+        count={files.length}
+        open={openFiles.has(key)}
+        onToggle={() => toggleFiles(key)}
+        controls={`${filesId}-${key}`}
+        label={label}
+        className="h-8 rounded-none border-l px-2.5 hover:bg-transparent"
+      />
+    )
 
   const removeFile = (
     path:
@@ -605,18 +660,14 @@ function PropertyRow({
                     form.clearErrors(`${basePath}.${index}.key`)
                 }}
               />
-              {allowFiles && (
-                <button
-                  type="button"
-                  onClick={() => setModalTarget({ kind: 'property' })}
-                  title={t('objects.files.attach')}
-                  aria-label={t('objects.files.attach')}
-                  data-testid={`property-attach-${index}`}
-                  className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Paperclip className="h-4 w-4" />
-                </button>
-              )}
+              {allowFiles &&
+                fieldFiles(
+                  PROPERTY_FILES,
+                  propFiles,
+                  t('objects.files.onProperty'),
+                  `property-attach-${index}`,
+                  () => setModalTarget({ kind: 'property' })
+                )}
             </div>
           </div>
           {keyError && (
@@ -643,17 +694,21 @@ function PropertyRow({
               {t('objects.propertyEditor.keyLocked', { key: committedKey })}
             </p>
           )}
-          {allowFiles && (
-            <FilesDisclosure
-              files={propFiles}
-              editing
-              entityId={entityId}
-              onRemove={(localId) =>
-                removeFile(`${basePath}.${index}.files`, localId)
-              }
-              onChange={onFileChange}
-            />
-          )}
+          {allowFiles &&
+            propFiles.length > 0 &&
+            openFiles.has(PROPERTY_FILES) && (
+              <FileList
+                id={`${filesId}-${PROPERTY_FILES}`}
+                files={propFiles}
+                entityId={entityId}
+                editing
+                onRemove={(localId) =>
+                  removeFile(`${basePath}.${index}.files`, localId)
+                }
+                onChange={onFileChange}
+                onAttach={() => setModalTarget({ kind: 'property' })}
+              />
+            )}
         </div>
 
         <div className="space-y-1.5">
@@ -706,6 +761,15 @@ function PropertyRow({
                 const siblings = siblingSource ?? ownProperties
                 const rowButtons = (
                   <>
+                    {allowFiles && valueFiles.length > 0 && (
+                      <FilesToggle
+                        count={valueFiles.length}
+                        open={openFiles.has(field.id)}
+                        onToggle={() => toggleFiles(field.id)}
+                        controls={`${filesId}-${field.id}`}
+                        label={t('objects.files.onValue')}
+                      />
+                    )}
                     <Button
                       type="button"
                       variant="ghost"
@@ -799,13 +863,15 @@ function PropertyRow({
                         </div>
                       )}
                     </div>
-                    {allowFiles && (
-                      <FilesDisclosure
-                        files={valueFiles}
-                        editing={false}
-                        entityId={entityId}
-                      />
-                    )}
+                    {allowFiles &&
+                      valueFiles.length > 0 &&
+                      openFiles.has(field.id) && (
+                        <FileList
+                          id={`${filesId}-${field.id}`}
+                          files={valueFiles}
+                          entityId={entityId}
+                        />
+                      )}
                   </div>
                 )
               }
@@ -839,20 +905,14 @@ function PropertyRow({
                           {...form.register(`${base}.data`)}
                         />
                       )}
-                      {allowFiles && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setModalTarget({ kind: 'value', vIndex })
-                          }
-                          title={t('objects.files.attach')}
-                          aria-label={t('objects.files.attach')}
-                          data-testid={`value-attach-${index}-${vIndex}`}
-                          className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          <Paperclip className="h-4 w-4" />
-                        </button>
-                      )}
+                      {allowFiles &&
+                        fieldFiles(
+                          field.id,
+                          valueFiles,
+                          t('objects.files.onValue'),
+                          `value-attach-${index}-${vIndex}`,
+                          () => setModalTarget({ kind: 'value', vIndex })
+                        )}
                       <button
                         type="button"
                         onClick={() =>
@@ -925,17 +985,23 @@ function PropertyRow({
                       countedBy={countedBy}
                     />
                   )}
-                  {allowFiles && (
-                    <FilesDisclosure
-                      files={valueFiles}
-                      editing
-                      entityId={entityId}
-                      onRemove={(localId) =>
-                        removeFile(`${base}.files`, localId)
-                      }
-                      onChange={onFileChange}
-                    />
-                  )}
+                  {allowFiles &&
+                    valueFiles.length > 0 &&
+                    openFiles.has(field.id) && (
+                      <FileList
+                        id={`${filesId}-${field.id}`}
+                        files={valueFiles}
+                        entityId={entityId}
+                        editing
+                        onRemove={(localId) =>
+                          removeFile(`${base}.files`, localId)
+                        }
+                        onChange={onFileChange}
+                        onAttach={() =>
+                          setModalTarget({ kind: 'value', vIndex })
+                        }
+                      />
+                    )}
                 </div>
               )
             })}
