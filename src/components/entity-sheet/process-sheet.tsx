@@ -226,6 +226,7 @@ export function ProcessSheet({
           form={form}
           editing={editing}
           entityId={process?.id}
+          showTitle={false}
         />
       ),
     },

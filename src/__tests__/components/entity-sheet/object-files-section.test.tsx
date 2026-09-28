@@ -38,6 +38,7 @@ function renderSection(props: {
   onAttach?: () => void
   onRemove?: (localId: string) => void
   onChange?: (localId: string, patch: Partial<DraftFile>) => void
+  showTitle?: boolean
 }) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -75,6 +76,19 @@ describe('ObjectFilesSection', () => {
     expect(
       screen.queryByLabelText('objects.files.gridView')
     ).not.toBeInTheDocument()
+  })
+
+  it('names itself as a section of a form', () => {
+    renderSection({ files: [] })
+    expect(
+      screen.getByRole('heading', { name: 'objects.filesTitle' })
+    ).toBeInTheDocument()
+  })
+
+  it('leaves the naming to the Files tab it sits in', () => {
+    renderSection({ files: [upload()], showTitle: false })
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+    expect(screen.getByText('spec.pdf')).toBeInTheDocument()
   })
 
   it('lists every file it is given', () => {

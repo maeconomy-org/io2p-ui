@@ -160,6 +160,23 @@ describe('FlowsField row', () => {
     expect(screen.getByText('+1')).toBeInTheDocument() // `grade`, not shown on the row
   })
 
+  it('says what the count counts, on hover and to a screen reader', () => {
+    renderFlows(false)
+
+    const label = 'processes.flows.moreProperties:{"count":1}'
+    expect(screen.getByTitle(label)).toHaveTextContent('+1')
+    expect(screen.getByText(label)).toHaveClass('sr-only')
+  })
+
+  it('shows no dash when the flow has no quantity', () => {
+    renderFlows(false, [{ ...FLOW, properties: [FLOW.properties[1]] }])
+
+    const trigger = screen.getByRole('button', {
+      name: 'processes.flows.toggleDetails',
+    })
+    expect(trigger).not.toHaveTextContent('—')
+  })
+
   it('keeps the picker and quantity input out of the trigger while editing', () => {
     // A control cannot be nested inside a button; the chevron keeps the toggle job in edit mode.
     renderFlows(true)

@@ -275,7 +275,7 @@ function FlowRow({
         >
           <ChevronRight
             className={cn(
-              'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
+              'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none',
               open && 'rotate-90'
             )}
           />
@@ -297,9 +297,11 @@ function FlowRow({
                     '—'
                   ))}
               </span>
-              <span className="shrink-0 text-sm text-muted-foreground">
-                {quantity || '—'}
-              </span>
+              {quantity && (
+                <span className="shrink-0 text-sm text-muted-foreground">
+                  {quantity}
+                </span>
+              )}
             </>
           )}
         </CollapsibleTrigger>
@@ -350,8 +352,15 @@ function FlowRow({
         )}
 
         {otherCount > 0 && (
-          <Badge variant="secondary" className="h-4 shrink-0 px-1 text-[10px]">
-            +{otherCount}
+          <Badge
+            variant="secondary"
+            className="h-4 shrink-0 px-1 text-[10px]"
+            title={t('processes.flows.moreProperties', { count: otherCount })}
+          >
+            <span aria-hidden="true">+{otherCount}</span>
+            <span className="sr-only">
+              {t('processes.flows.moreProperties', { count: otherCount })}
+            </span>
           </Badge>
         )}
 
@@ -360,7 +369,7 @@ function FlowRow({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+            className="h-7 w-7 shrink-0"
             aria-label={t('common.remove')}
             data-testid={`flow-remove-${bag}-${index}`}
             // One click, no confirm: the removal is a soft delete the row itself offers to undo.

@@ -601,7 +601,7 @@
       "filesCount": "Bestanden ({count})",
       "invalidUrl": "Voer een geldige https-URL in",
       "delete": "Bestand verwijderen",
-      "noFiles": "Geen bestanden gevonden voor dit object",
+      "noFiles": "Nog geen bestanden",
       "unavailable": "Dit bestand is niet meer beschikbaar.",
       "listView": "Lijstweergave",
       "gridView": "Rasterweergave",
@@ -814,6 +814,7 @@
       "selectObject": "Object selecteren",
       "searchObjects": "Objecten zoeken…",
       "noObjects": "Geen objecten gevonden",
+      "moreProperties": "{count, plural, one {nog # eigenschap} other {nog # eigenschappen}}",
       "toggleDetails": "Stroomdetails tonen",
       "add": {
         "inputs": "Invoer toevoegen",

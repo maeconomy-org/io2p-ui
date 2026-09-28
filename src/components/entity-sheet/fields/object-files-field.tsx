@@ -24,6 +24,7 @@ export function ObjectFilesField({
   entityId,
   allowViewToggle,
   showEmptyState,
+  showTitle,
   basePath = 'files',
   allowCover = false,
 }: {
@@ -32,6 +33,7 @@ export function ObjectFilesField({
   entityId?: string
   allowViewToggle?: boolean
   showEmptyState?: boolean
+  showTitle?: boolean
   /**
    * Offer "set as cover" on these rows. Entity-level only — the server accepts a file at any level,
    * but a picker that spanned every property and value would be a worse question to ask.
@@ -85,6 +87,7 @@ export function ObjectFilesField({
         entityId={entityId}
         allowViewToggle={allowViewToggle}
         showEmptyState={showEmptyState}
+        showTitle={showTitle}
         onAttach={editing ? () => setModalOpen(true) : undefined}
         onRemove={removeFile}
         onChange={patchFile}

@@ -522,7 +522,7 @@
       "filesCount": "Files ({count})",
       "invalidUrl": "Enter a valid https URL",
       "delete": "Delete file",
-      "noFiles": "No files found for this object",
+      "noFiles": "No files yet",
       "unavailable": "This file is no longer available.",
       "listView": "List view",
       "gridView": "Grid view",
@@ -814,6 +814,7 @@
       "selectObject": "Select object",
       "searchObjects": "Search objects…",
       "noObjects": "No objects found",
+      "moreProperties": "{count, plural, one {# more property} other {# more properties}}",
       "toggleDetails": "Toggle flow details",
       "add": {
         "inputs": "Add input",
