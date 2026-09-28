@@ -59,6 +59,7 @@ export function FileActions({
   onRemove,
   onSetCover,
   isCover,
+  showPreview = true,
   className,
 }: {
   file: DraftFile
@@ -70,11 +71,13 @@ export function FileActions({
   /** Omitted everywhere but the entity's own file list — that is the picker's narrowing. */
   onSetCover?: (fileId: string | null) => void
   isCover?: boolean
+  /** Off where the row's own name is the preview button, so the eye would say it twice. */
+  showPreview?: boolean
   className?: string
 }) {
   const t = useTranslations()
   const isRef = file.kind === 'reference'
-  const canPreview = state.previewable && !!onPreview
+  const canPreview = showPreview && state.previewable && !!onPreview
   // EDIT MODE ONLY. `coverFileId` is an entity attribute, so it is staged and saved with the rest —
   // and read mode's footer has no Save, so a change made there could never be committed. The same
   // line the sheet already draws: a file's own soft-delete works in read mode because it commits

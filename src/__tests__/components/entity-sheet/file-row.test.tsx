@@ -53,8 +53,9 @@ const upload = (over: Partial<DraftFile> = {}): DraftFile => ({
 
 const downloadButton = () =>
   screen.queryByRole('button', { name: /^common.download/ })
-const previewButton = () =>
+const eyeButton = () =>
   screen.queryByRole('button', { name: /^objects.files.preview/ })
+const nameButton = () => screen.queryByTestId('file-open')
 
 describe('FileRow', () => {
   let clickSpy: ReturnType<typeof vi.spyOn>
@@ -101,7 +102,7 @@ describe('FileRow', () => {
     const file = upload({ fileName: 'photo.png', contentType: 'image/png' })
     renderRow(file, { onPreview })
 
-    fireEvent.click(previewButton()!)
+    fireEvent.click(nameButton()!)
     // The merged file is handed over, so a restored bare ref still carries its mime type.
     expect(onPreview).toHaveBeenCalledWith(
       expect.objectContaining({ _localId: 'f1', fileName: 'photo.png' })
@@ -109,15 +110,25 @@ describe('FileRow', () => {
     expect(files.download).not.toHaveBeenCalled()
   })
 
-  it('offers no preview for a file no viewer can render', () => {
+  it('opens from its name, with no separate preview icon', () => {
+    renderRow(upload({ fileName: 'photo.png', contentType: 'image/png' }), {
+      onPreview: vi.fn(),
+    })
+    expect(nameButton()).toHaveTextContent('photo.png')
+    expect(eyeButton()).not.toBeInTheDocument()
+  })
+
+  it('downloads a file no viewer can render from its name, never previews it', async () => {
+    files.download.mockResolvedValue({ url: 'https://s3/download' })
+    const onPreview = vi.fn()
     renderRow(
       upload({ fileName: 'archive.zip', contentType: 'application/zip' }),
-      {
-        onPreview: vi.fn(),
-      }
+      { onPreview }
     )
-    expect(previewButton()).not.toBeInTheDocument()
-    expect(downloadButton()).toBeInTheDocument()
+
+    fireEvent.click(nameButton()!)
+    await waitFor(() => expect(files.download).toHaveBeenCalledWith('f1'))
+    expect(onPreview).not.toHaveBeenCalled()
   })
 
   it('links a reference out and never touches the files API', () => {
@@ -130,6 +141,8 @@ describe('FileRow', () => {
 
     const link = screen.getByRole('link')
     expect(link).toHaveAttribute('href', 'https://example.com/datasheet')
+    // The link icon and the open-link arrow already say it; a badge would say it a third time.
+    expect(screen.queryByText('objects.files.external')).not.toBeInTheDocument()
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
     expect(files.download).not.toHaveBeenCalled()
@@ -181,7 +194,7 @@ describe('FileRow', () => {
 
     expect(screen.getByText('common.deleted')).toBeInTheDocument()
     expect(downloadButton()).not.toBeInTheDocument()
-    expect(previewButton()).not.toBeInTheDocument()
+    expect(nameButton()).not.toBeInTheDocument()
 
     fireEvent.click(
       screen.getByRole('button', { name: /^objects.files.restore/ })
@@ -237,7 +250,7 @@ describe('FileRow', () => {
     expect(files.download).not.toHaveBeenCalled()
   })
 
-  it('falls back to an icon when an expired thumbnail url fails to load', () => {
+  it('shows an image as an icon, never as a thumbnail too small to read', () => {
     const { container } = renderRow(
       upload({
         contentType: 'image/png',
@@ -246,9 +259,6 @@ describe('FileRow', () => {
       })
     )
 
-    const img = container.querySelector('img')
-    expect(img).not.toBeNull()
-    fireEvent.error(img!)
     expect(container.querySelector('img')).toBeNull()
   })
 })
@@ -286,15 +296,13 @@ describe('FileRow row click', () => {
     clickSpy.mockRestore()
   })
 
-  it('does not fire the row action twice when an icon is clicked', () => {
+  it('does not fire the row action twice when the name is clicked', () => {
     const onPreview = vi.fn()
     renderRow(upload({ fileName: 'photo.png', contentType: 'image/png' }), {
       onPreview,
     })
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /^objects.files.preview/ })
-    )
+    fireEvent.click(nameButton()!)
     expect(onPreview).toHaveBeenCalledTimes(1)
   })
 
@@ -320,11 +328,7 @@ describe('FileRow row click', () => {
         expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     )
-    await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /^objects.files.preview/ })
-      ).toBeInTheDocument()
-    )
+    await waitFor(() => expect(nameButton()).toBeInTheDocument())
     expect(downloadButton()).toBeInTheDocument()
   })
 })
