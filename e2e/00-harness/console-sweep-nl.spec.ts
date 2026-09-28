@@ -67,20 +67,16 @@ test.describe('00 - harness / console sweep (nl)', () => {
    * leaving it on Dutch reddens every later spec keyed on English prose — that cascade cost five
    * specs on 2026-08-31. An `afterAll` runs whether or not these passed; a killed run is the one
    * case it cannot cover, and there is no fix for that short of a disposable account.
+   *
+   * The API, never `setLanguage`: this page is a fresh context with no preference cookie, so it
+   * first-paints English, `setLanguage` reads "already English" and returns without writing, and
+   * the account stays Dutch. That silent no-op cost 56 specs on 2026-09-28.
    */
   test.afterAll(async ({ browser }, testInfo) => {
     testInfo.setTimeout(120_000)
     const page = await browser.newPage()
-    try {
-      await setLanguage(page, 'en')
-    } catch {
-      // The UI path can fail for the same reasons the run just did — a dead session, an unhydrated
-      // tab, a `toPass` that burns 30s and throws — and then the hook written to PREVENT the
-      // eleven-spec Dutch cascade causes it. `patchPreferences` is one API call with no tabs and no
-      // hydration, so it survives everything short of the node being down.
-      await page.goto('/objects')
-      await patchPreferences(page, { locale: { app: 'en' } })
-    }
+    await page.goto('/objects')
+    await patchPreferences(page, { locale: { app: 'en' } })
     await page.close()
   })
 
