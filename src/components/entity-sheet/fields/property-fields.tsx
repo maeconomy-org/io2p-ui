@@ -267,6 +267,7 @@ export function PropertyFields({
         allowFiles={allowFiles}
         allowViewToggle={allowViewToggle}
         siblingSource={siblingSource}
+        heading={allowViewToggle ? label : undefined}
       />
     )
   }

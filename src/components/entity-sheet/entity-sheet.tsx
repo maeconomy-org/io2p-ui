@@ -30,6 +30,7 @@ import {
   ObjectFilesField,
   ParentsField,
   PropertyFields,
+  ReadOnlyField,
   RelationsField,
 } from './fields'
 import { rollupMultipliers } from './fields/value-normalization'
@@ -239,6 +240,19 @@ export function EntitySheet({
     else setEditing(false)
   }
 
+  const parentsField = (
+    <ParentsField
+      form={form}
+      editing={editing}
+      parentNames={parentNames}
+      deletedParentIds={deletedParentIds}
+      onParentPicked={(id, name) =>
+        setPickedParentNames((m) => ({ ...m, [id]: name }))
+      }
+      selfId={entity?.id}
+    />
+  )
+
   const tabs: SheetTab[] = [
     {
       value: 'properties',
@@ -265,6 +279,7 @@ export function EntitySheet({
           editing={editing}
           entityId={entity?.id}
           allowCover
+          showTitle={false}
         />
       ),
     },
@@ -306,19 +321,18 @@ export function EntitySheet({
           {entity && <EntityFacts entity={entity} />}
           <MetadataFields form={form} editing={editing} />
           <AddressField form={form} editing={editing} />
-          <div className="space-y-1.5">
-            <Label>{t('objects.detailsSheet.tabParents')}</Label>
-            <ParentsField
-              form={form}
-              editing={editing}
-              parentNames={parentNames}
-              deletedParentIds={deletedParentIds}
-              onParentPicked={(id, name) =>
-                setPickedParentNames((m) => ({ ...m, [id]: name }))
-              }
-              selfId={entity?.id}
-            />
-          </div>
+          {editing ? (
+            <div className="space-y-1.5">
+              <Label>{t('objects.detailsSheet.tabParents')}</Label>
+              {parentsField}
+            </div>
+          ) : (
+            <dl>
+              <ReadOnlyField label={t('objects.detailsSheet.tabParents')}>
+                {parentsField}
+              </ReadOnlyField>
+            </dl>
+          )}
         </div>
       ),
     },

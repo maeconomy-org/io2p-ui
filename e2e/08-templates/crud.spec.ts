@@ -41,6 +41,8 @@ async function openForEdit(page: Page, name: string) {
   await rowFor(page, name).getByTestId('template-actions-dropdown').click()
   await page.getByTestId('template-action-edit').click()
   await expect(sheet(page)).toBeVisible()
+  // An object template opens on Properties, as an object does; the name is on Details.
+  await switchTab(page, 'details')
   await expect(sheet(page).getByLabel(/name/i).first()).toHaveValue(name)
 }
 

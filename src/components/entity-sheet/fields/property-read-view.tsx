@@ -29,7 +29,7 @@ import {
   resolvePropertyLabel,
   type PropertyDictionaryLocale,
 } from '@/constants/property-dictionary'
-import type { EntityRollupEntry } from 'io2p-client'
+import type { CalcInput, EntityRollupEntry } from 'io2p-client'
 
 import { FileList, FilesToggle } from '../files'
 import { CollapseAllContext, useCollapsible } from '../collapse-all'
@@ -46,7 +46,7 @@ import {
   ownShare,
   rollupSaysSomething,
 } from './rollup-line'
-import { FormulaSummary } from './formula-value-editor'
+import { FormulaSummary, useTemplateEquation } from './formula-value-editor'
 import {
   ValueNormalization,
   derivedText,
@@ -109,6 +109,17 @@ function ownUnit(values: NumericValues): string | undefined {
 }
 
 /** The first values, then how many more: `12 kg · 30 kg · +1` says more than "3 values". */
+function TemplateEquation({
+  calc,
+  labelForValue,
+}: {
+  calc: CalcInput
+  labelForValue: LabelForValue
+}) {
+  const { equation } = useTemplateEquation(calc, labelForValue)
+  return <>{equation ? `= ${equation}` : '—'}</>
+}
+
 function valueSummary(
   p: DraftProperty,
   display: (v: DraftValue) => string
@@ -229,8 +240,14 @@ export function PropertyReadView({
   allowFiles = true,
   allowViewToggle = true,
   siblingSource,
+  heading,
 }: {
   properties: DraftProperty[]
+  /**
+   * A section heading, for a sheet where the properties share a tab with other fields (a process's
+   * Details). Edit mode shows the same heading above its list, so the section reads alike in both.
+   */
+  heading?: string
   /**
    * Every property a formula here may read. A process flow's formula may bind a value from another
    * flow or from the process itself, which `properties` (this flow's own) does not hold.
@@ -449,11 +466,18 @@ export function PropertyReadView({
 
   // Not `properties.length` — an object whose rules all cover keys it never authored has only
   // orphan rows, and testing the properties alone would discard exactly those.
+  const headingEl = heading && (
+    <h3 className="text-sm font-medium">{heading}</h3>
+  )
+
   if (properties.length === 0 && rollupCards.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {t('objects.detailsSheet.noProperties')}
-      </p>
+      <div className="space-y-2">
+        {headingEl}
+        <p className="text-sm text-muted-foreground">
+          {t('objects.detailsSheet.noProperties')}
+        </p>
+      </div>
     )
   }
 
@@ -462,6 +486,7 @@ export function PropertyReadView({
       <div className="space-y-3">
         {allowViewToggle && (
           <div className="flex items-center justify-end gap-1">
+            {headingEl && <div className="mr-auto">{headingEl}</div>}
             {/* Every open property, formula, file list and total closes at once. The grid has
                 nothing that opens. */}
             {view !== 'grid' && (
@@ -790,6 +815,13 @@ function PropertyCard({
     property.label,
     locale
   )
+  // A template formula has no result yet, so closed it reads as its equation, not as "—".
+  const inert =
+    live.length === 1 &&
+    live[0].calc?.formulaId &&
+    !(live[0].id && derivedValues.has(live[0].id))
+      ? live[0].calc
+      : undefined
 
   if (property.deleted) {
     return <DeletedRow label={displayLabel} />
@@ -812,7 +844,12 @@ function PropertyCard({
           <span className="truncate text-sm font-medium">{displayLabel}</span>
           {/* Open, the values are right below; the header would only repeat them. */}
           <span className="ml-2 min-w-0 flex-1 truncate text-sm text-muted-foreground">
-            {!open && valueSummary(property, displayValue)}
+            {!open &&
+              (inert ? (
+                <TemplateEquation calc={inert} labelForValue={labelForValue} />
+              ) : (
+                valueSummary(property, displayValue)
+              ))}
           </span>
         </CollapsibleTrigger>
         {/* The property's own files open from its header, beside the trigger (a button cannot

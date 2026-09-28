@@ -693,20 +693,13 @@ function BindingPicker({
 }
 
 /**
- * A bound recipe, read-only: which formula, and what each variable is bound to.
- *
- * This is what a TEMPLATE formula looks like. A template stores its recipe INERT — `source:'derived'`
- * plus `calc`, with no `num` and no `provenance`, because it computes only when the template is
- * applied to a real entity (E-2). So there is no trace to render and no result to show; without this
- * the value reads as an empty string, which looks like nothing was ever configured.
+ * A template formula written out with its inputs NAMED (`Width × 2`): a template holds no numbers
+ * yet, only which property each variable will read. Undefined until the formula record loads.
  */
-export function FormulaSummary({
-  calc,
-  labelForValue,
-}: {
-  calc: CalcInput
+export function useTemplateEquation(
+  calc: CalcInput,
   labelForValue?: (ref: string) => string | undefined
-}) {
+): { equation?: string; formulaName?: string } {
   const t = useTranslations()
   const { data: formula } = useFormulas().useGet(calc.formulaId)
 
@@ -740,6 +733,27 @@ export function FormulaSummary({
       )
     : undefined
 
+  return { equation, formulaName: formula?.name }
+}
+
+/**
+ * A bound recipe, read-only: which formula, and what each variable is bound to.
+ *
+ * This is what a TEMPLATE formula looks like. A template stores its recipe INERT — `source:'derived'`
+ * plus `calc`, with no `num` and no `provenance`, because it computes only when the template is
+ * applied to a real entity (E-2). So there is no trace to render and no result to show; without this
+ * the value reads as an empty string, which looks like nothing was ever configured.
+ */
+export function FormulaSummary({
+  calc,
+  labelForValue,
+}: {
+  calc: CalcInput
+  labelForValue?: (ref: string) => string | undefined
+}) {
+  const t = useTranslations()
+  const { equation, formulaName } = useTemplateEquation(calc, labelForValue)
+
   // The same row a calculated value reads as, with the inputs NAMED instead of valued: a template
   // holds no numbers yet, only which property each variable will read.
   return (
@@ -753,7 +767,7 @@ export function FormulaSummary({
         </span>
         <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
           <Sigma className="h-3.5 w-3.5" />
-          {formula?.name ?? t('objects.propertyEditor.derived')}
+          {formulaName ?? t('objects.propertyEditor.derived')}
         </span>
       </div>
       <p className="text-[11px] text-muted-foreground">
