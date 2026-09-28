@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { AlertTriangle, ChevronsUpDown, Loader2 } from 'lucide-react'
+import { AlertTriangle, ChevronsUpDown, Loader2, Sigma } from 'lucide-react'
 import {
   previewArgFromValue,
   type CalcArgInput,
@@ -31,6 +31,7 @@ import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { SEARCH_SIZE } from '@/constants'
 
 import { calcErrorText, uncheckedState } from './value-provenance'
+import { equationText } from './formula-equation'
 import { FormulaMessage, FormulaWarnings } from './formula-warnings'
 import { UnitsHelp } from './units-help'
 
@@ -730,36 +731,31 @@ export function FormulaSummary({
     return t('objects.formulaEditor.unbound')
   }
 
-  // Variables come from the formula record, so until it loads there is nothing truthful to list —
-  // showing the recipe's args instead would omit any variable the user has not bound yet.
-  const variables = formula?.variables ?? []
+  // Until the formula record loads there is no expression to write out.
+  const equation = formula?.expression
+    ? equationText(formula.expression, (variable) =>
+        formula.variables.includes(variable)
+          ? bindingLabel(variable)
+          : undefined
+      )
+    : undefined
 
+  // The same row a calculated value reads as, with the inputs NAMED instead of valued: a template
+  // holds no numbers yet, only which property each variable will read.
   return (
-    <div className="space-y-1 rounded-md border bg-muted/30 px-3 py-2">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="text-sm font-medium">
+    <div className="space-y-0.5 text-sm" data-testid="formula-summary">
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          className="min-w-0 truncate text-muted-foreground"
+          title={equation}
+        >
+          {equation ? `= ${equation}` : '—'}
+        </span>
+        <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+          <Sigma className="h-3.5 w-3.5" />
           {formula?.name ?? t('objects.propertyEditor.derived')}
         </span>
-        {formula?.expression && (
-          <code className="font-mono text-xs text-muted-foreground">
-            {formula.expression}
-          </code>
-        )}
       </div>
-      {variables.length > 0 && (
-        <dl className="space-y-0.5">
-          {variables.map((variable) => (
-            <div key={variable} className="flex items-baseline gap-2 text-xs">
-              <dt className="w-10 shrink-0 font-mono font-medium">
-                {variable}
-              </dt>
-              <dd className="min-w-0 truncate text-muted-foreground">
-                {bindingLabel(variable)}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
       <p className="text-[11px] text-muted-foreground">
         {t('templates.formulaInert')}
       </p>

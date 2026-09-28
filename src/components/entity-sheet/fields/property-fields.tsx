@@ -266,6 +266,7 @@ export function PropertyFields({
         onFileChange={patchFile}
         allowFiles={allowFiles}
         allowViewToggle={allowViewToggle}
+        siblingSource={siblingSource}
       />
     )
   }

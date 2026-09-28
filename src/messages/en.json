@@ -499,7 +499,6 @@
       "noResults": "No addresses found for \"{query}\""
     },
     "objectUuid": "Object UUID",
-    "values": "{count} value{count, plural, one {} other {s}}",
     "propertyNameSuggestionsLabel": "Suggested standard property names",
     "attachments": {
       "dragDrop": "Drag and drop files here, or click to browse",
@@ -664,11 +663,8 @@
       "rollupUnverified": "{count, plural, one {# of them marked “Not counted”} other {# of them marked “Not counted”}}",
       "rollupMultiValue": "{count, plural, one {# object has several values} other {# objects have several values}}",
       "rollupMultiValueAllCounted": "{count, plural, one {# object has several values, all counted} other {# objects have several values, all counted}}",
-      "rollupMoreDimensions": "{count, plural, one {+# more unit} other {+# more units}}",
       "rollupProcessing": "Updating…",
       "rollupSubtreeTooLarge": "Too many items to total",
-      "declaredUnit": "Unit declared by the formula",
-      "unitInherited": "Unit taken from the values it reads",
       "noUnit": "No unit",
       "unitChecked": "Unit checked",
       "unitNotCountedShort": "Its unit could not be checked, so it is in no total.",

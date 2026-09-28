@@ -130,4 +130,30 @@ describe('several values under one property', () => {
     fireEvent.click(screen.getByText('Weight'))
     expect(screen.queryByTestId('values-totalled')).toBeNull()
   })
+
+  // Words under a key a rule multiplies by are a refused quantity; the red mark on each row is the
+  // only thing that says the object dropped out of the total.
+  it('keeps rows for a key a total multiplies by, even when its values are words', () => {
+    renderProperties(
+      [words('quantity', ['five', 'six'])],
+      new Map([
+        [
+          'rule-1',
+          {
+            ruleId: 'rule-1',
+            propertyKey: 'weight',
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
+            buckets: [],
+            skippedCount: 0,
+            computedAt: null,
+            stale: true,
+          },
+        ],
+      ]) as never
+    )
+    fireEvent.click(screen.getByText('Quantity'))
+
+    expect(screen.queryByTestId('value-chips')).toBeNull()
+    expect(screen.getByText('five')).toBeInTheDocument()
+  })
 })

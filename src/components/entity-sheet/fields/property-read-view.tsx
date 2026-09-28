@@ -228,8 +228,14 @@ export function PropertyReadView({
   onFileChange,
   allowFiles = true,
   allowViewToggle = true,
+  siblingSource,
 }: {
   properties: DraftProperty[]
+  /**
+   * Every property a formula here may read. A process flow's formula may bind a value from another
+   * flow or from the process itself, which `properties` (this flow's own) does not hold.
+   */
+  siblingSource?: DraftProperty[]
   derivedValues: DerivedValues
   /** Subtree totals keyed by RULE ID — one rule per key, per owner. Objects only. */
   rollups?: ReadonlyMap<string, EntityRollupEntry>
@@ -536,9 +542,11 @@ export function PropertyReadView({
                 boundValueIds={boundValueIds}
                 quantity={quantities.get(ruleKey(p.key, p.label))}
                 totalled={totalledKeys.has(ruleKey(p.key, p.label))}
-                labelForValue={(id) => labelForValueId(properties, id, locale)}
+                labelForValue={(id) =>
+                  labelForValueId(siblingSource ?? properties, id, locale)
+                }
                 textForValue={(id) => {
-                  const v = valueById(properties, id)
+                  const v = valueById(siblingSource ?? properties, id)
                   return v && displayValue(v)
                 }}
                 displayValue={displayValue}
@@ -851,7 +859,9 @@ function PropertyCard({
             {t('objects.detailsSheet.noProperties')}
           </span>
         )}
-        {chipsFit(live, derivedValues, boundValueIds) ? (
+        {/* A key a rule multiplies by keeps its rows: a refused quantity's mark lives there. */}
+        {quantity === undefined &&
+        chipsFit(live, derivedValues, boundValueIds) ? (
           <>
             <ValueChips values={live} />
             {property.values

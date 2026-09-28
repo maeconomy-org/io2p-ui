@@ -69,11 +69,14 @@ export function ValueProvenanceDisplay({
   const { error } = provenance
   const unchecked = !error && uncheckedState(provenance, unit)
 
+  // A constant's number is what was read. A sibling's is in its canonical unit (2 kW is 2000), so
+  // without the row's own text the variable's name stands in rather than a number nobody typed.
   const argText = (arg: ValueProvenanceData['args'][number]) =>
-    (arg.source.kind === 'property'
+    arg.source.kind === 'property'
       ? textForValue?.(arg.source.valueId)
-      : undefined) ??
-    (arg.value === undefined ? undefined : format.number(arg.value))
+      : arg.value === undefined
+        ? undefined
+        : format.number(arg.value)
   const equation = equationText(provenance.expression, (name) => {
     const arg = provenance.args.find((a) => a.var === name)
     return arg && argText(arg)

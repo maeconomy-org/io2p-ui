@@ -71,11 +71,13 @@ describe('ValueProvenanceDisplay', () => {
     )
   })
 
-  it('writes the evaluated number for an input whose row it cannot read', () => {
+  // A sibling's stored number is in its canonical unit (2 kW is 2000): printing it would show a
+  // figure nobody typed. A constant's number is the one it was read as.
+  it('names an input whose row it cannot read, and keeps a constant’s number', () => {
     renderProvenance(PROVENANCE, undefined, () => undefined)
 
     expect(screen.getByTestId('provenance-equation')).toHaveTextContent(
-      '= 3 × 0.5'
+      '= a × 0.5'
     )
   })
 
