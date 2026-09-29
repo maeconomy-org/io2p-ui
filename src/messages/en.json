@@ -515,6 +515,7 @@
       "attach": "Attach",
       "attachMore": "Attach file or link",
       "onProperty": "Files on this property",
+      "onFlow": "Files on this flow",
       "onValue": "Files on this value",
       "onValues": "{count, plural, one {# file on its values} other {# files on its values}}",
       "addFiles": "Add files",

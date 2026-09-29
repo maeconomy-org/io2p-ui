@@ -7,7 +7,6 @@ import {
   Calculator,
   ChevronDown,
   ChevronRight,
-  ChevronsDownUp,
   LayoutGrid,
   List,
   Paperclip,
@@ -15,7 +14,6 @@ import {
 
 import {
   Badge,
-  Button,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -34,6 +32,7 @@ import type { CalcInput, EntityRollupEntry } from 'io2p-client'
 import { FileList, FilesToggle } from '../files'
 import { CollapseAllContext, useCollapsible } from '../collapse-all'
 import { MarksLegend } from './marks-legend'
+import { CollapseAllButton } from './collapse-all-button'
 import { DeletedRow } from './deleted-row'
 import {
   RollupLine,
@@ -490,18 +489,7 @@ export function PropertyReadView({
             {/* Every open property, formula, file list and total closes at once. The grid has
                 nothing that opens. */}
             {view !== 'grid' && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground"
-                onClick={() => setGeneration((g) => g + 1)}
-                aria-label={t('objects.properties.collapseAll')}
-                title={t('objects.properties.collapseAll')}
-                data-testid="collapse-all"
-              >
-                <ChevronsDownUp className="h-4 w-4" />
-              </Button>
+              <CollapseAllButton onClick={() => setGeneration((g) => g + 1)} />
             )}
             <MarksLegend />
             <ViewToggle

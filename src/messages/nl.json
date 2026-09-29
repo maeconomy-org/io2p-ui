@@ -594,6 +594,7 @@
       "attach": "Bijlage",
       "attachMore": "Bestand of link toevoegen",
       "onProperty": "Bestanden bij deze eigenschap",
+      "onFlow": "Bestanden bij deze stroom",
       "onValue": "Bestanden bij deze waarde",
       "onValues": "{count, plural, one {# bestand bij de waarden} other {# bestanden bij de waarden}}",
       "addFiles": "Bestanden toevoegen",

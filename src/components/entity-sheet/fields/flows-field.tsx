@@ -1,9 +1,16 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useFieldArray, useWatch, type UseFormReturn } from 'react-hook-form'
-import { ChevronRight, Package, Plus, Repeat, Trash2 } from 'lucide-react'
+import {
+  ChevronRight,
+  Package,
+  Paperclip,
+  Plus,
+  Repeat,
+  Trash2,
+} from 'lucide-react'
 
 import {
   Badge,
@@ -13,12 +20,16 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
-import type { EntityDraft } from '@/lib/entity'
+import type { DraftFile, EntityDraft } from '@/lib/entity'
 import { QUANTITY_KEY } from '@/lib/entity'
+
+import { CollapseAllContext, useCollapsible } from '../collapse-all'
+import { AttachmentModal, FileList, FilesToggle } from '../files'
 
 import type { DerivedValues } from './value-provenance'
 
-import { ObjectFilesField } from './object-files-field'
+import { CollapseAllButton } from './collapse-all-button'
+import { MarksLegend } from './marks-legend'
 import { ObjectPicker } from './object-picker'
 import { PropertyFields } from './property-fields'
 import { DeletedRow } from './deleted-row'
@@ -61,6 +72,7 @@ export function FlowsField({
   optionalRef?: boolean
 }) {
   const t = useTranslations()
+  const [generation, setGeneration] = useState(0)
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: bag,
@@ -122,37 +134,47 @@ export function FlowsField({
   }
 
   return (
-    <div className="space-y-2">
-      {fields.map((field, index) => (
-        <FlowRow
-          key={field.id}
-          form={form}
-          bag={bag}
-          index={index}
-          editing={editing}
-          siblingSource={siblingSource}
-          derivedValues={derivedValues}
-          entityId={entityId}
-          optionalRef={optionalRef}
-          onBothSides={onBothSides}
-          onRemove={() => removeFlow(index)}
-          onRestore={() => restoreFlow(index)}
-        />
-      ))}
+    <CollapseAllContext.Provider value={generation}>
+      <div className="space-y-2">
+        {/* The same toolbar the object sheet puts over its properties, minus the grid view: a flow
+            is a card of properties, not a value to scan. */}
+        {!editing && fields.length > 0 && (
+          <div className="flex items-center justify-end gap-1">
+            <CollapseAllButton onClick={() => setGeneration((g) => g + 1)} />
+            <MarksLegend />
+          </div>
+        )}
+        {fields.map((field, index) => (
+          <FlowRow
+            key={field.id}
+            form={form}
+            bag={bag}
+            index={index}
+            editing={editing}
+            siblingSource={siblingSource}
+            derivedValues={derivedValues}
+            entityId={entityId}
+            optionalRef={optionalRef}
+            onBothSides={onBothSides}
+            onRemove={() => removeFlow(index)}
+            onRestore={() => restoreFlow(index)}
+          />
+        ))}
 
-      {editing && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          data-testid={`add-${bag.slice(0, -1)}`}
-          onClick={addFlow}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {t(`processes.flows.add.${bag}`)}
-        </Button>
-      )}
-    </div>
+        {editing && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid={`add-${bag.slice(0, -1)}`}
+            onClick={addFlow}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {t(`processes.flows.add.${bag}`)}
+          </Button>
+        )}
+      </div>
+    </CollapseAllContext.Provider>
   )
 }
 
@@ -183,7 +205,10 @@ function FlowRow({
   onRestore: () => void
 }) {
   const t = useTranslations()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useCollapsible()
+  const [filesOpen, setFilesOpen] = useCollapsible()
+  const [attaching, setAttaching] = useState(false)
+  const filesId = useId()
 
   const base = `${bag}.${index}` as const
   /**
@@ -197,6 +222,32 @@ function FlowRow({
    */
   const flow = useWatch({ control: form.control, name: base })
   const properties = flow?.properties ?? []
+  const files = flow?.files ?? []
+
+  // The flow's OWN files: io2p scopes an attach target with `flow: {direction, flowId}`, so these
+  // belong to the flow, not to the process or to one of its properties.
+  const addFiles = (added: DraftFile[]) => {
+    form.setValue(`${base}.files`, [...files, ...added], { shouldDirty: true })
+    setOpen(true)
+    setFilesOpen(true)
+  }
+  const removeFile = (localId: string) =>
+    form.setValue(
+      `${base}.files`,
+      files.filter((f) => f._localId !== localId),
+      { shouldDirty: true }
+    )
+  // Soft delete / restore already hit the server; the draft only catches up, so it stays clean.
+  const patchFile = (
+    localId: string,
+    patch: Partial<DraftFile>,
+    options?: { dirty?: boolean }
+  ) =>
+    form.setValue(
+      `${base}.files`,
+      files.map((f) => (f._localId === localId ? { ...f, ...patch } : f)),
+      { shouldDirty: options?.dirty ?? false }
+    )
 
   // A process flow arrives with `refName`; a TEMPLATE flow has no such field, so the id is resolved
   // here rather than printed.
@@ -364,6 +415,36 @@ function FlowRow({
           </Badge>
         )}
 
+        {/* One paperclip per flow, as on a property: it lists the flow's files, or attaches the
+            first one while editing. */}
+        {files.length > 0 ? (
+          <FilesToggle
+            count={files.length}
+            open={filesOpen}
+            onToggle={() => {
+              setFilesOpen((v) => !v)
+              setOpen(true)
+            }}
+            controls={filesId}
+            label={t('objects.files.onFlow')}
+          />
+        ) : (
+          editing && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0 text-muted-foreground"
+              aria-label={t('objects.files.attach')}
+              title={t('objects.files.attach')}
+              data-testid={`flow-attach-${bag}-${index}`}
+              onClick={() => setAttaching(true)}
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+            </Button>
+          )
+        )}
+
         {editing && (
           <Button
             type="button"
@@ -382,6 +463,17 @@ function FlowRow({
       </div>
 
       <CollapsibleContent className="space-y-3 border-t bg-muted/10 px-3 py-2">
+        {filesOpen && files.length > 0 && (
+          <FileList
+            id={filesId}
+            files={files}
+            entityId={entityId}
+            editing={editing}
+            onRemove={editing ? removeFile : undefined}
+            onChange={patchFile}
+            onAttach={editing ? () => setAttaching(true) : undefined}
+          />
+        )}
         <PropertyFields
           form={form}
           editing={editing}
@@ -391,20 +483,15 @@ function FlowRow({
           label={t('objects.fields.properties')}
           allowViewToggle={false}
         />
-        {/* Flow-level files. io2p scopes an attach target with `flow: {direction, flowId}`, so these
-            belong to the FLOW, not to the process. Hidden entirely when a saved flow has none —
-            a bare "Files" heading over nothing is noise repeated on every row. */}
-        {(editing || (flow?.files?.length ?? 0) > 0) && (
-          <ObjectFilesField
-            form={form}
-            editing={editing}
-            entityId={entityId}
-            basePath={`${base}.files`}
-            allowViewToggle={false}
-            showEmptyState={false}
-          />
-        )}
       </CollapsibleContent>
+
+      {editing && (
+        <AttachmentModal
+          open={attaching}
+          onOpenChange={setAttaching}
+          onAdd={addFiles}
+        />
+      )}
     </Collapsible>
   )
 }
