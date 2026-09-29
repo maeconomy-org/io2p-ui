@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useWatch, type UseFormReturn } from 'react-hook-form'
 
-import type { DraftFile, EntityDraft } from '@/lib/entity'
+import type { EntityDraft } from '@/lib/entity'
 
 import { AttachmentModal, ObjectFilesSection } from '../files'
+import { useFileBag } from './use-file-bag'
 
 /**
  * Object-level files bound to the form. Picks accumulate in the draft and upload after Save (io2p
@@ -46,38 +47,8 @@ export function ObjectFilesField({
   basePath?: FilesPath
 }) {
   const [modalOpen, setModalOpen] = useState(false)
-  // `useWatch`, NOT `form.watch` — this component does not own the `useForm`, it receives it, so
-  // `watch` reads once and never re-subscribes. Under the production-only React Compiler that froze
-  // the list: adding a file marked the sheet dirty and rendered nothing, and a second add dropped
-  // the first from the stale closure below.
-  const files = useWatch({ control: form.control, name: basePath }) ?? []
+  const { files, add, remove, patch } = useFileBag(form, basePath)
   const coverFileId = useWatch({ control: form.control, name: 'coverFileId' })
-
-  const addFiles = (added: DraftFile[]) => {
-    form.setValue(basePath, [...files, ...added], { shouldDirty: true })
-  }
-
-  const removeFile = (localId: string) => {
-    form.setValue(
-      basePath,
-      files.filter((f) => f._localId !== localId),
-      { shouldDirty: true }
-    )
-  }
-
-  // Soft delete / restore already hit the server, so the draft is only catching up — marking it
-  // dirty would offer to "save" a change that is already committed.
-  const patchFile = (
-    localId: string,
-    patch: Partial<DraftFile>,
-    options?: { dirty?: boolean }
-  ) => {
-    form.setValue(
-      basePath,
-      files.map((f) => (f._localId === localId ? { ...f, ...patch } : f)),
-      { shouldDirty: options?.dirty ?? false }
-    )
-  }
 
   return (
     <>
@@ -89,8 +60,8 @@ export function ObjectFilesField({
         showEmptyState={showEmptyState}
         showTitle={showTitle}
         onAttach={editing ? () => setModalOpen(true) : undefined}
-        onRemove={removeFile}
-        onChange={patchFile}
+        onRemove={remove}
+        onChange={patch}
         // Staged on the form like any other field, so Save writes it with the rest and Cancel
         // reverts it. Writing it here instead would bump `currentVersion` mid-edit and the sheet's
         // reload would discard whatever else was typed.
@@ -105,7 +76,7 @@ export function ObjectFilesField({
       <AttachmentModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        onAdd={addFiles}
+        onAdd={add}
       />
     </>
   )

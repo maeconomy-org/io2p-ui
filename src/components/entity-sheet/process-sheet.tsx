@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { Badge, Label } from '@/components/ui'
 import { canDelete, canEdit } from '@/components/entity-list'
 import { useProcesses } from '@/hooks/api/entities'
-import type { EntityDraft, ValueProvenance } from '@/lib/entity'
+import type { EntityDraft } from '@/lib/entity'
 import { templatePresetToDraftProperties } from '@/lib/entity'
 import { anchor } from '@/constants'
 
@@ -24,6 +24,7 @@ import {
   TemplateSelector,
   type TemplateChoice,
 } from './fields'
+import { derivedValueMap } from './fields/value-provenance'
 import {
   SheetLifecycleFooter,
   countDirtyLeaves,
@@ -99,23 +100,15 @@ export function ProcessSheet({
   )
 
   // Keyed by value id across the whole aggregate, flows included — a flow value can be derived too.
-  const derivedValues = useMemo(() => {
-    const m = new Map<string, ValueProvenance | undefined>()
-    const collect = (
-      props?: {
-        values: { id: string; source?: string; provenance?: ValueProvenance }[]
-      }[]
-    ) =>
-      props?.forEach((p) =>
-        p.values.forEach((v) => {
-          if (v.source === 'derived') m.set(v.id, v.provenance)
-        })
-      )
-    collect(process?.properties)
-    process?.inputs?.forEach((f) => collect(f.properties))
-    process?.outputs?.forEach((f) => collect(f.properties))
-    return m
-  }, [process])
+  const derivedValues = useMemo(
+    () =>
+      derivedValueMap(
+        process?.properties,
+        ...(process?.inputs ?? []).map((f) => f.properties),
+        ...(process?.outputs ?? []).map((f) => f.properties)
+      ),
+    [process]
+  )
 
   const dropFiles = (dropped: File[]) => {
     if (!editing || dropped.length === 0) return

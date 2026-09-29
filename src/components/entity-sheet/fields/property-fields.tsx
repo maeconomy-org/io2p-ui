@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { useFormatter, useLocale, useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   ChevronRight,
   FunctionSquare,
@@ -46,13 +46,18 @@ import {
   FormulaBindings,
   type FormulaSibling,
 } from './formula-value-editor'
-import { AttachmentModal, FileList, FilesToggle } from '../files'
+import { AttachmentModal, FileList, FilesControl } from '../files'
 import { DeletedRow } from './deleted-row'
-import { PropertyReadView } from './property-read-view'
+import { fileBagActions } from './use-file-bag'
+import {
+  PropertyReadView,
+  useValueDisplay,
+  useValueText,
+} from './property-read-view'
+import { fileCount } from './property-values'
 import {
   ValueNormalization,
   formulaBoundValueIds,
-  derivedText,
   multiplierKeysOf,
   ruleKey,
 } from './value-normalization'
@@ -362,13 +367,14 @@ function PropertyRow({
   quantities: ReadonlyMap<string, ResolvedQuantity>
 }) {
   const t = useTranslations()
-  const format = useFormatter()
   const locale = useLocale() as PropertyDictionaryLocale
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: `${basePath}.${index}.values`,
   })
   const [modalTarget, setModalTarget] = useState<ModalTarget | null>(null)
+  // The read view's own rule, so a number and an equation's inputs read the same in both modes.
+  const displayValue = useValueDisplay(derivedValues)
   // Which file lists are open: the property's own, and each value's by its field id (an index
   // would hand an open list to the next value when one above it is removed).
   const [openFiles, setOpenFiles] = useState<ReadonlySet<string>>(
@@ -434,6 +440,11 @@ function PropertyRow({
   const row = useWatch({ control: form.control, name: `${basePath}.${index}` })
   const ownProperties =
     useWatch({ control: form.control, name: basePath }) ?? []
+  // Read mode's own rule for an equation's inputs, so both modes name them alike.
+  const textForValue = useValueText(
+    siblingSource ?? ownProperties,
+    derivedValues
+  )
 
   const propKey = row?.key
   const propLabel = row?.label
@@ -456,10 +467,7 @@ function PropertyRow({
     getValuePlaceholder(propKey, locale) ?? t('objects.propertyEditor.value')
   const propFiles = row?.files ?? []
   const rowValues = row?.values ?? []
-  const fileTotal = allowFiles
-    ? propFiles.length +
-      rowValues.reduce((n, v) => n + (v.files?.length ?? 0), 0)
-    : 0
+  const fileTotal = allowFiles && row ? fileCount(row) : 0
   // A property worth confirming before delete: it has a name, files, or any non-empty value.
   const hasContent =
     !!propKey ||
@@ -475,8 +483,7 @@ function PropertyRow({
       modalTarget.kind === 'property'
         ? (`${basePath}.${index}.files` as const)
         : (`${basePath}.${index}.values.${modalTarget.vIndex}.files` as const)
-    const current = form.getValues(path) ?? []
-    form.setValue(path, [...current, ...files], { shouldDirty: true })
+    fileBagActions(form, path).add(files)
     // Open the list it went into, so what was just attached is in view.
     const key =
       modalTarget.kind === 'property'
@@ -502,42 +509,18 @@ function PropertyRow({
     label: string,
     attachTestId: string,
     onAttach: () => void
-  ) =>
-    files.length === 0 ? (
-      <button
-        type="button"
-        onClick={onAttach}
-        title={t('objects.files.attach')}
-        aria-label={t('objects.files.attach')}
-        data-testid={attachTestId}
-        className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <Paperclip className="h-4 w-4" />
-      </button>
-    ) : (
-      <FilesToggle
-        count={files.length}
-        open={openFiles.has(key)}
-        onToggle={() => toggleFiles(key)}
-        controls={`${filesId}-${key}`}
-        label={label}
-        className="h-8 rounded-none border-l px-2.5 hover:bg-transparent"
-      />
-    )
-
-  const removeFile = (
-    path:
-      | `${PropertiesPath}.${number}.files`
-      | `${PropertiesPath}.${number}.values.${number}.files`,
-    localId: string
-  ) => {
-    const current = form.getValues(path) ?? []
-    form.setValue(
-      path,
-      current.filter((f) => f._localId !== localId),
-      { shouldDirty: true }
-    )
-  }
+  ) => (
+    <FilesControl
+      variant="field"
+      count={files.length}
+      open={openFiles.has(key)}
+      onToggle={() => toggleFiles(key)}
+      controls={`${filesId}-${key}`}
+      label={label}
+      onAttach={onAttach}
+      attachTestId={attachTestId}
+    />
+  )
 
   // A deleted property is shown, never hidden — but it can't be edited until it's restored, so the
   // whole editor collapses to the name plus a way back.
@@ -709,7 +692,9 @@ function PropertyRow({
                 entityId={entityId}
                 editing
                 onRemove={(localId) =>
-                  removeFile(`${basePath}.${index}.files`, localId)
+                  fileBagActions(form, `${basePath}.${index}.files`).remove(
+                    localId
+                  )
                 }
                 onChange={onFileChange}
                 onAttach={() => setModalTarget({ kind: 'property' })}
@@ -767,8 +752,9 @@ function PropertyRow({
                 const siblings = siblingSource ?? ownProperties
                 const rowButtons = (
                   <>
-                    {allowFiles && valueFiles.length > 0 && (
-                      <FilesToggle
+                    {allowFiles && (
+                      <FilesControl
+                        variant="row"
                         count={valueFiles.length}
                         open={openFiles.has(field.id)}
                         onToggle={() => toggleFiles(field.id)}
@@ -826,25 +812,12 @@ function PropertyRow({
                         <ValueProvenanceDisplay
                           provenance={provenance}
                           unit={value.unit}
-                          display={
-                            derivedText(value, provenance, (n) =>
-                              format.number(n, { maximumFractionDigits: 3 })
-                            ) ??
-                            (value.data || '—')
-                          }
+                          display={displayValue(value)}
                           exact={value.data}
                           labelForValue={(id) =>
                             labelForValueId(siblings, id, locale)
                           }
-                          textForValue={(id) => {
-                            for (const p of siblings) {
-                              const v = p.values.find(
-                                (x) => x.id === id || x.ref === id
-                              )
-                              if (v) return v.data || undefined
-                            }
-                            return undefined
-                          }}
+                          textForValue={textForValue}
                           // The same marks the read view shows, so a refused quantity says so while
                           // it is being edited too.
                           marker={
@@ -1000,7 +973,7 @@ function PropertyRow({
                         entityId={entityId}
                         editing
                         onRemove={(localId) =>
-                          removeFile(`${base}.files`, localId)
+                          fileBagActions(form, `${base}.files`).remove(localId)
                         }
                         onChange={onFileChange}
                         onAttach={() =>

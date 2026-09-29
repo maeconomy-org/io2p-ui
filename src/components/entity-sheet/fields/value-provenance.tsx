@@ -18,6 +18,7 @@ import type {
 
 import { useCollapsible } from '../collapse-all'
 import { equationText } from './formula-equation'
+import { findValue } from './property-values'
 
 /**
  * Derived values of the loaded entity, keyed by value id. Presence means the value is derived; the
@@ -394,6 +395,29 @@ function factorLabel(
   return (arg && argSource(arg, labelForValue)) ?? name
 }
 
+type ProvenancedValue = {
+  id: string
+  source?: string
+  provenance?: ValueProvenanceData
+}
+
+/**
+ * Which values the node calculated, keyed by value id, across every property list given — an
+ * entity's own, and a process's flows too, since a flow value can be calculated as well.
+ */
+export function derivedValueMap(
+  ...lists: ({ values: ProvenancedValue[] }[] | undefined)[]
+): DerivedValues {
+  const m = new Map<string, ValueProvenanceData | undefined>()
+  for (const list of lists)
+    list?.forEach((p) =>
+      p.values.forEach((v) => {
+        if (v.source === 'derived') m.set(v.id, v.provenance)
+      })
+    )
+  return m
+}
+
 /**
  * Which property a bound value belongs to. The trace names sibling values by id, which means nothing
  * to a reader — but the draft already holds the whole tree, so no lookup goes to the network.
@@ -403,19 +427,14 @@ export function labelForValueId(
   valueId: string,
   locale?: PropertyDictionaryLocale
 ): string | undefined {
-  for (const p of properties) {
-    // Match `ref` as well as `id`: a not-yet-saved value has only a client ref, and a TEMPLATE value
-    // has its ref preserved as the thing sibling calcs bind to. Matching ids alone would leave those
-    // bindings labelled as unknown.
-    if (p.values.some((v) => v.id === valueId || v.ref === valueId))
-      // A formula trace names a sibling PROPERTY, so it reads in the same language as that
-      // property's own row — `weight` must not surface here as "Weight" beside a card saying
-      // "Gewicht". Locale is optional so a non-rendering caller can still ask for the raw label.
-      return locale
-        ? resolvePropertyLabel(p.key, p.label, locale)
-        : p.label || p.key
-  }
-  return undefined
+  const p = findValue(properties, valueId)?.property
+  if (!p) return undefined
+  // A formula trace names a sibling PROPERTY, so it reads in the same language as that property's
+  // own row — `weight` must not surface here as "Weight" beside a card saying "Gewicht". Locale is
+  // optional so a non-rendering caller can still ask for the raw label.
+  return locale
+    ? resolvePropertyLabel(p.key, p.label, locale)
+    : p.label || p.key
 }
 
 // What the variable was bound to, in reader terms: a sibling property's label, or the fact that it

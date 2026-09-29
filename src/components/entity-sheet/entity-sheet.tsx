@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useRollupRules } from '@/hooks/api/rollup-rules'
 import { useObjectDrafts } from '@/hooks/drafts'
-import { hasPendingUploads, type ValueProvenance } from '@/lib/entity'
+import { hasPendingUploads } from '@/lib/entity'
 import type { EntityRollupEntry } from 'io2p-client'
 
 import { useEntityForm } from './hooks/use-entity-form'
@@ -33,6 +33,7 @@ import {
   ReadOnlyField,
   RelationsField,
 } from './fields'
+import { derivedValueMap } from './fields/value-provenance'
 import { rollupMultipliers } from './fields/value-normalization'
 
 export interface EntitySheetProps {
@@ -160,15 +161,10 @@ export function EntitySheet({
 
   // Keyed by value id: presence means the value is derived, the payload is the node's evaluation
   // trace. A derived value always has a source; `provenance` is what it was computed FROM.
-  const derivedValues = useMemo(() => {
-    const m = new Map<string, ValueProvenance | undefined>()
-    entity?.properties?.forEach((p) =>
-      p.values.forEach((v) => {
-        if (v.source === 'derived') m.set(v.id, v.provenance)
-      })
-    )
-    return m
-  }, [entity])
+  const derivedValues = useMemo(
+    () => derivedValueMap(entity?.properties),
+    [entity]
+  )
 
   // Held HERE, not in `ParentsField`: a name resolved by the picker has to outlive that component's
   // render so the post-save toast can name the parent the object just moved under.

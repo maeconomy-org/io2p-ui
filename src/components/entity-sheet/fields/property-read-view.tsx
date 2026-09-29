@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useId, useMemo } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import {
   AlertTriangle,
@@ -30,9 +30,13 @@ import {
 import type { CalcInput, EntityRollupEntry } from 'io2p-client'
 
 import { FileList, FilesToggle } from '../files'
-import { CollapseAllContext, useCollapsible } from '../collapse-all'
-import { MarksLegend } from './marks-legend'
-import { CollapseAllButton } from './collapse-all-button'
+import {
+  CollapseAllContext,
+  useCollapseAll,
+  useCollapsible,
+  useFilesDisclosure,
+} from '../collapse-all'
+import { ListToolbar } from './collapse-all-button'
 import { DeletedRow } from './deleted-row'
 import {
   RollupLine,
@@ -64,35 +68,10 @@ import {
   labelForValueId,
   type DerivedValues,
 } from './value-provenance'
+import { fileCount, findValue, liveValues } from './property-values'
 
 /** Resolves a value id named in a formula trace to the label of the property holding it. */
 type LabelForValue = (valueId: string) => string | undefined
-
-// Matches `ref` as well as `id`, like `labelForValueId`: an unsaved or template value has only a ref.
-function valueById(
-  properties: DraftProperty[],
-  valueId: string
-): DraftValue | undefined {
-  for (const p of properties) {
-    const v = p.values.find((x) => x.id === valueId || x.ref === valueId)
-    if (v) return v
-  }
-  return undefined
-}
-
-// Deleted values still render (struck through), but they don't count toward a summary or a badge —
-// "3 values" should mean three live ones.
-function liveValues(p: DraftProperty) {
-  return p.values.filter((v) => !v.deleted)
-}
-
-// Total files attached anywhere under a property (its own + its values') — drives the paperclip badge.
-function fileCount(p: DraftProperty): number {
-  return (
-    (p.files?.length ?? 0) +
-    liveValues(p).reduce((n, v) => n + (v.files?.length ?? 0), 0)
-  )
-}
 
 /**
  * The canonical unit of the property's own value, if it has one.
@@ -192,15 +171,17 @@ function ValueChips({ values }: { values: DraftValue[] }) {
 }
 
 /**
- * How one value READS — one definition for the grid summary, the collapsed header and the row,
- * so the same number cannot appear three ways in one sheet.
+ * How one value READS, with nothing when it has no text: the equation then names the variable
+ * instead. A value switched from a formula to typed text (`calc: null`) reads as typed, not as the
+ * number the server calculated before.
  */
-function useValueDisplay(derivedValues: DerivedValues) {
+function useReadableValue(derivedValues: DerivedValues) {
   const format = useFormatter()
   return useCallback(
-    (value: DraftValue): string => {
-      const fallback = value.data || '—'
-      if (!value.id || !derivedValues.has(value.id)) return fallback
+    (value: DraftValue): string | undefined => {
+      const typed = value.data || undefined
+      if (!value.id || !derivedValues.has(value.id) || value.calc === null)
+        return typed
       // The node keeps 12 significant digits; a reader needs a few. The row's title keeps them all.
       const readable = (n: number) =>
         Math.abs(n) >= 1 || n === 0
@@ -208,10 +189,40 @@ function useValueDisplay(derivedValues: DerivedValues) {
           : format.number(n, { maximumSignificantDigits: 4 })
       return (
         derivedText(value, derivedValues.get(value.id), readable) ??
-        readableData(fallback, readable)
+        (typed && readableData(typed, readable))
       )
     },
     [derivedValues, format]
+  )
+}
+
+/**
+ * How one value reads on its own — one definition for the grid summary, the collapsed header and
+ * the row, so the same number cannot appear three ways in one sheet.
+ */
+export function useValueDisplay(derivedValues: DerivedValues) {
+  const readableValue = useReadableValue(derivedValues)
+  return useCallback(
+    (value: DraftValue): string => readableValue(value) ?? '—',
+    [readableValue]
+  )
+}
+
+/**
+ * The text a formula's input reads as, by the input's value id, in read AND edit mode. Undefined
+ * when there is none, so `equationText` keeps the variable's name.
+ */
+export function useValueText(
+  properties: DraftProperty[],
+  derivedValues: DerivedValues
+) {
+  const readableValue = useReadableValue(derivedValues)
+  return useCallback(
+    (valueId: string): string | undefined => {
+      const v = findValue(properties, valueId)?.value
+      return v && readableValue(v)
+    },
+    [properties, readableValue]
   )
 }
 
@@ -265,8 +276,9 @@ export function PropertyReadView({
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
   const [view, setView] = usePreference('propertiesView')
-  const [generation, setGeneration] = useState(0)
+  const { generation, collapse } = useCollapseAll()
   const displayValue = useValueDisplay(derivedValues)
+  const textForValue = useValueText(siblingSource ?? properties, derivedValues)
   const boundValueIds = useMemo(
     () => formulaBoundValueIds(derivedValues),
     [derivedValues]
@@ -484,14 +496,10 @@ export function PropertyReadView({
     <CollapseAllContext.Provider value={generation}>
       <div className="space-y-3">
         {allowViewToggle && (
-          <div className="flex items-center justify-end gap-1">
-            {headingEl && <div className="mr-auto">{headingEl}</div>}
-            {/* Every open property, formula, file list and total closes at once. The grid has
-                nothing that opens. */}
-            {view !== 'grid' && (
-              <CollapseAllButton onClick={() => setGeneration((g) => g + 1)} />
-            )}
-            <MarksLegend />
+          <ListToolbar
+            heading={headingEl}
+            onCollapse={view !== 'grid' ? collapse : undefined}
+          >
             <ViewToggle
               value={view}
               onChange={setView}
@@ -508,7 +516,7 @@ export function PropertyReadView({
                 },
               ]}
             />
-          </div>
+          </ListToolbar>
         )}
 
         {view === 'grid' ? (
@@ -558,10 +566,7 @@ export function PropertyReadView({
                 labelForValue={(id) =>
                   labelForValueId(siblingSource ?? properties, id, locale)
                 }
-                textForValue={(id) => {
-                  const v = valueById(siblingSource ?? properties, id)
-                  return v && displayValue(v)
-                }}
+                textForValue={textForValue}
                 displayValue={displayValue}
                 entityId={entityId}
                 onFileChange={onFileChange}
@@ -791,8 +796,7 @@ function PropertyCard({
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
-  const [open, setOpen] = useCollapsible()
-  const [filesOpen, setFilesOpen] = useCollapsible()
+  const { open, setOpen, filesOpen, toggleFiles } = useFilesDisclosure()
   const filesId = useId()
   const count = allowFiles ? fileCount(property) : 0
   const ownFiles = allowFiles ? (property.files?.length ?? 0) : 0
@@ -847,10 +851,7 @@ function PropertyCard({
           <FilesToggle
             count={ownFiles}
             open={filesOpen}
-            onToggle={() => {
-              setFilesOpen((v) => !v)
-              setOpen(true)
-            }}
+            onToggle={toggleFiles}
             controls={filesId}
             label={t('objects.files.onProperty')}
             className="mr-2"

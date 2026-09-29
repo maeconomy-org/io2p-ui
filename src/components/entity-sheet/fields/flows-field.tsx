@@ -3,14 +3,7 @@
 import { useId, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useFieldArray, useWatch, type UseFormReturn } from 'react-hook-form'
-import {
-  ChevronRight,
-  Package,
-  Paperclip,
-  Plus,
-  Repeat,
-  Trash2,
-} from 'lucide-react'
+import { ChevronRight, Package, Plus, Repeat, Trash2 } from 'lucide-react'
 
 import {
   Badge,
@@ -23,13 +16,17 @@ import { cn } from '@/lib/utils'
 import type { DraftFile, EntityDraft } from '@/lib/entity'
 import { QUANTITY_KEY } from '@/lib/entity'
 
-import { CollapseAllContext, useCollapsible } from '../collapse-all'
-import { AttachmentModal, FileList, FilesToggle } from '../files'
+import {
+  CollapseAllContext,
+  useCollapseAll,
+  useFilesDisclosure,
+} from '../collapse-all'
+import { AttachmentModal, FileList, FilesControl } from '../files'
 
 import type { DerivedValues } from './value-provenance'
 
-import { CollapseAllButton } from './collapse-all-button'
-import { MarksLegend } from './marks-legend'
+import { ListToolbar } from './collapse-all-button'
+import { fileBagActions } from './use-file-bag'
 import { ObjectPicker } from './object-picker'
 import { PropertyFields } from './property-fields'
 import { DeletedRow } from './deleted-row'
@@ -72,7 +69,7 @@ export function FlowsField({
   optionalRef?: boolean
 }) {
   const t = useTranslations()
-  const [generation, setGeneration] = useState(0)
+  const { generation, collapse } = useCollapseAll()
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: bag,
@@ -138,12 +135,7 @@ export function FlowsField({
       <div className="space-y-2">
         {/* The same toolbar the object sheet puts over its properties, minus the grid view: a flow
             is a card of properties, not a value to scan. */}
-        {!editing && fields.length > 0 && (
-          <div className="flex items-center justify-end gap-1">
-            <CollapseAllButton onClick={() => setGeneration((g) => g + 1)} />
-            <MarksLegend />
-          </div>
-        )}
+        {!editing && fields.length > 0 && <ListToolbar onCollapse={collapse} />}
         {fields.map((field, index) => (
           <FlowRow
             key={field.id}
@@ -205,8 +197,8 @@ function FlowRow({
   onRestore: () => void
 }) {
   const t = useTranslations()
-  const [open, setOpen] = useCollapsible()
-  const [filesOpen, setFilesOpen] = useCollapsible()
+  const { open, setOpen, filesOpen, setFilesOpen, toggleFiles } =
+    useFilesDisclosure()
   const [attaching, setAttaching] = useState(false)
   const filesId = useId()
 
@@ -222,32 +214,15 @@ function FlowRow({
    */
   const flow = useWatch({ control: form.control, name: base })
   const properties = flow?.properties ?? []
-  const files = flow?.files ?? []
-
   // The flow's OWN files: io2p scopes an attach target with `flow: {direction, flowId}`, so these
   // belong to the flow, not to the process or to one of its properties.
+  const files = flow?.files ?? []
+  const fileBag = fileBagActions(form, `${base}.files`)
   const addFiles = (added: DraftFile[]) => {
-    form.setValue(`${base}.files`, [...files, ...added], { shouldDirty: true })
+    fileBag.add(added)
     setOpen(true)
     setFilesOpen(true)
   }
-  const removeFile = (localId: string) =>
-    form.setValue(
-      `${base}.files`,
-      files.filter((f) => f._localId !== localId),
-      { shouldDirty: true }
-    )
-  // Soft delete / restore already hit the server; the draft only catches up, so it stays clean.
-  const patchFile = (
-    localId: string,
-    patch: Partial<DraftFile>,
-    options?: { dirty?: boolean }
-  ) =>
-    form.setValue(
-      `${base}.files`,
-      files.map((f) => (f._localId === localId ? { ...f, ...patch } : f)),
-      { shouldDirty: options?.dirty ?? false }
-    )
 
   // A process flow arrives with `refName`; a TEMPLATE flow has no such field, so the id is resolved
   // here rather than printed.
@@ -417,33 +392,16 @@ function FlowRow({
 
         {/* One paperclip per flow, as on a property: it lists the flow's files, or attaches the
             first one while editing. */}
-        {files.length > 0 ? (
-          <FilesToggle
-            count={files.length}
-            open={filesOpen}
-            onToggle={() => {
-              setFilesOpen((v) => !v)
-              setOpen(true)
-            }}
-            controls={filesId}
-            label={t('objects.files.onFlow')}
-          />
-        ) : (
-          editing && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0 text-muted-foreground"
-              aria-label={t('objects.files.attach')}
-              title={t('objects.files.attach')}
-              data-testid={`flow-attach-${bag}-${index}`}
-              onClick={() => setAttaching(true)}
-            >
-              <Paperclip className="h-3.5 w-3.5" />
-            </Button>
-          )
-        )}
+        <FilesControl
+          variant="row"
+          count={files.length}
+          open={filesOpen}
+          onToggle={toggleFiles}
+          controls={filesId}
+          label={t('objects.files.onFlow')}
+          onAttach={editing ? () => setAttaching(true) : undefined}
+          attachTestId={`flow-attach-${bag}-${index}`}
+        />
 
         {editing && (
           <Button
@@ -469,8 +427,8 @@ function FlowRow({
             files={files}
             entityId={entityId}
             editing={editing}
-            onRemove={editing ? removeFile : undefined}
-            onChange={patchFile}
+            onRemove={editing ? fileBag.remove : undefined}
+            onChange={fileBag.patch}
             onAttach={editing ? () => setAttaching(true) : undefined}
           />
         )}

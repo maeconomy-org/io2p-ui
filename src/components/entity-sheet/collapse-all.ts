@@ -32,3 +32,33 @@ export function useCollapsible(): [boolean, SetOpen] {
   )
   return [open, setOpen]
 }
+
+/**
+ * The counter a list bumps to close everything under it. Pass `generation` to `CollapseAllContext`
+ * around the list, and `collapse` to its button.
+ */
+export function useCollapseAll(): { generation: number; collapse: () => void } {
+  const [generation, setGeneration] = useState(0)
+  const collapse = useCallback(() => setGeneration((g) => g + 1), [])
+  return { generation, collapse }
+}
+
+/**
+ * A card with a files list inside: opening the files from the card's header opens the card too, so
+ * the list is never toggled somewhere the user cannot see it.
+ */
+export function useFilesDisclosure(): {
+  open: boolean
+  setOpen: SetOpen
+  filesOpen: boolean
+  setFilesOpen: SetOpen
+  toggleFiles: () => void
+} {
+  const [open, setOpen] = useCollapsible()
+  const [filesOpen, setFilesOpen] = useCollapsible()
+  const toggleFiles = () => {
+    setFilesOpen((v) => !v)
+    setOpen(true)
+  }
+  return { open, setOpen, filesOpen, setFilesOpen, toggleFiles }
+}
