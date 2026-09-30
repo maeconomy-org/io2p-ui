@@ -291,9 +291,7 @@ export function useCountKeys(): ReadonlySet<string> {
   const { data } = useQuery({
     queryKey: queryKeys.units.all,
     queryFn: ({ signal }) => client.units.list({ signal }),
-    // io2p-client 0.4.0 does not type `countKeys` yet; 0.5.0 does, and the cast can go.
-    select: (list) =>
-      new Set((list as { countKeys?: string[] }).countKeys ?? []),
+    select: (list) => new Set(list.countKeys),
   })
   return data ?? NO_COUNT_KEYS
 }
