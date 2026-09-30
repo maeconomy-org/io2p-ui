@@ -650,7 +650,7 @@ function BindingPicker({
                     <span className="min-w-0 flex-1 truncate">{s.label}</span>
                     {s.num !== undefined && (
                       <span className="ml-1 shrink-0 text-muted-foreground">
-                        ({s.num})
+                        ({s.unit ? `${s.num} ${s.unit}` : s.num})
                       </span>
                     )}
                   </CommandItem>

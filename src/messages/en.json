@@ -1022,7 +1022,7 @@
       "description": "A formula is a reusable expression you can bind to a value."
     },
     "unit": "Result unit",
-    "unitHint": "Optional. Leave it empty and the result keeps the unit of the values it reads. Set it to choose the unit the result is shown in — a sum of weights declared t reads in tonnes. A formula that converts by itself, such as a width times a height, declares what its own arithmetic produces (m²).",
+    "unitHint": "Optional. Leave it empty and the node names the unit when it can: a weight times a quantity is a weight, a width times a height is an area. Set it to choose the unit the result is shown in (a sum of weights declared t reads in tonnes), or to name a unit the node cannot work out, such as kgCO2e from an energy times a factor.",
     "unitInferred": "Worked out from the values",
     "unitNone": "No unit",
     "unitCanonical": "stored in",

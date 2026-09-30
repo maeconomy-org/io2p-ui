@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { CalcInput } from 'io2p-client'
 
 import {
@@ -58,7 +59,7 @@ vi.mock('@/hooks/api/leaves', () => ({
 // `key` is the VALUE id and `propertyKey` the property's — the option's testid is built from the
 // latter, so the two are deliberately different here.
 const SIBLINGS = [
-  { key: 'v-1', propertyKey: 'volume', label: 'Volume', num: 10 },
+  { key: 'v-1', propertyKey: 'volume', label: 'Volume', num: 10, unit: 'm3' },
   { key: 'v-2', propertyKey: 'height', label: 'Height', num: 3 },
 ]
 
@@ -84,6 +85,27 @@ describe('FormulaBindings', () => {
   it('offers a control per formula variable', () => {
     renderBindings()
     expect(screen.getAllByRole('combobox')).toHaveLength(2)
+  })
+
+  // `10 t` and a plain `10000` hold the same number; only the unit tells them apart.
+  it('shows each value with its unit in the picker', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <FormulaBindings
+          calc={EMPTY_CALC}
+          siblings={SIBLINGS}
+          onChange={vi.fn()}
+        />
+      </QueryClientProvider>
+    )
+    fireEvent.click(screen.getAllByRole('combobox')[0])
+
+    expect(screen.getByTestId('formula-sibling-volume')).toHaveTextContent(
+      '(10 m3)'
+    )
+    expect(screen.getByTestId('formula-sibling-height')).toHaveTextContent(
+      '(3)'
+    )
   })
 
   it('renders a constant binding as selected rather than blank', () => {
