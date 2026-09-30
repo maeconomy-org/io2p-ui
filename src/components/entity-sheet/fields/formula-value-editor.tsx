@@ -312,6 +312,7 @@ export function FormulaBindings({
   const settledKey =
     settledBody === undefined ? '' : JSON.stringify(settledBody)
   const preview = settledKey === bodyKey ? settledAnswer : undefined
+  const busy = settledKey !== bodyKey || !!isFetching
   const warnings = preview?.warnings ?? []
   // The declare-unit warning says the same thing as the plain unchecked line, and more precisely.
   const unchecked =
@@ -403,7 +404,7 @@ export function FormulaBindings({
       <div
         role="status"
         aria-live="polite"
-        aria-busy={settledKey !== bodyKey || !!isFetching}
+        aria-busy={busy}
         className="space-y-2"
       >
         {/* RED, not amber: the node refuses this outright and writes an error row with no number,
@@ -477,6 +478,8 @@ export function FormulaBindings({
             {t('objects.formulaEditor.errorOnSave')}
           </p>
         ) : (
+          // Not while an answer is on its way: it would flash, then give way to the warnings.
+          !busy &&
           !unchecked &&
           !countedTwice &&
           warnings.length === 0 && (
@@ -716,12 +719,13 @@ export function useTemplateEquation(
   )
   const boundConstants = useConstants().useByIds(boundIds)
 
-  const bindingLabel = (variable: string): string => {
+  // An unbound variable keeps its own name in the equation: "Unbound × Unbound" says nothing.
+  const bindingLabel = (variable: string): string | undefined => {
     const arg = calc.args.find((a) => a.var === variable)
     if (arg?.constantId)
       return boundConstants.get(arg.constantId)?.name ?? t('common.unknown')
     if (arg?.ref) return labelForValue?.(arg.ref) ?? t('common.unknown')
-    return t('objects.formulaEditor.unbound')
+    return undefined
   }
 
   // Until the formula record loads there is no expression to write out.

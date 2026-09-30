@@ -42,7 +42,8 @@ function renderProvenance(
   provenance: ValueProvenance,
   unit?: string,
   textForValue: (id: string) => string | undefined = (id) =>
-    id === 'val-1' ? '3 m' : undefined
+    id === 'val-1' ? '3 m' : undefined,
+  usedAsMultiplier = false
 ) {
   return render(
     React.createElement(ValueProvenanceDisplay, {
@@ -51,6 +52,7 @@ function renderProvenance(
       display: '1.5 m',
       labelForValue: (id: string) => (id === 'val-1' ? 'Height' : undefined),
       textForValue,
+      usedAsMultiplier,
     })
   )
 }
@@ -253,8 +255,12 @@ describe('a result whose unit the node could not check', () => {
       'objects.properties.unitNotCountedShort'
     )
     openDetails()
+    // The row already says it is in no total; the details say only why.
     expect(
-      screen.getByText('objects.properties.unitNotCountedDetail')
+      screen.getAllByText('objects.properties.unitNotCountedShort')
+    ).toHaveLength(1)
+    expect(
+      screen.getByText('objects.properties.unitNotCountedCauses')
     ).toBeInTheDocument()
     expect(screen.getByTestId('provenance-fix')).toHaveTextContent(
       'objects.properties.fixNotCounted'
@@ -324,5 +330,41 @@ describe('a unit reached through a factor', () => {
     })
     openDetails()
     expect(screen.queryByTestId('provenance-factor')).toBeNull()
+  })
+})
+
+describe('the details, read in full', () => {
+  it('wraps a long equation once the details are open', () => {
+    renderProvenance(PROVENANCE)
+    const equation = screen.getByTestId('provenance-equation')
+    expect(equation).toHaveClass('truncate')
+
+    openDetails()
+    expect(equation).not.toHaveClass('truncate')
+  })
+
+  it('names the causes when a result is left out of every total', () => {
+    renderProvenance({ ...PROVENANCE, unitVerified: false }, 'kg')
+    openDetails()
+    expect(
+      screen.getByText('objects.properties.unitNotCountedCauses')
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('provenance-fix')).toHaveTextContent(
+      'objects.properties.fixNotCounted'
+    )
+  })
+
+  it('warns when a rule multiplies by an unchecked result, and only then', () => {
+    const unchecked = { ...PROVENANCE, unitVerified: false }
+    const { unmount } = renderProvenance(unchecked, undefined, undefined, true)
+    openDetails()
+    expect(screen.getByTestId('provenance-multiplier')).toHaveTextContent(
+      'objects.properties.unitNotCheckedMultiplier'
+    )
+    unmount()
+
+    renderProvenance(unchecked)
+    openDetails()
+    expect(screen.queryByTestId('provenance-multiplier')).toBeNull()
   })
 })

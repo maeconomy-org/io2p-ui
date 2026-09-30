@@ -322,7 +322,7 @@ export function RollupLine({
       <p>{t('objects.properties.rollupNoNumbers')}</p>
     )
   ) : (
-    <LeadAmount bucket={lead} share={share} />
+    <LeadAmount bucket={lead} others={rest.length} />
   )
 
   return (
@@ -411,28 +411,27 @@ export function RollupStaleBadge({ className }: { className?: string }) {
  */
 function LeadAmount({
   bucket,
-  share,
+  others,
 }: {
   bucket: RollupBucket
-  share?: ReturnType<typeof ownShare>
+  /** How many other totals the details hold, so the card at rest does not hide them. */
+  others: number
 }) {
   const t = useTranslations()
   const format = useFormatter()
 
-  // The object IS the total. Saying it twice — once as the property's own value,
-  // once as a "total" — invites the reader to look for a second number that does
-  // not exist, so the line says so outright instead of restating the figure.
-  if (share?.onlyContributor) {
-    return (
-      <p data-testid="rollup-only-self">
-        {t('objects.properties.rollupOnlyThisObject')}
-      </p>
-    )
-  }
   return (
     <p className="text-base font-semibold tabular-nums text-foreground">
       {format.number(bucket.num)}
       {bucket.unit ? ` ${bucket.unit}` : ''}
+      {others > 0 && (
+        <span
+          className="ml-2 text-xs font-normal text-muted-foreground"
+          data-testid="rollup-others"
+        >
+          {t('objects.properties.rollupOtherTotals', { count: others })}
+        </span>
+      )}
     </p>
   )
 }
@@ -448,7 +447,14 @@ function LeadBreakdown({
   const t = useTranslations()
   const format = useFormatter()
   const unit = bucket.unit ? ` ${bucket.unit}` : ''
-  if (share?.onlyContributor) return null
+  // A card only shows when some total is not this object alone, so here another total sits
+  // beside this one: say plainly that this one has nothing below it.
+  if (share?.onlyContributor)
+    return (
+      <p data-testid="rollup-only-self">
+        {t('objects.properties.rollupOnlyThisObject')}
+      </p>
+    )
 
   const split = share && bucket.num > 0 ? share : null
 

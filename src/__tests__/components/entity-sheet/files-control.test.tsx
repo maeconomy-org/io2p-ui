@@ -72,4 +72,25 @@ describe('the one files control', () => {
     fireEvent.click(screen.getByTestId('attach-1'))
     expect(onAttach).toHaveBeenCalledOnce()
   })
+
+  it('keeps the same button, and its focus, when the first file arrives', () => {
+    const props = {
+      variant: 'field' as const,
+      open: false,
+      onToggle: vi.fn(),
+      controls: 'list-1',
+      label: 'Files on this value',
+      onAttach: vi.fn(),
+      attachTestId: 'attach-1',
+    }
+    const { rerender } = render(<FilesControl {...props} count={0} />)
+    const attach = screen.getByTestId('attach-1')
+    attach.focus()
+
+    rerender(<FilesControl {...props} count={1} />)
+
+    const toggle = screen.getByTestId('files-toggle')
+    expect(toggle).toBe(attach)
+    expect(document.activeElement).toBe(toggle)
+  })
 })

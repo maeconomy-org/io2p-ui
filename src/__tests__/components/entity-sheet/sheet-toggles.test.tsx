@@ -114,7 +114,7 @@ describe('collapse all', () => {
 
 describe('the grid', () => {
   // A tile is for scanning: the name and the total. Opening a breakdown belongs to the list.
-  it('shows a total as a name and a number, with nothing to open', () => {
+  it('shows a total as a name, a number and its mark, with nothing to open', () => {
     view.current = 'grid'
     renderView(
       [],
@@ -143,7 +143,8 @@ describe('the grid', () => {
     const card = screen.getByTestId('rollup-card')
     expect(card).toHaveTextContent('150 kg')
     expect(within(card).queryByTestId('rollup-toggle')).toBeNull()
-    expect(within(card).queryByTestId('rollup-issue')).toBeNull()
+    // Lean, but a total that left something out still says so.
+    expect(within(card).getByTestId('rollup-issue')).toBeInTheDocument()
     expect(screen.queryByTestId('collapse-all')).toBeNull()
   })
 })

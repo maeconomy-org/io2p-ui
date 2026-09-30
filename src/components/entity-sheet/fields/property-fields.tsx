@@ -829,6 +829,7 @@ function PropertyRow({
                             />
                           }
                           trailing={rowButtons}
+                          usedAsMultiplier={quantity !== undefined}
                         />
                       ) : (
                         <div className="flex items-center gap-2">

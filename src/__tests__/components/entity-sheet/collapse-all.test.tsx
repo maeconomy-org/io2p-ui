@@ -58,4 +58,17 @@ describe('a card with files inside', () => {
     expect(result.current.filesOpen).toBe(false)
     expect(result.current.open).toBe(true)
   })
+
+  it('opens card and list in one click after the card was closed with the list open', () => {
+    const { result } = renderHook(() => useFilesDisclosure())
+
+    act(() => result.current.toggleFiles())
+    act(() => result.current.setOpen(false))
+    // Hidden with its card, so it does not claim to be open.
+    expect(result.current.filesOpen).toBe(false)
+
+    act(() => result.current.toggleFiles())
+    expect(result.current.open).toBe(true)
+    expect(result.current.filesOpen).toBe(true)
+  })
 })

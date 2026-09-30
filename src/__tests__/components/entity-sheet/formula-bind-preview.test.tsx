@@ -475,6 +475,10 @@ describe('authoring warnings', () => {
     preview.isFetching = true
     renderBindings()
     expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
+    // Saying "calculated when you save" now would flash, then give way to what the answer says.
+    expect(
+      screen.queryByText('objects.formulaEditor.calculatedOnSave')
+    ).not.toBeInTheDocument()
   })
 
   // A live region announces what appears in it, so it has to be there before the answer is.

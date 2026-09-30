@@ -32,4 +32,9 @@ describe('a template formula', () => {
     expect(screen.getByText('double')).toBeInTheDocument()
     expect(screen.getByText('templates.formulaInert')).toBeInTheDocument()
   })
+
+  it('keeps an unbound variable by its own name', () => {
+    render(<FormulaSummary calc={{ formulaId: 'f-1', args: [] }} />)
+    expect(screen.getByTestId('formula-summary')).toHaveTextContent('= x × 2')
+  })
 })

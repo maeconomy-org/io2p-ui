@@ -66,6 +66,7 @@ import {
 import {
   ValueProvenanceDisplay,
   labelForValueId,
+  uncheckedState,
   type DerivedValues,
 } from './value-provenance'
 import { fileCount, findValue, liveValues } from './property-values'
@@ -629,6 +630,34 @@ function RollupCard({
   // Something below was not added in. At rest the card says only that there is something to look
   // at; the counts and reasons are in the expanded part.
   const issue = entry.skippedCount > 0
+  // At rest, on the list and the grid card alike: a scaled total is not the sum of the values on
+  // the rows (12 kg at a quantity of 5 reads 60 kg), and naming the multiplier is what stops that
+  // looking like an error.
+  const multiplierNote = entry.multiplyBy && (
+    <span
+      className="shrink-0 text-xs text-muted-foreground"
+      data-testid="rollup-multiplier"
+    >
+      {t('objects.properties.rollupMultipliedBy', {
+        key: resolvePropertyLabel(
+          entry.multiplyBy.propertyKey,
+          undefined,
+          locale
+        ),
+      })}
+    </span>
+  )
+  // On the grid card too: the grid is lean, but a total that left something out must still say so.
+  const issueIcon = issue && (
+    <AlertTriangle
+      className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+      role="img"
+      aria-label={t('objects.properties.rollupSkipped', {
+        count: entry.skippedCount,
+      })}
+      data-testid="rollup-issue"
+    />
+  )
 
   if (compact) {
     return (
@@ -644,7 +673,11 @@ function RollupCard({
           <span className="truncate text-sm font-medium">
             {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
           </span>
-          {updating && <RollupStaleBadge className="ml-auto" />}
+          <span className="ml-auto flex shrink-0 items-center gap-1.5">
+            {multiplierNote}
+            {issueIcon}
+            {updating && <RollupStaleBadge />}
+          </span>
         </div>
         <RollupLine
           entry={entry}
@@ -698,6 +731,7 @@ function RollupCard({
             >
               {t('objects.properties.rollupTotal')}
             </Badge>
+            {multiplierNote}
           </div>
           <RollupLine
             entry={entry}
@@ -709,16 +743,7 @@ function RollupCard({
           />
         </div>
         <span className="flex shrink-0 items-center gap-1.5 pt-0.5">
-          {issue && (
-            <AlertTriangle
-              className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400"
-              role="img"
-              aria-label={t('objects.properties.rollupSkipped', {
-                count: entry.skippedCount,
-              })}
-              data-testid="rollup-issue"
-            />
-          )}
+          {issueIcon}
           {updating && <RollupStaleBadge />}
           <ChevronDown
             className={cn(
@@ -738,22 +763,6 @@ function RollupCard({
             updating && 'opacity-60'
           )}
         >
-          {/* A scaled total is not the sum of the values on the rows: 12 kg at a quantity of 5
-              reads 60 kg. Naming the multiplier is what stops that looking like an error. */}
-          {entry.multiplyBy && (
-            <p
-              className="text-xs text-muted-foreground"
-              data-testid="rollup-multiplier"
-            >
-              {t('objects.properties.rollupMultipliedBy', {
-                key: resolvePropertyLabel(
-                  entry.multiplyBy.propertyKey,
-                  undefined,
-                  locale
-                ),
-              })}
-            </p>
-          )}
           <RollupLine
             entry={entry}
             ownUnit={unit}
@@ -801,6 +810,14 @@ function PropertyCard({
   const count = allowFiles ? fileCount(property) : 0
   const ownFiles = allowFiles ? (property.files?.length ?? 0) : 0
   const live = liveValues(property)
+  // The values a total adds: a number, and not one whose unit could not be checked (left out).
+  const counted = live.filter((v) => {
+    const trace = v.id ? derivedValues.get(v.id) : undefined
+    return (
+      v.num !== undefined &&
+      !(trace && uncheckedState(trace, v.unit) === 'left-out')
+    )
+  })
   // A dictionary term reads in the viewer's own language; anything else keeps the authored text.
   const displayLabel = resolvePropertyLabel(
     property.key,
@@ -917,13 +934,13 @@ function PropertyCard({
         )}
         {/* Several numbers under a key a total adds up: each one is added, which is easy to miss
             when a second value was meant to correct the first. */}
-        {totalled && live.filter((v) => v.num !== undefined).length > 1 && (
+        {totalled && counted.length > 1 && (
           <p
             className="text-xs text-muted-foreground"
             data-testid="values-totalled"
           >
             {t('objects.properties.valuesTotalled', {
-              count: live.filter((v) => v.num !== undefined).length,
+              count: counted.length,
             })}
           </p>
         )}
@@ -1016,6 +1033,7 @@ function ValueRow({
           textForValue={textForValue}
           marker={marker}
           trailing={filesToggle}
+          usedAsMultiplier={quantity !== undefined}
         />
       ) : (
         <div className="flex flex-wrap items-center gap-2 text-sm">

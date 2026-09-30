@@ -1555,3 +1555,111 @@ describe('rollup rows in the property read view', () => {
     expect(screen.getByText('1650 m3')).toBeInTheDocument()
   })
 })
+
+describe('a total this object makes alone, beside another total', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    view = 'detailed'
+  })
+
+  const alone = (buckets: RollupBucket[]) =>
+    new Map([['rule-mass', entry({ buckets })]])
+  const own = bucket({
+    dimension: 'mass',
+    unit: 'kg',
+    num: 2400,
+    contributorCount: 1,
+  })
+  const pieces = bucket({
+    dimension: 'count',
+    unit: 'pcs',
+    num: 3,
+    contributorCount: 1,
+  })
+
+  it('shows no card when this object makes the only total', () => {
+    renderRollupsAtRest([massProperty()], alone([own]))
+    expect(screen.queryByTestId('rollup-card')).not.toBeInTheDocument()
+  })
+
+  it('shows its number at rest and hints at the other total, rather than hiding it', () => {
+    renderRollupsAtRest([massProperty()], alone([own, pieces]))
+
+    const line = screen.getByTestId('rollup-line')
+    expect(line).toHaveTextContent('2400 kg')
+    expect(screen.getByTestId('rollup-others')).toHaveTextContent(
+      'objects.properties.rollupOtherTotals:{"count":1}'
+    )
+    expect(screen.queryByTestId('rollup-only-self')).not.toBeInTheDocument()
+  })
+
+  it('says "this object only" in the details, next to the other total', () => {
+    renderRollups([massProperty()], alone([own, pieces]))
+
+    expect(screen.getByTestId('rollup-only-self')).toBeInTheDocument()
+    expect(screen.getByTestId('rollup-details')).toHaveTextContent('3 pcs')
+  })
+})
+
+describe('a total in the grid view', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('still says, with its mark, that something below was left out', () => {
+    view = 'grid'
+    renderRollupsAtRest(
+      [massProperty()],
+      new Map([['rule-mass', entry({ skippedCount: 2 })]])
+    )
+    expect(screen.getByTestId('rollup-issue')).toHaveAttribute(
+      'aria-label',
+      'objects.properties.rollupSkipped:{"count":2}'
+    )
+    view = 'detailed'
+  })
+
+  it('names its multiplier, as the list card does at rest', () => {
+    view = 'grid'
+    renderRollupsAtRest(
+      [massProperty()],
+      new Map([
+        [
+          'rule-mass',
+          entry({
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
+          }),
+        ],
+      ])
+    )
+    expect(screen.getByTestId('rollup-multiplier')).toHaveTextContent(
+      'objects.properties.rollupMultipliedBy'
+    )
+    view = 'detailed'
+  })
+})
+
+describe('a scaled total at rest', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    view = 'detailed'
+  })
+
+  it('names its multiplier without being opened', () => {
+    renderRollupsAtRest(
+      [massProperty()],
+      new Map([
+        [
+          'rule-mass',
+          entry({
+            multiplyBy: { propertyKey: 'quantity', whenMissing: 'one' },
+          }),
+        ],
+      ])
+    )
+    expect(screen.getByTestId('rollup-multiplier')).toHaveTextContent(
+      'objects.properties.rollupMultipliedBy'
+    )
+    expect(screen.queryByTestId('rollup-details')).not.toBeInTheDocument()
+  })
+})

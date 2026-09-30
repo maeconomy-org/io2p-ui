@@ -44,6 +44,7 @@ export function ValueProvenanceDisplay({
   textForValue,
   marker,
   trailing,
+  usedAsMultiplier = false,
   className,
 }: {
   provenance: ValueProvenanceData
@@ -59,6 +60,8 @@ export function ValueProvenanceDisplay({
   textForValue?: (valueId: string) => string | undefined
   /** A value marker (the multiplier refusal) placed with the marks, before the toggle. */
   marker?: React.ReactNode
+  /** A rollup rule multiplies by this value, so an unchecked result drops the object from it. */
+  usedAsMultiplier?: boolean
   /** Another row toggle (the value's files), after the formula's. */
   trailing?: React.ReactNode
   className?: string
@@ -99,8 +102,13 @@ export function ValueProvenanceDisplay({
             {display}
           </span>
         )}
+        {/* One line at rest; with the details open it wraps, so a long equation can be read in
+            full without a hover, which keyboard and touch do not have. */}
         <span
-          className="min-w-0 truncate text-muted-foreground"
+          className={cn(
+            'min-w-0 text-muted-foreground',
+            open ? 'whitespace-normal break-words' : 'truncate'
+          )}
           title={equation}
           data-testid="provenance-equation"
         >
@@ -185,6 +193,7 @@ export function ValueProvenanceDisplay({
           unchecked={unchecked}
           labelForValue={labelForValue}
           argText={argText}
+          usedAsMultiplier={usedAsMultiplier}
         />
       )}
     </div>
@@ -202,11 +211,13 @@ function FormulaFacts({
   unchecked,
   labelForValue,
   argText,
+  usedAsMultiplier,
 }: {
   id: string
   provenance: ValueProvenanceData
   unit?: string
   unchecked: ReturnType<typeof uncheckedState> | false
+  usedAsMultiplier: boolean
   labelForValue?: (valueId: string) => string | undefined
   argText: (arg: ValueProvenanceData['args'][number]) => string | undefined
 }) {
@@ -248,17 +259,25 @@ function FormulaFacts({
       {error.detail && <p className="text-[10px] opacity-80">{error.detail}</p>}
     </div>
   ) : unchecked ? (
-    <p
-      className={cn(
-        unchecked === 'left-out' && 'text-amber-700 dark:text-amber-400'
+    <div className="space-y-0.5">
+      {/* Left out: the row's reason line already says it is in no total, so the details say
+          only what the row does not — why. */}
+      <p>
+        {t(
+          unchecked === 'left-out'
+            ? 'objects.properties.unitNotCountedCauses'
+            : 'objects.properties.unitNotCheckedDetail'
+        )}
+      </p>
+      {usedAsMultiplier && (
+        <p
+          className="text-amber-700 dark:text-amber-400"
+          data-testid="provenance-multiplier"
+        >
+          {t('objects.properties.unitNotCheckedMultiplier')}
+        </p>
       )}
-    >
-      {t(
-        unchecked === 'left-out'
-          ? 'objects.properties.unitNotCountedDetail'
-          : 'objects.properties.unitNotCheckedDetail'
-      )}
-    </p>
+    </div>
   ) : provenance.unitVerified === true ? (
     <p className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
       <Check className="h-3 w-3" />

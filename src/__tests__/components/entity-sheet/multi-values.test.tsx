@@ -45,11 +45,15 @@ const ruleFor = (propertyKey: string) =>
     ],
   ]) as never
 
-function renderProperties(properties: DraftProperty[], rollups?: never) {
+function renderProperties(
+  properties: DraftProperty[],
+  rollups?: never,
+  derivedValues: never = new Map() as never
+) {
   return render(
     <PropertyReadView
       properties={properties}
-      derivedValues={new Map()}
+      derivedValues={derivedValues}
       rollups={rollups}
       allowViewToggle={false}
     />
@@ -129,6 +133,28 @@ describe('several values under one property', () => {
     renderProperties([weight])
     fireEvent.click(screen.getByText('Weight'))
     expect(screen.queryByTestId('values-totalled')).toBeNull()
+  })
+
+  it('counts only the numbers a total adds, not one it leaves out', () => {
+    const weight: DraftProperty = {
+      id: 'w',
+      key: 'weight',
+      label: 'weight',
+      values: [
+        { id: 'w1', data: '12 kg', num: 12, unit: 'kg' },
+        { id: 'w2', data: '30 kg', num: 30, unit: 'kg' },
+        { id: 'w3', data: '5 kg', num: 5, unit: 'kg' },
+      ],
+    }
+    // w3 is a formula result whose unit could not be checked: it is in no total.
+    const leftOut = new Map([
+      ['w3', { expression: 'log(a)', args: [], unitVerified: false }],
+    ]) as never
+    renderProperties([weight], ruleFor('weight'), leftOut)
+    fireEvent.click(screen.getByText('Weight'))
+    expect(screen.getByTestId('values-totalled')).toHaveTextContent(
+      'objects.properties.valuesTotalled:{"count":2}'
+    )
   })
 
   // Words under a key a rule multiplies by are a refused quantity; the red mark on each row is the

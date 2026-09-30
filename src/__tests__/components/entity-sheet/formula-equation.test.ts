@@ -36,4 +36,33 @@ describe('equationText', () => {
       '2 kW × 5 h > 20 kWh ? 1 : 0'
     )
   })
+
+  it('fills in a name that starts with $, and nothing inside it', () => {
+    const text = (m: Record<string, string>) => (v: string) => m[v]
+    expect(
+      equationText('$CO2 * a', text({ $CO2: '0.4', a: '2 kg', CO2: 'no' }))
+    ).toBe('0.4 × 2 kg')
+  })
+
+  it('leaves number literals whole, whatever the variables are called', () => {
+    const text = (m: Record<string, string>) => (v: string) => m[v]
+    expect(equationText('2.5e-3 * e', text({ e: '100 kWh' }))).toBe(
+      '2.5e-3 × 100 kWh'
+    )
+    expect(equationText('0x10 * x10', text({ x10: '5' }))).toBe('0x10 × 5')
+    expect(equationText('1e+3 * e', text({ e: '2' }))).toBe('1e+3 × 2')
+  })
+
+  it('brackets a filled-in text that would change how the expression reads', () => {
+    const text = (m: Record<string, string>) => (v: string) => m[v]
+    expect(equationText('x ^ 2', text({ x: '-3' }))).toBe('(-3) ^ 2')
+    expect(equationText('a - b', text({ a: '10', b: '-5' }))).toBe('10 - (-5)')
+    expect(
+      equationText('e / f', text({ e: '100 kWh', f: '2 kgCO2e/kWh' }))
+    ).toBe('100 kWh ÷ (2 kgCO2e/kWh)')
+    // A plain unit with a space is not an operator.
+    expect(equationText('p * t', text({ p: '2 kW', t: '5 h' }))).toBe(
+      '2 kW × 5 h'
+    )
+  })
 })

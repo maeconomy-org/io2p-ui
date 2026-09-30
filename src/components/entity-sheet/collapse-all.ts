@@ -55,10 +55,14 @@ export function useFilesDisclosure(): {
   toggleFiles: () => void
 } {
   const [open, setOpen] = useCollapsible()
-  const [filesOpen, setFilesOpen] = useCollapsible()
+  const [listOpen, setFilesOpen] = useCollapsible()
+  // The list only shows inside an open card; closing the card must not leave it "open" unseen.
+  const filesOpen = open && listOpen
   const toggleFiles = () => {
-    setFilesOpen((v) => !v)
-    setOpen(true)
+    if (!open) {
+      setOpen(true)
+      setFilesOpen(true)
+    } else setFilesOpen((v) => !v)
   }
   return { open, setOpen, filesOpen, setFilesOpen, toggleFiles }
 }
