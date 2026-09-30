@@ -281,7 +281,13 @@ export function FormulaBindings({
       if (stored) {
         args.push(stored)
       } else if (sibling.data) {
-        args.push({ var: variable, data: sibling.data })
+        // The key lets the node read a plain number under a count key as pcs, as it will store it.
+        // io2p-client 0.4.0 does not type `key` yet; 0.5.0 does, and the cast can go.
+        args.push({
+          var: variable,
+          data: sibling.data,
+          key: sibling.propertyKey,
+        } as PreviewArg)
       } else {
         return undefined
       }

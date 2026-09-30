@@ -160,6 +160,21 @@ describe('the question the editor asks', () => {
     expect((preview.lastBody as { args: unknown[] }).args[0]).toEqual({
       var: 'a',
       data: '10 t',
+      key: 'v-a',
+    })
+  })
+
+  // "5,5" has no number the UI can read, but under `quantity` the node stores it as pcs.
+  it('sends the property key with a just-typed value, so a count key reads as it is stored', () => {
+    renderBindings([
+      { ...sib('v-a', undefined, undefined, '5,5'), propertyKey: 'quantity' },
+      TWO_TONNES[1],
+    ])
+
+    expect((preview.lastBody as { args: unknown[] }).args[0]).toEqual({
+      var: 'a',
+      data: '5,5',
+      key: 'quantity',
     })
   })
 

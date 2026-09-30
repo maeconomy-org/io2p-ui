@@ -3,7 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-import { useFormulas, useConstants, useUnits } from '@/hooks/api/leaves'
+import {
+  useCountKeys,
+  useFormulas,
+  useConstants,
+  useUnits,
+} from '@/hooks/api/leaves'
 import { queryKeys } from '@/lib/query-keys'
 
 const formulas = {
@@ -157,15 +162,26 @@ describe('leaf hooks', () => {
         toCanonical: 1,
       },
     ]
-    units.all.mockResolvedValue(vocabulary)
+    units.list.mockResolvedValue({ units: vocabulary, countKeys: ['quantity'] })
 
     const { result } = renderHook(() => useUnits(), {
       wrapper: makeWrapper(),
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(units.all).toHaveBeenCalled()
+    expect(units.list).toHaveBeenCalled()
     expect(result.current.data).toEqual(vocabulary)
+  })
+
+  it('useCountKeys reads the count keys from the same request as useUnits', async () => {
+    units.list.mockResolvedValue({ units: [], countKeys: ['quantity'] })
+
+    const { result } = renderHook(() => [useUnits(), useCountKeys()] as const, {
+      wrapper: makeWrapper(),
+    })
+
+    await waitFor(() => expect(result.current[1].has('quantity')).toBe(true))
+    expect(units.list).toHaveBeenCalledTimes(1)
   })
 
   // A correction WRITES to the target — the node stamps its `supersededBy` in the same command.

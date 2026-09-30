@@ -169,7 +169,6 @@ export const queryKeys = {
   // invalidate narrowly and nothing to page.
   units: {
     all: ['units'] as const,
-    list: ['units', 'list'] as const,
   },
 
   // ─── Rollup rules (library resource) ─────────────────────

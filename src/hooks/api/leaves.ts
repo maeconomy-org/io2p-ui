@@ -274,7 +274,8 @@ export function useUnits(options?: { enabled?: boolean }) {
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.units.all,
-    queryFn: ({ signal }) => client.units.all({ signal }),
+    queryFn: ({ signal }) => client.units.list({ signal }),
+    select: (list) => list.units,
     enabled: options?.enabled ?? true,
   })
 }
@@ -288,7 +289,7 @@ const NO_COUNT_KEYS: ReadonlySet<string> = new Set()
 export function useCountKeys(): ReadonlySet<string> {
   const client = useIomClient()
   const { data } = useQuery({
-    queryKey: queryKeys.units.list,
+    queryKey: queryKeys.units.all,
     queryFn: ({ signal }) => client.units.list({ signal }),
     // io2p-client 0.4.0 does not type `countKeys` yet; 0.5.0 does, and the cast can go.
     select: (list) =>
