@@ -1,9 +1,11 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useId, useMemo } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import {
+  AlertTriangle,
   Calculator,
+  ChevronDown,
   ChevronRight,
   LayoutGrid,
   List,
@@ -25,9 +27,16 @@ import {
   resolvePropertyLabel,
   type PropertyDictionaryLocale,
 } from '@/constants/property-dictionary'
-import type { EntityRollupEntry } from 'io2p-client'
+import type { CalcInput, EntityRollupEntry } from 'io2p-client'
 
-import { FilesDisclosure } from '../files'
+import { FileList, FilesToggle } from '../files'
+import {
+  CollapseAllContext,
+  useCollapseAll,
+  useCollapsible,
+  useFilesDisclosure,
+} from '../collapse-all'
+import { ListToolbar } from './collapse-all-button'
 import { DeletedRow } from './deleted-row'
 import {
   RollupLine,
@@ -40,7 +49,7 @@ import {
   ownShare,
   rollupSaysSomething,
 } from './rollup-line'
-import { FormulaSummary } from './formula-value-editor'
+import { FormulaSummary, useTemplateEquation } from './formula-value-editor'
 import {
   ValueNormalization,
   derivedText,
@@ -57,25 +66,13 @@ import {
 import {
   ValueProvenanceDisplay,
   labelForValueId,
+  uncheckedState,
   type DerivedValues,
 } from './value-provenance'
+import { fileCount, findValue, liveValues } from './property-values'
 
 /** Resolves a value id named in a formula trace to the label of the property holding it. */
 type LabelForValue = (valueId: string) => string | undefined
-
-// Deleted values still render (struck through), but they don't count toward a summary or a badge —
-// "3 values" should mean three live ones.
-function liveValues(p: DraftProperty) {
-  return p.values.filter((v) => !v.deleted)
-}
-
-// Total files attached anywhere under a property (its own + its values') — drives the paperclip badge.
-function fileCount(p: DraftProperty): number {
-  return (
-    (p.files?.length ?? 0) +
-    liveValues(p).reduce((n, v) => n + (v.files?.length ?? 0), 0)
-  )
-}
 
 /**
  * The canonical unit of the property's own value, if it has one.
@@ -90,35 +87,151 @@ function ownUnit(values: NumericValues): string | undefined {
   return values.find((v) => v.unit !== undefined && !leftOut(v))?.unit
 }
 
+/** The first values, then how many more: `12 kg · 30 kg · +1` says more than "3 values". */
+function TemplateEquation({
+  calc,
+  labelForValue,
+}: {
+  calc: CalcInput
+  labelForValue: LabelForValue
+}) {
+  const { equation } = useTemplateEquation(calc, labelForValue)
+  return <>{equation ? `= ${equation}` : '—'}</>
+}
+
 function valueSummary(
   p: DraftProperty,
-  manyLabel: string,
   display: (v: DraftValue) => string
 ): string {
   const values = liveValues(p)
   if (values.length === 0) return '—'
-  if (values.length === 1) return display(values[0])
-  return manyLabel
+  const shown = values.slice(0, 2).map(display)
+  const more = values.length - shown.length
+  return more > 0 ? [...shown, `+${more}`].join(' · ') : shown.join(' · ')
+}
+
+// Short, plain words: a colour, a material, a code. Anything with a number, a file, a formula or a
+// mark to show keeps its own row, where there is room for them.
+const CHIP_MAX = 24
+
+function chipsFit(
+  values: DraftValue[],
+  derivedValues: DerivedValues,
+  boundValueIds: ReadonlySet<string>
+): boolean {
+  return (
+    values.length > 1 &&
+    values.every(
+      (v) =>
+        v.num === undefined &&
+        !v.calc &&
+        !(v.files?.length ?? 0) &&
+        (v.data ?? '').length > 0 &&
+        (v.data ?? '').length <= CHIP_MAX &&
+        !(v.id && (derivedValues.has(v.id) || boundValueIds.has(v.id)))
+    )
+  )
+}
+
+const CHIPS_SHOWN = 5
+
+function ValueChips({ values }: { values: DraftValue[] }) {
+  const t = useTranslations()
+  const [all, setAll] = useCollapsible()
+  const shown = all ? values : values.slice(0, CHIPS_SHOWN)
+  const hidden = values.length - shown.length
+  return (
+    <ul
+      className="flex flex-wrap items-center gap-1.5"
+      data-testid="value-chips"
+    >
+      {shown.map((v, i) => (
+        <li
+          key={v.id ?? i}
+          className="rounded-full border bg-background px-2.5 py-0.5 text-sm"
+        >
+          {v.data}
+        </li>
+      ))}
+      {(hidden > 0 || all) && values.length > CHIPS_SHOWN && (
+        <li>
+          <button
+            type="button"
+            onClick={() => setAll((v) => !v)}
+            aria-expanded={all}
+            className="text-sm text-primary underline-offset-2 hover:underline"
+          >
+            {all
+              ? t('objects.properties.fewerValues')
+              : t('objects.properties.moreValues', { count: hidden })}
+          </button>
+        </li>
+      )}
+    </ul>
+  )
 }
 
 /**
- * How one value READS — one definition for the grid summary, the collapsed header and the row,
- * so the same number cannot appear three ways in one sheet.
+ * How one value READS, with nothing when it has no text: the equation then names the variable
+ * instead. A value switched from a formula to typed text (`calc: null`) reads as typed, not as the
+ * number the server calculated before.
  */
-function useValueDisplay(derivedValues: DerivedValues) {
+function useReadableValue(derivedValues: DerivedValues) {
   const format = useFormatter()
   return useCallback(
-    (value: DraftValue): string => {
-      const fallback = value.data || '—'
-      if (!value.id || !derivedValues.has(value.id)) return fallback
+    (value: DraftValue): string | undefined => {
+      const typed = value.data || undefined
+      if (!value.id || !derivedValues.has(value.id) || value.calc === null)
+        return typed
+      // The node keeps 12 significant digits; a reader needs a few. The row's title keeps them all.
+      const readable = (n: number) =>
+        Math.abs(n) >= 1 || n === 0
+          ? format.number(n, { maximumFractionDigits: 3 })
+          : format.number(n, { maximumSignificantDigits: 4 })
       return (
-        derivedText(value, derivedValues.get(value.id), (n) =>
-          format.number(n)
-        ) ?? fallback
+        derivedText(value, derivedValues.get(value.id), readable) ??
+        (typed && readableData(typed, readable))
       )
     },
     [derivedValues, format]
   )
+}
+
+/**
+ * How one value reads on its own — one definition for the grid summary, the collapsed header and
+ * the row, so the same number cannot appear three ways in one sheet.
+ */
+export function useValueDisplay(derivedValues: DerivedValues) {
+  const readableValue = useReadableValue(derivedValues)
+  return useCallback(
+    (value: DraftValue): string => readableValue(value) ?? '—',
+    [readableValue]
+  )
+}
+
+/**
+ * The text a formula's input reads as, by the input's value id, in read AND edit mode. Undefined
+ * when there is none, so `equationText` keeps the variable's name.
+ */
+export function useValueText(
+  properties: DraftProperty[],
+  derivedValues: DerivedValues
+) {
+  const readableValue = useReadableValue(derivedValues)
+  return useCallback(
+    (valueId: string): string | undefined => {
+      const v = findValue(properties, valueId)?.value
+      return v && readableValue(v)
+    },
+    [properties, readableValue]
+  )
+}
+
+// A declared result arrives as text in its declared unit (`2.30258509299 kg`), so only its leading
+// number is reformatted; anything else passes through.
+function readableData(data: string, readable: (n: number) => string): string {
+  const match = /^(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)(.*)$/i.exec(data)
+  return match ? `${readable(Number(match[1]))}${match[2]}` : data
 }
 
 // Read-only Properties: a collapsible card per property (list) or a compact grid. Files stay inside
@@ -137,8 +250,20 @@ export function PropertyReadView({
   onFileChange,
   allowFiles = true,
   allowViewToggle = true,
+  siblingSource,
+  heading,
 }: {
   properties: DraftProperty[]
+  /**
+   * A section heading, for a sheet where the properties share a tab with other fields (a process's
+   * Details). Edit mode shows the same heading above its list, so the section reads alike in both.
+   */
+  heading?: string
+  /**
+   * Every property a formula here may read. A process flow's formula may bind a value from another
+   * flow or from the process itself, which `properties` (this flow's own) does not hold.
+   */
+  siblingSource?: DraftProperty[]
   derivedValues: DerivedValues
   /** Subtree totals keyed by RULE ID — one rule per key, per owner. Objects only. */
   rollups?: ReadonlyMap<string, EntityRollupEntry>
@@ -152,7 +277,9 @@ export function PropertyReadView({
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
   const [view, setView] = usePreference('propertiesView')
+  const { generation, collapse } = useCollapseAll()
   const displayValue = useValueDisplay(derivedValues)
+  const textForValue = useValueText(siblingSource ?? properties, derivedValues)
   const boundValueIds = useMemo(
     () => formulaBoundValueIds(derivedValues),
     [derivedValues]
@@ -174,6 +301,13 @@ export function PropertyReadView({
   // From the RAW map, not `liveRollups` below: an entry with nothing to show still names the key
   // its rule multiplies by, and that key's values are still inputs to a total.
   const multiplierKeys = useMemo(() => multiplierKeysOf(rollups), [rollups])
+  const totalledKeys = useMemo(
+    () =>
+      new Set(
+        [...(rollups?.values() ?? [])].map((e) => e.propertyKey.toLowerCase())
+      ),
+    [rollups]
+  )
   const quantities = useMemo(
     () =>
       new Map(
@@ -344,115 +478,118 @@ export function PropertyReadView({
 
   // Not `properties.length` — an object whose rules all cover keys it never authored has only
   // orphan rows, and testing the properties alone would discard exactly those.
+  const headingEl = heading && (
+    <h3 className="text-sm font-medium">{heading}</h3>
+  )
+
   if (properties.length === 0 && rollupCards.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {t('objects.detailsSheet.noProperties')}
-      </p>
+      <div className="space-y-2">
+        {headingEl}
+        <p className="text-sm text-muted-foreground">
+          {t('objects.detailsSheet.noProperties')}
+        </p>
+      </div>
     )
   }
 
   return (
-    <div className="space-y-3">
-      {allowViewToggle && (
-        <div className="flex justify-end">
-          <ViewToggle
-            value={view}
-            onChange={setView}
-            options={[
-              {
-                value: 'detailed',
-                icon: List,
-                label: t('objects.properties.detailedView'),
-              },
-              {
-                value: 'grid',
-                icon: LayoutGrid,
-                label: t('objects.properties.gridView'),
-              },
-            ]}
-          />
-        </div>
-      )}
-
-      {view === 'grid' ? (
-        <div className="grid grid-cols-2 gap-2">
-          {sortedProperties.map((p, i) =>
-            p.deleted ? (
-              <DeletedRow
-                key={p.id ?? i}
-                label={resolvePropertyLabel(p.key, p.label, locale)}
-              />
-            ) : (
-              <div key={p.id ?? i} className="rounded-md border p-2.5">
-                <div className="flex items-center gap-1.5 text-sm font-medium">
-                  <span className="truncate">
-                    {resolvePropertyLabel(p.key, p.label, locale)}
-                  </span>
-                  {allowFiles && fileCount(p) > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="h-4 shrink-0 gap-0.5 px-1 text-[10px]"
-                    >
-                      <Paperclip className="h-2.5 w-2.5" />
-                      {fileCount(p)}
-                    </Badge>
-                  )}
-                </div>
-                <div className="mt-0.5 truncate text-sm text-muted-foreground">
-                  {valueSummary(
-                    p,
-                    t('objects.values', { count: liveValues(p).length }),
-                    displayValue
-                  )}
-                </div>
-              </div>
-            )
-          )}
-          {rollupCards.map(
-            ({ entry, property, ownValues, multiplierValues }) => (
-              <RollupCard
-                key={entry.ruleId}
-                entry={entry}
-                locale={locale}
-                ownUnit={property ? ownUnit(ownValues) : undefined}
-                ownValues={property ? ownValues : undefined}
-                multiplierValues={multiplierValues}
-              />
-            )
-          )}
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          {sortedProperties.map((p, i) => (
-            <PropertyCard
-              key={p.id ?? i}
-              property={p}
-              derivedValues={derivedValues}
-              boundValueIds={boundValueIds}
-              quantity={quantities.get(ruleKey(p.key, p.label))}
-              labelForValue={(id) => labelForValueId(properties, id, locale)}
-              displayValue={displayValue}
-              entityId={entityId}
-              onFileChange={onFileChange}
-              allowFiles={allowFiles}
+    <CollapseAllContext.Provider value={generation}>
+      <div className="space-y-3">
+        {allowViewToggle && (
+          <ListToolbar
+            heading={headingEl}
+            onCollapse={view !== 'grid' ? collapse : undefined}
+          >
+            <ViewToggle
+              value={view}
+              onChange={setView}
+              options={[
+                {
+                  value: 'detailed',
+                  icon: List,
+                  label: t('objects.properties.detailedView'),
+                },
+                {
+                  value: 'grid',
+                  icon: LayoutGrid,
+                  label: t('objects.properties.gridView'),
+                },
+              ]}
             />
-          ))}
-          {rollupCards.map(
-            ({ entry, property, ownValues, multiplierValues }) => (
-              <RollupCard
-                key={entry.ruleId}
-                entry={entry}
-                locale={locale}
-                ownUnit={property ? ownUnit(ownValues) : undefined}
-                ownValues={property ? ownValues : undefined}
-                multiplierValues={multiplierValues}
+          </ListToolbar>
+        )}
+
+        {view === 'grid' ? (
+          <div className="grid grid-cols-2 gap-2">
+            {sortedProperties.map((p, i) =>
+              p.deleted ? (
+                <DeletedRow
+                  key={p.id ?? i}
+                  label={resolvePropertyLabel(p.key, p.label, locale)}
+                />
+              ) : (
+                <div key={p.id ?? i} className="rounded-md border p-2.5">
+                  {/* The grid is for scanning names and values; files and marks are on the rows. */}
+                  <div className="truncate text-sm font-medium">
+                    {resolvePropertyLabel(p.key, p.label, locale)}
+                  </div>
+                  <div className="mt-0.5 truncate text-sm text-muted-foreground">
+                    {valueSummary(p, displayValue)}
+                  </div>
+                </div>
+              )
+            )}
+            {rollupCards.map(
+              ({ entry, property, ownValues, multiplierValues }) => (
+                <RollupCard
+                  compact
+                  key={entry.ruleId}
+                  entry={entry}
+                  locale={locale}
+                  ownUnit={property ? ownUnit(ownValues) : undefined}
+                  ownValues={property ? ownValues : undefined}
+                  multiplierValues={multiplierValues}
+                />
+              )
+            )}
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {sortedProperties.map((p, i) => (
+              <PropertyCard
+                key={p.id ?? i}
+                property={p}
+                derivedValues={derivedValues}
+                boundValueIds={boundValueIds}
+                quantity={quantities.get(ruleKey(p.key, p.label))}
+                totalled={totalledKeys.has(ruleKey(p.key, p.label))}
+                labelForValue={(id) =>
+                  labelForValueId(siblingSource ?? properties, id, locale)
+                }
+                textForValue={textForValue}
+                displayValue={displayValue}
+                entityId={entityId}
+                onFileChange={onFileChange}
+                allowFiles={allowFiles}
               />
-            )
-          )}
-        </div>
-      )}
-    </div>
+            ))}
+            {rollupCards.map(
+              ({ entry, property, ownValues, multiplierValues }) => (
+                <RollupCard
+                  key={entry.ruleId}
+                  entry={entry}
+                  locale={locale}
+                  ownUnit={property ? ownUnit(ownValues) : undefined}
+                  ownValues={property ? ownValues : undefined}
+                  multiplierValues={multiplierValues}
+                />
+              )
+            )}
+          </div>
+        )}
+      </div>
+    </CollapseAllContext.Provider>
   )
 }
 
@@ -473,6 +610,7 @@ function RollupCard({
   ownValues,
   multiplierValues,
   ownUnit: unit,
+  compact = false,
   'data-testid': testId = 'rollup-card',
 }: {
   entry: EntityRollupEntry
@@ -480,31 +618,54 @@ function RollupCard({
   ownValues?: NumericValues
   multiplierValues?: NumericValues
   ownUnit?: string
+  /** Grid tile: the name and the total only; the breakdown and the marks are in the list view. */
+  compact?: boolean
   'data-testid'?: string
 }) {
   const t = useTranslations()
+  const [open, setOpen] = useCollapsible()
+  const detailsId = useId()
 
   const updating = entry.stale && !entry.error
-
-  return (
-    <div
-      className={cn(
-        'rounded-md border border-dashed px-3 py-1.5 transition-colors',
-        updating
-          ? 'border-amber-300/70 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10'
-          : 'bg-muted/20'
-      )}
-      data-testid={testId}
+  // Something below was not added in. At rest the card says only that there is something to look
+  // at; the counts and reasons are in the expanded part.
+  const issue = entry.skippedCount > 0
+  // At rest, on the list and the grid card alike: a scaled total is not the sum of the values on
+  // the rows (12 kg at a quantity of 5 reads 60 kg), and naming the multiplier is what stops that
+  // looking like an error.
+  const multiplierNote = entry.multiplyBy && (
+    <span
+      className="shrink-0 text-xs text-muted-foreground"
+      data-testid="rollup-multiplier"
     >
-      <div className="flex items-center gap-1.5">
-        {/* The number and its name dim TOGETHER, in their own wrapper: opacity does not
-            compose upward, so dimming the card would take the badge down with them. */}
-        <div
-          className={cn(
-            'flex min-w-0 items-center gap-1.5 transition-opacity',
-            updating && 'opacity-60'
-          )}
-        >
+      {t('objects.properties.rollupMultipliedBy', {
+        key: resolvePropertyLabel(
+          entry.multiplyBy.propertyKey,
+          undefined,
+          locale
+        ),
+      })}
+    </span>
+  )
+  // On the grid card too: the grid is lean, but a total that left something out must still say so.
+  const issueIcon = issue && (
+    <AlertTriangle
+      className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+      role="img"
+      aria-label={t('objects.properties.rollupSkipped', {
+        count: entry.skippedCount,
+      })}
+      data-testid="rollup-issue"
+    />
+  )
+
+  if (compact) {
+    return (
+      <div
+        className="rounded-md border border-dashed bg-muted/20 p-2.5"
+        data-testid={testId}
+      >
+        <div className="flex items-center gap-1.5">
           <Calculator
             className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
             aria-hidden="true"
@@ -512,38 +673,105 @@ function RollupCard({
           <span className="truncate text-sm font-medium">
             {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
           </span>
-          {/* A scaled total is not the sum of the values on the rows: 12 kg at a quantity of 5
-              reads 60 kg. Naming the multiplier is what stops that looking like an error. */}
-          {entry.multiplyBy && (
-            <span
-              className="shrink-0 text-xs text-muted-foreground"
-              data-testid="rollup-multiplier"
-            >
-              {t('objects.properties.rollupMultipliedBy', {
-                key: resolvePropertyLabel(
-                  entry.multiplyBy.propertyKey,
-                  undefined,
-                  locale
-                ),
-              })}
-            </span>
-          )}
-          <Badge
-            variant="secondary"
-            className="h-4 shrink-0 px-1 text-[10px] font-normal"
-          >
-            {t('objects.properties.rollupDerived')}
-          </Badge>
+          <span className="ml-auto flex shrink-0 items-center gap-1.5">
+            {multiplierNote}
+            {issueIcon}
+            {updating && <RollupStaleBadge />}
+          </span>
         </div>
-        {updating && <RollupStaleBadge className="ml-auto" />}
+        <RollupLine
+          entry={entry}
+          ownUnit={unit}
+          ownValues={ownValues}
+          multiplierValues={multiplierValues}
+          part="value"
+          className={cn('mt-0.5', updating && 'opacity-60')}
+        />
       </div>
-      <RollupLine
-        entry={entry}
-        ownUnit={unit}
-        ownValues={ownValues}
-        multiplierValues={multiplierValues}
-        className={cn('mt-0.5 transition-opacity', updating && 'opacity-60')}
-      />
+    )
+  }
+
+  return (
+    <div
+      className={cn(
+        'rounded-md border border-dashed transition-colors',
+        updating
+          ? 'border-amber-300/70 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10'
+          : 'bg-muted/20'
+      )}
+      data-testid={testId}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={detailsId}
+        data-testid="rollup-toggle"
+        className="flex w-full items-start gap-1.5 rounded-md px-3 py-1.5 text-left hover:bg-muted/40"
+      >
+        {/* The number and its name dim TOGETHER, in their own wrapper: opacity does not
+            compose upward, so dimming the card would take the badges down with them. */}
+        <div
+          className={cn(
+            'min-w-0 flex-1 transition-opacity',
+            updating && 'opacity-60'
+          )}
+        >
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Calculator
+              className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <span className="truncate text-sm font-medium">
+              {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
+            </span>
+            <Badge
+              variant="secondary"
+              className="h-4 shrink-0 px-1 text-[10px] font-normal"
+            >
+              {t('objects.properties.rollupTotal')}
+            </Badge>
+            {multiplierNote}
+          </div>
+          <RollupLine
+            entry={entry}
+            ownUnit={unit}
+            ownValues={ownValues}
+            multiplierValues={multiplierValues}
+            part="value"
+            className="mt-0.5"
+          />
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 pt-0.5">
+          {issueIcon}
+          {updating && <RollupStaleBadge />}
+          <ChevronDown
+            className={cn(
+              'h-3.5 w-3.5 text-muted-foreground transition-transform motion-reduce:transition-none',
+              open && 'rotate-180'
+            )}
+            aria-hidden="true"
+          />
+        </span>
+      </button>
+
+      {open && (
+        <div
+          id={detailsId}
+          className={cn(
+            'space-y-1 border-t border-dashed px-3 py-1.5 transition-opacity',
+            updating && 'opacity-60'
+          )}
+        >
+          <RollupLine
+            entry={entry}
+            ownUnit={unit}
+            ownValues={ownValues}
+            multiplierValues={multiplierValues}
+            part="details"
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -553,7 +781,9 @@ function PropertyCard({
   derivedValues,
   boundValueIds,
   quantity,
+  totalled = false,
   labelForValue,
+  textForValue,
   displayValue,
   entityId,
   onFileChange,
@@ -564,7 +794,10 @@ function PropertyCard({
   boundValueIds: ReadonlySet<string>
   /** Set when a rollup rule scales its totals by this key: how the node resolves that quantity. */
   quantity?: ResolvedQuantity
+  /** A rollup rule adds up this property's values. */
+  totalled?: boolean
   labelForValue: LabelForValue
+  textForValue: LabelForValue
   displayValue: (value: DraftValue) => string
   entityId?: string
   onFileChange?: FileChange
@@ -572,14 +805,32 @@ function PropertyCard({
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
-  const [open, setOpen] = useState(false)
+  const { open, setOpen, filesOpen, toggleFiles } = useFilesDisclosure()
+  const filesId = useId()
   const count = allowFiles ? fileCount(property) : 0
+  const ownFiles = allowFiles ? (property.files?.length ?? 0) : 0
+  const live = liveValues(property)
+  // The values a total adds: a number, and not one whose unit could not be checked (left out).
+  const counted = live.filter((v) => {
+    const trace = v.id ? derivedValues.get(v.id) : undefined
+    return (
+      v.num !== undefined &&
+      !(trace && uncheckedState(trace, v.unit) === 'left-out')
+    )
+  })
   // A dictionary term reads in the viewer's own language; anything else keeps the authored text.
   const displayLabel = resolvePropertyLabel(
     property.key,
     property.label,
     locale
   )
+  // A template formula has no result yet, so closed it reads as its equation, not as "—".
+  const inert =
+    live.length === 1 &&
+    live[0].calc?.formulaId &&
+    !(live[0].id && derivedValues.has(live[0].id))
+      ? live[0].calc
+      : undefined
 
   if (property.deleted) {
     return <DeletedRow label={displayLabel} />
@@ -591,40 +842,59 @@ function PropertyCard({
       onOpenChange={setOpen}
       className={cn('rounded-md border', open && 'shadow-sm')}
     >
-      <CollapsibleTrigger className="flex w-full items-center gap-1.5 px-3 py-1.5 text-left hover:bg-muted/50">
-        <ChevronRight
-          className={cn(
-            'h-3.5 w-3.5 shrink-0 transition-transform',
-            open && 'rotate-90'
-          )}
-        />
-        <span className="truncate text-sm font-medium">{displayLabel}</span>
-        <span className="ml-2 min-w-0 flex-1 truncate text-sm text-muted-foreground">
-          {valueSummary(
-            property,
-            t('objects.values', { count: liveValues(property).length }),
-            displayValue
-          )}
-        </span>
-        {count > 0 && (
-          <Badge
-            variant="secondary"
-            className="h-4 shrink-0 gap-0.5 px-1 text-[10px]"
-          >
-            <Paperclip className="h-2.5 w-2.5" />
-            {count}
-          </Badge>
+      <div className="flex items-center hover:bg-muted/50">
+        <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pl-3 pr-2 text-left">
+          <ChevronRight
+            className={cn(
+              'h-3.5 w-3.5 shrink-0 transition-transform motion-reduce:transition-none',
+              open && 'rotate-90'
+            )}
+          />
+          <span className="truncate text-sm font-medium">{displayLabel}</span>
+          {/* Open, the values are right below; the header would only repeat them. */}
+          <span className="ml-2 min-w-0 flex-1 truncate text-sm text-muted-foreground">
+            {!open &&
+              (inert ? (
+                <TemplateEquation calc={inert} labelForValue={labelForValue} />
+              ) : (
+                valueSummary(property, displayValue)
+              ))}
+          </span>
+        </CollapsibleTrigger>
+        {/* The property's own files open from its header, beside the trigger (a button cannot
+            nest in one). Files on its values open from each value's line; while the property is
+            closed, their count is only a hint. */}
+        {ownFiles > 0 ? (
+          <FilesToggle
+            count={ownFiles}
+            open={filesOpen}
+            onToggle={toggleFiles}
+            controls={filesId}
+            label={t('objects.files.onProperty')}
+            className="mr-2"
+          />
+        ) : (
+          count > 0 &&
+          !open && (
+            <span
+              className="mr-3 flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground"
+              title={t('objects.files.onValues', { count })}
+              aria-label={t('objects.files.onValues', { count })}
+              role="img"
+            >
+              <Paperclip className="h-3 w-3" />
+              {count}
+            </span>
+          )
         )}
-      </CollapsibleTrigger>
+      </div>
 
       <CollapsibleContent className="space-y-2 border-t bg-muted/10 px-3 py-2">
-        {/* Property-level files first (under the header), then each value with its own files. */}
-        {allowFiles && (
-          <FilesDisclosure
+        {filesOpen && (
+          <FileList
+            id={filesId}
             files={property.files ?? []}
-            editing={false}
             entityId={entityId}
-            onChange={onFileChange}
           />
         )}
         {liveValues(property).length === 0 && (
@@ -632,20 +902,48 @@ function PropertyCard({
             {t('objects.detailsSheet.noProperties')}
           </span>
         )}
-        {property.values.map((v, vi) => (
-          <ValueRow
-            key={v.id ?? vi}
-            value={v}
-            derivedValues={derivedValues}
-            boundValueIds={boundValueIds}
-            quantity={quantity}
-            labelForValue={labelForValue}
-            displayValue={displayValue}
-            entityId={entityId}
-            onFileChange={onFileChange}
-            allowFiles={allowFiles}
-          />
-        ))}
+        {/* A key a rule multiplies by keeps its rows: a refused quantity's mark lives there. */}
+        {quantity === undefined &&
+        chipsFit(live, derivedValues, boundValueIds) ? (
+          <>
+            <ValueChips values={live} />
+            {property.values
+              .filter((v) => v.deleted)
+              .map((v, vi) => (
+                <DeletedRow key={v.id ?? vi} label={v.data || '—'} />
+              ))}
+          </>
+        ) : (
+          <div className="divide-y divide-border/60 [&>*]:py-1.5 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
+            {property.values.map((v, vi) => (
+              <ValueRow
+                key={v.id ?? vi}
+                value={v}
+                derivedValues={derivedValues}
+                boundValueIds={boundValueIds}
+                quantity={quantity}
+                labelForValue={labelForValue}
+                textForValue={textForValue}
+                displayValue={displayValue}
+                entityId={entityId}
+                onFileChange={onFileChange}
+                allowFiles={allowFiles}
+              />
+            ))}
+          </div>
+        )}
+        {/* Several numbers under a key a total adds up: each one is added, which is easy to miss
+            when a second value was meant to correct the first. */}
+        {totalled && counted.length > 1 && (
+          <p
+            className="text-xs text-muted-foreground"
+            data-testid="values-totalled"
+          >
+            {t('objects.properties.valuesTotalled', {
+              count: counted.length,
+            })}
+          </p>
+        )}
       </CollapsibleContent>
     </Collapsible>
   )
@@ -657,6 +955,7 @@ function ValueRow({
   boundValueIds,
   quantity,
   labelForValue,
+  textForValue,
   displayValue,
   entityId,
   onFileChange,
@@ -667,6 +966,7 @@ function ValueRow({
   boundValueIds: ReadonlySet<string>
   quantity?: ResolvedQuantity
   labelForValue: LabelForValue
+  textForValue: LabelForValue
   displayValue: (value: DraftValue) => string
   entityId?: string
   onFileChange?: FileChange
@@ -674,6 +974,8 @@ function ValueRow({
 }) {
   const t = useTranslations()
   const files = allowFiles ? (value.files ?? []) : []
+  const [filesOpen, setFilesOpen] = useCollapsible()
+  const filesId = useId()
 
   if (value.deleted) {
     return <DeletedRow label={value.data || '—'} />
@@ -692,54 +994,60 @@ function ValueRow({
       <div className="space-y-1">
         <FormulaSummary calc={value.calc} labelForValue={labelForValue} />
         {files.length > 0 && (
-          <div className="border-l pl-3">
-            <FilesDisclosure
-              files={files}
-              editing={false}
-              entityId={entityId}
-              onChange={onFileChange}
-            />
-          </div>
+          <FileList id={filesId} files={files} entityId={entityId} />
         )}
       </div>
     )
   }
 
+  const marker = (
+    <ValueNormalization
+      value={value}
+      quantity={quantity}
+      usedInFormula={!!value.id && boundValueIds.has(value.id)}
+      usedAsMultiplier={quantity !== undefined}
+      derived={isDerived}
+    />
+  )
+
+  // At the right end of the value's line, like the formula's toggle: they belong to this value.
+  const filesToggle = files.length > 0 && (
+    <FilesToggle
+      count={files.length}
+      open={filesOpen}
+      onToggle={() => setFilesOpen((v) => !v)}
+      controls={filesId}
+      label={t('objects.files.onValue')}
+    />
+  )
+
   return (
     <div className="space-y-1">
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span>{displayValue(value)}</span>
-        <ValueNormalization
-          value={value}
-          quantity={quantity}
-          usedInFormula={!!value.id && boundValueIds.has(value.id)}
+      {provenance ? (
+        <ValueProvenanceDisplay
+          provenance={provenance}
+          unit={value.unit}
+          display={displayValue(value)}
+          exact={value.data}
+          labelForValue={labelForValue}
+          textForValue={textForValue}
+          marker={marker}
+          trailing={filesToggle}
           usedAsMultiplier={quantity !== undefined}
         />
-        {provenance ? (
-          <ValueProvenanceDisplay
-            provenance={provenance}
-            unit={value.unit}
-            labelForValue={labelForValue}
-          />
-        ) : (
-          isDerived && (
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span>{displayValue(value)}</span>
+          {marker}
+          {isDerived && (
             <Badge variant="outline" className="text-[10px]">
               {t('objects.propertyEditor.derived')}
             </Badge>
-          )
-        )}
-      </div>
-      {/* Indent the value's files so they read as belonging to the value above, not the property. */}
-      {files.length > 0 && (
-        <div className="border-l pl-3">
-          <FilesDisclosure
-            files={files}
-            editing={false}
-            entityId={entityId}
-            onChange={onFileChange}
-          />
+          )}
+          {filesToggle && <span className="ml-auto">{filesToggle}</span>}
         </div>
       )}
+      {filesOpen && <FileList id={filesId} files={files} entityId={entityId} />}
     </div>
   )
 }

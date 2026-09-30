@@ -12,6 +12,7 @@ import {
   sheet,
 } from '../utils/sheet'
 import { rowActions, tour } from '../utils/selectors'
+import { openRollupCards } from '../utils/rollups'
 
 /**
  * A rule that SCALES each contributor by another property on the same object — "10 chairs at 12 kg"
@@ -166,6 +167,7 @@ test.describe('16 - rollups / the quantity multiplier', () => {
     const card = page.getByTestId('rollup-card')
     await expect(card).toContainText('60')
 
+    await openRollupCards(page, { waitForCard: true })
     const unitCount = page.getByTestId('rollup-unit-count')
     await expect(unitCount).toContainText('5')
 

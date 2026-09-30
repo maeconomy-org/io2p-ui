@@ -16,7 +16,10 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
   useLocale: () => 'en',
-  useFormatter: () => ({ number: (n: number) => n.toLocaleString('en-US') }),
+  useFormatter: () => ({
+    number: (n: number, options?: Intl.NumberFormatOptions) =>
+      n.toLocaleString('en-US', options),
+  }),
 }))
 
 vi.mock('@/contexts/query-context', () => ({
@@ -56,12 +59,12 @@ describe('one value, three places', () => {
   it('reads the same in the collapsed header and the expanded row', () => {
     renderAs('detailed')
 
-    // The header is the collapsed trigger; expanding reveals the row underneath it.
+    // The header is the collapsed trigger; expanding reveals the row underneath it, and the
+    // header stops repeating what the row now shows.
     expect(screen.getByText('20,000 kg')).toBeInTheDocument()
     fireEvent.click(screen.getByText('calculate'))
 
-    const shown = screen.getAllByText('20,000 kg')
-    expect(shown.length).toBe(2)
+    expect(screen.getAllByText('20,000 kg')).toHaveLength(1)
   })
 
   it('reads the same in the grid tile', () => {
@@ -76,5 +79,55 @@ describe('one value, three places', () => {
     const { container } = renderAs('detailed')
 
     expect(container.textContent).not.toMatch(/(^|[^,\d])20000([^,\d]|$)/)
+  })
+})
+
+// The node keeps 12 significant digits. A reader gets a few, a small number keeps its meaning,
+// and the stored text stays on hover.
+describe('a formula result reads rounded', () => {
+  function renderDeclared(data: string, num: number, unit: string) {
+    view.current = 'detailed'
+    render(
+      <PropertyReadView
+        properties={[
+          {
+            id: 'p-2',
+            key: 'log',
+            label: 'log',
+            values: [{ id: 'v-2', data, num, unit }],
+          },
+        ]}
+        derivedValues={
+          new Map([
+            [
+              'v-2',
+              {
+                expression: 'log(a)',
+                args: [],
+                unitSource: 'declared',
+                declaredUnit: unit,
+              },
+            ],
+          ]) as never
+        }
+        allowViewToggle={false}
+      />
+    )
+    fireEvent.click(screen.getByText('log'))
+  }
+
+  it('to three decimals, with the stored text on hover', () => {
+    renderDeclared('2.30258509299 kg', 2.30258509299, 'kg')
+
+    expect(screen.getByText('2.303 kg')).toHaveAttribute(
+      'title',
+      '2.30258509299 kg'
+    )
+  })
+
+  it('keeps a number below one readable, not rounded to zero', () => {
+    renderDeclared('0.0015 t', 1.5, 'kg')
+
+    expect(screen.getByText('0.0015 t')).toBeInTheDocument()
   })
 })

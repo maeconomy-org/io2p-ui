@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
-import { ChevronRight, RefreshCw, Sigma } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import type { EntityRollupEntry, RollupBucket } from 'io2p-client'
 
 import { cn } from '@/lib/utils'
@@ -196,8 +195,13 @@ export function orderBuckets(
   ownValues?: NumericValues
 ): RollupBucket[] {
   const leads = ownLead(buckets, ownUnit, ownValues)
+  // After the own-lead rule, a total WITH a unit leads: a bare figure beside `11.2 kWh` says less,
+  // however large it is.
   return [...buckets].sort(
-    (a, b) => Number(leads(b)) - Number(leads(a)) || b.num - a.num
+    (a, b) =>
+      Number(leads(b)) - Number(leads(a)) ||
+      Number(b.unit !== undefined) - Number(a.unit !== undefined) ||
+      b.num - a.num
   )
 }
 
@@ -234,15 +238,14 @@ export function RollupLine({
   ownUnit,
   ownValues,
   multiplierValues,
-  compact = false,
+  part,
   className,
 }: {
   entry: EntityRollupEntry
   /**
-   * The canonical unit of the object's own value under this key, when it has one. A hidden bucket
-   * measuring something ELSE usually means a mis-keyed value, so that case opens by itself.
-   * Compared against `bucket.unit` — `bucket.dimension` is a different vocabulary and would never
-   * match.
+   * The canonical unit of the object's own value under this key, when it has one: the total in
+   * that unit leads. Compared against `bucket.unit` — `bucket.dimension` is a different vocabulary
+   * and would never match.
    */
   ownUnit?: string
   /**
@@ -259,20 +262,15 @@ export function RollupLine({
    */
   multiplierValues?: NumericValues
   /**
-   * Grid mode: one line, no expander. The compact card has nowhere to put a disclosure, so extra
-   * dimensions are COUNTED there and read in the detailed view.
+   * Which half to render: `value` is the card at rest (the total alone), `details` is what opens
+   * under it (the split, the other totals, the notes). Both when absent.
    */
-  compact?: boolean
+  part?: 'value' | 'details'
   className?: string
 }) {
   const t = useTranslations()
   const buckets = orderBuckets(entry.buckets, ownUnit, ownValues)
   const [lead, ...rest] = buckets
-  // Same question as the ordering, so the same answer: a hidden bucket is foreign when it is not
-  // the one measuring what this object holds. An orphan card holds nothing, so every bucket is.
-  const leads = ownLead(entry.buckets, ownUnit, ownValues)
-  const foreign = rest.some((b) => !leads(b))
-  const [open, setOpen] = useState(!compact && foreign)
 
   // How many entities here or below hold MORE THAN ONE numeric value under the key — this one
   // included, so a leaf can report itself. Every such value counts toward the total, so a number
@@ -306,66 +304,56 @@ export function RollupLine({
         )
       : null
 
+  const showValue = part !== 'details'
+  const showDetails = part !== 'value'
+
+  const value = entry.error ? (
+    <p className="text-destructive">
+      {t('objects.properties.rollupSubtreeTooLarge')}
+    </p>
+  ) : lead === undefined ? (
+    // Empty buckets mean one of two different things, and `computedAt`
+    // is what separates them: `null` is "the worker has not run yet"
+    // (synthesized entry, always `stale: true` — so the processing mark
+    // is the whole message). A timestamp means it DID run and found
+    // no numeric value under this key, which is a permanent answer, not a
+    // pending one.
+    entry.computedAt === null ? null : (
+      <p>{t('objects.properties.rollupNoNumbers')}</p>
+    )
+  ) : (
+    <LeadAmount bucket={lead} others={rest.length} />
+  )
+
   return (
     <div
-      className={cn(
-        'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground',
-        className
-      )}
-      data-testid="rollup-line"
+      className={cn('space-y-0.5 text-xs text-muted-foreground', className)}
+      data-testid={part === 'details' ? 'rollup-details' : 'rollup-line'}
     >
-      <span className="flex shrink-0 items-center gap-1">
-        <Sigma className="h-3 w-3" />
-        {t('objects.properties.rollupTotal')}
-      </span>
-
-      {entry.error ? (
-        <span className="text-destructive">
-          {t('objects.properties.rollupSubtreeTooLarge')}
-        </span>
-      ) : lead === undefined ? (
-        // Empty buckets mean one of two different things, and `computedAt`
-        // is what separates them: `null` is "the worker has not run yet"
-        // (synthesized entry, always `stale: true` — so the processing line
-        // below is the whole message). A timestamp means it DID run and found
-        // no numeric value under this key, which is a permanent answer, not a
-        // pending one.
-        entry.computedAt === null ? null : (
-          <span>{t('objects.properties.rollupNoNumbers')}</span>
-        )
-      ) : (
+      {showValue && value}
+      {showDetails && lead !== undefined && !entry.error && (
         <>
-          <BucketAmount bucket={lead} share={share} />
-          {rest.length > 0 &&
-            (compact ? (
-              <span>
-                {t('objects.properties.rollupMoreDimensions', {
-                  count: rest.length,
-                })}
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setOpen((v) => !v)}
-                aria-expanded={open}
-                className="flex items-center gap-0.5 underline-offset-2 hover:underline"
-              >
-                <ChevronRight
-                  className={cn(
-                    'h-3 w-3 transition-transform motion-reduce:transition-none',
-                    open && 'rotate-90'
-                  )}
-                />
-                {t('objects.properties.rollupMoreDimensions', {
-                  count: rest.length,
-                })}
-              </button>
-            ))}
+          <LeadBreakdown bucket={lead} share={share} />
+          {rest.length > 0 && (
+            // Every other total, labelled, on one line: a total in the unit the reader expects
+            // must not pass for part of a bare figure, nor hide behind it.
+            <p
+              className="flex flex-wrap items-center gap-1.5"
+              data-testid="rollup-other-totals"
+            >
+              <span>{t('objects.properties.rollupAlso')}</span>
+              {rest.map((bucket) => (
+                <OtherTotal key={bucket.dimension} bucket={bucket} />
+              ))}
+            </p>
+          )}
         </>
       )}
-
-      {entry.skippedCount > 0 && (
-        <span data-testid="rollup-skipped">
+      {showDetails && entry.skippedCount > 0 && (
+        <p
+          data-testid="rollup-skipped"
+          className="text-amber-700 dark:text-amber-400"
+        >
           {t('objects.properties.rollupSkipped', { count: entry.skippedCount })}
           {/* Part of the skipped count, not added to it; absent on older rows means "not reported". */}
           {unverified > 0 && (
@@ -374,28 +362,17 @@ export function RollupLine({
               {t('objects.properties.rollupUnverified', { count: unverified })}
             </span>
           )}
-        </span>
+        </p>
       )}
-
-      {lead !== undefined && multiValue > 0 && (
-        <span data-testid="rollup-multi-value">
+      {showDetails && lead !== undefined && multiValue > 0 && (
+        <p data-testid="rollup-multi-value">
           {t(
             entry.skippedCount === 0
               ? 'objects.properties.rollupMultiValueAllCounted'
               : 'objects.properties.rollupMultiValue',
             { count: multiValue }
           )}
-        </span>
-      )}
-
-      {open && rest.length > 0 && (
-        <ul className="w-full space-y-0.5 pt-0.5">
-          {rest.map((bucket) => (
-            <li key={bucket.dimension} className="flex items-center gap-2">
-              <BucketAmount bucket={bucket} />
-            </li>
-          ))}
-        </ul>
+        </p>
       )}
     </div>
   )
@@ -428,10 +405,39 @@ export function RollupStaleBadge({ className }: { className?: string }) {
 }
 
 /**
- * One dimension's sum. `unit` is absent on the `unitless` bucket, which is why it is appended
- * conditionally rather than interpolated — the same shape `ValueNormalization` uses.
+ * The leading total as the card shows it at rest. `unit` is absent on the `unitless` bucket, which
+ * is why it is appended conditionally rather than interpolated — the same shape
+ * `ValueNormalization` uses.
  */
-function BucketAmount({
+function LeadAmount({
+  bucket,
+  others,
+}: {
+  bucket: RollupBucket
+  /** How many other totals the details hold, so the card at rest does not hide them. */
+  others: number
+}) {
+  const t = useTranslations()
+  const format = useFormatter()
+
+  return (
+    <p className="text-base font-semibold tabular-nums text-foreground">
+      {format.number(bucket.num)}
+      {bucket.unit ? ` ${bucket.unit}` : ''}
+      {others > 0 && (
+        <span
+          className="ml-2 text-xs font-normal text-muted-foreground"
+          data-testid="rollup-others"
+        >
+          {t('objects.properties.rollupOtherTotals', { count: others })}
+        </span>
+      )}
+    </p>
+  )
+}
+
+/** How the leading total is made up: this object's share and what is below, and the item count. */
+function LeadBreakdown({
   bucket,
   share,
 }: {
@@ -441,18 +447,14 @@ function BucketAmount({
   const t = useTranslations()
   const format = useFormatter()
   const unit = bucket.unit ? ` ${bucket.unit}` : ''
-  const amount = `${format.number(bucket.num)}${unit}`
-
-  // The object IS the total. Saying it twice — once as the property's own value,
-  // once as a "total" — invites the reader to look for a second number that does
-  // not exist, so the line says so outright instead of restating the figure.
-  if (share?.onlyContributor) {
+  // A card only shows when some total is not this object alone, so here another total sits
+  // beside this one: say plainly that this one has nothing below it.
+  if (share?.onlyContributor)
     return (
-      <span data-testid="rollup-only-self">
+      <p data-testid="rollup-only-self">
         {t('objects.properties.rollupOnlyThisObject')}
-      </span>
+      </p>
     )
-  }
 
   const split = share && bucket.num > 0 ? share : null
 
@@ -473,22 +475,13 @@ function BucketAmount({
     bucket.unitCount > 0
 
   return (
-    <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-      <span className="font-medium text-foreground">{amount}</span>
-      {scaled && (
-        <span data-testid="rollup-unit-count">
-          {t('objects.properties.rollupUnitCount', {
-            count: bucket.unitCount as number,
-          })}
-        </span>
-      )}
+    <p className="flex flex-wrap gap-x-1.5">
       {split ? (
         // BOTH halves as text, never a bar. A partly-filled pill beside a number is the
         // universal "X of Y done" idiom, and nothing here progresses toward anything -- this is
         // a composition, mine against my descendants'. And the remainder alone ("60 kg below")
         // reads as an amount SUBTRACTED from the total; naming the object's own share beside it
-        // is what makes the two visibly add up. This wording already existed as the bar's
-        // aria-label, so screen readers got the clear half and everyone else got the ambiguous one.
+        // is what makes the two visibly add up.
         <span data-testid="rollup-split">
           {t('objects.properties.rollupSplitLabel', {
             own: `${format.number(split.own)}${unit}`,
@@ -500,6 +493,33 @@ function BucketAmount({
           {t('objects.properties.rollupContributors', {
             count: bucket.contributorCount,
           })}
+        </span>
+      )}
+      {scaled && (
+        <span data-testid="rollup-unit-count">
+          {'· '}
+          {t('objects.properties.rollupUnitCount', {
+            count: bucket.unitCount as number,
+          })}
+        </span>
+      )}
+    </p>
+  )
+}
+
+/** Another total under the same key, named by its unit, or as having none. */
+function OtherTotal({ bucket }: { bucket: RollupBucket }) {
+  const t = useTranslations()
+  const format = useFormatter()
+  return (
+    <span className="rounded-full border bg-background px-2 tabular-nums text-foreground">
+      {format.number(bucket.num)}
+      {bucket.unit ? (
+        ` ${bucket.unit}`
+      ) : (
+        <span className="text-muted-foreground">
+          {' '}
+          {t('objects.properties.rollupNoUnit')}
         </span>
       )}
     </span>

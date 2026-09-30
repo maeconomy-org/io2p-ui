@@ -1,11 +1,12 @@
 'use client'
 
-import { useId, useState } from 'react'
-import { useTranslations } from 'next-intl'
-import { AlertTriangle, ChevronDown, ChevronUp, Sigma } from 'lucide-react'
+import { Fragment, useId, useMemo } from 'react'
+import { useFormatter, useTranslations } from 'next-intl'
+import { AlertTriangle, Check, ChevronDown, Sigma } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import {
   resolvePropertyLabel,
   type PropertyDictionaryLocale,
@@ -15,6 +16,10 @@ import type {
   ValueProvenance as ValueProvenanceData,
 } from '@/lib/entity'
 
+import { useCollapsible } from '../collapse-all'
+import { equationText } from './formula-equation'
+import { findValue } from './property-values'
+
 /**
  * Derived values of the loaded entity, keyed by value id. Presence means the value is derived; the
  * payload is its trace, which is `undefined` for anything the node computed before provenance existed.
@@ -22,42 +27,93 @@ import type {
 export type DerivedValues = ReadonlyMap<string, ValueProvenanceData | undefined>
 
 /**
- * What a derived value is made of. The node freezes the evaluated expression and every argument it
- * resolved, so a reader can answer "where did this number come from" without opening the editor.
+ * One derived value as its row: the result, the formula with the inputs written in, at most one
+ * mark, and a Σ toggle for the details. The equation answers "where did this number come from"
+ * without opening anything; the details are for the rest.
  *
- * Pure props on purpose: the caller resolves arg labels (it already holds the entity), so this stays
- * renderable from a test with no client, no query and no provider.
+ * Pure props on purpose: the caller resolves labels and texts (it already holds the entity), so the
+ * row stays renderable from a test with no client, no query and no provider. Only the opened details
+ * fetch, for the formula's and the constants' names.
  */
 export function ValueProvenanceDisplay({
   provenance,
   unit,
+  display,
+  exact,
   labelForValue,
+  textForValue,
+  marker,
+  trailing,
+  usedAsMultiplier = false,
   className,
 }: {
   provenance: ValueProvenanceData
   /** The value's own canonical unit. Decides what an unchecked result means for totals. */
   unit?: string
+  /** The value as the row shows it. Absent renders the equation and marks alone. */
+  display?: string
+  /** The stored text, on hover, when `display` rounds it. */
+  exact?: string
   /** Property label for an arg bound to a sibling value. Falls back to the variable name alone. */
   labelForValue?: (valueId: string) => string | undefined
+  /** The bound sibling value as its own row reads it (`2 kW`), for the equation and the inputs. */
+  textForValue?: (valueId: string) => string | undefined
+  /** A value marker (the multiplier refusal) placed with the marks, before the toggle. */
+  marker?: React.ReactNode
+  /** A rollup rule multiplies by this value, so an unchecked result drops the object from it. */
+  usedAsMultiplier?: boolean
+  /** Another row toggle (the value's files), after the formula's. */
+  trailing?: React.ReactNode
   className?: string
 }) {
   const t = useTranslations()
-  const [open, setOpen] = useState(false)
+  const format = useFormatter()
+  const [open, setOpen] = useCollapsible()
   const detailsId = useId()
   const { error } = provenance
   const unchecked = !error && uncheckedState(provenance, unit)
 
+  // A constant's number is what was read. A sibling's is in its canonical unit (2 kW is 2000), so
+  // without the row's own text the variable's name stands in rather than a number nobody typed.
+  const argText = (arg: ValueProvenanceData['args'][number]) =>
+    arg.source.kind === 'property'
+      ? textForValue?.(arg.source.valueId)
+      : arg.value === undefined
+        ? undefined
+        : format.number(arg.value)
+  const equation = equationText(provenance.expression, (name) => {
+    const arg = provenance.args.find((a) => a.var === name)
+    return arg && argText(arg)
+  })
+  // A code this app does not know reads as the badge already says; repeating it is noise.
+  const errorLine = error && calcErrorText(error.code, t)
+  const reason =
+    error && errorLine !== t('objects.properties.formulaError')
+      ? errorLine
+      : unchecked === 'left-out'
+        ? t('objects.properties.unitNotCountedShort')
+        : undefined
+
   return (
-    <div className={cn('space-y-1', className)}>
-      <div className="flex items-center gap-1.5">
-        <Badge
-          variant="secondary"
-          data-testid="provenance-chip"
-          className="h-4 shrink-0 gap-0.5 px-1 text-[10px]"
+    <div className={cn('min-w-0 space-y-1', className)}>
+      <div className="flex min-w-0 items-center gap-2 text-sm">
+        {display !== undefined && (
+          <span className="shrink-0" title={exact || undefined}>
+            {display}
+          </span>
+        )}
+        {/* One line at rest; with the details open it wraps, so a long equation can be read in
+            full without a hover, which keyboard and touch do not have. */}
+        <span
+          className={cn(
+            'min-w-0 text-muted-foreground',
+            open ? 'whitespace-normal break-words' : 'truncate'
+          )}
+          title={equation}
+          data-testid="provenance-equation"
         >
-          <Sigma className="h-2.5 w-2.5" />
-          {t('objects.propertyEditor.derived')}
-        </Badge>
+          = {equation}
+        </span>
 
         {/* An unevaluated formula previously rendered as an ordinary empty value — the failure was
             invisible. Pair the colour with an icon and text so it doesn't rely on red alone. */}
@@ -65,32 +121,33 @@ export function ValueProvenanceDisplay({
           <Badge
             variant="outline"
             data-testid="provenance-error"
-            className="h-4 shrink-0 gap-0.5 border-destructive px-1 text-[10px] text-destructive"
+            className="h-5 shrink-0 whitespace-nowrap gap-1 border-destructive/60 bg-destructive/10 px-1.5 text-[11px] font-medium text-destructive"
           >
-            <AlertTriangle className="h-2.5 w-2.5" />
+            <AlertTriangle className="h-3 w-3" />
             {t('objects.properties.formulaError')}
           </Badge>
         )}
-
         {unchecked === 'left-out' && (
           <Badge
             variant="outline"
             data-testid="provenance-unit-left-out"
-            className="h-4 shrink-0 gap-0.5 border-amber-600 px-1 text-[10px] text-amber-600 dark:border-amber-500 dark:text-amber-500"
+            className="h-5 shrink-0 whitespace-nowrap gap-1 border-amber-500/60 bg-amber-50 px-1.5 text-[11px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
           >
-            <AlertTriangle className="h-2.5 w-2.5" />
+            <AlertTriangle className="h-3 w-3" />
             {t('objects.properties.unitNotCounted')}
           </Badge>
         )}
+        {/* Counted, in the total without a unit: information, so grey, not a warning colour. */}
         {unchecked === 'plain' && (
           <Badge
-            variant="outline"
+            variant="secondary"
             data-testid="provenance-unit-unchecked"
-            className="h-4 shrink-0 px-1 text-[10px] text-muted-foreground"
+            className="h-5 shrink-0 whitespace-nowrap px-1.5 text-[11px] font-medium"
           >
-            {t('objects.properties.unitNotChecked')}
+            {t('objects.properties.noUnit')}
           </Badge>
         )}
+        {marker}
 
         <button
           type="button"
@@ -102,110 +159,234 @@ export function ValueProvenanceDisplay({
               ? t('objects.properties.hideFormula')
               : t('objects.properties.showFormula')
           }
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          data-testid="provenance-chip"
+          className="ml-auto flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          {open ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
+          <Sigma className="h-3.5 w-3.5" />
+          <ChevronDown
+            className={cn(
+              'h-3 w-3 transition-transform motion-reduce:transition-none',
+              open && 'rotate-180'
+            )}
+          />
         </button>
+        {trailing}
       </div>
 
-      {open && (
-        <div
-          id={detailsId}
-          className="space-y-1.5 border-l-2 pl-2 text-xs text-muted-foreground"
+      {reason && (
+        <p
+          data-testid="provenance-reason"
+          className={cn(
+            'text-xs',
+            error ? 'text-destructive' : 'text-amber-700 dark:text-amber-400'
+          )}
         >
-          <div>
-            <span className="font-medium">
-              {t('objects.properties.formula')}:
-            </span>{' '}
-            <code className="rounded bg-muted px-1 py-0.5 font-mono">
-              {provenance.expression}
-            </code>
-          </div>
+          {reason}
+        </p>
+      )}
 
-          {provenance.unitSource && (
-            <div data-testid="provenance-unit">
-              {provenance.unitSource === 'declared' ? (
-                <>
-                  {t('objects.properties.declaredUnit')}:{' '}
-                  <code className="rounded bg-muted px-1 py-0.5 font-mono">
-                    {provenance.declaredUnit}
-                  </code>
-                </>
-              ) : provenance.unitSource === 'inherited' ? (
-                t('objects.properties.unitInherited')
-              ) : (
-                // Open set: the node may add a source this build has never heard of, and showing
-                // the raw word is better than showing nothing about where the unit came from.
-                provenance.unitSource
-              )}
-            </div>
-          )}
-
-          {/* A unit reached through a factor is the author's to check: the node read these
-              unitless inputs per standard unit and cannot know they are given in it. The same
-              sentence the editor shows before saving, with the inputs named as the row names them. */}
-          {provenance.unitCheck === 'factor' &&
-            (provenance.factorVars?.length ?? 0) > 0 &&
-            unit && (
-              <div data-testid="provenance-factor">
-                {t('objects.formulaEditor.warning.factorNoPer', {
-                  vars: (provenance.factorVars ?? [])
-                    .map((name) => factorLabel(provenance, name, labelForValue))
-                    .join(', '),
-                  count: provenance.factorVars?.length ?? 0,
-                  unit,
-                })}
-              </div>
-            )}
-
-          {provenance.args.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {provenance.args.map((arg) => (
-                <Badge
-                  key={arg.var}
-                  variant="outline"
-                  className="font-mono text-[10px]"
-                >
-                  {arg.var}
-                  {argSource(arg, labelForValue) &&
-                    ` = ${argSource(arg, labelForValue)}`}
-                  {arg.value !== undefined && ` (${arg.value})`}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {unchecked && (
-            <p
-              className={cn(
-                unchecked === 'left-out' && 'text-amber-600 dark:text-amber-500'
-              )}
-            >
-              {t(
-                unchecked === 'left-out'
-                  ? 'objects.properties.unitNotCountedDetail'
-                  : 'objects.properties.unitNotCheckedDetail'
-              )}
-            </p>
-          )}
-
-          {/* The CODE is translated; `detail` is English diagnostic text by contract, so it rides
-              along as a secondary line rather than being the whole message. */}
-          {error && (
-            <div className="space-y-0.5 text-destructive">
-              <p>{calcErrorText(error.code, t)}</p>
-              {error.detail && (
-                <p className="text-[10px] opacity-80">{error.detail}</p>
-              )}
-            </div>
-          )}
-        </div>
+      {open && (
+        <FormulaFacts
+          id={detailsId}
+          provenance={provenance}
+          unit={unit}
+          unchecked={unchecked}
+          labelForValue={labelForValue}
+          argText={argText}
+          usedAsMultiplier={usedAsMultiplier}
+        />
       )}
     </div>
+  )
+}
+
+/**
+ * The opened details, in a fixed order: formula, inputs, result, status. Split out because it is
+ * the only part that fetches (the formula's and the constants' names), and only once asked for.
+ */
+function FormulaFacts({
+  id,
+  provenance,
+  unit,
+  unchecked,
+  labelForValue,
+  argText,
+  usedAsMultiplier,
+}: {
+  id: string
+  provenance: ValueProvenanceData
+  unit?: string
+  unchecked: ReturnType<typeof uncheckedState> | false
+  usedAsMultiplier: boolean
+  labelForValue?: (valueId: string) => string | undefined
+  argText: (arg: ValueProvenanceData['args'][number]) => string | undefined
+}) {
+  const t = useTranslations()
+  const { data: formula } = useFormulas().useGet(provenance.formulaId)
+  const constantIds = useMemo(
+    () =>
+      provenance.args.flatMap((a) =>
+        a.source.kind === 'constant' ? [a.source.constantId] : []
+      ),
+    [provenance.args]
+  )
+  const constants = useConstants().useByIds(constantIds)
+  const { error } = provenance
+
+  const inputLabel = (arg: ValueProvenanceData['args'][number]) =>
+    arg.source.kind === 'constant'
+      ? (constants.get(arg.source.constantId)?.name ??
+        t('objects.properties.constant'))
+      : (argSource(arg, labelForValue) ?? arg.var)
+
+  // Where the unit came from; nothing when there is no unit, which the status already says.
+  const resultText =
+    provenance.unitSource === 'declared'
+      ? t('objects.properties.resultDeclared', {
+          unit: provenance.declaredUnit ?? '',
+        })
+      : provenance.unitSource === 'inherited'
+        ? unit && t('objects.properties.resultInherited', { unit })
+        : // Open set: the node may add a source this build has never heard of, and showing the
+          // raw word is better than showing nothing about where the unit came from.
+          provenance.unitSource
+
+  const status = error ? (
+    // The CODE is translated; `detail` is English diagnostic text by contract, so it rides along
+    // as a secondary line rather than being the whole message.
+    <div className="space-y-0.5 text-destructive">
+      <p>{calcErrorText(error.code, t)}</p>
+      {error.detail && <p className="text-[10px] opacity-80">{error.detail}</p>}
+    </div>
+  ) : unchecked ? (
+    <div className="space-y-0.5">
+      {/* Left out: the row's reason line already says it is in no total, so the details say
+          only what the row does not — why. */}
+      <p>
+        {t(
+          unchecked === 'left-out'
+            ? 'objects.properties.unitNotCountedCauses'
+            : 'objects.properties.unitNotCheckedDetail'
+        )}
+      </p>
+      {usedAsMultiplier && (
+        <p
+          className="text-amber-700 dark:text-amber-400"
+          data-testid="provenance-multiplier"
+        >
+          {t('objects.properties.unitNotCheckedMultiplier')}
+        </p>
+      )}
+    </div>
+  ) : provenance.unitVerified === true ? (
+    <p className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+      <Check className="h-3 w-3" />
+      {t('objects.properties.unitChecked')}
+    </p>
+  ) : unit === undefined ? (
+    // Nothing to check: a plain number over plain numbers.
+    <p className="text-muted-foreground">
+      {t('objects.properties.resultNoUnit')}
+    </p>
+  ) : null
+
+  // A unit reached through a factor is the author's to check: the node read these unitless inputs
+  // per standard unit and cannot know they are given in it. The same sentence the editor shows
+  // before saving, with the inputs named as the row names them.
+  const factorLine = provenance.unitCheck === 'factor' &&
+    (provenance.factorVars?.length ?? 0) > 0 &&
+    unit && (
+      <p data-testid="provenance-factor" className="text-muted-foreground">
+        {t('objects.formulaEditor.warning.factorNoPer', {
+          vars: (provenance.factorVars ?? [])
+            .map((name) => factorLabel(provenance, name, labelForValue))
+            .join(', '),
+          count: provenance.factorVars?.length ?? 0,
+          unit,
+        })}
+      </p>
+    )
+
+  return (
+    <dl
+      id={id}
+      className="grid grid-cols-[4.5rem_1fr] gap-x-3 gap-y-1.5 rounded-md border bg-muted/30 px-2.5 py-2 text-xs"
+    >
+      <dt className="text-muted-foreground">
+        {t('objects.properties.factsFormula')}
+      </dt>
+      {/* The name only: the row above already shows the formula as its equation. An inline
+          formula has no name, so its expression is all there is to show. */}
+      <dd className="min-w-0" data-testid="provenance-formula">
+        {formula?.name ?? (
+          <code className="rounded border bg-background px-1 font-mono">
+            {provenance.expression}
+          </code>
+        )}
+      </dd>
+
+      {provenance.args.length > 0 && (
+        <>
+          <dt className="text-muted-foreground">
+            {t('objects.properties.factsInputs')}
+          </dt>
+          <dd className="grid min-w-0 grid-cols-[auto_1fr_auto] gap-x-2.5 gap-y-0.5">
+            {provenance.args.map((arg) => (
+              <Fragment key={arg.var}>
+                <span className="font-mono text-muted-foreground">
+                  {arg.var}
+                </span>
+                <span className="min-w-0 truncate">
+                  {/* A property named like its variable (`v` bound to `v`) would read twice. */}
+                  {inputLabel(arg).toLowerCase() === arg.var.toLowerCase()
+                    ? ''
+                    : inputLabel(arg)}
+                </span>
+                <span className="text-right tabular-nums">
+                  {argText(arg) ?? '—'}
+                </span>
+              </Fragment>
+            ))}
+          </dd>
+        </>
+      )}
+
+      {resultText && (
+        <>
+          <dt className="text-muted-foreground">
+            {t('objects.properties.factsResult')}
+          </dt>
+          <dd data-testid="provenance-unit">{resultText}</dd>
+        </>
+      )}
+
+      {(status || factorLine) && (
+        <>
+          <dt className="text-muted-foreground">
+            {t('objects.properties.factsStatus')}
+          </dt>
+          <dd className="space-y-1">
+            {status}
+            {factorLine}
+          </dd>
+        </>
+      )}
+
+      {unchecked && (
+        <>
+          <dt className="text-muted-foreground">
+            {t('objects.properties.factsFix')}
+          </dt>
+          <dd data-testid="provenance-fix">
+            {t(
+              unchecked === 'left-out'
+                ? 'objects.properties.fixNotCounted'
+                : 'objects.properties.fixNoUnit'
+            )}
+          </dd>
+        </>
+      )}
+    </dl>
   )
 }
 
@@ -233,6 +414,29 @@ function factorLabel(
   return (arg && argSource(arg, labelForValue)) ?? name
 }
 
+type ProvenancedValue = {
+  id: string
+  source?: string
+  provenance?: ValueProvenanceData
+}
+
+/**
+ * Which values the node calculated, keyed by value id, across every property list given — an
+ * entity's own, and a process's flows too, since a flow value can be calculated as well.
+ */
+export function derivedValueMap(
+  ...lists: ({ values: ProvenancedValue[] }[] | undefined)[]
+): DerivedValues {
+  const m = new Map<string, ValueProvenanceData | undefined>()
+  for (const list of lists)
+    list?.forEach((p) =>
+      p.values.forEach((v) => {
+        if (v.source === 'derived') m.set(v.id, v.provenance)
+      })
+    )
+  return m
+}
+
 /**
  * Which property a bound value belongs to. The trace names sibling values by id, which means nothing
  * to a reader — but the draft already holds the whole tree, so no lookup goes to the network.
@@ -242,19 +446,14 @@ export function labelForValueId(
   valueId: string,
   locale?: PropertyDictionaryLocale
 ): string | undefined {
-  for (const p of properties) {
-    // Match `ref` as well as `id`: a not-yet-saved value has only a client ref, and a TEMPLATE value
-    // has its ref preserved as the thing sibling calcs bind to. Matching ids alone would leave those
-    // bindings labelled as unknown.
-    if (p.values.some((v) => v.id === valueId || v.ref === valueId))
-      // A formula trace names a sibling PROPERTY, so it reads in the same language as that
-      // property's own row — `weight` must not surface here as "Weight" beside a card saying
-      // "Gewicht". Locale is optional so a non-rendering caller can still ask for the raw label.
-      return locale
-        ? resolvePropertyLabel(p.key, p.label, locale)
-        : p.label || p.key
-  }
-  return undefined
+  const p = findValue(properties, valueId)?.property
+  if (!p) return undefined
+  // A formula trace names a sibling PROPERTY, so it reads in the same language as that property's
+  // own row — `weight` must not surface here as "Weight" beside a card saying "Gewicht". Locale is
+  // optional so a non-rendering caller can still ask for the raw label.
+  return locale
+    ? resolvePropertyLabel(p.key, p.label, locale)
+    : p.label || p.key
 }
 
 // What the variable was bound to, in reader terms: a sibling property's label, or the fact that it

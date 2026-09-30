@@ -35,6 +35,9 @@ test.describe('16 - rollups / other sheets', () => {
     await expect(page.getByTestId('data-table')).toBeVisible()
 
     const row = page.getByTestId('data-table-row').first()
+    // The table renders skeleton rows while the list loads, so counting right after it appears
+    // reads 0 on a node full of processes and skips the case for the wrong reason.
+    await expect(row.or(page.getByTestId('empty-state'))).toBeVisible()
     // This file authors nothing — the claim is about the SHEET, and a process created here would
     // add a write path that can fail for reasons of its own. The cost is a hidden dependency on
     // `07-processes` having run first, which is invisible until the folder is run on its own

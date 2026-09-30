@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import {
   ChevronRight,
@@ -46,9 +46,15 @@ import {
   FormulaBindings,
   type FormulaSibling,
 } from './formula-value-editor'
-import { AttachmentModal, FilesDisclosure } from '../files'
+import { AttachmentModal, FileList, FilesControl } from '../files'
 import { DeletedRow } from './deleted-row'
-import { PropertyReadView } from './property-read-view'
+import { fileBagActions } from './use-file-bag'
+import {
+  PropertyReadView,
+  useValueDisplay,
+  useValueText,
+} from './property-read-view'
+import { fileCount } from './property-values'
 import {
   ValueNormalization,
   formulaBoundValueIds,
@@ -265,6 +271,8 @@ export function PropertyFields({
         onFileChange={patchFile}
         allowFiles={allowFiles}
         allowViewToggle={allowViewToggle}
+        siblingSource={siblingSource}
+        heading={allowViewToggle ? label : undefined}
       />
     )
   }
@@ -273,12 +281,13 @@ export function PropertyFields({
     // RHF focuses the last registered input of the appended item — the value field — but a new
     // property wants its NAME first. Suppress that and let the row focus its own name input.
     append({ key: '', label: '', values: [newValue()] }, { shouldFocus: false })
-  const addButton = (
+  const addButton = (testId: string, className?: string) => (
     <Button
       type="button"
       variant="outline"
       size="sm"
-      data-testid="add-property"
+      className={className}
+      data-testid={testId}
       onClick={addProperty}
     >
       <Plus className="mr-2 h-4 w-4" />
@@ -291,7 +300,7 @@ export function PropertyFields({
       {label && (
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium">{label}</h3>
-          {addButton}
+          {addButton('add-property')}
         </div>
       )}
       {fields.map((field, index) => (
@@ -312,10 +321,17 @@ export function PropertyFields({
           quantities={quantities}
         />
       ))}
-      {!label && addButton}
+      {/* A new property lands at the end, so the button that adds the next one sits there too;
+          the header one alone meant scrolling up and down for every property. */}
+      {!label
+        ? addButton('add-property', 'w-full')
+        : fields.length > 0 && addButton('add-property-end', 'w-full')}
     </div>
   )
 }
+
+// The open-files key for the property's own list; values use their field id.
+const PROPERTY_FILES = 'property'
 
 // The modal target within a row: the property itself, or one of its values (by field index).
 type ModalTarget = { kind: 'property' } | { kind: 'value'; vIndex: number }
@@ -357,6 +373,14 @@ function PropertyRow({
     name: `${basePath}.${index}.values`,
   })
   const [modalTarget, setModalTarget] = useState<ModalTarget | null>(null)
+  // The read view's own rule, so a number and an equation's inputs read the same in both modes.
+  const displayValue = useValueDisplay(derivedValues)
+  // Which file lists are open: the property's own, and each value's by its field id (an index
+  // would hand an open list to the next value when one above it is removed).
+  const [openFiles, setOpenFiles] = useState<ReadonlySet<string>>(
+    () => new Set()
+  )
+  const filesId = useId()
   const [confirmDelete, setConfirmDelete] = useState(false)
   // New properties (no key yet) open expanded to edit; loaded ones start collapsed to stay compact.
   const [isNew] = useState(() => !form.getValues(`${basePath}.${index}.key`))
@@ -416,6 +440,11 @@ function PropertyRow({
   const row = useWatch({ control: form.control, name: `${basePath}.${index}` })
   const ownProperties =
     useWatch({ control: form.control, name: basePath }) ?? []
+  // Read mode's own rule for an equation's inputs, so both modes name them alike.
+  const textForValue = useValueText(
+    siblingSource ?? ownProperties,
+    derivedValues
+  )
 
   const propKey = row?.key
   const propLabel = row?.label
@@ -438,10 +467,7 @@ function PropertyRow({
     getValuePlaceholder(propKey, locale) ?? t('objects.propertyEditor.value')
   const propFiles = row?.files ?? []
   const rowValues = row?.values ?? []
-  const fileTotal = allowFiles
-    ? propFiles.length +
-      rowValues.reduce((n, v) => n + (v.files?.length ?? 0), 0)
-    : 0
+  const fileTotal = allowFiles && row ? fileCount(row) : 0
   // A property worth confirming before delete: it has a name, files, or any non-empty value.
   const hasContent =
     !!propKey ||
@@ -457,23 +483,44 @@ function PropertyRow({
       modalTarget.kind === 'property'
         ? (`${basePath}.${index}.files` as const)
         : (`${basePath}.${index}.values.${modalTarget.vIndex}.files` as const)
-    const current = form.getValues(path) ?? []
-    form.setValue(path, [...current, ...files], { shouldDirty: true })
+    fileBagActions(form, path).add(files)
+    // Open the list it went into, so what was just attached is in view.
+    const key =
+      modalTarget.kind === 'property'
+        ? PROPERTY_FILES
+        : fields[modalTarget.vIndex]?.id
+    if (key) setOpenFiles((prev) => new Set(prev).add(key))
   }
 
-  const removeFile = (
-    path:
-      | `${PropertiesPath}.${number}.files`
-      | `${PropertiesPath}.${number}.values.${number}.files`,
-    localId: string
-  ) => {
-    const current = form.getValues(path) ?? []
-    form.setValue(
-      path,
-      current.filter((f) => f._localId !== localId),
-      { shouldDirty: true }
-    )
-  }
+  const toggleFiles = (key: string) =>
+    setOpenFiles((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(key)) next.add(key)
+      return next
+    })
+
+  /**
+   * The field's own paperclip is its one files control: with nothing attached it opens the dialog;
+   * with files it shows the count and opens the list under the field, which ends with "Attach".
+   */
+  const fieldFiles = (
+    key: string,
+    files: DraftFile[],
+    label: string,
+    attachTestId: string,
+    onAttach: () => void
+  ) => (
+    <FilesControl
+      variant="field"
+      count={files.length}
+      open={openFiles.has(key)}
+      onToggle={() => toggleFiles(key)}
+      controls={`${filesId}-${key}`}
+      label={label}
+      onAttach={onAttach}
+      attachTestId={attachTestId}
+    />
+  )
 
   // A deleted property is shown, never hidden — but it can't be edited until it's restored, so the
   // whole editor collapses to the name plus a way back.
@@ -602,18 +649,14 @@ function PropertyRow({
                     form.clearErrors(`${basePath}.${index}.key`)
                 }}
               />
-              {allowFiles && (
-                <button
-                  type="button"
-                  onClick={() => setModalTarget({ kind: 'property' })}
-                  title={t('objects.files.attach')}
-                  aria-label={t('objects.files.attach')}
-                  data-testid={`property-attach-${index}`}
-                  className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Paperclip className="h-4 w-4" />
-                </button>
-              )}
+              {allowFiles &&
+                fieldFiles(
+                  PROPERTY_FILES,
+                  propFiles,
+                  t('objects.files.onProperty'),
+                  `property-attach-${index}`,
+                  () => setModalTarget({ kind: 'property' })
+                )}
             </div>
           </div>
           {keyError && (
@@ -640,17 +683,23 @@ function PropertyRow({
               {t('objects.propertyEditor.keyLocked', { key: committedKey })}
             </p>
           )}
-          {allowFiles && (
-            <FilesDisclosure
-              files={propFiles}
-              editing
-              entityId={entityId}
-              onRemove={(localId) =>
-                removeFile(`${basePath}.${index}.files`, localId)
-              }
-              onChange={onFileChange}
-            />
-          )}
+          {allowFiles &&
+            propFiles.length > 0 &&
+            openFiles.has(PROPERTY_FILES) && (
+              <FileList
+                id={`${filesId}-${PROPERTY_FILES}`}
+                files={propFiles}
+                entityId={entityId}
+                editing
+                onRemove={(localId) =>
+                  fileBagActions(form, `${basePath}.${index}.files`).remove(
+                    localId
+                  )
+                }
+                onChange={onFileChange}
+                onAttach={() => setModalTarget({ kind: 'property' })}
+              />
+            )}
         </div>
 
         <div className="space-y-1.5">
@@ -700,85 +749,109 @@ function PropertyRow({
                 const hydration = provenance
                   ? calcFromProvenance(provenance)
                   : null
-                return (
-                  <div key={field.id} className="space-y-1">
-                    <div
-                      className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm"
-                      data-testid={`derived-value-${index}-${vIndex}`}
-                    >
-                      <span className="min-w-0 flex-1 truncate">
-                        {value?.data || '—'}
-                      </span>
-                      {/* The same marks the read view shows, so a refused quantity says so while
-                          it is being edited too. */}
-                      {value && (
-                        <ValueNormalization
-                          value={value}
-                          quantity={quantity}
-                          usedAsMultiplier={quantity !== undefined}
-                        />
-                      )}
-                      {provenance ? (
-                        <ValueProvenanceDisplay
-                          provenance={provenance}
-                          unit={value?.unit}
-                          labelForValue={(id) =>
-                            labelForValueId(
-                              siblingSource ?? ownProperties,
-                              id,
-                              locale
-                            )
-                          }
-                        />
-                      ) : (
-                        <Badge variant="outline" className="text-[10px]">
-                          {t('objects.propertyEditor.derived')}
-                        </Badge>
-                      )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0"
-                        disabled={!hydration?.ok}
-                        aria-label={t('objects.formulaEditor.editFormula')}
-                        data-testid={`derived-value-edit-${index}-${vIndex}`}
-                        title={
-                          hydration?.ok || !hydration
-                            ? t('objects.formulaEditor.editFormula')
-                            : t(`objects.formulaEditor.${hydration.reason}`)
-                        }
-                        onClick={() =>
-                          hydration?.ok &&
-                          form.setValue(`${base}.calc`, hydration.calc, {
-                            shouldDirty: true,
-                          })
-                        }
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0"
-                        aria-label={t('common.remove')}
-                        onClick={() =>
-                          form.setValue(`${base}.deleted`, true, {
-                            shouldDirty: true,
-                          })
-                        }
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                const siblings = siblingSource ?? ownProperties
+                const rowButtons = (
+                  <>
                     {allowFiles && (
-                      <FilesDisclosure
-                        files={valueFiles}
-                        editing={false}
-                        entityId={entityId}
+                      <FilesControl
+                        variant="row"
+                        count={valueFiles.length}
+                        open={openFiles.has(field.id)}
+                        onToggle={() => toggleFiles(field.id)}
+                        controls={`${filesId}-${field.id}`}
+                        label={t('objects.files.onValue')}
                       />
                     )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      disabled={!hydration?.ok}
+                      aria-label={t('objects.formulaEditor.editFormula')}
+                      data-testid={`derived-value-edit-${index}-${vIndex}`}
+                      title={
+                        hydration?.ok || !hydration
+                          ? t('objects.formulaEditor.editFormula')
+                          : t(`objects.formulaEditor.${hydration.reason}`)
+                      }
+                      onClick={() =>
+                        hydration?.ok &&
+                        form.setValue(`${base}.calc`, hydration.calc, {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      aria-label={t('common.remove')}
+                      onClick={() =>
+                        form.setValue(`${base}.deleted`, true, {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                )
+                return (
+                  <div key={field.id} className="space-y-1">
+                    {/* The read view's own row, so a formula reads the same while editing: the
+                        equation on the line and the details opening below it, full width. */}
+                    <div
+                      className="rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                      data-testid={`derived-value-${index}-${vIndex}`}
+                    >
+                      {provenance && value ? (
+                        <ValueProvenanceDisplay
+                          provenance={provenance}
+                          unit={value.unit}
+                          display={displayValue(value)}
+                          exact={value.data}
+                          labelForValue={(id) =>
+                            labelForValueId(siblings, id, locale)
+                          }
+                          textForValue={textForValue}
+                          // The same marks the read view shows, so a refused quantity says so while
+                          // it is being edited too.
+                          marker={
+                            <ValueNormalization
+                              value={value}
+                              quantity={quantity}
+                              usedAsMultiplier={quantity !== undefined}
+                              derived
+                            />
+                          }
+                          trailing={rowButtons}
+                          usedAsMultiplier={quantity !== undefined}
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1 truncate">
+                            {value?.data || '—'}
+                          </span>
+                          <Badge variant="outline" className="text-[10px]">
+                            {t('objects.propertyEditor.derived')}
+                          </Badge>
+                          {rowButtons}
+                        </div>
+                      )}
+                    </div>
+                    {allowFiles &&
+                      valueFiles.length > 0 &&
+                      openFiles.has(field.id) && (
+                        <FileList
+                          id={`${filesId}-${field.id}`}
+                          files={valueFiles}
+                          entityId={entityId}
+                        />
+                      )}
                   </div>
                 )
               }
@@ -812,20 +885,14 @@ function PropertyRow({
                           {...form.register(`${base}.data`)}
                         />
                       )}
-                      {allowFiles && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setModalTarget({ kind: 'value', vIndex })
-                          }
-                          title={t('objects.files.attach')}
-                          aria-label={t('objects.files.attach')}
-                          data-testid={`value-attach-${index}-${vIndex}`}
-                          className="flex h-8 shrink-0 items-center border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          <Paperclip className="h-4 w-4" />
-                        </button>
-                      )}
+                      {allowFiles &&
+                        fieldFiles(
+                          field.id,
+                          valueFiles,
+                          t('objects.files.onValue'),
+                          `value-attach-${index}-${vIndex}`,
+                          () => setModalTarget({ kind: 'value', vIndex })
+                        )}
                       <button
                         type="button"
                         onClick={() =>
@@ -898,17 +965,23 @@ function PropertyRow({
                       countedBy={countedBy}
                     />
                   )}
-                  {allowFiles && (
-                    <FilesDisclosure
-                      files={valueFiles}
-                      editing
-                      entityId={entityId}
-                      onRemove={(localId) =>
-                        removeFile(`${base}.files`, localId)
-                      }
-                      onChange={onFileChange}
-                    />
-                  )}
+                  {allowFiles &&
+                    valueFiles.length > 0 &&
+                    openFiles.has(field.id) && (
+                      <FileList
+                        id={`${filesId}-${field.id}`}
+                        files={valueFiles}
+                        entityId={entityId}
+                        editing
+                        onRemove={(localId) =>
+                          fileBagActions(form, `${base}.files`).remove(localId)
+                        }
+                        onChange={onFileChange}
+                        onAttach={() =>
+                          setModalTarget({ kind: 'value', vIndex })
+                        }
+                      />
+                    )}
                 </div>
               )
             })}

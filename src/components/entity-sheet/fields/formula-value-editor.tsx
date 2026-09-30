@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { AlertTriangle, ChevronsUpDown, Loader2 } from 'lucide-react'
+import { AlertTriangle, ChevronsUpDown, Loader2, Sigma } from 'lucide-react'
 import {
   previewArgFromValue,
   type CalcArgInput,
@@ -31,7 +31,8 @@ import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { SEARCH_SIZE } from '@/constants'
 
 import { calcErrorText, uncheckedState } from './value-provenance'
-import { FormulaWarnings } from './formula-warnings'
+import { equationText } from './formula-equation'
+import { FormulaMessage, FormulaWarnings } from './formula-warnings'
 import { UnitsHelp } from './units-help'
 
 /**
@@ -311,6 +312,7 @@ export function FormulaBindings({
   const settledKey =
     settledBody === undefined ? '' : JSON.stringify(settledBody)
   const preview = settledKey === bodyKey ? settledAnswer : undefined
+  const busy = settledKey !== bodyKey || !!isFetching
   const warnings = preview?.warnings ?? []
   // The declare-unit warning says the same thing as the plain unchecked line, and more precisely.
   const unchecked =
@@ -402,7 +404,7 @@ export function FormulaBindings({
       <div
         role="status"
         aria-live="polite"
-        aria-busy={settledKey !== bodyKey || !!isFetching}
+        aria-busy={busy}
         className="space-y-2"
       >
         {/* RED, not amber: the node refuses this outright and writes an error row with no number,
@@ -428,52 +430,64 @@ export function FormulaBindings({
           </p>
         )}
 
-        {/* AMBER: the value is stored and shown either way.
-            Read as `=== false` and never as falsy: the node sends `true` when it checked the unit,
+        {/* Read as `=== false` and never as falsy: the node sends `true` when it checked the unit,
             `false` when it could not, and NOTHING when there was nothing to check — which is the
             commonest case and means an ordinary number. Collapsing absent into false would put this
-            warning on almost every derived value. */}
-        {unchecked && (
-          <p
-            data-testid="formula-unit-unverified"
-            className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
-          >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>
-              {t(
-                unchecked === 'left-out'
-                  ? 'objects.formulaEditor.unitUnverified'
-                  : 'objects.formulaEditor.unitUnverifiedPlain'
-              )}
-            </span>
-          </p>
-        )}
-
-        {countedTwice && (
-          <p
-            data-testid="formula-counted-twice"
-            className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500"
-          >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>
-              {t('objects.formulaEditor.countedTwice', {
-                quantity: countedTwice.label,
-              })}
-            </span>
-          </p>
+            line on almost every derived value. Grey when the value is still counted (no unit),
+            amber when it leaves every total. */}
+        {(unchecked || countedTwice) && (
+          <ul className="space-y-1">
+            {unchecked && (
+              <FormulaMessage
+                data-testid="formula-unit-unverified"
+                tone={unchecked === 'left-out' ? 'warn' : 'info'}
+                text={t(
+                  unchecked === 'left-out'
+                    ? 'objects.formulaEditor.unitUnverifiedShort'
+                    : 'objects.formulaEditor.unitUnverifiedPlainShort'
+                )}
+                why={t(
+                  unchecked === 'left-out'
+                    ? 'objects.formulaEditor.unitUnverified'
+                    : 'objects.formulaEditor.unitUnverifiedPlain'
+                )}
+              />
+            )}
+            {countedTwice && (
+              <FormulaMessage
+                data-testid="formula-counted-twice"
+                tone="warn"
+                text={t('objects.formulaEditor.countedTwiceShort', {
+                  quantity: countedTwice.label,
+                })}
+                why={t('objects.formulaEditor.countedTwice', {
+                  quantity: countedTwice.label,
+                })}
+              />
+            )}
+          </ul>
         )}
 
         <FormulaWarnings warnings={warnings} />
 
         {/* No result figure: the value row shows what was stored. The panel keeps only what the
-            row cannot tell the author in time — a refusal, an unchecked unit, and the warnings. */}
-        <p className="text-xs text-muted-foreground">
-          {t(
-            preview?.error
-              ? 'objects.formulaEditor.errorOnSave'
-              : 'objects.formulaEditor.calculatedOnSave'
-          )}
-        </p>
+            row cannot tell the author in time. "Calculated on save" only when nothing else is said,
+            so a problem is not followed by a line that reads like an all-clear. */}
+        {preview?.error ? (
+          <p className="text-xs text-muted-foreground">
+            {t('objects.formulaEditor.errorOnSave')}
+          </p>
+        ) : (
+          // Not while an answer is on its way: it would flash, then give way to the warnings.
+          !busy &&
+          !unchecked &&
+          !countedTwice &&
+          warnings.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              {t('objects.formulaEditor.calculatedOnSave')}
+            </p>
+          )
+        )}
       </div>
 
       <UnitsHelp />
@@ -682,20 +696,13 @@ function BindingPicker({
 }
 
 /**
- * A bound recipe, read-only: which formula, and what each variable is bound to.
- *
- * This is what a TEMPLATE formula looks like. A template stores its recipe INERT — `source:'derived'`
- * plus `calc`, with no `num` and no `provenance`, because it computes only when the template is
- * applied to a real entity (E-2). So there is no trace to render and no result to show; without this
- * the value reads as an empty string, which looks like nothing was ever configured.
+ * A template formula written out with its inputs NAMED (`Width × 2`): a template holds no numbers
+ * yet, only which property each variable will read. Undefined until the formula record loads.
  */
-export function FormulaSummary({
-  calc,
-  labelForValue,
-}: {
-  calc: CalcInput
+export function useTemplateEquation(
+  calc: CalcInput,
   labelForValue?: (ref: string) => string | undefined
-}) {
+): { equation?: string; formulaName?: string } {
   const t = useTranslations()
   const { data: formula } = useFormulas().useGet(calc.formulaId)
 
@@ -712,44 +719,61 @@ export function FormulaSummary({
   )
   const boundConstants = useConstants().useByIds(boundIds)
 
-  const bindingLabel = (variable: string): string => {
+  // An unbound variable keeps its own name in the equation: "Unbound × Unbound" says nothing.
+  const bindingLabel = (variable: string): string | undefined => {
     const arg = calc.args.find((a) => a.var === variable)
     if (arg?.constantId)
       return boundConstants.get(arg.constantId)?.name ?? t('common.unknown')
     if (arg?.ref) return labelForValue?.(arg.ref) ?? t('common.unknown')
-    return t('objects.formulaEditor.unbound')
+    return undefined
   }
 
-  // Variables come from the formula record, so until it loads there is nothing truthful to list —
-  // showing the recipe's args instead would omit any variable the user has not bound yet.
-  const variables = formula?.variables ?? []
+  // Until the formula record loads there is no expression to write out.
+  const equation = formula?.expression
+    ? equationText(formula.expression, (variable) =>
+        formula.variables.includes(variable)
+          ? bindingLabel(variable)
+          : undefined
+      )
+    : undefined
 
+  return { equation, formulaName: formula?.name }
+}
+
+/**
+ * A bound recipe, read-only: which formula, and what each variable is bound to.
+ *
+ * This is what a TEMPLATE formula looks like. A template stores its recipe INERT — `source:'derived'`
+ * plus `calc`, with no `num` and no `provenance`, because it computes only when the template is
+ * applied to a real entity (E-2). So there is no trace to render and no result to show; without this
+ * the value reads as an empty string, which looks like nothing was ever configured.
+ */
+export function FormulaSummary({
+  calc,
+  labelForValue,
+}: {
+  calc: CalcInput
+  labelForValue?: (ref: string) => string | undefined
+}) {
+  const t = useTranslations()
+  const { equation, formulaName } = useTemplateEquation(calc, labelForValue)
+
+  // The same row a calculated value reads as, with the inputs NAMED instead of valued: a template
+  // holds no numbers yet, only which property each variable will read.
   return (
-    <div className="space-y-1 rounded-md border bg-muted/30 px-3 py-2">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className="text-sm font-medium">
-          {formula?.name ?? t('objects.propertyEditor.derived')}
+    <div className="space-y-0.5 text-sm" data-testid="formula-summary">
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          className="min-w-0 truncate text-muted-foreground"
+          title={equation}
+        >
+          {equation ? `= ${equation}` : '—'}
         </span>
-        {formula?.expression && (
-          <code className="font-mono text-xs text-muted-foreground">
-            {formula.expression}
-          </code>
-        )}
+        <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+          <Sigma className="h-3.5 w-3.5" />
+          {formulaName ?? t('objects.propertyEditor.derived')}
+        </span>
       </div>
-      {variables.length > 0 && (
-        <dl className="space-y-0.5">
-          {variables.map((variable) => (
-            <div key={variable} className="flex items-baseline gap-2 text-xs">
-              <dt className="w-10 shrink-0 font-mono font-medium">
-                {variable}
-              </dt>
-              <dd className="min-w-0 truncate text-muted-foreground">
-                {bindingLabel(variable)}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
       <p className="text-[11px] text-muted-foreground">
         {t('templates.formulaInert')}
       </p>

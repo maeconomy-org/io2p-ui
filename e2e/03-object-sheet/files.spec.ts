@@ -160,23 +160,31 @@ test.describe('03 - object sheet / files', () => {
     await page.getByTestId('attachment-modal-add-reference').click()
     await page.getByTestId('attachment-modal-done').click()
 
-    // Each lands under its own container, not in the object's Files tab — a disclosure per target
-    // is what makes the three levels legible. The COUNT on the trigger is the assertable part; the
-    // rows themselves sit inside a Collapsible that Radix unmounts while closed.
+    // Each lands under its own field, not in the object's Files tab, and that field's list opens
+    // by itself after the attach, so both rows are in view without another click.
     const row = page.getByTestId('property-row-0')
-    await expect(row.getByTestId('files-count')).toHaveCount(2)
+    await expect(row.getByTestId('files-toggle')).toHaveCount(2)
+    await expect(
+      row.getByTestId('file-row').filter({ hasText: 'On the property' })
+    ).toBeVisible()
+    await expect(
+      row.getByTestId('file-row').filter({ hasText: 'On the value' })
+    ).toBeVisible()
 
     await saveSheet(page)
     await page.goto('/objects')
     await openObjectSheet(page, rowFor(page, name))
-    // The editable rows only exist in edit mode — read mode renders `PropertyReadView`, which has
-    // no toggle and no per-target disclosure.
+    // The editable rows only exist in edit mode — read mode renders `PropertyReadView`.
     await enterEditMode(page)
     await expandProperty(page, 0)
 
+    const reopened = page.getByTestId('property-row-0')
+    await expect(reopened.getByTestId('files-toggle')).toHaveCount(2)
+    await expect(reopened.getByTestId('file-row')).toHaveCount(0)
+    await reopened.getByTestId('files-toggle').first().click()
     await expect(
-      page.getByTestId('property-row-0').getByTestId('files-count')
-    ).toHaveCount(2)
+      reopened.getByTestId('file-row').filter({ hasText: 'On the property' })
+    ).toBeVisible()
   })
 
   test('FI5: the whole-sheet dropzone is armed only in edit mode', async ({

@@ -17,6 +17,7 @@ import {
   FlowsField,
   MetadataFields,
   PropertyFields,
+  ReadOnlyField,
 } from './fields'
 import {
   SheetLifecycleFooter,
@@ -93,55 +94,58 @@ export function TemplateSheet({
     else setEditing(false)
   }
 
-  const versionField = (
+  const versionField = editing ? (
     <div className="space-y-1.5">
       <Label htmlFor="template-version">{t('objects.fields.version')}</Label>
-      {editing ? (
-        <Input
-          id="template-version"
-          placeholder={t('templates.placeholders.version')}
-          {...form.register('version')}
-        />
-      ) : (
-        <p className="text-sm">{form.watch('version') || '—'}</p>
-      )}
+      <Input
+        id="template-version"
+        placeholder={t('templates.placeholders.version')}
+        {...form.register('version')}
+      />
     </div>
+  ) : (
+    <dl>
+      <ReadOnlyField label={t('objects.fields.version')}>
+        {form.watch('version') || '—'}
+      </ReadOnlyField>
+    </dl>
   )
 
-  // Details first, then flows — the same order the process sheet uses, so a process template reads
-  // like the thing it scaffolds rather than like its own kind of screen.
+  // A template reads like the thing it creates: an object template opens on its properties, as an
+  // object does; a process template opens on Details, as a process does, then its flows.
+  const detailsTab: SheetTab = {
+    value: 'details',
+    label: t('objects.detailsSheet.tabDetails'),
+    dirty: !!(
+      dirtyFields.name ||
+      dirtyFields.description ||
+      dirtyFields.version
+    ),
+    invalid: !!errors.name,
+    content: (
+      <div className="space-y-4">
+        {template && <EntityFacts entity={template} />}
+        <MetadataFields form={form} editing={editing} />
+        {versionField}
+      </div>
+    ),
+  }
+  const propertiesTab: SheetTab = {
+    value: 'properties',
+    label: t('objects.fields.properties'),
+    dirty: !!dirtyFields.properties,
+    invalid: !!errors.properties,
+    content: (
+      <PropertyFields
+        form={form}
+        editing={editing}
+        derivedValues={NO_DERIVED_VALUES}
+        allowFiles={false}
+      />
+    ),
+  }
   const tabs: SheetTab[] = [
-    {
-      value: 'details',
-      label: t('objects.detailsSheet.tabDetails'),
-      dirty: !!(
-        dirtyFields.name ||
-        dirtyFields.description ||
-        dirtyFields.version
-      ),
-      invalid: !!errors.name,
-      content: (
-        <div className="space-y-4">
-          {template && <EntityFacts entity={template} />}
-          <MetadataFields form={form} editing={editing} />
-          {versionField}
-        </div>
-      ),
-    },
-    {
-      value: 'properties',
-      label: t('objects.fields.properties'),
-      dirty: !!dirtyFields.properties,
-      invalid: !!errors.properties,
-      content: (
-        <PropertyFields
-          form={form}
-          editing={editing}
-          derivedValues={NO_DERIVED_VALUES}
-          allowFiles={false}
-        />
-      ),
-    },
+    ...(isProcess ? [detailsTab, propertiesTab] : [propertiesTab, detailsTab]),
     ...(isProcess
       ? (['inputs', 'outputs'] as const).map((bag) => ({
           value: bag,

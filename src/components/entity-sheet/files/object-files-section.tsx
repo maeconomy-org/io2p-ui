@@ -57,6 +57,7 @@ export function ObjectFilesSection({
   coverFileId,
   allowViewToggle = true,
   showEmptyState = true,
+  showTitle = true,
 }: {
   files: DraftFile[]
   editing: boolean
@@ -71,6 +72,8 @@ export function ObjectFilesSection({
   allowViewToggle?: boolean
   /** Off while creating: an empty object is the expected state, not something to report. */
   showEmptyState?: boolean
+  /** Off in the Files tab, where the tab already says it; on where it names a section of a form. */
+  showTitle?: boolean
 }) {
   const t = useTranslations()
   const [storedView, setView] = usePreference('filesView')
@@ -88,8 +91,18 @@ export function ObjectFilesSection({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-medium">{t('objects.filesTitle')}</h3>
+      <div
+        className={cn(
+          'flex items-center justify-between gap-2',
+          // An empty header row would only push the list down.
+          !showTitle && !editing && files.length === 0 && 'hidden'
+        )}
+      >
+        {showTitle ? (
+          <h3 className="text-sm font-medium">{t('objects.filesTitle')}</h3>
+        ) : (
+          <span />
+        )}
         <div className="flex items-center gap-2">
           {allowViewToggle && files.length > 0 && (
             <ViewToggle

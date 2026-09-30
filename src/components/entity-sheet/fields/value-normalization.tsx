@@ -37,6 +37,7 @@ export function ValueNormalization({
   quantity,
   usedInFormula = false,
   usedAsMultiplier = false,
+  derived = false,
   className,
 }: {
   value: Pick<DraftValue, 'data' | 'num' | 'unit' | 'parse'>
@@ -46,6 +47,11 @@ export function ValueNormalization({
   usedInFormula?: boolean
   /** True when a rollup rule scales its totals by this value's key — see `multiplierKeysOf`. */
   usedAsMultiplier?: boolean
+  /**
+   * A formula result. Its canonical text is what the row already shows (the node stores a unit it
+   * worked out beside a bare `data`), so the conversion mark would claim a conversion nobody typed.
+   */
+  derived?: boolean
   className?: string
 }) {
   const t = useTranslations()
@@ -79,7 +85,7 @@ export function ValueNormalization({
     )
   }
 
-  if (value.num === undefined || !differsFromRaw(value)) return null
+  if (derived || value.num === undefined || !differsFromRaw(value)) return null
 
   const canonical = canonicalText(value, (n) => format.number(n))
   return (

@@ -97,7 +97,7 @@
     "keys": "Name the property, then Add",
     "keysDescription": "Type the key and press Add — it becomes a chip, and you can queue several before saving, which creates one rule each. Nothing happens on submit until a chip exists. Keys are stored lower-case, so \"Mass\" and \"mass\" are the same rule. If the key usually holds text you will see a warning; it does not stop you, but the total will stay empty.",
     "save": "Rules first, data second",
-    "saveDescription": "This is the part that looks like a bug and is not. A rule only counts writes made after it exists — added to data that already landed, it stays quiet until the next change anywhere below. The total then appears on the PARENT, as a dashed \"Derived\" card, within about a minute. A leaf with no children shows no card at all."
+    "saveDescription": "This is the part that looks like a bug and is not. A rule only counts writes made after it exists — added to data that already landed, it stays quiet until the next change anywhere below. The total then appears on the PARENT, as a \"Subtree total\" card under the property, within about a minute. A leaf with no children shows no card at all."
   },
   "runImport": {
     "jobs": "Every import you have run",

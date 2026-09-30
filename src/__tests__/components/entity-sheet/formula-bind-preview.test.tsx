@@ -266,9 +266,9 @@ describe('an unchecked unit', () => {
     preview.data = { num: 5, unit: 'kg', unitVerified: false, warnings: [] }
     renderBindings()
 
-    expect(screen.getByTestId('formula-unit-unverified')).toHaveTextContent(
-      'objects.formulaEditor.unitUnverified'
-    )
+    const line = screen.getByTestId('formula-unit-unverified')
+    expect(line).toHaveTextContent('objects.formulaEditor.unitUnverifiedShort')
+    expect(line).toHaveAttribute('data-tone', 'warn')
   })
 
   // Without a unit the node counts it in the no-unit total, so "left out" would be false.
@@ -276,9 +276,12 @@ describe('an unchecked unit', () => {
     preview.data = { num: 5, unitVerified: false, warnings: [] }
     renderBindings()
 
-    expect(screen.getByTestId('formula-unit-unverified')).toHaveTextContent(
-      'objects.formulaEditor.unitUnverifiedPlain'
+    const line = screen.getByTestId('formula-unit-unverified')
+    expect(line).toHaveTextContent(
+      'objects.formulaEditor.unitUnverifiedPlainShort'
     )
+    // Still counted, so information, not a warning colour.
+    expect(line).toHaveAttribute('data-tone', 'info')
   })
 
   it('stays quiet when the node checked it', () => {
@@ -472,6 +475,10 @@ describe('authoring warnings', () => {
     preview.isFetching = true
     renderBindings()
     expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
+    // Saying "calculated when you save" now would flash, then give way to what the answer says.
+    expect(
+      screen.queryByText('objects.formulaEditor.calculatedOnSave')
+    ).not.toBeInTheDocument()
   })
 
   // A live region announces what appears in it, so it has to be there before the answer is.
@@ -551,6 +558,16 @@ describe('what it says instead of a result', () => {
     expect(
       screen.getByText('objects.formulaEditor.errorOnSave')
     ).toBeInTheDocument()
+    expect(
+      screen.queryByText('objects.formulaEditor.calculatedOnSave')
+    ).toBeNull()
+  })
+
+  // After a problem, "calculated when you save" would read like an all-clear.
+  it('does not say it after a line about the result', () => {
+    preview.data = { num: 5, unit: 'kg', unitVerified: false, warnings: [] }
+    renderBindings()
+
     expect(
       screen.queryByText('objects.formulaEditor.calculatedOnSave')
     ).toBeNull()

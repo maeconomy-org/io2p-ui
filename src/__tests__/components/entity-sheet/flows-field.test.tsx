@@ -33,6 +33,10 @@ vi.mock('@/contexts/query-context', () => ({
   useAppConfig: () => ({ maxAttachmentSizeMB: 1024 }),
 }))
 
+vi.mock('@/contexts', () => ({
+  useAppConfig: () => ({ maxAttachmentSizeMB: 1024 }),
+}))
+
 const NO_DERIVED = new Map<string, never>()
 
 const FLOW = {
@@ -160,6 +164,23 @@ describe('FlowsField row', () => {
     expect(screen.getByText('+1')).toBeInTheDocument() // `grade`, not shown on the row
   })
 
+  it('says what the count counts, on hover and to a screen reader', () => {
+    renderFlows(false)
+
+    const label = 'processes.flows.moreProperties:{"count":1}'
+    expect(screen.getByTitle(label)).toHaveTextContent('+1')
+    expect(screen.getByText(label)).toHaveClass('sr-only')
+  })
+
+  it('shows no dash when the flow has no quantity', () => {
+    renderFlows(false, [{ ...FLOW, properties: [FLOW.properties[1]] }])
+
+    const trigger = screen.getByRole('button', {
+      name: 'processes.flows.toggleDetails',
+    })
+    expect(trigger).not.toHaveTextContent('—')
+  })
+
   it('keeps the picker and quantity input out of the trigger while editing', () => {
     // A control cannot be nested inside a button; the chevron keeps the toggle job in edit mode.
     renderFlows(true)
@@ -251,5 +272,109 @@ describe('FlowsField soft delete', () => {
     // thing this whole change exists to stop.
     renderFlows(false, [])
     expect(screen.getByText('processes.flows.empty.inputs')).toBeTruthy()
+  })
+})
+
+const ref = (id: string, label: string) => ({
+  _localId: id,
+  id,
+  kind: 'reference' as const,
+  reference: { url: `https://example.org/${id}` },
+  label,
+})
+
+describe('a flow’s own files', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    objects.list.mockResolvedValue({ data: [], page: {} })
+    formulas.list.mockResolvedValue({ data: [], page: {} })
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+    )
+  })
+
+  const fileRows = () => screen.queryAllByTestId('file-row')
+
+  it('open from the paperclip in the flow’s header, which opens the flow too', () => {
+    renderFlows(false, [
+      { ...FLOW, files: [ref('b', 'Weigh slip'), ref('a', 'Delivery note')] },
+    ])
+
+    expect(fileRows()).toHaveLength(0)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'objects.files.onFlow (2)' })
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'processes.flows.toggleDetails' })
+    ).toHaveAttribute('aria-expanded', 'true')
+    expect(fileRows().map((r) => r.dataset.name)).toEqual([
+      'Delivery note',
+      'Weigh slip',
+    ])
+    expect(screen.queryByTestId('files-attach-more')).not.toBeInTheDocument()
+  })
+
+  it('attach from the header while editing, and the list opens on the new file', () => {
+    const { form } = renderFlows(true)
+
+    fireEvent.click(screen.getByTestId('flow-attach-inputs-0'))
+    fireEvent.change(screen.getByTestId('attachment-modal-url'), {
+      target: { value: 'https://example.org/slip.pdf' },
+    })
+    fireEvent.change(screen.getByTestId('attachment-modal-label'), {
+      target: { value: 'Slip' },
+    })
+    fireEvent.click(screen.getByTestId('attachment-modal-done'))
+
+    expect(form.getValues('inputs.0.files')).toHaveLength(1)
+    expect(fileRows().map((r) => r.dataset.name)).toEqual(['Slip'])
+    expect(screen.getByTestId('files-attach-more')).toBeInTheDocument()
+  })
+
+  it('never show the old Files block with its Add files button', () => {
+    renderFlows(true)
+
+    fireEvent.click(screen.getByTestId('flow-toggle-inputs-0'))
+    expect(screen.queryByTestId('add-files')).not.toBeInTheDocument()
+  })
+})
+
+describe('Collapse all on a flow tab', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    objects.list.mockResolvedValue({ data: [], page: {} })
+    formulas.list.mockResolvedValue({ data: [], page: {} })
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+    )
+  })
+
+  it('closes every open flow', () => {
+    renderFlows(false)
+
+    const trigger = screen.getByRole('button', {
+      name: 'processes.flows.toggleDetails',
+    })
+    fireEvent.click(trigger)
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+    fireEvent.click(screen.getByTestId('collapse-all'))
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('is a reading tool: edit mode has no toolbar', () => {
+    renderFlows(true)
+    expect(screen.queryByTestId('collapse-all')).not.toBeInTheDocument()
   })
 })

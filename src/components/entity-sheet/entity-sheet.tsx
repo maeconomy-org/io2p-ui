@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useRollupRules } from '@/hooks/api/rollup-rules'
 import { useObjectDrafts } from '@/hooks/drafts'
-import { hasPendingUploads, type ValueProvenance } from '@/lib/entity'
+import { hasPendingUploads } from '@/lib/entity'
 import type { EntityRollupEntry } from 'io2p-client'
 
 import { useEntityForm } from './hooks/use-entity-form'
@@ -30,8 +30,10 @@ import {
   ObjectFilesField,
   ParentsField,
   PropertyFields,
+  ReadOnlyField,
   RelationsField,
 } from './fields'
+import { derivedValueMap } from './fields/value-provenance'
 import { rollupMultipliers } from './fields/value-normalization'
 
 export interface EntitySheetProps {
@@ -159,15 +161,10 @@ export function EntitySheet({
 
   // Keyed by value id: presence means the value is derived, the payload is the node's evaluation
   // trace. A derived value always has a source; `provenance` is what it was computed FROM.
-  const derivedValues = useMemo(() => {
-    const m = new Map<string, ValueProvenance | undefined>()
-    entity?.properties?.forEach((p) =>
-      p.values.forEach((v) => {
-        if (v.source === 'derived') m.set(v.id, v.provenance)
-      })
-    )
-    return m
-  }, [entity])
+  const derivedValues = useMemo(
+    () => derivedValueMap(entity?.properties),
+    [entity]
+  )
 
   // Held HERE, not in `ParentsField`: a name resolved by the picker has to outlive that component's
   // render so the post-save toast can name the parent the object just moved under.
@@ -239,6 +236,19 @@ export function EntitySheet({
     else setEditing(false)
   }
 
+  const parentsField = (
+    <ParentsField
+      form={form}
+      editing={editing}
+      parentNames={parentNames}
+      deletedParentIds={deletedParentIds}
+      onParentPicked={(id, name) =>
+        setPickedParentNames((m) => ({ ...m, [id]: name }))
+      }
+      selfId={entity?.id}
+    />
+  )
+
   const tabs: SheetTab[] = [
     {
       value: 'properties',
@@ -265,6 +275,7 @@ export function EntitySheet({
           editing={editing}
           entityId={entity?.id}
           allowCover
+          showTitle={false}
         />
       ),
     },
@@ -306,19 +317,18 @@ export function EntitySheet({
           {entity && <EntityFacts entity={entity} />}
           <MetadataFields form={form} editing={editing} />
           <AddressField form={form} editing={editing} />
-          <div className="space-y-1.5">
-            <Label>{t('objects.detailsSheet.tabParents')}</Label>
-            <ParentsField
-              form={form}
-              editing={editing}
-              parentNames={parentNames}
-              deletedParentIds={deletedParentIds}
-              onParentPicked={(id, name) =>
-                setPickedParentNames((m) => ({ ...m, [id]: name }))
-              }
-              selfId={entity?.id}
-            />
-          </div>
+          {editing ? (
+            <div className="space-y-1.5">
+              <Label>{t('objects.detailsSheet.tabParents')}</Label>
+              {parentsField}
+            </div>
+          ) : (
+            <dl>
+              <ReadOnlyField label={t('objects.detailsSheet.tabParents')}>
+                {parentsField}
+              </ReadOnlyField>
+            </dl>
+          )}
         </div>
       ),
     },

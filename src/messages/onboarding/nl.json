@@ -97,7 +97,7 @@
     "keys": "Noem de eigenschap, dan Toevoegen",
     "keysDescription": "Typ de sleutel en druk op Toevoegen — het wordt een chip, en je kunt er meerdere klaarzetten voor je opslaat, wat per stuk een regel maakt. Opslaan doet niets tot er een chip staat. Sleutels worden in kleine letters bewaard, dus \"Massa\" en \"massa\" zijn dezelfde regel. Houdt de sleutel meestal tekst vast, dan zie je een waarschuwing; die blokkeert niets, maar het totaal blijft leeg.",
     "save": "Eerst de regels, dan de data",
-    "saveDescription": "Dit is het stuk dat op een bug lijkt en het niet is. Een regel telt alleen wat er ná zijn bestaan wordt geschreven — toegevoegd aan data die er al staat blijft hij stil tot er ergens daaronder iets verandert. Het totaal verschijnt dan op het BOVENLIGGENDE object, als een kaart met stippellijn en het label \"Derived\", binnen ongeveer een minuut. Een blad zonder kinderen toont helemaal geen kaart."
+    "saveDescription": "Dit is het stuk dat op een bug lijkt en het niet is. Een regel telt alleen wat er ná zijn bestaan wordt geschreven — toegevoegd aan data die er al staat blijft hij stil tot er ergens daaronder iets verandert. Het totaal verschijnt dan op het BOVENLIGGENDE object, als een kaart \"Totaal substructuur\" onder de eigenschap, binnen ongeveer een minuut. Een blad zonder kinderen toont helemaal geen kaart."
   },
   "runImport": {
     "jobs": "Elke import die je hebt gedraaid",

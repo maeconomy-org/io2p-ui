@@ -10,7 +10,19 @@ import {
 import type { DraftProperty, ValueProvenance } from '@/lib/entity'
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
+  useFormatter: () => ({ number: (n: number) => String(n) }),
+}))
+
+// Only the opened details fetch: the formula's name and the constants' names.
+vi.mock('@/hooks/api/leaves', () => ({
+  useFormulas: () => ({
+    useGet: (id?: string) => ({ data: id ? { name: 'Area' } : undefined }),
+  }),
+  useConstants: () => ({
+    useByIds: () => new Map([['const-1', { name: 'factor' }]]),
+  }),
 }))
 
 const PROVENANCE: ValueProvenance = {
@@ -26,49 +38,79 @@ const PROVENANCE: ValueProvenance = {
   ],
 }
 
-function renderProvenance(provenance: ValueProvenance, unit?: string) {
+function renderProvenance(
+  provenance: ValueProvenance,
+  unit?: string,
+  textForValue: (id: string) => string | undefined = (id) =>
+    id === 'val-1' ? '3 m' : undefined,
+  usedAsMultiplier = false
+) {
   return render(
     React.createElement(ValueProvenanceDisplay, {
       provenance,
       unit,
+      display: '1.5 m',
       labelForValue: (id: string) => (id === 'val-1' ? 'Height' : undefined),
+      textForValue,
+      usedAsMultiplier,
     })
   )
 }
 
+const openDetails = () => fireEvent.click(screen.getByTestId('provenance-chip'))
+
 describe('ValueProvenanceDisplay', () => {
-  it('keeps the trace collapsed until asked', () => {
+  it('shows the formula with its inputs written in, and keeps the details closed', () => {
     renderProvenance(PROVENANCE)
 
+    expect(screen.getByTestId('provenance-equation')).toHaveTextContent(
+      '= 3 m × 0.5'
+    )
     expect(screen.queryByText('a * b')).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'objects.properties.showFormula' })
-    ).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByTestId('provenance-chip')).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    )
   })
 
-  it('reveals the expression and what each variable was bound to', () => {
-    renderProvenance(PROVENANCE)
-    fireEvent.click(screen.getByRole('button'))
+  // A sibling's stored number is in its canonical unit (2 kW is 2000): printing it would show a
+  // figure nobody typed. A constant's number is the one it was read as.
+  it('names an input whose row it cannot read, and keeps a constant’s number', () => {
+    renderProvenance(PROVENANCE, undefined, () => undefined)
 
-    expect(screen.getByText('a * b')).toBeInTheDocument()
-    // A sibling value is named by id in the trace; the reader needs the property it belongs to.
-    expect(screen.getByText('a = Height (3)')).toBeInTheDocument()
-    // Constant names aren't in the projection — show the number, don't invent a name.
-    expect(screen.getByText('b (0.5)')).toBeInTheDocument()
+    expect(screen.getByTestId('provenance-equation')).toHaveTextContent(
+      '= a × 0.5'
+    )
+  })
+
+  it('opens to the formula by name, each input with its text, and the constant by name', () => {
+    renderProvenance({ ...PROVENANCE, formulaId: 'f-1' })
+    openDetails()
+
+    // The row already shows the formula as its equation; the details name it, not repeat it.
+    expect(screen.getByTestId('provenance-formula')).toHaveTextContent('Area')
+    expect(screen.queryByText('a * b')).toBeNull()
+    expect(screen.getByText('Height')).toBeInTheDocument()
+    expect(screen.getByText('3 m')).toBeInTheDocument()
+    expect(screen.getByText('factor')).toBeInTheDocument()
+    expect(screen.getByText('0.5')).toBeInTheDocument()
   })
 
   // A failed formula used to render as an ordinary empty value: nothing said it had broken.
-  it('surfaces an evaluation error with an icon and text, not colour alone', () => {
+  it('surfaces an evaluation error with an icon and text, and says why on the row', () => {
     renderProvenance({
       ...PROVENANCE,
       error: { code: 'arg-not-numeric', detail: 'Height is not a number' },
     })
 
-    expect(
-      screen.getByText('objects.properties.formulaError')
-    ).toBeInTheDocument()
+    expect(screen.getByTestId('provenance-error')).toHaveTextContent(
+      'objects.properties.formulaError'
+    )
+    expect(screen.getByTestId('provenance-reason')).toHaveTextContent(
+      'objects.properties.calcError.arg-not-numeric'
+    )
 
-    fireEvent.click(screen.getByRole('button'))
+    openDetails()
     expect(screen.getByText('Height is not a number')).toBeInTheDocument()
   })
 
@@ -79,10 +121,12 @@ describe('ValueProvenanceDisplay', () => {
       ...PROVENANCE,
       error: { code: 'cycle', detail: '' },
     })
-    fireEvent.click(screen.getByRole('button'))
+    // The fallback sentence is what the badge already says: no reason line repeats it.
+    expect(screen.queryByTestId('provenance-reason')).toBeNull()
+    openDetails()
 
     expect(screen.queryByText('cycle')).not.toBeInTheDocument()
-    // Twice: the collapsed badge and the expanded fallback line.
+    // Twice: the badge and the status line.
     expect(screen.getAllByText('objects.properties.formulaError')).toHaveLength(
       2
     )
@@ -93,11 +137,11 @@ describe('ValueProvenanceDisplay', () => {
       ...PROVENANCE,
       error: { code: 'dimension-mismatch', detail: 'kg vs m' },
     })
-    fireEvent.click(screen.getByRole('button'))
+    openDetails()
 
     expect(
-      screen.getByText('objects.properties.calcError.dimension-mismatch')
-    ).toBeInTheDocument()
+      screen.getAllByText('objects.properties.calcError.dimension-mismatch')
+    ).toHaveLength(2)
     expect(screen.getByText('kg vs m')).toBeInTheDocument()
   })
 
@@ -107,34 +151,47 @@ describe('ValueProvenanceDisplay', () => {
       unitSource: 'declared',
       declaredUnit: 'J',
     })
-    fireEvent.click(screen.getByRole('button'))
+    openDetails()
 
-    expect(screen.getByTestId('provenance-unit')).toHaveTextContent('J')
+    expect(screen.getByTestId('provenance-unit')).toHaveTextContent(
+      'objects.properties.resultDeclared:{"unit":"J"}'
+    )
   })
 
   // Inherited FLOATS — it is re-derived from live siblings on every recompute, so the wording says
   // where it came from rather than presenting it as fixed.
   it('says when the unit came from the values instead', () => {
-    renderProvenance({ ...PROVENANCE, unitSource: 'inherited' })
-    fireEvent.click(screen.getByRole('button'))
+    renderProvenance({ ...PROVENANCE, unitSource: 'inherited' }, 'kg')
+    openDetails()
 
-    expect(
-      screen.getByText('objects.properties.unitInherited')
-    ).toBeInTheDocument()
+    expect(screen.getByTestId('provenance-unit')).toHaveTextContent(
+      'objects.properties.resultInherited:{"unit":"kg"}'
+    )
   })
 
   it('survives a unitSource this build has never heard of', () => {
     renderProvenance({ ...PROVENANCE, unitSource: 'inferred' })
-    fireEvent.click(screen.getByRole('button'))
+    openDetails()
 
     expect(screen.getByTestId('provenance-unit')).toHaveTextContent('inferred')
   })
 
-  it('shows nothing about units when the result is unitless', () => {
+  it('shows the expression of an inline formula, which has no name', () => {
     renderProvenance(PROVENANCE)
-    fireEvent.click(screen.getByRole('button'))
+    openDetails()
 
-    expect(screen.queryByTestId('provenance-unit')).not.toBeInTheDocument()
+    expect(screen.getByTestId('provenance-formula')).toHaveTextContent('a * b')
+  })
+
+  // Said once, in the status; a result line saying it again would repeat the badge.
+  it('says there is no unit once, when the result is unitless', () => {
+    renderProvenance(PROVENANCE)
+    openDetails()
+
+    expect(screen.queryByTestId('provenance-unit')).toBeNull()
+    expect(
+      screen.getByText('objects.properties.resultNoUnit')
+    ).toBeInTheDocument()
   })
 })
 
@@ -167,11 +224,24 @@ describe('a result whose unit the node could not check', () => {
     expect(screen.queryByTestId('provenance-unit-unchecked')).toBeNull()
   })
 
-  it('marks nothing when the node checked the unit', () => {
+  it('marks nothing when the node checked the unit, and says so in the details', () => {
     renderProvenance({ ...PROVENANCE, unitVerified: true }, 'kg')
 
     expect(screen.queryByTestId('provenance-unit-left-out')).toBeNull()
     expect(screen.queryByTestId('provenance-unit-unchecked')).toBeNull()
+    openDetails()
+    expect(
+      screen.getByText('objects.properties.unitChecked')
+    ).toBeInTheDocument()
+    expect(screen.queryByTestId('provenance-fix')).toBeNull()
+  })
+
+  // Absent means there was nothing to check, which is not the same as checked.
+  it('never claims a check the node did not make', () => {
+    renderProvenance(PROVENANCE, 'kg')
+    openDetails()
+
+    expect(screen.queryByText('objects.properties.unitChecked')).toBeNull()
   })
 
   it('says a value with a unit is left out of totals, and why', () => {
@@ -180,22 +250,39 @@ describe('a result whose unit the node could not check', () => {
     expect(screen.getByTestId('provenance-unit-left-out')).toHaveTextContent(
       'objects.properties.unitNotCounted'
     )
-    fireEvent.click(screen.getByRole('button'))
+    // The reason is on the row: the reader has to act on it, so it does not wait behind a click.
+    expect(screen.getByTestId('provenance-reason')).toHaveTextContent(
+      'objects.properties.unitNotCountedShort'
+    )
+    openDetails()
+    // The row already says it is in no total; the details say only why.
     expect(
-      screen.getByText('objects.properties.unitNotCountedDetail')
+      screen.getAllByText('objects.properties.unitNotCountedShort')
+    ).toHaveLength(1)
+    expect(
+      screen.getByText('objects.properties.unitNotCountedCauses')
     ).toBeInTheDocument()
+    expect(screen.getByTestId('provenance-fix')).toHaveTextContent(
+      'objects.properties.fixNotCounted'
+    )
   })
 
-  // Without a unit it IS counted, so "not counted" would be false.
-  it('says only "not checked" for a number without a unit', () => {
+  // Without a unit it IS counted, so "not counted" would be false, and a reason line would be noise.
+  it('marks a number without a unit as "no unit", with no reason line', () => {
     renderProvenance({ ...PROVENANCE, unitVerified: false })
 
     expect(screen.queryByTestId('provenance-unit-left-out')).toBeNull()
-    expect(screen.getByTestId('provenance-unit-unchecked')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button'))
+    expect(screen.getByTestId('provenance-unit-unchecked')).toHaveTextContent(
+      'objects.properties.noUnit'
+    )
+    expect(screen.queryByTestId('provenance-reason')).toBeNull()
+    openDetails()
     expect(
       screen.getByText('objects.properties.unitNotCheckedDetail')
     ).toBeInTheDocument()
+    expect(screen.getByTestId('provenance-fix')).toHaveTextContent(
+      'objects.properties.fixNoUnit'
+    )
   })
 
   // An error has no number at all; the error mark already says everything.
@@ -229,7 +316,7 @@ describe('a unit reached through a factor', () => {
       },
       'kgCO2e'
     )
-    fireEvent.click(screen.getByRole('button'))
+    openDetails()
     expect(screen.getByTestId('provenance-factor')).toHaveTextContent(
       'objects.formulaEditor.warning.factorNoPer'
     )
@@ -241,7 +328,43 @@ describe('a unit reached through a factor', () => {
       unitVerified: true,
       unitCheck: 'computed',
     })
-    fireEvent.click(screen.getByRole('button'))
+    openDetails()
     expect(screen.queryByTestId('provenance-factor')).toBeNull()
+  })
+})
+
+describe('the details, read in full', () => {
+  it('wraps a long equation once the details are open', () => {
+    renderProvenance(PROVENANCE)
+    const equation = screen.getByTestId('provenance-equation')
+    expect(equation).toHaveClass('truncate')
+
+    openDetails()
+    expect(equation).not.toHaveClass('truncate')
+  })
+
+  it('names the causes when a result is left out of every total', () => {
+    renderProvenance({ ...PROVENANCE, unitVerified: false }, 'kg')
+    openDetails()
+    expect(
+      screen.getByText('objects.properties.unitNotCountedCauses')
+    ).toBeInTheDocument()
+    expect(screen.getByTestId('provenance-fix')).toHaveTextContent(
+      'objects.properties.fixNotCounted'
+    )
+  })
+
+  it('warns when a rule multiplies by an unchecked result, and only then', () => {
+    const unchecked = { ...PROVENANCE, unitVerified: false }
+    const { unmount } = renderProvenance(unchecked, undefined, undefined, true)
+    openDetails()
+    expect(screen.getByTestId('provenance-multiplier')).toHaveTextContent(
+      'objects.properties.unitNotCheckedMultiplier'
+    )
+    unmount()
+
+    renderProvenance(unchecked)
+    openDetails()
+    expect(screen.queryByTestId('provenance-multiplier')).toBeNull()
   })
 })
