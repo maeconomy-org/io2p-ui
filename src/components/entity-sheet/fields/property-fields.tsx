@@ -27,6 +27,7 @@ import {
   CollapsibleTrigger,
   Label,
 } from '@/components/ui'
+import { useCountKeys } from '@/hooks/api/leaves'
 import { cn } from '@/lib/utils'
 import { PropertyNameCombobox } from './property-name-combobox'
 import {
@@ -142,7 +143,8 @@ export function collectSiblings(
   properties: EntityDraft['properties'],
   selfKey: string | undefined,
   locale: PropertyDictionaryLocale,
-  derivedValues?: DerivedValues
+  derivedValues?: DerivedValues,
+  countKeys: ReadonlySet<string> = new Set()
 ): FormulaSibling[] {
   const out: FormulaSibling[] = []
   properties.forEach((p) => {
@@ -157,6 +159,12 @@ export function collectSiblings(
       // An edited value still carries the number read for its OLD text.
       const current = v.parsedFrom?.trim() === text
       const num = draftNum(v)
+      // A plain number typed under a count key is stored as pcs, so the preview reads it so too.
+      const unit = current
+        ? v.unit
+        : num !== undefined && countKeys.has((p.key ?? '').toLowerCase())
+          ? 'pcs'
+          : undefined
       out.push({
         key,
         // The raw key, never the resolved label — the label is localized and the option's testid is
@@ -164,7 +172,7 @@ export function collectSiblings(
         propertyKey: p.key ?? p.label ?? '',
         label: resolvePropertyLabel(p.key, p.label, locale) || '—',
         num,
-        unit: current ? v.unit : undefined,
+        unit,
         ruleKey: ruleKey(p.key, p.label),
         ...(v.id &&
           v.calc === undefined &&
@@ -368,6 +376,7 @@ function PropertyRow({
 }) {
   const t = useTranslations()
   const locale = useLocale() as PropertyDictionaryLocale
+  const countKeys = useCountKeys()
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: `${basePath}.${index}.values`,
@@ -955,7 +964,8 @@ function PropertyRow({
                         siblingSource ?? ownProperties,
                         selfKey,
                         locale,
-                        derivedValues
+                        derivedValues,
+                        countKeys
                       )}
                       onChange={(calc) =>
                         form.setValue(`${base}.calc`, calc, {

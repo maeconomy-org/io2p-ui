@@ -26,6 +26,24 @@ const numFor = (
   )?.num
 
 describe('collectSiblings', () => {
+  it('reads a plain number typed under a count key as pcs, like the node stores it', () => {
+    const counts = new Set(['quantity'])
+    const properties = [
+      property('Quantity', { id: 'v-q', data: '5' }),
+      property('weight', { id: 'v-w', data: '5' }),
+      property('quantity', { id: 'v-k', data: '5 kg' }),
+    ]
+    const units = collectSiblings(
+      properties,
+      undefined,
+      'en',
+      undefined,
+      counts
+    ).map((s) => s.unit)
+
+    expect(units).toEqual(['pcs', undefined, undefined])
+  })
+
   it('uses the canonical number, not the authored text', () => {
     const properties = [
       property('weight', {
