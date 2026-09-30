@@ -22,6 +22,7 @@ vi.mock('@/hooks/ui/use-preference', () => ({
 }))
 
 vi.mock('@/hooks/api/leaves', () => ({
+  useCountKeys: () => new Set<string>(),
   useFormulas: () => ({
     useList: () => ({ data: { data: [] } }),
     useGet: () => ({

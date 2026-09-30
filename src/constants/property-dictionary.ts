@@ -536,8 +536,7 @@ export const PROPERTY_DICTIONARY: PropertyDictionaryEntry[] = [
   {
     key: 'piece-count',
     labels: { en: 'Piece Count', nl: 'Aantal Stuks' },
-    // `count` is its own dimension in the node's table, NOT an alias into unitless — so "5" and
-    // "5 pcs" are different kinds and do not sum together.
+    // A count key in the node: a plain "5" here is stored as 5 pcs, the same as a typed "5 pcs".
     aliases: { en: ['pieces'], nl: ['stuks'] },
     category: 'dimensions',
     valuePlaceholder: { en: '12 pcs', nl: '12 pcs' },

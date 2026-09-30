@@ -1022,7 +1022,7 @@
       "description": "Een formule is een herbruikbare expressie die je aan een waarde kunt koppelen."
     },
     "unit": "Eenheid van het resultaat",
-    "unitHint": "Optioneel. Laat het leeg en het resultaat houdt de eenheid van de waarden die het leest. Vul het in om te kiezen in welke eenheid het resultaat wordt getoond — een som van gewichten met t leest in tonnen. Een formule die zelf omrekent, zoals een breedte maal een hoogte, geeft op wat de eigen berekening oplevert (m²).",
+    "unitHint": "Optioneel. Laat het leeg en de node geeft de eenheid wanneer dat kan: een gewicht maal een aantal is een gewicht, een breedte maal een hoogte is een oppervlakte. Vul het in om te kiezen in welke eenheid het resultaat wordt getoond (een som van gewichten met t leest in tonnen), of om een eenheid te geven die de node niet kan afleiden, zoals kgCO2e uit een energie maal een factor.",
     "unitInferred": "Afgeleid uit de waarden",
     "unitNone": "Geen eenheid",
     "unitCanonical": "opgeslagen in",

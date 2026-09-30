@@ -274,7 +274,26 @@ export function useUnits(options?: { enabled?: boolean }) {
   const client = useIomClient()
   return useQuery({
     queryKey: queryKeys.units.all,
-    queryFn: ({ signal }) => client.units.all({ signal }),
+    queryFn: ({ signal }) => client.units.list({ signal }),
+    select: (list) => list.units,
     enabled: options?.enabled ?? true,
   })
+}
+
+const NO_COUNT_KEYS: ReadonlySet<string> = new Set()
+
+/**
+ * The property keys (lower case) whose plain numbers the node stores as pcs: "5" under `quantity` is
+ * five pieces. Empty until the list arrives, and from a node that does not serve it.
+ */
+export function useCountKeys(): ReadonlySet<string> {
+  const client = useIomClient()
+  const { data } = useQuery({
+    queryKey: queryKeys.units.all,
+    queryFn: ({ signal }) => client.units.list({ signal }),
+    // io2p-client 0.4.0 does not type `countKeys` yet; 0.5.0 does, and the cast can go.
+    select: (list) =>
+      new Set((list as { countKeys?: string[] }).countKeys ?? []),
+  })
+  return data ?? NO_COUNT_KEYS
 }
