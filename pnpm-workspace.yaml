@@ -50,14 +50,18 @@ overrides:
   # test runner outright: jsdom 29 imports `undici/lib/handler/wrap-handler.js`,
   # a path that does not exist in undici 8, so every suite dies at collection
   # with "Cannot find module". 7.28.0 is the advisory floor, so ^7.28.0 fixes it
-  # without crossing the major jsdom cannot follow.
-  undici@<7.28.0: '^7.28.0'
+  # without crossing the major jsdom cannot follow. Raised to 7.29.1: a WebSocket
+  # DoS and a TLS validation bypass below it.
+  undici@<7.29.1: '^7.29.1'
   # exceljs > archiver subtree — DoS via unbounded/exponential expansion, across
   # several release lines. Unversioned key on purpose: RANGED keys are recorded
   # in the lockfile but do not move the 5.0.6 copy under minimatch (same
   # behaviour in io2p-core). Every copy in the tree is already on the 5 line, so
   # there is no 1.x/2.x consumer left for a blanket floor to break.
-  brace-expansion: '>=5.0.9'
+  brace-expansion: '>=5.0.12'
+  # @opentelemetry/sdk-node > exporter-logs-otlp-grpc. getAuthContext can return
+  # an unverified peer; fixed inside the 1.14 line.
+  '@grpc/grpc-js@>=1.14.0 <1.14.5': '^1.14.5'
   # @sentry/nextjs > @sentry/webpack-plugin > webpack. Host confusion.
   fast-uri@<3.1.5: '>=3.1.5'
   # The rest of the exceljs subtree, plus build-time tooling.
@@ -71,7 +75,7 @@ overrides:
   # there, four fresh CVEs here) and the older key does not cover it. Unversioned
   # for the same reason as nanoid — a RANGED key lands in the lockfile but leaves
   # the 4.1.2 copy under ajv untouched. Only consumer is ajv 8, which asks ^4.0.0.
-  fast-uri: '^4.1.3'
+  fast-uri: '^4.1.5'
   # Reached through next > styled-jsx > @babel/core, @sentry/*, autoprefixer and
   # @vitejs/plugin-react — no single parent bump moves them all.
   browserslist@<4.28.7: '>=4.28.7'
