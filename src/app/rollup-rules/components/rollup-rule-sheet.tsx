@@ -146,36 +146,39 @@ function WhenMissingField({
           the total" with no statement of what is being chosen — and the question is the only
           thing that makes those two mean anything. */}
       <Label id={labelId}>{t('rollupRules.whenMissing')}</Label>
-      <RadioGroup
-        value={value}
-        onValueChange={(next) => onChange(next as NonNullable<WhenMissing>)}
-        aria-labelledby={labelId}
-        data-testid="rollup-rule-when-missing"
-      >
-        <div className="flex items-center gap-2">
-          <RadioGroupItem value="one" id={`${fieldId}-when-missing-one`} />
-          <Label
-            htmlFor={`${fieldId}-when-missing-one`}
-            className="text-xs font-normal"
-          >
-            {t('rollupRules.whenMissingOne')}
-          </Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <RadioGroupItem value="skip" id={`${fieldId}-when-missing-skip`} />
-          <Label
-            htmlFor={`${fieldId}-when-missing-skip`}
-            className="text-xs font-normal"
-          >
-            {t('rollupRules.whenMissingSkip')}
-          </Label>
-        </div>
-      </RadioGroup>
-      {/* OUTSIDE the group. `role="radiogroup"` should contain radios, and Radix's roving focus
-          on the root swallows the arrow keys while a button inside it holds focus. */}
-      <ConceptHint label={t('rollupRules.whenMissingSkipHintLabel')}>
-        {t('rollupRules.whenMissingSkipHint')}
-      </ConceptHint>
+      <div className="flex items-end gap-2">
+        <RadioGroup
+          value={value}
+          onValueChange={(next) => onChange(next as NonNullable<WhenMissing>)}
+          aria-labelledby={labelId}
+          data-testid="rollup-rule-when-missing"
+        >
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="one" id={`${fieldId}-when-missing-one`} />
+            <Label
+              htmlFor={`${fieldId}-when-missing-one`}
+              className="text-xs font-normal"
+            >
+              {t('rollupRules.whenMissingOne')}
+            </Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="skip" id={`${fieldId}-when-missing-skip`} />
+            <Label
+              htmlFor={`${fieldId}-when-missing-skip`}
+              className="text-xs font-normal"
+            >
+              {t('rollupRules.whenMissingSkip')}
+            </Label>
+          </div>
+        </RadioGroup>
+        {/* OUTSIDE the group. `role="radiogroup"` should contain radios, and Radix's roving focus
+            on the root swallows the arrow keys while a button inside it holds focus. `items-end`
+            only lines it up with the option it explains. */}
+        <ConceptHint label={t('rollupRules.whenMissingSkipHintLabel')}>
+          {t('rollupRules.whenMissingSkipHint')}
+        </ConceptHint>
+      </div>
     </div>
   )
 }
