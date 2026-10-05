@@ -17,7 +17,7 @@ import {
   useWatch,
   type UseFormReturn,
 } from 'react-hook-form'
-import type { EntityRollupEntry } from 'io2p-client'
+import type { CalcInput, EntityRollupEntry } from 'io2p-client'
 
 import {
   Badge,
@@ -125,6 +125,31 @@ export type PropertiesPath =
   | 'properties'
   | `inputs.${number}.properties`
   | `outputs.${number}.properties`
+
+/** Where a value's recipe lives on the draft. */
+export type CalcPath = `${PropertiesPath}.${number}.values.${number}.calc`
+
+/**
+ * Write a value's recipe so that rebinding a variable is never lost.
+ *
+ * react-hook-form's `deepEqual` skips every key named `ref` (its own field objects keep a DOM ref
+ * there), and since 7.7x `setValue` drops a write that `deepEqual` calls unchanged. A binding is
+ * `{ var, ref }`, so moving a variable from one value to another changes only `ref`, and the
+ * whole-recipe write was silently thrown away. Each `ref` is written again as a string leaf, which
+ * the library does compare.
+ */
+export function setCalc(
+  form: UseFormReturn<EntityDraft>,
+  path: CalcPath,
+  calc: CalcInput
+) {
+  form.setValue(path, calc, { shouldDirty: true })
+  calc.args.forEach((arg, i) => {
+    if (arg.ref !== undefined) {
+      form.setValue(`${path}.args.${i}.ref`, arg.ref, { shouldDirty: true })
+    }
+  })
+}
 
 // A new value carries a client `ref` so a sibling formula can bind to it (calc arg -> ref).
 function newValue(): DraftValue {
@@ -967,11 +992,7 @@ function PropertyRow({
                         derivedValues,
                         countKeys
                       )}
-                      onChange={(calc) =>
-                        form.setValue(`${base}.calc`, calc, {
-                          shouldDirty: true,
-                        })
-                      }
+                      onChange={(calc) => setCalc(form, `${base}.calc`, calc)}
                       countedBy={countedBy}
                     />
                   )}
