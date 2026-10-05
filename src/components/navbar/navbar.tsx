@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { Building2, ChevronDown, Search } from 'lucide-react'
+import { Building2, ChevronDown, Search, X } from 'lucide-react'
 
 import { CommandCenter, useCommandCenter } from '@/components/global-search'
 import {
@@ -31,7 +31,9 @@ export default function Navbar() {
     () => navigator.platform.toUpperCase().indexOf('MAC') >= 0,
     () => false
   )
-  const { searchQuery, isSearchMode, executeSearchFromParsed } = useSearch()
+  const { searchQuery, isSearchMode, executeSearchFromParsed, clearSearch } =
+    useSearch()
+  const hasActiveSearch = isSearchMode && !!searchQuery
   const config = useAppConfig()
 
   const { open: commandCenterOpen, setOpen: setCommandCenterOpen } =
@@ -171,40 +173,67 @@ export default function Navbar() {
 
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-4">
-              <button
-                onClick={() => setCommandCenterOpen(true)}
-                {...anchor('searchButton')}
+              {/* The clear X sits BESIDE the field button, not inside it: a button inside a button is
+                  invalid HTML and its inner one cannot be focused on its own. */}
+              <div
                 className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all',
-                  'bg-muted/50 hover:bg-muted border-border/50 hover:border-border',
-                  'text-muted-foreground hover:text-foreground',
-                  'focus:outline-none focus:ring-2 focus:ring-primary/20',
-                  'min-w-[200px] lg:min-w-[280px] max-w-[320px]'
+                  'flex items-center rounded-lg border transition-all',
+                  'min-w-[200px] lg:min-w-[280px] max-w-[320px]',
+                  hasActiveSearch
+                    ? 'border-primary/50 bg-primary/[0.08] text-foreground'
+                    : 'bg-muted/50 hover:bg-muted border-border/50 hover:border-border text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Search className="h-4 w-4 shrink-0" />
-                <span className="flex-1 text-left text-sm truncate">
-                  {isSearchMode && searchQuery
-                    ? searchQuery
-                    : t('common.search') + '...'}
-                </span>
-                <div className="flex items-center gap-0.5 shrink-0">
-                  {/* Fixed width: the server snapshot renders 'Ctrl' and the
-                      client may swap to '⌘'. suppressHydrationWarning silences
-                      the warning but not the reflow — 4 glyphs to 1 visibly
-                      shifts the hint. Reserving the wider box makes the swap
-                      invisible. */}
-                  <kbd
-                    className="min-w-[1.9rem] px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm text-center"
-                    suppressHydrationWarning
+                <button
+                  onClick={() => setCommandCenterOpen(true)}
+                  {...anchor('searchButton')}
+                  className={cn(
+                    'flex flex-1 min-w-0 items-center gap-2 px-3 py-1.5 rounded-lg',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                  )}
+                >
+                  <Search className="h-4 w-4 shrink-0" />
+                  <span
+                    className={cn(
+                      'flex-1 text-left text-sm truncate',
+                      hasActiveSearch && 'font-semibold'
+                    )}
                   >
-                    {isMac ? '⌘' : 'Ctrl'}
-                  </kbd>
-                  <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm">
-                    K
-                  </kbd>
-                </div>
-              </button>
+                    {hasActiveSearch ? searchQuery : t('common.search') + '...'}
+                  </span>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {/* Fixed width: the server snapshot renders 'Ctrl' and the
+                        client may swap to '⌘'. suppressHydrationWarning silences
+                        the warning but not the reflow — 4 glyphs to 1 visibly
+                        shifts the hint. Reserving the wider box makes the swap
+                        invisible. */}
+                    <kbd
+                      className="min-w-[1.9rem] px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm text-center"
+                      suppressHydrationWarning
+                    >
+                      {isMac ? '⌘' : 'Ctrl'}
+                    </kbd>
+                    <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm">
+                      K
+                    </kbd>
+                  </div>
+                </button>
+                {hasActiveSearch && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    aria-label={t('objects.clearSearch')}
+                    data-testid="navbar-search-clear"
+                    className={cn(
+                      'mr-1.5 grid h-6 w-6 shrink-0 place-items-center rounded-md',
+                      'bg-primary/15 hover:bg-primary/25',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                    )}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
 
               <UserProfileDropdown />
             </div>
@@ -221,6 +250,7 @@ export default function Navbar() {
         open={commandCenterOpen}
         onOpenChange={setCommandCenterOpen}
         onSearch={executeSearchFromParsed}
+        onClear={clearSearch}
         initialQuery={isSearchMode ? searchQuery : ''}
       />
     </>

@@ -9,6 +9,7 @@ import {
   FloatingActionBar,
   FloatingActionBarSeparator,
 } from '@/components/ui'
+import { cn } from '@/lib/utils'
 
 interface SearchResultsBarProps {
   /** The active query. Also gates the bar: an empty one hides it. */
@@ -39,6 +40,12 @@ export function SearchResultsBar({
       open={!!searchQuery}
       label={t('objects.searchResults', { query: searchQuery })}
       level={raised ? 'raised' : 'base'}
+      // Tinted so the bar does not blend into the white rows under it. The tint is a gradient over
+      // `bg-card`, not a translucent colour, so the rows do not show through.
+      className={cn(
+        'border-[1.5px] border-primary/50 bg-[linear-gradient(hsl(var(--primary)/0.1),hsl(var(--primary)/0.1))]',
+        'shadow-[0_12px_28px_-10px_hsl(var(--primary)/0.45)] ring-4 ring-primary/10'
+      )}
       data-testid="search-results-bar"
     >
       <div className="flex min-w-0 items-center gap-2 px-1 sm:pl-2">
@@ -48,7 +55,7 @@ export function SearchResultsBar({
         </span>
         <Badge
           variant="secondary"
-          className="shrink-0 whitespace-nowrap"
+          className="shrink-0 whitespace-nowrap bg-primary/15 text-foreground hover:bg-primary/15"
           data-testid="search-results-count"
         >
           {t('objects.results', { count: resultsCount })}
@@ -59,7 +66,7 @@ export function SearchResultsBar({
 
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="sm"
         className="h-8 shrink-0 rounded-full"
         data-testid="search-clear"

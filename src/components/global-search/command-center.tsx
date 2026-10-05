@@ -40,6 +40,8 @@ interface CommandCenterProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onSearch?: (parsed: ParsedSearch) => void
+  /** Ends the active search. Without it, an emptied field only empties the field. */
+  onClear?: () => void
   initialQuery?: string
 }
 
@@ -81,6 +83,7 @@ export function CommandCenter({
   open,
   onOpenChange,
   onSearch,
+  onClear,
   initialQuery = '',
 }: CommandCenterProps) {
   const t = useTranslations()
@@ -176,9 +179,19 @@ export function CommandCenter({
     inputRef.current?.focus()
   }
 
+  const clearInput = () => {
+    setInputValue('')
+    onClear?.()
+    inputRef.current?.focus()
+  }
+
   const handleSearch = () => {
-    // Allow search if there's any input or any filters
-    if (!inputValue.trim()) return
+    // An empty submit is the way back to the unfiltered list, not a no-op.
+    if (!inputValue.trim()) {
+      onClear?.()
+      onOpenChange?.(false)
+      return
+    }
 
     // Save to recent searches
     saveRecentSearch(inputValue)
@@ -246,7 +259,8 @@ export function CommandCenter({
             />
             {inputValue && (
               <button
-                onClick={() => setInputValue('')}
+                type="button"
+                onClick={clearInput}
                 className="p-1 hover:bg-muted rounded-md transition-colors ml-2"
                 aria-label={t('commandCenter.clearInput')}
               >
