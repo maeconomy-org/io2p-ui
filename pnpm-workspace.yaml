@@ -83,3 +83,6 @@ overrides:
   # CAPPED TO THE 6 LINE: tailwind 3 and postcss-nested both ask for ^6.1.0, and
   # an open floor resolves to 7.x.
   'postcss-selector-parser@>=6.1.0 <6.1.3': '^6.1.3'
+  # Under postcss and vitest coverage (magicast). Event-loop DoS through crafted
+  # indexed source-map offsets; dev toolchain only.
+  source-map-js@<1.2.2: '>=1.2.2'
