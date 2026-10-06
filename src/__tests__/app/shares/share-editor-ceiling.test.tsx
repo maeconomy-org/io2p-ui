@@ -10,14 +10,22 @@ vi.mock('next-intl', () => ({
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('@/contexts', () => ({ useAuth: () => ({ userId: 'me' }) }))
 
-const { create, noList, objectsList, formulasList } = vi.hoisted(() => ({
-  create: vi.fn(async (_: unknown) => ({})),
-  noList: () => ({
-    useList: () => ({ data: undefined, isFetching: false }),
-  }),
-  objectsList: { data: undefined as unknown },
-  formulasList: { data: undefined as unknown },
-}))
+const { create, noList, objectsList, formulasList, asPage } = vi.hoisted(
+  () => ({
+    create: vi.fn(async (_: unknown) => ({})),
+    // The node always sends `page` with a list; the fixtures below give only the rows.
+    asPage: (list: unknown) =>
+      list && {
+        ...(list as { data: unknown[] }),
+        page: { totalElements: (list as { data: unknown[] }).data.length },
+      },
+    noList: () => ({
+      useList: () => ({ data: undefined, isFetching: false }),
+    }),
+    objectsList: { data: undefined as unknown },
+    formulasList: { data: undefined as unknown },
+  })
+)
 vi.mock('@/hooks/api/access', () => ({
   useShares: () => ({
     useCreate: () => ({ mutateAsync: create }),
@@ -32,7 +40,7 @@ vi.mock('@/hooks/api/users', () => ({
 }))
 vi.mock('@/hooks/api/entities', () => ({
   useObjects: () => ({
-    useList: () => ({ data: objectsList.data, isFetching: false }),
+    useList: () => ({ data: asPage(objectsList.data), isFetching: false }),
   }),
   useProcesses: noList,
   useTemplates: noList,
@@ -40,7 +48,7 @@ vi.mock('@/hooks/api/entities', () => ({
 vi.mock('@/hooks/api/leaves', () => ({
   useConstants: noList,
   useFormulas: () => ({
-    useList: () => ({ data: formulasList.data, isFetching: false }),
+    useList: () => ({ data: asPage(formulasList.data), isFetching: false }),
   }),
 }))
 

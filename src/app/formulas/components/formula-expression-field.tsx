@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { AlertCircle, CheckCircle2, Search } from 'lucide-react'
 
-import { Badge, Input, Label } from '@/components/ui'
+import { Badge, CommandMore, Input, Label } from '@/components/ui'
 import { cn } from '@/lib/utils'
 import {
   builtinNames,
@@ -222,6 +222,10 @@ export function FormulaExpressionField({
                 </p>
               )}
           </div>
+          <CommandMore
+            pages={[constantsPage]}
+            className="border-t-0 px-0 py-0"
+          />
         </div>
       )}
     </div>

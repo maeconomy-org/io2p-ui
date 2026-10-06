@@ -13,6 +13,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandMore,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -30,7 +31,9 @@ import { useConstants, useFormulas } from '@/hooks/api/leaves'
 
 import { familyOf, type ShareResourceFamily } from '../utils/share-rules'
 
-const SEARCH_SIZE = 8
+// Per TYPE, not per list: one list merges two or three types, so a full `SEARCH_SIZE` of each would
+// put up to 60 rows on screen before the user types anything.
+const PER_TYPE_SIZE = 8
 
 /** What a Share can bundle — all five, since the node stopped narrowing shares to data types. */
 export interface ShareResource {
@@ -85,7 +88,7 @@ export function ResourcePicker({
   const wantData = open && active === 'data'
   const wantLibrary = open && active === 'library'
 
-  const search = { q: query.trim() || undefined, size: SEARCH_SIZE, page: 1 }
+  const search = { q: query.trim() || undefined, size: PER_TYPE_SIZE, page: 1 }
   const listOptions = (enabled: boolean) => ({
     enabled,
     keepPreviousData: true,
@@ -160,7 +163,7 @@ export function ResourcePicker({
       : loadingFormulas || loadingConstants || loadingTemplates
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -245,6 +248,13 @@ export function ResourcePicker({
               ))}
             </CommandGroup>
           </CommandList>
+          <CommandMore
+            pages={
+              active === 'data'
+                ? [objects, processes]
+                : [formulas, constants, templates]
+            }
+          />
         </Command>
       </PopoverContent>
     </Popover>

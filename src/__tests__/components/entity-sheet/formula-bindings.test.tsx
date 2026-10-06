@@ -46,7 +46,9 @@ vi.mock('@/hooks/api/leaves', () => ({
     usePreview: () => ({ data: undefined, isPending: false }),
   }),
   useConstants: () => ({
-    useList: () => ({ data: { data: [CONSTANT] } }),
+    useList: () => ({
+      data: { data: [CONSTANT], page: { totalElements: 1 } },
+    }),
     // A bound constant is resolved BY ID, not found in the search page — that is what keeps its
     // label and its preview number correct while the user searches for something else.
     useByIds: (ids: readonly string[]) =>

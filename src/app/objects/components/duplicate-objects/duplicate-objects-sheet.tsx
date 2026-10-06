@@ -34,7 +34,10 @@ import {
   CommandGroup,
   CommandItem,
   CommandList,
+  CommandMore,
+  type FetchedPage,
 } from '@/components/ui'
+import { SEARCH_SIZE } from '@/constants'
 import { OwnerHint } from '@/components/entity-list'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/observability/logger'
@@ -96,6 +99,7 @@ export function DuplicateObjectsSheet({
   const [sourceSearchResults, setSourceSearchResults] = useState<any[]>([])
   const [isSourceSearching, setIsSourceSearching] = useState(false)
   const [hasSourceLoaded, setHasSourceLoaded] = useState(false)
+  const [sourceSearchPage, setSourceSearchPage] = useState<FetchedPage>()
   const lastSourceQueryRef = useRef('')
 
   // Target & options
@@ -128,6 +132,7 @@ export function DuplicateObjectsSheet({
     setCopyAddress(false)
     setSourceSearchQuery('')
     setSourceSearchResults([])
+    setSourceSearchPage(undefined)
     setHasSourceLoaded(false)
   }, [preselectedObjects, defaultParentUuid])
 
@@ -150,7 +155,7 @@ export function DuplicateObjectsSheet({
         // `deleted` defaults to exclude, so the retired `softDeleted: false` filter is implicit.
         const results = await clientRef.current.objects.list({
           q: query.trim() || undefined,
-          size: 10,
+          size: SEARCH_SIZE,
           page: 1,
           scope: 'all',
           // Without this `childCount` is absent on every row, and the
@@ -162,10 +167,12 @@ export function DuplicateObjectsSheet({
         // The list speaks `id`; this picker's markup speaks `uuid`. Mapped here rather than
         // renaming the markup, because the sheet is due its own rewrite.
         setSourceSearchResults(results.data.map((o) => ({ ...o, uuid: o.id })))
+        setSourceSearchPage(results)
         setHasSourceLoaded(true)
       } catch (error) {
         logger.error('Source search failed:', { err: error })
         setSourceSearchResults([])
+        setSourceSearchPage(undefined)
       } finally {
         setIsSourceSearching(false)
       }
@@ -320,7 +327,7 @@ export function DuplicateObjectsSheet({
           {/* Source objects selector */}
           <div className="grid gap-2">
             <Label>{t('objects.duplicate.sourceObjects')}</Label>
-            <Popover open={isSourceOpen} onOpenChange={setIsSourceOpen}>
+            <Popover open={isSourceOpen} onOpenChange={setIsSourceOpen} modal>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -418,6 +425,7 @@ export function DuplicateObjectsSheet({
                         })}
                     </CommandGroup>
                   </CommandList>
+                  <CommandMore pages={[sourceSearchPage]} />
                 </Command>
               </PopoverContent>
             </Popover>

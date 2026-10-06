@@ -173,6 +173,7 @@
     "language": "Taal"
   },
   "common": {
+    "pickerMore": "De eerste {shown} van {total} worden getoond. Typ om de lijst te verkleinen.",
     "cancel": "Annuleren",
     "remove": "Verwijderen",
     "add": "Toevoegen",

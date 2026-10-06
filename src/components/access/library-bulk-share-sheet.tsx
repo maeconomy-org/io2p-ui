@@ -17,6 +17,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandMore,
   Label,
   Popover,
   PopoverContent,
@@ -149,7 +150,11 @@ export function LibraryBulkShareSheet({
   // picked — and the picker searches the server, so it reaches users no directory page would hold.
   // This used to prefer a cached-directory lookup that never returns falsy, which made the staged
   // label unreachable: past the directory's page the picker showed a name and the row showed a uuid.
-  const { users, isFetching: searching } = useUserSearch(peopleQuery, {
+  const {
+    users,
+    page: usersPage,
+    isFetching: searching,
+  } = useUserSearch(peopleQuery, {
     enabled: pickerOpen,
   })
 
@@ -251,7 +256,7 @@ export function LibraryBulkShareSheet({
             )}
           </div>
 
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen} modal>
             <PopoverTrigger asChild>
               <Button type="button" variant="outline" className="w-full">
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -306,6 +311,7 @@ export function LibraryBulkShareSheet({
                     ))}
                   </CommandGroup>
                 </CommandList>
+                <CommandMore pages={[usersPage]} />
               </Command>
             </PopoverContent>
           </Popover>

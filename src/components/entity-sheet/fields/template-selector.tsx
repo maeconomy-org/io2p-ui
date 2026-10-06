@@ -13,10 +13,12 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandMore,
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui'
+import { SEARCH_SIZE } from '@/constants'
 import { OwnerHint } from '@/components/entity-list'
 import { useTemplates } from '@/hooks/api/entities'
 import type { TemplatePresetProperty } from '@/lib/entity'
@@ -27,8 +29,6 @@ export interface TemplatePresetFlow {
   ref?: string
   properties?: TemplatePresetProperty[]
 }
-
-const SEARCH_SIZE = 8
 
 export interface TemplateChoice {
   id: string
@@ -93,7 +93,7 @@ export function TemplateSelector({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -169,6 +169,7 @@ export function TemplateSelector({
               ))}
             </CommandGroup>
           </CommandList>
+          <CommandMore pages={[data]} />
         </Command>
       </PopoverContent>
     </Popover>

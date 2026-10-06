@@ -173,6 +173,7 @@
     "language": "Language"
   },
   "common": {
+    "pickerMore": "Showing the first {shown} of {total}. Type to narrow the list.",
     "cancel": "Cancel",
     "remove": "Remove",
     "add": "Add",

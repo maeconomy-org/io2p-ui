@@ -29,5 +29,5 @@ export function useUserSearch(
     placeholderData: (previous) => previous,
   })
 
-  return { users: data?.data ?? [], isFetching }
+  return { users: data?.data ?? [], page: data, isFetching }
 }

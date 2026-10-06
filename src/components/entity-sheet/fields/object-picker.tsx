@@ -12,15 +12,15 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandMore,
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui'
+import { SEARCH_SIZE } from '@/constants'
 import { OwnerHint } from '@/components/entity-list'
 import { useObjects } from '@/hooks/api/entities'
 import { cn } from '@/lib/utils'
-
-const SEARCH_SIZE = 8
 
 /**
  * Pick ONE existing object. Used by process flows, where the target must already exist — io2p
@@ -65,7 +65,7 @@ export function ObjectPicker({
   const label = pickedName ?? displayName ?? value
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -127,6 +127,7 @@ export function ObjectPicker({
               ))}
             </CommandGroup>
           </CommandList>
+          <CommandMore pages={[data]} />
         </Command>
       </PopoverContent>
     </Popover>

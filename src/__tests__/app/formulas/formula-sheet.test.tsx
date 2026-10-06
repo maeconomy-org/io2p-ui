@@ -16,7 +16,10 @@ vi.mock('@/hooks/api/leaves', () => ({
   }),
   useConstants: () => ({
     useList: () => ({
-      data: { data: [{ id: 'c1', name: 'co2_factor' }] },
+      data: {
+        data: [{ id: 'c1', name: 'co2_factor' }],
+        page: { totalElements: 1 },
+      },
     }),
   }),
   useUnits: () => ({

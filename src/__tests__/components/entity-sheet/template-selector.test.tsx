@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { TemplateSelector } from '@/components/entity-sheet/fields'
+import { SEARCH_SIZE } from '@/constants'
 
 const list = vi.fn()
 
@@ -68,7 +69,7 @@ describe('TemplateSelector', () => {
     vi.clearAllMocks()
     list.mockResolvedValue({
       data: [PRESET],
-      page: { number: 1, size: 8, totalElements: 1, totalPages: 1 },
+      page: { number: 1, size: SEARCH_SIZE, totalElements: 1, totalPages: 1 },
     })
   })
 
@@ -79,7 +80,7 @@ describe('TemplateSelector', () => {
     await open()
 
     expect(list).toHaveBeenCalledWith(
-      expect.objectContaining({ full: true, size: 8, page: 1 }),
+      expect.objectContaining({ full: true, size: SEARCH_SIZE, page: 1 }),
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     )
   })

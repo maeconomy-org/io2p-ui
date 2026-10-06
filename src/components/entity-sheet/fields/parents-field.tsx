@@ -15,17 +15,17 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandMore,
   CopyButton,
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui'
+import { SEARCH_SIZE } from '@/constants'
 import { OwnerHint } from '@/components/entity-list'
 import { useObjects } from '@/hooks/api/entities'
 import { cn } from '@/lib/utils'
 import type { EntityDraft } from '@/lib/entity'
-
-const SEARCH_SIZE = 8
 
 /**
  * The object's parents. io2p models hierarchy as `parents[]` on the CHILD (a multi-parent DAG), so
@@ -188,7 +188,7 @@ function ParentPicker({
   )
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -247,6 +247,7 @@ function ParentPicker({
               ))}
             </CommandGroup>
           </CommandList>
+          <CommandMore pages={[data]} />
         </Command>
       </PopoverContent>
     </Popover>

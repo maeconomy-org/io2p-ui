@@ -20,6 +20,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandMore,
   Label,
   Popover,
   PopoverContent,
@@ -166,6 +167,7 @@ export function FormulaSelect({
               ))}
             </CommandGroup>
           </CommandList>
+          <CommandMore pages={[data]} />
         </Command>
       </PopoverContent>
     </Popover>
@@ -694,6 +696,16 @@ function BindingPicker({
               </CommandGroup>
             )}
           </CommandList>
+          <CommandMore
+            pages={[
+              // Every value on the entity is already here, so it counts as one full page.
+              {
+                data: shownSiblings,
+                page: { totalElements: shownSiblings.length },
+              },
+              scope === 'siblings' ? undefined : constantsPage,
+            ]}
+          />
         </Command>
       </PopoverContent>
     </Popover>

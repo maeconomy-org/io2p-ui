@@ -16,6 +16,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandMore,
   Input,
   Label,
   Popover,
@@ -181,7 +182,11 @@ function ShareForm({
 
   // Absent means unresolved, not blank — the id keeps an unresolvable member visible.
   const nameOf = (userId: string) => memberNames[userId] ?? userId
-  const { users, isFetching: searching } = useUserSearch(peopleQuery, {
+  const {
+    users,
+    page: usersPage,
+    isFetching: searching,
+  } = useUserSearch(peopleQuery, {
     enabled: pickerOpen,
   })
 
@@ -444,7 +449,7 @@ function ShareForm({
             </p>
           )}
 
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen} modal>
             <PopoverTrigger asChild>
               <Button
                 type="button"
@@ -499,6 +504,7 @@ function ShareForm({
                     ))}
                   </CommandGroup>
                 </CommandList>
+                <CommandMore pages={[usersPage]} />
               </Command>
             </PopoverContent>
           </Popover>
