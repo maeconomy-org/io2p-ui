@@ -3,9 +3,12 @@ import { describe, it, expect } from 'vitest'
 import {
   canDelete,
   canEdit,
+  canLinkUnder,
+  canMove,
   canReshare,
   canViewGrants,
   canRestore,
+  linkUnderRefusal,
   permissionOf,
 } from '@/components/entity-list/permission'
 
@@ -96,5 +99,58 @@ describe('canViewGrants', () => {
   it('treats an absent permission as unrestricted, like every other rung', () => {
     expect(canViewGrants(undefined)).toBe(true)
     expect(canDelete(undefined)).toBe(true)
+  })
+})
+
+describe('moving an object and linking under one', () => {
+  it('lets only admin move an object', () => {
+    expect(canMove('admin')).toBe(true)
+    expect(canMove('share')).toBe(false)
+    expect(canMove('write')).toBe(false)
+    expect(canMove('read')).toBe(false)
+  })
+
+  it('lets write and above link under an object', () => {
+    expect(canLinkUnder('admin')).toBe(true)
+    expect(canLinkUnder('share')).toBe(true)
+    expect(canLinkUnder('write')).toBe(true)
+    expect(canLinkUnder('read')).toBe(false)
+  })
+
+  it('lets a share grantee link under an object but not move it', () => {
+    expect(canLinkUnder('share')).toBe(true)
+    expect(canMove('share')).toBe(false)
+  })
+
+  it('treats an absent permission as unrestricted, like every other rung', () => {
+    expect(canMove(undefined)).toBe(true)
+    expect(canLinkUnder(undefined)).toBe(true)
+  })
+})
+
+describe('linkUnderRefusal', () => {
+  it('names the missing access for a read-only row', () => {
+    expect(linkUnderRefusal({ permission: 'read' }, 'me')).toBe(
+      'objects.needsWriteAccess'
+    )
+  })
+
+  it('refuses nothing at write or above', () => {
+    expect(linkUnderRefusal({ permission: 'write' }, 'me')).toBeNull()
+    expect(linkUnderRefusal({ permission: 'admin' }, 'me')).toBeNull()
+  })
+
+  it('keeps rows the viewer owns choosable before the node sends a verdict', () => {
+    expect(linkUnderRefusal({ createdBy: 'me' }, 'me')).toBeNull()
+  })
+
+  it('refuses nothing when the node sent no verdict', () => {
+    expect(linkUnderRefusal({ createdBy: 'them' }, 'me')).toBeNull()
+  })
+
+  it('prefers the node verdict over the owner fallback', () => {
+    expect(
+      linkUnderRefusal({ permission: 'read', createdBy: 'me' }, 'me')
+    ).toBe('objects.needsWriteAccess')
   })
 })

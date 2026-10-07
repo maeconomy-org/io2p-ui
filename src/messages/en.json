@@ -580,6 +580,7 @@
     "deleteConfirmDescription": "This soft deletes \"{name}\". You can restore it afterwards.",
     "deleteConfirmDescriptionWithChildren": "This soft deletes \"{name}\", which has {count, plural, one {# descendant} other {# descendants}}. They stay live and keep working, but \"{name}\" will no longer appear in lists or count toward rollups. You can restore it afterwards.",
     "permissionDenied": "Permission denied. You don't have the required permissions to perform this action.",
+    "needsWriteAccess": "Needs write access",
     "qrCodeTitle": "QR Code for {name}",
     "qrCodeDescription": "Scan this code to access the object details",
     "qrCodeDownloadPng": "Download PNG",

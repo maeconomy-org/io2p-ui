@@ -80,6 +80,43 @@ export function canRestore(permission?: Permission): boolean {
 }
 
 /**
+ * May the viewer move this object — add or remove one of its parents? Guarded at `admin`.
+ *
+ * A parent passes its subtree grants down, so a writer who moved an object under a parent they
+ * administer would gain admin on it (io2p-core D135). `share` is not enough either: a share holder
+ * can only grant up to their own level. Objects only — processes have no parents.
+ */
+export function canMove(permission?: Permission): boolean {
+  return meets(permission, 'admin')
+}
+
+/**
+ * May the viewer put an object under this one? Guarded at `write` (D135): a child counts in its
+ * parent's totals, so reading the parent is not enough.
+ *
+ * The same rung as `canEdit` today, named apart so that if the node ever moves one rule, only its
+ * own call sites move.
+ */
+export function canLinkUnder(permission?: Permission): boolean {
+  return meets(permission, 'write')
+}
+
+/**
+ * Why a picker row cannot be chosen as a parent, as a message key — or null when it can.
+ *
+ * Every parent picker shows this one reason, so they read the same. The owner fallback in
+ * `permissionOf` keeps the viewer's own rows choosable before the node's field arrives.
+ */
+export function linkUnderRefusal(
+  entity: { permission?: Permission; createdBy?: string },
+  viewerId?: string
+): 'objects.needsWriteAccess' | null {
+  return canLinkUnder(permissionOf(entity, viewerId))
+    ? null
+    : 'objects.needsWriteAccess'
+}
+
+/**
  * The permission an entity's author holds on it.
  *
  * Objects and processes have no separate owner — their author IS their owner (io2p-core,
