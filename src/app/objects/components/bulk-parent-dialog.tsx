@@ -105,6 +105,7 @@ export function BulkParentDialog({
           <Label>{t('objects.fields.parent')}</Label>
           <ObjectPicker
             testId="bulk-parent-picker"
+            requireLinkable
             value={parentId}
             displayName={parentName}
             className="w-full"

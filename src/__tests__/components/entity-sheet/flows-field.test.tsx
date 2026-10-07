@@ -35,6 +35,7 @@ vi.mock('@/contexts/query-context', () => ({
 
 vi.mock('@/contexts', () => ({
   useAppConfig: () => ({ maxAttachmentSizeMB: 1024 }),
+  useAuth: () => ({ userId: 'me' }),
 }))
 
 const NO_DERIVED = new Map<string, never>()

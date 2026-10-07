@@ -5,6 +5,7 @@ import type { ObjectListItem } from 'io2p-client'
 import { BulkParentDialog } from '@/app/objects/components/bulk-parent-dialog'
 
 const update = vi.fn().mockResolvedValue({})
+const pickerProps = vi.fn()
 const toastSuccess = vi.fn()
 
 vi.mock('next-intl', () => ({
@@ -24,15 +25,17 @@ vi.mock('@/lib/observability/logger', () => ({ logger: { error: vi.fn() } }))
 
 // The picker has its own tests; here it only has to hand back a chosen parent.
 vi.mock('@/components/entity-sheet/fields/object-picker', () => ({
-  ObjectPicker: ({
-    onSelect,
-  }: {
+  ObjectPicker: (props: {
     onSelect: (id: string, name: string) => void
-  }) => (
-    <button type="button" onClick={() => onSelect('a', 'Object a')}>
-      pick a
-    </button>
-  ),
+    requireLinkable?: boolean
+  }) => {
+    pickerProps(props)
+    return (
+      <button type="button" onClick={() => props.onSelect('a', 'Object a')}>
+        pick a
+      </button>
+    )
+  },
 }))
 
 const row = (id: string) => ({ id, name: `Object ${id}` }) as ObjectListItem
@@ -79,6 +82,21 @@ describe('BulkParentDialog', () => {
 
     expect(screen.getByTestId('bulk-parent-skips-unmovable')).toHaveTextContent(
       'objects.bulk.parentSkipsUnmovable 2'
+    )
+  })
+
+  it('offers only parents the viewer may link under', () => {
+    render(
+      <BulkParentDialog
+        open
+        onOpenChange={vi.fn()}
+        objects={[row('b')]}
+        onDone={vi.fn()}
+      />
+    )
+
+    expect(pickerProps).toHaveBeenCalledWith(
+      expect.objectContaining({ requireLinkable: true })
     )
   })
 

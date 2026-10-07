@@ -18,7 +18,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { SEARCH_SIZE } from '@/constants'
-import { OwnerHint } from '@/components/entity-list'
+import { linkUnderRefusal, OwnerHint } from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 import { useObjects } from '@/hooks/api/entities'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +39,7 @@ export function ObjectPicker({
   className,
   placeholder,
   testId = 'object-picker',
+  requireLinkable = false,
 }: {
   value: string
   /** Resolved name for `value`, when the caller knows one. */
@@ -48,8 +50,14 @@ export function ObjectPicker({
   /** Empty-state label. A template flow's target is optional, so "select" would overstate it. */
   placeholder?: string
   testId?: string
+  /**
+   * The pick becomes a PARENT, so the viewer needs `write` on it (D135). Off by default: a process
+   * flow only needs to read its target, and must keep offering view-only objects.
+   */
+  requireLinkable?: boolean
 }) {
   const t = useTranslations()
+  const { userId } = useAuth()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [pickedName, setPickedName] = useState<string | undefined>()
@@ -59,6 +67,9 @@ export function ObjectPicker({
     { enabled: open, keepPreviousData: true }
   )
   const objects = data?.data ?? []
+  const refusalOf = (object: (typeof objects)[number]) =>
+    requireLinkable ? linkUnderRefusal(object, userId) : null
+  const anyRefused = objects.some((object) => refusalOf(object))
 
   // Fall back to the raw id rather than showing an empty control: an unresolved ref is still a real
   // target, and hiding it would read as "nothing selected".
@@ -107,26 +118,47 @@ export function ObjectPicker({
               <CommandEmpty>{t('processes.flows.noObjects')}</CommandEmpty>
             )}
             <CommandGroup>
-              {objects.map((object) => (
-                <CommandItem
-                  key={object.id}
-                  value={object.id}
-                  data-testid={`object-option-${object.id}`}
-                  onSelect={() => {
-                    setPickedName(object.name)
-                    onSelect(object.id, object.name)
-                    setOpen(false)
-                  }}
-                >
-                  <span className="min-w-0 flex-1 truncate">{object.name}</span>
-                  <OwnerHint
-                    ownerUserId={object.createdBy}
-                    ownerName={object.createdByName}
-                  />
-                </CommandItem>
-              ))}
+              {objects.map((object) => {
+                const refusal = refusalOf(object)
+                return (
+                  <CommandItem
+                    key={object.id}
+                    value={object.id}
+                    data-testid={`object-option-${object.id}`}
+                    disabled={!!refusal}
+                    onSelect={() => {
+                      setPickedName(object.name)
+                      onSelect(object.id, object.name)
+                      setOpen(false)
+                    }}
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      {object.name}
+                    </span>
+                    <OwnerHint
+                      ownerUserId={object.createdBy}
+                      ownerName={object.createdByName}
+                    />
+                    {refusal && (
+                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                        {t(refusal)}
+                      </span>
+                    )}
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           </CommandList>
+          {/* Outside the list on purpose: cmdk never focuses a disabled row, so a screen reader
+              would not reach the reason printed inside it. */}
+          {anyRefused && (
+            <p
+              data-testid="object-picker-view-only"
+              className="border-t px-3 py-2 text-xs text-muted-foreground"
+            >
+              {t('objects.viewOnlyNotChoosable')}
+            </p>
+          )}
           <CommandMore pages={[data]} />
         </Command>
       </PopoverContent>
