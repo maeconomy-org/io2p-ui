@@ -23,12 +23,16 @@ import type { EntityDraft } from '@/lib/entity'
 function Harness({
   deletedParentIds,
   editing = false,
+  movable,
+  parentIds = ['dead-1', 'live-1'],
 }: {
   deletedParentIds?: Set<string>
   editing?: boolean
+  movable?: boolean
+  parentIds?: string[]
 }) {
   const form = useForm<EntityDraft>({
-    defaultValues: { parentIds: ['dead-1', 'live-1'] } as EntityDraft,
+    defaultValues: { parentIds } as EntityDraft,
   })
   return (
     <ParentsField
@@ -41,6 +45,7 @@ function Harness({
         ])
       }
       deletedParentIds={deletedParentIds}
+      movable={movable}
     />
   )
 }
@@ -78,5 +83,46 @@ describe('ParentsField deleted parents', () => {
     expect(
       screen.getByRole('button', { name: /common.remove Blok A/ })
     ).toBeEnabled()
+  })
+})
+
+describe('ParentsField for a viewer who may edit but not move', () => {
+  it('offers no picker and no remove, and says why', () => {
+    render(<Harness editing movable={false} />)
+
+    expect(screen.queryByTestId('parent-picker')).toBeNull()
+    expect(screen.queryByRole('button', { name: /common.remove/ })).toBeNull()
+    expect(screen.getByTestId('parents-move-locked')).toHaveTextContent(
+      'objects.detailsSheet.moveNeedsAdmin'
+    )
+  })
+
+  it('keeps the parents as links', () => {
+    render(<Harness editing movable={false} />)
+
+    expect(screen.getByTestId('parent-link-live-1')).toBeInTheDocument()
+  })
+
+  it('says why even when the object has no parents', () => {
+    render(<Harness editing movable={false} parentIds={[]} />)
+
+    expect(screen.getByTestId('parents-empty')).toBeInTheDocument()
+    expect(screen.getByTestId('parents-move-locked')).toBeInTheDocument()
+  })
+
+  it('offers the picker and remove to a viewer who may move', () => {
+    render(<Harness editing movable />)
+
+    expect(screen.getByTestId('parent-picker')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /common.remove Blok B/ })
+    ).toBeEnabled()
+    expect(screen.queryByTestId('parents-move-locked')).toBeNull()
+  })
+
+  it('shows no note outside edit mode', () => {
+    render(<Harness movable={false} />)
+
+    expect(screen.queryByTestId('parents-move-locked')).toBeNull()
   })
 })

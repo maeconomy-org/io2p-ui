@@ -473,6 +473,7 @@
     },
     "detailsSheet": {
       "noParents": "No parents",
+      "moveNeedsAdmin": "Only someone with Admin access can move this object.",
       "tabDetails": "Details",
       "tabParents": "Parents",
       "unsavedChanges": "{count} unsaved change{count, plural, one {} other {s}}",

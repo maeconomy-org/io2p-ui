@@ -39,6 +39,7 @@ export function ParentsField({
   deletedParentIds,
   onParentPicked,
   selfId,
+  movable = true,
 }: {
   form: UseFormReturn<EntityDraft>
   editing: boolean
@@ -56,6 +57,12 @@ export function ParentsField({
   onParentPicked?: (id: string, name: string) => void
   /** The entity being edited, so it can't be offered as its own parent (the server rejects it too). */
   selfId?: string
+  /**
+   * False when the viewer may edit the object but not move it: the node needs `admin` to add or
+   * remove a parent, and refuses the WHOLE PATCH when it carries one, so a stray chip removal would
+   * also lose the viewer's other edits. Create leaves it unset: the creator owns the new object.
+   */
+  movable?: boolean
 }) {
   const t = useTranslations()
   // `useWatch`, NOT `form.watch` — this component does not own the `useForm`. Removing a badge
@@ -79,17 +86,33 @@ export function ParentsField({
     )
   }
 
-  if (!editing && parentIds.length === 0) {
+  const changeable = editing && movable
+  const moveLockedNote = editing && !movable && (
+    <p
+      data-testid="parents-move-locked"
+      className="text-xs text-muted-foreground"
+    >
+      {t('objects.detailsSheet.moveNeedsAdmin')}
+    </p>
+  )
+
+  if (!changeable && parentIds.length === 0) {
     return (
-      <p data-testid="parents-empty" className="text-sm text-muted-foreground">
-        {t('objects.detailsSheet.noParents')}
-      </p>
+      <div className="space-y-2">
+        <p
+          data-testid="parents-empty"
+          className="text-sm text-muted-foreground"
+        >
+          {t('objects.detailsSheet.noParents')}
+        </p>
+        {moveLockedNote}
+      </div>
     )
   }
 
   return (
     <div className="space-y-2">
-      {editing && (
+      {changeable && (
         <ParentPicker
           selectedIds={parentIds}
           selfId={selfId}
@@ -109,7 +132,7 @@ export function ParentsField({
                 isDeleted(id) && 'border-destructive/40 text-destructive'
               )}
             >
-              {editing ? (
+              {changeable ? (
                 <>
                   <span className={cn(isDeleted(id) && 'line-through')}>
                     {nameOf(id)}
@@ -159,6 +182,7 @@ export function ParentsField({
           ))}
         </div>
       )}
+      {moveLockedNote}
     </div>
   )
 }

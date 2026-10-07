@@ -474,6 +474,7 @@
     },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",
+      "moveNeedsAdmin": "Alleen iemand met Beheer-toegang kan dit object verplaatsen.",
       "tabDetails": "Details",
       "tabParents": "Bovenliggend",
       "unsavedChanges": "{count} niet-opgeslagen wijziging{count, plural, one {} other {en}}",
