@@ -51,6 +51,9 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # type=match adds `latest` by default, so a -dev tag moved it.
+          # The explicit type=raw latest lines below are not affected.
+          flavor: latest=false
           tags: |
             # main branch -> latest, main
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
