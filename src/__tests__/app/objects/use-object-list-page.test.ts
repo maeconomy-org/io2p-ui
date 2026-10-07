@@ -185,6 +185,20 @@ describe('useObjectListPage', () => {
       expect(result.current.movableObjects.map((o) => o.id)).toEqual(['admin'])
     })
 
+    it('leaves a deleted object out of Set parent, even for an admin', () => {
+      // The node refuses to PATCH a deleted object (409) before it checks the parents.
+      const { result } = renderWith(
+        pageOf(
+          { ...row('live'), permission: 'admin' } as ObjectListItem,
+          { ...row('gone', true), permission: 'admin' } as ObjectListItem
+        )
+      )
+
+      act(() => result.current.setRowSelection({ live: true, gone: true }))
+
+      expect(result.current.movableObjects.map((o) => o.id)).toEqual(['live'])
+    })
+
     it('restores every selected id and clears', async () => {
       const { result } = renderWith(pageOf(row('a', true), row('b', true)))
 

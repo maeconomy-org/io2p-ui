@@ -69,6 +69,21 @@ describe('BulkParentDialog', () => {
     })
   })
 
+  it('does not save when the only object is the chosen parent', () => {
+    render(
+      <BulkParentDialog
+        open
+        onOpenChange={vi.fn()}
+        objects={[row('a')]}
+        onDone={vi.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByText('pick a'))
+
+    expect(screen.getByTestId('bulk-parent-save')).toBeDisabled()
+  })
+
   it('says how many selected objects it leaves out', () => {
     render(
       <BulkParentDialog

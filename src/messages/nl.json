@@ -538,7 +538,7 @@
       "setParentTitle": "Bovenliggend object kiezen",
       "setParentDescription": "Verplaats {count, plural, one {# geselecteerd item} other {# geselecteerde items}} onder één bovenliggend object. Bestaande bovenliggende objecten blijven behouden.",
       "parentSkipsSelf": "Het gekozen bovenliggende object staat ook in uw selectie — het wordt overgeslagen.",
-      "parentSkipsUnmovable": "{count, plural, one {# geselecteerd item wordt} other {# geselecteerde items worden}} overgeslagen: alleen iemand met Beheer-toegang kan deze verplaatsen."
+      "parentSkipsUnmovable": "{count, plural, one {# geselecteerd item kan niet worden verplaatst en wordt overgeslagen: het is verwijderd, of u heeft Beheer-toegang nodig om het te verplaatsen.} other {# geselecteerde items kunnen niet worden verplaatst en worden overgeslagen: ze zijn verwijderd, of u heeft Beheer-toegang nodig om ze te verplaatsen.}}"
     },
     "noObjectsTitle": "Nog geen objecten",
     "noObjectsDescription": "Een object is alles wat je wilt volgen — een machine, een batch, een document. Geef het eigenschappen, bestanden en een plek in de hiërarchie.",

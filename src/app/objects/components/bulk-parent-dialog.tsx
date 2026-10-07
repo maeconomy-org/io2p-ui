@@ -55,6 +55,8 @@ export function BulkParentDialog({
   // Moving an object under itself would make it its own ancestor; the node rejects it, but the
   // option should not be offered in the first place.
   const selectedIds = new Set(objects.map((o) => o.id))
+  // The only selected object is the chosen parent: nothing would move.
+  const nothingToMove = objects.every((o) => o.id === parentId)
 
   const apply = async () => {
     if (!parentId) return
@@ -137,7 +139,7 @@ export function BulkParentDialog({
           <Button
             type="button"
             className="flex-1"
-            disabled={!parentId || saving}
+            disabled={!parentId || nothingToMove || saving}
             onClick={apply}
             data-testid="bulk-parent-save"
           >

@@ -88,10 +88,14 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
     () => selectedObjects.filter((o) => canReshare(permissionOf(o, userId))),
     [selectedObjects, userId]
   )
-  // Moving needs `admin` on each object (D135), and Set parent PATCHes them one by one, stopping at
-  // the first refusal — so an unmovable row in the list would leave the rest half-moved.
+  // Moving needs `admin` on each object (D135), and a deleted object is refused before that (409:
+  // restore it first). Set parent PATCHes them one by one and stops at the first refusal, so an
+  // unmovable row in the list would leave the rest half-moved.
   const movableObjects = useMemo(
-    () => selectedObjects.filter((o) => canMove(permissionOf(o, userId))),
+    () =>
+      selectedObjects.filter(
+        (o) => !o.deleted && canMove(permissionOf(o, userId))
+      ),
     [selectedObjects, userId]
   )
   const clearSelection = useCallback(() => setRowSelection({}), [])
