@@ -5,10 +5,11 @@
 // `childCount` honours access rather than scope and still reports the real number. The recipient
 // saw "1119 children" on a parent that opened empty.
 //
-// The assertions pin the QUERY, not the render: `scope` has to reach the wire.
+// The assertions pin the QUERY, not the render: `scope` has to reach the wire. The last group
+// reuses the same page to pin who is offered "Add child".
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 
 const useList = vi.fn()
 const useGet = vi.fn()
@@ -124,5 +125,46 @@ describe('object children page — the children query', () => {
   it('asks for child counts', () => {
     render(<ObjectChildrenPage />)
     expect(queryOf()).toHaveProperty('withChildCounts', true)
+  })
+})
+
+describe('object children page — adding under the object', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useList.mockReturnValue({ data: undefined, isFetching: false })
+  })
+
+  const renderWith = (permission?: string) => {
+    useGet.mockReturnValue({
+      data: { id: 'parent-1', name: 'Materials', permission },
+      isLoading: false,
+    })
+    render(<ObjectChildrenPage />)
+  }
+
+  it('hides Add child on an object the viewer can only read, and says why', () => {
+    renderWith('read')
+
+    expect(screen.queryByTestId('page-header-add-child-button')).toBeNull()
+    expect(screen.getByTestId('page-add-child-unavailable')).toHaveTextContent(
+      'objects.childrenPage.addChildUnavailable'
+    )
+  })
+
+  it('offers Add child to a viewer who may write', () => {
+    renderWith('write')
+
+    expect(
+      screen.getByTestId('page-header-add-child-button')
+    ).toBeInTheDocument()
+    expect(screen.queryByTestId('page-add-child-unavailable')).toBeNull()
+  })
+
+  it('offers Add child when the node sends no verdict', () => {
+    renderWith(undefined)
+
+    expect(
+      screen.getByTestId('page-header-add-child-button')
+    ).toBeInTheDocument()
   })
 })

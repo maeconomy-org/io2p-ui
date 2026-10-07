@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, Copy, FileText } from 'lucide-react'
+import { PlusCircle, Copy, FileText, Info } from 'lucide-react'
 import type { ObjectListItem } from 'io2p-client'
 
 import { cn } from '@/lib/utils'
@@ -13,6 +13,7 @@ import { useObjects } from '@/hooks/api/entities'
 import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
 import { usePreference } from '@/hooks/ui/use-preference'
 import { Badge, SplitButton } from '@/components/ui'
+import { canLinkUnder } from '@/components/entity-list'
 import { FilterMenu, deletedSection } from '@/components/filters'
 import { ObjectBreadcrumb } from '../components/object-breadcrumb'
 import { ViewSelector } from '@/components/view-selector'
@@ -178,23 +179,35 @@ export default function ObjectChildrenPage() {
               />
             )}
             <ViewSelector view={viewType} onChange={setViewType} />
-            <SplitButton
-              size="sm"
-              onClick={() => setIsAddSheetOpen(true)}
-              menuLabel={t('objects.childrenPage.moreChildActions')}
-              actions={[
-                {
-                  key: 'copy-here',
-                  label: t('objects.duplicate.copyHere'),
-                  icon: <Copy className="mr-2 h-4 w-4" />,
-                  onSelect: () => setIsCopyHereOpen(true),
-                },
-              ]}
-              data-testid="page-header-add-child-button"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              {t('objects.childrenPage.addChild')}
-            </SplitButton>
+            {/* Hidden, not disabled: a disabled button cannot take focus and its title shows on
+                hover only, so keyboard and screen-reader users would never learn why. */}
+            {canLinkUnder(parentObject.permission) ? (
+              <SplitButton
+                size="sm"
+                onClick={() => setIsAddSheetOpen(true)}
+                menuLabel={t('objects.childrenPage.moreChildActions')}
+                actions={[
+                  {
+                    key: 'copy-here',
+                    label: t('objects.duplicate.copyHere'),
+                    icon: <Copy className="mr-2 h-4 w-4" />,
+                    onSelect: () => setIsCopyHereOpen(true),
+                  },
+                ]}
+                data-testid="page-header-add-child-button"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {t('objects.childrenPage.addChild')}
+              </SplitButton>
+            ) : (
+              <p
+                className="flex items-start gap-1.5 text-xs text-muted-foreground"
+                data-testid="page-add-child-unavailable"
+              >
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{t('objects.childrenPage.addChildUnavailable')}</span>
+              </p>
+            )}
           </div>
         </div>
 

@@ -605,6 +605,7 @@
       "parentNotFound": "Parent object not found",
       "breadcrumbRoot": "Root",
       "addChild": "Add Child",
+      "addChildUnavailable": "You can view this object, but not add items under it.",
       "childrenCount": "{count} children",
       "parentDeleted": "This object is deleted. Its children stay live and keep working — restore it to bring it back into lists and rollups.",
       "noChildrenTitle": "No child objects yet",
