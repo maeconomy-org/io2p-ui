@@ -134,9 +134,9 @@ describe('object children page — adding under the object', () => {
     useList.mockReturnValue({ data: undefined, isFetching: false })
   })
 
-  const renderWith = (permission?: string) => {
+  const renderWith = (permission?: string, deleted = false) => {
     useGet.mockReturnValue({
-      data: { id: 'parent-1', name: 'Materials', permission },
+      data: { id: 'parent-1', name: 'Materials', permission, deleted },
       isLoading: false,
     })
     render(<ObjectChildrenPage />)
@@ -166,5 +166,13 @@ describe('object children page — adding under the object', () => {
     expect(
       screen.getByTestId('page-header-add-child-button')
     ).toBeInTheDocument()
+  })
+
+  it('hides Add child on a deleted object, even for an admin', () => {
+    renderWith('admin', true)
+
+    expect(screen.queryByTestId('page-header-add-child-button')).toBeNull()
+    expect(screen.queryByTestId('page-add-child-unavailable')).toBeNull()
+    expect(screen.getByTestId('parent-deleted-hint')).toBeInTheDocument()
   })
 })

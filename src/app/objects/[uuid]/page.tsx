@@ -180,8 +180,9 @@ export default function ObjectChildrenPage() {
             )}
             <ViewSelector view={viewType} onChange={setViewType} />
             {/* Hidden, not disabled: a disabled button cannot take focus and its title shows on
-                hover only, so keyboard and screen-reader users would never learn why. */}
-            {canLinkUnder(parentObject.permission) ? (
+                hover only, so keyboard and screen-reader users would never learn why. A deleted
+                object takes no children at any level (422); `parent-deleted-hint` says why. */}
+            {!parentObject.deleted && canLinkUnder(parentObject.permission) ? (
               <SplitButton
                 size="sm"
                 onClick={() => setIsAddSheetOpen(true)}
@@ -200,13 +201,15 @@ export default function ObjectChildrenPage() {
                 {t('objects.childrenPage.addChild')}
               </SplitButton>
             ) : (
-              <p
-                className="flex items-start gap-1.5 text-xs text-muted-foreground"
-                data-testid="page-add-child-unavailable"
-              >
-                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span>{t('objects.childrenPage.addChildUnavailable')}</span>
-              </p>
+              !parentObject.deleted && (
+                <p
+                  className="flex items-start gap-1.5 text-xs text-muted-foreground"
+                  data-testid="page-add-child-unavailable"
+                >
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{t('objects.childrenPage.addChildUnavailable')}</span>
+                </p>
+              )
             )}
           </div>
         </div>
