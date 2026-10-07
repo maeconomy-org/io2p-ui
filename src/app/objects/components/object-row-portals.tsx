@@ -110,7 +110,10 @@ export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
       <BulkParentDialog
         open={state.bulkParentOpen}
         onOpenChange={state.setBulkParentOpen}
-        objects={state.selectedObjects}
+        objects={state.movableObjects}
+        skippedCount={
+          state.selectedObjects.length - state.movableObjects.length
+        }
         onDone={state.clearSelection}
       />
 

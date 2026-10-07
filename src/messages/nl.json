@@ -533,11 +533,12 @@
     },
     "bulk": {
       "setParent": "Bovenliggend instellen",
-      "parentSet": "{count} items verplaatst",
+      "parentSet": "{count, plural, one {# item verplaatst} other {# items verplaatst}}",
       "columns": "Kolommen",
       "setParentTitle": "Bovenliggend object kiezen",
-      "setParentDescription": "Verplaats {count} geselecteerde items onder één bovenliggend object. Bestaande bovenliggende objecten blijven behouden.",
-      "parentSkipsSelf": "Het gekozen bovenliggende object staat ook in uw selectie — het wordt overgeslagen."
+      "setParentDescription": "Verplaats {count, plural, one {# geselecteerd item} other {# geselecteerde items}} onder één bovenliggend object. Bestaande bovenliggende objecten blijven behouden.",
+      "parentSkipsSelf": "Het gekozen bovenliggende object staat ook in uw selectie — het wordt overgeslagen.",
+      "parentSkipsUnmovable": "{count, plural, one {# geselecteerd item wordt} other {# geselecteerde items worden}} overgeslagen: alleen iemand met Beheer-toegang kan deze verplaatsen."
     },
     "noObjectsTitle": "Nog geen objecten",
     "noObjectsDescription": "Een object is alles wat je wilt volgen — een machine, een batch, een document. Geef het eigenschappen, bestanden en een plek in de hiërarchie.",

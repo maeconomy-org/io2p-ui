@@ -164,6 +164,27 @@ describe('useObjectListPage', () => {
       expect(remove).toHaveBeenCalledWith({ id: 'mine' })
     })
 
+    it('offers Set parent only for the rows the viewer may move', () => {
+      // Mixed on purpose: with only admin rows the filter could be removed and this stays green.
+      const { result } = renderWith(
+        pageOf(
+          { ...row('admin'), permission: 'admin' } as ObjectListItem,
+          { ...row('share'), permission: 'share' } as ObjectListItem,
+          { ...row('write'), permission: 'write' } as ObjectListItem
+        )
+      )
+
+      act(() =>
+        result.current.setRowSelection({
+          admin: true,
+          share: true,
+          write: true,
+        })
+      )
+
+      expect(result.current.movableObjects.map((o) => o.id)).toEqual(['admin'])
+    })
+
     it('restores every selected id and clears', async () => {
       const { result } = renderWith(pageOf(row('a', true), row('b', true)))
 

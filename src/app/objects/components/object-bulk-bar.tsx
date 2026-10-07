@@ -44,6 +44,8 @@ export function ObjectBulkBar({
           key: 'set-parent',
           label: t('objects.bulk.setParent'),
           icon: FolderTree,
+          hidden: state.movableObjects.length === 0,
+          actionable: state.movableObjects.length,
           onSelect: () => state.setBulkParentOpen(true),
         },
       ]}

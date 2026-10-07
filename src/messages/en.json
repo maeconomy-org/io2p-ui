@@ -564,11 +564,12 @@
     },
     "bulk": {
       "setParent": "Set parent",
-      "parentSet": "{count} items moved",
+      "parentSet": "{count, plural, one {# item moved} other {# items moved}}",
       "columns": "Columns",
       "setParentTitle": "Set a parent",
-      "setParentDescription": "Move {count} selected items under one parent. Each keeps any parents it already has.",
-      "parentSkipsSelf": "The selected parent is also in your selection — it will be skipped."
+      "setParentDescription": "Move {count, plural, one {# selected item} other {# selected items}} under one parent. Each keeps any parents it already has.",
+      "parentSkipsSelf": "The selected parent is also in your selection — it will be skipped.",
+      "parentSkipsUnmovable": "{count, plural, one {# selected item is} other {# selected items are}} skipped: only someone with Admin access can move them."
     },
     "noObjectsTitle": "No objects yet",
     "noObjectsDescription": "An object is anything you want to track — a machine, a batch, a document. Give it properties, files and a place in the hierarchy.",

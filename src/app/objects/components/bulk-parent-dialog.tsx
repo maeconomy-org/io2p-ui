@@ -34,11 +34,15 @@ export function BulkParentDialog({
   open,
   onOpenChange,
   objects,
+  skippedCount = 0,
   onDone,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Only the objects the viewer may move — the caller filters the selection. */
   objects: ObjectListItem[]
+  /** Selected objects left out because the viewer may not move them. */
+  skippedCount?: number
   onDone: () => void
 }) {
   const t = useTranslations()
@@ -56,14 +60,16 @@ export function BulkParentDialog({
     if (!parentId) return
     setSaving(true)
     try {
+      let moved = 0
       for (const object of objects) {
         if (object.id === parentId) continue
         await updateMutation.mutateAsync({
           id: object.id,
           body: { parents: { add: [parentId] } },
         })
+        moved += 1
       }
-      toast.success(t('objects.bulk.parentSet', { count: objects.length }))
+      toast.success(t('objects.bulk.parentSet', { count: moved }))
       onDone()
       onOpenChange(false)
     } catch (error) {
@@ -85,6 +91,14 @@ export function BulkParentDialog({
           <AlertDialogDescription>
             {t('objects.bulk.setParentDescription', { count: objects.length })}
           </AlertDialogDescription>
+          {skippedCount > 0 && (
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="bulk-parent-skips-unmovable"
+            >
+              {t('objects.bulk.parentSkipsUnmovable', { count: skippedCount })}
+            </p>
+          )}
         </AlertDialogHeader>
 
         <div className="space-y-2 py-2">
