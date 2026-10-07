@@ -247,6 +247,7 @@ export function EntitySheet({
       }
       selfId={entity?.id}
       movable={canMove(permission)}
+      savedParentIds={entity?.parents?.map((p) => p.id)}
     />
   )
 
