@@ -20,7 +20,11 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui'
-import { linkUnderRefusal, OwnerHint } from '@/components/entity-list'
+import {
+  linkUnderRefusal,
+  OwnerHint,
+  type Permission,
+} from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 import { cn, truncateText } from '@/lib/utils'
 import { useIomClient } from '@/lib/io2p'
@@ -155,7 +159,13 @@ export function ParentSelector({
 
   // The copies are new, so only the target needs `write` (D135). A SELECTED row stays clickable:
   // clicking it only unselects, which sends nothing.
-  const refusalOf = (object: any) =>
+  // Typed, unlike the rest of this file: a misspelt field here would compile, read as "no verdict"
+  // and make every row choosable.
+  const refusalOf = (object: {
+    uuid: string
+    permission?: Permission
+    createdBy?: string
+  }) =>
     selectedParents.some((parent) => parent.uuid === object.uuid)
       ? null
       : linkUnderRefusal(object, userId)
