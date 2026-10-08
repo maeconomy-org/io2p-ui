@@ -22,7 +22,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { SEARCH_SIZE } from '@/constants'
-import { OwnerHint } from '@/components/entity-list'
+import { linkUnderRefusal, OwnerHint } from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 import { useObjects } from '@/hooks/api/entities'
 import { cn } from '@/lib/utils'
 import type { EntityDraft } from '@/lib/entity'
@@ -39,6 +40,8 @@ export function ParentsField({
   deletedParentIds,
   onParentPicked,
   selfId,
+  movable = true,
+  savedParentIds,
 }: {
   form: UseFormReturn<EntityDraft>
   editing: boolean
@@ -56,6 +59,18 @@ export function ParentsField({
   onParentPicked?: (id: string, name: string) => void
   /** The entity being edited, so it can't be offered as its own parent (the server rejects it too). */
   selfId?: string
+  /**
+   * False when the viewer may edit the object but not move it: the node needs `admin` to add or
+   * remove a parent, and refuses the WHOLE PATCH when it carries one, so a stray chip removal would
+   * also lose the viewer's other edits. Create leaves it unset: the creator owns the new object.
+   */
+  movable?: boolean
+  /**
+   * The parents the object already has on the node. Re-adding one undoes a removal, so the net
+   * diff is empty and the node checks nothing — such a row must stay choosable even when the
+   * viewer may not link anything NEW under it.
+   */
+  savedParentIds?: string[]
 }) {
   const t = useTranslations()
   // `useWatch`, NOT `form.watch` — this component does not own the `useForm`. Removing a badge
@@ -79,19 +94,36 @@ export function ParentsField({
     )
   }
 
-  if (!editing && parentIds.length === 0) {
+  const changeable = editing && movable
+  const moveLockedNote = editing && !movable && (
+    <p
+      data-testid="parents-move-locked"
+      className="text-xs text-muted-foreground"
+    >
+      {t('objects.detailsSheet.moveNeedsAdmin')}
+    </p>
+  )
+
+  if (!changeable && parentIds.length === 0) {
     return (
-      <p data-testid="parents-empty" className="text-sm text-muted-foreground">
-        {t('objects.detailsSheet.noParents')}
-      </p>
+      <div className="space-y-2">
+        <p
+          data-testid="parents-empty"
+          className="text-sm text-muted-foreground"
+        >
+          {t('objects.detailsSheet.noParents')}
+        </p>
+        {moveLockedNote}
+      </div>
     )
   }
 
   return (
     <div className="space-y-2">
-      {editing && (
+      {changeable && (
         <ParentPicker
           selectedIds={parentIds}
+          savedParentIds={savedParentIds}
           selfId={selfId}
           onToggle={toggle}
         />
@@ -109,7 +141,7 @@ export function ParentsField({
                 isDeleted(id) && 'border-destructive/40 text-destructive'
               )}
             >
-              {editing ? (
+              {changeable ? (
                 <>
                   <span className={cn(isDeleted(id) && 'line-through')}>
                     {nameOf(id)}
@@ -159,20 +191,24 @@ export function ParentsField({
           ))}
         </div>
       )}
+      {moveLockedNote}
     </div>
   )
 }
 
 function ParentPicker({
   selectedIds,
+  savedParentIds,
   selfId,
   onToggle,
 }: {
   selectedIds: string[]
+  savedParentIds?: string[]
   selfId?: string
   onToggle: (id: string, name: string) => void
 }) {
   const t = useTranslations()
+  const { userId } = useAuth()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
 
@@ -186,6 +222,14 @@ function ParentPicker({
     () => (data?.data ?? []).filter((o) => o.id !== selfId),
     [data, selfId]
   )
+  // A SELECTED row stays choosable: clicking it removes that parent, and the node checks write
+  // only on a parent being added — an admin must still be able to unlink a view-only parent.
+  // A SAVED one too, so that a removal can be undone.
+  const refusalOf = (object: (typeof results)[number]) =>
+    selectedIds.includes(object.id) || savedParentIds?.includes(object.id)
+      ? null
+      : linkUnderRefusal(object, userId)
+  const anyRefused = results.some((object) => refusalOf(object))
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
@@ -223,30 +267,51 @@ function ParentPicker({
               <CommandEmpty>{t('objects.parentPicker.noResults')}</CommandEmpty>
             )}
             <CommandGroup>
-              {results.map((object) => (
-                <CommandItem
-                  key={object.id}
-                  value={object.id}
-                  data-testid={`parent-option-${object.id}`}
-                  onSelect={() => onToggle(object.id, object.name)}
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      selectedIds.includes(object.id)
-                        ? 'opacity-100'
-                        : 'opacity-0'
+              {results.map((object) => {
+                const refusal = refusalOf(object)
+                return (
+                  <CommandItem
+                    key={object.id}
+                    value={object.id}
+                    data-testid={`parent-option-${object.id}`}
+                    disabled={!!refusal}
+                    onSelect={() => onToggle(object.id, object.name)}
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        selectedIds.includes(object.id)
+                          ? 'opacity-100'
+                          : 'opacity-0'
+                      )}
+                    />
+                    <span className="min-w-0 flex-1 truncate">
+                      {object.name}
+                    </span>
+                    <OwnerHint
+                      ownerUserId={object.createdBy}
+                      ownerName={object.createdByName}
+                    />
+                    {refusal && (
+                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                        {t(refusal)}
+                      </span>
                     )}
-                  />
-                  <span className="min-w-0 flex-1 truncate">{object.name}</span>
-                  <OwnerHint
-                    ownerUserId={object.createdBy}
-                    ownerName={object.createdByName}
-                  />
-                </CommandItem>
-              ))}
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
           </CommandList>
+          {/* Outside the list on purpose: cmdk never focuses a disabled row, so a screen reader
+              would not reach the reason printed inside it. */}
+          {anyRefused && (
+            <p
+              data-testid="parent-picker-view-only"
+              className="border-t px-3 py-2 text-xs text-muted-foreground"
+            >
+              {t('objects.viewOnlyNotChoosable')}
+            </p>
+          )}
           <CommandMore pages={[data]} />
         </Command>
       </PopoverContent>

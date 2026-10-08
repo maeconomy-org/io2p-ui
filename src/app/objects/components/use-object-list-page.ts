@@ -5,7 +5,12 @@ import { useTranslations } from 'next-intl'
 import type { RowSelectionState } from '@tanstack/react-table'
 import type { ObjectListItem, Page } from 'io2p-client'
 
-import { canDelete, canReshare, permissionOf } from '@/components/entity-list'
+import {
+  canDelete,
+  canMove,
+  canReshare,
+  permissionOf,
+} from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 import { useObjects } from '@/hooks/api/entities'
 import { logger } from '@/lib/observability/logger'
@@ -81,6 +86,16 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
   // refuses the whole call, and `share` sits below `admin`.
   const shareableObjects = useMemo(
     () => selectedObjects.filter((o) => canReshare(permissionOf(o, userId))),
+    [selectedObjects, userId]
+  )
+  // Moving needs `admin` on each object (D135), and a deleted object is refused before that (409:
+  // restore it first). Set parent PATCHes them one by one and stops at the first refusal, so an
+  // unmovable row in the list would leave the rest half-moved.
+  const movableObjects = useMemo(
+    () =>
+      selectedObjects.filter(
+        (o) => !o.deleted && canMove(permissionOf(o, userId))
+      ),
     [selectedObjects, userId]
   )
   const clearSelection = useCallback(() => setRowSelection({}), [])
@@ -184,6 +199,7 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
     canDeleteSelection: deletableObjects.some((o) => !o.deleted),
     deletableObjects,
     shareableObjects,
+    movableObjects,
     clearSelection,
 
     isDeleting: removeMutation.isPending,

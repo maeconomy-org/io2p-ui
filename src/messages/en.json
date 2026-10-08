@@ -473,6 +473,7 @@
     },
     "detailsSheet": {
       "noParents": "No parents",
+      "moveNeedsAdmin": "Only someone with Admin access can move this object.",
       "tabDetails": "Details",
       "tabParents": "Parents",
       "unsavedChanges": "{count} unsaved change{count, plural, one {} other {s}}",
@@ -563,11 +564,12 @@
     },
     "bulk": {
       "setParent": "Set parent",
-      "parentSet": "{count} items moved",
+      "parentSet": "{count, plural, one {# item moved} other {# items moved}}",
       "columns": "Columns",
       "setParentTitle": "Set a parent",
-      "setParentDescription": "Move {count} selected items under one parent. Each keeps any parents it already has.",
-      "parentSkipsSelf": "The selected parent is also in your selection — it will be skipped."
+      "setParentDescription": "Move {count, plural, one {# selected item} other {# selected items}} under one parent. Each keeps any parents it already has.",
+      "parentSkipsSelf": "The selected parent is also in your selection — it will be skipped.",
+      "parentSkipsUnmovable": "{count, plural, one {# selected item cannot be moved and is skipped: it is deleted, or you need Admin access to move it.} other {# selected items cannot be moved and are skipped: they are deleted, or you need Admin access to move them.}}"
     },
     "noObjectsTitle": "No objects yet",
     "noObjectsDescription": "An object is anything you want to track — a machine, a batch, a document. Give it properties, files and a place in the hierarchy.",
@@ -580,6 +582,8 @@
     "deleteConfirmDescription": "This soft deletes \"{name}\". You can restore it afterwards.",
     "deleteConfirmDescriptionWithChildren": "This soft deletes \"{name}\", which has {count, plural, one {# descendant} other {# descendants}}. They stay live and keep working, but \"{name}\" will no longer appear in lists or count toward rollups. You can restore it afterwards.",
     "permissionDenied": "Permission denied. You don't have the required permissions to perform this action.",
+    "needsWriteAccess": "Needs write access",
+    "viewOnlyNotChoosable": "Objects you can only view are shown, but cannot be chosen.",
     "qrCodeTitle": "QR Code for {name}",
     "qrCodeDescription": "Scan this code to access the object details",
     "qrCodeDownloadPng": "Download PNG",
@@ -601,6 +605,9 @@
       "parentNotFound": "Parent object not found",
       "breadcrumbRoot": "Root",
       "addChild": "Add Child",
+      "addChildUnavailable": "You can view this object, but not add items under it.",
+      "addChildWhyLabel": "Why can't I add items here?",
+      "addChildDeleted": "This object is deleted, so nothing can be added under it. Restore it first.",
       "childrenCount": "{count} children",
       "parentDeleted": "This object is deleted. Its children stay live and keep working — restore it to bring it back into lists and rollups.",
       "noChildrenTitle": "No child objects yet",

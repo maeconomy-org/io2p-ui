@@ -474,6 +474,7 @@
     },
     "detailsSheet": {
       "noParents": "Geen bovenliggende objecten",
+      "moveNeedsAdmin": "Alleen iemand met Beheer-toegang kan dit object verplaatsen.",
       "tabDetails": "Details",
       "tabParents": "Bovenliggend",
       "unsavedChanges": "{count} niet-opgeslagen wijziging{count, plural, one {} other {en}}",
@@ -532,11 +533,12 @@
     },
     "bulk": {
       "setParent": "Bovenliggend instellen",
-      "parentSet": "{count} items verplaatst",
+      "parentSet": "{count, plural, one {# item verplaatst} other {# items verplaatst}}",
       "columns": "Kolommen",
       "setParentTitle": "Bovenliggend object kiezen",
-      "setParentDescription": "Verplaats {count} geselecteerde items onder één bovenliggend object. Bestaande bovenliggende objecten blijven behouden.",
-      "parentSkipsSelf": "Het gekozen bovenliggende object staat ook in uw selectie — het wordt overgeslagen."
+      "setParentDescription": "Verplaats {count, plural, one {# geselecteerd item} other {# geselecteerde items}} onder één bovenliggend object. Bestaande bovenliggende objecten blijven behouden.",
+      "parentSkipsSelf": "Het gekozen bovenliggende object staat ook in uw selectie — het wordt overgeslagen.",
+      "parentSkipsUnmovable": "{count, plural, one {# geselecteerd item kan niet worden verplaatst en wordt overgeslagen: het is verwijderd, of u heeft Beheer-toegang nodig om het te verplaatsen.} other {# geselecteerde items kunnen niet worden verplaatst en worden overgeslagen: ze zijn verwijderd, of u heeft Beheer-toegang nodig om ze te verplaatsen.}}"
     },
     "noObjectsTitle": "Nog geen objecten",
     "noObjectsDescription": "Een object is alles wat je wilt volgen — een machine, een batch, een document. Geef het eigenschappen, bestanden en een plek in de hiërarchie.",
@@ -549,6 +551,8 @@
     "deleteConfirmDescription": "Dit verwijdert \"{name}\" zacht. U kunt het daarna herstellen.",
     "deleteConfirmDescriptionWithChildren": "Dit verwijdert \"{name}\" zacht, met {count, plural, one {# onderliggend object} other {# onderliggende objecten}}. Deze blijven actief en blijven werken, maar \"{name}\" verschijnt niet meer in lijsten en telt niet meer mee in totalen. U kunt het daarna herstellen.",
     "permissionDenied": "Toegang geweigerd. U heeft niet de vereiste rechten om deze actie uit te voeren.",
+    "needsWriteAccess": "Vereist schrijftoegang",
+    "viewOnlyNotChoosable": "Objecten die u alleen kunt bekijken, kunt u niet kiezen.",
     "qrCodeTitle": "QR-code voor {name}",
     "qrCodeDescription": "Scan deze code om de objectdetails te openen",
     "qrCodeDownloadPng": "Download PNG",
@@ -614,6 +618,9 @@
       "parentNotFound": "Bovenliggend object niet gevonden",
       "breadcrumbRoot": "Root",
       "addChild": "Kind toevoegen",
+      "addChildUnavailable": "U kunt dit object bekijken, maar er geen items onder plaatsen.",
+      "addChildWhyLabel": "Waarom kan ik hier niets toevoegen?",
+      "addChildDeleted": "Dit object is verwijderd, dus er kan niets onder worden geplaatst. Herstel het eerst.",
       "childrenCount": "{count} kinderen",
       "parentDeleted": "Dit object is verwijderd. De onderliggende objecten blijven actief en blijven werken — herstel het om het weer in lijsten en totalen te tonen.",
       "noChildrenTitle": "Nog geen onderliggende objecten",

@@ -12,7 +12,8 @@ import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { useObjects } from '@/hooks/api/entities'
 import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
 import { usePreference } from '@/hooks/ui/use-preference'
-import { Badge, SplitButton } from '@/components/ui'
+import { Badge, ConceptHint, SplitButton } from '@/components/ui'
+import { canLinkUnder } from '@/components/entity-list'
 import { FilterMenu, deletedSection } from '@/components/filters'
 import { ObjectBreadcrumb } from '../components/object-breadcrumb'
 import { ViewSelector } from '@/components/view-selector'
@@ -112,6 +113,13 @@ export default function ObjectChildrenPage() {
     )
   }
 
+  // A deleted object takes no children at any level (422); below write the node refuses with 403.
+  const addChildBlocked = parentObject.deleted
+    ? 'objects.childrenPage.addChildDeleted'
+    : canLinkUnder(parentObject.permission)
+      ? null
+      : 'objects.childrenPage.addChildUnavailable'
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex flex-col space-y-4">
@@ -178,23 +186,42 @@ export default function ObjectChildrenPage() {
               />
             )}
             <ViewSelector view={viewType} onChange={setViewType} />
-            <SplitButton
-              size="sm"
-              onClick={() => setIsAddSheetOpen(true)}
-              menuLabel={t('objects.childrenPage.moreChildActions')}
-              actions={[
-                {
-                  key: 'copy-here',
-                  label: t('objects.duplicate.copyHere'),
-                  icon: <Copy className="mr-2 h-4 w-4" />,
-                  onSelect: () => setIsCopyHereOpen(true),
-                },
-              ]}
-              data-testid="page-header-add-child-button"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              {t('objects.childrenPage.addChild')}
-            </SplitButton>
+            {/* Disabled, with the reason in a "?" beside it: a disabled button takes no focus, so a
+                reason on the button itself would never reach keyboard or screen-reader users. */}
+            <div className="flex items-center gap-1">
+              <SplitButton
+                disabled={!!addChildBlocked}
+                size="sm"
+                onClick={() => setIsAddSheetOpen(true)}
+                menuLabel={t('objects.childrenPage.moreChildActions')}
+                actions={[
+                  {
+                    key: 'copy-here',
+                    label: t('objects.duplicate.copyHere'),
+                    icon: <Copy className="mr-2 h-4 w-4" />,
+                    onSelect: () => setIsCopyHereOpen(true),
+                  },
+                ]}
+                data-testid="page-header-add-child-button"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {t('objects.childrenPage.addChild')}
+              </SplitButton>
+              {addChildBlocked && (
+                <>
+                  <ConceptHint
+                    label={t('objects.childrenPage.addChildWhyLabel')}
+                  >
+                    {t(addChildBlocked)}
+                  </ConceptHint>
+                  {/* ConceptHint's hover card is never announced, and here it holds the ONLY
+                      reason, so screen readers get the sentence as page text too. */}
+                  <span className="sr-only" data-testid="page-add-child-reason">
+                    {t(addChildBlocked)}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

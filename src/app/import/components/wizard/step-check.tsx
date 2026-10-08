@@ -266,9 +266,9 @@ export function StepCheck({ wizard }: { wizard: ImportWizard }) {
  * job, so a destination is just that id on every root item. Everything below a root keeps
  * hanging off its own parent.
  *
- * Reuses the same ObjectPicker as the entity sheet and the bulk-parent dialog — one search, one
- * set of access rules. The node refuses a parent the caller cannot READ, so a picker that
- * searched differently here could offer something the import would then reject.
+ * Reuses the same ObjectPicker as the bulk-parent dialog — one search, one set of access rules.
+ * The node needs WRITE on a parent (D135) and checks it per item only when the import runs, so a
+ * view-only destination would fail every root item; `requireLinkable` stops that at the pick.
  */
 function DestinationField({ wizard }: { wizard: ImportWizard }) {
   const t = useTranslations()
@@ -294,6 +294,7 @@ function DestinationField({ wizard }: { wizard: ImportWizard }) {
         displayName={name}
         placeholder={t('import.check.destination.placeholder')}
         testId="map-destination"
+        requireLinkable
         className="w-[16rem]"
         onSelect={(id, picked) => {
           setName(picked)

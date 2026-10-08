@@ -31,6 +31,7 @@ it('seeds bulk Share with the viewer level on each object', () => {
       { id: 'o2', name: 'Mine', createdBy: 'me' },
     ],
     selectedObjects: [],
+    movableObjects: [],
     templateFromObject: {},
   } as unknown as ObjectListPageState
   render(<ObjectRowPortals state={state} />)

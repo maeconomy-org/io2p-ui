@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
 import { Badge, Label } from '@/components/ui'
-import { canDelete, canEdit } from '@/components/entity-list'
+import { canDelete, canEdit, canMove } from '@/components/entity-list'
 import { useAuth } from '@/contexts/auth-context'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useRollupRules } from '@/hooks/api/rollup-rules'
@@ -246,6 +246,8 @@ export function EntitySheet({
         setPickedParentNames((m) => ({ ...m, [id]: name }))
       }
       selfId={entity?.id}
+      movable={canMove(permission)}
+      savedParentIds={entity?.parents?.map((p) => p.id)}
     />
   )
 

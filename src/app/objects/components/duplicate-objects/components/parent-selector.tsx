@@ -20,7 +20,12 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui'
-import { OwnerHint } from '@/components/entity-list'
+import {
+  linkUnderRefusal,
+  OwnerHint,
+  type Permission,
+} from '@/components/entity-list'
+import { useAuth } from '@/contexts'
 import { cn, truncateText } from '@/lib/utils'
 import { useIomClient } from '@/lib/io2p'
 import type { ParentObject } from '@/types'
@@ -96,6 +101,7 @@ export function ParentSelector({
   // replaced existed to hold a per-render mutation object, and writing it during render is exactly
   // what the compiler lint rejects.
   const client = useIomClient()
+  const { userId } = useAuth()
 
   // Unified search function
   const performSearch = useCallback(
@@ -150,6 +156,20 @@ export function ParentSelector({
 
     return () => clearTimeout(timeoutId)
   }, [searchQuery, isOpen, hasInitiallyLoaded, performSearch])
+
+  // The copies are new, so only the target needs `write` (D135). A SELECTED row stays clickable:
+  // clicking it only unselects, which sends nothing.
+  // Typed, unlike the rest of this file: a misspelt field here would compile, read as "no verdict"
+  // and make every row choosable.
+  const refusalOf = (object: {
+    uuid: string
+    permission?: Permission
+    createdBy?: string
+  }) =>
+    selectedParents.some((parent) => parent.uuid === object.uuid)
+      ? null
+      : linkUnderRefusal(object, userId)
+  const anyRefused = searchResults.some((object: any) => refusalOf(object))
 
   const handleSelectParent = (object: any) => {
     // Check if already selected
@@ -307,10 +327,12 @@ export function ParentSelector({
                   const isSelected = selectedParents.some(
                     (parent) => parent.uuid === object.uuid
                   )
+                  const refusal = refusalOf(object)
                   return (
                     <CommandItem
                       key={object.uuid}
                       value={object.uuid}
+                      disabled={!!refusal}
                       onSelect={() => handleSelectParent(object)}
                       className="cursor-pointer flex items-center gap-2"
                     >
@@ -332,11 +354,26 @@ export function ParentSelector({
                           {truncateText(object.uuid, 30, true)}
                         </span>
                       </div>
+                      {refusal && (
+                        <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                          {t(refusal)}
+                        </span>
+                      )}
                     </CommandItem>
                   )
                 })}
               </CommandGroup>
             </CommandList>
+            {/* Outside the list on purpose: cmdk never focuses a disabled row, so a screen reader
+                would not reach the reason printed inside it. */}
+            {anyRefused && (
+              <p
+                data-testid="parent-selector-view-only"
+                className="border-t px-3 py-2 text-xs text-muted-foreground"
+              >
+                {t('objects.viewOnlyNotChoosable')}
+              </p>
+            )}
           </Command>
         </PopoverContent>
       </Popover>
