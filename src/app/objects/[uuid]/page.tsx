@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { PlusCircle, Copy, FileText, Info } from 'lucide-react'
+import { PlusCircle, Copy, FileText } from 'lucide-react'
 import type { ObjectListItem } from 'io2p-client'
 
 import { cn } from '@/lib/utils'
@@ -12,7 +12,7 @@ import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { useObjects } from '@/hooks/api/entities'
 import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
 import { usePreference } from '@/hooks/ui/use-preference'
-import { Badge, SplitButton } from '@/components/ui'
+import { Badge, ConceptHint, SplitButton } from '@/components/ui'
 import { canLinkUnder } from '@/components/entity-list'
 import { FilterMenu, deletedSection } from '@/components/filters'
 import { ObjectBreadcrumb } from '../components/object-breadcrumb'
@@ -113,6 +113,13 @@ export default function ObjectChildrenPage() {
     )
   }
 
+  // A deleted object takes no children at any level (422); below write the node refuses with 403.
+  const addChildBlocked = parentObject.deleted
+    ? 'objects.childrenPage.addChildDeleted'
+    : canLinkUnder(parentObject.permission)
+      ? null
+      : 'objects.childrenPage.addChildUnavailable'
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex flex-col space-y-4">
@@ -179,11 +186,11 @@ export default function ObjectChildrenPage() {
               />
             )}
             <ViewSelector view={viewType} onChange={setViewType} />
-            {/* Hidden, not disabled: a disabled button cannot take focus and its title shows on
-                hover only, so keyboard and screen-reader users would never learn why. A deleted
-                object takes no children at any level (422); `parent-deleted-hint` says why. */}
-            {!parentObject.deleted && canLinkUnder(parentObject.permission) ? (
+            {/* Disabled, with the reason in a "?" beside it: a disabled button takes no focus, so a
+                reason on the button itself would never reach keyboard or screen-reader users. */}
+            <div className="flex items-center gap-1">
               <SplitButton
+                disabled={!!addChildBlocked}
                 size="sm"
                 onClick={() => setIsAddSheetOpen(true)}
                 menuLabel={t('objects.childrenPage.moreChildActions')}
@@ -200,17 +207,12 @@ export default function ObjectChildrenPage() {
                 <PlusCircle className="mr-2 h-4 w-4" />
                 {t('objects.childrenPage.addChild')}
               </SplitButton>
-            ) : (
-              !parentObject.deleted && (
-                <p
-                  className="flex items-start gap-1.5 text-xs text-muted-foreground"
-                  data-testid="page-add-child-unavailable"
-                >
-                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>{t('objects.childrenPage.addChildUnavailable')}</span>
-                </p>
-              )
-            )}
+              {addChildBlocked && (
+                <ConceptHint label={t('objects.childrenPage.addChildWhyLabel')}>
+                  {t(addChildBlocked)}
+                </ConceptHint>
+              )}
+            </div>
           </div>
         </div>
 

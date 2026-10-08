@@ -142,37 +142,37 @@ describe('object children page — adding under the object', () => {
     render(<ObjectChildrenPage />)
   }
 
-  it('hides Add child on an object the viewer can only read, and says why', () => {
+  const addChild = () => screen.getByTestId('page-header-add-child-button')
+  const why = () =>
+    screen.queryByRole('button', {
+      name: 'objects.childrenPage.addChildWhyLabel',
+    })
+
+  it('disables Add child on an object the viewer can only read, and offers the reason', () => {
     renderWith('read')
 
-    expect(screen.queryByTestId('page-header-add-child-button')).toBeNull()
-    expect(screen.getByTestId('page-add-child-unavailable')).toHaveTextContent(
-      'objects.childrenPage.addChildUnavailable'
-    )
+    expect(addChild()).toBeDisabled()
+    expect(why()).toBeInTheDocument()
   })
 
   it('offers Add child to a viewer who may write', () => {
     renderWith('write')
 
-    expect(
-      screen.getByTestId('page-header-add-child-button')
-    ).toBeInTheDocument()
-    expect(screen.queryByTestId('page-add-child-unavailable')).toBeNull()
+    expect(addChild()).toBeEnabled()
+    expect(why()).toBeNull()
   })
 
   it('offers Add child when the node sends no verdict', () => {
     renderWith(undefined)
 
-    expect(
-      screen.getByTestId('page-header-add-child-button')
-    ).toBeInTheDocument()
+    expect(addChild()).toBeEnabled()
   })
 
-  it('hides Add child on a deleted object, even for an admin', () => {
+  it('disables Add child on a deleted object, even for an admin', () => {
     renderWith('admin', true)
 
-    expect(screen.queryByTestId('page-header-add-child-button')).toBeNull()
-    expect(screen.queryByTestId('page-add-child-unavailable')).toBeNull()
+    expect(addChild()).toBeDisabled()
+    expect(why()).toBeInTheDocument()
     expect(screen.getByTestId('parent-deleted-hint')).toBeInTheDocument()
   })
 })

@@ -177,14 +177,15 @@ test.describe('11 - shares / permission gating', () => {
     await expect(grantee.getByTestId('bulk-bar')).toBeVisible()
     await expect(grantee.getByTestId('bulk-set-parent')).toHaveCount(0)
 
-    // Adding a child needs write on the object.
+    // Adding a child needs write on the object: the button stays, disabled, with the reason
+    // behind a focusable "?".
     await grantee.goto(`/objects/${id}`)
     await expect(
-      grantee.getByTestId('page-add-child-unavailable')
-    ).toBeVisible()
-    await expect(
       grantee.getByTestId('page-header-add-child-button')
-    ).toHaveCount(0)
+    ).toBeDisabled()
+    await expect(
+      grantee.getByRole('button', { name: "Why can't I add items here?" })
+    ).toBeVisible()
 
     // The create sheet is opened and searched, never saved: this test leaves nothing behind for
     // the grantee.
