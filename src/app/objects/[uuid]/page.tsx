@@ -208,9 +208,18 @@ export default function ObjectChildrenPage() {
                 {t('objects.childrenPage.addChild')}
               </SplitButton>
               {addChildBlocked && (
-                <ConceptHint label={t('objects.childrenPage.addChildWhyLabel')}>
-                  {t(addChildBlocked)}
-                </ConceptHint>
+                <>
+                  <ConceptHint
+                    label={t('objects.childrenPage.addChildWhyLabel')}
+                  >
+                    {t(addChildBlocked)}
+                  </ConceptHint>
+                  {/* ConceptHint's hover card is never announced, and here it holds the ONLY
+                      reason, so screen readers get the sentence as page text too. */}
+                  <span className="sr-only" data-testid="page-add-child-reason">
+                    {t(addChildBlocked)}
+                  </span>
+                </>
               )}
             </div>
           </div>

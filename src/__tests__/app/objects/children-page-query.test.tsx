@@ -153,6 +153,10 @@ describe('object children page — adding under the object', () => {
 
     expect(addChild()).toBeDisabled()
     expect(why()).toBeInTheDocument()
+    // The hover card is never announced, so the reason must also be page text.
+    expect(screen.getByTestId('page-add-child-reason')).toHaveTextContent(
+      'objects.childrenPage.addChildUnavailable'
+    )
   })
 
   it('offers Add child to a viewer who may write', () => {
@@ -173,6 +177,9 @@ describe('object children page — adding under the object', () => {
 
     expect(addChild()).toBeDisabled()
     expect(why()).toBeInTheDocument()
+    expect(screen.getByTestId('page-add-child-reason')).toHaveTextContent(
+      'objects.childrenPage.addChildDeleted'
+    )
     expect(screen.getByTestId('parent-deleted-hint')).toBeInTheDocument()
   })
 })
