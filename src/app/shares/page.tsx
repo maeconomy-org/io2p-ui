@@ -21,7 +21,6 @@ import {
   EntityTable,
   useEntityListQuery,
 } from '@/components/entity-list'
-import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useShares } from '@/hooks/api/access'
 import { useSearch } from '@/contexts'
@@ -68,7 +67,7 @@ export default function SharesPage() {
   const searchParams = useSearchParams()
   const deepLinkedShareId = searchParams.get('share')
 
-  const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { isSearchMode, searchQuery } = useSearch()
 
   const listQuery = useEntityListQuery()
   const setPage = listQuery.setPage
@@ -205,15 +204,6 @@ export default function SharesPage() {
             </div>
 
             <TabsContent value="shares" className="space-y-4">
-              {isSearchMode && (
-                <SearchResultsBar
-                  searchQuery={searchQuery}
-                  resultsCount={sharesPage?.page.totalElements ?? 0}
-                  onClearSearch={clearSearch}
-                  raised={tab === 'shares' && selectedShares.length > 0}
-                />
-              )}
-
               <EntityTable
                 columns={columns}
                 page={sharesPage}

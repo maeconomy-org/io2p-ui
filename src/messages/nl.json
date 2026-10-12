@@ -403,8 +403,6 @@
     "title": "Objecten",
     "showDeleted": "Soft Deleted",
     "create": "Object aanmaken",
-    "searchResults": "Zoekresultaten voor: \"{query}\"",
-    "results": "{count} resultaat{count, plural, one {} other {en}}",
     "clearSearch": "Zoekopdracht wissen",
     "childrenTooltip": "{count} {count, plural, one {kind} other {kinderen}} - dubbelklik om te bekijken",
     "restoreTitle": "Object herstellen",

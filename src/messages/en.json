@@ -403,8 +403,6 @@
     "title": "Objects",
     "showDeleted": "Soft Deleted",
     "create": "Create Object",
-    "searchResults": "Search Results for: \"{query}\"",
-    "results": "{count} result{count, plural, one {} other {s}}",
     "clearSearch": "Clear Search",
     "restoreTitle": "Restore object",
     "fields": {

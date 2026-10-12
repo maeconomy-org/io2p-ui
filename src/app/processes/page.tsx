@@ -21,7 +21,6 @@ import {
   useEntityListFilters,
   useEntityListQuery,
 } from '@/components/entity-list'
-import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { ViewSelector } from '@/components/view-selector'
 import { useProcesses } from '@/hooks/api/entities'
@@ -89,7 +88,7 @@ export default function ProcessesPage() {
 
   const [view, setView] = usePreference('processView')
   const isTable = view === 'table'
-  const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { isSearchMode, searchQuery } = useSearch()
   const { userId, authLoading } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -167,12 +166,9 @@ export default function ProcessesPage() {
     [t, openProcess, list.setToDelete, list.handleRestore, userId]
   )
 
-  // Three bars can be up together. Each one sits above however many are open beneath it, rather than
-  // every caller hardcoding a level and two of them landing on the same one.
+  // The related bar sits above the selection bar when both are up, so they never land on one level.
   const selectionOpen = isTable && list.selectedRows.length > 0
-  const searchOpen = isTable && isSearchMode
-  const relatedLevel =
-    FLOATING_BAR_LEVELS[(selectionOpen ? 1 : 0) + (searchOpen ? 1 : 0)]
+  const relatedLevel = FLOATING_BAR_LEVELS[selectionOpen ? 1 : 0]
 
   return (
     <>
@@ -213,15 +209,6 @@ export default function ProcessesPage() {
               </Button>
             </div>
           </div>
-
-          {isTable && isSearchMode && (
-            <SearchResultsBar
-              searchQuery={searchQuery}
-              resultsCount={processesPage?.page.totalElements ?? 0}
-              onClearSearch={clearSearch}
-              raised={isTable && list.selectedRows.length > 0}
-            />
-          )}
 
           {isTable ? (
             <EntityTable

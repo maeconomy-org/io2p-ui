@@ -22,7 +22,6 @@ import {
   useEntityListFilters,
   useEntityListQuery,
 } from '@/components/entity-list'
-import { SearchResultsBar } from '@/components/search-results-bar'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useConstants } from '@/hooks/api/leaves'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
@@ -76,7 +75,7 @@ export default function ConstantsPage() {
   const [shareTarget, setShareTarget] = useState<ConstantDTO | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
-  const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { isSearchMode, searchQuery } = useSearch()
   const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -155,15 +154,6 @@ export default function ConstantsPage() {
               </Button>
             </div>
           </div>
-
-          {isSearchMode && (
-            <SearchResultsBar
-              searchQuery={searchQuery}
-              resultsCount={constantsPage?.page.totalElements ?? 0}
-              onClearSearch={clearSearch}
-              raised={list.selectedRows.length > 0}
-            />
-          )}
 
           <div {...anchor('constantsList')}>
             <EntityTable

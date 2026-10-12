@@ -28,7 +28,6 @@ import {
   useEntityListFilters,
   useEntityListQuery,
 } from '@/components/entity-list'
-import { SearchResultsBar } from '@/components/search-results-bar'
 import { useTemplates } from '@/hooks/api/entities'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useSearch } from '@/contexts'
@@ -83,7 +82,7 @@ export default function TemplatesPage() {
   const [shareTarget, setShareTarget] = useState<TemplateListItem | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
-  const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { isSearchMode, searchQuery } = useSearch()
   const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -203,15 +202,6 @@ export default function TemplatesPage() {
               </DropdownMenu>
             </div>
           </div>
-
-          {isSearchMode && (
-            <SearchResultsBar
-              searchQuery={searchQuery}
-              resultsCount={templatesPage?.page.totalElements ?? 0}
-              onClearSearch={clearSearch}
-              raised={list.selectedRows.length > 0}
-            />
-          )}
 
           <EntityTable
             columns={columns}

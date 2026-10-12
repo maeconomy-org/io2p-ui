@@ -71,7 +71,7 @@ test.describe('02 - objects list / selection', () => {
     await page.getByTestId('share-cancel').click()
   })
 
-  test('L16: the search bar and the selection bar stack instead of overlapping', async ({
+  test('L16: with a search active, the selection bar is the only floating bar', async ({
     page,
   }) => {
     await tour(page, 'searchButton').click()
@@ -82,24 +82,12 @@ test.describe('02 - objects list / selection', () => {
       .first()
       .fill(`e2e-${runId}`)
     await page.keyboard.press('Enter')
-
-    const searchBar = page.getByTestId('search-results-bar')
-    await expect(searchBar).toBeVisible()
+    await expect(page.getByTestId('navbar-search-clear')).toBeVisible()
 
     await selectRows(page, [NAMES[0]])
-    const bulkBar = page.getByTestId('bulk-bar')
-    await expect(bulkBar).toBeVisible()
-
-    const search = await searchBar.boundingBox()
-    const bulk = await bulkBar.boundingBox()
-    // Both are fixed to the same corner and are raised by level, so the failure is one sitting on
-    // top of the other with its text unreadable.
-    expect(search).not.toBeNull()
-    expect(bulk).not.toBeNull()
-    const gap =
-      Math.max(search!.y, bulk!.y) -
-      Math.min(search!.y + search!.height, bulk!.y + bulk!.height)
-    expect(gap).toBeGreaterThanOrEqual(0)
+    await expect(page.getByTestId('bulk-bar')).toBeVisible()
+    // Two stacked floating bars was the layout this replaced; the search lives in the navbar now.
+    await expect(page.locator('[role="region"].fixed')).toHaveCount(1)
   })
 
   test('L11: bulk delete soft-deletes, and the selection restores them', async ({

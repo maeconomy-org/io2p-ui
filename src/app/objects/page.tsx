@@ -15,7 +15,6 @@ import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useAuth, useSearch } from '@/contexts'
 import { Button } from '@/components/ui'
 import { FilterMenu, deletedSection, scopeSection } from '@/components/filters'
-import { SearchResultsBar } from '@/components/search-results-bar'
 import { ViewSelector } from '@/components/view-selector'
 import { ObjectColumnsView } from '@/app/objects/components/columns-view'
 import {
@@ -63,7 +62,7 @@ export default function ObjectsPage() {
   const [shareTarget, setShareTarget] = useState<ObjectListItem | null>(null)
 
   const { clearTrail } = useBreadcrumbTrail(undefined)
-  const { isSearchMode, searchQuery, clearSearch } = useSearch()
+  const { isSearchMode, searchQuery } = useSearch()
   const { userId, authLoading } = useAuth()
 
   const { drafts, deleteDraft } = useObjectDrafts()
@@ -169,17 +168,6 @@ export default function ObjectsPage() {
             </Button>
           </div>
         </div>
-
-        {isSearchMode && (
-          <SearchResultsBar
-            searchQuery={searchQuery}
-            // The count comes from the SAME io2p response the table below renders, so the bar and
-            // the rows can no longer disagree. The table paginates itself.
-            resultsCount={objectsPage?.page.totalElements ?? 0}
-            onClearSearch={clearSearch}
-            raised={viewType === 'table' && state.selectedObjects.length > 0}
-          />
-        )}
 
         {viewType === 'table' && (
           <EntityTable

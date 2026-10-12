@@ -192,7 +192,7 @@ test.describe('02 - objects list / drafts', () => {
           .first()
           .fill('e2e')
         await page.keyboard.press('Enter')
-        await expect(page.getByTestId('search-results-bar')).toBeVisible()
+        await expect(page.getByTestId('navbar-search-clear')).toBeVisible()
       } else if (scenario.case === 'deleted') {
         await page.getByTestId('filter-menu').click()
         await page.getByTestId('filter-option-deleted').click()

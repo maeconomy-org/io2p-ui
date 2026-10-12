@@ -70,7 +70,7 @@ test.describe('02 - objects list / chrome', () => {
     await expect(page).toHaveURL(/\/objects$/)
   })
 
-  test('L13/L14/L15: search floats over the table and clears', async ({
+  test('L13/L14/L15: search shows in the navbar, leaves the table in place, and clears', async ({
     page,
   }) => {
     const table = page.getByTestId('data-table')
@@ -86,16 +86,17 @@ test.describe('02 - objects list / chrome', () => {
       .fill('e2e')
     await page.keyboard.press('Enter')
 
-    const bar = page.getByTestId('search-results-bar')
-    await expect(bar).toBeVisible()
-    await expect(page.getByTestId('search-results-count')).toBeVisible()
+    // The navbar field is the only place the active search shows; there is no floating bar.
+    const clear = page.getByTestId('navbar-search-clear')
+    await expect(clear).toBeVisible()
+    await expect(page.getByTestId('search-results-bar')).toHaveCount(0)
 
     // Within a pixel: sub-pixel layout moves the box 129 -> 129.5, an inline bar would move it ~48.
     const after = await table.boundingBox()
     expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThan(2)
 
-    await page.getByTestId('search-clear').click()
-    await expect(bar).toBeHidden()
+    await clear.click()
+    await expect(clear).toBeHidden()
   })
 
   test('L17/L19: a row shows either a cover thumbnail or a placeholder, never a broken image', async ({
