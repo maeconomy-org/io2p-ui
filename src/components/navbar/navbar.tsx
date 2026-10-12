@@ -171,14 +171,16 @@ export default function Navbar() {
               </nav>
             </div>
 
-            {/* Desktop Actions */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="flex min-w-0 items-center gap-2 md:gap-4">
               {/* The clear X sits BESIDE the field button, not inside it: a button inside a button is
-                  invalid HTML and its inner one cannot be focused on its own. */}
+                  invalid HTML and its inner one cannot be focused on its own.
+                  On a phone the field shows only while a search is active: it is then the one sign
+                  that the list is narrowed, and the one way to clear it. */}
               <div
                 className={cn(
-                  'flex items-center rounded-lg border transition-all',
-                  'min-w-[200px] lg:min-w-[280px] max-w-[320px]',
+                  'items-center rounded-lg border transition-all',
+                  hasActiveSearch ? 'flex' : 'hidden md:flex',
+                  'min-w-0 max-w-[12rem] md:min-w-[200px] lg:min-w-[280px] md:max-w-[320px]',
                   hasActiveSearch
                     ? 'border-primary/50 bg-primary/[0.08] text-foreground'
                     : 'bg-muted/50 hover:bg-muted border-border/50 hover:border-border text-muted-foreground hover:text-foreground'
@@ -201,7 +203,7 @@ export default function Navbar() {
                   >
                     {hasActiveSearch ? searchQuery : t('common.search') + '...'}
                   </span>
-                  <div className="flex items-center gap-0.5 shrink-0">
+                  <div className="hidden md:flex items-center gap-0.5 shrink-0">
                     {/* Fixed width: the server snapshot renders 'Ctrl' and the
                         client may swap to '⌘'. suppressHydrationWarning silences
                         the warning but not the reflow — 4 glyphs to 1 visibly
@@ -235,12 +237,13 @@ export default function Navbar() {
                 )}
               </div>
 
-              <UserProfileDropdown />
-            </div>
+              <div className="hidden md:block">
+                <UserProfileDropdown />
+              </div>
 
-            {/* Mobile Actions */}
-            <div className="flex md:hidden items-center gap-2">
-              <MobileMenu onSearchOpen={() => setCommandCenterOpen(true)} />
+              <div className="flex md:hidden items-center">
+                <MobileMenu onSearchOpen={() => setCommandCenterOpen(true)} />
+              </div>
             </div>
           </div>
         </div>

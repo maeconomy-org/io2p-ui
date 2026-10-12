@@ -99,6 +99,28 @@ test.describe('02 - objects list / chrome', () => {
     await expect(clear).toBeHidden()
   })
 
+  test('L13m: on a phone an active search shows in the header and clears', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const clear = page.getByTestId('navbar-search-clear')
+    await expect(clear).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await dialog
+      .getByRole('combobox')
+      .or(dialog.getByRole('textbox'))
+      .first()
+      .fill('e2e')
+    await page.keyboard.press('Enter')
+
+    await expect(clear).toBeVisible()
+    await clear.click()
+    await expect(clear).toHaveCount(0)
+  })
+
   test('L17/L19: a row shows either a cover thumbnail or a placeholder, never a broken image', async ({
     page,
   }) => {
