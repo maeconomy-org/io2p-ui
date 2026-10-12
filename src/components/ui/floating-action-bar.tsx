@@ -4,37 +4,13 @@ import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
-/**
- * Where in the stack this bar sits. Three can be up at once — a selection, a text search AND a
- * relation filter — so the levels are named rather than left to whichever renders last.
- *
- * Written as literal classes because Tailwind resolves them from source text, so they cannot be
- * computed from an index.
- */
-const LEVELS = {
-  base: 'bottom-12',
-  raised: 'bottom-28',
-  stacked: 'bottom-44',
-} as const
-
-export type FloatingActionBarLevel = keyof typeof LEVELS
-
-/** The levels in stacking order, so a caller can pick by how many bars sit below it. */
-export const FLOATING_BAR_LEVELS = [
-  'base',
-  'raised',
-  'stacked',
-] as const satisfies readonly FloatingActionBarLevel[]
-
 interface FloatingActionBarProps {
   open: boolean
   /** Announced when the bar appears; it arrives without the user navigating to it. */
   label: string
-  /** Each step clears the bar below it. Defaults to `base`. */
-  level?: FloatingActionBarLevel
   children: ReactNode
   className?: string
-  /** Names WHICH bar, so a spec can tell selection from search when both are stacked. */
+  /** Names WHICH bar, so a spec can tell selection from the flow view's focus bar. */
   'data-testid'?: string
 }
 
@@ -52,6 +28,12 @@ interface FloatingActionBarProps {
  * `pointer-events-none` on the wrapper keeps the empty gutter click-through; the pill itself takes
  * pointer events back.
  *
+ * One bar per page, for actions only. A filter (a search, a related object) shows where the
+ * filter lives — the navbar field, the toolbar — so two bars never stack over each other.
+ *
+ * Soft style: a light primary tint over the card, a thin primary border and a neutral shadow. A
+ * coloured glow read as an alert rather than as a tool tray.
+ *
  * Entrance only, no exit animation. An exit needs the bar to outlive the state that removed it, and
  * that extra mounted lifetime produced a flicker on the processes flow view that was never traced to
  * a cause. Leaving instantly is not as nice, but it is right every time.
@@ -59,7 +41,6 @@ interface FloatingActionBarProps {
 export function FloatingActionBar({
   open,
   label,
-  level = 'base',
   children,
   className,
   'data-testid': dataTestId,
@@ -71,15 +52,16 @@ export function FloatingActionBar({
       role="region"
       aria-label={label}
       className={cn(
-        'pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4',
-        LEVELS[level]
+        'pointer-events-none fixed inset-x-0 bottom-12 z-40 flex justify-center px-4'
       )}
     >
       <div
         data-testid={dataTestId}
         className={cn(
-          'pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-border',
-          'bg-card px-2 py-2 shadow-lg sm:gap-2 sm:px-3',
+          'pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-primary/35',
+          '[background:linear-gradient(hsl(var(--primary)/0.07),hsl(var(--primary)/0.07)),hsl(var(--card))]',
+          'shadow-[0_10px_28px_-14px_hsl(0_0%_0%/0.35),0_1px_2px_hsl(0_0%_0%/0.06)]',
+          'px-2 py-2 sm:gap-2 sm:px-3',
           'animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none',
           className
         )}
