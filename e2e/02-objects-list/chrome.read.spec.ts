@@ -132,6 +132,12 @@ test.describe('02 - objects list / chrome', () => {
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
+    await expect(
+      dialog.getByRole('button', { name: 'Close search' })
+    ).toBeInViewport({ ratio: 1 })
+    const box = await dialog.boundingBox()
+    expect(box!.x).toBeGreaterThanOrEqual(0)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390)
     await dialog
       .getByRole('combobox')
       .or(dialog.getByRole('textbox'))

@@ -224,7 +224,7 @@ export function CommandCenter({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden bg-gradient-to-b from-background to-muted/20 border-border/50 shadow-2xl [&>button]:hidden">
+      <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-2xl rounded-lg [&>*]:min-w-0 p-0 gap-0 overflow-hidden bg-gradient-to-b from-background to-muted/20 border-border/50 shadow-2xl [&>button]:hidden">
         {/* Visually hidden title and description for accessibility */}
         <DialogTitle className="sr-only">
           {t('commandCenter.title')}
@@ -345,7 +345,8 @@ export function CommandCenter({
                         {t(suggestion.descriptionKey)}
                       </div>
                     </div>
-                    <code className="px-2 py-1 bg-muted rounded text-xs font-mono">
+                    {/* Phones drop the example: it does not wrap, and the description says the same. */}
+                    <code className="hidden sm:inline-block shrink-0 px-2 py-1 bg-muted rounded text-xs font-mono">
                       {suggestion.examples[0]}
                     </code>
                   </button>
@@ -403,8 +404,14 @@ export function CommandCenter({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border/50 px-4 py-2.5 bg-muted/30 flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-4">
+        <div
+          className={cn(
+            'border-t border-border/50 px-4 py-2.5 bg-muted/30 items-center justify-between gap-4 text-xs text-muted-foreground',
+            parsedSearch.searchTerm ? 'flex' : 'hidden sm:flex'
+          )}
+        >
+          {/* Key hints are for a keyboard; a phone has none. */}
+          <div className="hidden sm:flex items-center gap-4 shrink-0">
             <span className="flex items-center gap-1.5">
               <kbd className="px-1.5 py-0.5 bg-background border border-border rounded text-[10px] font-mono shadow-sm">
                 ↵
@@ -425,9 +432,9 @@ export function CommandCenter({
             </span>
           </div>
           {parsedSearch.searchTerm && (
-            <div className="flex items-center gap-1.5">
-              <Search className="h-3 w-3" />
-              <span>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <Search className="h-3 w-3 shrink-0" />
+              <span className="truncate">
                 {t('commandCenter.searchingFor', {
                   query: parsedSearch.searchTerm,
                 })}
