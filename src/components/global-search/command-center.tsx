@@ -261,10 +261,10 @@ export function CommandCenter({
               <button
                 type="button"
                 onClick={clearInput}
-                className="p-1 hover:bg-muted rounded-md transition-colors ml-2"
-                aria-label={t('commandCenter.clearInput')}
+                data-testid="command-center-clear"
+                className="ml-2 rounded-md px-2 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <X className="h-3 w-3 text-muted-foreground" />
+                {t('commandCenter.clearInput')}
               </button>
             )}
           </div>

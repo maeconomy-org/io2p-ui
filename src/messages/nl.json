@@ -1053,7 +1053,7 @@
     "description": "Geavanceerde zoekinterface met filters en suggesties",
     "placeholder": "Zoek objecten of typ een filter...",
     "closeSearch": "Zoeken sluiten",
-    "clearInput": "Invoer wissen",
+    "clearInput": "Wissen",
     "search": "Zoeken",
     "complete": "Voltooien",
     "close": "Sluiten",

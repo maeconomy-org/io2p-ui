@@ -99,6 +99,29 @@ test.describe('02 - objects list / chrome', () => {
     await expect(clear).toBeHidden()
   })
 
+  test('L13c: the search dialog clears its field with a Clear button, apart from its close X', async ({
+    page,
+  }) => {
+    await tour(page, 'searchButton').click()
+    const dialog = page.getByRole('dialog')
+    const field = dialog
+      .getByRole('combobox')
+      .or(dialog.getByRole('textbox'))
+      .first()
+    await field.fill('e2e')
+
+    const clear = dialog.getByRole('button', { name: 'Clear', exact: true })
+    await expect(clear).toHaveText('Clear')
+    await expect(
+      dialog.getByRole('button', { name: 'Close search' })
+    ).toBeVisible()
+
+    await clear.click()
+    await expect(field).toHaveValue('')
+    await expect(dialog).toBeVisible()
+    await expect(clear).toHaveCount(0)
+  })
+
   test('L13m: on a phone an active search shows in the header and clears', async ({
     page,
   }) => {

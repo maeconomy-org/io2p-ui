@@ -1053,7 +1053,7 @@
     "description": "Advanced search interface with filters and suggestions",
     "placeholder": "Search objects, or type a filter...",
     "closeSearch": "Close search",
-    "clearInput": "Clear input",
+    "clearInput": "Clear",
     "filters": "Filters",
     "recent": "Recent",
     "quickActions": "Quick Actions",
