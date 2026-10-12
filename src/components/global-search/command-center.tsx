@@ -344,8 +344,12 @@ export function CommandCenter({
                       <div className="text-xs text-muted-foreground truncate">
                         {t(suggestion.descriptionKey)}
                       </div>
+                      {/* On a phone the example moves under the description: beside it, it does not
+                          fit, and it is the only place the filter's syntax shows. */}
+                      <code className="sm:hidden mt-1 inline-block max-w-full truncate px-1.5 py-0.5 bg-muted rounded text-xs font-mono">
+                        {suggestion.examples[0]}
+                      </code>
                     </div>
-                    {/* Phones drop the example: it does not wrap, and the description says the same. */}
                     <code className="hidden sm:inline-block shrink-0 px-2 py-1 bg-muted rounded text-xs font-mono">
                       {suggestion.examples[0]}
                     </code>

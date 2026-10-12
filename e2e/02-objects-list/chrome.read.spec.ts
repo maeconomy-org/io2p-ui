@@ -138,6 +138,9 @@ test.describe('02 - objects list / chrome', () => {
     const box = await dialog.boundingBox()
     expect(box!.x).toBeGreaterThanOrEqual(0)
     expect(box!.x + box!.width).toBeLessThanOrEqual(390)
+    await expect(
+      dialog.locator('code:visible', { hasText: 'deleted:true' })
+    ).toBeInViewport({ ratio: 1 })
     await dialog
       .getByRole('combobox')
       .or(dialog.getByRole('textbox'))
