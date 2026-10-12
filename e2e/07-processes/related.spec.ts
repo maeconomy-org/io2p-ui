@@ -91,6 +91,18 @@ test.describe('07 - processes / related filter', () => {
     }
   })
 
+  test('PR21: a bare ?ref= is ignored rather than sent as an empty filter', async ({
+    page,
+    api,
+  }) => {
+    await page.goto('/processes?ref=')
+
+    await expect(page.getByTestId('data-table-row').first()).toBeVisible()
+    await expect(page.getByTestId('related-object-chip')).toHaveCount(0)
+    expect(api.count(/\/v1\/processes\?/)).toBeGreaterThan(0)
+    expect(api.count(/\/v1\/processes\?(.*&)?ref=(&|$)/)).toBe(0)
+  })
+
   /**
    * N8 — the same deep link as the FIRST navigation of a tab that has never rendered the app.
    *

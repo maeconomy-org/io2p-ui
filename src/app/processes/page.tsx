@@ -75,7 +75,8 @@ export default function ProcessesPage() {
   // receives the real params and nothing bails. Adding a boundary made the server render its
   // fallback while the client rendered the table — a hydration mismatch on every load, with the
   // fallback's own markup as the diff.
-  const relatedObjectId = searchParams.get('ref')
+  // `|| null`: a bare `?ref=` reads as '' and the node refuses an empty ref with a 400.
+  const relatedObjectId = searchParams.get('ref') || null
 
   const clearRelated = useCallback(() => router.replace('/processes'), [router])
 
