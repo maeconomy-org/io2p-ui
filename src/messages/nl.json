@@ -890,7 +890,7 @@
       "seeOverview": "Het overzicht tekent ze wel."
     },
     "relatedTo": "Processen gerelateerd aan {name}",
-    "clearRelated": "Wissen"
+    "clearRelated": "Alle processen tonen"
   },
   "templates": {
     "title": "Sjablonen",

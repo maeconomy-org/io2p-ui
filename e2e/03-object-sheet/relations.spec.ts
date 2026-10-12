@@ -96,7 +96,7 @@ test.describe('03 - object sheet / relations', () => {
     await page.getByTestId('unsaved-discard').click()
 
     await expect(page).toHaveURL(new RegExp(`/processes\\?ref=${objectId}`))
-    await expect(page.getByTestId('related-object-bar')).toBeVisible()
+    await expect(page.getByTestId('related-object-chip')).toBeVisible()
   })
 
   test('R7: soft-deleting the process removes the relation', async ({

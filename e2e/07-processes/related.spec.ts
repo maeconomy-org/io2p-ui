@@ -1,6 +1,7 @@
 import { collectConsoleErrors, expect, test } from '../fixtures/app'
 import { AUTH_STATE } from '../setup/credentials'
 import { createObjectWithId, createProcess } from '../utils/process'
+import { selectView } from '../utils/views'
 
 const stamp = () => `e2e-${Date.now()}`
 
@@ -17,20 +18,20 @@ test.describe('07 - processes / related filter', () => {
 
     await page.goto(`/processes?ref=${inputId}`)
 
-    // Wait for ONE bar before asserting it is visible. A client transition keeps the outgoing page
+    // Wait for ONE chip before asserting it is visible. A client transition keeps the outgoing page
     // hidden — Playwright's strict mode then fails on the ambiguity rather than on the app.
-    await expect(page.getByTestId('related-object-bar')).toHaveCount(1)
-    await expect(page.getByTestId('related-object-bar')).toBeVisible()
+    await expect(page.getByTestId('related-object-chip')).toHaveCount(1)
+    await expect(page.getByTestId('related-object-chip')).toBeVisible()
     await expect(
       page.getByTestId('data-table-row').filter({ hasText: processName })
     ).toHaveCount(1)
 
     await page.getByTestId('related-object-clear').click()
-    await expect(page.getByTestId('related-object-bar')).toBeHidden()
+    await expect(page.getByTestId('related-object-chip')).toBeHidden()
     await expect(page).not.toHaveURL(/ref=/)
   })
 
-  test('PR18: the related bar and the selection bar stack without overlapping', async ({
+  test('PR18: with ?ref= and a selection, the selection bar is the only floating bar', async ({
     page,
   }) => {
     const tag = stamp()
@@ -41,30 +42,53 @@ test.describe('07 - processes / related filter', () => {
     await createProcess(page, processName, [inputName], inputName)
 
     await page.goto(`/processes?ref=${inputId}`)
-    const related = page.getByTestId('related-object-bar')
     // ONE `toPass`, not two assertions: a client transition keeps the outgoing page mounted, so the
     // count can settle to 1 and go back to 2 between two separate awaits.
+    const chip = page.getByTestId('related-object-chip')
     await expect(async () => {
-      await expect(related).toHaveCount(1, { timeout: 3_000 })
-      await expect(related).toBeVisible({ timeout: 3_000 })
+      await expect(chip).toHaveCount(1, { timeout: 3_000 })
+      await expect(chip).toBeVisible({ timeout: 3_000 })
     }).toPass({ timeout: 30_000 })
 
-    // The SELECTION bar as the second one, not search: search is rate-limited on the node, and
-    // four parallel workers across repeated runs get a 429. A checkbox needs no network.
     await page
       .getByTestId('data-table-row')
       .filter({ hasText: processName })
       .getByRole('checkbox')
       .check()
 
-    const selection = page.getByTestId('bulk-bar')
-    await expect(selection).toBeVisible()
+    await expect(page.getByTestId('bulk-bar')).toBeVisible()
+    await expect(page.locator('[role="region"].fixed')).toHaveCount(1)
+    await expect(chip).toBeVisible()
+  })
 
-    const a = await related.boundingBox()
-    const b = await selection.boundingBox()
-    const disjoint =
-      a && b && (a.y + a.height <= b.y + 1 || b.y + b.height <= a.y + 1)
-    expect(disjoint, 'the two floating bars overlap').toBe(true)
+  test('PR19: in the chart view the ?ref= object is ticked in the object filter, and unticking it clears the param', async ({
+    page,
+  }) => {
+    const tag = stamp()
+    const inputName = `${tag}-in`
+    const processName = `${tag}-proc`
+
+    const inputId = await createObjectWithId(page, inputName)
+    await createProcess(page, processName, [inputName], inputName)
+
+    await page.goto('/processes')
+    await selectView(page, 'sankey')
+    try {
+      await page.goto(`/processes?ref=${inputId}`)
+      await expect(page.getByTestId('related-object-chip')).toHaveCount(0)
+
+      await page.getByTestId('flow-object-filter').click()
+      const option = page
+        .getByTestId('flow-object-option')
+        .filter({ hasText: inputName })
+      await expect(option).toHaveAttribute('data-checked', 'true')
+
+      await option.click()
+      await expect(page).not.toHaveURL(/ref=/)
+      await expect(option).toHaveAttribute('data-checked', 'false')
+    } finally {
+      await selectView(page, 'table')
+    }
   })
 
   /**
@@ -72,7 +96,7 @@ test.describe('07 - processes / related filter', () => {
    *
    * PR16/PR17 reach `?ref=` from a page that already created the object, so the filter is applied
    * by a router that is already mounted. This one is a cold document: the param has to be read on
-   * mount, and the bar's own `useGet` has to resolve the NAME from nothing. `related-object-bar`
+   * mount, and the chip's own `useGet` has to resolve the NAME from nothing. `related-object-chip`
    * falls back to `data?.name ?? objectId`, so a resolve that never fires leaves a raw UUID on
    * screen and every warm-cache case still passes — which is why the name is asserted here and
    * nowhere else.
@@ -108,13 +132,13 @@ test.describe('07 - processes / related filter', () => {
 
       await cold.goto(`/processes?ref=${inputId}`)
 
-      const bar = cold.getByTestId('related-object-bar')
-      await expect(bar).toBeVisible()
+      const chip = cold.getByTestId('related-object-chip')
+      await expect(chip).toBeVisible()
       // The NAME, positively — this is the half a warm tab cannot fail.
-      await expect(bar).toContainText(inputName)
-      // And not the id it falls back to. Without this the case passes on a bar that resolved
+      await expect(chip).toContainText(inputName)
+      // And not the id it falls back to. Without this the case passes on a chip that resolved
       // nothing, since the fallback string is itself visible text.
-      await expect(bar).not.toContainText(inputId)
+      await expect(chip).not.toContainText(inputId)
 
       await expect(
         cold.getByTestId('data-table-row').filter({ hasText: processName })

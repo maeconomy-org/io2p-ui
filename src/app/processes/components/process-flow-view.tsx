@@ -89,11 +89,14 @@ export function ProcessFlowView({
   variant,
   onOpenProcess,
   relatedObjectId,
+  onClearRelated,
 }: {
   variant: ProcessGraphVariant
   onOpenProcess: (processId: string) => void
   /** Narrow to one object's chains — set by `?ref=` when arriving from that object's Relations tab. */
   relatedObjectId?: string | null
+  /** Drop `?ref=` — unticking the URL's object in the object filter calls this. */
+  onClearRelated?: () => void
 }) {
   const t = useTranslations()
   const router = useRouter()
@@ -115,6 +118,16 @@ export function ProcessFlowView({
         ? [...new Set([relatedObjectId, ...selectedObjects])]
         : selectedObjects,
     [relatedObjectId, selectedObjects]
+  )
+
+  // The picker shows the URL's object ticked among the user's picks. State keeps only the picks,
+  // so a tick on the URL's object is never stored twice and unticking it clears the URL.
+  const changeObjects = useCallback(
+    (ids: string[]) => {
+      if (relatedObjectId && !ids.includes(relatedObjectId)) onClearRelated?.()
+      setSelectedObjects(ids.filter((id) => id !== relatedObjectId))
+    },
+    [relatedObjectId, onClearRelated]
   )
 
   // Focus and the object filter each ask a whole-graph question ("what touches this?"), so neither
@@ -215,8 +228,8 @@ export function ProcessFlowView({
         depthDisabled={!!focusId || highlighted.length > 0}
         layered={layered}
         objects={objectNodes}
-        selectedObjects={selectedObjects}
-        onSelectedObjectsChange={setSelectedObjects}
+        selectedObjects={highlighted}
+        onSelectedObjectsChange={changeObjects}
       />
 
       <Card>

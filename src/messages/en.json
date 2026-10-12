@@ -890,7 +890,7 @@
       "seeOverview": "The overview view draws them."
     },
     "relatedTo": "Processes related to {name}",
-    "clearRelated": "Clear"
+    "clearRelated": "Show all processes"
   },
   "templates": {
     "title": "Templates",

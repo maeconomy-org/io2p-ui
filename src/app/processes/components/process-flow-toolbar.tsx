@@ -168,8 +168,12 @@ function ObjectFilter({
     const pool = needle
       ? objects.filter((o) => labelOf(o).toLowerCase().includes(needle))
       : objects
-    return pool.slice(0, SEARCH_LIMIT)
-  }, [objects, query])
+    // Ticked first: the list is cut at SEARCH_LIMIT, and a tick the user cannot see they cannot undo.
+    const ticked = (o: GraphNode) => (selected.includes(o.id) ? 0 : 1)
+    return [...pool]
+      .sort((a, b) => ticked(a) - ticked(b))
+      .slice(0, SEARCH_LIMIT)
+  }, [objects, query, selected])
 
   const toggle = (id: string) =>
     onChange(
@@ -188,6 +192,7 @@ function ObjectFilter({
           role="combobox"
           aria-expanded={open}
           className="h-8 justify-between gap-2"
+          data-testid="flow-object-filter"
         >
           <Package className="h-4 w-4" />
           {selected.length > 0
@@ -213,6 +218,8 @@ function ObjectFilter({
                   value={node.id}
                   onSelect={() => toggle(node.id)}
                   className="cursor-pointer gap-2"
+                  data-testid="flow-object-option"
+                  data-checked={selected.includes(node.id)}
                 >
                   <Check
                     className={cn(

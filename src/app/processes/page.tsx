@@ -7,7 +7,7 @@ import { PlusCircle, Share2, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { ProcessListItem } from 'io2p-client'
 
-import { Button, FLOATING_BAR_LEVELS } from '@/components/ui'
+import { Button } from '@/components/ui'
 import { FilterMenu, deletedSection, scopeSection } from '@/components/filters'
 import {
   BulkActionBar,
@@ -31,7 +31,7 @@ import { anchor, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
 
 import { buildProcessColumns } from './components/process-columns'
 import { ProcessFlowView } from './components/process-flow-view'
-import { RelatedObjectBar } from './components/related-object-bar'
+import { RelatedObjectChip } from './components/related-object-chip'
 import { PageHelp } from '@/components/onboarding/page-help'
 import {
   TOUR_ACTIONS,
@@ -166,10 +166,6 @@ export default function ProcessesPage() {
     [t, openProcess, list.setToDelete, list.handleRestore, userId]
   )
 
-  // The related bar sits above the selection bar when both are up, so they never land on one level.
-  const selectionOpen = isTable && list.selectedRows.length > 0
-  const relatedLevel = FLOATING_BAR_LEVELS[selectionOpen ? 1 : 0]
-
   return (
     <>
       <div className="container mx-auto flex-1 p-4">
@@ -179,7 +175,13 @@ export default function ProcessesPage() {
               <h2 className="text-2xl font-semibold">{t('processes.title')}</h2>
               <PageHelp concept="process" tour="create-process" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {isTable && relatedObjectId && (
+                <RelatedObjectChip
+                  objectId={relatedObjectId}
+                  onClear={clearRelated}
+                />
+              )}
               {/* Deleted processes are a list concern: the flow graph is about what connects to
                   what, and a soft-deleted process has no place in a chain. */}
               {isTable && (
@@ -237,6 +239,7 @@ export default function ProcessesPage() {
               variant={view}
               onOpenProcess={openProcess}
               relatedObjectId={relatedObjectId}
+              onClearRelated={clearRelated}
             />
           )}
         </div>
@@ -248,14 +251,6 @@ export default function ProcessesPage() {
           onOpenChange={setSheetOpen}
           processId={selectedId ?? undefined}
           initialEditing={openInEditMode}
-        />
-      )}
-
-      {relatedObjectId && (
-        <RelatedObjectBar
-          objectId={relatedObjectId}
-          onClear={clearRelated}
-          level={relatedLevel}
         />
       )}
 
