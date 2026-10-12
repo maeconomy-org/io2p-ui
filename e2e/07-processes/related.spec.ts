@@ -81,11 +81,37 @@ test.describe('07 - processes / related filter', () => {
       const option = page
         .getByTestId('flow-object-option')
         .filter({ hasText: inputName })
-      await expect(option).toHaveAttribute('data-checked', 'true')
+      await expect(option).toHaveAttribute('aria-checked', 'true')
 
       await option.click()
       await expect(page).not.toHaveURL(/ref=/)
-      await expect(option).toHaveAttribute('data-checked', 'false')
+      await expect(option).toHaveAttribute('aria-checked', 'false')
+    } finally {
+      await selectView(page, 'table')
+    }
+  })
+
+  test('PR20: in the chart view Clear Materials also drops ?ref=', async ({
+    page,
+  }) => {
+    const tag = stamp()
+    const inputName = `${tag}-in`
+    const processName = `${tag}-proc`
+
+    const inputId = await createObjectWithId(page, inputName)
+    await createProcess(page, processName, [inputName], inputName)
+
+    await page.goto('/processes')
+    await selectView(page, 'sankey')
+    try {
+      await page.goto(`/processes?ref=${inputId}`)
+      await page.getByTestId('flow-object-filter').click()
+      await page.getByRole('button', { name: 'Clear Materials' }).click()
+
+      await expect(page).not.toHaveURL(/ref=/)
+      await expect(page.getByTestId('flow-object-filter')).toHaveText(
+        'Filter by objects...'
+      )
     } finally {
       await selectView(page, 'table')
     }

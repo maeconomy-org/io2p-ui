@@ -219,9 +219,12 @@ function ObjectFilter({
                   onSelect={() => toggle(node.id)}
                   className="cursor-pointer gap-2"
                   data-testid="flow-object-option"
-                  data-checked={selected.includes(node.id)}
+                  // ARIA 1.2 allows aria-checked on an option; cmdk already spends aria-selected
+                  // on the highlighted row, so the tick needs its own state.
+                  aria-checked={selected.includes(node.id)}
                 >
                   <Check
+                    aria-hidden="true"
                     className={cn(
                       'h-4 w-4',
                       selected.includes(node.id) ? 'opacity-100' : 'opacity-0'
