@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, render, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
@@ -151,6 +151,75 @@ describe('useAuth', () => {
     const res = await result.current.handleEmailLogin('a@b.com', 'pw')
     expect(res.success).toBe(false)
     expect(res.error).toBe('bad creds')
+  })
+})
+
+describe('useAuth — handleAuth (certificate sign-in)', () => {
+  const fetchMock = vi.fn()
+  const setConfig = (config: Record<string, unknown> | undefined) => {
+    ;(window as any).__IOM_CONFIG__ = config
+  }
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    setConfig(undefined)
+  })
+
+  it('posts to the mTLS host with credentials, not to the auth host', async () => {
+    setConfig({
+      authBaseUrl: 'https://auth.example.com',
+      mtlsBaseUrl: 'https://mtls-auth.example.com',
+    })
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 200 }))
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    const res = await result.current.handleAuth()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://mtls-auth.example.com/api/auth/mtls/login',
+      { method: 'POST', credentials: 'include' }
+    )
+    expect(mockGetSession).toHaveBeenCalled()
+    expect(res.success).toBe(true)
+  })
+
+  it('does not call the network when mtlsBaseUrl is unset', async () => {
+    setConfig({ authBaseUrl: 'https://auth.example.com' })
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    const res = await result.current.handleAuth()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(res.success).toBe(false)
+  })
+
+  it('fails without a session refresh when the issuer refuses the certificate', async () => {
+    setConfig({ mtlsBaseUrl: 'https://mtls-auth.example.com' })
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: 'certificate not provisioned' }), {
+        status: 403,
+      })
+    )
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    const res = await result.current.handleAuth()
+
+    expect(res.success).toBe(false)
+    expect(mockGetSession).not.toHaveBeenCalled()
+  })
+
+  it('fails when the TLS handshake or CORS rejects the request', async () => {
+    setConfig({ mtlsBaseUrl: 'https://mtls-auth.example.com' })
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    const res = await result.current.handleAuth()
+
+    expect(res.success).toBe(false)
   })
 })
 

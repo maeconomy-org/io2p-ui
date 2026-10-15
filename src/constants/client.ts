@@ -13,6 +13,10 @@ export interface ClientConfig {
 
   // Optional per-service URL overrides (when services live on different hosts)
   authBaseUrl?: string
+  // Certificate sign-in origin. Not authBaseUrl: the edge refuses mTLS login on
+  // the auth host, and asks for a client certificate only on this one. Unset
+  // hides certificate sign-in.
+  mtlsBaseUrl?: string
   registryBaseUrl?: string
   nodeBaseUrl?: string
   userBaseUrl?: string
@@ -102,6 +106,7 @@ export function buildRuntimeConfig(): ClientConfig {
     coreBaseUrl:
       process.env.CORE_BASE_URL || process.env.NODE_BASE_URL || undefined,
     authBaseUrl: process.env.AUTH_BASE_URL || undefined,
+    mtlsBaseUrl: process.env.MTLS_AUTH_URL || undefined,
     registryBaseUrl: process.env.REGISTRY_BASE_URL || undefined,
     nodeBaseUrl: process.env.NODE_BASE_URL || undefined,
     userBaseUrl: process.env.USER_BASE_URL || undefined,

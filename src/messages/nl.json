@@ -338,7 +338,8 @@
       "microsoft": "Doorgaan met Microsoft"
     },
     "certificate": {
-      "signIn": "Inloggen met certificaat"
+      "signIn": "Inloggen met certificaat",
+      "unavailable": "Inloggen met certificaat is hier niet beschikbaar."
     },
     "lastUsed": "Laatst gebruikt",
     "forgotPassword": {

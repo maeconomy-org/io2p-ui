@@ -338,7 +338,8 @@
       "microsoft": "Continue with Microsoft"
     },
     "certificate": {
-      "signIn": "Sign in with Certificate"
+      "signIn": "Sign in with Certificate",
+      "unavailable": "Certificate sign-in is not available here."
     },
     "lastUsed": "Last used",
     "forgotPassword": {
