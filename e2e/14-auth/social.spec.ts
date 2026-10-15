@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/app'
+import { certSignInTestId } from '../utils/cert-sign-in'
 
 /**
  * A real round trip needs credentials on the issuer AND a consent screen nobody can automate, so
@@ -52,7 +53,7 @@ test.describe('14 - auth / social', () => {
     page,
   }) => {
     await expect(page.getByTestId('auth-social-google')).toBeVisible()
-    await expect(page.getByTestId('auth-certificate')).toBeVisible()
+    await expect(page.getByTestId(await certSignInTestId(page))).toBeVisible()
     await expect(page.getByTestId('auth-email-submit')).toBeVisible()
   })
 

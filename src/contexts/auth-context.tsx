@@ -184,12 +184,16 @@ export function useAuth() {
   }
 
   const handleAuth = async () => {
-    // mTLS certificate login via the issuer's custom endpoint. The full
-    // cross-origin cert handshake + cookie handoff (mtls-auth.<host>) is a
-    // co-dev item with the issuer/nginx; this wires the call and refreshes the
-    // session store on success.
+    // No fallback to authBaseUrl or the app origin: neither asks the browser
+    // for a client certificate, so the call could only ever be refused.
+    const base = getCachedConfig()?.mtlsBaseUrl
+    if (!base) {
+      return {
+        success: false,
+        error: 'Certificate sign-in is not configured.',
+      }
+    }
     try {
-      const base = getCachedConfig()?.authBaseUrl ?? ''
       const res = await fetch(`${base}/api/auth/mtls/login`, {
         method: 'POST',
         credentials: 'include',

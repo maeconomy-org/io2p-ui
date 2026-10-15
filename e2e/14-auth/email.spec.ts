@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/app'
 import { requireCredentials } from '../setup/credentials'
+import { certSignInTestId } from '../utils/cert-sign-in'
 import { tour } from '../utils/selectors'
 
 /**
@@ -33,7 +34,7 @@ test.describe('14 - auth / email', () => {
     await expect(page.getByTestId('auth-carousel')).toBeVisible()
     await expect(page.getByLabel('Email')).toBeVisible()
     await expect(page.getByTestId('auth-email-submit')).toBeVisible()
-    await expect(page.getByTestId('auth-certificate')).toBeEnabled()
+    await expect(page.getByTestId(await certSignInTestId(page))).toBeVisible()
   })
 
   test('AU2/AU6/AU7: a correct sign-in lands on /objects, records the method and survives a reload', async ({

@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { expect, test } from '../fixtures/app'
+import { certSignInEnabled } from '../utils/cert-sign-in'
 
 /**
  * mTLS terminates at nginx on the deployed node and there is no local equivalent, so the HANDSHAKE
@@ -35,11 +36,27 @@ test.describe('14 - auth / certificate @mtls', () => {
   test('AU13/AU14: the certificate button renders, is labelled, and sits beside the email form', async ({
     page,
   }) => {
+    test.skip(
+      !(await certSignInEnabled(page)),
+      'the server has no MTLS_AUTH_URL; AU19 covers that case'
+    )
     const button = page.getByTestId('auth-certificate')
 
     await expect(button).toBeEnabled()
     await expect(button).not.toBeEmpty()
     await expect(page.getByTestId('auth-email-submit')).toBeVisible()
+  })
+
+  test('AU19: without MTLS_AUTH_URL the button is replaced by a note', async ({
+    page,
+  }) => {
+    test.skip(
+      await certSignInEnabled(page),
+      'the server has MTLS_AUTH_URL; AU13/AU14 cover that case'
+    )
+
+    await expect(page.getByTestId('auth-certificate')).toHaveCount(0)
+    await expect(page.getByTestId('auth-certificate-unavailable')).toBeVisible()
   })
 
   test('AU15/AU16: a handshake lands on /objects and records the method', async ({

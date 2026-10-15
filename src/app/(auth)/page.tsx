@@ -83,6 +83,7 @@ export default function LoginPage() {
   // Certificate is the primary action only when it is the ONLY one.
   const hasOtherSignIn =
     config.emailLoginEnabled === 'true' || socialProviders.length > 0
+  const certSignInEnabled = Boolean(config.mtlsBaseUrl)
   const isLoading = submitting || certLoading || socialLoading !== null
 
   useEffect(() => {
@@ -349,42 +350,46 @@ export default function LoginPage() {
                   </div>
                 </form>
               </Form>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator className="w-full" />
+              {(certSignInEnabled || socialProviders.length > 0) && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      {t('auth.orContinueWith')}
+                    </span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    {t('auth.orContinueWith')}
-                  </span>
-                </div>
-              </div>
+              )}
             </>
           )}
 
           <div className="space-y-2">
-            <div className="relative">
-              <Button
-                type="button"
-                onClick={handleCertificateAuth}
-                data-testid="auth-certificate"
-                variant={hasOtherSignIn ? 'outline' : 'default'}
-                className="w-full transition-colors"
-                disabled={isLoading}
-              >
-                {!isLoading && <Shield className="mr-2 h-4 w-4" />}
-                {t('auth.certificate.signIn')}
-              </Button>
-              {lastAuthMethod === 'certificate' && (
-                <Badge
-                  variant="outline"
-                  data-testid="auth-last-used-certificate"
-                  className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+            {certSignInEnabled && (
+              <div className="relative">
+                <Button
+                  type="button"
+                  onClick={handleCertificateAuth}
+                  data-testid="auth-certificate"
+                  variant={hasOtherSignIn ? 'outline' : 'default'}
+                  className="w-full transition-colors"
+                  disabled={isLoading}
                 >
-                  {t('auth.lastUsed')}
-                </Badge>
-              )}
-            </div>
+                  {!isLoading && <Shield className="mr-2 h-4 w-4" />}
+                  {t('auth.certificate.signIn')}
+                </Button>
+                {lastAuthMethod === 'certificate' && (
+                  <Badge
+                    variant="outline"
+                    data-testid="auth-last-used-certificate"
+                    className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+                  >
+                    {t('auth.lastUsed')}
+                  </Badge>
+                )}
+              </div>
+            )}
 
             {socialProviders.map(({ id, Icon, labelKey }) => (
               <div key={id} className="relative">
@@ -410,6 +415,16 @@ export default function LoginPage() {
                 )}
               </div>
             ))}
+
+            {!certSignInEnabled && (
+              <p
+                data-testid="auth-certificate-unavailable"
+                className="flex items-center justify-center gap-2 pt-2 text-sm text-muted-foreground"
+              >
+                <Shield className="h-4 w-4 shrink-0" aria-hidden />
+                {t('auth.certificate.unavailable')}
+              </p>
+            )}
           </div>
         </div>
       </Card>
