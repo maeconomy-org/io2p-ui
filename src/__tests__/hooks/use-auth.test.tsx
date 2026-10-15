@@ -22,7 +22,7 @@ let sessionState: { data: any; isPending: boolean } = {
 }
 const mockSignInEmail = vi.fn(async (_input?: any) => ({ error: null }) as any)
 const mockSignOut = vi.fn()
-const mockGetSession = vi.fn()
+const mockNotify = vi.fn()
 const mockClearCoreToken = vi.fn()
 
 vi.mock('@/lib/auth/client', () => ({
@@ -31,7 +31,7 @@ vi.mock('@/lib/auth/client', () => ({
   authClient: {
     signIn: { email: (input: any) => mockSignInEmail(input) },
     signOut: () => mockSignOut(),
-    getSession: () => mockGetSession(),
+    $store: { notify: (signal: string) => mockNotify(signal) },
   },
 }))
 
@@ -183,7 +183,8 @@ describe('useAuth — handleAuth (certificate sign-in)', () => {
       'https://mtls-auth.example.com/api/auth/mtls/login',
       { method: 'POST', credentials: 'include' }
     )
-    expect(mockGetSession).toHaveBeenCalled()
+    // Without the signal, useSession stays empty and the guard bounces to '/'.
+    expect(mockNotify).toHaveBeenCalledWith('$sessionSignal')
     expect(res.success).toBe(true)
   })
 
@@ -209,7 +210,7 @@ describe('useAuth — handleAuth (certificate sign-in)', () => {
     const res = await result.current.handleAuth()
 
     expect(res.success).toBe(false)
-    expect(mockGetSession).not.toHaveBeenCalled()
+    expect(mockNotify).not.toHaveBeenCalled()
   })
 
   it('fails when the TLS handshake or CORS rejects the request', async () => {
