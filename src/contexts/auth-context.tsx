@@ -205,7 +205,11 @@ export function useAuth() {
             'Certificate authentication failed. Ensure a valid client certificate is selected.',
         }
       }
-      await authClient.getSession()
+      // A plain fetch, so better-auth does not know a session now exists.
+      // getSession() asks the server but leaves useSession's cache empty, and
+      // the route guard in AuthEffects then sends the user back to '/'. The
+      // signal refetches the cache, and keeps it pending until the session is in.
+      authClient.$store.notify('$sessionSignal')
       return { success: true }
     } catch {
       return { success: false, error: 'Certificate authentication failed.' }
