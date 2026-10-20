@@ -15,6 +15,19 @@ const PROVIDERS = ['google', 'microsoft'] as const
 
 test.describe('14 - auth / social', () => {
   test.beforeEach(async ({ page }) => {
+    // The buttons come from the issuer; fake it so the spec does not depend on
+    // which providers the local io2p-auth has credentials for.
+    await page.route('**/api/auth/sign-in-options', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          providers: [...PROVIDERS],
+          signUp: 'off',
+          approval: 'none',
+        }),
+      })
+    )
     await page.goto('/')
   })
 
@@ -82,5 +95,30 @@ test.describe('14 - auth / social', () => {
     expect(
       await page.evaluate(() => localStorage.getItem('iom-last-auth-method'))
     ).toBeNull()
+  })
+
+  test('shows no social button when the issuer does not answer', async ({
+    page,
+    consoleGuard,
+  }) => {
+    consoleGuard.expectError(/status of 503/)
+    await page.unroute('**/api/auth/sign-in-options')
+    await page.route('**/api/auth/sign-in-options', (route) =>
+      route.fulfill({ status: 503, body: '' })
+    )
+    await page.reload()
+    await expect(page.getByTestId('auth-certificate')).toBeVisible()
+    await expect(page.getByTestId('auth-social-google')).toHaveCount(0)
+  })
+
+  test('an OAuth error code on the URL is translated, then removed', async ({
+    page,
+  }) => {
+    await page.goto('/?error=signup_disabled')
+    await expect(page.getByTestId('auth-error')).toBeVisible()
+    await expect(page.getByTestId('auth-error')).not.toContainText(
+      'signup_disabled'
+    )
+    await expect(page).toHaveURL(/localhost:\d+\/$/)
   })
 })

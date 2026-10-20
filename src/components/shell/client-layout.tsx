@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 import Navbar from '@/components/navbar'
 import Footer from '@/components/shell/footer'
 import { useKeyboardShortcuts } from '@/hooks/use-theme-shortcut'
-import { PUBLIC_PAGES } from '@/constants'
+import { PENDING_APPROVAL_PATH, PUBLIC_PAGES } from '@/constants'
 
 // client-layout wraps EVERY route, so a static import here put driver.js + its CSS in the shared
 // bundle for pages that never run a tour.
@@ -33,7 +33,8 @@ export default function ClientLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const isPublicPage = PUBLIC_PAGES.includes(pathname)
+  const isPublicPage =
+    PUBLIC_PAGES.includes(pathname) || pathname === PENDING_APPROVAL_PATH
 
   useKeyboardShortcuts()
 

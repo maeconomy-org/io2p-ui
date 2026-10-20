@@ -164,6 +164,12 @@
           "microsoft": "Microsoft",
           "credential": "Wachtwoord",
           "unknown": "Andere aanmeldmethode"
+        },
+        "connect": "{provider} koppelen",
+        "linkErrors": {
+          "emailDoesNotMatch": "Dat account heeft een ander e-mailadres. Koppel een account met hetzelfde e-mailadres als dit account.",
+          "linkedElsewhere": "Dat account is al gekoppeld aan een andere gebruiker.",
+          "failed": "Het account kon niet worden gekoppeld. Probeer het opnieuw."
         }
       }
     }
@@ -373,7 +379,13 @@
       "timeout": "Authenticatie is verlopen. Dit kan duiden op een netwerkprobleem of certificaatprobleem.",
       "unauthorized": "Uw certificaat is niet geautoriseerd om dit systeem te gebruiken. Neem contact op met uw beheerder.",
       "expired": "Uw certificaat is verlopen. Vraag een nieuw certificaat aan bij uw beheerder.",
-      "emailLoginDisabled": "Inloggen met e-mail en wachtwoord is uitgeschakeld op deze node."
+      "emailLoginDisabled": "Inloggen met e-mail en wachtwoord is uitgeschakeld op deze node.",
+      "signupDisabled": "U kunt hier geen account maken met deze aanmeldmethode. Vraag uw beheerder om een uitnodiging.",
+      "accountNotLinked": "Er bestaat al een account met dit e-mailadres. Log in met uw wachtwoord of certificaat en koppel deze aanmeldmethode daarna in Instellingen → Beveiliging.",
+      "banned": "Dit account is geblokkeerd. Neem contact op met uw beheerder.",
+      "socialNoEmail": "De provider heeft geen e-mailadres gedeeld, dus u kunt er niet mee inloggen.",
+      "socialCancelled": "Inloggen is geannuleerd.",
+      "socialFailed": "Inloggen met deze provider is mislukt. Probeer het opnieuw."
     },
     "resetPassword": {
       "title": "Stel een nieuw wachtwoord in",
@@ -398,6 +410,14 @@
       "useAuthenticator": "Authenticator-app gebruiken",
       "trustDevice": "Dit apparaat 30 dagen vertrouwen",
       "error": "Die code was ongeldig. Probeer het opnieuw."
+    },
+    "pending": {
+      "title": "Wachten op goedkeuring",
+      "subtitle": "Uw account is aangemaakt.",
+      "body": "Een beheerder moet uw account goedkeuren voordat u de app kunt gebruiken. Probeer het later opnieuw.",
+      "bodyWithEmail": "Een beheerder moet het account voor {email} goedkeuren voordat u de app kunt gebruiken. Probeer het later opnieuw.",
+      "checkAgain": "Opnieuw controleren",
+      "signOut": "Uitloggen"
     }
   },
   "objects": {

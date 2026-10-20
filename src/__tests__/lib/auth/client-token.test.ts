@@ -14,6 +14,7 @@ vi.mock('@/constants/client', () => ({
 }))
 
 import { getCoreToken, clearCoreToken } from '@/lib/auth/client'
+import { PendingApprovalError } from '@/lib/io2p-errors'
 
 // A JWT whose payload carries `exp` (seconds). Header/signature are irrelevant to jwtExpMs.
 function jwt(expSeconds: number): string {
@@ -95,6 +96,41 @@ describe('getCoreToken rejection handling', () => {
 
     await expect(getCoreToken()).rejects.toThrow(
       'core credential mint rejected: 401'
+    )
+  })
+})
+
+describe('getCoreToken for a pending account', () => {
+  beforeEach(() => {
+    clearCoreToken()
+    vi.restoreAllMocks()
+  })
+
+  it('throws PendingApprovalError on 403 ACCOUNT_PENDING_APPROVAL', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ code: 'ACCOUNT_PENDING_APPROVAL' }),
+      })
+    )
+    await expect(getCoreToken()).rejects.toBeInstanceOf(PendingApprovalError)
+  })
+
+  it('keeps any other 403 a plain mint failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => {
+          throw new SyntaxError('no body')
+        },
+      })
+    )
+    await expect(getCoreToken()).rejects.toThrow(
+      'core credential mint rejected: 403'
     )
   })
 })

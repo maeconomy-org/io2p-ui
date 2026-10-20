@@ -164,6 +164,12 @@
           "microsoft": "Microsoft",
           "credential": "Password",
           "unknown": "Other sign-in method"
+        },
+        "connect": "Connect {provider}",
+        "linkErrors": {
+          "emailDoesNotMatch": "That account has a different email address. Connect an account with the same email as this one.",
+          "linkedElsewhere": "That account is already connected to a different user.",
+          "failed": "The account could not be connected. Try again."
         }
       }
     }
@@ -373,7 +379,13 @@
       "timeout": "Authentication timed out. This may indicate a network issue or certificate problem.",
       "unauthorized": "Your certificate is not authorized to access this system. Please contact your administrator.",
       "expired": "Your certificate has expired. Please obtain a new certificate from your administrator.",
-      "emailLoginDisabled": "Signing in with email and password is turned off on this node."
+      "emailLoginDisabled": "Signing in with email and password is turned off on this node.",
+      "signupDisabled": "You cannot create an account with this sign-in here. Ask your administrator for an invitation.",
+      "accountNotLinked": "An account with this email already exists. Sign in with your password or certificate, then connect this sign-in in Settings → Security.",
+      "banned": "This account is blocked. Contact your administrator.",
+      "socialNoEmail": "The provider did not share an email address, so you cannot sign in with it.",
+      "socialCancelled": "Sign-in was cancelled.",
+      "socialFailed": "Sign-in with this provider failed. Try again."
     },
     "resetPassword": {
       "title": "Set a new password",
@@ -398,6 +410,14 @@
       "useAuthenticator": "Use authenticator app",
       "trustDevice": "Trust this device for 30 days",
       "error": "That code was not valid. Try again."
+    },
+    "pending": {
+      "title": "Waiting for approval",
+      "subtitle": "Your account is created.",
+      "body": "An administrator must approve your account before you can use the app. Try again later.",
+      "bodyWithEmail": "An administrator must approve the account for {email} before you can use the app. Try again later.",
+      "checkAgain": "Check again",
+      "signOut": "Sign out"
     }
   },
   "objects": {

@@ -5,12 +5,14 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
+  PENDING_APPROVAL_PATH,
   PUBLIC_PAGES_SET,
   clearPreferenceMirrors,
   getCachedConfig,
   type SocialProviderId,
 } from '@/constants'
 import { clearLegacyDrafts } from '@/hooks/drafts/use-object-drafts'
+import { isPendingApproval } from '@/lib/auth/approval'
 import { authClient, clearCoreToken, useSession } from '@/lib/auth/client'
 import { useIomClient } from '@/lib/io2p'
 import { logger } from '@/lib/observability/logger'
@@ -49,6 +51,8 @@ interface SessionUser {
   emailVerified?: boolean | null
   name?: string | null
   createdAt?: string | Date | null
+  origin?: string | null
+  status?: string | null
 }
 
 function mapAccount(user: SessionUser): AuthResponse {
@@ -95,6 +99,7 @@ export function useAuth() {
   const { data: session, isPending } = useSession()
   const sessionUser = (session?.user as SessionUser | undefined) ?? null
   const isAuthenticated = !!sessionUser
+  const pendingApproval = isPendingApproval(sessionUser)
 
   // Strictly ADDITIVE to the old `enabled: isAuthenticated`: it never removes a
   // fetch, it only starts one earlier. `users.me()` needs a core token, which
@@ -116,8 +121,12 @@ export function useAuth() {
     // still mounted and enabled — so `/me` fired against a session the issuer
     // was already tearing down, and the failed token mint surfaced as a console
     // error on every logout.
+    // A pending account gets 403 from the token mint, so it never asks core.
     enabled:
-      !signingOut && (isAuthenticated || (isPending && onProtectedRoute)),
+      !signingOut &&
+      !pendingApproval &&
+      pathname !== PENDING_APPROVAL_PATH &&
+      (isAuthenticated || (isPending && onProtectedRoute)),
     staleTime: Infinity,
   })
 
@@ -226,7 +235,9 @@ export function useAuth() {
     isAuthenticated,
     // Auth is "ready" only once BOTH the session and the core identity resolve,
     // so consumers never see an authenticated user without an `id`.
-    authLoading: isPending || (isAuthenticated && mePending),
+    authLoading:
+      isPending || (isAuthenticated && !pendingApproval && mePending),
+    pendingApproval,
     isRefreshing: false,
     // The core user id (io2p-core /me.id) — the operational id used everywhere.
     userId: coreUser?.id,
@@ -259,6 +270,9 @@ export function AuthEffects() {
   const { data: session, isPending } = useSession()
   const sessionUserId = (session?.user as SessionUser | undefined)?.id
   const isAuthenticated = !!sessionUserId
+  const pendingApproval = isPendingApproval(
+    session?.user as SessionUser | undefined
+  )
 
   const prevUserIdRef = useRef<string | undefined>(undefined)
   useEffect(() => {
@@ -289,8 +303,18 @@ export function AuthEffects() {
     if (isPending) return
     if (!isAuthenticated && !PUBLIC_PAGES_SET.has(pathname)) {
       router.replace('/')
+      return
     }
-  }, [isPending, isAuthenticated, pathname, router])
+    if (pendingApproval && pathname !== PENDING_APPROVAL_PATH) {
+      router.replace(PENDING_APPROVAL_PATH)
+    } else if (
+      isAuthenticated &&
+      !pendingApproval &&
+      pathname === PENDING_APPROVAL_PATH
+    ) {
+      router.replace('/objects')
+    }
+  }, [isPending, isAuthenticated, pendingApproval, pathname, router])
 
   return null
 }

@@ -6,6 +6,7 @@ import { createIo2pClient, DEFAULT_IO2P_TIMEOUT_MS } from '@/lib/io2p'
 import {
   isNodeUnreachable,
   isTimeout,
+  PendingApprovalError,
   wasErrorReported,
 } from '@/lib/io2p-errors'
 
@@ -187,6 +188,18 @@ describe('onError', () => {
     expect(wasErrorReported(err)).toBe(false)
     opts.onError!(err, info)
     expect(wasErrorReported(err)).toBe(true)
+  })
+
+  it('logs a mint refused for a pending account at info and marks it', () => {
+    const opts = buildOptions()
+    const pending = new PendingApprovalError()
+    opts.onError!(pending, { ...info, method: 'GET', status: 0 })
+    expect(logger.error).not.toHaveBeenCalled()
+    expect(logger.info).toHaveBeenCalledWith(
+      'io2p request awaits approval',
+      expect.objectContaining({ err: pending })
+    )
+    expect(wasErrorReported(pending)).toBe(true)
   })
 
   it('does NOT mark an abort — it was never reported at error level', () => {
