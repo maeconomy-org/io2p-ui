@@ -107,7 +107,7 @@ test.describe('14 - auth / social', () => {
       route.fulfill({ status: 503, body: '' })
     )
     await page.reload()
-    await expect(page.getByTestId('auth-certificate')).toBeVisible()
+    await expect(page.getByTestId(await certSignInTestId(page))).toBeVisible()
     await expect(page.getByTestId('auth-social-google')).toHaveCount(0)
   })
 
