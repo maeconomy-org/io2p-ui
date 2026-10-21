@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
@@ -9,7 +9,11 @@ import type { ObjectDTO } from 'io2p-client'
 import { useObjects } from '@/hooks/api/entities'
 import { useOptionalUploadQueue } from '@/contexts/upload-queue-context'
 import { useIomClient } from '@/lib/io2p'
-import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
+import {
+  iomStatus,
+  isIdempotencyKeyReused,
+  saveErrorMessage,
+} from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 import {
   type EntityDraft,
@@ -45,6 +49,11 @@ export interface UseEntityFormOptions {
    * looking at, and this is the only moment anything can say where it went.
    */
   onSaved?: (id: string, addedParents: string[]) => void
+  /**
+   * Called when the node says an earlier save with this form's key may already have gone through.
+   * Keeps the user's work safe before they reload; returns whether that worked.
+   */
+  onKeyReused?: () => boolean
 }
 
 /**
@@ -65,7 +74,7 @@ export function useEntityForm(
   entity?: ObjectDTO | null,
   options: UseEntityFormOptions = {}
 ) {
-  const { defaultParentIds, resumeDraft, onSaved } = options
+  const { defaultParentIds, resumeDraft, onSaved, onKeyReused } = options
   const t = useTranslations()
   const client = useIomClient()
   // Optional so the hook still renders outside the provider (tests, isolated usage).
@@ -107,6 +116,10 @@ export function useEntityForm(
 
   const { useCreate, useUpdate } = useObjects()
   const createMutation = useCreate()
+  // One key per opened create form, sent on every Save until one succeeds: a Save pressed again
+  // after a timeout must replay the first write, not make a second object. It exists from the
+  // first render, so a double click sends the same key twice.
+  const [createKey, setCreateKey] = useState(() => crypto.randomUUID())
   const updateMutation = useUpdate()
 
   /**
@@ -170,7 +183,9 @@ export function useEntityForm(
       } else {
         const res = await createMutation.mutateAsync({
           body: buildCreateObjectInput(draft),
+          options: { idempotent: createKey },
         })
+        setCreateKey(crypto.randomUUID())
         committed = res as unknown as ObjectDTO
       }
     } catch (err) {
@@ -184,6 +199,15 @@ export function useEntityForm(
         status: iomStatus(err),
         err: err,
       })
+      if (isIdempotencyKeyReused(err)) {
+        const key = onKeyReused?.()
+          ? 'objects.saveError.mayHaveSavedDraftKept'
+          : 'objects.saveError.mayHaveSaved'
+        // Stays until closed: it asks the user to act, and a toast that fades is easy to miss.
+        toast.error(t(key), { duration: Infinity, closeButton: true })
+        form.setError('root.save', { type: 'server', message: key })
+        return
+      }
       const message = saveErrorMessage(err)
       toast.error(t(message.key, message.values))
       form.setError('root.save', { type: 'server', message: message.key })

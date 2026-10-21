@@ -67,6 +67,14 @@ vi.mock('next-intl', () => ({
 const toastError = vi.fn()
 vi.mock('sonner', () => ({ toast: { error: (m: string) => toastError(m) } }))
 
+const keyReused = () =>
+  new ValidationError({
+    type: 'urn:io2p:problem:idempotency-key-reused',
+    title: 'Unprocessable Entity',
+    status: 422,
+    detail: 'This Idempotency-Key was already used for a different request',
+  })
+
 function makeWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -181,7 +189,10 @@ describe('useEntityForm', () => {
       await result.current.submit()
     })
 
-    expect(objects.create).toHaveBeenCalledWith({ name: 'Wall A' }, undefined)
+    expect(objects.create).toHaveBeenCalledWith(
+      { name: 'Wall A' },
+      { idempotent: expect.any(String) }
+    )
     expect(onSaved).toHaveBeenCalledWith('new-1', [])
   })
 
@@ -199,7 +210,7 @@ describe('useEntityForm', () => {
 
     expect(objects.create).toHaveBeenCalledWith(
       { name: 'Child', parents: ['p1'] },
-      undefined
+      { idempotent: expect.any(String) }
     )
   })
 
@@ -227,7 +238,7 @@ describe('useEntityForm', () => {
         name: 'With File',
         properties: [{ key: 'spec', values: [{ data: 'v', ref: undefined }] }],
       },
-      undefined
+      { idempotent: expect.any(String) }
     )
     // The upload attaches AFTER the save, targeting the committed value. uploadAll (not
     // Promise.all(map(upload))) so the per-entity `complete` calls don't fight over the version.
@@ -398,6 +409,64 @@ describe('useEntityForm', () => {
       expect(toastError).toHaveBeenCalledWith(key)
       unmount()
     }
+  })
+
+  it('create: a Save after a failed one sends the same key, and a success starts a new one', async () => {
+    objects.create
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockResolvedValue({ id: 'new-1', operationId: 'op' })
+    const { result } = renderHook(() => useEntityForm(null), {
+      wrapper: makeWrapper(),
+    })
+
+    act(() => result.current.form.setValue('name', 'Wall A'))
+    for (let save = 0; save < 3; save++) {
+      await act(async () => {
+        await result.current.submit()
+      })
+    }
+
+    const keys = objects.create.mock.calls.map(
+      ([, options]) => options.idempotent
+    )
+    expect(keys[1]).toBe(keys[0])
+    expect(keys[2]).not.toBe(keys[0])
+  })
+
+  it('a key-reused refusal keeps the work as a draft and says so', async () => {
+    objects.create.mockRejectedValue(keyReused())
+    const onKeyReused = vi.fn(() => true)
+    const onSaved = vi.fn()
+    const { result } = renderHook(
+      () => useEntityForm(null, { onKeyReused, onSaved }),
+      { wrapper: makeWrapper() }
+    )
+
+    act(() => result.current.form.setValue('name', 'Wall A'))
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(onKeyReused).toHaveBeenCalledTimes(1)
+    expect(toastError).toHaveBeenCalledWith(
+      'objects.saveError.mayHaveSavedDraftKept'
+    )
+    expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it('a key-reused refusal does not claim a draft when none was kept', async () => {
+    objects.create.mockRejectedValue(keyReused())
+    const { result } = renderHook(
+      () => useEntityForm(null, { onKeyReused: () => false }),
+      { wrapper: makeWrapper() }
+    )
+
+    act(() => result.current.form.setValue('name', 'Wall A'))
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(toastError).toHaveBeenCalledWith('objects.saveError.mayHaveSaved')
   })
 
   it('a failed create does not report a save', async () => {

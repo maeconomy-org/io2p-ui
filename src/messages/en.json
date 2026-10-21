@@ -739,7 +739,9 @@
       "invalid": "Could not save — {detail}",
       "notFound": "That item no longer exists, or you cannot see it.",
       "propertyKeyRequired": "Give every property a name before saving.",
-      "nameRequired": "An object needs a name"
+      "nameRequired": "An object needs a name",
+      "mayHaveSaved": "Your earlier save may have gone through. Reload to check before you save again.",
+      "mayHaveSavedDraftKept": "Your earlier save may have gone through. Reload to check. Your work is saved as a draft."
     },
     "templateSelector": {
       "label": "Start from a template",

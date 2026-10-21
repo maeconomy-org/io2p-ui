@@ -107,6 +107,7 @@ export function EntitySheet({
       sheetDraft.discard()
       onOpenChange(false)
     },
+    onKeyReused: () => writeDraft(),
   })
 
   const writeDraft = () => {

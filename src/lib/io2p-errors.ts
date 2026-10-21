@@ -9,6 +9,8 @@ export type SaveErrorKey =
   | 'objects.permissionDenied'
   | 'common.sessionExpired'
   | 'common.saveFailed'
+  | 'objects.saveError.mayHaveSaved'
+  | 'objects.saveError.mayHaveSavedDraftKept'
 
 export interface SaveErrorMessage {
   key: SaveErrorKey
@@ -135,6 +137,20 @@ export function wasErrorReported(error: unknown): boolean {
 }
 
 // The problem+json `detail` — server prose naming the rule that rejected the write. Worth
+// io2p-core answers this when an Idempotency-Key comes back with a different body: the first save
+// may already have gone through, so saving again could make a second copy.
+export const IDEMPOTENCY_KEY_REUSED = 'urn:io2p:problem:idempotency-key-reused'
+
+// By shape as well as `instanceof`, for the same dual-module-copy reason as `iomStatus`.
+export function isIdempotencyKeyReused(error: unknown): boolean {
+  if (iomStatus(error) !== 422) return false
+  const type =
+    error instanceof ApiError
+      ? error.type
+      : (error as { type?: unknown } | null)?.type
+  return type === IDEMPOTENCY_KEY_REUSED
+}
+
 // surfacing wherever it names what to fix: 422 for a business rule, 400 for a schema one. The
 // 400 text is the framework's own (`body/resources must NOT have more than 200 items`), which is
 // blunt but names the field and the limit — and nothing else on that path names either.
@@ -155,6 +171,9 @@ export function iomDetail(error: unknown): string | undefined {
  * optimistic-concurrency race, and the user's recovery is the same either way.
  */
 export function saveErrorMessage(error: unknown): SaveErrorMessage {
+  if (isIdempotencyKeyReused(error)) {
+    return { key: 'objects.saveError.mayHaveSaved' }
+  }
   switch (iomStatus(error)) {
     case 401:
       return { key: 'common.sessionExpired' }
