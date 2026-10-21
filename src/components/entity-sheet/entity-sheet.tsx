@@ -15,6 +15,7 @@ import { hasPendingUploads } from '@/lib/entity'
 import type { EntityRollupEntry } from 'io2p-client'
 
 import { useEntityForm } from './hooks/use-entity-form'
+import { useSheetDraft } from './hooks/use-sheet-draft'
 import { useEntityLifecycle } from './hooks/use-entity-lifecycle'
 import { CreateForm } from './create-form'
 import { EntitySheetShell, type SheetTab } from './entity-sheet-shell'
@@ -94,6 +95,7 @@ export function EntitySheet({
     return draft ? { id: draftId, draft } : null
   }, [isCreate, draftId, getDraft])
 
+  const sheetDraft = useSheetDraft(drafts, draftId)
   const { form, submit, isSubmitting } = useEntityForm(entity, {
     defaultParentIds,
     resumeDraft,
@@ -102,10 +104,19 @@ export function EntitySheet({
       announceReparent(addedParents)
       if (!isCreate) return
       // The object exists on the server now, so the local copy is no longer a draft of anything.
-      if (draftId) drafts.deleteDraft(draftId)
+      sheetDraft.discard()
       onOpenChange(false)
     },
+    onKeyReused: () => writeDraft(),
   })
+
+  const writeDraft = () => {
+    const values = form.getValues()
+    return sheetDraft.write(
+      values,
+      values.name.trim() || t('objects.drafts.untitled')
+    )
+  }
 
   const { dirtyFields, errors, isDirty: formIsDirty } = form.formState
   /**
@@ -117,16 +128,9 @@ export function EntitySheet({
   const isDirty = formIsDirty || !!resumeDraft
 
   const saveAsDraft = () => {
-    const values = form.getValues()
-    const id = draftId ?? drafts.newDraftId()
-    const saved = drafts.saveDraft(
-      id,
-      values,
-      values.name.trim() || t('objects.drafts.untitled')
-    )
     // A draft keys on the signed-in id, so one saved before `/me` resolves has nowhere to go. It
     // used to report success either way, and the work was simply not there afterwards.
-    if (saved) toast.success(t('objects.drafts.saved'))
+    if (writeDraft()) toast.success(t('objects.drafts.saved'))
     else toast.error(t('objects.drafts.saveFailed'))
   }
 

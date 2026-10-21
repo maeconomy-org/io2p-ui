@@ -739,7 +739,9 @@
       "invalid": "Opslaan mislukt — {detail}",
       "notFound": "Dit bestaat niet meer, of u kunt het niet zien.",
       "propertyKeyRequired": "Geef elke eigenschap een naam voordat u opslaat.",
-      "nameRequired": "Een object heeft een naam nodig"
+      "nameRequired": "Een object heeft een naam nodig",
+      "mayHaveSaved": "Uw eerdere opslag is mogelijk al gelukt. Laad de pagina opnieuw om dat te controleren voordat u opnieuw opslaat.",
+      "mayHaveSavedDraftKept": "Uw eerdere opslag is mogelijk al gelukt. Laad de pagina opnieuw om dat te controleren. Uw werk is als concept opgeslagen."
     },
     "templateSelector": {
       "label": "Beginnen met een sjabloon",

@@ -14,6 +14,7 @@ import {
   iomDetail,
   iomStatus,
   isCallerAbort,
+  isIdempotencyKeyReused,
   isCallerCancelled,
   isMintInterrupted,
   isUnreadable,
@@ -308,5 +309,37 @@ describe('cancellation checks stay in one place', () => {
         /isCallerAbort\(/
       )
     }
+  })
+})
+
+describe('isIdempotencyKeyReused', () => {
+  const reused = {
+    type: 'urn:io2p:problem:idempotency-key-reused',
+    title: 'Unprocessable Entity',
+    status: 422,
+  }
+
+  it('recognises the type on an SDK error and on a plain object', () => {
+    expect(isIdempotencyKeyReused(new ValidationError(reused))).toBe(true)
+    expect(isIdempotencyKeyReused({ ...reused })).toBe(true)
+  })
+
+  it('needs both the 422 and the type', () => {
+    expect(isIdempotencyKeyReused(new ValidationError(problem(422, 'x')))).toBe(
+      false
+    )
+    expect(isIdempotencyKeyReused({ ...reused, status: 400 })).toBe(false)
+  })
+
+  it('maps to its own save message, while a plain 422 keeps the detail', () => {
+    expect(saveErrorMessage(new ValidationError(reused))).toEqual({
+      key: 'objects.saveError.mayHaveSaved',
+    })
+    expect(
+      saveErrorMessage(new ValidationError(problem(422, 'bad name')))
+    ).toEqual({
+      key: 'objects.saveError.invalid',
+      values: { detail: 'bad name' },
+    })
   })
 })
