@@ -9,6 +9,7 @@ export type SaveErrorKey =
   | 'objects.permissionDenied'
   | 'common.sessionExpired'
   | 'common.saveFailed'
+  | 'common.tooManyRequests'
   | 'objects.saveError.mayHaveSaved'
   | 'objects.saveError.mayHaveSavedDraftKept'
 
@@ -187,6 +188,10 @@ export function saveErrorMessage(error: unknown): SaveErrorMessage {
     // data nobody lost.
     case 404:
       return { key: 'objects.saveError.notFound' }
+    // Each client has its own limit, so the honest advice is to wait: pressing Save again at
+    // once only spends more of it.
+    case 429:
+      return { key: 'common.tooManyRequests' }
     case 409:
     case 412:
       return { key: 'objects.saveError.conflict' }

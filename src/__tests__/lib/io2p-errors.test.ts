@@ -104,6 +104,14 @@ describe('saveErrorMessage', () => {
     })
   })
 
+  it('tells a rate-limited user to wait, not that the save failed', () => {
+    expect(saveErrorMessage(new ApiError(problem(429)))).toEqual({
+      key: 'common.tooManyRequests',
+    })
+    expect(en.common.tooManyRequests).toBeTruthy()
+    expect(nl.common.tooManyRequests).toBeTruthy()
+  })
+
   it('falls back to the generic message when a 400 carries no detail', () => {
     expect(saveErrorMessage(new ApiError(problem(400)))).toEqual({
       key: 'common.saveFailed',

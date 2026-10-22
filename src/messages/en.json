@@ -197,6 +197,7 @@
     "save": "Save",
     "saving": "Saving...",
     "saveFailed": "Failed to save changes. Please try again.",
+    "tooManyRequests": "Too many requests in a short time. Wait a moment, then try again.",
     "savedSuccessfully": "Changes saved successfully",
     "noResults": "No results.",
     "error": "Something went wrong",
