@@ -34,6 +34,12 @@ export const PUBLIC_PAGES: string[] = [
 ]
 export const PUBLIC_PAGES_SET = new Set(PUBLIC_PAGES)
 
+/**
+ * Where a pending social account waits. Not public (it needs the session
+ * cookie), but drawn without the app chrome, which needs core data.
+ */
+export const PENDING_APPROVAL_PATH = '/pending'
+
 export type AuthScene = {
   id: string
   icon: LucideIcon
@@ -90,19 +96,14 @@ export const SOCIAL_PROVIDERS: readonly SocialProvider[] = [
 ] as const
 
 /**
- * The providers a deployer has enabled, in registry order. Anything in the
- * config that this build has no mark or label for is dropped rather than
- * rendered as a nameless button.
+ * The providers the issuer reports as enabled, in registry order. An id this
+ * build has no mark or label for is dropped rather than rendered as a nameless
+ * button.
  */
 export function enabledSocialProviders(
-  configured: string
+  enabled: readonly string[]
 ): readonly SocialProvider[] {
-  const ids = new Set(
-    configured
-      .split(',')
-      .map((id) => id.trim().toLowerCase())
-      .filter(Boolean)
-  )
+  const ids = new Set(enabled.map((id) => id.trim().toLowerCase()))
   return SOCIAL_PROVIDERS.filter((p) => ids.has(p.id))
 }
 

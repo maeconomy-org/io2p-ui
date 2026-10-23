@@ -11,7 +11,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { logger } from '@/lib/observability/logger'
 import { cn } from '@/lib/utils'
 import { useAuth, useAppConfig } from '@/contexts'
+import { useSignInOptions } from '@/hooks/api/use-sign-in-options'
 import {
+  createLandingErrorStore,
+  useLandingError,
+} from '@/hooks/use-landing-error'
+import {
+  PENDING_APPROVAL_PATH,
   SOCIAL_PROVIDERS,
   enabledSocialProviders,
   type SocialProviderId,
@@ -42,12 +48,24 @@ const AUTH_METHODS = new Set<AuthMethod>([
   ...SOCIAL_PROVIDERS.map((p) => p.id),
 ])
 
+// `?error=` codes the issuer appends when an OAuth sign-in ends on this page.
+const OAUTH_ERROR_KEYS: Record<string, string> = {
+  signup_disabled: 'auth.errors.signupDisabled',
+  account_not_linked: 'auth.errors.accountNotLinked',
+  BANNED_USER: 'auth.errors.banned',
+  email_not_found: 'auth.errors.socialNoEmail',
+  access_denied: 'auth.errors.socialCancelled',
+}
+
+const landingOAuthError = createLandingErrorStore()
+
 export default function LoginPage() {
   const router = useRouter()
   const t = useTranslations()
   const {
     isAuthenticated,
     authLoading,
+    pendingApproval,
     handleAuth,
     handleEmailLogin,
     handleSocialLogin,
@@ -79,7 +97,8 @@ export default function LoginPage() {
     mode: 'onChange',
   })
 
-  const socialProviders = enabledSocialProviders(config.socialProviders)
+  const signInOptions = useSignInOptions()
+  const socialProviders = enabledSocialProviders(signInOptions.providers)
   // Certificate is the primary action only when it is the ONLY one.
   const hasOtherSignIn =
     config.emailLoginEnabled === 'true' || socialProviders.length > 0
@@ -88,9 +107,17 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.replace('/objects')
+      router.replace(pendingApproval ? PENDING_APPROVAL_PATH : '/objects')
     }
-  }, [isAuthenticated, authLoading, router])
+  }, [isAuthenticated, authLoading, pendingApproval, router])
+
+  const oauthErrorCode = useLandingError(landingOAuthError)
+  const [oauthErrorDismissed, setOAuthErrorDismissed] = useState(false)
+  const shownError =
+    error ??
+    (oauthErrorCode && !oauthErrorDismissed
+      ? t(OAUTH_ERROR_KEYS[oauthErrorCode] ?? 'auth.errors.socialFailed')
+      : null)
 
   // No auth gate here on purpose. This page used to render a full-page spinner
   // until the session resolved, so EVERY visitor waited a round trip to be told
@@ -138,6 +165,7 @@ export default function LoginPage() {
 
     setSubmitting(true)
     setError(null)
+    setOAuthErrorDismissed(true)
 
     try {
       const result = await handleEmailLogin(data.email, data.password)
@@ -159,6 +187,7 @@ export default function LoginPage() {
   const onSocialClick = async (provider: SocialProviderId) => {
     setSocialLoading(provider)
     setError(null)
+    setOAuthErrorDismissed(true)
 
     // Written before the redirect, not after: on success this browsing context
     // is gone, so there is no "after" to write it in.
@@ -177,6 +206,7 @@ export default function LoginPage() {
   const handleCertificateAuth = async () => {
     setCertLoading(true)
     setError(null)
+    setOAuthErrorDismissed(true)
 
     try {
       const result = await handleAuth()
@@ -237,14 +267,14 @@ export default function LoginPage() {
               : 'scale-100 opacity-100'
           )}
         >
-          {error && (
+          {shownError && (
             <div
               data-testid="auth-error"
               role="alert"
               className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive animate-in slide-in-from-top-2 duration-300"
             >
               <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
+              <span>{shownError}</span>
             </div>
           )}
 

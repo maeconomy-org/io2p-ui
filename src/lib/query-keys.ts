@@ -72,6 +72,7 @@ export const queryKeys = {
   auth: {
     sessions: ['auth', 'sessions'] as const,
     accounts: ['auth', 'accounts'] as const,
+    signInOptions: ['auth', 'sign-in-options'] as const,
   },
 
   // ─── Users ───────────────────────────────────────────────

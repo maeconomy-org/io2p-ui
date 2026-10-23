@@ -94,6 +94,28 @@ export function isCallerCancelled(error: unknown): boolean {
   return isCallerAbort(error) || isMintInterrupted(error)
 }
 
+/**
+ * io2p-auth refuses the core-token mint for a social account that waits for an administrator
+ * (403 ACCOUNT_PENDING_APPROVAL). An expected state with its own page, not a failure. `status`
+ * makes `retryQuery` treat it as permanent.
+ */
+export class PendingApprovalError extends Error {
+  readonly status = 403
+  constructor() {
+    super('account pending approval')
+    this.name = 'PendingApprovalError'
+  }
+}
+
+// By `name`, not `instanceof`: the same dual-module-copy hazard as `iomStatus`.
+export function isPendingApprovalError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { name?: unknown }).name === 'PendingApprovalError'
+  )
+}
+
 const READ_METHODS = new Set(['GET', 'HEAD'])
 
 /**
