@@ -8,7 +8,7 @@ those go through a private channel, not a pull request.
 
 ## Getting started
 
-**Prerequisites:** Node.js 22 or newer (`.nvmrc` pins 24) and pnpm 11. `corepack enable` will pick
+**Prerequisites:** Node.js 24.22.1 or newer (`.nvmrc` pins it) and pnpm 11. `corepack enable` will pick
 up the right pnpm.
 
 ```bash
