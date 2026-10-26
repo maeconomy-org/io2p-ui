@@ -14,10 +14,10 @@
 # -----------------------------------------------------------------------------
 # 24 is the current LTS line, and what ci.yml gates on. Do not move to an
 # odd-numbered line: those never reach LTS.
-# TIP: For reproducible builds, pin to a specific digest:
-#   FROM node:24-alpine@sha256:<digest> AS deps
-# Get the current digest: docker pull node:24-alpine && docker inspect --format='{{.RepoDigests}}' node:24-alpine
-FROM node:24-alpine AS deps
+# Exact version, not `24`: 24.22.1 is the first 24.x that distrusts the
+# compromised eMudhra intermediate CAs. A floating tag decides that at build
+# time. Bump it; never loosen it. Keep .nvmrc on the same version.
+FROM node:24.22.1-alpine AS deps
 WORKDIR /app
 
 # pnpm comes from package.json "packageManager" via corepack, so this cannot
@@ -38,7 +38,7 @@ RUN pnpm install --frozen-lockfile
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS builder
+FROM node:24.22.1-alpine AS builder
 WORKDIR /app
 
 # Copy dependencies from deps stage
@@ -59,7 +59,7 @@ RUN pnpm build
 # -----------------------------------------------------------------------------
 # Stage 3: Runner (Production)
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS runner
+FROM node:24.22.1-alpine AS runner
 WORKDIR /app
 
 # Production environment
