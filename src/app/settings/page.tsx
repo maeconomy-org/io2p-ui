@@ -18,8 +18,16 @@ const TAB_TRIGGER =
  * settings panels) are client components in their own right and stay that way;
  * a Server Component renders them perfectly well.
  */
-export default async function SettingsPage() {
+const TABS = new Set(['account', 'security', 'appearance', 'preferences'])
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
   const t = await getTranslations('settings')
+  // `?tab=security` is where a "Connect" round trip comes back to.
+  const { tab } = await searchParams
 
   return (
     <div className="container mx-auto px-4 py-8" data-testid="settings-page">
@@ -30,7 +38,7 @@ export default async function SettingsPage() {
         </p>
 
         <Tabs
-          defaultValue="account"
+          defaultValue={tab && TABS.has(tab) ? tab : 'account'}
           orientation="vertical"
           className="flex flex-col gap-6 md:flex-row md:gap-8"
         >

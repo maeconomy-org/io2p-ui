@@ -4,6 +4,7 @@ import { createAuthClient } from 'better-auth/react'
 import { twoFactorClient } from 'better-auth/client/plugins'
 
 import { getCachedConfig } from '@/constants/client'
+import { PendingApprovalError } from '@/lib/io2p-errors'
 
 // Every plugin except this one is declared on the io2p-auth SERVER and discovered over the wire;
 // twoFactorClient is here because the redirect it performs happens in the browser.
@@ -91,6 +92,12 @@ async function mintCoreToken(now: number): Promise<string> {
     )
   }
   const res = await fetch(`${base}/api/auth/token`, { credentials: 'include' })
+  if (
+    res.status === 403 &&
+    (await errorCode(res)) === 'ACCOUNT_PENDING_APPROVAL'
+  ) {
+    throw new PendingApprovalError()
+  }
   if (!res.ok) {
     // No "token" in the text: Sentry's server-side scrubber matches that word and
     // masks the WHOLE message, hiding the status — the only part worth reading.
@@ -106,4 +113,12 @@ async function mintCoreToken(now: number): Promise<string> {
     expMs: jwtExpMs(data.token) || now + 14 * 60_000,
   }
   return data.token
+}
+
+async function errorCode(res: Response): Promise<unknown> {
+  try {
+    return ((await res.json()) as { code?: unknown }).code
+  } catch {
+    return undefined
+  }
 }

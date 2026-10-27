@@ -7,6 +7,7 @@ import { getCachedConfig } from '@/constants/client'
 import { getCoreToken } from './auth/client'
 import {
   isCallerCancelled,
+  isPendingApprovalError,
   isUnreadable,
   markErrorReported,
 } from './io2p-errors'
@@ -149,6 +150,12 @@ export function createIo2pClient(
         // Kept distinct from a real outage, which is also a status-0
         // NetworkError but is nobody's caller cancelling anything.
         logger.debug('io2p request aborted', fields)
+        return
+      }
+      if (isPendingApprovalError(err)) {
+        // The account waits for an administrator; AuthEffects sends it to /pending.
+        logger.info('io2p request awaits approval', fields)
+        markErrorReported(err)
         return
       }
       if (isUnreadable(info.method, info.status)) {

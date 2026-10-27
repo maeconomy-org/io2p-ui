@@ -14,6 +14,11 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('@/lib/observability/logger', () => ({ logger: { error: vi.fn() } }))
 
+let providers: string[] = []
+vi.mock('@/hooks/api/use-sign-in-options', () => ({
+  useSignInOptions: () => ({ providers, signUp: 'off', approval: 'none' }),
+}))
+
 const mockHandleAuth = vi.fn()
 let config: Record<string, unknown>
 vi.mock('@/contexts', () => ({
@@ -32,13 +37,22 @@ const baseConfig = {
   appName: 'Internet of Materials',
   appDescription: 'x',
   emailLoginEnabled: 'true',
-  socialProviders: '',
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear()
   config = { ...baseConfig }
+  providers = []
+})
+
+describe('LoginPage — social sign-in', () => {
+  it('shows only the buttons the issuer turned on', () => {
+    providers = ['microsoft']
+    render(<LoginPage />)
+    expect(screen.getByTestId('auth-social-microsoft')).toBeInTheDocument()
+    expect(screen.queryByTestId('auth-social-google')).not.toBeInTheDocument()
+  })
 })
 
 describe('LoginPage — certificate sign-in', () => {

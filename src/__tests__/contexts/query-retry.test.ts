@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { ForbiddenError, NotFoundError, ValidationError } from 'io2p-client'
 
 import { retryQuery } from '@/contexts/query-context'
+import { PendingApprovalError } from '@/lib/io2p-errors'
 
 function problem(status: number) {
   return { type: 'about:blank', title: 'Error', status }
@@ -32,5 +33,9 @@ describe('retryQuery', () => {
   it('stops at one attempt for anything retryable', () => {
     expect(retryQuery(1, problem(429))).toBe(false)
     expect(retryQuery(1, undefined)).toBe(false)
+  })
+
+  it('does not retry a token mint refused for a pending account', () => {
+    expect(retryQuery(0, new PendingApprovalError())).toBe(false)
   })
 })

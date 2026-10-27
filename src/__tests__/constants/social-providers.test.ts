@@ -5,43 +5,27 @@ import {
   describeCredential,
   enabledSocialProviders,
 } from '@/constants/auth'
-import { DEFAULT_CLIENT_CONFIG } from '@/constants/client'
-
-const ids = (configured: string) =>
-  enabledSocialProviders(configured).map((p) => p.id)
+const ids = (enabled: string[]) =>
+  enabledSocialProviders(enabled).map((p) => p.id)
 
 describe('enabledSocialProviders', () => {
-  it('returns the providers named in the config', () => {
-    expect(ids('google,microsoft')).toEqual(['google', 'microsoft'])
-    expect(ids('google')).toEqual(['google'])
+  it('returns the providers the issuer reports', () => {
+    expect(ids(['google', 'microsoft'])).toEqual(['google', 'microsoft'])
+    expect(ids(['google'])).toEqual(['google'])
   })
 
-  // An empty value is a deployer turning social sign-in OFF, not an unset one falling back to
-  // the default — the button would 400 at the issuer.
-  it('returns nothing for an empty or whitespace value', () => {
-    expect(ids('')).toEqual([])
-    expect(ids('   ')).toEqual([])
-    expect(ids(',,')).toEqual([])
-  })
-
-  it('tolerates padding and casing from a hand-edited env file', () => {
-    expect(ids(' Google , MICROSOFT ')).toEqual(['google', 'microsoft'])
+  it('returns nothing when the issuer reports nothing', () => {
+    expect(ids([])).toEqual([])
   })
 
   it('drops ids this build has no mark or label for', () => {
-    expect(ids('google,github')).toEqual(['google'])
-    expect(ids('github')).toEqual([])
+    expect(ids(['google', 'github'])).toEqual(['google'])
+    expect(ids(['github'])).toEqual([])
   })
 
-  // The buttons stack in one column, so config order must not reshuffle them between deploys.
-  it('keeps registry order regardless of config order', () => {
-    expect(ids('microsoft,google')).toEqual(['google', 'microsoft'])
-  })
-
-  it('enables every registered provider by default', () => {
-    expect(ids(DEFAULT_CLIENT_CONFIG.socialProviders)).toEqual(
-      SOCIAL_PROVIDERS.map((p) => p.id)
-    )
+  // The buttons stack in one column, so issuer order must not reshuffle them between deploys.
+  it('keeps registry order regardless of issuer order', () => {
+    expect(ids(['microsoft', 'google'])).toEqual(['google', 'microsoft'])
   })
 })
 
