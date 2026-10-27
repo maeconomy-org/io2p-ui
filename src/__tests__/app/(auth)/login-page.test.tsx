@@ -103,3 +103,37 @@ describe('LoginPage — certificate sign-in', () => {
     expect(mockReplace).not.toHaveBeenCalled()
   })
 })
+
+describe('LoginPage — an error code on the URL', () => {
+  async function renderWithError(code: string) {
+    window.history.replaceState({}, '', `/?error=${code}`)
+    vi.resetModules()
+    const { default: FreshLoginPage } = await import('@/app/(auth)/page')
+    render(<FreshLoginPage />)
+  }
+
+  it('says a reset link is invalid or expired, not that a provider failed', async () => {
+    await renderWithError('INVALID_TOKEN')
+
+    expect(
+      await screen.findByText('auth.resetPassword.invalidToken')
+    ).toBeInTheDocument()
+    expect(screen.queryByText('auth.errors.socialFailed')).toBeNull()
+  })
+
+  it('keeps the text of a known provider code', async () => {
+    await renderWithError('signup_disabled')
+
+    expect(
+      await screen.findByText('auth.errors.signupDisabled')
+    ).toBeInTheDocument()
+  })
+
+  it('says the provider failed for a code it does not know', async () => {
+    await renderWithError('state_mismatch')
+
+    expect(
+      await screen.findByText('auth.errors.socialFailed')
+    ).toBeInTheDocument()
+  })
+})
