@@ -1,7 +1,8 @@
 /**
  * Advanced Search Parser
  *
- * Parses search queries with special syntax into structured searchBy parameters.
+ * Parses search queries with special syntax into filters. `toListParams` turns them into the query
+ * a list sends to the node.
  *
  * Supported syntax:
  * - `deleted:true` or `deleted:false` - Filter by soft deleted status
@@ -14,13 +15,12 @@
  * - `parent:uuid` - Filter by parent UUID
  * - Regular text becomes the searchTerm
  *
- * Examples:
- * - "deleted:true battery" → { searchBy: { softDeleted: true }, searchTerm: "battery" }
- * - "prop:material=steel" → { searchBy: { "properties.label": "material", "properties.values.value": "steel" } }
- * - "prop:material" → { searchBy: { "properties.label": "material" } } (any value)
- * - "value:steel" → { searchBy: { "properties.values.value": "steel" } } (any property)
- * - 'name:"Clay Tile"' → { searchBy: { "name": "Clay Tile" } }
- * - 'name:Clay Tile' → { searchBy: { "name": "Clay Tile" } } (quotes not required)
+ * Examples (as list params):
+ * - "deleted:true battery" → { deleted: 'only', q: 'battery' }
+ * - "prop:material=steel" → { property: ['material:steel'] }
+ * - "prop:material" → { property: ['material'] } (any value)
+ * - "value:steel" → { property: [':steel'] } (any property)
+ * - 'name:"Clay Tile"' → { q: 'Clay Tile' }
  */
 
 export interface SearchFilter {
@@ -45,7 +45,6 @@ export interface SearchFilter {
 export interface ParsedSearch {
   searchTerm: string
   filters: SearchFilter[]
-  searchBy: Record<string, unknown>
 }
 
 export interface FilterSuggestion {
@@ -128,7 +127,6 @@ function isFilterPrefix(token: string): boolean {
  */
 export function parseSearchQuery(query: string): ParsedSearch {
   const filters: SearchFilter[] = []
-  const searchBy: Record<string, unknown> = {}
   const textParts: string[] = []
 
   // Split by spaces, but respect quoted strings
@@ -143,14 +141,12 @@ export function parseSearchQuery(query: string): ParsedSearch {
     if (lowerToken.startsWith('deleted:')) {
       const value = token.slice(8).toLowerCase()
       if (value === 'true' || value === 'false') {
-        const boolValue = value === 'true'
         filters.push({
           type: 'deleted',
           label: `Deleted: ${value}`,
-          value: boolValue.toString(),
+          value,
           raw: token,
         })
-        searchBy.softDeleted = boolValue
       }
       i++
       continue
@@ -160,14 +156,12 @@ export function parseSearchQuery(query: string): ParsedSearch {
     if (lowerToken.startsWith('template:')) {
       const value = token.slice(9).toLowerCase()
       if (value === 'true' || value === 'false') {
-        const boolValue = value === 'true'
         filters.push({
           type: 'template',
           label: `Template: ${value}`,
-          value: boolValue.toString(),
+          value,
           raw: token,
         })
-        searchBy.isTemplate = boolValue
       }
       i++
       continue
@@ -190,9 +184,6 @@ export function parseSearchQuery(query: string): ParsedSearch {
           propertyKey: label,
           propertyValue: value,
         })
-        // Set both in searchBy
-        searchBy['properties.label'] = label
-        searchBy['properties.values.value'] = value
       } else if (propPart.trim()) {
         // Only label: prop:label (search any object with this property)
         const label = propPart.trim()
@@ -203,8 +194,6 @@ export function parseSearchQuery(query: string): ParsedSearch {
           raw: token,
           propertyKey: label,
         })
-        // Only set the label
-        searchBy['properties.label'] = label
       }
       i++
       continue
@@ -221,7 +210,6 @@ export function parseSearchQuery(query: string): ParsedSearch {
           raw: token,
           propertyValue: value,
         })
-        searchBy['properties.values.value'] = value
       }
       i++
       continue
@@ -258,7 +246,6 @@ export function parseSearchQuery(query: string): ParsedSearch {
           value: nameValue,
           raw: nameRaw,
         })
-        searchBy.name = nameValue
       }
       i++
       continue
@@ -273,7 +260,6 @@ export function parseSearchQuery(query: string): ParsedSearch {
         value,
         raw: token,
       })
-      searchBy.createdByUserUUID = value
       i++
       continue
     }
@@ -287,7 +273,6 @@ export function parseSearchQuery(query: string): ParsedSearch {
         value,
         raw: token,
       })
-      searchBy.parentUUID = value
       i++
       continue
     }
@@ -308,8 +293,109 @@ export function parseSearchQuery(query: string): ParsedSearch {
   return {
     searchTerm: textParts.join(' '),
     filters,
-    searchBy,
   }
+}
+
+export type SearchListType =
+  | 'objects'
+  | 'processes'
+  | 'templates'
+  | 'formulas'
+  | 'constants'
+  | 'shares'
+
+export interface ListSearchParams {
+  q?: string
+  property?: string[]
+  createdBy?: string
+  deleted?: 'only' | 'exclude'
+  parent?: string
+}
+
+export interface ListSearch {
+  params: ListSearchParams
+  /** Filters this list does not take. The node ignores an undeclared param, so they are left out. */
+  unsupported: SearchFilter[]
+  /** Filters that cannot be expressed as a list param. */
+  invalid: SearchFilter[]
+}
+
+// Which params each list declares (io2p-client list query types). The node IGNORES a param a list
+// does not declare, so sending one would return an unfiltered list that looks filtered.
+const TAKES_PROPERTY: ReadonlySet<SearchListType> = new Set([
+  'objects',
+  'processes',
+  'templates',
+])
+const TAKES_PARENT: ReadonlySet<SearchListType> = new Set(['objects'])
+
+/** `template:true|false` from the search, or undefined when it does not say. */
+export function templateSearch(parsed: ParsedSearch): boolean | undefined {
+  const filter = parsed.filters.findLast((f) => f.type === 'template')
+  return filter ? filter.value === 'true' : undefined
+}
+
+/** The list query for `parsed` on a list of `type`. */
+export function toListParams(
+  parsed: ParsedSearch,
+  type: SearchListType
+): ListSearch {
+  const params: ListSearchParams = {}
+  const unsupported: SearchFilter[] = []
+  const invalid: SearchFilter[] = []
+  const property: string[] = []
+  const text: string[] = []
+
+  for (const filter of parsed.filters) {
+    switch (filter.type) {
+      case 'text':
+        text.push(filter.value.replace(/^"|"$/g, ''))
+        break
+      case 'name':
+        // The node has no name-only filter; `q` matches name or description.
+        text.push(filter.value)
+        break
+      case 'property':
+      case 'propertyLabel':
+      case 'propertyValue': {
+        if (!TAKES_PROPERTY.has(type)) {
+          unsupported.push(filter)
+          break
+        }
+        const key = filter.propertyKey ?? ''
+        // The node splits `key:value` at the FIRST colon, so a key with a colon would match
+        // a different key.
+        if (key.includes(':')) {
+          invalid.push(filter)
+          break
+        }
+        property.push(
+          filter.type === 'propertyLabel'
+            ? key
+            : `${key}:${filter.propertyValue ?? ''}`
+        )
+        break
+      }
+      case 'createdBy':
+        if (filter.value) params.createdBy = filter.value
+        break
+      case 'deleted':
+        params.deleted = filter.value === 'true' ? 'only' : 'exclude'
+        break
+      case 'parent':
+        if (!TAKES_PARENT.has(type)) unsupported.push(filter)
+        else if (filter.value) params.parent = filter.value
+        break
+      case 'template':
+        // Routing only: it picks /templates or /objects, it is not a list param.
+        break
+    }
+  }
+
+  const q = text.join(' ').trim()
+  if (q) params.q = q
+  if (property.length > 0) params.property = property
+  return { params, unsupported, invalid }
 }
 
 /**

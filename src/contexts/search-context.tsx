@@ -4,7 +4,10 @@ import React, { createContext, useContext, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
 import type { ParsedSearch } from '@/components/global-search/search-parser'
-import { parseSearchQuery } from '@/components/global-search/search-parser'
+import {
+  parseSearchQuery,
+  templateSearch,
+} from '@/components/global-search/search-parser'
 
 interface SearchContextType {
   searchQuery: string
@@ -60,11 +63,8 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
    * page that cannot show results has to land somewhere.
    */
   const resolveSearchPage = (parsed: ParsedSearch) => {
-    const explicit = parsed.searchBy.isTemplate
     const isTemplateSearch =
-      explicit !== undefined
-        ? (explicit as boolean)
-        : pathname.startsWith(MODELS_PAGE)
+      templateSearch(parsed) ?? pathname.startsWith(MODELS_PAGE)
     const target = isTemplateSearch ? MODELS_PAGE : OBJECTS_PAGE
 
     if (pathname !== target && !pathname.startsWith(target)) {
