@@ -25,7 +25,9 @@ import {
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useFormulas } from '@/hooks/api/leaves'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
-import { useAuth, useSearch } from '@/contexts'
+import { useAuth, useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import { listSearchQuery } from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 import { PageHelp } from '@/components/onboarding/page-help'
 import {
@@ -83,7 +85,7 @@ export default function FormulasPage() {
   const [shareTarget, setShareTarget] = useState<FormulaDTO | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('formulas')
   const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -99,8 +101,7 @@ export default function FormulasPage() {
       ...listQuery.query,
       size: filters.pageSize,
       scope,
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: filters.showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, filters.showDeleted),
       system: owner,
     },
     { keepPreviousData: true }
@@ -152,7 +153,8 @@ export default function FormulasPage() {
                   deletedSection(
                     t,
                     filters.showDeleted,
-                    filters.setShowDeleted
+                    filters.setShowDeleted,
+                    search?.params.deleted
                   ),
                 ]}
               />
@@ -176,6 +178,8 @@ export default function FormulasPage() {
               </Button>
             </div>
           </div>
+
+          <SearchFilterNote search={search} />
 
           <EntityTable
             columns={columns}

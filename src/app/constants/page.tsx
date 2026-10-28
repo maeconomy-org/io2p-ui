@@ -25,7 +25,9 @@ import {
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useConstants } from '@/hooks/api/leaves'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
-import { useAuth, useSearch } from '@/contexts'
+import { useAuth, useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import { listSearchQuery } from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 
 import {
@@ -75,7 +77,7 @@ export default function ConstantsPage() {
   const [shareTarget, setShareTarget] = useState<ConstantDTO | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('constants')
   const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -92,8 +94,7 @@ export default function ConstantsPage() {
       size: filters.pageSize,
       // `all`: built-ins are shared, so `mine` would hide most of the library.
       scope,
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: filters.showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, filters.showDeleted),
       system: owner,
     },
     { keepPreviousData: true }
@@ -140,7 +141,8 @@ export default function ConstantsPage() {
                   deletedSection(
                     t,
                     filters.showDeleted,
-                    filters.setShowDeleted
+                    filters.setShowDeleted,
+                    search?.params.deleted
                   ),
                 ]}
               />
@@ -156,6 +158,7 @@ export default function ConstantsPage() {
           </div>
 
           <div {...anchor('constantsList')}>
+            <SearchFilterNote search={search} />
             <EntityTable
               columns={columns}
               page={constantsPage}

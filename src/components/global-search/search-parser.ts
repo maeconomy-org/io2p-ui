@@ -316,7 +316,7 @@ export interface ListSearch {
   params: ListSearchParams
   /** Filters this list does not take. The node ignores an undeclared param, so they are left out. */
   unsupported: SearchFilter[]
-  /** Filters that cannot be expressed as a list param. */
+  /** Filters that cannot be expressed as a list param: a property key with a colon, an empty id. */
   invalid: SearchFilter[]
 }
 
@@ -328,6 +328,22 @@ const TAKES_PROPERTY: ReadonlySet<SearchListType> = new Set([
   'templates',
 ])
 const TAKES_PARENT: ReadonlySet<SearchListType> = new Set(['objects'])
+
+/**
+ * The search fields of a list query. A `deleted:` token in the search wins over the page's "show
+ * deleted" toggle, which the filter menu then shows as set by the search.
+ */
+export function listSearchQuery(
+  search: ListSearch | null,
+  showDeleted: boolean
+): Omit<ListSearchParams, 'deleted'> & {
+  deleted?: 'only' | 'exclude' | 'include'
+} {
+  return {
+    ...search?.params,
+    deleted: search?.params.deleted ?? (showDeleted ? 'include' : undefined),
+  }
+}
 
 /** `template:true|false` from the search, or undefined when it does not say. */
 export function templateSearch(parsed: ParsedSearch): boolean | undefined {
@@ -378,6 +394,7 @@ export function toListParams(
       }
       case 'createdBy':
         if (filter.value) params.createdBy = filter.value
+        else invalid.push(filter)
         break
       case 'deleted':
         params.deleted = filter.value === 'true' ? 'only' : 'exclude'
@@ -385,6 +402,7 @@ export function toListParams(
       case 'parent':
         if (!TAKES_PARENT.has(type)) unsupported.push(filter)
         else if (filter.value) params.parent = filter.value
+        else invalid.push(filter)
         break
       case 'template':
         // Routing only: it picks /templates or /objects, it is not a list param.

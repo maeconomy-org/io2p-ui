@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  listSearchQuery,
   parseSearchQuery,
   templateSearch,
   toListParams,
@@ -143,6 +144,14 @@ describe('search-parser', () => {
       expect(result.filters[0].value).toBe('"heavy metal"')
     })
 
+    // The node drops a property with an empty key AND value, so it would return an unfiltered list.
+    it.each(['prop:', 'value:', 'prop:  value:'])(
+      'yields no property filter for a bare %j',
+      (query) => {
+        expect(parseSearchQuery(query).filters).toEqual([])
+      }
+    )
+
     it('should handle empty query', () => {
       const result = parseSearchQuery('')
       expect(result.searchTerm).toBe('')
@@ -198,6 +207,15 @@ describe('search-parser', () => {
       ])
     })
 
+    it.each(['createdBy:', 'parent:'])(
+      'reports an empty %s as invalid instead of dropping it',
+      (query) => {
+        const result = toListParams(parseSearchQuery(query), 'objects')
+        expect(result.params).toEqual({})
+        expect(result.invalid.map((f) => f.raw)).toEqual([query])
+      }
+    )
+
     it('leaves out a property filter on a list that does not take it', () => {
       for (const type of ['formulas', 'constants', 'shares'] as const) {
         const result = toListParams(
@@ -236,6 +254,35 @@ describe('search-parser', () => {
       expect(Object.keys(paramsFor(every, type)).sort()).toEqual(
         [...declared].sort()
       )
+    })
+  })
+
+  describe('listSearchQuery', () => {
+    const search = (query: string) =>
+      toListParams(parseSearchQuery(query), 'objects')
+
+    it.each([
+      ['no search, toggle off', null, false, undefined],
+      ['no search, toggle on', null, true, 'include'],
+      ['search without deleted:, toggle on', 'beton', true, 'include'],
+      ['deleted:true, toggle off', 'deleted:true', false, 'only'],
+      ['deleted:false, toggle on', 'deleted:false', true, 'exclude'],
+    ] as const)('%s → deleted %j', (_case, query, showDeleted, deleted) => {
+      const result = listSearchQuery(
+        query === null ? null : search(query),
+        showDeleted
+      )
+      expect(result.deleted).toBe(deleted)
+    })
+
+    it('carries the other search params through', () => {
+      expect(
+        listSearchQuery(search('prop:material=steel beton'), false)
+      ).toEqual({
+        property: ['material:steel'],
+        q: 'beton',
+        deleted: undefined,
+      })
     })
   })
 

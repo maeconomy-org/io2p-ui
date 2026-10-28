@@ -30,7 +30,9 @@ import {
 } from '@/components/entity-list'
 import { useTemplates } from '@/hooks/api/entities'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
-import { useAuth, useSearch } from '@/contexts'
+import { useAuth, useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import { listSearchQuery } from '@/components/global-search/search-parser'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { anchor } from '@/constants'
 import { PageHelp } from '@/components/onboarding/page-help'
@@ -82,7 +84,7 @@ export default function TemplatesPage() {
   const [shareTarget, setShareTarget] = useState<TemplateListItem | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('templates')
   const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -97,8 +99,7 @@ export default function TemplatesPage() {
       ...listQuery.query,
       size: filters.pageSize,
       scope,
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: filters.showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, filters.showDeleted),
       system: owner,
       type: typeFilter,
     },
@@ -171,7 +172,8 @@ export default function TemplatesPage() {
                   deletedSection(
                     t,
                     filters.showDeleted,
-                    filters.setShowDeleted
+                    filters.setShowDeleted,
+                    search?.params.deleted
                   ),
                 ]}
               />
@@ -202,6 +204,8 @@ export default function TemplatesPage() {
               </DropdownMenu>
             </div>
           </div>
+
+          <SearchFilterNote search={search} />
 
           <EntityTable
             columns={columns}

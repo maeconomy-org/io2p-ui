@@ -1,16 +1,23 @@
 'use client'
 
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
-import type { ParsedSearch } from '@/components/global-search/search-parser'
+import type {
+  ListSearch,
+  ParsedSearch,
+  SearchListType,
+} from '@/components/global-search/search-parser'
 import {
+  filtersToDisplayString,
   parseSearchQuery,
   templateSearch,
+  toListParams,
 } from '@/components/global-search/search-parser'
 
 interface SearchContextType {
   searchQuery: string
+  parsedSearch: ParsedSearch | null
   setSearchQuery: (query: string) => void
   isSearchMode: boolean
   executeAdvancedSearch: (query: string) => void
@@ -42,6 +49,8 @@ const MODELS_PAGE = '/templates'
  */
 export function SearchProvider({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('')
+  // The parsed filters a list sends. The display string is for the input box only.
+  const [parsedSearch, setParsedSearch] = useState<ParsedSearch | null>(null)
   const [isSearchMode, setIsSearchMode] = useState(false)
   // Which root page (objects vs templates) the active search belongs to, so crossing to the other
   // root clears a search that no longer means anything there.
@@ -54,6 +63,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 
   const clearSearch = () => {
     setSearchQuery('')
+    setParsedSearch(null)
     setIsSearchMode(false)
     setSearchAnchor(null)
   }
@@ -75,6 +85,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 
   const applySearch = (parsed: ParsedSearch, displayQuery: string) => {
     setSearchQuery(displayQuery)
+    setParsedSearch(parsed)
     setSearchAnchor(resolveSearchPage(parsed))
     setIsSearchMode(true)
   }
@@ -88,18 +99,8 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   }
 
   const executeSearchFromParsed = (parsed: ParsedSearch) => {
-    const displayQuery =
-      [
-        parsed.searchTerm,
-        ...parsed.filters
-          .filter((f) => f.type !== 'text')
-          .map((f) => `${f.type}:${f.value}`),
-      ]
-        .filter(Boolean)
-        .join(' ') ||
-      parsed.searchTerm ||
-      ''
-    applySearch(parsed, displayQuery)
+    // The raw tokens, so reopening the search box and pressing Enter parses to the same filters.
+    applySearch(parsed, filtersToDisplayString(parsed.filters))
   }
 
   // Crossing the objects ↔ templates boundary drops a search anchored to the other root — DERIVED,
@@ -116,6 +117,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     <SearchContext.Provider
       value={{
         searchQuery: active ? searchQuery : '',
+        parsedSearch: active ? parsedSearch : null,
         setSearchQuery,
         isSearchMode: active,
         executeAdvancedSearch,
@@ -134,4 +136,13 @@ export function useSearch() {
     throw new Error('useSearch must be used within a SearchProvider')
   }
   return context
+}
+
+/** What the active search asks of a list of `type`, or null when no search is active. */
+export function useListSearch(type: SearchListType): ListSearch | null {
+  const { parsedSearch } = useSearch()
+  return useMemo(
+    () => (parsedSearch ? toListParams(parsedSearch, type) : null),
+    [parsedSearch, type]
+  )
 }

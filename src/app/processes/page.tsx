@@ -24,7 +24,9 @@ import {
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { ViewSelector } from '@/components/view-selector'
 import { useProcesses } from '@/hooks/api/entities'
-import { useAuth, useSearch } from '@/contexts'
+import { useAuth, useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import { listSearchQuery } from '@/components/global-search/search-parser'
 import { usePreference } from '@/hooks/ui/use-preference'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { anchor, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
@@ -89,7 +91,7 @@ export default function ProcessesPage() {
 
   const [view, setView] = usePreference('processView')
   const isTable = view === 'table'
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('processes')
   const { userId, authLoading } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -105,8 +107,7 @@ export default function ProcessesPage() {
       ...listQuery.query,
       size: filters.pageSize,
       scope,
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: filters.showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, filters.showDeleted),
       // Server-side reverse flow lookup. No `direction`, so both sides come back — the point here is
       // "everything related", where the Relations tab splits them.
       ref: relatedObjectId ?? undefined,
@@ -192,7 +193,8 @@ export default function ProcessesPage() {
                     deletedSection(
                       t,
                       filters.showDeleted,
-                      filters.setShowDeleted
+                      filters.setShowDeleted,
+                      search?.params.deleted
                     ),
                   ]}
                 />
@@ -213,6 +215,7 @@ export default function ProcessesPage() {
             </div>
           </div>
 
+          {isTable && <SearchFilterNote search={search} />}
           {isTable ? (
             <EntityTable
               onRowHover={(row) => prefetchDetail(row.id)}

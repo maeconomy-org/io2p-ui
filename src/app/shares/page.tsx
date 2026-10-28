@@ -23,7 +23,9 @@ import {
 } from '@/components/entity-list'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useShares } from '@/hooks/api/access'
-import { useSearch } from '@/contexts'
+import { useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import { listSearchQuery } from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 import { usePageSize } from '@/hooks/ui/use-page-size'
 import { logger } from '@/lib/observability/logger'
@@ -67,7 +69,7 @@ export default function SharesPage() {
   const searchParams = useSearchParams()
   const deepLinkedShareId = searchParams.get('share')
 
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('shares')
 
   const listQuery = useEntityListQuery()
   const setPage = listQuery.setPage
@@ -81,8 +83,7 @@ export default function SharesPage() {
     {
       ...listQuery.query,
       size: pageSize,
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, showDeleted),
     },
     { keepPreviousData: true }
   )
@@ -188,7 +189,14 @@ export default function SharesPage() {
                     at all, so showing the control on that tab would offer something inert. */}
                 {tab === 'shares' && (
                   <FilterMenu
-                    sections={[deletedSection(t, showDeleted, setShowDeleted)]}
+                    sections={[
+                      deletedSection(
+                        t,
+                        showDeleted,
+                        setShowDeleted,
+                        search?.params.deleted
+                      ),
+                    ]}
                   />
                 )}
 
@@ -204,6 +212,7 @@ export default function SharesPage() {
             </div>
 
             <TabsContent value="shares" className="space-y-4">
+              <SearchFilterNote search={search} />
               <EntityTable
                 columns={columns}
                 page={sharesPage}
