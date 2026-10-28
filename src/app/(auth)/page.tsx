@@ -55,6 +55,9 @@ const OAUTH_ERROR_KEYS: Record<string, string> = {
   BANNED_USER: 'auth.errors.banned',
   email_not_found: 'auth.errors.socialNoEmail',
   access_denied: 'auth.errors.socialCancelled',
+  // Not OAuth: a reset link whose callbackURL was empty lands here with this code
+  // until the token expires (sent before io2p-auth filled in a missing redirectTo).
+  INVALID_TOKEN: 'auth.resetPassword.invalidToken',
 }
 
 const landingOAuthError = createLandingErrorStore()
