@@ -3,7 +3,7 @@
 import { Info } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import type { ListSearch } from './search-parser'
+import { searchApplies, type ListSearch } from './search-parser'
 
 /**
  * Names the search filters a list did not apply. Without it a list that cannot filter by a token
@@ -32,6 +32,7 @@ export function SearchFilterNote({ search }: { search: ListSearch | null }) {
         {invalid.length > 0 && (
           <p>{t('search.invalidFilter', { filters: tokens(invalid) })}</p>
         )}
+        {searchApplies(search) && <p>{t('search.restApplies')}</p>}
       </div>
     </div>
   )

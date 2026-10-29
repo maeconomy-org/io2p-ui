@@ -14,7 +14,10 @@ import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useAuth, useListSearch } from '@/contexts'
 import { SearchFilterNote } from '@/components/global-search/search-filter-note'
-import { listSearchQuery } from '@/components/global-search/search-parser'
+import {
+  listSearchQuery,
+  searchApplies,
+} from '@/components/global-search/search-parser'
 import { Button } from '@/components/ui'
 import { FilterMenu, deletedSection, scopeSection } from '@/components/filters'
 import { ViewSelector } from '@/components/view-selector'
@@ -66,7 +69,7 @@ export default function ObjectsPage() {
   const { clearTrail } = useBreadcrumbTrail(undefined)
   const search = useListSearch('objects')
   // A search none of whose filters apply narrows nothing, so the list stays the top-level one.
-  const isSearchMode = search !== null && Object.keys(search.params).length > 0
+  const isSearchMode = searchApplies(search)
   const { userId, authLoading } = useAuth()
 
   const { drafts, deleteDraft } = useObjectDrafts()
@@ -212,13 +215,23 @@ export default function ObjectsPage() {
             emptyIcon={
               <FileText className="h-10 w-10 text-muted-foreground/50" />
             }
-            emptyTitle={t('objects.noObjectsTitle')}
-            emptyDescription={t('objects.noObjectsDescription')}
+            emptyTitle={
+              isSearchMode
+                ? t('search.noResultsTitle')
+                : t('objects.noObjectsTitle')
+            }
+            emptyDescription={
+              isSearchMode
+                ? t('search.noResultsDescription')
+                : t('objects.noObjectsDescription')
+            }
             emptyAction={
-              <Button size="sm" onClick={() => setIsAddSheetOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                {t('objects.noObjectsAction')}
-              </Button>
+              isSearchMode ? undefined : (
+                <Button size="sm" onClick={() => setIsAddSheetOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  {t('objects.noObjectsAction')}
+                </Button>
+              )
             }
           />
         )}

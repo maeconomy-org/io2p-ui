@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   listSearchQuery,
   parseSearchQuery,
+  searchApplies,
   templateSearch,
   toListParams,
   type SearchListType,
@@ -283,6 +284,29 @@ describe('search-parser', () => {
         q: 'beton',
         deleted: undefined,
       })
+    })
+  })
+
+  describe('searchApplies', () => {
+    it.each([
+      ['no search', null, false],
+      ['free text', 'beton', true],
+      ['deleted:false alone', 'deleted:false', true],
+      ['an invalid filter alone', 'prop:a:b=c', false],
+    ] as const)('%s → %j', (_case, query, expected) => {
+      expect(
+        searchApplies(
+          query === null
+            ? null
+            : toListParams(parseSearchQuery(query), 'objects')
+        )
+      ).toBe(expected)
+    })
+
+    it('is false for a filter the list does not take', () => {
+      expect(
+        searchApplies(toListParams(parseSearchQuery('parent:p-1'), 'formulas'))
+      ).toBe(false)
     })
   })
 

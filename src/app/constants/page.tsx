@@ -27,7 +27,10 @@ import { useConstants } from '@/hooks/api/leaves'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useListSearch } from '@/contexts'
 import { SearchFilterNote } from '@/components/global-search/search-filter-note'
-import { listSearchQuery } from '@/components/global-search/search-parser'
+import {
+  listSearchQuery,
+  searchApplies,
+} from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 
 import {
@@ -78,6 +81,7 @@ export default function ConstantsPage() {
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
   const search = useListSearch('constants')
+  const searching = searchApplies(search)
   const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -176,8 +180,16 @@ export default function ConstantsPage() {
               emptyIcon={
                 <Ruler className="h-10 w-10 text-muted-foreground/50" />
               }
-              emptyTitle={t('constants.empty.title')}
-              emptyDescription={t('constants.empty.description')}
+              emptyTitle={
+                searching
+                  ? t('search.noResultsTitle')
+                  : t('constants.empty.title')
+              }
+              emptyDescription={
+                searching
+                  ? t('search.noResultsDescription')
+                  : t('constants.empty.description')
+              }
             />
           </div>
         </div>

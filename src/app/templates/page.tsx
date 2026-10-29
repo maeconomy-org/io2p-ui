@@ -32,7 +32,10 @@ import { useTemplates } from '@/hooks/api/entities'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useListSearch } from '@/contexts'
 import { SearchFilterNote } from '@/components/global-search/search-filter-note'
-import { listSearchQuery } from '@/components/global-search/search-parser'
+import {
+  listSearchQuery,
+  searchApplies,
+} from '@/components/global-search/search-parser'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { anchor } from '@/constants'
 import { PageHelp } from '@/components/onboarding/page-help'
@@ -85,6 +88,7 @@ export default function TemplatesPage() {
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
   const search = useListSearch('templates')
+  const searching = searchApplies(search)
   const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -223,13 +227,23 @@ export default function TemplatesPage() {
             emptyIcon={
               <FileText className="h-10 w-10 text-muted-foreground/50" />
             }
-            emptyTitle={t('templates.noTemplatesTitle')}
-            emptyDescription={t('templates.noTemplatesDescription')}
+            emptyTitle={
+              searching
+                ? t('search.noResultsTitle')
+                : t('templates.noTemplatesTitle')
+            }
+            emptyDescription={
+              searching
+                ? t('search.noResultsDescription')
+                : t('templates.noTemplatesDescription')
+            }
             emptyAction={
-              <Button size="sm" onClick={() => handleAddTemplate('object')}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                {t('templates.noTemplatesAction')}
-              </Button>
+              searching ? undefined : (
+                <Button size="sm" onClick={() => handleAddTemplate('object')}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  {t('templates.noTemplatesAction')}
+                </Button>
+              )
             }
           />
         </div>

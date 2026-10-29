@@ -329,6 +329,11 @@ const TAKES_PROPERTY: ReadonlySet<SearchListType> = new Set([
 ])
 const TAKES_PARENT: ReadonlySet<SearchListType> = new Set(['objects'])
 
+/** Whether `search` narrows its list at all. A search whose every filter was left out does not. */
+export function searchApplies(search: ListSearch | null): boolean {
+  return search !== null && Object.keys(search.params).length > 0
+}
+
 /**
  * The search fields of a list query. A `deleted:` token in the search wins over the page's "show
  * deleted" toggle, which the filter menu then shows as set by the search.

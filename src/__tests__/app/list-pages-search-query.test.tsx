@@ -18,8 +18,9 @@ import {
 let parsed: ParsedSearch | null = null
 
 // Every page reads `useList` plus a few mutation hooks; any other hook answers as a mutation.
-const { useList, resource } = vi.hoisted(() => {
+const { useList, resource, entityTable } = vi.hoisted(() => {
   const useList = vi.fn()
+  const entityTable = vi.fn((_props: Record<string, unknown>) => null)
   const mutation = () => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn(),
@@ -27,7 +28,7 @@ const { useList, resource } = vi.hoisted(() => {
   })
   const resource = () =>
     new Proxy({}, { get: (_, key) => (key === 'useList' ? useList : mutation) })
-  return { useList, resource }
+  return { useList, resource, entityTable }
 })
 
 vi.mock('@/hooks/api/entities', () => ({
@@ -73,7 +74,7 @@ vi.mock('@/components/entity-list', async () => {
   >('@/components/entity-list')
   return {
     ...actual,
-    EntityTable: () => null,
+    EntityTable: entityTable,
     useEntityListFilters: () => ({
       pageSize: 20,
       handlePageSizeChange: vi.fn(),
@@ -100,6 +101,7 @@ const PAGES: [SearchListType, ComponentType][] = [
 const TAKES_PROPERTY = new Set<SearchListType>(['processes', 'templates'])
 
 const queryOf = () => useList.mock.calls.at(-1)?.[0]
+const tableProps = () => entityTable.mock.calls.at(-1)?.[0] ?? {}
 
 describe.each(PAGES)(
   '%s page — the list query during a search',
@@ -135,6 +137,21 @@ describe.each(PAGES)(
         expect(screen.getByTestId('search-filter-note')).toBeInTheDocument()
       }
       expect(queryOf()).not.toHaveProperty('parent')
+    })
+
+    it('says an empty list found no results, rather than that nothing exists', () => {
+      parsed = parseSearchQuery('beton')
+      render(<Page />)
+
+      expect(tableProps().emptyTitle).toBe('search.noResultsTitle')
+      expect(tableProps().emptyAction).toBeUndefined()
+    })
+
+    it('keeps its own empty text when no filter of the search applies', () => {
+      parsed = parseSearchQuery('parent:p-1')
+      render(<Page />)
+
+      expect(tableProps().emptyTitle).not.toBe('search.noResultsTitle')
     })
   }
 )

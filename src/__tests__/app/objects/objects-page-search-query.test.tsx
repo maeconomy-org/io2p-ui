@@ -14,6 +14,9 @@ import {
 } from '@/components/global-search/search-parser'
 
 const useList = vi.fn()
+const { entityTable } = vi.hoisted(() => ({
+  entityTable: vi.fn((_props: Record<string, unknown>) => null),
+}))
 // The page passes its own list type; the mock maps the parsed search with it, as the real hook does.
 let parsed: ParsedSearch | null = null
 
@@ -62,7 +65,7 @@ vi.mock('@/components/entity-list', async () => {
   >('@/components/entity-list')
   return {
     ...actual,
-    EntityTable: () => null,
+    EntityTable: entityTable,
     useEntityListFilters: () => ({
       pageSize: 20,
       handlePageSizeChange: vi.fn(),
@@ -94,6 +97,7 @@ vi.mock('@/components/onboarding/page-help', () => ({ PageHelp: () => null }))
 import ObjectsPage from '@/app/objects/page'
 
 const queryOf = () => useList.mock.calls.at(-1)?.[0]
+const tableProps = () => entityTable.mock.calls.at(-1)?.[0] ?? {}
 
 describe('objects page — the list query during a search', () => {
   beforeEach(() => {
@@ -136,6 +140,17 @@ describe('objects page — the list query during a search', () => {
 
     expect(queryOf()).toMatchObject({ parent: '' })
     expect(screen.getByTestId('search-filter-note')).toBeInTheDocument()
+    // The empty text follows the same rule as the query.
+    expect(tableProps().emptyTitle).toBe('objects.noObjectsTitle')
+    expect(tableProps().emptyAction).toBeDefined()
+  })
+
+  it('says an empty search found no results, with no create button', () => {
+    parsed = parseSearchQuery('beton')
+    render(<ObjectsPage />)
+
+    expect(tableProps().emptyTitle).toBe('search.noResultsTitle')
+    expect(tableProps().emptyAction).toBeUndefined()
   })
 
   it('says which filters it could not apply', () => {

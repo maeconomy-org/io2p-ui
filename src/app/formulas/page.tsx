@@ -27,7 +27,10 @@ import { useFormulas } from '@/hooks/api/leaves'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useListSearch } from '@/contexts'
 import { SearchFilterNote } from '@/components/global-search/search-filter-note'
-import { listSearchQuery } from '@/components/global-search/search-parser'
+import {
+  listSearchQuery,
+  searchApplies,
+} from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 import { PageHelp } from '@/components/onboarding/page-help'
 import {
@@ -86,6 +89,7 @@ export default function FormulasPage() {
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
   const search = useListSearch('formulas')
+  const searching = searchApplies(search)
   const { userId } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -198,8 +202,14 @@ export default function FormulasPage() {
             emptyIcon={
               <FunctionSquare className="h-10 w-10 text-muted-foreground/50" />
             }
-            emptyTitle={t('formulas.empty.title')}
-            emptyDescription={t('formulas.empty.description')}
+            emptyTitle={
+              searching ? t('search.noResultsTitle') : t('formulas.empty.title')
+            }
+            emptyDescription={
+              searching
+                ? t('search.noResultsDescription')
+                : t('formulas.empty.description')
+            }
           />
         </div>
       </div>

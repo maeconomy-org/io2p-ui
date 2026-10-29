@@ -26,7 +26,10 @@ import { ViewSelector } from '@/components/view-selector'
 import { useProcesses } from '@/hooks/api/entities'
 import { useAuth, useListSearch } from '@/contexts'
 import { SearchFilterNote } from '@/components/global-search/search-filter-note'
-import { listSearchQuery } from '@/components/global-search/search-parser'
+import {
+  listSearchQuery,
+  searchApplies,
+} from '@/components/global-search/search-parser'
 import { usePreference } from '@/hooks/ui/use-preference'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { anchor, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
@@ -92,6 +95,7 @@ export default function ProcessesPage() {
   const [view, setView] = usePreference('processView')
   const isTable = view === 'table'
   const search = useListSearch('processes')
+  const searching = searchApplies(search)
   const { userId, authLoading } = useAuth()
 
   const listQuery = useEntityListQuery()
@@ -235,8 +239,16 @@ export default function ProcessesPage() {
               emptyIcon={
                 <Workflow className="h-10 w-10 text-muted-foreground/50" />
               }
-              emptyTitle={t('processes.empty.title')}
-              emptyDescription={t('processes.empty.description')}
+              emptyTitle={
+                searching
+                  ? t('search.noResultsTitle')
+                  : t('processes.empty.title')
+              }
+              emptyDescription={
+                searching
+                  ? t('search.noResultsDescription')
+                  : t('processes.empty.description')
+              }
             />
           ) : (
             <ProcessFlowView

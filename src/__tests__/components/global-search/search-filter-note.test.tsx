@@ -35,6 +35,28 @@ describe('SearchFilterNote', () => {
     expect(screen.queryByText(/search\.notApplied/)).toBeNull()
   })
 
+  it('says the rest of the search still applies when something else did', () => {
+    render(
+      <SearchFilterNote search={on('prop:material=steel beton', 'formulas')} />
+    )
+
+    expect(screen.getByTestId('search-filter-note')).toHaveTextContent(
+      'search.restApplies'
+    )
+  })
+
+  // With nothing applied the sentence would be untrue.
+  it.each([
+    ['an unsupported filter alone', on('prop:material=steel', 'formulas')],
+    ['an invalid filter alone', on('prop:a:b=c', 'objects')],
+  ])('does not say the rest applies for %s', (_case, search) => {
+    render(<SearchFilterNote search={search} />)
+
+    expect(screen.getByTestId('search-filter-note')).not.toHaveTextContent(
+      'search.restApplies'
+    )
+  })
+
   it.each([
     ['no active search', null],
     ['every filter applied', on('prop:material=steel beton', 'objects')],

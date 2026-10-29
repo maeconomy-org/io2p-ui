@@ -25,7 +25,10 @@ import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useShares } from '@/hooks/api/access'
 import { useListSearch } from '@/contexts'
 import { SearchFilterNote } from '@/components/global-search/search-filter-note'
-import { listSearchQuery } from '@/components/global-search/search-parser'
+import {
+  listSearchQuery,
+  searchApplies,
+} from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 import { usePageSize } from '@/hooks/ui/use-page-size'
 import { logger } from '@/lib/observability/logger'
@@ -70,6 +73,7 @@ export default function SharesPage() {
   const deepLinkedShareId = searchParams.get('share')
 
   const search = useListSearch('shares')
+  const searching = searchApplies(search)
 
   const listQuery = useEntityListQuery()
   const setPage = listQuery.setPage
@@ -229,8 +233,16 @@ export default function SharesPage() {
                 emptyIcon={
                   <Share2 className="h-10 w-10 text-muted-foreground/50" />
                 }
-                emptyTitle={t('shares.empty.title')}
-                emptyDescription={t('shares.empty.description')}
+                emptyTitle={
+                  searching
+                    ? t('search.noResultsTitle')
+                    : t('shares.empty.title')
+                }
+                emptyDescription={
+                  searching
+                    ? t('search.noResultsDescription')
+                    : t('shares.empty.description')
+                }
               />
             </TabsContent>
 

@@ -1234,7 +1234,10 @@
     "deletedSetBySearchOnly": "Niet toegepast: uw zoekopdracht toont alleen verwijderde items (deleted:true).",
     "deletedSetBySearchExclude": "Niet toegepast: uw zoekopdracht verbergt verwijderde items (deleted:false).",
     "notApplied": "Niet toegepast op deze pagina: {filters}. Deze lijst kan daar niet op filteren.",
-    "invalidFilter": "Niet toegepast: {filters}. Een eigenschapsnaam mag geen \":\" bevatten, en createdBy: en parent: hebben een id nodig."
+    "invalidFilter": "Niet toegepast: {filters}. Een eigenschapsnaam mag geen \":\" bevatten, en createdBy: en parent: hebben een id nodig.",
+    "restApplies": "De rest van uw zoekopdracht wordt wel toegepast.",
+    "noResultsTitle": "Geen resultaten voor uw zoekopdracht",
+    "noResultsDescription": "Probeer andere woorden of verwijder een filter."
   },
   "constants": {
     "title": "Constanten",
