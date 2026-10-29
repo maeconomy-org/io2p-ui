@@ -1230,7 +1230,14 @@
         "label": "Parent",
         "description": "Filter by parent object UUID"
       }
-    }
+    },
+    "deletedSetBySearchOnly": "Not applied: your search shows only deleted items (deleted:true).",
+    "deletedSetBySearchExclude": "Not applied: your search hides deleted items (deleted:false).",
+    "notApplied": "Not applied on this page: {filters}. This list cannot filter by them.",
+    "invalidFilter": "Not applied: {filters}. A property name cannot contain \":\", and createdBy: and parent: need an id.",
+    "restApplies": "The rest of your search still applies.",
+    "noResultsTitle": "No results for your search",
+    "noResultsDescription": "Try other words or remove a filter."
   },
   "constants": {
     "title": "Constants",

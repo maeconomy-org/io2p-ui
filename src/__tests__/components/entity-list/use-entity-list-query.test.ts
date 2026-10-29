@@ -30,6 +30,31 @@ describe('useEntityListQuery', () => {
     expect(result.current.query.page).toBe(1)
   })
 
+  it('goes back to page 1 when resetPageOn changes', () => {
+    const { result, rerender } = renderHook(
+      ({ search }) => useEntityListQuery({}, { resetPageOn: search }),
+      { initialProps: { search: null as object | null } }
+    )
+    act(() => result.current.setPage(3))
+
+    rerender({ search: { q: 'beton' } })
+
+    expect(result.current.query.page).toBe(1)
+  })
+
+  it('keeps the page while resetPageOn stays the same', () => {
+    const search = { q: 'beton' }
+    const { result, rerender } = renderHook(
+      ({ search }) => useEntityListQuery({}, { resetPageOn: search }),
+      { initialProps: { search } }
+    )
+    act(() => result.current.setPage(3))
+
+    rerender({ search })
+
+    expect(result.current.query.page).toBe(3)
+  })
+
   it('setSearch clears an empty string to undefined', () => {
     const { result } = renderHook(() => useEntityListQuery())
     act(() => result.current.setSearch(''))

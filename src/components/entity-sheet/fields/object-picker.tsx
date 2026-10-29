@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useDebouncedValue } from '@/hooks/ui/use-debounced-value'
 import { ChevronsUpDown, Loader2 } from 'lucide-react'
 
 import {
@@ -61,9 +62,10 @@ export function ObjectPicker({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [pickedName, setPickedName] = useState<string | undefined>()
+  const searched = useDebouncedValue(query.trim())
 
   const { data, isFetching } = useObjects().useList(
-    { q: query.trim() || undefined, size: SEARCH_SIZE, page: 1, scope: 'all' },
+    { q: searched || undefined, size: SEARCH_SIZE, page: 1, scope: 'all' },
     { enabled: open, keepPreviousData: true }
   )
   const objects = data?.data ?? []

@@ -24,7 +24,13 @@ import {
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { ViewSelector } from '@/components/view-selector'
 import { useProcesses } from '@/hooks/api/entities'
-import { useAuth, useSearch } from '@/contexts'
+import { useAuth, useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import {
+  listSearchQuery,
+  searchApplies,
+  searchKey,
+} from '@/components/global-search/search-parser'
 import { usePreference } from '@/hooks/ui/use-preference'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { anchor, ENABLED_PROCESS_VIEW_TYPES } from '@/constants'
@@ -89,10 +95,11 @@ export default function ProcessesPage() {
 
   const [view, setView] = usePreference('processView')
   const isTable = view === 'table'
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('processes')
+  const searching = searchApplies(search)
   const { userId, authLoading } = useAuth()
 
-  const listQuery = useEntityListQuery()
+  const listQuery = useEntityListQuery({}, { resetPageOn: searchKey(search) })
   const setPage = listQuery.setPage
   const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
   const { useList, useRemove, useRestore, usePrefetchDetail } = useProcesses()
@@ -105,8 +112,7 @@ export default function ProcessesPage() {
       ...listQuery.query,
       size: filters.pageSize,
       scope,
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: filters.showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, filters.showDeleted),
       // Server-side reverse flow lookup. No `direction`, so both sides come back — the point here is
       // "everything related", where the Relations tab splits them.
       ref: relatedObjectId ?? undefined,
@@ -192,7 +198,8 @@ export default function ProcessesPage() {
                     deletedSection(
                       t,
                       filters.showDeleted,
-                      filters.setShowDeleted
+                      filters.setShowDeleted,
+                      search?.params.deleted
                     ),
                   ]}
                 />
@@ -213,6 +220,7 @@ export default function ProcessesPage() {
             </div>
           </div>
 
+          {isTable && <SearchFilterNote search={search} />}
           {isTable ? (
             <EntityTable
               onRowHover={(row) => prefetchDetail(row.id)}
@@ -232,8 +240,16 @@ export default function ProcessesPage() {
               emptyIcon={
                 <Workflow className="h-10 w-10 text-muted-foreground/50" />
               }
-              emptyTitle={t('processes.empty.title')}
-              emptyDescription={t('processes.empty.description')}
+              emptyTitle={
+                searching
+                  ? t('search.noResultsTitle')
+                  : t('processes.empty.title')
+              }
+              emptyDescription={
+                searching
+                  ? t('search.noResultsDescription')
+                  : t('processes.empty.description')
+              }
             />
           ) : (
             <ProcessFlowView

@@ -30,7 +30,13 @@ import {
 } from '@/components/entity-list'
 import { useTemplates } from '@/hooks/api/entities'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
-import { useAuth, useSearch } from '@/contexts'
+import { useAuth, useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import {
+  listSearchQuery,
+  searchApplies,
+  searchKey,
+} from '@/components/global-search/search-parser'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { anchor } from '@/constants'
 import { PageHelp } from '@/components/onboarding/page-help'
@@ -82,10 +88,11 @@ export default function TemplatesPage() {
   const [shareTarget, setShareTarget] = useState<TemplateListItem | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('templates')
+  const searching = searchApplies(search)
   const { userId } = useAuth()
 
-  const listQuery = useEntityListQuery()
+  const listQuery = useEntityListQuery({}, { resetPageOn: searchKey(search) })
   const { useList, useRemove, useRestore } = useTemplates()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
@@ -97,8 +104,7 @@ export default function TemplatesPage() {
       ...listQuery.query,
       size: filters.pageSize,
       scope,
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: filters.showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, filters.showDeleted),
       system: owner,
       type: typeFilter,
     },
@@ -171,7 +177,8 @@ export default function TemplatesPage() {
                   deletedSection(
                     t,
                     filters.showDeleted,
-                    filters.setShowDeleted
+                    filters.setShowDeleted,
+                    search?.params.deleted
                   ),
                 ]}
               />
@@ -203,6 +210,8 @@ export default function TemplatesPage() {
             </div>
           </div>
 
+          <SearchFilterNote search={search} />
+
           <EntityTable
             columns={columns}
             page={templatesPage}
@@ -219,13 +228,23 @@ export default function TemplatesPage() {
             emptyIcon={
               <FileText className="h-10 w-10 text-muted-foreground/50" />
             }
-            emptyTitle={t('templates.noTemplatesTitle')}
-            emptyDescription={t('templates.noTemplatesDescription')}
+            emptyTitle={
+              searching
+                ? t('search.noResultsTitle')
+                : t('templates.noTemplatesTitle')
+            }
+            emptyDescription={
+              searching
+                ? t('search.noResultsDescription')
+                : t('templates.noTemplatesDescription')
+            }
             emptyAction={
-              <Button size="sm" onClick={() => handleAddTemplate('object')}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                {t('templates.noTemplatesAction')}
-              </Button>
+              searching ? undefined : (
+                <Button size="sm" onClick={() => handleAddTemplate('object')}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  {t('templates.noTemplatesAction')}
+                </Button>
+              )
             }
           />
         </div>

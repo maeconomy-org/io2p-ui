@@ -92,7 +92,13 @@ export function CommandCenter({
    * highlighted suggestion, the recent-search list — is instead stamped with this, so it starts
    * fresh by simply not matching the previous session's stamp.
    */
-  const session = `${open}:${initialQuery}`
+  // Counted, because open + query alone repeats: typing "mixing" with no active search, then
+  // clearing the search, reopened on the same stamp and showed "mixing" again.
+  const [openings, setOpenings] = React.useState({ open, count: 0 })
+  if (openings.open !== open) {
+    setOpenings({ open, count: openings.count + (open ? 1 : 0) })
+  }
+  const session = `${openings.count}:${open}:${initialQuery}`
   const [typed, setTyped] = React.useState<{
     session: string
     value: string

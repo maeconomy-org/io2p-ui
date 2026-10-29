@@ -25,7 +25,13 @@ import {
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useFormulas } from '@/hooks/api/leaves'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
-import { useAuth, useSearch } from '@/contexts'
+import { useAuth, useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import {
+  listSearchQuery,
+  searchApplies,
+  searchKey,
+} from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 import { PageHelp } from '@/components/onboarding/page-help'
 import {
@@ -83,10 +89,11 @@ export default function FormulasPage() {
   const [shareTarget, setShareTarget] = useState<FormulaDTO | null>(null)
   const [bulkShareOpen, setBulkShareOpen] = useState(false)
 
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('formulas')
+  const searching = searchApplies(search)
   const { userId } = useAuth()
 
-  const listQuery = useEntityListQuery()
+  const listQuery = useEntityListQuery({}, { resetPageOn: searchKey(search) })
   const { useList, useRemove, useRestore } = useFormulas()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
@@ -99,8 +106,7 @@ export default function FormulasPage() {
       ...listQuery.query,
       size: filters.pageSize,
       scope,
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: filters.showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, filters.showDeleted),
       system: owner,
     },
     { keepPreviousData: true }
@@ -152,7 +158,8 @@ export default function FormulasPage() {
                   deletedSection(
                     t,
                     filters.showDeleted,
-                    filters.setShowDeleted
+                    filters.setShowDeleted,
+                    search?.params.deleted
                   ),
                 ]}
               />
@@ -177,6 +184,8 @@ export default function FormulasPage() {
             </div>
           </div>
 
+          <SearchFilterNote search={search} />
+
           <EntityTable
             columns={columns}
             page={formulasPage}
@@ -194,8 +203,14 @@ export default function FormulasPage() {
             emptyIcon={
               <FunctionSquare className="h-10 w-10 text-muted-foreground/50" />
             }
-            emptyTitle={t('formulas.empty.title')}
-            emptyDescription={t('formulas.empty.description')}
+            emptyTitle={
+              searching ? t('search.noResultsTitle') : t('formulas.empty.title')
+            }
+            emptyDescription={
+              searching
+                ? t('search.noResultsDescription')
+                : t('formulas.empty.description')
+            }
           />
         </div>
       </div>

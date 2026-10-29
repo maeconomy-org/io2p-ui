@@ -23,7 +23,13 @@ import {
 } from '@/components/entity-list'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useShares } from '@/hooks/api/access'
-import { useSearch } from '@/contexts'
+import { useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import {
+  listSearchQuery,
+  searchApplies,
+  searchKey,
+} from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 import { usePageSize } from '@/hooks/ui/use-page-size'
 import { logger } from '@/lib/observability/logger'
@@ -67,9 +73,10 @@ export default function SharesPage() {
   const searchParams = useSearchParams()
   const deepLinkedShareId = searchParams.get('share')
 
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('shares')
+  const searching = searchApplies(search)
 
-  const listQuery = useEntityListQuery()
+  const listQuery = useEntityListQuery({}, { resetPageOn: searchKey(search) })
   const setPage = listQuery.setPage
   const [pageSize, handlePageSizeChange] = usePageSize(
     useCallback(() => setPage(1), [setPage])
@@ -81,8 +88,7 @@ export default function SharesPage() {
     {
       ...listQuery.query,
       size: pageSize,
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, showDeleted),
     },
     { keepPreviousData: true }
   )
@@ -188,7 +194,14 @@ export default function SharesPage() {
                     at all, so showing the control on that tab would offer something inert. */}
                 {tab === 'shares' && (
                   <FilterMenu
-                    sections={[deletedSection(t, showDeleted, setShowDeleted)]}
+                    sections={[
+                      deletedSection(
+                        t,
+                        showDeleted,
+                        setShowDeleted,
+                        search?.params.deleted
+                      ),
+                    ]}
                   />
                 )}
 
@@ -204,6 +217,7 @@ export default function SharesPage() {
             </div>
 
             <TabsContent value="shares" className="space-y-4">
+              <SearchFilterNote search={search} />
               <EntityTable
                 columns={columns}
                 page={sharesPage}
@@ -220,8 +234,16 @@ export default function SharesPage() {
                 emptyIcon={
                   <Share2 className="h-10 w-10 text-muted-foreground/50" />
                 }
-                emptyTitle={t('shares.empty.title')}
-                emptyDescription={t('shares.empty.description')}
+                emptyTitle={
+                  searching
+                    ? t('search.noResultsTitle')
+                    : t('shares.empty.title')
+                }
+                emptyDescription={
+                  searching
+                    ? t('search.noResultsDescription')
+                    : t('shares.empty.description')
+                }
               />
             </TabsContent>
 

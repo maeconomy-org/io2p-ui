@@ -31,13 +31,25 @@ export interface EntityListQueryDefaults {
   scope?: EntityScope
 }
 
-export function useEntityListQuery(defaults: EntityListQueryDefaults = {}) {
+export function useEntityListQuery(
+  defaults: EntityListQueryDefaults = {},
+  /** A value from outside this query (the navbar search): a new one sends the list to page 1. */
+  { resetPageOn }: { resetPageOn?: unknown } = {}
+) {
   const [query, setQuery] = useState<EntityListQuery>(() => ({
     page: 1,
     size: defaults.size ?? DEFAULT_TABLE_PAGE_SIZE,
     sort: defaults.sort,
     scope: defaults.scope,
   }))
+
+  // Set during render, not in an effect, so no request goes out for the old page with the new
+  // search: searching from page 2 asked for page 2 of the results, which was empty.
+  const [pageResetKey, setPageResetKey] = useState(resetPageOn)
+  if (!Object.is(pageResetKey, resetPageOn)) {
+    setPageResetKey(resetPageOn)
+    setQuery((q) => (q.page === 1 ? q : { ...q, page: 1 }))
+  }
 
   // Any change other than paging resets to page 1.
   const setPage = useCallback(

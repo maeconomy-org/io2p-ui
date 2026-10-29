@@ -12,7 +12,13 @@ import { usePreference } from '@/hooks/ui/use-preference'
 import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
-import { useAuth, useSearch } from '@/contexts'
+import { useAuth, useListSearch } from '@/contexts'
+import { SearchFilterNote } from '@/components/global-search/search-filter-note'
+import {
+  listSearchQuery,
+  searchApplies,
+  searchKey,
+} from '@/components/global-search/search-parser'
 import { Button } from '@/components/ui'
 import { FilterMenu, deletedSection, scopeSection } from '@/components/filters'
 import { ViewSelector } from '@/components/view-selector'
@@ -62,11 +68,16 @@ export default function ObjectsPage() {
   const [shareTarget, setShareTarget] = useState<ObjectListItem | null>(null)
 
   const { clearTrail } = useBreadcrumbTrail(undefined)
-  const { isSearchMode, searchQuery } = useSearch()
+  const search = useListSearch('objects')
+  // A search none of whose filters apply narrows nothing, so the list stays the top-level one.
+  const isSearchMode = searchApplies(search)
   const { userId, authLoading } = useAuth()
 
   const { drafts, deleteDraft } = useObjectDrafts()
-  const listQuery = useEntityListQuery({ scope })
+  const listQuery = useEntityListQuery(
+    { scope },
+    { resetPageOn: searchKey(search) }
+  )
   const { useList, usePrefetchDetail } = useObjects()
   // Warm the detail cache on hover so the sheet opens populated.
   const prefetchDetail = usePrefetchDetail(OBJECT_DETAIL_READ)
@@ -84,10 +95,10 @@ export default function ObjectsPage() {
       // again inside its parent — the hierarchy was invisible and the count meant nothing.
       //
       // Search deliberately drops the filter: a match nested three levels down is still a match,
-      // and a root-only search would report "no results" for an object that exists.
+      // and a root-only search would report "no results" for an object that exists. A `parent:`
+      // token in the search sets it again, through the spread below.
       parent: isSearchMode ? undefined : '',
-      q: isSearchMode ? searchQuery : undefined,
-      deleted: filters.showDeleted ? 'include' : undefined,
+      ...listSearchQuery(search, filters.showDeleted),
       withChildCounts: true,
     },
     { enabled: viewType === 'table', keepPreviousData: true }
@@ -142,7 +153,12 @@ export default function ObjectsPage() {
             <FilterMenu
               sections={[
                 scopeSection(t, scope, setScope, defaultScope),
-                deletedSection(t, filters.showDeleted, filters.setShowDeleted),
+                deletedSection(
+                  t,
+                  filters.showDeleted,
+                  filters.setShowDeleted,
+                  search?.params.deleted
+                ),
               ]}
               {...anchor('filters')}
             />
@@ -169,6 +185,7 @@ export default function ObjectsPage() {
           </div>
         </div>
 
+        {viewType === 'table' && <SearchFilterNote search={search} />}
         {viewType === 'table' && (
           <EntityTable
             onRowHover={(row) => prefetchDetail(row.id)}
@@ -202,13 +219,23 @@ export default function ObjectsPage() {
             emptyIcon={
               <FileText className="h-10 w-10 text-muted-foreground/50" />
             }
-            emptyTitle={t('objects.noObjectsTitle')}
-            emptyDescription={t('objects.noObjectsDescription')}
+            emptyTitle={
+              isSearchMode
+                ? t('search.noResultsTitle')
+                : t('objects.noObjectsTitle')
+            }
+            emptyDescription={
+              isSearchMode
+                ? t('search.noResultsDescription')
+                : t('objects.noObjectsDescription')
+            }
             emptyAction={
-              <Button size="sm" onClick={() => setIsAddSheetOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                {t('objects.noObjectsAction')}
-              </Button>
+              isSearchMode ? undefined : (
+                <Button size="sm" onClick={() => setIsAddSheetOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  {t('objects.noObjectsAction')}
+                </Button>
+              )
             }
           />
         )}

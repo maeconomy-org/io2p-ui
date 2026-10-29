@@ -86,11 +86,7 @@ vi.mock('@/hooks/ui/use-preference', () => ({
 vi.mock('@/lib/io2p', () => ({ useIomClient: () => ({}) }))
 vi.mock('@/contexts', () => ({
   useAuth: () => ({ userId: 'u1' }),
-  useSearch: () => ({
-    isSearchMode: false,
-    searchQuery: '',
-    clearSearch: vi.fn(),
-  }),
+  useListSearch: () => null,
 }))
 
 const fire = (action: string) =>

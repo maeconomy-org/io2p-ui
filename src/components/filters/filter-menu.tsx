@@ -52,6 +52,8 @@ export interface FilterSection {
    * selection differs from where the list opens for this account.
    */
   activeWhen?: boolean
+  /** Why this section cannot be changed right now, shown under its heading. Unset = editable. */
+  disabledReason?: string
 }
 
 /**
@@ -101,7 +103,8 @@ export function FilterMenu({
     section.onChange([...selected])
   }
 
-  const clearAll = () => sections.forEach((s) => s.onChange([]))
+  const clearAll = () =>
+    sections.forEach((s) => !s.disabledReason && s.onChange([]))
 
   return (
     <Popover>
@@ -157,6 +160,7 @@ export function FilterMenu({
                         data-testid={`filter-option-${option.value}`}
                         data-selected-state={isSelected ? 'on' : 'off'}
                         onSelect={() => toggle(section, option.value)}
+                        disabled={!!section.disabledReason}
                         className="cursor-pointer"
                       >
                         <div
@@ -173,6 +177,15 @@ export function FilterMenu({
                       </CommandItem>
                     )
                   })}
+                  {section.disabledReason && (
+                    // Indented to the option labels: group + item padding, the checkbox and its margin.
+                    <p
+                      className="pb-1.5 pl-10 pr-2 text-xs text-muted-foreground"
+                      data-testid={`filter-locked-${section.key}`}
+                    >
+                      {section.disabledReason}
+                    </p>
+                  )}
                 </CommandGroup>
               </div>
             ))}
@@ -216,7 +229,9 @@ type Translate = (key: string) => string
 export function deletedSection(
   t: Translate,
   showDeleted: boolean,
-  onChange: (show: boolean) => void
+  onChange: (show: boolean) => void,
+  /** The `deleted:` token of the active search, which overrides this toggle while it is set. */
+  searchDeleted?: 'only' | 'exclude'
 ): FilterSection {
   return {
     key: 'status',
@@ -224,6 +239,13 @@ export function deletedSection(
     options: [{ value: 'deleted', label: t('objects.showDeleted') }],
     selected: showDeleted ? ['deleted'] : [],
     onChange: (values) => onChange(values.includes('deleted')),
+    ...(searchDeleted && {
+      disabledReason: t(
+        searchDeleted === 'only'
+          ? 'search.deletedSetBySearchOnly'
+          : 'search.deletedSetBySearchExclude'
+      ),
+    }),
   }
 }
 

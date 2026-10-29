@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { useDebouncedValue } from '@/hooks/ui/use-debounced-value'
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
 import { useWatch, type UseFormReturn } from 'react-hook-form'
 
@@ -211,10 +212,11 @@ function ParentPicker({
   const { userId } = useAuth()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const searched = useDebouncedValue(query.trim())
 
   // `scope` defaults to 'mine', which would hide objects shared with the user.
   const { data, isFetching } = useObjects().useList(
-    { q: query.trim() || undefined, size: SEARCH_SIZE, page: 1, scope: 'all' },
+    { q: searched || undefined, size: SEARCH_SIZE, page: 1, scope: 'all' },
     { enabled: open, keepPreviousData: true }
   )
 
