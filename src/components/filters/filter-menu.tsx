@@ -152,14 +152,6 @@ export function FilterMenu({
               <div key={section.key}>
                 {index > 0 && <CommandSeparator />}
                 <CommandGroup heading={section.label}>
-                  {section.disabledReason && (
-                    <p
-                      className="px-2 pb-1.5 text-xs text-muted-foreground"
-                      data-testid={`filter-locked-${section.key}`}
-                    >
-                      {section.disabledReason}
-                    </p>
-                  )}
                   {section.options.map((option) => {
                     const isSelected = section.selected.includes(option.value)
                     return (
@@ -185,6 +177,15 @@ export function FilterMenu({
                       </CommandItem>
                     )
                   })}
+                  {section.disabledReason && (
+                    // Indented to the option labels: group + item padding, the checkbox and its margin.
+                    <p
+                      className="pb-1.5 pl-10 pr-2 text-xs text-muted-foreground"
+                      data-testid={`filter-locked-${section.key}`}
+                    >
+                      {section.disabledReason}
+                    </p>
+                  )}
                 </CommandGroup>
               </div>
             ))}

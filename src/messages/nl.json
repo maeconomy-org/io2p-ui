@@ -1231,8 +1231,8 @@
         "description": "Filteren op bovenliggend object UUID"
       }
     },
-    "deletedSetBySearchOnly": "Ingesteld door uw zoekopdracht (deleted:true): alleen verwijderde items worden getoond.",
-    "deletedSetBySearchExclude": "Ingesteld door uw zoekopdracht (deleted:false): verwijderde items worden verborgen.",
+    "deletedSetBySearchOnly": "Uw zoekopdracht toont alleen verwijderde items (deleted:true).",
+    "deletedSetBySearchExclude": "Uw zoekopdracht verbergt verwijderde items (deleted:false).",
     "notApplied": "Niet toegepast op deze pagina: {filters}. Deze lijst kan daar niet op filteren.",
     "invalidFilter": "Niet toegepast: {filters}. Een eigenschapsnaam mag geen \":\" bevatten, en createdBy: en parent: hebben een id nodig."
   },
