@@ -29,6 +29,7 @@ import { SearchFilterNote } from '@/components/global-search/search-filter-note'
 import {
   listSearchQuery,
   searchApplies,
+  searchKey,
 } from '@/components/global-search/search-parser'
 import { usePreference } from '@/hooks/ui/use-preference'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
@@ -98,7 +99,7 @@ export default function ProcessesPage() {
   const searching = searchApplies(search)
   const { userId, authLoading } = useAuth()
 
-  const listQuery = useEntityListQuery()
+  const listQuery = useEntityListQuery({}, { resetPageOn: searchKey(search) })
   const setPage = listQuery.setPage
   const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
   const { useList, useRemove, useRestore, usePrefetchDetail } = useProcesses()

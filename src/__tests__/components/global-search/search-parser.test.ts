@@ -3,6 +3,7 @@ import {
   listSearchQuery,
   parseSearchQuery,
   searchApplies,
+  searchKey,
   templateSearch,
   toListParams,
   type SearchListType,
@@ -307,6 +308,20 @@ describe('search-parser', () => {
       expect(
         searchApplies(toListParams(parseSearchQuery('parent:p-1'), 'formulas'))
       ).toBe(false)
+    })
+  })
+
+  describe('searchKey', () => {
+    const key = (query: string) =>
+      searchKey(toListParams(parseSearchQuery(query), 'objects'))
+
+    it('is equal for the same params from separate parses', () => {
+      expect(key('beton prop:k=v')).toBe(key('beton prop:k=v'))
+    })
+
+    it('differs when the params differ, and for no search', () => {
+      expect(key('beton')).not.toBe(key('steel'))
+      expect(searchKey(null)).not.toBe(key('beton'))
     })
   })
 

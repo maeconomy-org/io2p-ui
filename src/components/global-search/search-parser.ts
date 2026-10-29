@@ -334,6 +334,11 @@ export function searchApplies(search: ListSearch | null): boolean {
   return search !== null && Object.keys(search.params).length > 0
 }
 
+/** What `search` asks of its list, as a value: equal for equal params, whatever object carries them. */
+export function searchKey(search: ListSearch | null): string {
+  return JSON.stringify(search?.params ?? null)
+}
+
 /**
  * The search fields of a list query. A `deleted:` token in the search wins over the page's "show
  * deleted" toggle, which the filter menu then shows as set by the search.

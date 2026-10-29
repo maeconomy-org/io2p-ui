@@ -17,6 +17,7 @@ import { SearchFilterNote } from '@/components/global-search/search-filter-note'
 import {
   listSearchQuery,
   searchApplies,
+  searchKey,
 } from '@/components/global-search/search-parser'
 import { Button } from '@/components/ui'
 import { FilterMenu, deletedSection, scopeSection } from '@/components/filters'
@@ -73,7 +74,10 @@ export default function ObjectsPage() {
   const { userId, authLoading } = useAuth()
 
   const { drafts, deleteDraft } = useObjectDrafts()
-  const listQuery = useEntityListQuery({ scope })
+  const listQuery = useEntityListQuery(
+    { scope },
+    { resetPageOn: searchKey(search) }
+  )
   const { useList, usePrefetchDetail } = useObjects()
   // Warm the detail cache on hover so the sheet opens populated.
   const prefetchDetail = usePrefetchDetail(OBJECT_DETAIL_READ)

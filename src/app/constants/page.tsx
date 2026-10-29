@@ -30,6 +30,7 @@ import { SearchFilterNote } from '@/components/global-search/search-filter-note'
 import {
   listSearchQuery,
   searchApplies,
+  searchKey,
 } from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 
@@ -84,7 +85,7 @@ export default function ConstantsPage() {
   const searching = searchApplies(search)
   const { userId } = useAuth()
 
-  const listQuery = useEntityListQuery()
+  const listQuery = useEntityListQuery({}, { resetPageOn: searchKey(search) })
   const { useList, useRemove, useRestore } = useConstants()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()

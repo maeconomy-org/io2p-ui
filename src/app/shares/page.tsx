@@ -28,6 +28,7 @@ import { SearchFilterNote } from '@/components/global-search/search-filter-note'
 import {
   listSearchQuery,
   searchApplies,
+  searchKey,
 } from '@/components/global-search/search-parser'
 import { anchor } from '@/constants'
 import { usePageSize } from '@/hooks/ui/use-page-size'
@@ -75,7 +76,7 @@ export default function SharesPage() {
   const search = useListSearch('shares')
   const searching = searchApplies(search)
 
-  const listQuery = useEntityListQuery()
+  const listQuery = useEntityListQuery({}, { resetPageOn: searchKey(search) })
   const setPage = listQuery.setPage
   const [pageSize, handlePageSizeChange] = usePageSize(
     useCallback(() => setPage(1), [setPage])

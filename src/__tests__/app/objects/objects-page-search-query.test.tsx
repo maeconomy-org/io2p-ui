@@ -2,7 +2,7 @@
 // so the parsed filters have to reach the wire as their own params, not inside `q`.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 
 import type {
   ParsedSearch,
@@ -143,6 +143,17 @@ describe('objects page — the list query during a search', () => {
     // The empty text follows the same rule as the query.
     expect(tableProps().emptyTitle).toBe('objects.noObjectsTitle')
     expect(tableProps().emptyAction).toBeDefined()
+  })
+
+  it('asks for page 1 of a new search, not the page the list was on', () => {
+    const { rerender } = render(<ObjectsPage />)
+    act(() => (tableProps().onPageChange as (page: number) => void)(3))
+    expect(queryOf().page).toBe(3)
+
+    parsed = parseSearchQuery('sdfsdf')
+    rerender(<ObjectsPage />)
+
+    expect(queryOf()).toMatchObject({ page: 1, q: 'sdfsdf' })
   })
 
   it('says an empty search found no results, with no create button', () => {

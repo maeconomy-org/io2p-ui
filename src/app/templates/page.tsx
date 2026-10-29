@@ -35,6 +35,7 @@ import { SearchFilterNote } from '@/components/global-search/search-filter-note'
 import {
   listSearchQuery,
   searchApplies,
+  searchKey,
 } from '@/components/global-search/search-parser'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { anchor } from '@/constants'
@@ -91,7 +92,7 @@ export default function TemplatesPage() {
   const searching = searchApplies(search)
   const { userId } = useAuth()
 
-  const listQuery = useEntityListQuery()
+  const listQuery = useEntityListQuery({}, { resetPageOn: searchKey(search) })
   const { useList, useRemove, useRestore } = useTemplates()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()

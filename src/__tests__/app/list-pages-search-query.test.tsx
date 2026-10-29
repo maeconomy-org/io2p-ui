@@ -2,7 +2,7 @@
 // get it: the node ignores an undeclared param and would return an unfiltered list.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import type { ComponentType } from 'react'
 
 import type {
@@ -145,6 +145,17 @@ describe.each(PAGES)(
 
       expect(tableProps().emptyTitle).toBe('search.noResultsTitle')
       expect(tableProps().emptyAction).toBeUndefined()
+    })
+
+    it('asks for page 1 of a new search, not the page the list was on', () => {
+      const { rerender } = render(<Page />)
+      act(() => (tableProps().onPageChange as (page: number) => void)(3))
+      expect(queryOf().page).toBe(3)
+
+      parsed = parseSearchQuery('beton')
+      rerender(<Page />)
+
+      expect(queryOf()).toMatchObject({ page: 1, q: 'beton' })
     })
 
     it('keeps its own empty text when no filter of the search applies', () => {
