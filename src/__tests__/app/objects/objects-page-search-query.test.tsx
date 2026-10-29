@@ -130,6 +130,14 @@ describe('objects page — the list query during a search', () => {
     expect(queryOf()).toMatchObject({ parent: 'p-1' })
   })
 
+  it('stays the top-level list when no filter of the search applies', () => {
+    parsed = parseSearchQuery('prop:a:b=c')
+    render(<ObjectsPage />)
+
+    expect(queryOf()).toMatchObject({ parent: '' })
+    expect(screen.getByTestId('search-filter-note')).toBeInTheDocument()
+  })
+
   it('says which filters it could not apply', () => {
     parsed = parseSearchQuery('prop:a:b=c beton')
     render(<ObjectsPage />)

@@ -65,7 +65,8 @@ export default function ObjectsPage() {
 
   const { clearTrail } = useBreadcrumbTrail(undefined)
   const search = useListSearch('objects')
-  const isSearchMode = search !== null
+  // A search none of whose filters apply narrows nothing, so the list stays the top-level one.
+  const isSearchMode = search !== null && Object.keys(search.params).length > 0
   const { userId, authLoading } = useAuth()
 
   const { drafts, deleteDraft } = useObjectDrafts()
