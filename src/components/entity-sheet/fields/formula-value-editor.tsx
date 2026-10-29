@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useDebouncedValue } from '@/hooks/ui/use-debounced-value'
 import { AlertTriangle, ChevronsUpDown, Loader2, Sigma } from 'lucide-react'
 import {
   previewArgFromValue,
@@ -86,9 +87,10 @@ export function FormulaSelect({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const searched = useDebouncedValue(query.trim())
 
   const { data, isFetching } = useFormulas().useList(
-    { page: 1, size: SEARCH_SIZE, q: query.trim() || undefined },
+    { page: 1, size: SEARCH_SIZE, q: searched || undefined },
     { enabled: open, keepPreviousData: true }
   )
   const formulas = data?.data ?? []
@@ -538,10 +540,12 @@ function BindingPicker({
   const [scope, setScope] = useState<BindingScope>('all')
 
   const needle = query.trim()
+  // The siblings below filter on `needle` at once; only the request waits for typing to stop.
+  const searched = useDebouncedValue(needle)
   // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
   // constants would be a request for something nothing renders.
   const { data: constantsPage, isFetching } = useConstants().useList(
-    { page: 1, size: SEARCH_SIZE, q: needle || undefined },
+    { page: 1, size: SEARCH_SIZE, q: searched || undefined },
     { enabled: open && scope !== 'siblings', keepPreviousData: true }
   )
   const constants = scope === 'siblings' ? [] : (constantsPage?.data ?? [])

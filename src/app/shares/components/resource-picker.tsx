@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useDebouncedValue } from '@/hooks/ui/use-debounced-value'
 import { Info, Plus } from 'lucide-react'
 
 import {
@@ -88,7 +89,8 @@ export function ResourcePicker({
   const wantData = open && active === 'data'
   const wantLibrary = open && active === 'library'
 
-  const search = { q: query.trim() || undefined, size: PER_TYPE_SIZE, page: 1 }
+  const searched = useDebouncedValue(query.trim())
+  const search = { q: searched || undefined, size: PER_TYPE_SIZE, page: 1 }
   const listOptions = (enabled: boolean) => ({
     enabled,
     keepPreviousData: true,

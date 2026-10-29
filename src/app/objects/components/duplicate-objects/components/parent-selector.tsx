@@ -96,6 +96,8 @@ export function ParentSelector({
     initialParentUuids.map((uuid) => ({ uuid, name: undefined }))
   const setSelectedParents = setEditedParents
   const lastSearchQueryRef = useRef('')
+  // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
+  const searchAbortRef = useRef<AbortController | null>(null)
 
   // `useIomClient()` is stable, so the search callback closes over it directly. The ref this
   // replaced existed to hold a per-render mutation object, and writing it during render is exactly
@@ -108,16 +110,24 @@ export function ParentSelector({
     async (query: string = '') => {
       if (!isOpen) return
 
+      searchAbortRef.current?.abort()
+      const controller = new AbortController()
+      searchAbortRef.current = controller
+
       setIsSearching(true)
       try {
         // `q` substring-matches name and description; `deleted` excludes by default, so the
         // retired `softDeleted: false` filter is implicit.
-        const results = await client.objects.list({
-          q: query.trim() || undefined,
-          size: query ? 20 : 10,
-          page: 1,
-          scope: 'all',
-        })
+        const results = await client.objects.list(
+          {
+            q: query.trim() || undefined,
+            size: query ? 20 : 10,
+            page: 1,
+            scope: 'all',
+          },
+          { signal: controller.signal }
+        )
+        if (controller.signal.aborted) return
 
         // The list speaks `id`; this picker's markup speaks `uuid`.
         setSearchResults(
@@ -127,10 +137,11 @@ export function ParentSelector({
         )
         setHasInitiallyLoaded(true)
       } catch (error) {
+        if (controller.signal.aborted) return
         logger.error('Search failed:', { err: error })
         setSearchResults([])
       } finally {
-        setIsSearching(false)
+        if (!controller.signal.aborted) setIsSearching(false)
       }
     },
     [isOpen, currentObjectUuid, excludedSet, client]

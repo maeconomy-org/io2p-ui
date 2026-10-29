@@ -101,6 +101,8 @@ export function DuplicateObjectsSheet({
   const [hasSourceLoaded, setHasSourceLoaded] = useState(false)
   const [sourceSearchPage, setSourceSearchPage] = useState<FetchedPage>()
   const lastSourceQueryRef = useRef('')
+  // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
+  const sourceSearchAbortRef = useRef<AbortController | null>(null)
 
   // Target & options
   const [targetParentUuids, setTargetParentUuids] = useState<string[]>([])
@@ -149,20 +151,28 @@ export function DuplicateObjectsSheet({
     async (query: string = '') => {
       if (!isSourceOpen) return
 
+      sourceSearchAbortRef.current?.abort()
+      const controller = new AbortController()
+      sourceSearchAbortRef.current = controller
+
       setIsSourceSearching(true)
       try {
         // `q` substring-matches name and description, which is what the old `searchTerm` did.
         // `deleted` defaults to exclude, so the retired `softDeleted: false` filter is implicit.
-        const results = await clientRef.current.objects.list({
-          q: query.trim() || undefined,
-          size: SEARCH_SIZE,
-          page: 1,
-          scope: 'all',
-          // Without this `childCount` is absent on every row, and the
-          // "include children" switch below gates on it — so recursive copy
-          // silently disappeared for anything picked by search.
-          withChildCounts: true,
-        })
+        const results = await clientRef.current.objects.list(
+          {
+            q: query.trim() || undefined,
+            size: SEARCH_SIZE,
+            page: 1,
+            scope: 'all',
+            // Without this `childCount` is absent on every row, and the
+            // "include children" switch below gates on it — so recursive copy
+            // silently disappeared for anything picked by search.
+            withChildCounts: true,
+          },
+          { signal: controller.signal }
+        )
+        if (controller.signal.aborted) return
 
         // The list speaks `id`; this picker's markup speaks `uuid`. Mapped here rather than
         // renaming the markup, because the sheet is due its own rewrite.
@@ -170,11 +180,12 @@ export function DuplicateObjectsSheet({
         setSourceSearchPage(results)
         setHasSourceLoaded(true)
       } catch (error) {
+        if (controller.signal.aborted) return
         logger.error('Source search failed:', { err: error })
         setSourceSearchResults([])
         setSourceSearchPage(undefined)
       } finally {
-        setIsSourceSearching(false)
+        if (!controller.signal.aborted) setIsSourceSearching(false)
       }
     },
     [isSourceOpen]
