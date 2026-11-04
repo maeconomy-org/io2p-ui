@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { useDebouncedValue } from '@/hooks/ui/use-debounced-value'
+import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react'
 import { useWatch, type UseFormReturn } from 'react-hook-form'
 
@@ -28,6 +28,7 @@ import { useAuth } from '@/contexts'
 import { useObjects } from '@/hooks/api/entities'
 import { cn } from '@/lib/utils'
 import type { EntityDraft } from '@/lib/entity'
+import { SearchMinHint } from '@/components/search-min-hint'
 
 /**
  * The object's parents. io2p models hierarchy as `parents[]` on the CHILD (a multi-parent DAG), so
@@ -212,11 +213,11 @@ function ParentPicker({
   const { userId } = useAuth()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const searched = useDebouncedValue(query.trim())
+  const q = useDebouncedSearch(query)
 
   // `scope` defaults to 'mine', which would hide objects shared with the user.
   const { data, isFetching } = useObjects().useList(
-    { q: searched || undefined, size: SEARCH_SIZE, page: 1, scope: 'all' },
+    { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
     { enabled: open, keepPreviousData: true }
   )
 
@@ -260,6 +261,7 @@ function ParentPicker({
             value={query}
             onValueChange={setQuery}
           />
+          <SearchMinHint query={query} />
           <CommandList>
             {isFetching && results.length === 0 ? (
               <div className="flex items-center justify-center py-6">

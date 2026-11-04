@@ -23,6 +23,8 @@
  * - 'name:"Clay Tile"' → { q: 'Clay Tile' }
  */
 
+import { searchText } from '@/lib/search-text'
+
 export interface SearchFilter {
   type:
     | 'deleted'
@@ -420,7 +422,7 @@ export function toListParams(
     }
   }
 
-  const q = text.join(' ').trim()
+  const q = searchText(text.join(' '))
   if (q) params.q = q
   if (property.length > 0) params.property = property
   return { params, unsupported, invalid }

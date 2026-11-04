@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useDebouncedValue } from '@/hooks/ui/use-debounced-value'
+import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { Info, Plus } from 'lucide-react'
 
 import {
@@ -29,6 +29,7 @@ import type { Permission, ShareResourceType } from '@/components/access'
 import { useAuth } from '@/contexts'
 import { useObjects, useProcesses, useTemplates } from '@/hooks/api/entities'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
+import { SearchMinHint } from '@/components/search-min-hint'
 
 import { familyOf, type ShareResourceFamily } from '../utils/share-rules'
 
@@ -89,8 +90,8 @@ export function ResourcePicker({
   const wantData = open && active === 'data'
   const wantLibrary = open && active === 'library'
 
-  const searched = useDebouncedValue(query.trim())
-  const search = { q: searched || undefined, size: PER_TYPE_SIZE, page: 1 }
+  const q = useDebouncedSearch(query)
+  const search = { q, size: PER_TYPE_SIZE, page: 1 }
   const listOptions = (enabled: boolean) => ({
     enabled,
     keepPreviousData: true,
@@ -213,6 +214,7 @@ export function ResourcePicker({
             value={query}
             onValueChange={setQuery}
           />
+          <SearchMinHint query={query} />
           <CommandList>
             <CommandEmpty>
               {loading ? t('common.loading') : t('shares.noResources')}

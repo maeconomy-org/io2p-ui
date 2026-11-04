@@ -30,6 +30,7 @@ import {
 } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 import { copyText } from '@/lib/clipboard'
+import { searchText } from '@/lib/search-text'
 import { cn, truncateText } from '@/lib/utils'
 import { useObjects } from '@/hooks/api/entities'
 
@@ -110,7 +111,7 @@ export function MillerColumn({
       scope,
       page,
       size: COLUMN_SIZE,
-      q: search || undefined,
+      q: searchText(search),
       deleted: showDeleted ? 'include' : undefined,
       withChildCounts: true,
     },

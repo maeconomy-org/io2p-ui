@@ -101,6 +101,12 @@ export const MAX_LIST_PAGE_SIZE = 100
  */
 export const SEARCH_SIZE = 20
 
+/** The node answers a shorter `q` on an indexed list with 422. */
+export const MIN_SEARCH_CHARS = 2
+
+/** The node refuses a `q` over 1,024 UTF-16 units once lower-cased, which can lengthen it. */
+export const MAX_SEARCH_CHARS = 1000
+
 /**
  * The theme values that may be STORED, which is a superset of the two the
  * toggle offers — next-themes writes `system` whenever the user has never

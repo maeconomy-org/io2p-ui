@@ -44,6 +44,8 @@ import { logger } from '@/lib/observability/logger'
 import { useIomClient } from '@/lib/io2p'
 import { toast } from 'sonner'
 
+import { searchText } from '@/lib/search-text'
+
 import {
   DuplicateIntoOwnSubtreeError,
   useDuplicateObjects,
@@ -161,7 +163,7 @@ export function DuplicateObjectsSheet({
         // `deleted` defaults to exclude, so the retired `softDeleted: false` filter is implicit.
         const results = await clientRef.current.objects.list(
           {
-            q: query.trim() || undefined,
+            q: searchText(query),
             size: SEARCH_SIZE,
             page: 1,
             scope: 'all',

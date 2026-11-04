@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl'
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
 import type { TemplateDTO } from 'io2p-client'
 
+import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
+
 import {
   Button,
   Command,
@@ -23,6 +25,7 @@ import { OwnerHint } from '@/components/entity-list'
 import { useTemplates } from '@/hooks/api/entities'
 import type { TemplatePresetProperty } from '@/lib/entity'
 import { cn } from '@/lib/utils'
+import { SearchMinHint } from '@/components/search-min-hint'
 
 /** A flow preset on a process template. `ref` is a SUGGESTED default — often absent. */
 export interface TemplatePresetFlow {
@@ -70,10 +73,11 @@ export function TemplateSelector({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query)
 
   const { data, isFetching } = useTemplates().useList(
     {
-      q: query.trim() || undefined,
+      q,
       size: SEARCH_SIZE,
       page: 1,
       type,
@@ -123,6 +127,7 @@ export function TemplateSelector({
             value={query}
             onValueChange={setQuery}
           />
+          <SearchMinHint query={query} />
           <CommandList>
             {isFetching && templates.length === 0 ? (
               <div className="flex items-center justify-center py-6">

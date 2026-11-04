@@ -1205,6 +1205,7 @@
     }
   },
   "search": {
+    "minChars": "Typ {count} of meer tekens om te zoeken",
     "filters": {
       "deleted": {
         "label": "Verwijderd",
