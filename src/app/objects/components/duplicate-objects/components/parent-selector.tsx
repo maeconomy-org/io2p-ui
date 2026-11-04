@@ -28,6 +28,7 @@ import {
 import { useAuth } from '@/contexts'
 import { cn, truncateText } from '@/lib/utils'
 import { useIomClient } from '@/lib/io2p'
+import { searchText } from '@/lib/search-text'
 import type { ParentObject } from '@/types'
 
 const EMPTY_PARENT_UUIDS: string[] = []
@@ -120,7 +121,7 @@ export function ParentSelector({
         // retired `softDeleted: false` filter is implicit.
         const results = await client.objects.list(
           {
-            q: query.trim() || undefined,
+            q: searchText(query),
             size: query ? 20 : 10,
             page: 1,
             scope: 'all',

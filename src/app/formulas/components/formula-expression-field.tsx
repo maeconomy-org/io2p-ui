@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useDebouncedValue } from '@/hooks/ui/use-debounced-value'
+import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { AlertCircle, CheckCircle2, Search } from 'lucide-react'
 
 import { Badge, CommandMore, Input, Label } from '@/components/ui'
@@ -37,7 +37,7 @@ export function FormulaExpressionField({
   // Caret at the last blur/selection, so a chip inserts where the user was rather than at the end.
   const caret = useRef<{ start: number; end: number } | null>(null)
   const [chipQuery, setChipQuery] = useState('')
-  const searched = useDebouncedValue(chipQuery.trim())
+  const q = useDebouncedSearch(chipQuery)
 
   // Searched at the node. These names are only ever INSERTED into the expression, so the list needs
   // to reach the constant you are looking for, not hold every constant that exists.
@@ -45,7 +45,7 @@ export function FormulaExpressionField({
     {
       page: 1,
       size: SEARCH_SIZE,
-      q: searched || undefined,
+      q,
     },
     { keepPreviousData: true }
   )

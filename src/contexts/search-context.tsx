@@ -14,6 +14,7 @@ import {
   templateSearch,
   toListParams,
 } from '@/components/global-search/search-parser'
+import { MIN_SEARCH_CHARS } from '@/constants'
 
 interface SearchContextType {
   searchQuery: string
@@ -26,8 +27,6 @@ interface SearchContextType {
 }
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined)
-
-const MIN_SEARCH_CHARS = 2
 
 // The list pages that apply a search. A search started on one of them stays there; started
 // anywhere else, it goes to the objects list (or the templates list for `template:true`).

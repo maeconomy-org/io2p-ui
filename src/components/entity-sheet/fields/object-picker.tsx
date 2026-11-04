@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useDebouncedValue } from '@/hooks/ui/use-debounced-value'
+import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { ChevronsUpDown, Loader2 } from 'lucide-react'
 
 import {
@@ -23,6 +23,7 @@ import { linkUnderRefusal, OwnerHint } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 import { useObjects } from '@/hooks/api/entities'
 import { cn } from '@/lib/utils'
+import { SearchMinHint } from '@/components/search-min-hint'
 
 /**
  * Pick ONE existing object. Used by process flows, where the target must already exist — io2p
@@ -62,10 +63,10 @@ export function ObjectPicker({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [pickedName, setPickedName] = useState<string | undefined>()
-  const searched = useDebouncedValue(query.trim())
+  const q = useDebouncedSearch(query)
 
   const { data, isFetching } = useObjects().useList(
-    { q: searched || undefined, size: SEARCH_SIZE, page: 1, scope: 'all' },
+    { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
     { enabled: open, keepPreviousData: true }
   )
   const objects = data?.data ?? []
@@ -111,6 +112,7 @@ export function ObjectPicker({
             value={query}
             onValueChange={setQuery}
           />
+          <SearchMinHint query={query} />
           <CommandList>
             {isFetching && objects.length === 0 ? (
               <div className="flex items-center justify-center py-6">

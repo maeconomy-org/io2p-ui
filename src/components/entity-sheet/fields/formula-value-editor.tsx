@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useDebouncedValue } from '@/hooks/ui/use-debounced-value'
+import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { AlertTriangle, ChevronsUpDown, Loader2, Sigma } from 'lucide-react'
 import {
   previewArgFromValue,
@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils'
 import { OwnerHint } from '@/components/entity-list'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { SEARCH_SIZE } from '@/constants'
+import { SearchMinHint } from '@/components/search-min-hint'
 
 import { calcErrorText, uncheckedState } from './value-provenance'
 import { equationText } from './formula-equation'
@@ -87,10 +88,10 @@ export function FormulaSelect({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const searched = useDebouncedValue(query.trim())
+  const q = useDebouncedSearch(query)
 
   const { data, isFetching } = useFormulas().useList(
-    { page: 1, size: SEARCH_SIZE, q: searched || undefined },
+    { page: 1, size: SEARCH_SIZE, q },
     { enabled: open, keepPreviousData: true }
   )
   const formulas = data?.data ?? []
@@ -134,6 +135,7 @@ export function FormulaSelect({
             value={query}
             onValueChange={setQuery}
           />
+          <SearchMinHint query={query} />
           <CommandList>
             {isFetching && formulas.length === 0 ? (
               <div className="flex items-center justify-center py-6">
@@ -541,11 +543,11 @@ function BindingPicker({
 
   const needle = query.trim()
   // The siblings below filter on `needle` at once; only the request waits for typing to stop.
-  const searched = useDebouncedValue(needle)
+  const q = useDebouncedSearch(needle)
   // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
   // constants would be a request for something nothing renders.
   const { data: constantsPage, isFetching } = useConstants().useList(
-    { page: 1, size: SEARCH_SIZE, q: searched || undefined },
+    { page: 1, size: SEARCH_SIZE, q },
     { enabled: open && scope !== 'siblings', keepPreviousData: true }
   )
   const constants = scope === 'siblings' ? [] : (constantsPage?.data ?? [])

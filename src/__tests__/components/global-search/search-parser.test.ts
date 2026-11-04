@@ -162,6 +162,12 @@ describe('search-parser', () => {
   })
 
   describe('toListParams', () => {
+    it('sends no q for one letter, and keeps the filters beside it', () => {
+      expect(paramsFor('a')).toEqual({})
+      expect(paramsFor('deleted:true a')).toEqual({ deleted: 'only' })
+      expect(paramsFor('ab')).toEqual({ q: 'ab' })
+    })
+
     it.each([
       ['prop:material=steel', { property: ['material:steel'] }],
       ['prop:material', { property: ['material'] }],
