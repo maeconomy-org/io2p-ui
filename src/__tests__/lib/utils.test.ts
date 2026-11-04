@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cn, formatBytes, truncateText } from '@/lib/utils'
+import { charCount, cn, formatBytes, truncateText } from '@/lib/utils'
 
 const isFalse = false
 
@@ -69,6 +69,20 @@ describe('utils', () => {
 
     it('handles empty input', () => {
       expect(truncateText('', 10)).toBe('')
+    })
+  })
+
+  describe('charCount', () => {
+    it('counts code points, as the node schema does', () => {
+      expect(charCount('abc')).toBe(3)
+      expect(charCount('😀')).toBe(1)
+      expect('😀'.length).toBe(2)
+    })
+
+    it('is 0 for an empty, null or undefined value', () => {
+      expect(charCount('')).toBe(0)
+      expect(charCount(null)).toBe(0)
+      expect(charCount(undefined)).toBe(0)
     })
   })
 })

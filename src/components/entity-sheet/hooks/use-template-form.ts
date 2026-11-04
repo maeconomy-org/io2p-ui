@@ -18,6 +18,7 @@ import {
   buildCreateTemplateInput,
   buildUpdateTemplateBody,
 } from '@/lib/entity'
+import { refuseLongDescription } from './refuse-long-description'
 
 /**
  * The starting draft per kind. A process template opens with one slot on each side; an object
@@ -98,6 +99,8 @@ export function useTemplateForm(
       toast.error(t('templates.nameRequired'))
       return
     }
+
+    if (refuseLongDescription(form, draft, !template, t)) return
 
     // `properties()` at `template.ts:235` filters out anything with a blank key, so without this
     // the save SUCCEEDS, the node never sees the value, and reopening shows no property row —

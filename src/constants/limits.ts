@@ -15,3 +15,6 @@
 // entries; without a ceiling, hashing/init storms can OOM the page or saturate the upload queue.
 // Rejected as a whole batch — partial accept would leave the user guessing which files made it.
 export const MAX_FILES_PER_DROP = 100
+
+/** The node refuses a longer description (object, process, template, property) with 400. */
+export const MAX_DESCRIPTION_CHARS = 2000

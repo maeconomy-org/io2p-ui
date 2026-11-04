@@ -179,6 +179,9 @@
     "language": "Language"
   },
   "common": {
+    "charCount": "{count, number} / {max, number}",
+    "charCountOver": "{count, number} / {max, number}, too long",
+    "descriptionTooLong": "The description is too long. Shorten it to {max, number} characters or fewer.",
     "pickerMore": "Showing the first {shown} of {total}. Type to narrow the list.",
     "cancel": "Cancel",
     "remove": "Remove",

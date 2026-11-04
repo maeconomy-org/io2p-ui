@@ -25,6 +25,7 @@ import {
   findFlowWithoutRef,
   resolveProcessUploadTargets,
 } from '@/lib/entity'
+import { refuseLongDescription } from './refuse-long-description'
 
 export interface UseProcessFormOptions {
   onSaved?: (id: string) => void
@@ -93,6 +94,8 @@ export function useProcessForm(
       toast.error(t('processes.saveError.nameRequired'))
       return
     }
+
+    if (refuseLongDescription(form, draft, !process, t)) return
 
     const nameless = findEmptyPropertyKey(draft)
     if (nameless >= 0) {

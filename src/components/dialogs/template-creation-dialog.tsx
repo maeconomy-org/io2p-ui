@@ -4,7 +4,10 @@ import { useState } from 'react'
 import { FileText, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
+import { CharCounter } from '@/components/char-counter'
+import { MAX_DESCRIPTION_CHARS } from '@/constants'
 import { logger } from '@/lib/observability/logger'
+import { charCount } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +47,8 @@ export function TemplateCreationDialog({
   // Seeded once, not reset by an effect on `open`: every caller renders this dialog conditionally,
   // so it MOUNTS with its initial data already. The effect was re-doing what mounting had just done.
   const [templateData, setTemplateData] = useState<TemplateData>(initialData)
+  const descriptionTooLong =
+    charCount(templateData.description) > MAX_DESCRIPTION_CHARS
 
   const handleInputChange = (field: keyof TemplateData, value: string) => {
     setTemplateData((prev) => ({
@@ -119,6 +124,13 @@ export function TemplateCreationDialog({
               placeholder={t('objects.templateDescriptionPlaceholder')}
               className="min-h-[80px]"
               disabled={isCreating}
+              aria-invalid={descriptionTooLong}
+              aria-describedby="template-description-count"
+            />
+            <CharCounter
+              id="template-description-count"
+              value={templateData.description}
+              max={MAX_DESCRIPTION_CHARS}
             />
           </div>
         </div>
@@ -136,7 +148,9 @@ export function TemplateCreationDialog({
           <Button
             type="button"
             onClick={handleConfirm}
-            disabled={isCreating || !templateData.name.trim()}
+            disabled={
+              isCreating || !templateData.name.trim() || descriptionTooLong
+            }
             className="flex-1"
           >
             {isCreating ? (
