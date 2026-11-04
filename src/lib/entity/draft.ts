@@ -17,7 +17,9 @@ import type {
   FileTarget,
 } from 'io2p-client'
 
+import { MAX_DESCRIPTION_CHARS } from '@/constants'
 import type { UploadTask } from '@/lib/upload-queue'
+import { charCount } from '@/lib/utils'
 
 export type DraftAddress = NonNullable<ObjectDTO['address']>
 
@@ -738,4 +740,15 @@ export function findEmptyFlowPropertyKey(
     }
   }
   return null
+}
+
+/**
+ * Whether saving would send a description the node refuses. An unchanged one is never sent, so an
+ * old description over the limit still saves; a new or edited one must fit.
+ */
+export function descriptionTooLong(
+  description: string | null | undefined,
+  sent: boolean
+): boolean {
+  return sent && charCount(description) > MAX_DESCRIPTION_CHARS
 }

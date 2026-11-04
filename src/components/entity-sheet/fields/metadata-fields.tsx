@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useWatch, type UseFormReturn } from 'react-hook-form'
 
+import { CharCounter } from '@/components/char-counter'
 import { Button, Input, Label, Textarea } from '@/components/ui'
+import { MAX_DESCRIPTION_CHARS } from '@/constants'
 import type { EntityDraft } from '@/lib/entity'
-import { cn } from '@/lib/utils'
+import { charCount, cn } from '@/lib/utils'
 
 import { ReadOnlyField } from './read-only-field'
 
@@ -66,6 +68,7 @@ export function MetadataFields({
   // Every sheet raises this on the same field but words it for its own entity, so the key travels
   // in the error rather than being chosen here.
   const nameError = form.formState.errors.name
+  const descriptionError = form.formState.errors.description
 
   if (!editing) {
     return (
@@ -118,14 +121,43 @@ export function MetadataFields({
         )}
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="entity-description">
+        <Label
+          htmlFor="entity-description"
+          className={cn(descriptionError && 'text-destructive')}
+        >
           {t('objects.fields.description')}
         </Label>
         <Textarea
           id="entity-description"
           rows={3}
-          {...form.register('description')}
+          aria-invalid={!!descriptionError}
+          aria-describedby={cn(
+            'entity-description-count',
+            descriptionError && 'entity-description-error'
+          )}
+          {...form.register('description', {
+            onChange: (e) => {
+              if (charCount(e.target.value) <= MAX_DESCRIPTION_CHARS) {
+                form.clearErrors('description')
+              }
+            },
+          })}
         />
+        <CharCounter
+          id="entity-description-count"
+          value={description}
+          max={MAX_DESCRIPTION_CHARS}
+        />
+        {descriptionError && (
+          <p
+            id="entity-description-error"
+            data-testid="entity-description-error"
+            role="alert"
+            className="text-sm font-medium text-destructive"
+          >
+            {t('common.descriptionTooLong', { max: MAX_DESCRIPTION_CHARS })}
+          </p>
+        )}
       </div>
     </div>
   )

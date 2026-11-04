@@ -31,3 +31,8 @@ export function truncateText(
   }
   return `${text.substring(0, maxLength)}...`
 }
+
+/** Length in code points, as the node's schema counts it: an emoji is one character, not two. */
+export function charCount(text: string | null | undefined): number {
+  return text ? [...text].length : 0
+}

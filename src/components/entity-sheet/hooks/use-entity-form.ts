@@ -24,6 +24,7 @@ import {
   buildCreateObjectInput,
   buildUpdateObjectBody,
 } from '@/lib/entity'
+import { refuseLongDescription } from './refuse-long-description'
 
 const EMPTY_DRAFT: EntityDraft = {
   name: '',
@@ -153,6 +154,8 @@ export function useEntityForm(
       toast.error(t('objects.saveError.nameRequired'))
       return
     }
+
+    if (refuseLongDescription(form, draft, !entity, t)) return
 
     // A property with content but no key is dropped by the builders, so saving would silently lose
     // the user's work. Refuse rather than pretend.
