@@ -90,7 +90,7 @@ export function TwoFactorCard() {
     setBusy(true)
     try {
       const { data, error } = await authClient.twoFactor.enable({ password })
-      if (error || !data?.totpURI) {
+      if (error || !data || !('totpURI' in data) || !data.totpURI) {
         throw new Error(error?.message || 'enable failed')
       }
       setTotpUri(data.totpURI)

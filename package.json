@@ -77,12 +77,12 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-visually-hidden": "^1.2.4",
-    "@sentry/nextjs": "^10.56.0",
+    "@sentry/nextjs": "^10.78.0",
     "@tanstack/react-query": "^5.101.0",
     "@tanstack/react-query-devtools": "^5.101.0",
     "@tanstack/react-table": "^8.21.3",
     "autoprefixer": "^10.5.0",
-    "better-auth": "1.6.23",
+    "better-auth": "1.7.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",
@@ -94,7 +94,7 @@
     "input-otp": "^1.5.0",
     "io2p-client": "0.5.0",
     "lucide-react": "^1.43.0",
-    "next": "16.3.6",
+    "next": "16.4.3",
     "next-intl": "^4.14.2",
     "next-themes": "^0.4.6",
     "papaparse": "^5.7.0",
@@ -109,12 +109,12 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^14.0.2",
     "web-vitals": "^6.2.1",
-    "zod": "^4.5.4"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@next/bundle-analyzer": "^16.3.4",
-    "@next/eslint-plugin-next": "^16.3.4",
+    "@next/bundle-analyzer": "^16.4.3",
+    "@next/eslint-plugin-next": "^16.4.3",
     "@playwright/test": "1.63.0",
     "@sentry/cli": "^3.7.0",
     "@testing-library/jest-dom": "^6.9.1",
@@ -127,7 +127,7 @@
     "@typescript-eslint/eslint-plugin": "^8.70.0",
     "@typescript-eslint/parser": "^8.70.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "4.1.12",
     "babel-plugin-react-compiler": "^1.0.0",
     "dotenv": "^17.4.2",
     "eslint": "^10.10.0",
@@ -144,7 +144,7 @@
     "prettier": "3.8.3",
     "tailwindcss": "^3.4.19",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
