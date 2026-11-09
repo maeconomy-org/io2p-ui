@@ -65,7 +65,6 @@ export function useFileBag(
   // `watch` here would read once and never re-render.
   const files =
     (useWatch({ control: form.control, name: path as FilesPath }) as
-      | DraftFile[]
-      | undefined) ?? []
+      DraftFile[] | undefined) ?? []
   return { files, ...fileBagActions(form, path) }
 }

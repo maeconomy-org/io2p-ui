@@ -165,8 +165,7 @@ export function rollupMultipliers(
  */
 export function multiplierKeysOf(
   rollups:
-    | ReadonlyMap<string, { multiplyBy?: { propertyKey: string } }>
-    | undefined
+    ReadonlyMap<string, { multiplyBy?: { propertyKey: string } }> | undefined
 ): Set<string> {
   const keys = new Set<string>()
   for (const entry of rollups?.values() ?? []) {

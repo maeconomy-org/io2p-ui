@@ -24,8 +24,7 @@ vi.mock('@/contexts/auth-context', () => ({
   useAuth: () => ({
     preferences: (
       queryClient.getQueryData(queryKeys.users.current) as
-        | { preferences?: unknown }
-        | undefined
+        { preferences?: unknown } | undefined
     )?.preferences,
     authLoading,
     isAuthenticated: true,

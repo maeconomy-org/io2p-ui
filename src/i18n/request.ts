@@ -30,8 +30,7 @@ export default getRequestConfig(async () => {
     cookieStore.get(PREF_COOKIE_NAME)?.value
   ).locale
   const legacyLocale = cookieStore.get('NEXT_LOCALE')?.value as
-    | Locale
-    | undefined
+    Locale | undefined
   const resolvedCookieLocale =
     storedLocale ??
     (legacyLocale && routing.locales.includes(legacyLocale)

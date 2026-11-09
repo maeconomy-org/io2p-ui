@@ -299,12 +299,7 @@ export function parseSearchQuery(query: string): ParsedSearch {
 }
 
 export type SearchListType =
-  | 'objects'
-  | 'processes'
-  | 'templates'
-  | 'formulas'
-  | 'constants'
-  | 'shares'
+  'objects' | 'processes' | 'templates' | 'formulas' | 'constants' | 'shares'
 
 export interface ListSearchParams {
   q?: string

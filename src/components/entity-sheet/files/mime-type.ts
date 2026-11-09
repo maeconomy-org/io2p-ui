@@ -1,10 +1,5 @@
 export type PreviewKind =
-  | 'image'
-  | 'pdf'
-  | 'text'
-  | 'video'
-  | 'audio'
-  | 'unsupported'
+  'image' | 'pdf' | 'text' | 'video' | 'audio' | 'unsupported'
 
 const EXTENSION_TO_MIME: Record<string, string> = {
   // images

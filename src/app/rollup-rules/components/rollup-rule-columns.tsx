@@ -97,17 +97,13 @@ export function buildRollupRuleColumns({
       )
     ),
     idColumn<RollupRuleDTO>((rule) => rule.id, t('objects.fields.uuid')),
-    textColumn<RollupRuleDTO>(
-      'owner',
-      t('common.owner'),
-      (rule): ReactNode => (
-        <OwnerCell
-          system={rule.system}
-          ownerUserId={rule.ownerUserId}
-          ownerName={rule.createdByName}
-        />
-      )
-    ),
+    textColumn<RollupRuleDTO>('owner', t('common.owner'), (rule): ReactNode => (
+      <OwnerCell
+        system={rule.system}
+        ownerUserId={rule.ownerUserId}
+        ownerName={rule.createdByName}
+      />
+    )),
     timestampColumn<RollupRuleDTO>(
       'createdAt',
       t('objects.fields.created'),

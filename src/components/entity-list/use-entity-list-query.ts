@@ -6,12 +6,7 @@ import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
 import { searchText } from '@/lib/search-text'
 
 export type EntitySort =
-  | 'name'
-  | '-name'
-  | 'createdAt'
-  | '-createdAt'
-  | 'updatedAt'
-  | '-updatedAt'
+  'name' | '-name' | 'createdAt' | '-createdAt' | 'updatedAt' | '-updatedAt'
 export type EntityScope = 'mine' | 'shared' | 'public' | 'all'
 export type EntityDeleted = 'exclude' | 'include' | 'only'
 

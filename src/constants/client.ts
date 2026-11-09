@@ -175,8 +175,7 @@ export function getCachedConfig(): ClientConfig | null {
   // BASE_URL must not lose every other inline value (logLevel, sentryDsn…)
   // to the stale-localStorage path.
   const inlineConfig = (window as any).__IOM_CONFIG__ as
-    | ClientConfig
-    | undefined
+    ClientConfig | undefined
   if (inlineConfig && typeof inlineConfig === 'object') {
     return inlineConfig
   }

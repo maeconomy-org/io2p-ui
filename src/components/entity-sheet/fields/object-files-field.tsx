@@ -15,9 +15,7 @@ import { useFileBag } from './use-file-bag'
  */
 /** Every place a file bag can live on the draft — spelled out so the paths stay type-checked. */
 export type FilesPath =
-  | 'files'
-  | `inputs.${number}.files`
-  | `outputs.${number}.files`
+  'files' | `inputs.${number}.files` | `outputs.${number}.files`
 
 export function ObjectFilesField({
   form,

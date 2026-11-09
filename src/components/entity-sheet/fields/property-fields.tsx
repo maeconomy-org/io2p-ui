@@ -122,9 +122,7 @@ interface PropertyFieldsProps {
  * the nested `${basePath}.${index}.key` paths stay checked.
  */
 export type PropertiesPath =
-  | 'properties'
-  | `inputs.${number}.properties`
-  | `outputs.${number}.properties`
+  'properties' | `inputs.${number}.properties` | `outputs.${number}.properties`
 
 /** Where a value's recipe lives on the draft. */
 export type CalcPath = `${PropertiesPath}.${number}.values.${number}.calc`
