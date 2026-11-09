@@ -232,7 +232,9 @@ export function useAuth() {
       // signal refetches the cache, and keeps it pending until the session is in.
       authClient.$store.notify('$sessionSignal')
       return { success: true }
-    } catch {
+    } catch (err) {
+      // DNS, CORS, or a browser that refused to send the certificate.
+      logger.warn('certificate_login_failed', { err })
       return { success: false, errorKey: 'auth.errors.authFailed' }
     }
   }

@@ -10,6 +10,7 @@ import {
 } from '@/constants/view-types'
 import { NAV_ITEMS } from '@/constants/site'
 import { SOCIAL_PROVIDERS } from '@/constants/auth'
+import { SIGN_IN_ERROR_KEYS } from '@/lib/auth/sign-in-error'
 
 type Tree = Record<string, unknown>
 
@@ -192,6 +193,18 @@ describe('messages', () => {
       expect(at(nl as Tree, `auth.social.${provider.labelKey}`)).toBeTypeOf(
         'string'
       )
+    }
+  })
+
+  // The login page passes these to `t` as a variable, so the literal-key scan
+  // above cannot see them.
+  it('resolves every sign-in error key in both locales', () => {
+    for (const key of [
+      ...SIGN_IN_ERROR_KEYS,
+      'auth.errors.certificateFailed',
+    ]) {
+      expect(at(en as Tree, key)).toBeTypeOf('string')
+      expect(at(nl as Tree, key)).toBeTypeOf('string')
     }
   })
 

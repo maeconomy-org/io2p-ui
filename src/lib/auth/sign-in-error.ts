@@ -5,12 +5,15 @@
  * plugin translates `message`, so Dutch users got text no English word match
  * could recognise, and a gateway 503 has no message at all.
  */
-export type SignInErrorKey =
-  | 'auth.errors.invalidCredentials'
-  | 'auth.errors.banned'
-  | 'common.tooManyRequests'
-  | 'auth.errors.unavailable'
-  | 'auth.errors.authFailed'
+export const SIGN_IN_ERROR_KEYS = [
+  'auth.errors.invalidCredentials',
+  'auth.errors.banned',
+  'common.tooManyRequests',
+  'auth.errors.unavailable',
+  'auth.errors.authFailed',
+] as const
+
+export type SignInErrorKey = (typeof SIGN_IN_ERROR_KEYS)[number]
 
 /** The better-auth client's error: always a status, a code only when the issuer answered. */
 export interface SignInError {

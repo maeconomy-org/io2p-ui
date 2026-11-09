@@ -151,7 +151,7 @@ export default function LoginPage() {
       localStorage.setItem(LAST_AUTH_METHOD_KEY, 'email')
       router.replace('/objects')
     } catch (err) {
-      logger.error('Email Login Error:', { err })
+      logger.error('email_login_failed', { err })
       setError(t('auth.errors.authFailed'))
     } finally {
       setSubmitting(false)
@@ -191,7 +191,7 @@ export default function LoginPage() {
       localStorage.setItem(LAST_AUTH_METHOD_KEY, 'certificate')
       router.replace('/objects')
     } catch (err) {
-      logger.error('Certificate Authentication Error:', { err })
+      logger.error('certificate_login_error', { err })
       setError(t('auth.errors.authFailed'))
     } finally {
       setCertLoading(false)
