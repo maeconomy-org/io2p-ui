@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEventHandler, type ReactNode } from 'react'
+import { AlertCircle } from 'lucide-react'
 
 import { UnsavedChangesDialog } from '@/components/drafts/unsaved-changes-dialog'
 import {
@@ -17,6 +18,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui'
+import { Alert } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { anchor } from '@/constants'
 
@@ -64,6 +66,11 @@ export interface EntitySheetShellProps {
   editing: boolean
   isDirty: boolean
   dirtyCount: number
+  /**
+   * The last failed save, already translated; required so a sheet cannot forget it. Shown above
+   * the footer until the next submit (react-hook-form clears `errors.root` there).
+   */
+  saveError: string | undefined
   /** Omit for an entity that cannot hold files — the dropzone is then not mounted at all. */
   onFiles?: (files: File[]) => void
   onSubmit: FormEventHandler<HTMLFormElement>
@@ -114,6 +121,7 @@ export function EntitySheetShell({
   onSaveDraft,
   droppedUploads,
   footer,
+  saveError,
 }: EntitySheetShellProps) {
   // Wrapped in an object because `useState` treats a bare function as a lazy initializer and would
   // call the pending action instead of storing it.
@@ -230,6 +238,22 @@ export function EntitySheetShell({
                 )}
 
                 {isDirty && <UnsavedBar count={dirtyCount} />}
+
+                {/* The hooks keep their toast: role="alert" announces only when this mounts, so
+                    a second identical failure is announced by the toast's live region alone. */}
+                {saveError && (
+                  <Alert
+                    variant="destructive"
+                    className="rounded-none border-x-0 border-b-0 bg-destructive/10 px-6 py-2 text-sm font-medium"
+                    data-testid="save-error"
+                  >
+                    {/* Wrapped: Alert positions a direct-child svg absolutely, for a card. */}
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
+                      <span>{saveError}</span>
+                    </div>
+                  </Alert>
+                )}
 
                 {footer(guardUnsaved)}
               </form>

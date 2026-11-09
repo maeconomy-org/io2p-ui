@@ -2,9 +2,11 @@ import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ProcessDTO } from 'io2p-client'
+import { ValidationError, type ProcessDTO } from 'io2p-client'
 
 import { useProcessForm } from '@/components/entity-sheet/hooks/use-process-form'
+
+const { processUpdate } = vi.hoisted(() => ({ processUpdate: vi.fn() }))
 
 vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({ processes: { get: vi.fn() }, files: {} }),
@@ -15,10 +17,13 @@ vi.mock('@/contexts/upload-queue-context', () => ({
 vi.mock('@/hooks/api/entities', () => ({
   useProcesses: () => ({
     useCreate: () => ({ mutateAsync: vi.fn() }),
-    useUpdate: () => ({ mutateAsync: vi.fn() }),
+    useUpdate: () => ({ mutateAsync: processUpdate }),
   }),
 }))
-vi.mock('next-intl', () => ({ useTranslations: () => (k: string) => k }))
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
+}))
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -126,5 +131,41 @@ describe('useProcessForm', () => {
     rerender({ p: process() })
 
     expect(result.current.form.getValues('name')).toBe('Edited')
+  })
+
+  it('keeps the full text of a rejected save in the form, detail included', async () => {
+    processUpdate.mockRejectedValueOnce(
+      new ValidationError({
+        type: 'about:blank',
+        title: 'Unprocessable Entity',
+        status: 422,
+        detail: 'a flow needs an object',
+      })
+    )
+    const { result } = renderHook(
+      () => {
+        const r = useProcessForm(
+          process({
+            inputs: [{ id: 'f-in', ref: 'obj-in', properties: [] }],
+            outputs: [{ id: 'f-out', ref: 'obj-out', properties: [] }],
+          } as unknown as Partial<ProcessDTO>)
+        )
+        void r.form.formState.errors
+        return r
+      },
+      { wrapper }
+    )
+
+    act(() =>
+      result.current.form.setValue('name', 'Renamed', { shouldDirty: true })
+    )
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(processUpdate).toHaveBeenCalledTimes(1)
+    expect(result.current.form.formState.errors.root?.save?.message).toBe(
+      'objects.saveError.invalid:{"detail":"a flow needs an object"}'
+    )
   })
 })

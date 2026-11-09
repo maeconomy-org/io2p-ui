@@ -367,6 +367,62 @@ describe('useEntityForm', () => {
     )
   })
 
+  // The sheet shows this text in its save-error box, so the detail must survive.
+  it('keeps the full text of a rejected save in the form, detail included', async () => {
+    objects.update.mockRejectedValue(
+      new ValidationError({
+        type: 'about:blank',
+        title: 'Unprocessable Entity',
+        status: 422,
+        detail: 'property key must be unique',
+      })
+    )
+    const { result } = renderHook(
+      () => {
+        const r = useEntityForm(entity())
+        void r.form.formState.errors
+        return r
+      },
+      { wrapper: makeWrapper() }
+    )
+
+    act(() => result.current.form.setValue('name', 'Wall B'))
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(result.current.form.formState.errors.root?.save?.message).toBe(
+      'objects.saveError.invalid:{"detail":"property key must be unique"}'
+    )
+  })
+
+  // react-hook-form clears `errors.root` at every handleSubmit, even one the
+  // hook then stops before any request: the box disappears with no new save.
+  it('clears the save error at the next submit, even one stopped before the network', async () => {
+    objects.update.mockRejectedValue(new Error('down'))
+    const { result } = renderHook(
+      () => {
+        const r = useEntityForm(entity())
+        void r.form.formState.errors
+        return r
+      },
+      { wrapper: makeWrapper() }
+    )
+    act(() => result.current.form.setValue('name', 'Wall B'))
+    await act(async () => {
+      await result.current.submit()
+    })
+    expect(result.current.form.formState.errors.root?.save).toBeDefined()
+
+    act(() => result.current.form.setValue('name', '   '))
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(objects.update).toHaveBeenCalledTimes(1)
+    expect(result.current.form.formState.errors.root?.save).toBeUndefined()
+  })
+
   it('maps the remaining save failures to their own messages', async () => {
     const cases: [Error, string][] = [
       [
