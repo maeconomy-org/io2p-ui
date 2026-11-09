@@ -137,7 +137,10 @@ export function useTemplateForm(
       })
       const message = saveErrorMessage(err)
       toast.error(t(message.key, message.values))
-      form.setError('root.save', { type: 'server', message: message.key })
+      form.setError('root.save', {
+        type: 'server',
+        message: t(message.key, message.values),
+      })
       return
     }
 

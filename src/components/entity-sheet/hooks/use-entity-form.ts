@@ -208,12 +208,15 @@ export function useEntityForm(
           : 'objects.saveError.mayHaveSaved'
         // Stays until closed: it asks the user to act, and a toast that fades is easy to miss.
         toast.error(t(key), { duration: Infinity, closeButton: true })
-        form.setError('root.save', { type: 'server', message: key })
+        form.setError('root.save', { type: 'server', message: t(key) })
         return
       }
       const message = saveErrorMessage(err)
       toast.error(t(message.key, message.values))
-      form.setError('root.save', { type: 'server', message: message.key })
+      form.setError('root.save', {
+        type: 'server',
+        message: t(message.key, message.values),
+      })
       return
     }
 

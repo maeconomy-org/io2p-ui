@@ -2,7 +2,11 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { PreconditionFailedError, type TemplateDTO } from 'io2p-client'
+import {
+  PreconditionFailedError,
+  ValidationError,
+  type TemplateDTO,
+} from 'io2p-client'
 
 import { useTemplateForm } from '@/components/entity-sheet/hooks/use-template-form'
 
@@ -190,6 +194,36 @@ describe('useTemplateForm', () => {
     expect(onSaved).not.toHaveBeenCalled()
     expect(result.current.form.formState.isDirty).toBe(true)
     expect(toastError).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the full text of a rejected save in the form, detail included', async () => {
+    templates.update.mockRejectedValue(
+      new ValidationError({
+        type: 'about:blank',
+        title: 'Unprocessable Entity',
+        status: 422,
+        detail: 'name is too long',
+      })
+    )
+    const { result } = renderHook(
+      () => {
+        const r = useTemplateForm(template())
+        void r.form.formState.errors
+        return r
+      },
+      { wrapper: makeWrapper() }
+    )
+
+    act(() =>
+      result.current.form.setValue('name', 'Renamed', { shouldDirty: true })
+    )
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(result.current.form.formState.errors.root?.save?.message).toBe(
+      'objects.saveError.invalid:{"detail":"name is too long"}'
+    )
   })
 
   it('does not reject, so submit cannot leave an unhandled rejection', async () => {

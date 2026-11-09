@@ -196,6 +196,7 @@ export function TemplateSheet({
       editing={editing}
       isDirty={isDirty}
       dirtyCount={countDirtyLeaves(dirtyFields)}
+      saveError={errors.root?.save?.message}
       onSubmit={submit}
       tabs={isCreate ? undefined : tabs}
       footer={(guardUnsaved) => (

@@ -47,6 +47,7 @@ function shell(props: Partial<React.ComponentProps<typeof EntitySheetShell>>) {
       isDirty={false}
       dirtyCount={0}
       onFiles={vi.fn()}
+      saveError={undefined}
       onSubmit={handlers.onSubmit}
       footer={(guardUnsaved) => (
         <>
@@ -78,6 +79,7 @@ function renderShell(
       isDirty={false}
       dirtyCount={0}
       onFiles={vi.fn()}
+      saveError={undefined}
       onSubmit={onSubmit}
       footer={(guardUnsaved) => (
         <>
@@ -326,5 +328,21 @@ describe('EntitySheetShell', () => {
         expect(onLeave).toHaveBeenCalled()
       })
     })
+  })
+})
+
+describe('EntitySheetShell — a failed save', () => {
+  it('shows the save error above the footer as an alert', () => {
+    renderShell({ saveError: 'The object could not be saved.' })
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'The object could not be saved.'
+    )
+  })
+
+  it('shows no alert while there is no save error', () => {
+    renderShell({ saveError: undefined })
+
+    expect(screen.queryByTestId('save-error')).toBeNull()
   })
 })

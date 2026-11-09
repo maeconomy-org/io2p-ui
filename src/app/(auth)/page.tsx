@@ -131,34 +131,6 @@ export default function LoginPage() {
   // resolves only on the client, so gating render on it made the server and the
   // client's first render disagree.
 
-  const mapError = (errorMessage: string): string => {
-    if (errorMessage.includes('credentials')) {
-      return t('auth.errors.invalidCredentials')
-    }
-    if (errorMessage.includes('certificate')) {
-      return t('auth.errors.certificateFailed')
-    }
-    if (
-      errorMessage.includes('network') ||
-      errorMessage.includes('connection')
-    ) {
-      return t('auth.errors.networkFailed')
-    }
-    if (errorMessage.includes('timeout')) {
-      return t('auth.errors.timeout')
-    }
-    if (
-      errorMessage.includes('unauthorized') ||
-      errorMessage.includes('forbidden')
-    ) {
-      return t('auth.errors.unauthorized')
-    }
-    if (errorMessage.includes('expired')) {
-      return t('auth.errors.expired')
-    }
-    return t('auth.errors.authFailed')
-  }
-
   const onEmailSubmit = async (data: LoginFormData) => {
     // check if emaillogin is enabled
     if (config.emailLoginEnabled === 'false') {
@@ -173,15 +145,15 @@ export default function LoginPage() {
     try {
       const result = await handleEmailLogin(data.email, data.password)
       if (!result.success) {
-        throw new Error(result.error)
+        setError(t(result.errorKey))
+        return
       }
       localStorage.setItem(LAST_AUTH_METHOD_KEY, 'email')
       router.replace('/objects')
     } catch (err) {
-      logger.error('Email Login Error:', { err })
-      const msg =
-        err instanceof Error ? err.message : 'Unknown authentication error'
-      setError(mapError(msg))
+      // Last resort: the handlers catch their own failures.
+      logger.error('login_page_unexpected_error', { err, method: 'email' })
+      setError(t('auth.errors.authFailed'))
     } finally {
       setSubmitting(false)
     }
@@ -199,7 +171,7 @@ export default function LoginPage() {
     const result = await handleSocialLogin(provider)
     if (!result.success) {
       localStorage.removeItem(LAST_AUTH_METHOD_KEY)
-      setError(mapError(result.error ?? ''))
+      setError(t(result.errorKey))
       setSocialLoading(null)
     }
     // No success branch and no `finally`: the provider redirect is already
@@ -214,15 +186,17 @@ export default function LoginPage() {
     try {
       const result = await handleAuth()
       if (!result.success) {
-        throw new Error(result.error)
+        setError(t(result.errorKey))
+        return
       }
       localStorage.setItem(LAST_AUTH_METHOD_KEY, 'certificate')
       router.replace('/objects')
     } catch (err) {
-      logger.error('Certificate Authentication Error:', { err })
-      const msg =
-        err instanceof Error ? err.message : 'Unknown authentication error'
-      setError(mapError(msg))
+      logger.error('login_page_unexpected_error', {
+        err,
+        method: 'certificate',
+      })
+      setError(t('auth.errors.authFailed'))
     } finally {
       setCertLoading(false)
     }

@@ -143,14 +143,38 @@ describe('useAuth', () => {
     expect(res.success).toBe(true)
   })
 
-  it('handleEmailLogin surfaces the issuer error message', async () => {
-    mockSignInEmail.mockResolvedValueOnce({
-      error: { message: 'bad creds' },
-    } as any)
+  // The shapes the issuer really sends: a Dutch message for a wrong password,
+  // and nothing but a status when the gateway answers for a down issuer.
+  it.each([
+    [
+      'a wrong password',
+      {
+        status: 401,
+        code: 'INVALID_EMAIL_OR_PASSWORD',
+        message: 'Ongeldig e-mailadres of wachtwoord',
+      },
+      'auth.errors.invalidCredentials',
+    ],
+    [
+      'an issuer that is down',
+      { status: 503, statusText: 'Service Unavailable' },
+      'auth.errors.unavailable',
+    ],
+  ])(
+    'handleEmailLogin names %s by its status and code',
+    async (_n, error, key) => {
+      mockSignInEmail.mockResolvedValueOnce({ error } as any)
+      const { result } = renderHook(() => useAuth(), { wrapper })
+      const res = await result.current.handleEmailLogin('a@b.com', 'pw')
+      expect(res).toEqual({ success: false, errorKey: key })
+    }
+  )
+
+  it('handleEmailLogin says sign-in is unavailable when the request never returns', async () => {
+    mockSignInEmail.mockRejectedValueOnce(new TypeError('Failed to fetch'))
     const { result } = renderHook(() => useAuth(), { wrapper })
     const res = await result.current.handleEmailLogin('a@b.com', 'pw')
-    expect(res.success).toBe(false)
-    expect(res.error).toBe('bad creds')
+    expect(res).toEqual({ success: false, errorKey: 'auth.errors.unavailable' })
   })
 })
 
@@ -195,7 +219,7 @@ describe('useAuth — handleAuth (certificate sign-in)', () => {
     const res = await result.current.handleAuth()
 
     expect(fetchMock).not.toHaveBeenCalled()
-    expect(res.success).toBe(false)
+    expect(res).toEqual({ success: false, errorKey: 'auth.errors.authFailed' })
   })
 
   it('fails without a session refresh when the issuer refuses the certificate', async () => {
@@ -209,7 +233,10 @@ describe('useAuth — handleAuth (certificate sign-in)', () => {
 
     const res = await result.current.handleAuth()
 
-    expect(res.success).toBe(false)
+    expect(res).toEqual({
+      success: false,
+      errorKey: 'auth.errors.certificateFailed',
+    })
     expect(mockNotify).not.toHaveBeenCalled()
   })
 
@@ -220,7 +247,7 @@ describe('useAuth — handleAuth (certificate sign-in)', () => {
 
     const res = await result.current.handleAuth()
 
-    expect(res.success).toBe(false)
+    expect(res).toEqual({ success: false, errorKey: 'auth.errors.authFailed' })
   })
 })
 

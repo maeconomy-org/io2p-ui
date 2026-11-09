@@ -367,6 +367,7 @@ export function EntitySheet({
       // RHF mirrors the value shape, so a top-level key count reports twelve edited properties as
       // one change. Count the leaves instead.
       dirtyCount={countDirtyLeaves(dirtyFields)}
+      saveError={errors.root?.save?.message}
       onFiles={dropFiles}
       onSubmit={submit}
       onSaveDraft={isCreate ? saveAsDraft : undefined}

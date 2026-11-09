@@ -377,12 +377,9 @@
     },
     "errors": {
       "authFailed": "Authenticatie mislukt",
+      "unavailable": "Inloggen is tijdelijk niet beschikbaar. Probeer het zo opnieuw.",
       "invalidCredentials": "Ongeldig e-mailadres of wachtwoord. Probeer het opnieuw.",
       "certificateFailed": "Certificaatauthenticatie mislukt. Controleer of u een geldig certificaat heeft geselecteerd.",
-      "networkFailed": "Netwerkverbinding mislukt. Controleer uw internetverbinding en probeer opnieuw.",
-      "timeout": "Authenticatie is verlopen. Dit kan duiden op een netwerkprobleem of certificaatprobleem.",
-      "unauthorized": "Uw certificaat is niet geautoriseerd om dit systeem te gebruiken. Neem contact op met uw beheerder.",
-      "expired": "Uw certificaat is verlopen. Vraag een nieuw certificaat aan bij uw beheerder.",
       "emailLoginDisabled": "Inloggen met e-mail en wachtwoord is uitgeschakeld op deze node.",
       "signupDisabled": "U kunt hier geen account maken met deze aanmeldmethode. Vraag uw beheerder om een uitnodiging.",
       "accountNotLinked": "Er bestaat al een account met dit e-mailadres. Log in met uw wachtwoord of certificaat en koppel deze aanmeldmethode daarna in Instellingen → Beveiliging.",

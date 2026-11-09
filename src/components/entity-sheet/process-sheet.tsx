@@ -282,6 +282,7 @@ export function ProcessSheet({
       editing={editing}
       isDirty={isDirty}
       dirtyCount={countDirtyLeaves(dirtyFields)}
+      saveError={errors.root?.save?.message}
       onFiles={dropFiles}
       onSubmit={submit}
       tabs={tabs}
