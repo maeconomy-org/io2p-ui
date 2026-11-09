@@ -377,12 +377,9 @@
     },
     "errors": {
       "authFailed": "Authentication failed",
+      "unavailable": "Sign-in is temporarily unavailable. Try again in a moment.",
       "invalidCredentials": "Invalid email or password. Please try again.",
       "certificateFailed": "Certificate authentication failed. Please ensure you have selected a valid certificate.",
-      "networkFailed": "Network connection failed. Please check your internet connection and try again.",
-      "timeout": "Authentication timed out. This may indicate a network issue or certificate problem.",
-      "unauthorized": "Your certificate is not authorized to access this system. Please contact your administrator.",
-      "expired": "Your certificate has expired. Please obtain a new certificate from your administrator.",
       "emailLoginDisabled": "Signing in with email and password is turned off on this node.",
       "signupDisabled": "You cannot create an account with this sign-in here. Ask your administrator for an invitation.",
       "accountNotLinked": "An account with this email already exists. Sign in with your password or certificate, then connect this sign-in in Settings → Security.",

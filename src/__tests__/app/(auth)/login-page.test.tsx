@@ -20,13 +20,14 @@ vi.mock('@/hooks/api/use-sign-in-options', () => ({
 }))
 
 const mockHandleAuth = vi.fn()
+const mockHandleEmailLogin = vi.fn()
 let config: Record<string, unknown>
 vi.mock('@/contexts', () => ({
   useAuth: () => ({
     isAuthenticated: false,
     authLoading: false,
     handleAuth: mockHandleAuth,
-    handleEmailLogin: vi.fn(),
+    handleEmailLogin: mockHandleEmailLogin,
     handleSocialLogin: vi.fn(),
   }),
   useAppConfig: () => config,
@@ -88,7 +89,7 @@ describe('LoginPage — certificate sign-in', () => {
     config.mtlsBaseUrl = 'https://mtls-auth.example.com'
     mockHandleAuth.mockResolvedValueOnce({
       success: false,
-      error: 'Certificate authentication failed.',
+      errorKey: 'auth.errors.authFailed',
     })
     const user = userEvent.setup()
     render(<LoginPage />)
@@ -98,6 +99,31 @@ describe('LoginPage — certificate sign-in', () => {
     await waitFor(() =>
       expect(screen.getByTestId('auth-error')).toHaveTextContent(
         'auth.errors.authFailed'
+      )
+    )
+    expect(mockReplace).not.toHaveBeenCalled()
+  })
+})
+
+describe('LoginPage — email sign-in', () => {
+  it('shows the error the sign-in returned, and stays on the page', async () => {
+    mockHandleEmailLogin.mockResolvedValueOnce({
+      success: false,
+      errorKey: 'auth.errors.unavailable',
+    })
+    const user = userEvent.setup()
+    render(<LoginPage />)
+
+    await user.type(screen.getByLabelText('auth.email.label'), 'a@b.com')
+    await user.type(
+      screen.getByLabelText('auth.password.label'),
+      'secretPass1!'
+    )
+    await user.click(screen.getByTestId('auth-email-submit'))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('auth-error')).toHaveTextContent(
+        'auth.errors.unavailable'
       )
     )
     expect(mockReplace).not.toHaveBeenCalled()

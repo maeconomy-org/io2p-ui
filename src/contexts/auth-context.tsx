@@ -14,6 +14,11 @@ import {
 import { clearLegacyDrafts } from '@/hooks/drafts/use-object-drafts'
 import { isPendingApproval } from '@/lib/auth/approval'
 import { authClient, clearCoreToken, useSession } from '@/lib/auth/client'
+import {
+  type SignInError,
+  type SignInErrorKey,
+  signInErrorKey,
+} from '@/lib/auth/sign-in-error'
 import { useIomClient } from '@/lib/io2p'
 import { logger } from '@/lib/observability/logger'
 import { queryKeys } from '@/lib/query-keys'
@@ -45,6 +50,23 @@ export interface AuthResponse {
 }
 
 // Minimal shape of the better-auth session user we rely on.
+type SignInResult =
+  | { success: true }
+  | {
+      success: false
+      errorKey: SignInErrorKey | 'auth.errors.certificateFailed'
+    }
+
+function signInFailure(error: SignInError | undefined): SignInResult {
+  const errorKey = signInErrorKey(error)
+  // The fallback hides causes the user cannot fix (a wrong TRUSTED_ORIGINS
+  // answers 403 INVALID_ORIGIN), so support needs them in the log.
+  if (errorKey === 'auth.errors.authFailed') {
+    logger.warn('sign_in_failed', { status: error?.status, code: error?.code })
+  }
+  return { success: false, errorKey }
+}
+
 interface SessionUser {
   id: string
   email?: string | null
@@ -151,22 +173,25 @@ export function useAuth() {
     window.location.assign('/')
   }
 
-  const handleEmailLogin = async (email: string, password: string) => {
-    const { error } = await authClient.signIn.email({ email, password })
-    if (error) {
-      return {
-        success: false,
-        error:
-          error.message ||
-          'Authentication failed. Please check your credentials.',
-      }
+  const handleEmailLogin = async (
+    email: string,
+    password: string
+  ): Promise<SignInResult> => {
+    try {
+      const { error } = await authClient.signIn.email({ email, password })
+      return error ? signInFailure(error) : { success: true }
+    } catch (err) {
+      // A fetch that never got an answer throws instead of returning an error.
+      logger.warn('email_login_unreachable', { err })
+      return signInFailure(undefined)
     }
-    return { success: true }
   }
 
   // Resolves ONLY on failure. The success path is a full-page redirect to the
   // provider, so a caller must not clear its loading state in a `finally`.
-  const handleSocialLogin = async (provider: SocialProviderId) => {
+  const handleSocialLogin = async (
+    provider: SocialProviderId
+  ): Promise<SignInResult> => {
     try {
       // ABSOLUTE, both of them. better-auth stores these verbatim in the OAuth
       // state and emits them verbatim as the callback's Location header — it
@@ -179,28 +204,19 @@ export function useAuth() {
         callbackURL: `${returnTo}/objects`,
         errorCallbackURL: `${returnTo}/`,
       })
-      if (error) {
-        return {
-          success: false,
-          error: error.message || 'Authentication failed.',
-        }
-      }
-      return { success: true }
+      return error ? signInFailure(error) : { success: true }
     } catch (err) {
       logger.error('social_login_failed', { err, provider })
-      return { success: false, error: 'Authentication failed.' }
+      return signInFailure(undefined)
     }
   }
 
-  const handleAuth = async () => {
+  const handleAuth = async (): Promise<SignInResult> => {
     // No fallback to authBaseUrl or the app origin: neither asks the browser
     // for a client certificate, so the call could only ever be refused.
     const base = getCachedConfig()?.mtlsBaseUrl
     if (!base) {
-      return {
-        success: false,
-        error: 'Certificate sign-in is not configured.',
-      }
+      return { success: false, errorKey: 'auth.errors.authFailed' }
     }
     try {
       const res = await fetch(`${base}/api/auth/mtls/login`, {
@@ -208,11 +224,7 @@ export function useAuth() {
         credentials: 'include',
       })
       if (!res.ok) {
-        return {
-          success: false,
-          error:
-            'Certificate authentication failed. Ensure a valid client certificate is selected.',
-        }
+        return { success: false, errorKey: 'auth.errors.certificateFailed' }
       }
       // A plain fetch, so better-auth does not know a session now exists.
       // getSession() asks the server but leaves useSession's cache empty, and
@@ -221,7 +233,7 @@ export function useAuth() {
       authClient.$store.notify('$sessionSignal')
       return { success: true }
     } catch {
-      return { success: false, error: 'Certificate authentication failed.' }
+      return { success: false, errorKey: 'auth.errors.authFailed' }
     }
   }
 
