@@ -8,8 +8,13 @@
 // app boots with zero OTel machinery. Telemetry must never break the app:
 // a missing collector never fails a boot, exporter failures never throw.
 
-import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api'
-import { logs, SeverityNumber } from '@opentelemetry/api-logs'
+import {
+  diag,
+  DiagConsoleLogger,
+  DiagLogLevel,
+  logs,
+  SeverityNumber,
+} from '@opentelemetry/api'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-proto'
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
