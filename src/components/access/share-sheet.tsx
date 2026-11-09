@@ -56,11 +56,7 @@ import { ShareDependencies, splitDependencies } from './share-dependencies'
 
 /** What a Share sheet can be opened on — all five, since who-can-access widened to match grant. */
 export type ShareResourceType =
-  | 'object'
-  | 'process'
-  | 'formula'
-  | 'constant'
-  | 'template'
+  'object' | 'process' | 'formula' | 'constant' | 'template'
 
 /**
  * Formulas, constants and templates are READ-SHARE ONLY (C3): `READ_SHARE_ONLY` is enforced in the

@@ -56,15 +56,12 @@ export function buildFormulaColumns({
     ),
     // What the result is IN. Blank means the node infers it from the arguments, which is the
     // common case — a declaration is for expressions inference cannot follow.
-    textColumn<FormulaDTO>(
-      'unit',
-      t('formulas.unit'),
-      (f): ReactNode =>
-        f.unit ? (
-          <code className="font-mono text-xs">{f.unit}</code>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )
+    textColumn<FormulaDTO>('unit', t('formulas.unit'), (f): ReactNode =>
+      f.unit ? (
+        <code className="font-mono text-xs">{f.unit}</code>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      )
     ),
     // The variables ARE the contract a binding has to satisfy, and they are server-derived — so this
     // is the column that tells you what using this formula will ask of you.
@@ -89,17 +86,13 @@ export function buildFormulaColumns({
         )
     ),
     idColumn<FormulaDTO>((f) => f.id, t('objects.fields.uuid')),
-    textColumn<FormulaDTO>(
-      'owner',
-      t('common.owner'),
-      (f): ReactNode => (
-        <OwnerCell
-          system={f.system}
-          ownerUserId={f.ownerUserId}
-          ownerName={f.ownerName}
-        />
-      )
-    ),
+    textColumn<FormulaDTO>('owner', t('common.owner'), (f): ReactNode => (
+      <OwnerCell
+        system={f.system}
+        ownerUserId={f.ownerUserId}
+        ownerName={f.ownerName}
+      />
+    )),
     timestampColumn<FormulaDTO>(
       'createdAt',
       t('objects.fields.created'),

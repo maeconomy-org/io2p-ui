@@ -631,8 +631,7 @@ export function resolveUploadTargets(
 }
 
 export type CalcHydration =
-  | { ok: true; calc: CalcInput }
-  | { ok: false; reason: 'inlineExpression' }
+  { ok: true; calc: CalcInput } | { ok: false; reason: 'inlineExpression' }
 
 /**
  * Turn a read-only evaluation trace back into an EDITABLE recipe — so a derived value's formula and

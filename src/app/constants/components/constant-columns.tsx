@@ -76,17 +76,13 @@ export function buildConstantColumns({
       )
     ),
     idColumn<ConstantDTO>((c) => c.id, t('objects.fields.uuid')),
-    textColumn<ConstantDTO>(
-      'owner',
-      t('common.owner'),
-      (c): ReactNode => (
-        <OwnerCell
-          system={c.system}
-          ownerUserId={c.ownerUserId}
-          ownerName={c.ownerName}
-        />
-      )
-    ),
+    textColumn<ConstantDTO>('owner', t('common.owner'), (c): ReactNode => (
+      <OwnerCell
+        system={c.system}
+        ownerUserId={c.ownerUserId}
+        ownerName={c.ownerName}
+      />
+    )),
     timestampColumn<ConstantDTO>(
       'createdAt',
       t('objects.fields.created'),

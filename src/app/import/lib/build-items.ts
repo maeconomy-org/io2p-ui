@@ -25,12 +25,7 @@ export type ColumnTarget =
   | { kind: 'property'; key: string; label: string; split: string | null }
 
 export type AddressPart =
-  | 'street'
-  | 'houseNumber'
-  | 'postalCode'
-  | 'city'
-  | 'state'
-  | 'country'
+  'street' | 'houseNumber' | 'postalCode' | 'city' | 'state' | 'country'
 
 export interface BuildMapping {
   /** Column index → what it becomes. */
@@ -384,7 +379,7 @@ export function buildItems(
   // O(n²) accepted: a row is recognised only once its parent is marked, so a sheet listing children
   // above their parents resolves one per scan. A children index would make it linear.
   const orphans = new Set<string>()
-  for (let changed = true; changed; ) {
+  for (let changed = true; changed;) {
     changed = false
     for (const draft of drafts.values()) {
       if (orphans.has(draft.tempId)) continue

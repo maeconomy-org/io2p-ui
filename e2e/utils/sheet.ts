@@ -4,12 +4,7 @@ import { tour } from './selectors'
 
 /** Object sheet: properties/files/relations/details. Process sheet: details/files/inputs/outputs. */
 export type SheetTab =
-  | 'properties'
-  | 'files'
-  | 'relations'
-  | 'details'
-  | 'inputs'
-  | 'outputs'
+  'properties' | 'files' | 'relations' | 'details' | 'inputs' | 'outputs'
 
 export function sheet(page: Page): Locator {
   return page.getByTestId('entity-sheet')

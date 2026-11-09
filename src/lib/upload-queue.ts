@@ -27,11 +27,7 @@ import { logger } from './observability/logger'
  */
 
 export type UploadTaskStatus =
-  | 'pending'
-  | 'uploading'
-  | 'cancelling'
-  | 'completed'
-  | 'failed'
+  'pending' | 'uploading' | 'cancelling' | 'completed' | 'failed'
 
 export interface UploadTask {
   id: string
