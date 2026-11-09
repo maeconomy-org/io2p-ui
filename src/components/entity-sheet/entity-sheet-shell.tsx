@@ -244,10 +244,11 @@ export function EntitySheetShell({
                 {saveError && (
                   <Alert
                     variant="destructive"
-                    className="rounded-none border-x-0 border-b-0 bg-destructive/10 px-6 py-2 text-sm font-medium"
+                    className="rounded-none border-x-0 border-b-0 bg-destructive/10 px-6 py-2 text-sm font-medium text-red-700 dark:text-red-400"
                     data-testid="save-error"
                   >
-                    {/* Wrapped: Alert positions a direct-child svg absolutely, for a card. */}
+                    {/* Wrapped: Alert positions a direct-child svg absolutely, for a card.
+                        red-700 / red-400: --destructive on this tint is about 3.3:1, below 4.5. */}
                     <div className="flex items-center gap-2">
                       <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
                       <span>{saveError}</span>
