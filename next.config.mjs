@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-import { withSentryConfig } from '@sentry/nextjs'
+import { withSentryConfig } from '@sentry/nextjs/config'
 import createNextIntlPlugin from 'next-intl/plugin'
 import withBundleAnalyzer from '@next/bundle-analyzer'
 
