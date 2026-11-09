@@ -15,6 +15,7 @@ import { clearLegacyDrafts } from '@/hooks/drafts/use-object-drafts'
 import { isPendingApproval } from '@/lib/auth/approval'
 import { authClient, clearCoreToken, useSession } from '@/lib/auth/client'
 import {
+  type CertificateErrorKey,
   type SignInError,
   type SignInErrorKey,
   signInErrorKey,
@@ -54,7 +55,7 @@ type SignInResult =
   | { success: true }
   | {
       success: false
-      errorKey: SignInErrorKey | 'auth.errors.certificateFailed'
+      errorKey: SignInErrorKey | CertificateErrorKey
     }
 
 function signInFailure(error: SignInError | undefined): SignInResult {

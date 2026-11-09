@@ -15,6 +15,14 @@ export const SIGN_IN_ERROR_KEYS = [
 
 export type SignInErrorKey = (typeof SIGN_IN_ERROR_KEYS)[number]
 
+/** What a certificate sign-in can show; decided in auth-context's `handleAuth`. */
+export const CERTIFICATE_ERROR_KEYS = [
+  'auth.errors.authFailed',
+  'auth.errors.certificateFailed',
+] as const
+
+export type CertificateErrorKey = (typeof CERTIFICATE_ERROR_KEYS)[number]
+
 /** The better-auth client's error: always a status, a code only when the issuer answered. */
 export interface SignInError {
   status?: number
