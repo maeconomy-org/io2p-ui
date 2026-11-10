@@ -17,7 +17,7 @@
 # Exact version, not `24`: 24.22.1 is the first 24.x that distrusts the
 # compromised eMudhra intermediate CAs. A floating tag decides that at build
 # time. Bump it; never loosen it. Keep .nvmrc on the same version.
-FROM node:24.22.1-alpine AS deps
+FROM node:26.13.0-alpine AS deps
 WORKDIR /app
 
 # pnpm comes from package.json "packageManager" via corepack, so this cannot
@@ -38,7 +38,7 @@ RUN pnpm install --frozen-lockfile
 # -----------------------------------------------------------------------------
 # Stage 2: Builder
 # -----------------------------------------------------------------------------
-FROM node:24.22.1-alpine AS builder
+FROM node:26.13.0-alpine AS builder
 WORKDIR /app
 
 # Copy dependencies from deps stage
@@ -59,7 +59,7 @@ RUN pnpm build
 # -----------------------------------------------------------------------------
 # Stage 3: Runner (Production)
 # -----------------------------------------------------------------------------
-FROM node:24.22.1-alpine AS runner
+FROM node:26.13.0-alpine AS runner
 WORKDIR /app
 
 # Production environment
