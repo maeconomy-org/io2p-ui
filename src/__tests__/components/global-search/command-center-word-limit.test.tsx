@@ -51,6 +51,12 @@ describe('CommandCenter word limit', () => {
     expect(input()).toHaveAttribute('aria-describedby', hint.id)
   })
 
+  it('runs a search too short to filter, which shows the whole list', () => {
+    const { onSearch } = renderCenter()
+    submit('a b c')
+    expect(onSearch).toHaveBeenCalledTimes(1)
+  })
+
   it('runs 8 words', () => {
     const { onSearch } = renderCenter()
     submit('a1 b2 c3 d4 e5 f6 g7 h8')
@@ -61,5 +67,12 @@ describe('CommandCenter word limit', () => {
     const { onSearch } = renderCenter('substring')
     submit(NINE_WORDS)
     expect(onSearch).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses the word rule for a template: search started on a substring list', () => {
+    const { onSearch } = renderCenter('substring')
+    submit(`template:true ${NINE_WORDS}`)
+    expect(onSearch).not.toHaveBeenCalled()
+    expect(screen.getByRole('status')).toHaveTextContent('maxWords')
   })
 })

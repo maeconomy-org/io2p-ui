@@ -8,6 +8,7 @@ import {
 import {
   foldSearch,
   nextSearch,
+  pickerSearch,
   searchInput,
   searchWords,
 } from '@/lib/search-text'
@@ -110,10 +111,10 @@ describe('searchInput on a word list', () => {
     expect(searchInput(`${words(8)} WORD0 wórd1`, 'words').status).toBe('ok')
   })
 
-  it('removes U+0000, which the node refuses', () => {
-    expect(searchInput('be\u0000ton', 'words')).toEqual({
+  it('turns U+0000, which the node refuses, into a space', () => {
+    expect(searchInput('beton\u0000vloer', 'words')).toEqual({
       status: 'ok',
-      q: 'beton',
+      q: 'beton vloer',
     })
   })
 
@@ -170,5 +171,25 @@ describe('nextSearch', () => {
     expect(
       nextSearch({ status: 'refused', problem: 'too-many-words' }, 'beton')
     ).toBe('beton')
+  })
+})
+
+describe('pickerSearch', () => {
+  it('searches before the first answer, even for the same q', () => {
+    expect(pickerSearch('', undefined, false)).toEqual({ q: undefined })
+  })
+
+  it('does not search again for the q it already has', () => {
+    expect(pickerSearch('beton ', 'beton', true)).toBeNull()
+    expect(pickerSearch('a', undefined, true)).toBeNull()
+  })
+
+  it('searches a new q, and the whole list when the field empties', () => {
+    expect(pickerSearch('vloer', 'beton', true)).toEqual({ q: 'vloer' })
+    expect(pickerSearch('', 'beton', true)).toEqual({ q: undefined })
+  })
+
+  it('keeps the last q for too many words, with no new search', () => {
+    expect(pickerSearch('a1 b2 c3 d4 e5 f6 g7 h8 i9', 'beton', true)).toBeNull()
   })
 })

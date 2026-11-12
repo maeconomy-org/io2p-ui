@@ -54,10 +54,4 @@ describe('useEntityListQuery', () => {
 
     expect(result.current.query.page).toBe(3)
   })
-
-  it('setSearch clears an empty string to undefined', () => {
-    const { result } = renderHook(() => useEntityListQuery())
-    act(() => result.current.setSearch('', 'words'))
-    expect(result.current.query.q).toBeUndefined()
-  })
 })

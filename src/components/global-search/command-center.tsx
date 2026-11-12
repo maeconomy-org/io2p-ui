@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils'
 import {
   parseSearchQuery,
   searchTextOf,
+  templateSearch,
   getFilterSuggestions,
   removeFilter,
   type SearchFilter,
@@ -46,7 +47,7 @@ interface CommandCenterProps {
   /** Ends the active search. Without it, an emptied field only empties the field. */
   onClear?: () => void
   initialQuery?: string
-  /** How the list the search goes to matches `q`. */
+  /** How the current list matches `q`. */
   searchKind?: SearchKind
 }
 
@@ -123,6 +124,9 @@ export function CommandCenter({
   const [showSuggestions] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const hintId = React.useId()
+  // `template:` sends the search to the templates or objects list, whatever page it started on.
+  const kindOf = (parsed: ParsedSearch): SearchKind =>
+    templateSearch(parsed) === undefined ? searchKind : 'words'
 
   // Computed, not stored. As state written by an effect, `parsedSearch` was always one render
   // behind the input it described. `getRecentSearches` is an SSR-safe localStorage read and the
@@ -209,7 +213,7 @@ export function CommandCenter({
     // Parse inline to avoid stale state from useEffect
     const freshParsed = parseSearchQuery(inputValue)
     // The hint under the input says why; the list keeps its last search.
-    const input = searchInput(searchTextOf(freshParsed), searchKind)
+    const input = searchInput(searchTextOf(freshParsed), kindOf(freshParsed))
     if (input.status === 'refused' && input.problem === 'too-many-words') {
       return
     }
@@ -289,7 +293,7 @@ export function CommandCenter({
 
           <SearchMinHint
             query={searchTextOf(parsedSearch)}
-            kind={searchKind}
+            kind={kindOf(parsedSearch)}
             id={hintId}
           />
 

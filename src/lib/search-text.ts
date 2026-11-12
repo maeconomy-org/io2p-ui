@@ -59,8 +59,9 @@ export function searchInput(
   raw: string | undefined,
   kind: SearchKind
 ): SearchInput {
-  // The node answers 422 for U+0000 in `q`; it can only come from a paste.
-  const text = capSearch((raw ?? '').replaceAll('\u0000', '').trim())
+  // The node answers 422 for U+0000 in `q`; it can only come from a paste. A space, so the words
+  // on each side stay two words.
+  const text = capSearch((raw ?? '').replaceAll('\u0000', ' ').trim())
   if (text === '') return { status: 'empty' }
 
   if (kind === 'substring') {
@@ -96,4 +97,17 @@ export function nextSearch(
     case 'refused':
       return input.problem === 'too-many-words' ? previous : undefined
   }
+}
+
+/**
+ * For a picker that sends its own requests: the `q` to search after `raw`, or `null` when the last
+ * search (`last`) already answered it. Before the first answer (`loaded` false) it always searches.
+ */
+export function pickerSearch(
+  raw: string,
+  last: string | undefined,
+  loaded: boolean
+): { q: string | undefined } | null {
+  const q = nextSearch(searchInput(raw, 'words'), last)
+  return loaded && q === last ? null : { q }
 }

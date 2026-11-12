@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useState, useEffect, useId, useMemo, useRef, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { X, Loader2, ChevronsUpDown, Users, Check, Plus } from 'lucide-react'
 
@@ -28,7 +28,8 @@ import {
 import { useAuth } from '@/contexts'
 import { cn, truncateText } from '@/lib/utils'
 import { useIomClient } from '@/lib/io2p'
-import { nextSearch, searchInput } from '@/lib/search-text'
+import { SearchMinHint } from '@/components/search-min-hint'
+import { pickerSearch, searchInput } from '@/lib/search-text'
 import type { ParentObject } from '@/types'
 
 const EMPTY_PARENT_UUIDS: string[] = []
@@ -106,6 +107,7 @@ export function ParentSelector({
   // what the compiler lint rejects.
   const client = useIomClient()
   const { userId } = useAuth()
+  const hintId = useId()
 
   // Unified search function
   const performSearch = useCallback(
@@ -141,6 +143,8 @@ export function ParentSelector({
       } catch (error) {
         if (controller.signal.aborted) return
         logger.error('Search failed:', { err: error })
+        // So the same search runs again on the next key press or reopen.
+        lastQRef.current = undefined
         setSearchResults([])
       } finally {
         if (!controller.signal.aborted) setIsSearching(false)
@@ -153,10 +157,14 @@ export function ParentSelector({
   useEffect(() => {
     if (!isOpen) return
     const timeoutId = setTimeout(() => {
-      const q = nextSearch(searchInput(searchQuery, 'words'), lastQRef.current)
-      if (hasInitiallyLoaded && q === lastQRef.current) return
-      lastQRef.current = q
-      void performSearch(q)
+      const next = pickerSearch(
+        searchQuery,
+        lastQRef.current,
+        hasInitiallyLoaded
+      )
+      if (!next) return
+      lastQRef.current = next.q
+      void performSearch(next.q)
     }, 300)
 
     return () => clearTimeout(timeoutId)
@@ -291,6 +299,7 @@ export function ParentSelector({
                 placeholder={t('objects.parentSelector.searchPlaceholder')}
                 value={searchQuery}
                 onValueChange={setSearchQuery}
+                aria-describedby={hintId}
                 className="ml-2"
               />
               {isSearching && (
@@ -299,6 +308,7 @@ export function ParentSelector({
                 </div>
               )}
             </div>
+            <SearchMinHint query={searchQuery} kind="words" id={hintId} />
             <CommandList className="max-h-[300px] overflow-y-auto">
               {allowInlineCreate && !disabled && (
                 <>
@@ -323,7 +333,8 @@ export function ParentSelector({
               <CommandEmpty>
                 {isSearching
                   ? t('objects.parentSelector.searching')
-                  : searchQuery.length < 2 && searchResults.length === 0
+                  : searchInput(searchQuery, 'words').status !== 'ok' &&
+                      searchResults.length === 0
                     ? t('objects.parentSelector.startTyping')
                     : t('objects.parentSelector.noResults')}
               </CommandEmpty>

@@ -87,17 +87,21 @@ export function MillerColumn({
 }: MillerColumnProps) {
   const t = useTranslations()
   const { userId, authLoading } = useAuth()
-  const [page, setPage] = useState(1)
   const [typed, setTyped] = useState('')
-  const [q, setQ] = useState<string | undefined>(undefined)
+  // One state, so a new `q` and page 1 land in the same render. As an effect on `q` it was state
+  // syncing state — a render where page 3 was already paired with the new term, and the compiler
+  // lint rejects setState in an effect body. A timer callback is fine.
+  const [{ q, page }, setList] = useState<{ q?: string; page: number }>({
+    page: 1,
+  })
+  const setPage = (next: number) => setList((list) => ({ ...list, page: next }))
 
-  // The page resets INSIDE the debounce, with the search it belongs to. As its own effect on
-  // `q` it was state syncing state — a render where page 3 was already paired with the new
-  // term, and the compiler lint rejects setState in an effect body. A timer callback is fine.
   useEffect(() => {
     const id = setTimeout(() => {
-      setQ((previous) => nextSearch(searchInput(typed, 'words'), previous))
-      setPage(1)
+      setList((list) => {
+        const next = nextSearch(searchInput(typed, 'words'), list.q)
+        return next === list.q ? list : { q: next, page: 1 }
+      })
     }, 300)
     return () => clearTimeout(id)
   }, [typed])

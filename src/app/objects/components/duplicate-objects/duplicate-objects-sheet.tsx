@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useId, useRef, useCallback } from 'react'
 import {
   Copy,
   Loader2,
@@ -44,7 +44,8 @@ import { logger } from '@/lib/observability/logger'
 import { useIomClient } from '@/lib/io2p'
 import { toast } from 'sonner'
 
-import { nextSearch, searchInput } from '@/lib/search-text'
+import { SearchMinHint } from '@/components/search-min-hint'
+import { pickerSearch } from '@/lib/search-text'
 
 import {
   DuplicateIntoOwnSubtreeError,
@@ -104,6 +105,7 @@ export function DuplicateObjectsSheet({
   const [sourceSearchPage, setSourceSearchPage] = useState<FetchedPage>()
   // The `q` of the last source search sent; `undefined` = the unfiltered list.
   const lastSourceQRef = useRef<string | undefined>(undefined)
+  const sourceHintId = useId()
   // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
   const sourceSearchAbortRef = useRef<AbortController | null>(null)
 
@@ -139,6 +141,7 @@ export function DuplicateObjectsSheet({
     setSourceSearchResults([])
     setSourceSearchPage(undefined)
     setHasSourceLoaded(false)
+    lastSourceQRef.current = undefined
   }, [preselectedObjects, defaultParentUuid])
 
   const prevOpenRef = useRef(false)
@@ -185,6 +188,8 @@ export function DuplicateObjectsSheet({
       } catch (error) {
         if (controller.signal.aborted) return
         logger.error('Source search failed:', { err: error })
+        // So the same search runs again on the next key press or reopen.
+        lastSourceQRef.current = undefined
         setSourceSearchResults([])
         setSourceSearchPage(undefined)
       } finally {
@@ -199,13 +204,14 @@ export function DuplicateObjectsSheet({
     if (!isSourceOpen) return
 
     const timeoutId = setTimeout(() => {
-      const q = nextSearch(
-        searchInput(sourceSearchQuery, 'words'),
-        lastSourceQRef.current
+      const next = pickerSearch(
+        sourceSearchQuery,
+        lastSourceQRef.current,
+        hasSourceLoaded
       )
-      if (hasSourceLoaded && q === lastSourceQRef.current) return
-      lastSourceQRef.current = q
-      void performSourceSearch(q)
+      if (!next) return
+      lastSourceQRef.current = next.q
+      void performSourceSearch(next.q)
     }, 300)
 
     return () => clearTimeout(timeoutId)
@@ -374,6 +380,7 @@ export function DuplicateObjectsSheet({
                       placeholder={t('objects.duplicate.sourceObjectsHint')}
                       value={sourceSearchQuery}
                       onValueChange={setSourceSearchQuery}
+                      aria-describedby={sourceHintId}
                       className="ml-2"
                     />
                     {isSourceSearching && (
@@ -382,6 +389,11 @@ export function DuplicateObjectsSheet({
                       </div>
                     )}
                   </div>
+                  <SearchMinHint
+                    query={sourceSearchQuery}
+                    kind="words"
+                    id={sourceHintId}
+                  />
                   <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
                     <CommandEmpty>
                       {isSourceSearching

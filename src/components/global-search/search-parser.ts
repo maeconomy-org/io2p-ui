@@ -434,8 +434,9 @@ export function toListParams(
   const text = searchTextOf(parsed)
   const input = searchInput(text, searchKindOf(type))
   if (input.status === 'ok') params.q = input.q
-  // The command center blocks this before it applies the search. Should one still arrive, sending
-  // the words makes the node's refusal visible; dropping them would list rows that look like matches.
+  // Unreachable today: the command center is the only way a search is applied (no list reads `q`
+  // from the URL), and it blocks this. Sending the words lets the node refuse them; dropping them
+  // would list rows that look like matches.
   else if (input.status === 'refused' && input.problem === 'too-many-words') {
     params.q = text
   }
