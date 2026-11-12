@@ -68,4 +68,31 @@ describe('ParentSelector search answers', () => {
     expect(await screen.findAllByText('Steel Box')).not.toHaveLength(0)
     expect(screen.queryAllByText('Stone Box')).toHaveLength(0)
   })
+
+  it('keeps the last search when the text grows past 8 words', async () => {
+    calls.length = 0
+    render(
+      <ParentSelector
+        allowInlineCreate={false}
+        maxSelections={1}
+        onParentsChange={vi.fn()}
+      />
+    )
+    fireEvent.click(screen.getByRole('combobox'))
+    await waitFor(() => expect(calls).toHaveLength(1))
+    await act(async () => calls[0].resolve([]))
+
+    const input = screen.getByRole('combobox', { expanded: true })
+    fireEvent.change(input, { target: { value: 'beton' } })
+    await waitFor(() => expect(calls).toHaveLength(2), { timeout: 2000 })
+    await act(async () => calls[1].resolve([row('Beton Slab')]))
+
+    fireEvent.change(input, {
+      target: { value: 'a1 b2 c3 d4 e5 f6 g7 h8 i9' },
+    })
+    await act(() => new Promise((done) => setTimeout(done, 400)))
+
+    expect(calls).toHaveLength(2)
+    expect(screen.getAllByText('Beton Slab')).not.toHaveLength(0)
+  })
 })

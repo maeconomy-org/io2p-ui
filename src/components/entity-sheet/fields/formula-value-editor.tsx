@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { AlertTriangle, ChevronsUpDown, Loader2, Sigma } from 'lucide-react'
@@ -88,7 +88,8 @@ export function FormulaSelect({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const q = useDebouncedSearch(query)
+  const q = useDebouncedSearch(query, 'words')
+  const hintId = useId()
 
   const { data, isFetching } = useFormulas().useList(
     { page: 1, size: SEARCH_SIZE, q },
@@ -134,8 +135,9 @@ export function FormulaSelect({
             placeholder={t('objects.formulaEditor.searchFormulas')}
             value={query}
             onValueChange={setQuery}
+            aria-describedby={hintId}
           />
-          <SearchMinHint query={query} />
+          <SearchMinHint query={query} kind="words" id={hintId} />
           <CommandList>
             {isFetching && formulas.length === 0 ? (
               <div className="flex items-center justify-center py-6">
@@ -543,7 +545,7 @@ function BindingPicker({
 
   const needle = query.trim()
   // The siblings below filter on `needle` at once; only the request waits for typing to stop.
-  const q = useDebouncedSearch(needle)
+  const q = useDebouncedSearch(needle, 'words')
   // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
   // constants would be a request for something nothing renders.
   const { data: constantsPage, isFetching } = useConstants().useList(

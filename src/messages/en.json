@@ -1206,6 +1206,8 @@
   },
   "search": {
     "minChars": "Type {count} or more characters to search",
+    "minWordChars": "Type a word of {count} or more characters to search",
+    "maxWords": "Use at most {count} different words to search",
     "filters": {
       "deleted": {
         "label": "Deleted",

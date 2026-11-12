@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { searchText } from '@/lib/search-text'
+import { nextSearch, type SearchKind, searchInput } from '@/lib/search-text'
 
 export type EntitySort =
   'name' | '-name' | 'createdAt' | '-createdAt' | 'updatedAt' | '-updatedAt'
@@ -57,8 +57,12 @@ export function useEntityListQuery(
     []
   )
   const setSearch = useCallback(
-    (q?: string) =>
-      setQuery((prev) => ({ ...prev, q: searchText(q), page: 1 })),
+    (raw: string | undefined, kind: SearchKind) =>
+      setQuery((prev) => ({
+        ...prev,
+        q: nextSearch(searchInput(raw, kind), prev.q),
+        page: 1,
+      })),
     []
   )
   const setScope = useCallback(

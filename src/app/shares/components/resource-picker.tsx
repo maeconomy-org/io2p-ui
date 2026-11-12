@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { Info, Plus } from 'lucide-react'
@@ -90,7 +90,8 @@ export function ResourcePicker({
   const wantData = open && active === 'data'
   const wantLibrary = open && active === 'library'
 
-  const q = useDebouncedSearch(query)
+  const q = useDebouncedSearch(query, 'words')
+  const hintId = useId()
   const search = { q, size: PER_TYPE_SIZE, page: 1 }
   const listOptions = (enabled: boolean) => ({
     enabled,
@@ -213,8 +214,9 @@ export function ResourcePicker({
             data-testid="resource-search"
             value={query}
             onValueChange={setQuery}
+            aria-describedby={hintId}
           />
-          <SearchMinHint query={query} />
+          <SearchMinHint query={query} kind="words" id={hintId} />
           <CommandList>
             <CommandEmpty>
               {loading ? t('common.loading') : t('shares.noResources')}

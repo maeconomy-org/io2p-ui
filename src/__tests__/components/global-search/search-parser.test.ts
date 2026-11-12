@@ -186,6 +186,27 @@ describe('search-parser', () => {
       expect(paramsFor(query)).toEqual(expected)
     })
 
+    it('sends no q when every word has one letter', () => {
+      expect(paramsFor('a b c')).toEqual({})
+      expect(paramsFor('prop:material=steel a b')).toEqual({
+        property: ['material:steel'],
+      })
+    })
+
+    it('keeps 9 words as q, so the node refuses them where the user sees it', () => {
+      const nine = 'a1 b2 c3 d4 e5 f6 g7 h8 i9'
+      expect(paramsFor(`prop:material=steel ${nine}`)).toEqual({
+        property: ['material:steel'],
+        q: nine,
+      })
+    })
+
+    it('sends one-letter words and 9 words on shares, which match one substring', () => {
+      expect(paramsFor('a b c', 'shares')).toEqual({ q: 'a b c' })
+      const nine = 'a1 b2 c3 d4 e5 f6 g7 h8 i9'
+      expect(paramsFor(nine, 'shares')).toEqual({ q: nine })
+    })
+
     it('sends the free text as q and every filter as its own param', () => {
       expect(paramsFor('prop:material=steel deleted:true beton')).toEqual({
         property: ['material:steel'],

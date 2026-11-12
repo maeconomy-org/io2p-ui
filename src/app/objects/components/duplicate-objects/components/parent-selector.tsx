@@ -28,7 +28,7 @@ import {
 import { useAuth } from '@/contexts'
 import { cn, truncateText } from '@/lib/utils'
 import { useIomClient } from '@/lib/io2p'
-import { searchText } from '@/lib/search-text'
+import { nextSearch, searchInput } from '@/lib/search-text'
 import type { ParentObject } from '@/types'
 
 const EMPTY_PARENT_UUIDS: string[] = []
@@ -96,7 +96,8 @@ export function ParentSelector({
     editedParents ??
     initialParentUuids.map((uuid) => ({ uuid, name: undefined }))
   const setSelectedParents = setEditedParents
-  const lastSearchQueryRef = useRef('')
+  // The `q` of the last search sent; `undefined` = the unfiltered list.
+  const lastQRef = useRef<string | undefined>(undefined)
   // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
   const searchAbortRef = useRef<AbortController | null>(null)
 
@@ -108,7 +109,7 @@ export function ParentSelector({
 
   // Unified search function
   const performSearch = useCallback(
-    async (query: string = '') => {
+    async (q?: string) => {
       if (!isOpen) return
 
       searchAbortRef.current?.abort()
@@ -121,8 +122,8 @@ export function ParentSelector({
         // retired `softDeleted: false` filter is implicit.
         const results = await client.objects.list(
           {
-            q: searchText(query),
-            size: query ? 20 : 10,
+            q,
+            size: q ? 20 : 10,
             page: 1,
             scope: 'all',
           },
@@ -152,18 +153,10 @@ export function ParentSelector({
   useEffect(() => {
     if (!isOpen) return
     const timeoutId = setTimeout(() => {
-      const isClearingSearch =
-        lastSearchQueryRef.current.length >= 2 && searchQuery.length < 2
-
-      if (!searchQuery || searchQuery.length < 2) {
-        if (!hasInitiallyLoaded || isClearingSearch) {
-          performSearch()
-        }
-      } else {
-        performSearch(searchQuery)
-      }
-
-      lastSearchQueryRef.current = searchQuery
+      const q = nextSearch(searchInput(searchQuery, 'words'), lastQRef.current)
+      if (hasInitiallyLoaded && q === lastQRef.current) return
+      lastQRef.current = q
+      void performSearch(q)
     }, 300)
 
     return () => clearTimeout(timeoutId)

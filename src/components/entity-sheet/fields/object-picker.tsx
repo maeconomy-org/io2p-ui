@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { ChevronsUpDown, Loader2 } from 'lucide-react'
@@ -63,7 +63,8 @@ export function ObjectPicker({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [pickedName, setPickedName] = useState<string | undefined>()
-  const q = useDebouncedSearch(query)
+  const q = useDebouncedSearch(query, 'words')
+  const hintId = useId()
 
   const { data, isFetching } = useObjects().useList(
     { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
@@ -111,8 +112,9 @@ export function ObjectPicker({
             data-testid="object-picker-search"
             value={query}
             onValueChange={setQuery}
+            aria-describedby={hintId}
           />
-          <SearchMinHint query={query} />
+          <SearchMinHint query={query} kind="words" id={hintId} />
           <CommandList>
             {isFetching && objects.length === 0 ? (
               <div className="flex items-center justify-center py-6">

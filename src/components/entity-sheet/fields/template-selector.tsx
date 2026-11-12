@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
 import type { TemplateDTO } from 'io2p-client'
@@ -73,7 +73,8 @@ export function TemplateSelector({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const q = useDebouncedSearch(query)
+  const q = useDebouncedSearch(query, 'words')
+  const hintId = useId()
 
   const { data, isFetching } = useTemplates().useList(
     {
@@ -126,8 +127,9 @@ export function TemplateSelector({
             placeholder={t('objects.templateSelector.search')}
             value={query}
             onValueChange={setQuery}
+            aria-describedby={hintId}
           />
-          <SearchMinHint query={query} />
+          <SearchMinHint query={query} kind="words" id={hintId} />
           <CommandList>
             {isFetching && templates.length === 0 ? (
               <div className="flex items-center justify-center py-6">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
@@ -213,7 +213,8 @@ function ParentPicker({
   const { userId } = useAuth()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const q = useDebouncedSearch(query)
+  const q = useDebouncedSearch(query, 'words')
+  const hintId = useId()
 
   // `scope` defaults to 'mine', which would hide objects shared with the user.
   const { data, isFetching } = useObjects().useList(
@@ -260,8 +261,9 @@ function ParentPicker({
             data-testid="parent-search"
             value={query}
             onValueChange={setQuery}
+            aria-describedby={hintId}
           />
-          <SearchMinHint query={query} />
+          <SearchMinHint query={query} kind="words" id={hintId} />
           <CommandList>
             {isFetching && results.length === 0 ? (
               <div className="flex items-center justify-center py-6">

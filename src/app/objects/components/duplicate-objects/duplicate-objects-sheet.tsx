@@ -44,7 +44,7 @@ import { logger } from '@/lib/observability/logger'
 import { useIomClient } from '@/lib/io2p'
 import { toast } from 'sonner'
 
-import { searchText } from '@/lib/search-text'
+import { nextSearch, searchInput } from '@/lib/search-text'
 
 import {
   DuplicateIntoOwnSubtreeError,
@@ -102,7 +102,8 @@ export function DuplicateObjectsSheet({
   const [isSourceSearching, setIsSourceSearching] = useState(false)
   const [hasSourceLoaded, setHasSourceLoaded] = useState(false)
   const [sourceSearchPage, setSourceSearchPage] = useState<FetchedPage>()
-  const lastSourceQueryRef = useRef('')
+  // The `q` of the last source search sent; `undefined` = the unfiltered list.
+  const lastSourceQRef = useRef<string | undefined>(undefined)
   // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
   const sourceSearchAbortRef = useRef<AbortController | null>(null)
 
@@ -150,7 +151,7 @@ export function DuplicateObjectsSheet({
 
   // Source object search
   const performSourceSearch = useCallback(
-    async (query: string = '') => {
+    async (q?: string) => {
       if (!isSourceOpen) return
 
       sourceSearchAbortRef.current?.abort()
@@ -163,7 +164,7 @@ export function DuplicateObjectsSheet({
         // `deleted` defaults to exclude, so the retired `softDeleted: false` filter is implicit.
         const results = await clientRef.current.objects.list(
           {
-            q: searchText(query),
+            q,
             size: SEARCH_SIZE,
             page: 1,
             scope: 'all',
@@ -198,18 +199,13 @@ export function DuplicateObjectsSheet({
     if (!isSourceOpen) return
 
     const timeoutId = setTimeout(() => {
-      const isClearingSearch =
-        lastSourceQueryRef.current.length >= 2 && sourceSearchQuery.length < 2
-
-      if (!sourceSearchQuery || sourceSearchQuery.length < 2) {
-        if (!hasSourceLoaded || isClearingSearch) {
-          performSourceSearch()
-        }
-      } else {
-        performSourceSearch(sourceSearchQuery)
-      }
-
-      lastSourceQueryRef.current = sourceSearchQuery
+      const q = nextSearch(
+        searchInput(sourceSearchQuery, 'words'),
+        lastSourceQRef.current
+      )
+      if (hasSourceLoaded && q === lastSourceQRef.current) return
+      lastSourceQRef.current = q
+      void performSourceSearch(q)
     }, 300)
 
     return () => clearTimeout(timeoutId)
