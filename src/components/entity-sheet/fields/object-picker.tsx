@@ -59,21 +59,9 @@ export function ObjectPicker({
   requireLinkable?: boolean
 }) {
   const t = useTranslations()
-  const { userId } = useAuth()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [pickedName, setPickedName] = useState<string | undefined>()
-  const q = useDebouncedSearch(query, 'words')
-  const hintId = useId()
-
-  const { data, isFetching } = useObjects().useList(
-    { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
-    { enabled: open, keepPreviousData: true }
-  )
-  const objects = data?.data ?? []
-  const refusalOf = (object: (typeof objects)[number]) =>
-    requireLinkable ? linkUnderRefusal(object, userId) : null
-  const anyRefused = objects.some((object) => refusalOf(object))
 
   // Fall back to the raw id rather than showing an empty control: an unresolved ref is still a real
   // target, and hiding it would read as "nothing selected".
@@ -105,69 +93,106 @@ export function ObjectPicker({
         className="w-[--radix-popover-trigger-width] p-0"
         align="start"
       >
-        {/* The node filters server-side, so let Command show whatever came back. */}
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder={t('processes.flows.searchObjects')}
-            data-testid="object-picker-search"
-            value={query}
-            onValueChange={setQuery}
-            aria-describedby={hintId}
-          />
-          <SearchMinHint query={query} kind="words" id={hintId} />
-          <CommandList>
-            {isFetching && objects.length === 0 ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <CommandEmpty>{t('processes.flows.noObjects')}</CommandEmpty>
-            )}
-            <CommandGroup>
-              {objects.map((object) => {
-                const refusal = refusalOf(object)
-                return (
-                  <CommandItem
-                    key={object.id}
-                    value={object.id}
-                    data-testid={`object-option-${object.id}`}
-                    disabled={!!refusal}
-                    onSelect={() => {
-                      setPickedName(object.name)
-                      onSelect(object.id, object.name)
-                      setOpen(false)
-                    }}
-                  >
-                    <span className="min-w-0 flex-1 truncate">
-                      {object.name}
-                    </span>
-                    <OwnerHint
-                      ownerUserId={object.createdBy}
-                      ownerName={object.createdByName}
-                    />
-                    {refusal && (
-                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                        {t(refusal)}
-                      </span>
-                    )}
-                  </CommandItem>
-                )
-              })}
-            </CommandGroup>
-          </CommandList>
-          {/* Outside the list on purpose: cmdk never focuses a disabled row, so a screen reader
-              would not reach the reason printed inside it. */}
-          {anyRefused && (
-            <p
-              data-testid="object-picker-view-only"
-              className="border-t px-3 py-2 text-xs text-muted-foreground"
-            >
-              {t('objects.viewOnlyNotChoosable')}
-            </p>
-          )}
-          <CommandMore pages={[data]} />
-        </Command>
+        <ObjectPickerList
+          query={query}
+          onQueryChange={setQuery}
+          requireLinkable={requireLinkable}
+          onPick={(id, name) => {
+            setPickedName(name)
+            onSelect(id, name)
+            setOpen(false)
+          }}
+        />
       </PopoverContent>
     </Popover>
+  )
+}
+
+/**
+ * The search and its results. Inside the popover content, which unmounts on close: the list query
+ * then loses its last observer and TanStack aborts a request still open.
+ */
+function ObjectPickerList({
+  query,
+  onQueryChange,
+  requireLinkable,
+  onPick,
+}: {
+  query: string
+  onQueryChange: (query: string) => void
+  requireLinkable: boolean
+  onPick: (id: string, name: string) => void
+}) {
+  const t = useTranslations()
+  const { userId } = useAuth()
+  const q = useDebouncedSearch(query, 'words')
+  const hintId = useId()
+
+  const { data, isFetching } = useObjects().useList(
+    { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
+    { keepPreviousData: true }
+  )
+  const objects = data?.data ?? []
+  const refusalOf = (object: (typeof objects)[number]) =>
+    requireLinkable ? linkUnderRefusal(object, userId) : null
+  const anyRefused = objects.some((object) => refusalOf(object))
+
+  // The node filters server-side, so let Command show whatever came back.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('processes.flows.searchObjects')}
+        data-testid="object-picker-search"
+        value={query}
+        onValueChange={onQueryChange}
+        aria-describedby={hintId}
+      />
+      <SearchMinHint query={query} kind="words" id={hintId} />
+      <CommandList>
+        {isFetching && objects.length === 0 ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <CommandEmpty>{t('processes.flows.noObjects')}</CommandEmpty>
+        )}
+        <CommandGroup>
+          {objects.map((object) => {
+            const refusal = refusalOf(object)
+            return (
+              <CommandItem
+                key={object.id}
+                value={object.id}
+                data-testid={`object-option-${object.id}`}
+                disabled={!!refusal}
+                onSelect={() => onPick(object.id, object.name)}
+              >
+                <span className="min-w-0 flex-1 truncate">{object.name}</span>
+                <OwnerHint
+                  ownerUserId={object.createdBy}
+                  ownerName={object.createdByName}
+                />
+                {refusal && (
+                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                    {t(refusal)}
+                  </span>
+                )}
+              </CommandItem>
+            )
+          })}
+        </CommandGroup>
+      </CommandList>
+      {/* Outside the list on purpose: cmdk never focuses a disabled row, so a screen reader
+          would not reach the reason printed inside it. */}
+      {anyRefused && (
+        <p
+          data-testid="object-picker-view-only"
+          className="border-t px-3 py-2 text-xs text-muted-foreground"
+        >
+          {t('objects.viewOnlyNotChoosable')}
+        </p>
+      )}
+      <CommandMore pages={[data]} />
+    </Command>
   )
 }

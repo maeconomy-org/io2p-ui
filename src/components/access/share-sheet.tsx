@@ -302,17 +302,6 @@ function ShareForm({
 
   const memberIds = Object.keys(draft).filter((key) => key !== PUBLIC_KEY)
 
-  // No directory here any more: every name on screen either arrived resolved on its grant or was
-  // staged by the picker that displayed it. CANDIDATES still come from a server search, which is
-  // what lets the picker reach a user no single page of the directory would have held.
-  const {
-    users,
-    page: usersPage,
-    isFetching: searching,
-  } = useUserSearch(peopleQuery, {
-    enabled: pickerOpen,
-  })
-
   const cascade = canCascade(target.type)
   const readOnly = isReadOnlyResource(target.type)
   const publicMember = draft[PUBLIC_KEY]
@@ -464,8 +453,6 @@ function ShareForm({
   )
   const removed = Object.keys(initial).filter((key) => !draft[key])
   const dirty = changed.length > 0 || removed.length > 0
-
-  const candidates = users.filter((u) => u.id !== userId && !draft[u.id])
 
   /**
    * Apply each edit INDEPENDENTLY, revokes first.
@@ -765,61 +752,30 @@ function ShareForm({
             className="w-[var(--radix-popover-trigger-width)] p-0"
             align="start"
           >
-            {/* `shouldFilter={false}` — the server already filtered; letting cmdk filter the result
-                again would hide rows it matched on a field cmdk cannot see. */}
-            <Command shouldFilter={false}>
-              <CommandInput
-                placeholder={t('access.searchPeople')}
-                data-testid="people-search"
-                value={peopleQuery}
-                onValueChange={setPeopleQuery}
-              />
-              <CommandList>
-                <CommandEmpty>
-                  {searching ? t('common.loading') : t('access.noPeople')}
-                </CommandEmpty>
-                <CommandGroup>
-                  {candidates.map((user) => (
-                    <CommandItem
-                      key={user.id}
-                      value={user.id}
-                      className="cursor-pointer"
-                      onSelect={() => {
-                        setPickerOpen(false)
-                        setPeopleQuery('')
-                        setDraft((d) => ({
-                          ...d,
-                          [user.id]: {
-                            // Stage the name the picker just showed. A staged row has no grant to
-                            // resolve from, so without this the person you picked by name becomes
-                            // a uuid the moment they land in the list.
-                            subject: {
-                              kind: 'user',
-                              userId: user.id,
-                              name: user.displayName || user.email,
-                            },
-                            permission: 'read',
-                            includeDescendants: false,
-                          },
-                        }))
-                      }}
-                    >
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate">
-                          {user.displayName || user.email || user.id}
-                        </span>
-                        {user.displayName && user.email && (
-                          <span className="truncate text-xs text-muted-foreground">
-                            {user.email}
-                          </span>
-                        )}
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-              <CommandMore pages={[usersPage]} />
-            </Command>
+            <SharePeopleList
+              query={peopleQuery}
+              onQueryChange={setPeopleQuery}
+              isExcluded={(id) => id === userId || !!draft[id]}
+              onPick={(user) => {
+                setPickerOpen(false)
+                setPeopleQuery('')
+                setDraft((d) => ({
+                  ...d,
+                  [user.id]: {
+                    // Stage the name the picker just showed. A staged row has no grant to
+                    // resolve from, so without this the person you picked by name becomes
+                    // a uuid the moment they land in the list.
+                    subject: {
+                      kind: 'user',
+                      userId: user.id,
+                      name: user.displayName || user.email,
+                    },
+                    permission: 'read',
+                    includeDescendants: false,
+                  },
+                }))
+              }}
+            />
           </PopoverContent>
         </Popover>
 
@@ -1030,5 +986,70 @@ function ViaShareChip({
         </Button>
       )}
     </div>
+  )
+}
+
+type FoundUser = ReturnType<typeof useUserSearch>['users'][number]
+
+/**
+ * The people search and its results. Inside the popover content, which unmounts on close: the
+ * search then loses its last observer and TanStack aborts a request still open.
+ */
+function SharePeopleList({
+  query,
+  onQueryChange,
+  isExcluded,
+  onPick,
+}: {
+  query: string
+  onQueryChange: (query: string) => void
+  isExcluded: (userId: string) => boolean
+  onPick: (user: FoundUser) => void
+}) {
+  const t = useTranslations()
+  // No directory here any more: every name on screen either arrived resolved on its grant or was
+  // staged by the picker that displayed it. CANDIDATES still come from a server search, which is
+  // what lets the picker reach a user no single page of the directory would have held.
+  const { users, page: usersPage, isFetching: searching } = useUserSearch(query)
+  const candidates = users.filter((u) => !isExcluded(u.id))
+
+  // The server already filtered; letting cmdk filter again would hide rows it matched on a field
+  // cmdk cannot see.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('access.searchPeople')}
+        data-testid="people-search"
+        value={query}
+        onValueChange={onQueryChange}
+      />
+      <CommandList>
+        <CommandEmpty>
+          {searching ? t('common.loading') : t('access.noPeople')}
+        </CommandEmpty>
+        <CommandGroup>
+          {candidates.map((user) => (
+            <CommandItem
+              key={user.id}
+              value={user.id}
+              className="cursor-pointer"
+              onSelect={() => onPick(user)}
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate">
+                  {user.displayName || user.email || user.id}
+                </span>
+                {user.displayName && user.email && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
+                )}
+              </span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+      <CommandMore pages={[usersPage]} />
+    </Command>
   )
 }

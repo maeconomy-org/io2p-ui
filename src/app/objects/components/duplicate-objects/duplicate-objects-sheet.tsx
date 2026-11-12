@@ -194,10 +194,25 @@ export function DuplicateObjectsSheet({
         setSourceSearchPage(undefined)
       } finally {
         if (!controller.signal.aborted) setIsSourceSearching(false)
+        if (sourceSearchAbortRef.current === controller)
+          sourceSearchAbortRef.current = null
       }
     },
     [isSourceOpen]
   )
+
+  // Closing aborts a search still open, so its answer cannot land in a closed picker; the next open
+  // asks again.
+  useEffect(() => {
+    if (!isSourceOpen) return
+    return () => {
+      if (!sourceSearchAbortRef.current) return
+      sourceSearchAbortRef.current.abort()
+      sourceSearchAbortRef.current = null
+      setIsSourceSearching(false)
+      setHasSourceLoaded(false)
+    }
+  }, [isSourceOpen])
 
   // Debounced source search
   useEffect(() => {

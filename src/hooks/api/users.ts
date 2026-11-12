@@ -14,17 +14,13 @@ const SEARCH_STALE_TIME = 10 * 60 * 1000
  * nothing here turns an id into a label any more — this exists purely to let you FIND someone to
  * add, which needs to reach past any one page. `q` substring-matches displayName and email.
  */
-export function useUserSearch(
-  query: string,
-  options: { enabled?: boolean } = {}
-) {
+export function useUserSearch(query: string) {
   const client = useIomClient()
   const trimmed = query.trim()
   const params = { page: 1, size: SEARCH_SIZE, q: trimmed || undefined }
   const { data, isFetching } = useQuery({
     queryKey: queryKeys.users.list(params),
     queryFn: ({ signal }) => client.users.list(params, { signal }),
-    enabled: options.enabled ?? true,
     staleTime: SEARCH_STALE_TIME,
     placeholderData: (previous) => previous,
   })

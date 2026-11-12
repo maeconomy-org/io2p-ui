@@ -148,10 +148,24 @@ export function ParentSelector({
         setSearchResults([])
       } finally {
         if (!controller.signal.aborted) setIsSearching(false)
+        if (searchAbortRef.current === controller) searchAbortRef.current = null
       }
     },
     [isOpen, currentObjectUuid, excludedSet, client]
   )
+
+  // Closing aborts a search still open, so its answer cannot land in a closed picker; the next open
+  // asks again.
+  useEffect(() => {
+    if (!isOpen) return
+    return () => {
+      if (!searchAbortRef.current) return
+      searchAbortRef.current.abort()
+      searchAbortRef.current = null
+      setIsSearching(false)
+      setHasInitiallyLoaded(false)
+    }
+  }, [isOpen])
 
   // Handle search logic (debounced)
   useEffect(() => {

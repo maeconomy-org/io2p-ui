@@ -69,6 +69,67 @@ export function ResourcePicker({
   onAdd: (resource: ShareResource) => void
 }) {
   const t = useTranslations()
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [browsing, setBrowsing] = useState<ShareResourceFamily>('data')
+
+  return (
+    <Popover open={open} onOpenChange={setOpen} modal>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          data-testid="resource-picker"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          {t('shares.addResources')}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+      >
+        <ResourcePickerContent
+          selectedIds={selectedIds}
+          family={family}
+          browsing={browsing}
+          onBrowse={setBrowsing}
+          query={query}
+          onQueryChange={setQuery}
+          onPick={(resource) => {
+            setOpen(false)
+            setQuery('')
+            onAdd(resource)
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/**
+ * The family switch, the search and its results. Inside the popover content, which unmounts on
+ * close: the list queries then lose their last observer and TanStack aborts a request still open.
+ */
+function ResourcePickerContent({
+  selectedIds,
+  family,
+  browsing,
+  onBrowse,
+  query,
+  onQueryChange,
+  onPick,
+}: {
+  selectedIds: Set<string>
+  family: ShareResourceFamily | null
+  browsing: ShareResourceFamily
+  onBrowse: (family: ShareResourceFamily) => void
+  query: string
+  onQueryChange: (query: string) => void
+  onPick: (resource: ShareResource) => void
+}) {
+  const t = useTranslations()
   const { userId } = useAuth()
   // Objects and processes carry the viewer's level. A library item is shared read-only and only by
   // its owner, so ownership is the whole answer there (a built-in item has no user owner).
@@ -80,15 +141,12 @@ export function ResourcePicker({
     }
     return canReshare(resource.permission) ? null : 'shares.needsShareAccess'
   }
-  const [open, setOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const [browsing, setBrowsing] = useState<ShareResourceFamily>('data')
 
   // The lock wins over the browsing choice, so a locked bundle cannot be shown the other family's
   // list at all — not even for a moment before the add is rejected.
   const active = family ?? browsing
-  const wantData = open && active === 'data'
-  const wantLibrary = open && active === 'library'
+  const wantData = active === 'data'
+  const wantLibrary = active === 'library'
 
   const q = useDebouncedSearch(query, 'words')
   const hintId = useId()
@@ -167,102 +225,82 @@ export function ResourcePicker({
       : loadingFormulas || loadingConstants || loadingTemplates
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          data-testid="resource-picker"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {t('shares.addResources')}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] p-0"
-        align="start"
-      >
-        <div className="flex gap-1 border-b p-1">
-          {(['data', 'library'] as const).map((option) => (
-            <Button
-              key={option}
-              type="button"
-              size="sm"
-              variant={active === option ? 'secondary' : 'ghost'}
-              className="h-7 flex-1 text-xs"
-              disabled={!!family && family !== option}
-              onClick={() => setBrowsing(option)}
-            >
-              {t(`shares.family.${option}`)}
-            </Button>
-          ))}
-        </div>
+    <>
+      <div className="flex gap-1 border-b p-1">
+        {(['data', 'library'] as const).map((option) => (
+          <Button
+            key={option}
+            type="button"
+            size="sm"
+            variant={active === option ? 'secondary' : 'ghost'}
+            className="h-7 flex-1 text-xs"
+            disabled={!!family && family !== option}
+            onClick={() => onBrowse(option)}
+          >
+            {t(`shares.family.${option}`)}
+          </Button>
+        ))}
+      </div>
 
-        {family && (
-          <p className="flex items-start gap-1.5 border-b px-3 py-2 text-xs text-muted-foreground">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>{t('shares.familyLocked')}</span>
-          </p>
-        )}
+      {family && (
+        <p className="flex items-start gap-1.5 border-b px-3 py-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{t('shares.familyLocked')}</span>
+        </p>
+      )}
 
-        {/* The server filtered every list; letting cmdk filter again would drop rows it matched on
-            a field cmdk cannot see. */}
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder={t('shares.searchResources')}
-            data-testid="resource-search"
-            value={query}
-            onValueChange={setQuery}
-            aria-describedby={hintId}
-          />
-          <SearchMinHint query={query} kind="words" id={hintId} />
-          <CommandList>
-            <CommandEmpty>
-              {loading ? t('common.loading') : t('shares.noResources')}
-            </CommandEmpty>
-            <CommandGroup>
-              {options.map((resource) => (
-                <CommandItem
-                  key={resource.id}
-                  value={resource.id}
-                  data-testid={`resource-option-${resource.id}`}
-                  className="cursor-pointer"
-                  // The node refuses the whole bundle for a resource the viewer cannot share.
-                  disabled={!!refusal(resource)}
-                  onSelect={() => {
-                    setOpen(false)
-                    setQuery('')
-                    onAdd(resource)
-                  }}
-                >
-                  <Badge variant={resource.type} className="mr-2 h-5 shrink-0">
-                    {t(`shares.resourceType.${resource.type}`)}
-                  </Badge>
-                  <span className="truncate">{resource.name}</span>
-                  <OwnerHint
-                    system={resource.system}
-                    ownerUserId={resource.ownerUserId}
-                    ownerName={resource.ownerName}
-                  />
-                  {refusal(resource) && (
-                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                      {t(refusal(resource)!)}
-                    </span>
-                  )}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-          <CommandMore
-            pages={
-              active === 'data'
-                ? [objects, processes]
-                : [formulas, constants, templates]
-            }
-          />
-        </Command>
-      </PopoverContent>
-    </Popover>
+      {/* The server filtered every list; letting cmdk filter again would drop rows it matched on
+        a field cmdk cannot see. */}
+      <Command shouldFilter={false}>
+        <CommandInput
+          placeholder={t('shares.searchResources')}
+          data-testid="resource-search"
+          value={query}
+          onValueChange={onQueryChange}
+          aria-describedby={hintId}
+        />
+        <SearchMinHint query={query} kind="words" id={hintId} />
+        <CommandList>
+          <CommandEmpty>
+            {loading ? t('common.loading') : t('shares.noResources')}
+          </CommandEmpty>
+          <CommandGroup>
+            {options.map((resource) => (
+              <CommandItem
+                key={resource.id}
+                value={resource.id}
+                data-testid={`resource-option-${resource.id}`}
+                className="cursor-pointer"
+                // The node refuses the whole bundle for a resource the viewer cannot share.
+                disabled={!!refusal(resource)}
+                onSelect={() => onPick(resource)}
+              >
+                <Badge variant={resource.type} className="mr-2 h-5 shrink-0">
+                  {t(`shares.resourceType.${resource.type}`)}
+                </Badge>
+                <span className="truncate">{resource.name}</span>
+                <OwnerHint
+                  system={resource.system}
+                  ownerUserId={resource.ownerUserId}
+                  ownerName={resource.ownerName}
+                />
+                {refusal(resource) && (
+                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                    {t(refusal(resource)!)}
+                  </span>
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+        <CommandMore
+          pages={
+            active === 'data'
+              ? [objects, processes]
+              : [formulas, constants, templates]
+          }
+        />
+      </Command>
+    </>
   )
 }
