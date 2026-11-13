@@ -30,7 +30,9 @@ export function SearchMinHint({
           ? t('minWordChars', { count: MIN_SEARCH_CHARS })
           : t('minChars', { count: MIN_SEARCH_CHARS })
 
-  // The live region stays mounted: a screen reader misses one that appears with its text.
+  // The live region stays mounted: a screen reader misses one that appears with its text. A picker
+  // that reopens with the text already there is covered by the input's `aria-describedby`, read
+  // when the input takes focus; keep both.
   return (
     <p
       id={id}

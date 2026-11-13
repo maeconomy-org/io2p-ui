@@ -437,7 +437,16 @@ function ShareForm({
             </p>
           )}
 
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen} modal>
+          <Popover
+            open={pickerOpen}
+            onOpenChange={(next) => {
+              // Cleared on open, not on a pick: the list stays mounted through the close animation,
+              // and an emptied query there would start an unfiltered search.
+              if (next) setPeopleQuery('')
+              setPickerOpen(next)
+            }}
+            modal
+          >
             <PopoverTrigger asChild>
               <Button
                 type="button"
@@ -461,7 +470,6 @@ function ShareForm({
                 }
                 onPick={(user) => {
                   setPickerOpen(false)
-                  setPeopleQuery('')
                   setMemberNames((n) => ({
                     ...n,
                     [user.id]: user.displayName || user.email || user.id,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { type ComponentProps, useId, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { Info, Plus } from 'lucide-react'
@@ -130,99 +130,14 @@ function ResourcePickerContent({
   onPick: (resource: ShareResource) => void
 }) {
   const t = useTranslations()
-  const { userId } = useAuth()
-  // Objects and processes carry the viewer's level. A library item is shared read-only and only by
-  // its owner, so ownership is the whole answer there (a built-in item has no user owner).
-  const refusal = (resource: ShareResource): string | null => {
-    if (familyOf(resource.type) === 'library') {
-      return canWriteLibraryItem(resource, userId)
-        ? null
-        : 'shares.ownerOnlyShare'
-    }
-    return canReshare(resource.permission) ? null : 'shares.needsShareAccess'
-  }
-
   // The lock wins over the browsing choice, so a locked bundle cannot be shown the other family's
   // list at all — not even for a moment before the add is rejected.
   const active = family ?? browsing
-  const wantData = active === 'data'
-  const wantLibrary = active === 'library'
 
   const q = useDebouncedSearch(query, 'words')
   const hintId = useId()
   const search = { q, size: PER_TYPE_SIZE, page: 1 }
-  const listOptions = (enabled: boolean) => ({
-    enabled,
-    keepPreviousData: true,
-  })
-
-  const { data: objects, isFetching: loadingObjects } = useObjects().useList(
-    { ...search, scope: 'all' },
-    listOptions(wantData)
-  )
-  const { data: processes, isFetching: loadingProcesses } =
-    useProcesses().useList({ ...search, scope: 'all' }, listOptions(wantData))
-  const { data: formulas, isFetching: loadingFormulas } = useFormulas().useList(
-    search,
-    listOptions(wantLibrary)
-  )
-  const { data: constants, isFetching: loadingConstants } =
-    useConstants().useList(search, listOptions(wantLibrary))
-  const { data: templates, isFetching: loadingTemplates } =
-    useTemplates().useList(search, listOptions(wantLibrary))
-
-  const options: ShareResource[] = (
-    active === 'data'
-      ? [
-          ...(objects?.data ?? []).map((o) => ({
-            type: 'object' as const,
-            id: o.id,
-            name: o.name,
-            ownerUserId: o.createdBy,
-            ownerName: o.createdByName,
-            permission: permissionOf(o, userId),
-          })),
-          ...(processes?.data ?? []).map((p) => ({
-            type: 'process' as const,
-            id: p.id,
-            name: p.name,
-            ownerUserId: p.createdBy,
-            ownerName: p.createdByName,
-            permission: permissionOf(p, userId),
-          })),
-        ]
-      : [
-          ...(formulas?.data ?? []).map((f) => ({
-            type: 'formula' as const,
-            id: f.id,
-            name: f.name,
-            system: f.system,
-            ownerUserId: f.ownerUserId,
-            ownerName: f.ownerName,
-          })),
-          ...(constants?.data ?? []).map((c) => ({
-            type: 'constant' as const,
-            id: c.id,
-            name: c.name,
-            system: c.system,
-            ownerUserId: c.ownerUserId,
-            ownerName: c.ownerName,
-          })),
-          ...(templates?.data ?? []).map((tpl) => ({
-            type: 'template' as const,
-            id: tpl.id,
-            name: tpl.name,
-            system: tpl.system,
-            ownerUserId: tpl.ownerUserId,
-            ownerName: tpl.ownerName,
-          })),
-        ]
-  ).filter((r) => !selectedIds.has(r.id))
-
-  const loading =
-    active === 'data'
-      ? loadingObjects || loadingProcesses
-      : loadingFormulas || loadingConstants || loadingTemplates
+  const results = { search, selectedIds, onPick }
 
   return (
     <>
@@ -260,47 +175,168 @@ function ResourcePickerContent({
           aria-describedby={hintId}
         />
         <SearchMinHint query={query} kind="words" id={hintId} />
-        <CommandList>
-          <CommandEmpty>
-            {loading ? t('common.loading') : t('shares.noResources')}
-          </CommandEmpty>
-          <CommandGroup>
-            {options.map((resource) => (
-              <CommandItem
-                key={resource.id}
-                value={resource.id}
-                data-testid={`resource-option-${resource.id}`}
-                className="cursor-pointer"
-                // The node refuses the whole bundle for a resource the viewer cannot share.
-                disabled={!!refusal(resource)}
-                onSelect={() => onPick(resource)}
-              >
-                <Badge variant={resource.type} className="mr-2 h-5 shrink-0">
-                  {t(`shares.resourceType.${resource.type}`)}
-                </Badge>
-                <span className="truncate">{resource.name}</span>
-                <OwnerHint
-                  system={resource.system}
-                  ownerUserId={resource.ownerUserId}
-                  ownerName={resource.ownerName}
-                />
-                {refusal(resource) && (
-                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                    {t(refusal(resource)!)}
-                  </span>
-                )}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-        <CommandMore
-          pages={
-            active === 'data'
-              ? [objects, processes]
-              : [formulas, constants, templates]
-          }
-        />
+        {/* One family's lists at a time: switching unmounts the other, so its requests abort. */}
+        {active === 'data' ? (
+          <DataResults {...results} />
+        ) : (
+          <LibraryResults {...results} />
+        )}
       </Command>
+    </>
+  )
+}
+
+type ResultsProps = {
+  search: { q?: string; size: number; page: number }
+  selectedIds: Set<string>
+  onPick: (resource: ShareResource) => void
+}
+
+function DataResults({ search, selectedIds, onPick }: ResultsProps) {
+  const { userId } = useAuth()
+  const listOptions = { keepPreviousData: true }
+  const { data: objects, isFetching: loadingObjects } = useObjects().useList(
+    { ...search, scope: 'all' },
+    listOptions
+  )
+  const { data: processes, isFetching: loadingProcesses } =
+    useProcesses().useList({ ...search, scope: 'all' }, listOptions)
+
+  const options: ShareResource[] = [
+    ...(objects?.data ?? []).map((o) => ({
+      type: 'object' as const,
+      id: o.id,
+      name: o.name,
+      ownerUserId: o.createdBy,
+      ownerName: o.createdByName,
+      permission: permissionOf(o, userId),
+    })),
+    ...(processes?.data ?? []).map((p) => ({
+      type: 'process' as const,
+      id: p.id,
+      name: p.name,
+      ownerUserId: p.createdBy,
+      ownerName: p.createdByName,
+      permission: permissionOf(p, userId),
+    })),
+  ]
+  return (
+    <ResourceResults
+      options={options.filter((r) => !selectedIds.has(r.id))}
+      loading={loadingObjects || loadingProcesses}
+      pages={[objects, processes]}
+      onPick={onPick}
+    />
+  )
+}
+
+function LibraryResults({ search, selectedIds, onPick }: ResultsProps) {
+  const listOptions = { keepPreviousData: true }
+  const { data: formulas, isFetching: loadingFormulas } = useFormulas().useList(
+    search,
+    listOptions
+  )
+  const { data: constants, isFetching: loadingConstants } =
+    useConstants().useList(search, listOptions)
+  const { data: templates, isFetching: loadingTemplates } =
+    useTemplates().useList(search, listOptions)
+
+  const options: ShareResource[] = [
+    ...(formulas?.data ?? []).map((f) => ({
+      type: 'formula' as const,
+      id: f.id,
+      name: f.name,
+      system: f.system,
+      ownerUserId: f.ownerUserId,
+      ownerName: f.ownerName,
+    })),
+    ...(constants?.data ?? []).map((c) => ({
+      type: 'constant' as const,
+      id: c.id,
+      name: c.name,
+      system: c.system,
+      ownerUserId: c.ownerUserId,
+      ownerName: c.ownerName,
+    })),
+    ...(templates?.data ?? []).map((tpl) => ({
+      type: 'template' as const,
+      id: tpl.id,
+      name: tpl.name,
+      system: tpl.system,
+      ownerUserId: tpl.ownerUserId,
+      ownerName: tpl.ownerName,
+    })),
+  ]
+  return (
+    <ResourceResults
+      options={options.filter((r) => !selectedIds.has(r.id))}
+      loading={loadingFormulas || loadingConstants || loadingTemplates}
+      pages={[formulas, constants, templates]}
+      onPick={onPick}
+    />
+  )
+}
+
+function ResourceResults({
+  options,
+  loading,
+  pages,
+  onPick,
+}: {
+  options: ShareResource[]
+  loading: boolean
+  pages: ComponentProps<typeof CommandMore>['pages']
+  onPick: (resource: ShareResource) => void
+}) {
+  const t = useTranslations()
+  const { userId } = useAuth()
+  // Objects and processes carry the viewer's level. A library item is shared read-only and only by
+  // its owner, so ownership is the whole answer there (a built-in item has no user owner).
+  const refusal = (resource: ShareResource): string | null => {
+    if (familyOf(resource.type) === 'library') {
+      return canWriteLibraryItem(resource, userId)
+        ? null
+        : 'shares.ownerOnlyShare'
+    }
+    return canReshare(resource.permission) ? null : 'shares.needsShareAccess'
+  }
+
+  return (
+    <>
+      <CommandList>
+        <CommandEmpty>
+          {loading ? t('common.loading') : t('shares.noResources')}
+        </CommandEmpty>
+        <CommandGroup>
+          {options.map((resource) => (
+            <CommandItem
+              key={resource.id}
+              value={resource.id}
+              data-testid={`resource-option-${resource.id}`}
+              className="cursor-pointer"
+              // The node refuses the whole bundle for a resource the viewer cannot share.
+              disabled={!!refusal(resource)}
+              onSelect={() => onPick(resource)}
+            >
+              <Badge variant={resource.type} className="mr-2 h-5 shrink-0">
+                {t(`shares.resourceType.${resource.type}`)}
+              </Badge>
+              <span className="truncate">{resource.name}</span>
+              <OwnerHint
+                system={resource.system}
+                ownerUserId={resource.ownerUserId}
+                ownerName={resource.ownerName}
+              />
+              {refusal(resource) && (
+                <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                  {t(refusal(resource)!)}
+                </span>
+              )}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+      <CommandMore pages={pages} />
     </>
   )
 }

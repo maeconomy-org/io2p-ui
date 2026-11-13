@@ -111,7 +111,7 @@ describe('ObjectPicker list requests', () => {
     expect(calls.at(-1)?.signal?.aborted).toBe(true)
   })
 
-  it('does not abort a request another component still watches', () => {
+  it('keeps a request another component watches: this is why not cancelQueries', () => {
     renderPicker(<Watcher />)
     expect(calls).toHaveLength(1)
     toggle()

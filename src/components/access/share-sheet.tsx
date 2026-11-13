@@ -734,7 +734,16 @@ function ShareForm({
           )}
         </div>
 
-        <Popover open={pickerOpen} onOpenChange={setPickerOpen} modal>
+        <Popover
+          open={pickerOpen}
+          onOpenChange={(next) => {
+            // Cleared on open, not on a pick: the list stays mounted through the close animation,
+            // and an emptied query there would start an unfiltered search.
+            if (next) setPeopleQuery('')
+            setPickerOpen(next)
+          }}
+          modal
+        >
           <PopoverTrigger asChild>
             <Button
               type="button"
@@ -752,13 +761,16 @@ function ShareForm({
             className="w-[var(--radix-popover-trigger-width)] p-0"
             align="start"
           >
+            {/* No directory here any more: every name on screen either arrived resolved on its
+                grant or was staged by the picker that displayed it. CANDIDATES still come from a
+                server search, which is what lets the picker reach a user no single page of the
+                directory would have held. */}
             <SharePeopleList
               query={peopleQuery}
               onQueryChange={setPeopleQuery}
               isExcluded={(id) => id === userId || !!draft[id]}
               onPick={(user) => {
                 setPickerOpen(false)
-                setPeopleQuery('')
                 setDraft((d) => ({
                   ...d,
                   [user.id]: {
@@ -1007,9 +1019,6 @@ function SharePeopleList({
   onPick: (user: FoundUser) => void
 }) {
   const t = useTranslations()
-  // No directory here any more: every name on screen either arrived resolved on its grant or was
-  // staged by the picker that displayed it. CANDIDATES still come from a server search, which is
-  // what lets the picker reach a user no single page of the directory would have held.
   const { users, page: usersPage, isFetching: searching } = useUserSearch(query)
   const candidates = users.filter((u) => !isExcluded(u.id))
 

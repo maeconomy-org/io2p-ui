@@ -211,6 +211,7 @@ export function DuplicateObjectsSheet({
       sourceSearchAbortRef.current = null
       setIsSourceSearching(false)
       setHasSourceLoaded(false)
+      setSourceSearchResults([])
     }
   }, [isSourceOpen])
 

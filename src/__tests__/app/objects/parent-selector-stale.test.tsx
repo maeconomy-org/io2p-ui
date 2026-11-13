@@ -148,6 +148,9 @@ describe('ParentSelector search answers', () => {
     await waitFor(() => expect(calls[1].signal?.aborted).toBe(true))
 
     fireEvent.click(screen.getByRole('combobox'))
+    expect(
+      screen.queryByText('objects.parentSelector.searching')
+    ).not.toBeInTheDocument()
     await waitFor(() => expect(calls).toHaveLength(3), { timeout: 2000 })
     expect(calls[2].query.q).toBe('beton')
   })

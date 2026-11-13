@@ -164,6 +164,7 @@ export function ParentSelector({
       searchAbortRef.current = null
       setIsSearching(false)
       setHasInitiallyLoaded(false)
+      setSearchResults([])
     }
   }, [isOpen])
 

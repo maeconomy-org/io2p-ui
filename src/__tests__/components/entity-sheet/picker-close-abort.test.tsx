@@ -146,4 +146,34 @@ describe('a closed picker stops its list request', () => {
     flush()
     expect(open.every((call) => call.signal?.aborted === true)).toBe(true)
   })
+
+  it('resource picker aborts one family when the user switches to the other', () => {
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <ResourcePicker selectedIds={new Set()} family={null} onAdd={vi.fn()} />
+      </QueryClientProvider>
+    )
+    fireEvent.click(screen.getByTestId('resource-picker'))
+    flush()
+    const data = calls.filter((call) =>
+      ['objects', 'processes'].includes(call.resource)
+    )
+    expect(data).toHaveLength(2)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'shares.family.library' })
+    )
+    flush()
+    expect(data.every((call) => call.signal?.aborted === true)).toBe(true)
+    expect(
+      calls
+        .filter((call) => !['objects', 'processes'].includes(call.resource))
+        .map((call) => call.resource)
+        .sort()
+    ).toEqual(['constants', 'formulas', 'templates'])
+  })
 })

@@ -243,7 +243,16 @@ export function LibraryBulkShareSheet({
             )}
           </div>
 
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen} modal>
+          <Popover
+            open={pickerOpen}
+            onOpenChange={(next) => {
+              // Cleared on open, not on a pick: the list stays mounted through the close animation,
+              // and an emptied query there would start an unfiltered search.
+              if (next) setPeopleQuery('')
+              setPickerOpen(next)
+            }}
+            modal
+          >
             <PopoverTrigger asChild>
               <Button type="button" variant="outline" className="w-full">
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -254,13 +263,17 @@ export function LibraryBulkShareSheet({
               className="w-[var(--radix-popover-trigger-width)] p-0"
               align="start"
             >
+              {/* Recipients are STAGED, never read back, so the name is whatever the picker showed
+                  when it was picked — and the picker searches the server, so it reaches users no
+                  directory page would hold. This used to prefer a cached-directory lookup that
+                  never returns falsy, which made the staged label unreachable: past the
+                  directory's page the picker showed a name and the row showed a uuid. */}
               <RecipientPeopleList
                 query={peopleQuery}
                 onQueryChange={setPeopleQuery}
                 isExcluded={(id) => id === userId || !!recipients[id]}
                 onPick={(user) => {
                   setPickerOpen(false)
-                  setPeopleQuery('')
                   setRecipients((r) => ({
                     ...r,
                     [user.id]: {
@@ -361,10 +374,6 @@ function RecipientPeopleList({
   onPick: (user: FoundUser) => void
 }) {
   const t = useTranslations()
-  // Recipients are STAGED, never read back, so the name is whatever the picker showed when it was
-  // picked — and the picker searches the server, so it reaches users no directory page would hold.
-  // This used to prefer a cached-directory lookup that never returns falsy, which made the staged
-  // label unreachable: past the directory's page the picker showed a name and the row showed a uuid.
   const { users, page: usersPage, isFetching: searching } = useUserSearch(query)
   const candidates = users.filter((u) => !isExcluded(u.id))
 
