@@ -110,6 +110,8 @@ export default function ProcessesPage() {
   const restoreMutation = useRestore()
   const {
     data: processesPage,
+    error: listError,
+    refetch: refetchList,
     isFetching,
     isPlaceholderData,
   } = useList(
@@ -229,6 +231,8 @@ export default function ProcessesPage() {
           {isTable && <SearchFilterNote search={search} />}
           {isTable ? (
             <EntityTable
+              error={listError}
+              onRetry={() => void refetchList()}
               highlight={shownSearch}
               onRowHover={(row) => prefetchDetail(row.id)}
               columns={columns}

@@ -41,6 +41,7 @@ import {
   SheetTitle,
   Skeleton,
 } from '@/components/ui'
+import { PickerListError } from '@/components/list-error'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useAuth } from '@/contexts'
 import { useGrants, useShares } from '@/hooks/api/access'
@@ -1019,7 +1020,12 @@ function SharePeopleList({
   onPick: (user: FoundUser) => void
 }) {
   const t = useTranslations()
-  const { users, page: usersPage, isFetching: searching } = useUserSearch(query)
+  const {
+    users,
+    page: usersPage,
+    isFetching: searching,
+    error,
+  } = useUserSearch(query)
   const candidates = users.filter((u) => !isExcluded(u.id))
 
   // The server already filtered; letting cmdk filter again would hide rows it matched on a field
@@ -1032,10 +1038,13 @@ function SharePeopleList({
         value={query}
         onValueChange={onQueryChange}
       />
+      <PickerListError error={error ?? null} />
       <CommandList>
-        <CommandEmpty>
-          {searching ? t('common.loading') : t('access.noPeople')}
-        </CommandEmpty>
+        {error == null && (
+          <CommandEmpty>
+            {searching ? t('common.loading') : t('access.noPeople')}
+          </CommandEmpty>
+        )}
         <CommandGroup>
           {candidates.map((user) => (
             <CommandItem

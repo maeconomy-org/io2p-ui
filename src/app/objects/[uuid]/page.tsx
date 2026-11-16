@@ -73,7 +73,12 @@ export default function ObjectChildrenPage() {
   // switched it.
   const [viewType, setViewType] = usePreference('objectsView')
 
-  const { data: childrenPage, isFetching } = useList(
+  const {
+    data: childrenPage,
+    error: listError,
+    refetch: refetchList,
+    isFetching,
+  } = useList(
     {
       ...listQuery.query,
       parent: parentUuid,
@@ -243,6 +248,8 @@ export default function ObjectChildrenPage() {
           />
         ) : (
           <EntityTable
+            error={listError}
+            onRetry={() => void refetchList()}
             columns={state.columns}
             columnVisibility={columnVisibility}
             page={childrenPage}

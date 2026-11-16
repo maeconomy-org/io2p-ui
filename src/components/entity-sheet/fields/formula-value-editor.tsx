@@ -28,6 +28,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { PickerListError } from '@/components/list-error'
 import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { OwnerHint } from '@/components/entity-list'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
@@ -152,7 +153,7 @@ function FormulaSelectList({
   const t = useTranslations()
   const hintId = useId()
 
-  const { data, isFetching, isPlaceholderData } = useFormulas().useList(
+  const { data, isFetching, isPlaceholderData, error } = useFormulas().useList(
     { page: 1, size: SEARCH_SIZE, q },
     { keepPreviousData: true }
   )
@@ -169,8 +170,9 @@ function FormulaSelectList({
         aria-describedby={hintId}
       />
       <SearchMinHint query={query} kind="words" id={hintId} />
+      <PickerListError error={error ?? null} />
       <CommandList>
-        {isFetching && formulas.length === 0 ? (
+        {error != null ? null : isFetching && formulas.length === 0 ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
@@ -654,6 +656,7 @@ function BindingPickerList({
     data: constantsPage,
     isFetching,
     isPlaceholderData,
+    error,
   } = useConstants().useList(
     { page: 1, size: SEARCH_SIZE, q },
     { enabled: scope !== 'siblings', keepPreviousData: true }
@@ -682,6 +685,7 @@ function BindingPickerList({
         kind="words"
         id={hintId}
       />
+      <PickerListError error={error ?? null} />
 
       {/* A radiogroup, not three buttons: the options are mutually exclusive and a screen
           reader should hear which one is on. */}
@@ -714,7 +718,9 @@ function BindingPickerList({
         {/* Only when there is nothing at all to show. Gating the spinner on the CONSTANTS
             alone hid the sibling group on every first open — they are already in memory, and
             a failed constants fetch left "nothing to bind" on screen beside them. */}
-        {isFetching && !shownSiblings.length && !constants.length ? (
+        {error != null ? null : isFetching &&
+          !shownSiblings.length &&
+          !constants.length ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>

@@ -33,6 +33,7 @@ import {
   EmptyState,
   Skeleton,
 } from '@/components/ui'
+import { ListErrorAlert } from '@/components/list-error'
 import { cn } from '@/lib/utils'
 
 declare module '@tanstack/react-table' {
@@ -131,6 +132,9 @@ export interface DataTableProps<TData> {
    * hand over the next step — permanent and re-readable, unlike a tour.
    */
   emptyAction?: ReactNode
+  /** Why the rows did not load; shown where they would be, not as an empty list. */
+  error?: unknown
+  onRetry?: () => void
 
   /**
    * `<TableRow>`s rendered above the data rows. Receives the CURRENT visible column count, because
@@ -266,6 +270,8 @@ export function DataTable<TData>({
   emptyTitle,
   emptyDescription,
   emptyAction,
+  error,
+  onRetry,
   pinnedRows,
   hasPinnedRows = false,
 }: DataTableProps<TData>) {
@@ -372,7 +378,13 @@ export function DataTable<TData>({
                 queries — replacing the rows with a spinner threw the previous
                 page away and made paging flash, defeating it. */}
             {pinnedRows?.(colCount)}
-            {fetching && table.getRowModel().rows.length === 0 ? (
+            {error != null && table.getRowModel().rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={colCount}>
+                  <ListErrorAlert error={error} onRetry={onRetry} />
+                </TableCell>
+              </TableRow>
+            ) : fetching && table.getRowModel().rows.length === 0 ? (
               Array.from({ length: LOADING_ROWS }).map((_, i) => (
                 <TableRow key={`loading-${i}`} aria-hidden="true">
                   {Array.from({ length: colCount }).map((__, c) => (

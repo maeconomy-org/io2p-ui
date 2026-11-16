@@ -1,5 +1,6 @@
 'use client'
 
+import { ListErrorAlert } from '@/components/list-error'
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
@@ -107,21 +108,22 @@ export function MillerColumn({
     return () => clearTimeout(id)
   }, [typed])
 
-  const { data, isLoading, isError, isPlaceholderData } = useObjects().useList(
-    {
-      // Verbatim, including the empty string the first column passes: `?parent=` means ROOTS ONLY
-      // to the node, and `|| undefined` dropped the filter instead — so column one listed every
-      // object at any depth, and expanding a row showed children that were already in it.
-      parent: parentId,
-      scope,
-      page,
-      size: COLUMN_SIZE,
-      q,
-      deleted: showDeleted ? 'include' : undefined,
-      withChildCounts: true,
-    },
-    { keepPreviousData: true }
-  )
+  const { data, isLoading, isError, error, refetch, isPlaceholderData } =
+    useObjects().useList(
+      {
+        // Verbatim, including the empty string the first column passes: `?parent=` means ROOTS ONLY
+        // to the node, and `|| undefined` dropped the filter instead — so column one listed every
+        // object at any depth, and expanding a row showed children that were already in it.
+        parent: parentId,
+        scope,
+        page,
+        size: COLUMN_SIZE,
+        q,
+        deleted: showDeleted ? 'include' : undefined,
+        withChildCounts: true,
+      },
+      { keepPreviousData: true }
+    )
   const shownSearch = useShownSearch(q, isPlaceholderData)
 
   const items = data?.data ?? []
@@ -158,9 +160,11 @@ export function MillerColumn({
               </span>
             </div>
           ) : isError ? (
-            <div className="p-8 text-center text-sm text-destructive">
-              {t('common.error')}
-            </div>
+            <ListErrorAlert
+              error={error}
+              onRetry={() => void refetch()}
+              className="m-2 w-auto"
+            />
           ) : items.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
               {q ? t('objects.noItemsMatch') : t('objects.noItemsColumn')}

@@ -100,4 +100,21 @@ describe('columns view search', () => {
       [...document.querySelectorAll('mark')].map((mark) => mark.textContent)
     ).toEqual(['vloer'])
   })
+
+  it('says why a column could not load, with a retry', () => {
+    const refetch = vi.fn()
+    useList.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: { status: 422, detail: 'the list took too long' },
+      refetch,
+    })
+    type('beton')
+    expect(screen.getByTestId('list-error')).toHaveTextContent(
+      'the list took too long'
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'listRetry' }))
+    expect(refetch).toHaveBeenCalled()
+  })
 })

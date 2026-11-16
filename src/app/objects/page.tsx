@@ -88,6 +88,8 @@ export default function ObjectsPage() {
 
   const {
     data: objectsPage,
+    error: listError,
+    refetch: refetchList,
     isFetching,
     isPlaceholderData,
   } = useList(
@@ -194,6 +196,8 @@ export default function ObjectsPage() {
         {viewType === 'table' && <SearchFilterNote search={search} />}
         {viewType === 'table' && (
           <EntityTable
+            error={listError}
+            onRetry={() => void refetchList()}
             highlight={shownSearch}
             onRowHover={(row) => prefetchDetail(row.id)}
             columns={state.columns}

@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { SEARCH_SIZE } from '@/constants'
+import { PickerListError } from '@/components/list-error'
 import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { OwnerHint } from '@/components/entity-list'
 import { useTemplates } from '@/hooks/api/entities'
@@ -137,7 +138,7 @@ function TemplateSelectorList({
   const t = useTranslations()
   const hintId = useId()
 
-  const { data, isFetching, isPlaceholderData } = useTemplates().useList(
+  const { data, isFetching, isPlaceholderData, error } = useTemplates().useList(
     {
       q,
       size: SEARCH_SIZE,
@@ -164,8 +165,9 @@ function TemplateSelectorList({
         aria-describedby={hintId}
       />
       <SearchMinHint query={query} kind="words" id={hintId} />
+      <PickerListError error={error ?? null} />
       <CommandList>
-        {isFetching && templates.length === 0 ? (
+        {error != null ? null : isFetching && templates.length === 0 ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>

@@ -49,7 +49,12 @@ export function SharedByMeTable() {
    * listing it would put back the row that cannot be revoked from here. Because the node applies
    * that before paginating, `totalElements` counts exactly the rows this tab lists.
    */
-  const { data, isFetching } = useSharedByMe(
+  const {
+    data,
+    error: listError,
+    refetch: refetchList,
+    isFetching,
+  } = useSharedByMe(
     { page, size: pageSize, source: 'direct' },
     { keepPreviousData: true }
   )
@@ -121,6 +126,8 @@ export function SharedByMeTable() {
   return (
     <>
       <EntityTable
+        error={listError}
+        onRetry={() => void refetchList()}
         columns={columns}
         page={data}
         getRowId={(item) => item.resource.id}

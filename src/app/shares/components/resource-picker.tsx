@@ -25,6 +25,7 @@ import {
   OwnerHint,
   permissionOf,
 } from '@/components/entity-list'
+import { PickerListError } from '@/components/list-error'
 import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import type { Permission, ShareResourceType } from '@/components/access'
 import { useAuth } from '@/contexts'
@@ -204,11 +205,13 @@ function DataResults({ search, selectedIds, onPick }: ResultsProps) {
     data: objects,
     isFetching: loadingObjects,
     isPlaceholderData: oldObjects,
+    error: objectsError,
   } = useObjects().useList({ ...search, scope: 'all' }, listOptions)
   const {
     data: processes,
     isFetching: loadingProcesses,
     isPlaceholderData: oldProcesses,
+    error: processesError,
   } = useProcesses().useList({ ...search, scope: 'all' }, listOptions)
 
   const options: ShareResource[] = [
@@ -233,6 +236,7 @@ function DataResults({ search, selectedIds, onPick }: ResultsProps) {
   return (
     <ResourceResults
       highlight={dataSearch}
+      error={objectsError ?? processesError ?? null}
       options={options.filter((r) => !selectedIds.has(r.id))}
       loading={loadingObjects || loadingProcesses}
       pages={[objects, processes]}
@@ -247,16 +251,19 @@ function LibraryResults({ search, selectedIds, onPick }: ResultsProps) {
     data: formulas,
     isFetching: loadingFormulas,
     isPlaceholderData: oldFormulas,
+    error: formulasError,
   } = useFormulas().useList(search, listOptions)
   const {
     data: constants,
     isFetching: loadingConstants,
     isPlaceholderData: oldConstants,
+    error: constantsError,
   } = useConstants().useList(search, listOptions)
   const {
     data: templates,
     isFetching: loadingTemplates,
     isPlaceholderData: oldTemplates,
+    error: templatesError,
   } = useTemplates().useList(search, listOptions)
 
   const options: ShareResource[] = [
@@ -292,6 +299,7 @@ function LibraryResults({ search, selectedIds, onPick }: ResultsProps) {
   return (
     <ResourceResults
       highlight={librarySearch}
+      error={formulasError ?? constantsError ?? templatesError ?? null}
       options={options.filter((r) => !selectedIds.has(r.id))}
       loading={loadingFormulas || loadingConstants || loadingTemplates}
       pages={[formulas, constants, templates]}
@@ -302,12 +310,14 @@ function LibraryResults({ search, selectedIds, onPick }: ResultsProps) {
 
 function ResourceResults({
   highlight,
+  error,
   options,
   loading,
   pages,
   onPick,
 }: {
   highlight: string | undefined
+  error: unknown
   options: ShareResource[]
   loading: boolean
   pages: ComponentProps<typeof CommandMore>['pages']
@@ -328,10 +338,13 @@ function ResourceResults({
 
   return (
     <>
+      <PickerListError error={error} />
       <CommandList>
-        <CommandEmpty>
-          {loading ? t('common.loading') : t('shares.noResources')}
-        </CommandEmpty>
+        {error == null && (
+          <CommandEmpty>
+            {loading ? t('common.loading') : t('shares.noResources')}
+          </CommandEmpty>
+        )}
         <CommandGroup>
           {options.map((resource) => (
             <CommandItem

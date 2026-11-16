@@ -23,6 +23,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { SEARCH_SIZE } from '@/constants'
+import { PickerListError } from '@/components/list-error'
 import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { linkUnderRefusal, OwnerHint } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
@@ -272,7 +273,7 @@ function ParentPickerList({
   const hintId = useId()
 
   // `scope` defaults to 'mine', which would hide objects shared with the user.
-  const { data, isFetching, isPlaceholderData } = useObjects().useList(
+  const { data, isFetching, isPlaceholderData, error } = useObjects().useList(
     { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
     { keepPreviousData: true }
   )
@@ -302,8 +303,9 @@ function ParentPickerList({
         aria-describedby={hintId}
       />
       <SearchMinHint query={query} kind="words" id={hintId} />
+      <PickerListError error={error ?? null} />
       <CommandList>
-        {isFetching && results.length === 0 ? (
+        {error != null ? null : isFetching && results.length === 0 ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>

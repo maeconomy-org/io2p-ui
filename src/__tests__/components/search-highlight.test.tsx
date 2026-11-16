@@ -77,6 +77,7 @@ describe('EntityTable name column', () => {
         columns={columns}
         page={page}
         getRowId={(row) => row.id}
+        error={null}
         highlight="vloer"
       />
     )
@@ -85,7 +86,12 @@ describe('EntityTable name column', () => {
 
   it('marks nothing in a table with no search', () => {
     const { container } = render(
-      <EntityTable columns={columns} page={page} getRowId={(row) => row.id} />
+      <EntityTable
+        columns={columns}
+        page={page}
+        getRowId={(row) => row.id}
+        error={null}
+      />
     )
     expect(container.querySelector('mark')).toBeNull()
   })

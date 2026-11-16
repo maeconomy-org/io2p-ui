@@ -24,6 +24,12 @@ export interface EntityTableProps<T> {
   fetching?: boolean
   /** The search the rows answer: its words are marked in the names. Lists of words only. */
   highlight?: string
+  /**
+   * The list query's error, `null` when it has none. Required, so a page cannot forget it: without
+   * it a failed list shows as an empty one.
+   */
+  error: unknown
+  onRetry?: () => void
 
   // Pagination — 1-based to the outside; the 0↔1 conversion lives here only.
   onPageChange?: (page: number) => void

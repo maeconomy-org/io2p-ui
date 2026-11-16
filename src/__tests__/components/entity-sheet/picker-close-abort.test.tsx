@@ -56,6 +56,8 @@ const calls: Call[] = []
 
 // A search for "plaat" answers at once with one row; every other request stays open.
 const ANSWERED = 'plaat'
+// A search for "traag" is refused by the node.
+const REFUSED = 'traag'
 const row = (resource: string) => ({
   id: `${resource}-1`,
   name: `Vloer Plaat ${resource}`,
@@ -68,6 +70,9 @@ const pending =
   (resource: string) =>
   (query: { q?: string } | undefined, options?: { signal?: AbortSignal }) => {
     calls.push({ resource, q: query?.q, signal: options?.signal })
+    if (query?.q === REFUSED) {
+      return Promise.reject({ status: 422, detail: 'the list took too long' })
+    }
     return query?.q === ANSWERED
       ? Promise.resolve({
           data: [row(resource)],
@@ -284,6 +289,39 @@ describe('a closed picker stops its list request', () => {
       )
       expect(marked.length).toBeGreaterThan(0)
       expect(marked.every((text) => text === 'Plaat')).toBe(true)
+    }
+  )
+
+  it.each(PICKERS)(
+    '%s says why its list could not load, not that nothing matched',
+    async (_, picker, trigger) => {
+      render(
+        <QueryClientProvider
+          client={
+            new QueryClient({ defaultOptions: { queries: { retry: false } } })
+          }
+        >
+          {picker}
+        </QueryClientProvider>
+      )
+      fireEvent.click(trigger())
+      flush()
+      fireEvent.change(
+        document.querySelector<HTMLInputElement>('[cmdk-input]')!,
+        { target: { value: 'traag' } }
+      )
+      flush()
+      for (let i = 0; i < 3; i++) {
+        await act(async () => {
+          await Promise.resolve()
+          vi.advanceTimersByTime(10)
+        })
+      }
+
+      expect(screen.getByTestId('picker-list-error')).toHaveTextContent(
+        'the list took too long'
+      )
+      expect(document.querySelector('[cmdk-empty]')).toBeNull()
     }
   )
 })

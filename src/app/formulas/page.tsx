@@ -104,6 +104,8 @@ export default function FormulasPage() {
 
   const {
     data: formulasPage,
+    error: listError,
+    refetch: refetchList,
     isFetching,
     isPlaceholderData,
   } = useList(
@@ -193,6 +195,8 @@ export default function FormulasPage() {
           <SearchFilterNote search={search} />
 
           <EntityTable
+            error={listError}
+            onRetry={() => void refetchList()}
             highlight={shownSearch}
             columns={columns}
             page={formulasPage}

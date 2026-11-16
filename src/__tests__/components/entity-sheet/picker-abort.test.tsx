@@ -22,12 +22,14 @@ type Call = {
   query: { q?: string }
   signal?: AbortSignal
   resolve: (names?: string[]) => void
+  reject: (error: unknown) => void
 }
 const calls: Call[] = []
 
 const list = (query: { q?: string }, options?: { signal?: AbortSignal }) =>
-  new Promise((done) =>
+  new Promise((done, fail) =>
     calls.push({
+      reject: fail,
       query,
       signal: options?.signal,
       resolve: (names: string[] = []) =>
@@ -167,5 +169,20 @@ describe('ObjectPicker list requests', () => {
         (mark) => mark.textContent
       )
     ).toEqual(['beton'])
+  })
+
+  it('says why its list could not load, not that nothing matched', async () => {
+    renderPicker()
+    toggle()
+    type('beton')
+    await act(async () =>
+      calls.at(-1)!.reject({ status: 422, detail: 'the list took too long' })
+    )
+    act(() => vi.advanceTimersByTime(10))
+
+    expect(screen.getByTestId('picker-list-error')).toHaveTextContent(
+      'the list took too long'
+    )
+    expect(document.querySelector('[cmdk-empty]')).toBeNull()
   })
 })

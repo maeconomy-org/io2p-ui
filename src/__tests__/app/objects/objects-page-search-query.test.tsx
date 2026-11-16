@@ -163,6 +163,22 @@ describe('objects page — the list query during a search', () => {
     expect(tableProps().highlight).toBe('beton')
   })
 
+  it('hands the list error and a retry to the table', () => {
+    const error = { status: 422, detail: 'too slow' }
+    const refetch = vi.fn()
+    useList.mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      error,
+      refetch,
+    })
+    render(<ObjectsPage />)
+
+    expect(tableProps().error).toBe(error)
+    act(() => (tableProps().onRetry as () => void)())
+    expect(refetch).toHaveBeenCalledTimes(1)
+  })
+
   it('says an empty search found no results, with no create button', () => {
     parsed = parseSearchQuery('beton')
     render(<ObjectsPage />)

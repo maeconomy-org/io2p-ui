@@ -183,6 +183,22 @@ describe.each(PAGES)(
       )
     })
 
+    it('hands the list error and a retry to the table', () => {
+      const error = { status: 422, detail: 'too slow' }
+      const refetch = vi.fn()
+      useList.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        error,
+        refetch,
+      })
+      render(<Page />)
+
+      expect(tableProps().error).toBe(error)
+      act(() => (tableProps().onRetry as () => void)())
+      expect(refetch).toHaveBeenCalledTimes(1)
+    })
+
     it('keeps its own empty text when no filter of the search applies', () => {
       parsed = parseSearchQuery('parent:p-1')
       render(<Page />)

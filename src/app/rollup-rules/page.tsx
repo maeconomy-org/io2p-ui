@@ -82,7 +82,12 @@ export default function RollupRulesPage() {
   // Built explicitly rather than spread from `listQuery.query`: that carries `q`, `scope` and
   // `sort`, and this resource has none of them — a rule is the node's or yours, there is nothing to
   // search, and the node fixes the order at newest-first.
-  const { data: rulesPage, isFetching } = useList(
+  const {
+    data: rulesPage,
+    error: listError,
+    refetch: refetchList,
+    isFetching,
+  } = useList(
     {
       page: listQuery.query.page,
       size: filters.pageSize,
@@ -186,6 +191,8 @@ export default function RollupRulesPage() {
 
           <div {...anchor('rollupRulesList')}>
             <EntityTable
+              error={listError}
+              onRetry={() => void refetchList()}
               columns={columns}
               page={rulesPage}
               getRowId={(rule) => rule.id}

@@ -96,6 +96,8 @@ export default function ConstantsPage() {
 
   const {
     data: constantsPage,
+    error: listError,
+    refetch: refetchList,
     isFetching,
     isPlaceholderData,
   } = useList(
@@ -171,6 +173,8 @@ export default function ConstantsPage() {
           <div {...anchor('constantsList')}>
             <SearchFilterNote search={search} />
             <EntityTable
+              error={listError}
+              onRetry={() => void refetchList()}
               highlight={shownSearch}
               columns={columns}
               page={constantsPage}

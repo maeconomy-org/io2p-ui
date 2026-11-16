@@ -102,6 +102,8 @@ export default function TemplatesPage() {
 
   const {
     data: templatesPage,
+    error: listError,
+    refetch: refetchList,
     isFetching,
     isPlaceholderData,
   } = useList(
@@ -219,6 +221,8 @@ export default function TemplatesPage() {
           <SearchFilterNote search={search} />
 
           <EntityTable
+            error={listError}
+            onRetry={() => void refetchList()}
             highlight={shownSearch}
             columns={columns}
             page={templatesPage}
