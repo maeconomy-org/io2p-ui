@@ -37,6 +37,7 @@ import {
   CommandMore,
   type FetchedPage,
 } from '@/components/ui'
+import { SearchHighlight } from '@/components/search-highlight'
 import { SEARCH_SIZE } from '@/constants'
 import { OwnerHint } from '@/components/entity-list'
 import { cn } from '@/lib/utils'
@@ -100,6 +101,10 @@ export function DuplicateObjectsSheet({
   const [isSourceOpen, setIsSourceOpen] = useState(false)
   const [sourceSearchQuery, setSourceSearchQuery] = useState('')
   const [sourceSearchResults, setSourceSearchResults] = useState<any[]>([])
+  // The search the rows on screen answer, for their marks.
+  const [sourceResultsSearch, setSourceResultsSearch] = useState<
+    string | undefined
+  >()
   const [isSourceSearching, setIsSourceSearching] = useState(false)
   const [hasSourceLoaded, setHasSourceLoaded] = useState(false)
   const [sourceSearchPage, setSourceSearchPage] = useState<FetchedPage>()
@@ -184,6 +189,7 @@ export function DuplicateObjectsSheet({
         // renaming the markup, because the sheet is due its own rewrite.
         setSourceSearchResults(results.data.map((o) => ({ ...o, uuid: o.id })))
         setSourceSearchPage(results)
+        setSourceResultsSearch(q)
         setHasSourceLoaded(true)
       } catch (error) {
         if (controller.signal.aborted) return
@@ -441,7 +447,10 @@ export function DuplicateObjectsSheet({
                               />
                               <FileText className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium truncate">
-                                {object.name || object.uuid}
+                                <SearchHighlight
+                                  text={object.name || object.uuid}
+                                  q={sourceResultsSearch}
+                                />
                               </span>
                               <OwnerHint
                                 ownerUserId={object.createdBy}

@@ -11,6 +11,8 @@ import type {
 import type { Page } from 'io2p-client'
 
 import { DataTable } from './data-table'
+import { SearchMarkProvider } from '@/components/search-highlight'
+
 import { pageMeta } from './page-meta'
 import { HideProvider, SortProvider } from './columns'
 import type { EntitySort } from './use-entity-list-query'
@@ -20,6 +22,8 @@ export interface EntityTableProps<T> {
   page?: Page<T>
   getRowId: (row: T) => string
   fetching?: boolean
+  /** The search the rows answer: its words are marked in the names. Lists of words only. */
+  highlight?: string
 
   // Pagination — 1-based to the outside; the 0↔1 conversion lives here only.
   onPageChange?: (page: number) => void
@@ -62,6 +66,7 @@ export function EntityTable<T>({
   onPageChange,
   onPageSizeChange,
   pageSize,
+  highlight,
   sort,
   onSortChange,
   ...rest
@@ -87,23 +92,25 @@ export function EntityTable<T>({
   }, [rest.onColumnVisibilityChange, rest.columnVisibility])
 
   return (
-    <SortProvider sort={sort} onChange={onSortChange}>
-      <HideProvider onHide={onHide}>
-        <DataTable
-          columns={columns}
-          data={data}
-          getRowId={getRowId}
-          fetching={fetching}
-          pagination={meta}
-          onPageChange={(zeroBased) => emit(zeroBased + 1)}
-          onFirstPage={() => emit(1)}
-          onPreviousPage={() => emit(meta.currentPage - 1)}
-          onNextPage={() => emit(meta.currentPage + 1)}
-          onLastPage={() => emit(meta.totalPages)}
-          onPageSizeChange={onPageSizeChange}
-          {...rest}
-        />
-      </HideProvider>
-    </SortProvider>
+    <SearchMarkProvider value={highlight}>
+      <SortProvider sort={sort} onChange={onSortChange}>
+        <HideProvider onHide={onHide}>
+          <DataTable
+            columns={columns}
+            data={data}
+            getRowId={getRowId}
+            fetching={fetching}
+            pagination={meta}
+            onPageChange={(zeroBased) => emit(zeroBased + 1)}
+            onFirstPage={() => emit(1)}
+            onPreviousPage={() => emit(meta.currentPage - 1)}
+            onNextPage={() => emit(meta.currentPage + 1)}
+            onLastPage={() => emit(meta.totalPages)}
+            onPageSizeChange={onPageSizeChange}
+            {...rest}
+          />
+        </HideProvider>
+      </SortProvider>
+    </SearchMarkProvider>
   )
 }

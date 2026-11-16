@@ -28,6 +28,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { OwnerHint } from '@/components/entity-list'
 import { useConstants, useFormulas } from '@/hooks/api/leaves'
 import { SEARCH_SIZE } from '@/constants'
@@ -151,10 +152,11 @@ function FormulaSelectList({
   const t = useTranslations()
   const hintId = useId()
 
-  const { data, isFetching } = useFormulas().useList(
+  const { data, isFetching, isPlaceholderData } = useFormulas().useList(
     { page: 1, size: SEARCH_SIZE, q },
     { keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
   const formulas = data?.data ?? []
 
   // The node filters server-side, so let Command show whatever came back.
@@ -183,7 +185,9 @@ function FormulaSelectList({
               data-testid={`formula-option-${f.name}`}
               onSelect={() => onPick(f.id)}
             >
-              <span className="min-w-0 flex-1 truncate">{f.name}</span>
+              <span className="min-w-0 flex-1 truncate">
+                <SearchHighlight text={f.name} q={shownSearch} />
+              </span>
               <OwnerHint
                 system={f.system}
                 ownerUserId={f.ownerUserId}
@@ -646,10 +650,15 @@ function BindingPickerList({
   // The siblings below filter on `needle` at once; only the request waits for typing to stop.
   // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
   // constants would be a request for something nothing renders.
-  const { data: constantsPage, isFetching } = useConstants().useList(
+  const {
+    data: constantsPage,
+    isFetching,
+    isPlaceholderData,
+  } = useConstants().useList(
     { page: 1, size: SEARCH_SIZE, q },
     { enabled: scope !== 'siblings', keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
   const constants = scope === 'siblings' ? [] : (constantsPage?.data ?? [])
   const shownSiblings =
     scope === 'constants'
@@ -753,7 +762,9 @@ function BindingPickerList({
                   data-testid={`formula-constant-${c.name}`}
                   onSelect={onChoose}
                 >
-                  <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    <SearchHighlight text={c.name} q={shownSearch} />
+                  </span>
                   <OwnerHint
                     system={c.system}
                     ownerUserId={c.ownerUserId}

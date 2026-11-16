@@ -21,7 +21,7 @@ vi.mock('@/components/entity-list', async (importOriginal) => ({
 type Call = {
   query: { q?: string }
   signal?: AbortSignal
-  resolve: () => void
+  resolve: (names?: string[]) => void
 }
 const calls: Call[] = []
 
@@ -30,9 +30,9 @@ const list = (query: { q?: string }, options?: { signal?: AbortSignal }) =>
     calls.push({
       query,
       signal: options?.signal,
-      resolve: () =>
+      resolve: (names: string[] = []) =>
         done({
-          data: [],
+          data: names.map((name, i) => ({ id: `o-${i}`, name })),
           page: { totalElements: 0, totalPages: 0, number: 1, size: 20 },
         }),
     })
@@ -153,5 +153,19 @@ describe('ObjectPicker list requests', () => {
     expect(calls.slice(1).map((call) => call.query.q)).toEqual(
       calls.slice(1).map(() => 'beton')
     )
+  })
+
+  it('marks the search words in the names it found', async () => {
+    renderPicker()
+    toggle()
+    type('beton')
+    await act(async () => calls.at(-1)!.resolve(['Vloer van beton']))
+    act(() => vi.advanceTimersByTime(10))
+
+    expect(
+      [...document.querySelectorAll('[cmdk-item] mark')].map(
+        (mark) => mark.textContent
+      )
+    ).toEqual(['beton'])
   })
 })

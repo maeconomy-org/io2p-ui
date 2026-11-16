@@ -4,6 +4,7 @@ import { useState, useEffect, useId, useMemo, useRef, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { X, Loader2, ChevronsUpDown, Users, Check, Plus } from 'lucide-react'
 
+import { SearchHighlight } from '@/components/search-highlight'
 import { logger } from '@/lib/observability/logger'
 import {
   Button,
@@ -92,6 +93,8 @@ export function ParentSelector({
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
+  // The search the rows on screen answer, for their marks.
+  const [resultsSearch, setResultsSearch] = useState<string | undefined>()
   const [isSearching, setIsSearching] = useState(false)
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
   // Memoised: it is a dependency of the search callback, and a fresh Set each
@@ -149,6 +152,7 @@ export function ParentSelector({
             .filter((o) => o.id !== currentObjectUuid && !excludedSet.has(o.id))
             .map((o) => ({ ...o, uuid: o.id }))
         )
+        setResultsSearch(q)
         setHasInitiallyLoaded(true)
       } catch (error) {
         if (controller.signal.aborted) return
@@ -384,7 +388,10 @@ export function ParentSelector({
                       />
                       <div className="flex flex-col min-w-0">
                         <span className="font-medium truncate">
-                          {object.name || object.uuid}
+                          <SearchHighlight
+                            text={object.name || object.uuid}
+                            q={resultsSearch}
+                          />
                           <OwnerHint
                             ownerUserId={object.createdBy}
                             ownerName={object.createdByName}

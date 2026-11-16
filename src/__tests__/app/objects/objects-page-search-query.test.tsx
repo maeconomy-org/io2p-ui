@@ -156,6 +156,13 @@ describe('objects page — the list query during a search', () => {
     expect(queryOf()).toMatchObject({ page: 1, q: 'sdfsdf' })
   })
 
+  it('marks the search words in the names, never the filter tokens', () => {
+    parsed = parseSearchQuery('prop:material=steel beton')
+    render(<ObjectsPage />)
+
+    expect(tableProps().highlight).toBe('beton')
+  })
+
   it('says an empty search found no results, with no create button', () => {
     parsed = parseSearchQuery('beton')
     render(<ObjectsPage />)

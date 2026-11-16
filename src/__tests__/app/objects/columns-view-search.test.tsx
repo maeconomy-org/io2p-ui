@@ -85,4 +85,19 @@ describe('columns view search', () => {
     type('vloer')
     expect(pageOf()).toBe(1)
   })
+
+  it('marks the search words in the names of the rows', () => {
+    useList.mockReturnValue({
+      data: {
+        data: [{ id: 'o-1', name: 'Beton vloer', childCount: 0 }],
+        page: { totalPages: 1, totalElements: 1, number: 1, size: 20 },
+      },
+      isLoading: false,
+      isError: false,
+    })
+    type('vloer')
+    expect(
+      [...document.querySelectorAll('mark')].map((mark) => mark.textContent)
+    ).toEqual(['vloer'])
+  })
 })

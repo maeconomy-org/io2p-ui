@@ -23,6 +23,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { SEARCH_SIZE } from '@/constants'
+import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { linkUnderRefusal, OwnerHint } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 import { useObjects } from '@/hooks/api/entities'
@@ -271,10 +272,11 @@ function ParentPickerList({
   const hintId = useId()
 
   // `scope` defaults to 'mine', which would hide objects shared with the user.
-  const { data, isFetching } = useObjects().useList(
+  const { data, isFetching, isPlaceholderData } = useObjects().useList(
     { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
     { keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
 
   const results = useMemo(
     () => (data?.data ?? []).filter((o) => o.id !== selfId),
@@ -327,7 +329,9 @@ function ParentPickerList({
                       : 'opacity-0'
                   )}
                 />
-                <span className="min-w-0 flex-1 truncate">{object.name}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  <SearchHighlight text={object.name} q={shownSearch} />
+                </span>
                 <OwnerHint
                   ownerUserId={object.createdBy}
                   ownerName={object.createdByName}

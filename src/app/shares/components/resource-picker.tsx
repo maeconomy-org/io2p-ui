@@ -25,6 +25,7 @@ import {
   OwnerHint,
   permissionOf,
 } from '@/components/entity-list'
+import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import type { Permission, ShareResourceType } from '@/components/access'
 import { useAuth } from '@/contexts'
 import { useObjects, useProcesses, useTemplates } from '@/hooks/api/entities'
@@ -199,12 +200,16 @@ type ResultsProps = {
 function DataResults({ search, selectedIds, onPick }: ResultsProps) {
   const { userId } = useAuth()
   const listOptions = { keepPreviousData: true }
-  const { data: objects, isFetching: loadingObjects } = useObjects().useList(
-    { ...search, scope: 'all' },
-    listOptions
-  )
-  const { data: processes, isFetching: loadingProcesses } =
-    useProcesses().useList({ ...search, scope: 'all' }, listOptions)
+  const {
+    data: objects,
+    isFetching: loadingObjects,
+    isPlaceholderData: oldObjects,
+  } = useObjects().useList({ ...search, scope: 'all' }, listOptions)
+  const {
+    data: processes,
+    isFetching: loadingProcesses,
+    isPlaceholderData: oldProcesses,
+  } = useProcesses().useList({ ...search, scope: 'all' }, listOptions)
 
   const options: ShareResource[] = [
     ...(objects?.data ?? []).map((o) => ({
@@ -224,8 +229,10 @@ function DataResults({ search, selectedIds, onPick }: ResultsProps) {
       permission: permissionOf(p, userId),
     })),
   ]
+  const dataSearch = useShownSearch(search.q, oldObjects || oldProcesses)
   return (
     <ResourceResults
+      highlight={dataSearch}
       options={options.filter((r) => !selectedIds.has(r.id))}
       loading={loadingObjects || loadingProcesses}
       pages={[objects, processes]}
@@ -236,14 +243,21 @@ function DataResults({ search, selectedIds, onPick }: ResultsProps) {
 
 function LibraryResults({ search, selectedIds, onPick }: ResultsProps) {
   const listOptions = { keepPreviousData: true }
-  const { data: formulas, isFetching: loadingFormulas } = useFormulas().useList(
-    search,
-    listOptions
-  )
-  const { data: constants, isFetching: loadingConstants } =
-    useConstants().useList(search, listOptions)
-  const { data: templates, isFetching: loadingTemplates } =
-    useTemplates().useList(search, listOptions)
+  const {
+    data: formulas,
+    isFetching: loadingFormulas,
+    isPlaceholderData: oldFormulas,
+  } = useFormulas().useList(search, listOptions)
+  const {
+    data: constants,
+    isFetching: loadingConstants,
+    isPlaceholderData: oldConstants,
+  } = useConstants().useList(search, listOptions)
+  const {
+    data: templates,
+    isFetching: loadingTemplates,
+    isPlaceholderData: oldTemplates,
+  } = useTemplates().useList(search, listOptions)
 
   const options: ShareResource[] = [
     ...(formulas?.data ?? []).map((f) => ({
@@ -271,8 +285,13 @@ function LibraryResults({ search, selectedIds, onPick }: ResultsProps) {
       ownerName: tpl.ownerName,
     })),
   ]
+  const librarySearch = useShownSearch(
+    search.q,
+    oldFormulas || oldConstants || oldTemplates
+  )
   return (
     <ResourceResults
+      highlight={librarySearch}
       options={options.filter((r) => !selectedIds.has(r.id))}
       loading={loadingFormulas || loadingConstants || loadingTemplates}
       pages={[formulas, constants, templates]}
@@ -282,11 +301,13 @@ function LibraryResults({ search, selectedIds, onPick }: ResultsProps) {
 }
 
 function ResourceResults({
+  highlight,
   options,
   loading,
   pages,
   onPick,
 }: {
+  highlight: string | undefined
   options: ShareResource[]
   loading: boolean
   pages: ComponentProps<typeof CommandMore>['pages']
@@ -325,7 +346,9 @@ function ResourceResults({
               <Badge variant={resource.type} className="mr-2 h-5 shrink-0">
                 {t(`shares.resourceType.${resource.type}`)}
               </Badge>
-              <span className="truncate">{resource.name}</span>
+              <span className="truncate">
+                <SearchHighlight text={resource.name} q={highlight} />
+              </span>
               <OwnerHint
                 system={resource.system}
                 ownerUserId={resource.ownerUserId}

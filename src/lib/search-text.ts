@@ -24,8 +24,16 @@ export type SearchInput =
  * the node keeps `ß`, so "strasse" must not count as "Straße" here either.
  */
 export function foldSearch(text: string): string {
+  return foldText(text.trim())
+}
+
+/**
+ * `foldSearch` without the trim, so a name folded one grapheme at a time joins up to the whole name
+ * folded (`search-marks.ts` relies on it). That holds for Greek only because of the sigma step: a
+ * lone `Σ` lower-cases to `σ`, a word-final one to `ς`.
+ */
+export function foldText(text: string): string {
   return text
-    .trim()
     .normalize('NFC')
     .toLowerCase()
     .replaceAll('ς', 'σ')

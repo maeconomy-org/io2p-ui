@@ -23,6 +23,7 @@ import {
   useEntityListQuery,
 } from '@/components/entity-list'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
+import { useShownSearch } from '@/components/search-highlight'
 import { useConstants } from '@/hooks/api/leaves'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useListSearch } from '@/contexts'
@@ -93,7 +94,11 @@ export default function ConstantsPage() {
   const setPage = listQuery.setPage
   const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
 
-  const { data: constantsPage, isFetching } = useList(
+  const {
+    data: constantsPage,
+    isFetching,
+    isPlaceholderData,
+  } = useList(
     {
       ...listQuery.query,
       size: filters.pageSize,
@@ -104,6 +109,7 @@ export default function ConstantsPage() {
     },
     { keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(search?.params.q, isPlaceholderData)
 
   const list = useEntityListActions({
     page: constantsPage,
@@ -165,6 +171,7 @@ export default function ConstantsPage() {
           <div {...anchor('constantsList')}>
             <SearchFilterNote search={search} />
             <EntityTable
+              highlight={shownSearch}
               columns={columns}
               page={constantsPage}
               getRowId={(constant) => constant.id}

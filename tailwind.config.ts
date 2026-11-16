@@ -33,6 +33,10 @@ const config: Config = {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
         },
+        mark: {
+          DEFAULT: 'hsl(var(--mark))',
+          foreground: 'hsl(var(--mark-foreground))',
+        },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',

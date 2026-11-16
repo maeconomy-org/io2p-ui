@@ -28,6 +28,7 @@ import {
   canDelete,
   permissionWhenKnown,
 } from '@/components/entity-list'
+import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { useAuth } from '@/contexts'
 import { copyText } from '@/lib/clipboard'
 import { nextSearch, searchInput } from '@/lib/search-text'
@@ -106,7 +107,7 @@ export function MillerColumn({
     return () => clearTimeout(id)
   }, [typed])
 
-  const { data, isLoading, isError } = useObjects().useList(
+  const { data, isLoading, isError, isPlaceholderData } = useObjects().useList(
     {
       // Verbatim, including the empty string the first column passes: `?parent=` means ROOTS ONLY
       // to the node, and `|| undefined` dropped the filter instead — so column one listed every
@@ -121,6 +122,7 @@ export function MillerColumn({
     },
     { keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
 
   const items = data?.data ?? []
   const totalPages = data?.page.totalPages ?? 1
@@ -191,11 +193,14 @@ export function MillerColumn({
                         isDeleted && 'text-red-600 line-through'
                       )}
                     >
-                      {truncateText(
-                        item.name || t('objects.unnamed'),
-                        25,
-                        true
-                      )}
+                      <SearchHighlight
+                        text={truncateText(
+                          item.name || t('objects.unnamed'),
+                          25,
+                          true
+                        )}
+                        q={shownSearch}
+                      />
                     </span>
                     <OwnerHint
                       ownerUserId={item.createdBy}
