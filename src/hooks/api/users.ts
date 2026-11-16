@@ -18,12 +18,12 @@ export function useUserSearch(query: string) {
   const client = useIomClient()
   const trimmed = query.trim()
   const params = { page: 1, size: SEARCH_SIZE, q: trimmed || undefined }
-  const { data, isFetching } = useQuery({
+  const { data, isFetching, error } = useQuery({
     queryKey: queryKeys.users.list(params),
     queryFn: ({ signal }) => client.users.list(params, { signal }),
     staleTime: SEARCH_STALE_TIME,
     placeholderData: (previous) => previous,
   })
 
-  return { users: data?.data ?? [], page: data, isFetching }
+  return { users: data?.data ?? [], page: data, isFetching, error }
 }

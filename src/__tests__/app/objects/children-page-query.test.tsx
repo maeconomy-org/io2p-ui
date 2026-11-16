@@ -9,7 +9,11 @@
 // reuses the same page to pin who is offered "Add child".
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
+
+const { tables } = vi.hoisted(() => ({
+  tables: [] as Record<string, unknown>[],
+}))
 
 const useList = vi.fn()
 const useGet = vi.fn()
@@ -69,7 +73,10 @@ vi.mock('@/components/entity-list', async () => {
   >('@/components/entity-list')
   return {
     ...actual,
-    EntityTable: () => null,
+    EntityTable: (props: Record<string, unknown>) => {
+      tables.push(props)
+      return null
+    },
     useEntityListFilters: () => ({
       pageSize: 20,
       handlePageSizeChange: vi.fn(),
@@ -109,6 +116,23 @@ describe('object children page — the children query', () => {
       isLoading: false,
     })
     useList.mockReturnValue({ data: undefined, isFetching: false })
+  })
+
+  it('hands the list error and a retry to the table', () => {
+    const error = { status: 422, detail: 'too slow' }
+    const refetch = vi.fn()
+    useList.mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      error,
+      refetch,
+    })
+    render(<ObjectChildrenPage />)
+
+    const table = tables.at(-1)!
+    expect(table.error).toBe(error)
+    act(() => (table.onRetry as () => void)())
+    expect(refetch).toHaveBeenCalledTimes(1)
   })
 
   it('asks for every child the viewer can see, not only their own', () => {

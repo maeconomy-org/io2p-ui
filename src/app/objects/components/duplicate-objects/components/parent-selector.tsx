@@ -1,9 +1,11 @@
 'use client'
 
+import { PickerListError } from '@/components/list-error'
 import { useState, useEffect, useId, useMemo, useRef, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { X, Loader2, ChevronsUpDown, Users, Check, Plus } from 'lucide-react'
 
+import { SearchHighlight } from '@/components/search-highlight'
 import { logger } from '@/lib/observability/logger'
 import {
   Button,
@@ -92,6 +94,10 @@ export function ParentSelector({
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
+  // The search the rows on screen answer, for their marks.
+  const [resultsSearch, setResultsSearch] = useState<string | undefined>()
+  // Why the last search did not answer, shown where the rows would be.
+  const [searchError, setSearchError] = useState<unknown>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false)
   // Memoised: it is a dependency of the search callback, and a fresh Set each
@@ -129,6 +135,7 @@ export function ParentSelector({
       searchAbortRef.current = controller
 
       setIsSearching(true)
+      setSearchError(null)
       try {
         // `q` substring-matches name and description; `deleted` excludes by default, so the
         // retired `softDeleted: false` filter is implicit.
@@ -149,10 +156,13 @@ export function ParentSelector({
             .filter((o) => o.id !== currentObjectUuid && !excludedSet.has(o.id))
             .map((o) => ({ ...o, uuid: o.id }))
         )
+        setResultsSearch(q)
+        setSearchError(null)
         setHasInitiallyLoaded(true)
       } catch (error) {
         if (controller.signal.aborted) return
         logger.error('Search failed:', { err: error })
+        setSearchError(error)
         // Matches no search, so the next key press or reopen runs one, even back to the full list.
         lastQRef.current = null
         setSearchResults([])
@@ -334,6 +344,7 @@ export function ParentSelector({
               )}
             </div>
             <SearchMinHint query={searchQuery} kind="words" id={hintId} />
+            <PickerListError error={searchError} />
             <CommandList className="max-h-[300px] overflow-y-auto">
               {allowInlineCreate && !disabled && (
                 <>
@@ -355,13 +366,15 @@ export function ParentSelector({
                   <CommandSeparator />
                 </>
               )}
-              <CommandEmpty>
-                {isSearching
-                  ? t('objects.parentSelector.searching')
-                  : needsTyping(searchQuery) && searchResults.length === 0
-                    ? t('objects.parentSelector.startTyping')
-                    : t('objects.parentSelector.noResults')}
-              </CommandEmpty>
+              {searchError == null && (
+                <CommandEmpty>
+                  {isSearching
+                    ? t('objects.parentSelector.searching')
+                    : needsTyping(searchQuery) && searchResults.length === 0
+                      ? t('objects.parentSelector.startTyping')
+                      : t('objects.parentSelector.noResults')}
+                </CommandEmpty>
+              )}
               <CommandGroup>
                 {searchResults.map((object: any) => {
                   const isSelected = selectedParents.some(
@@ -384,7 +397,10 @@ export function ParentSelector({
                       />
                       <div className="flex flex-col min-w-0">
                         <span className="font-medium truncate">
-                          {object.name || object.uuid}
+                          <SearchHighlight
+                            text={object.name || object.uuid}
+                            q={resultsSearch}
+                          />
                           <OwnerHint
                             ownerUserId={object.createdBy}
                             ownerName={object.createdByName}

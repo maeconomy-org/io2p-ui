@@ -26,6 +26,9 @@
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+    /* A search word in a name: yellow-200 under the normal text, about 17:1. */
+    --mark: 53 98% 77%;
+    --mark-foreground: 0 0% 3.9%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
@@ -61,6 +64,9 @@
     --accent-foreground: 210 20% 95%;
     --destructive: 0 62.8% 50%;
     --destructive-foreground: 0 0% 100%;
+    /* yellow-500 at 30% over --card, made opaque: the text stays above 7:1. */
+    --mark: 45 51% 23%;
+    --mark-foreground: 210 20% 95%;
     --border: 220 14% 20%;
     --input: 220 14% 20%;
     --ring: 217.2 91.2% 59.8%;

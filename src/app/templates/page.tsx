@@ -28,6 +28,7 @@ import {
   useEntityListFilters,
   useEntityListQuery,
 } from '@/components/entity-list'
+import { useShownSearch } from '@/components/search-highlight'
 import { useTemplates } from '@/hooks/api/entities'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useListSearch } from '@/contexts'
@@ -99,7 +100,13 @@ export default function TemplatesPage() {
   const setPage = listQuery.setPage
   const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
 
-  const { data: templatesPage, isFetching } = useList(
+  const {
+    data: templatesPage,
+    error: listError,
+    refetch: refetchList,
+    isFetching,
+    isPlaceholderData,
+  } = useList(
     {
       ...listQuery.query,
       size: filters.pageSize,
@@ -110,6 +117,7 @@ export default function TemplatesPage() {
     },
     { keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(search?.params.q, isPlaceholderData)
 
   const handleAddTemplate = useCallback(
     (type: NonNullable<CreateTemplateInput['type']>) => {
@@ -213,6 +221,9 @@ export default function TemplatesPage() {
           <SearchFilterNote search={search} />
 
           <EntityTable
+            error={listError}
+            onRetry={() => void refetchList()}
+            highlight={shownSearch}
             columns={columns}
             page={templatesPage}
             getRowId={(template) => template.id}

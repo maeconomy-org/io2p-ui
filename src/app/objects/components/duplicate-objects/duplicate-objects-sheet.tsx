@@ -1,5 +1,6 @@
 'use client'
 
+import { PickerListError } from '@/components/list-error'
 import { useState, useEffect, useId, useRef, useCallback } from 'react'
 import {
   Copy,
@@ -37,6 +38,7 @@ import {
   CommandMore,
   type FetchedPage,
 } from '@/components/ui'
+import { SearchHighlight } from '@/components/search-highlight'
 import { SEARCH_SIZE } from '@/constants'
 import { OwnerHint } from '@/components/entity-list'
 import { cn } from '@/lib/utils'
@@ -100,6 +102,12 @@ export function DuplicateObjectsSheet({
   const [isSourceOpen, setIsSourceOpen] = useState(false)
   const [sourceSearchQuery, setSourceSearchQuery] = useState('')
   const [sourceSearchResults, setSourceSearchResults] = useState<any[]>([])
+  // The search the rows on screen answer, for their marks.
+  const [sourceResultsSearch, setSourceResultsSearch] = useState<
+    string | undefined
+  >()
+  // Why the last search did not answer, shown where the rows would be.
+  const [sourceSearchError, setSourceSearchError] = useState<unknown>(null)
   const [isSourceSearching, setIsSourceSearching] = useState(false)
   const [hasSourceLoaded, setHasSourceLoaded] = useState(false)
   const [sourceSearchPage, setSourceSearchPage] = useState<FetchedPage>()
@@ -142,6 +150,7 @@ export function DuplicateObjectsSheet({
     setSourceSearchPage(undefined)
     setHasSourceLoaded(false)
     lastSourceQRef.current = undefined
+    setSourceSearchError(null)
   }, [preselectedObjects, defaultParentUuid])
 
   const prevOpenRef = useRef(false)
@@ -162,6 +171,7 @@ export function DuplicateObjectsSheet({
       sourceSearchAbortRef.current = controller
 
       setIsSourceSearching(true)
+      setSourceSearchError(null)
       try {
         // `q` substring-matches name and description, which is what the old `searchTerm` did.
         // `deleted` defaults to exclude, so the retired `softDeleted: false` filter is implicit.
@@ -184,10 +194,13 @@ export function DuplicateObjectsSheet({
         // renaming the markup, because the sheet is due its own rewrite.
         setSourceSearchResults(results.data.map((o) => ({ ...o, uuid: o.id })))
         setSourceSearchPage(results)
+        setSourceResultsSearch(q)
+        setSourceSearchError(null)
         setHasSourceLoaded(true)
       } catch (error) {
         if (controller.signal.aborted) return
         logger.error('Source search failed:', { err: error })
+        setSourceSearchError(error)
         // Matches no search, so the next key press or reopen runs one, even back to the full list.
         lastSourceQRef.current = null
         setSourceSearchResults([])
@@ -410,12 +423,15 @@ export function DuplicateObjectsSheet({
                     kind="words"
                     id={sourceHintId}
                   />
+                  <PickerListError error={sourceSearchError} />
                   <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
-                    <CommandEmpty>
-                      {isSourceSearching
-                        ? t('common.loading')
-                        : t('objects.parentSelector.noResults')}
-                    </CommandEmpty>
+                    {sourceSearchError == null && (
+                      <CommandEmpty>
+                        {isSourceSearching
+                          ? t('common.loading')
+                          : t('objects.parentSelector.noResults')}
+                      </CommandEmpty>
+                    )}
                     <CommandGroup>
                       {sourceSearchResults
                         .filter(
@@ -441,7 +457,10 @@ export function DuplicateObjectsSheet({
                               />
                               <FileText className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium truncate">
-                                {object.name || object.uuid}
+                                <SearchHighlight
+                                  text={object.name || object.uuid}
+                                  q={sourceResultsSearch}
+                                />
                               </span>
                               <OwnerHint
                                 ownerUserId={object.createdBy}

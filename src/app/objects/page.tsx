@@ -11,6 +11,7 @@ import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { usePreference } from '@/hooks/ui/use-preference'
 import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
+import { useShownSearch } from '@/components/search-highlight'
 import { OBJECT_DETAIL_READ, useObjects } from '@/hooks/api/entities'
 import { useAuth, useListSearch } from '@/contexts'
 import { SearchFilterNote } from '@/components/global-search/search-filter-note'
@@ -85,7 +86,13 @@ export default function ObjectsPage() {
   const setPage = listQuery.setPage
   const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
 
-  const { data: objectsPage, isFetching } = useList(
+  const {
+    data: objectsPage,
+    error: listError,
+    refetch: refetchList,
+    isFetching,
+    isPlaceholderData,
+  } = useList(
     {
       ...listQuery.query,
       size: filters.pageSize,
@@ -103,6 +110,7 @@ export default function ObjectsPage() {
     },
     { enabled: viewType === 'table', keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(search?.params.q, isPlaceholderData)
 
   const state = useObjectListPage({
     page: objectsPage,
@@ -188,6 +196,9 @@ export default function ObjectsPage() {
         {viewType === 'table' && <SearchFilterNote search={search} />}
         {viewType === 'table' && (
           <EntityTable
+            error={listError}
+            onRetry={() => void refetchList()}
+            highlight={shownSearch}
             onRowHover={(row) => prefetchDetail(row.id)}
             columns={state.columns}
             columnVisibility={columnVisibility}

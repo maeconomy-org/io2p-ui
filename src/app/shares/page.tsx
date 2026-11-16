@@ -84,7 +84,12 @@ export default function SharesPage() {
   const { useList, useDelete } = useShares()
   const deleteMutation = useDelete()
 
-  const { data: sharesPage, isFetching } = useList(
+  const {
+    data: sharesPage,
+    error: listError,
+    refetch: refetchList,
+    isFetching,
+  } = useList(
     {
       ...listQuery.query,
       size: pageSize,
@@ -219,6 +224,8 @@ export default function SharesPage() {
             <TabsContent value="shares" className="space-y-4">
               <SearchFilterNote search={search} />
               <EntityTable
+                error={listError}
+                onRetry={() => void refetchList()}
                 columns={columns}
                 page={sharesPage}
                 getRowId={(share) => share.id}

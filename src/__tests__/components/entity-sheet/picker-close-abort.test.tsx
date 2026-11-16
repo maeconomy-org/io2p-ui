@@ -54,12 +54,32 @@ vi.mock('@/hooks/api/leaves', async (importOriginal) => {
 type Call = { resource: string; q?: string; signal?: AbortSignal }
 const calls: Call[] = []
 
+// A search for "plaat" answers at once with one row; every other request stays open.
+const ANSWERED = 'plaat'
+// A search for "traag" is refused by the node.
+const REFUSED = 'traag'
+const row = (resource: string) => ({
+  id: `${resource}-1`,
+  name: `Vloer Plaat ${resource}`,
+  expression: '',
+  versions: [],
+  properties: [],
+})
+
 const pending =
   (resource: string) =>
-  (query: { q?: string } | undefined, options?: { signal?: AbortSignal }) =>
-    new Promise(() =>
-      calls.push({ resource, q: query?.q, signal: options?.signal })
-    )
+  (query: { q?: string } | undefined, options?: { signal?: AbortSignal }) => {
+    calls.push({ resource, q: query?.q, signal: options?.signal })
+    if (query?.q === REFUSED) {
+      return Promise.reject({ status: 422, detail: 'the list took too long' })
+    }
+    return query?.q === ANSWERED
+      ? Promise.resolve({
+          data: [row(resource)],
+          page: { number: 1, size: 20, totalElements: 1, totalPages: 1 },
+        })
+      : new Promise(() => {})
+  }
 
 vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({
@@ -236,4 +256,72 @@ describe('a closed picker stops its list request', () => {
     expect(hint).toHaveTextContent('minWordChars')
     expect(hint).toHaveAttribute('role', 'status')
   })
+
+  it.each(PICKERS)(
+    '%s marks the search word in each result name',
+    async (_, picker, trigger) => {
+      render(
+        <QueryClientProvider
+          client={
+            new QueryClient({ defaultOptions: { queries: { retry: false } } })
+          }
+        >
+          {picker}
+        </QueryClientProvider>
+      )
+      fireEvent.click(trigger())
+      flush()
+      fireEvent.change(
+        document.querySelector<HTMLInputElement>('[cmdk-input]')!,
+        { target: { value: 'plaat' } }
+      )
+      flush()
+      // The answer resolves, then TanStack notifies on a timer.
+      for (let i = 0; i < 3; i++) {
+        await act(async () => {
+          await Promise.resolve()
+          vi.advanceTimersByTime(10)
+        })
+      }
+
+      const marked = [...document.querySelectorAll('[cmdk-item] mark')].map(
+        (mark) => mark.textContent
+      )
+      expect(marked.length).toBeGreaterThan(0)
+      expect(marked.every((text) => text === 'Plaat')).toBe(true)
+    }
+  )
+
+  it.each(PICKERS)(
+    '%s says why its list could not load, not that nothing matched',
+    async (_, picker, trigger) => {
+      render(
+        <QueryClientProvider
+          client={
+            new QueryClient({ defaultOptions: { queries: { retry: false } } })
+          }
+        >
+          {picker}
+        </QueryClientProvider>
+      )
+      fireEvent.click(trigger())
+      flush()
+      fireEvent.change(
+        document.querySelector<HTMLInputElement>('[cmdk-input]')!,
+        { target: { value: 'traag' } }
+      )
+      flush()
+      for (let i = 0; i < 3; i++) {
+        await act(async () => {
+          await Promise.resolve()
+          vi.advanceTimersByTime(10)
+        })
+      }
+
+      expect(screen.getByTestId('picker-list-error')).toHaveTextContent(
+        'the list took too long'
+      )
+      expect(document.querySelector('[cmdk-empty]')).toBeNull()
+    }
+  )
 })

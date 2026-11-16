@@ -85,4 +85,50 @@ describe('columns view search', () => {
     type('vloer')
     expect(pageOf()).toBe(1)
   })
+
+  it('marks the search words in the names of the rows', () => {
+    useList.mockReturnValue({
+      data: {
+        data: [{ id: 'o-1', name: 'Beton vloer', childCount: 0 }],
+        page: { totalPages: 1, totalElements: 1, number: 1, size: 20 },
+      },
+      isLoading: false,
+      isError: false,
+    })
+    type('vloer')
+    expect(
+      [...document.querySelectorAll('mark')].map((mark) => mark.textContent)
+    ).toEqual(['vloer'])
+  })
+
+  it('says why a column could not load, with a retry', () => {
+    const refetch = vi.fn()
+    useList.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: { status: 503 },
+      refetch,
+    })
+    type('beton')
+    expect(screen.getByTestId('list-error')).toHaveTextContent('listFailed')
+    fireEvent.click(screen.getByRole('button', { name: 'listRetry' }))
+    expect(refetch).toHaveBeenCalled()
+  })
+
+  it('keeps its rows when a refetch of them fails', () => {
+    useList.mockReturnValue({
+      data: {
+        data: [{ id: 'o-1', name: 'Beton vloer', childCount: 0 }],
+        page: { totalPages: 1, totalElements: 1, number: 1, size: 20 },
+      },
+      isLoading: false,
+      isError: true,
+      error: { status: 503 },
+      refetch: vi.fn(),
+    })
+    type('beton')
+    expect(screen.queryByTestId('list-error')).toBeNull()
+    expect(screen.getByText('vloer', { exact: false })).toBeInTheDocument()
+  })
 })

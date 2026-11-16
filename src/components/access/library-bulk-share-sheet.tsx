@@ -1,5 +1,6 @@
 'use client'
 
+import { PickerListError } from '@/components/list-error'
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
@@ -374,7 +375,12 @@ function RecipientPeopleList({
   onPick: (user: FoundUser) => void
 }) {
   const t = useTranslations()
-  const { users, page: usersPage, isFetching: searching } = useUserSearch(query)
+  const {
+    users,
+    page: usersPage,
+    isFetching: searching,
+    error,
+  } = useUserSearch(query)
   const candidates = users.filter((u) => !isExcluded(u.id))
 
   // The server already filtered; letting cmdk filter again would hide rows it matched on a field
@@ -386,10 +392,13 @@ function RecipientPeopleList({
         value={query}
         onValueChange={onQueryChange}
       />
+      <PickerListError error={error ?? null} />
       <CommandList>
-        <CommandEmpty>
-          {searching ? t('common.loading') : t('access.noPeople')}
-        </CommandEmpty>
+        {error == null && (
+          <CommandEmpty>
+            {searching ? t('common.loading') : t('access.noPeople')}
+          </CommandEmpty>
+        )}
         <CommandGroup>
           {candidates.map((user) => (
             <CommandItem

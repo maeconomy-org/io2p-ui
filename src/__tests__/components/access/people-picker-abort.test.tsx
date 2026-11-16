@@ -24,10 +24,12 @@ vi.mock('@/lib/io2p', () => ({
       shareDependencies: () => Promise.resolve({ formulas: [], constants: [] }),
     },
     users: {
-      list: (_query: unknown, options?: { signal?: AbortSignal }) =>
-        new Promise(() => {
-          if (options?.signal) signals.push(options.signal)
-        }),
+      list: (query: { q?: string }, options?: { signal?: AbortSignal }) =>
+        query?.q === 'traag'
+          ? Promise.reject({ status: 422, detail: 'the list took too long' })
+          : new Promise(() => {
+              if (options?.signal) signals.push(options.signal)
+            }),
     },
   }),
 }))
@@ -119,4 +121,30 @@ describe('people pickers', () => {
     fireEvent.click(add)
     expect(input()).toHaveValue('')
   })
+
+  it.each(SHEETS)(
+    '%s says why its people search failed',
+    async (_, sheet, trigger) => {
+      render(
+        <QueryClientProvider
+          client={
+            new QueryClient({ defaultOptions: { queries: { retry: false } } })
+          }
+        >
+          {sheet}
+        </QueryClientProvider>
+      )
+      fireEvent.click(await trigger())
+      fireEvent.change(screen.getByPlaceholderText('access.searchPeople'), {
+        target: { value: 'traag' },
+      })
+
+      await waitFor(() =>
+        expect(screen.getByTestId('picker-list-error')).toHaveTextContent(
+          'the list took too long'
+        )
+      )
+      expect(screen.queryByText('access.noPeople')).toBeNull()
+    }
+  )
 })

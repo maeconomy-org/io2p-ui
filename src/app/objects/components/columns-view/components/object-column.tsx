@@ -1,5 +1,6 @@
 'use client'
 
+import { ListErrorAlert } from '@/components/list-error'
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
@@ -28,6 +29,7 @@ import {
   canDelete,
   permissionWhenKnown,
 } from '@/components/entity-list'
+import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { useAuth } from '@/contexts'
 import { copyText } from '@/lib/clipboard'
 import { nextSearch, searchInput } from '@/lib/search-text'
@@ -106,7 +108,15 @@ export function MillerColumn({
     return () => clearTimeout(id)
   }, [typed])
 
-  const { data, isLoading, isError } = useObjects().useList(
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    error,
+    refetch,
+    isPlaceholderData,
+  } = useObjects().useList(
     {
       // Verbatim, including the empty string the first column passes: `?parent=` means ROOTS ONLY
       // to the node, and `|| undefined` dropped the filter instead — so column one listed every
@@ -121,6 +131,7 @@ export function MillerColumn({
     },
     { keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
 
   const items = data?.data ?? []
   const totalPages = data?.page.totalPages ?? 1
@@ -155,10 +166,13 @@ export function MillerColumn({
                 {t('objects.loadingChildren')}
               </span>
             </div>
-          ) : isError ? (
-            <div className="p-8 text-center text-sm text-destructive">
-              {t('common.error')}
-            </div>
+          ) : isError && items.length === 0 ? (
+            <ListErrorAlert
+              error={error}
+              onRetry={() => void refetch()}
+              retrying={isFetching}
+              className="m-2 w-auto"
+            />
           ) : items.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
               {q ? t('objects.noItemsMatch') : t('objects.noItemsColumn')}
@@ -188,14 +202,18 @@ export function MillerColumn({
                     <span
                       className={cn(
                         'select-none truncate text-sm font-medium',
-                        isDeleted && 'text-red-600 line-through'
+                        isDeleted &&
+                          'text-red-700 line-through dark:text-red-400'
                       )}
                     >
-                      {truncateText(
-                        item.name || t('objects.unnamed'),
-                        25,
-                        true
-                      )}
+                      <SearchHighlight
+                        text={truncateText(
+                          item.name || t('objects.unnamed'),
+                          25,
+                          true
+                        )}
+                        q={shownSearch}
+                      />
                     </span>
                     <OwnerHint
                       ownerUserId={item.createdBy}

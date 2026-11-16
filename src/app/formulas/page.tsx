@@ -23,6 +23,7 @@ import {
   useEntityListQuery,
 } from '@/components/entity-list'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
+import { useShownSearch } from '@/components/search-highlight'
 import { useFormulas } from '@/hooks/api/leaves'
 import { useScopePreference } from '@/hooks/ui/use-scope-preference'
 import { useAuth, useListSearch } from '@/contexts'
@@ -101,7 +102,13 @@ export default function FormulasPage() {
   const setPage = listQuery.setPage
   const filters = useEntityListFilters(useCallback(() => setPage(1), [setPage]))
 
-  const { data: formulasPage, isFetching } = useList(
+  const {
+    data: formulasPage,
+    error: listError,
+    refetch: refetchList,
+    isFetching,
+    isPlaceholderData,
+  } = useList(
     {
       ...listQuery.query,
       size: filters.pageSize,
@@ -111,6 +118,7 @@ export default function FormulasPage() {
     },
     { keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(search?.params.q, isPlaceholderData)
 
   useTourAction(TOUR_ACTIONS.createFormula, () => setSheet({ mode: 'create' }))
   useTourAction(TOUR_ACTIONS.closeSheet, () => setSheet(null))
@@ -187,6 +195,9 @@ export default function FormulasPage() {
           <SearchFilterNote search={search} />
 
           <EntityTable
+            error={listError}
+            onRetry={() => void refetchList()}
+            highlight={shownSearch}
             columns={columns}
             page={formulasPage}
             getRowId={(formula) => formula.id}

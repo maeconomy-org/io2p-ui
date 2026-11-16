@@ -21,6 +21,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { SEARCH_SIZE } from '@/constants'
+import { PickerListError } from '@/components/list-error'
+import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { OwnerHint } from '@/components/entity-list'
 import { useTemplates } from '@/hooks/api/entities'
 import type { TemplatePresetProperty } from '@/lib/entity'
@@ -136,7 +138,7 @@ function TemplateSelectorList({
   const t = useTranslations()
   const hintId = useId()
 
-  const { data, isFetching } = useTemplates().useList(
+  const { data, isFetching, isPlaceholderData, error } = useTemplates().useList(
     {
       q,
       size: SEARCH_SIZE,
@@ -146,6 +148,7 @@ function TemplateSelectorList({
     },
     { keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
 
   // `list()` is typed `Page<TemplateListItem>` whatever the query says, so the flag above cannot show
   // up in the type. The API documents a `full: true` row as matching `TemplateDTO`, and that is the
@@ -162,8 +165,9 @@ function TemplateSelectorList({
         aria-describedby={hintId}
       />
       <SearchMinHint query={query} kind="words" id={hintId} />
+      <PickerListError error={error ?? null} />
       <CommandList>
-        {isFetching && templates.length === 0 ? (
+        {error != null ? null : isFetching && templates.length === 0 ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
@@ -184,7 +188,9 @@ function TemplateSelectorList({
                   selected?.id === template.id ? 'opacity-100' : 'opacity-0'
                 )}
               />
-              <span className="min-w-0 flex-1 truncate">{template.name}</span>
+              <span className="min-w-0 flex-1 truncate">
+                <SearchHighlight text={template.name} q={shownSearch} />
+              </span>
               <OwnerHint
                 system={template.system}
                 ownerUserId={template.ownerUserId}

@@ -19,6 +19,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui'
 import { SEARCH_SIZE } from '@/constants'
+import { PickerListError } from '@/components/list-error'
+import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { linkUnderRefusal, OwnerHint } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 import { useObjects } from '@/hooks/api/entities'
@@ -132,10 +134,11 @@ function ObjectPickerList({
   const { userId } = useAuth()
   const hintId = useId()
 
-  const { data, isFetching } = useObjects().useList(
+  const { data, isFetching, isPlaceholderData, error } = useObjects().useList(
     { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
     { keepPreviousData: true }
   )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
   const objects = data?.data ?? []
   const refusalOf = (object: (typeof objects)[number]) =>
     requireLinkable ? linkUnderRefusal(object, userId) : null
@@ -152,8 +155,9 @@ function ObjectPickerList({
         aria-describedby={hintId}
       />
       <SearchMinHint query={query} kind="words" id={hintId} />
+      <PickerListError error={error ?? null} />
       <CommandList>
-        {isFetching && objects.length === 0 ? (
+        {error != null ? null : isFetching && objects.length === 0 ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
@@ -171,7 +175,9 @@ function ObjectPickerList({
                 disabled={!!refusal}
                 onSelect={() => onPick(object.id, object.name)}
               >
-                <span className="min-w-0 flex-1 truncate">{object.name}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  <SearchHighlight text={object.name} q={shownSearch} />
+                </span>
                 <OwnerHint
                   ownerUserId={object.createdBy}
                   ownerName={object.createdByName}

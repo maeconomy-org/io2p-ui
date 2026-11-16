@@ -30,6 +30,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui'
+import { PickerListError } from '@/components/list-error'
 import { PermissionSelect, type Permission } from '@/components/access'
 import { permissionRank } from '@/components/entity-list'
 import { UnsavedBar } from '@/components/entity-sheet/sheet-lifecycle-footer'
@@ -623,7 +624,12 @@ function MemberPeopleList({
   onPick: (user: FoundUser) => void
 }) {
   const t = useTranslations()
-  const { users, page: usersPage, isFetching: searching } = useUserSearch(query)
+  const {
+    users,
+    page: usersPage,
+    isFetching: searching,
+    error,
+  } = useUserSearch(query)
   const candidates = users.filter((u) => !isExcluded(u.id))
 
   // The server already filtered; letting cmdk filter again would hide rows it matched on a field
@@ -636,10 +642,13 @@ function MemberPeopleList({
         value={query}
         onValueChange={onQueryChange}
       />
+      <PickerListError error={error ?? null} />
       <CommandList>
-        <CommandEmpty>
-          {searching ? t('common.loading') : t('access.noPeople')}
-        </CommandEmpty>
+        {error == null && (
+          <CommandEmpty>
+            {searching ? t('common.loading') : t('access.noPeople')}
+          </CommandEmpty>
+        )}
         <CommandGroup>
           {candidates.map((user) => (
             <CommandItem

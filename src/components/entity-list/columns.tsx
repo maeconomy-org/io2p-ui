@@ -26,6 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui'
+import { MarkedName } from '@/components/search-highlight'
 import { cn } from '@/lib/utils'
 
 import { getSelectColumn } from './data-table'
@@ -304,10 +305,11 @@ export function nameColumn<T>(
           <span
             className={cn(
               'max-w-[200px] truncate',
-              deleted && 'text-destructive line-through'
+              // red-700/400: `--destructive` text is below 4.5:1 on white.
+              deleted && 'text-red-700 line-through dark:text-red-400'
             )}
           >
-            {name}
+            <MarkedName text={name} />
           </span>
           {deleted && options.deletedLabel && (
             <span className="ml-2 text-xs text-destructive">

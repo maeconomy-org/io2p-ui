@@ -23,6 +23,7 @@ import {
 } from '@/components/entity-list'
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { ViewSelector } from '@/components/view-selector'
+import { useShownSearch } from '@/components/search-highlight'
 import { useProcesses } from '@/hooks/api/entities'
 import { useAuth, useListSearch } from '@/contexts'
 import { SearchFilterNote } from '@/components/global-search/search-filter-note'
@@ -107,7 +108,13 @@ export default function ProcessesPage() {
   const prefetchDetail = usePrefetchDetail()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
-  const { data: processesPage, isFetching } = useList(
+  const {
+    data: processesPage,
+    error: listError,
+    refetch: refetchList,
+    isFetching,
+    isPlaceholderData,
+  } = useList(
     {
       ...listQuery.query,
       size: filters.pageSize,
@@ -120,6 +127,7 @@ export default function ProcessesPage() {
     // The flow view sweeps its own pages; a paginated list would be a second, unused request.
     { keepPreviousData: true, enabled: isTable }
   )
+  const shownSearch = useShownSearch(search?.params.q, isPlaceholderData)
 
   const openProcess = useCallback((id: string, edit = false) => {
     setSelectedId(id)
@@ -223,6 +231,9 @@ export default function ProcessesPage() {
           {isTable && <SearchFilterNote search={search} />}
           {isTable ? (
             <EntityTable
+              error={listError}
+              onRetry={() => void refetchList()}
+              highlight={shownSearch}
               onRowHover={(row) => prefetchDetail(row.id)}
               columns={columns}
               page={processesPage}
