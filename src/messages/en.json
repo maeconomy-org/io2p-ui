@@ -1244,7 +1244,21 @@
     "invalidFilter": "Not applied: {filters}. A property name cannot contain \":\", and createdBy: and parent: need an id.",
     "restApplies": "The rest of your search still applies.",
     "noResultsTitle": "No results for your search",
-    "noResultsDescription": "Try other words or remove a filter."
+    "noResultsDescription": "Try other words or remove a filter.",
+    "deletedSetBySearchAll": "Not applied: your search shows deleted items too (deleted:all).",
+    "notAppliedBecause": "Not applied: {filter}. {reason}",
+    "problem": {
+      "number": "Write the number with digits, and a point or a comma for decimals: mass>=2.5t.",
+      "equals": "A number filter needs a range: use mass:2..2 or mass>=2.",
+      "reversed": "The range starts after it ends.",
+      "unitOnce": "Write the unit once, after the range: mass:2..5t.",
+      "spaces": "Write it without spaces: mass>=2t.",
+      "reservedKey": "This property name is also a filter name. Put it in quotes: \"name\">=2.",
+      "date": "Write a day as YYYY-MM-DD, from 1970: created:2026-11-01.",
+      "folder": "in: needs the id of a folder. Pick it in Add filter.",
+      "once": "Use one filter of this kind in a search.",
+      "inAndParent": "in: and parent: cannot be used together."
+    }
   },
   "constants": {
     "title": "Constants",

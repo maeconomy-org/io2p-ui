@@ -15,6 +15,8 @@ export function SearchFilterNote({ search }: { search: ListSearch | null }) {
   const { unsupported, invalid } = search
   if (unsupported.length === 0 && invalid.length === 0) return null
 
+  const plain = invalid.filter((f) => !f.problem)
+  const withProblem = invalid.filter((f) => f.problem)
   const tokens = (filters: ListSearch['unsupported']) =>
     filters.map((f) => f.raw).join(', ')
 
@@ -29,9 +31,17 @@ export function SearchFilterNote({ search }: { search: ListSearch | null }) {
         {unsupported.length > 0 && (
           <p>{t('search.notApplied', { filters: tokens(unsupported) })}</p>
         )}
-        {invalid.length > 0 && (
-          <p>{t('search.invalidFilter', { filters: tokens(invalid) })}</p>
+        {plain.length > 0 && (
+          <p>{t('search.invalidFilter', { filters: tokens(plain) })}</p>
         )}
+        {withProblem.map((filter, index) => (
+          <p key={index}>
+            {t('search.notAppliedBecause', {
+              filter: filter.raw,
+              reason: t(`search.problem.${filter.problem}`),
+            })}
+          </p>
+        ))}
         {searchApplies(search) && <p>{t('search.restApplies')}</p>}
       </div>
     </div>

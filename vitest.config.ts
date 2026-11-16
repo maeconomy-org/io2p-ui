@@ -2,6 +2,10 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+// Set before the workers start, so every Date in them reads it. Not UTC: a date filter that used
+// UTC by mistake would pass in a UTC zone. Amsterdam also has days of 23 and 25 hours.
+process.env.TZ ??= 'Europe/Amsterdam'
+
 export default defineConfig({
   plugins: [react()],
   test: {

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, string>) =>
-    values ? `${key} ${values.filters}` : key,
+    values ? `${key} ${Object.values(values).join(' ')}` : key,
 }))
 
 import { SearchFilterNote } from '@/components/global-search/search-filter-note'
@@ -33,6 +33,15 @@ describe('SearchFilterNote', () => {
       'search.invalidFilter prop:a:b=c, createdBy:'
     )
     expect(screen.queryByText(/search\.notApplied/)).toBeNull()
+  })
+
+  it('gives the reason for a filter it cannot apply', () => {
+    render(<SearchFilterNote search={on('mass:2 beton', 'objects')} />)
+
+    expect(screen.getByTestId('search-filter-note')).toHaveTextContent(
+      'search.notAppliedBecause mass:2 search.problem.equals'
+    )
+    expect(screen.queryByText(/search\.invalidFilter/)).toBeNull()
   })
 
   it('says the rest of the search still applies when something else did', () => {

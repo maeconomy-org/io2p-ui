@@ -33,6 +33,9 @@ describe('a filter set by the search', () => {
     expect(deletedSection(t, true, vi.fn(), 'exclude').disabledReason).toBe(
       'search.deletedSetBySearchExclude'
     )
+    expect(deletedSection(t, true, vi.fn(), 'include').disabledReason).toBe(
+      'search.deletedSetBySearchAll'
+    )
   })
 
   it('stays editable without a deleted: token', async () => {

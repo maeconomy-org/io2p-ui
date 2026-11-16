@@ -1244,7 +1244,21 @@
     "invalidFilter": "Niet toegepast: {filters}. Een eigenschapsnaam mag geen \":\" bevatten, en createdBy: en parent: hebben een id nodig.",
     "restApplies": "De rest van uw zoekopdracht wordt wel toegepast.",
     "noResultsTitle": "Geen resultaten voor uw zoekopdracht",
-    "noResultsDescription": "Probeer andere woorden of verwijder een filter."
+    "noResultsDescription": "Probeer andere woorden of verwijder een filter.",
+    "deletedSetBySearchAll": "Niet toegepast: uw zoekopdracht toont ook verwijderde items (deleted:all).",
+    "notAppliedBecause": "Niet toegepast: {filter}. {reason}",
+    "problem": {
+      "number": "Schrijf het getal met cijfers, en een punt of een komma voor decimalen: mass>=2.5t.",
+      "equals": "Een getalfilter heeft een bereik nodig: gebruik mass:2..2 of mass>=2.",
+      "reversed": "Het bereik begint na het einde.",
+      "unitOnce": "Schrijf de eenheid één keer, na het bereik: mass:2..5t.",
+      "spaces": "Schrijf het zonder spaties: mass>=2t.",
+      "reservedKey": "Deze eigenschapsnaam is ook een filternaam. Zet hem tussen aanhalingstekens: \"name\">=2.",
+      "date": "Schrijf een dag als JJJJ-MM-DD, vanaf 1970: created:2026-11-01.",
+      "folder": "in: heeft het id van een map nodig. Kies de map in Filter toevoegen.",
+      "once": "Gebruik één filter van deze soort per zoekopdracht.",
+      "inAndParent": "in: en parent: kunnen niet samen worden gebruikt."
+    }
   },
   "constants": {
     "title": "Constanten",

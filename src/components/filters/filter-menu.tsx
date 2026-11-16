@@ -231,7 +231,7 @@ export function deletedSection(
   showDeleted: boolean,
   onChange: (show: boolean) => void,
   /** The `deleted:` token of the active search, which overrides this toggle while it is set. */
-  searchDeleted?: 'only' | 'exclude'
+  searchDeleted?: 'only' | 'exclude' | 'include'
 ): FilterSection {
   return {
     key: 'status',
@@ -241,9 +241,11 @@ export function deletedSection(
     onChange: (values) => onChange(values.includes('deleted')),
     ...(searchDeleted && {
       disabledReason: t(
-        searchDeleted === 'only'
-          ? 'search.deletedSetBySearchOnly'
-          : 'search.deletedSetBySearchExclude'
+        {
+          only: 'search.deletedSetBySearchOnly',
+          exclude: 'search.deletedSetBySearchExclude',
+          include: 'search.deletedSetBySearchAll',
+        }[searchDeleted]
       ),
     }),
   }
