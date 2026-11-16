@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 
 import { DeleteConfirmationDialog } from '@/components/dialogs'
 import { useObjects } from '@/hooks/api/entities'
+import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
 import type { ObjectListItem } from 'io2p-client'
 
 /**
@@ -38,13 +39,19 @@ export function DeleteObjectDialog({
   // on the page behind it.
   const count = Math.max(descendants, object.childCount ?? 0)
 
+  // The node counts up to 1,000 and answers 1001 above that.
   const description =
     isPending || count === 0
       ? t('objects.deleteConfirmDescription', { name: object.name })
-      : t('objects.deleteConfirmDescriptionWithChildren', {
-          name: object.name,
-          count,
-        })
+      : isCappedTotal(count, true)
+        ? t('objects.deleteConfirmDescriptionMoreThan', {
+            name: object.name,
+            count: TOTAL_CAP,
+          })
+        : t('objects.deleteConfirmDescriptionWithChildren', {
+            name: object.name,
+            count,
+          })
 
   return (
     <DeleteConfirmationDialog

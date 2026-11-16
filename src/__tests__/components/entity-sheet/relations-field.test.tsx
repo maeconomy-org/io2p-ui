@@ -116,6 +116,17 @@ describe('RelationsField', () => {
     await screen.findByText('objects.relations.more:{"count":29}')
   })
 
+  it('shows a capped total as more than 1,000, with no exact count of the rest', async () => {
+    respond({ input: page([process('p1', 'inputs')], 1001) })
+    renderField(OBJECT_ID)
+
+    await screen.findByText('objects.relations.moreUnknown')
+    expect(screen.getByTestId('relations-consumed-by-count')).toHaveTextContent(
+      'common.totalMoreThan:{"count":1000}'
+    )
+    expect(screen.queryByText(/objects\.relations\.more:/)).toBeNull()
+  })
+
   it('renders a dash for a flow with no quantity', async () => {
     respond({ input: page([process('p1', 'inputs')]) })
     renderField(OBJECT_ID)

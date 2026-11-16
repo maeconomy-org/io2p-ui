@@ -80,3 +80,25 @@ describe('ObjectColumnsView rooting', () => {
     expect(columnProps.map((c) => c.parentId)).toEqual(['obj-2'])
   })
 })
+
+describe('ObjectColumnsView opening a row', () => {
+  beforeEach(() => {
+    columnProps.length = 0
+  })
+
+  it('opens the children of a row whose count the node did not read in time', () => {
+    render(<ObjectColumnsView {...actions} />)
+    act(() => {
+      columnProps[0].onSelect({ id: 'uncounted' })
+    })
+    expect(columnProps.map((c) => c.parentId)).toContain('uncounted')
+  })
+
+  it('opens no column for a row the node counted as a leaf', () => {
+    render(<ObjectColumnsView {...actions} />)
+    act(() => {
+      columnProps[0].onSelect({ id: 'leaf', childCount: 0 })
+    })
+    expect(columnProps.map((c) => c.parentId)).not.toContain('leaf')
+  })
+})

@@ -290,6 +290,8 @@ export function nameColumn<T>(
     getDeleted?: (row: T) => boolean
     deletedLabel?: string
     childrenTooltip?: (count: number) => string
+    /** The badge text for a child count (a capped count reads "1,000+"). */
+    formatChildCount?: (count: number) => string
   } = {}
 ): ColumnDef<T, unknown> {
   const { header = 'Name', getChildCount, getDeleted } = options
@@ -321,7 +323,7 @@ export function nameColumn<T>(
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    {count}
+                    {options.formatChildCount?.(count) ?? count}
                     <ChevronRight className="h-2.5 w-2.5" />
                   </span>
                 </TooltipTrigger>

@@ -3,11 +3,14 @@
 import { useTranslations } from 'next-intl'
 
 import { cn } from '@/lib/utils'
+import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
 
 /** One fetched page of a list, as every node list returns it. */
 export interface FetchedPage {
   data: readonly unknown[]
   page: { totalElements: number }
+  /** The node caps this list's total at 1001 (objects, processes, formulas, constants, templates). */
+  capped?: boolean
 }
 
 /**
@@ -31,6 +34,10 @@ export function CommandMore({
   const shown = loaded.reduce((sum, p) => sum + p.data.length, 0)
   const total = loaded.reduce((sum, p) => sum + p.page.totalElements, 0)
   if (total <= shown) return null
+  // A capped page makes the sum a lower limit, so no exact number is shown.
+  const anyCapped = loaded.some((p) =>
+    isCappedTotal(p.page.totalElements, p.capped ?? false)
+  )
 
   return (
     <p
@@ -40,7 +47,12 @@ export function CommandMore({
       )}
       data-testid="command-more"
     >
-      {t('common.pickerMore', { shown, total })}
+      {t('common.pickerMore', {
+        shown,
+        total: anyCapped
+          ? t('common.totalMoreThan', { count: TOTAL_CAP })
+          : total,
+      })}
     </p>
   )
 }

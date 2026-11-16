@@ -152,6 +152,48 @@ describe('object children page — the children query', () => {
   })
 })
 
+describe('object children page — the children count', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useGet.mockReturnValue({
+      data: { id: 'parent-1', name: 'Materials' },
+      isLoading: false,
+    })
+  })
+
+  const answered = (totalElements: number) => ({
+    data: {
+      data: [],
+      page: {
+        number: 1,
+        size: 20,
+        totalElements,
+        totalPages: Math.ceil(totalElements / 20),
+      },
+    },
+    isFetching: false,
+  })
+
+  const countLine = (text: string) =>
+    screen.queryByText(
+      (_, el) => el?.tagName === 'P' && el.textContent === `(${text})`
+    )
+
+  it('says "more than 1,000 children" when the node capped the count', () => {
+    useList.mockReturnValue(answered(1001))
+    render(<ObjectChildrenPage />)
+    expect(
+      countLine('objects.childrenPage.childrenCountMoreThan')
+    ).toBeInTheDocument()
+  })
+
+  it('names the exact count up to 1,000', () => {
+    useList.mockReturnValue(answered(1000))
+    render(<ObjectChildrenPage />)
+    expect(countLine('objects.childrenPage.childrenCount')).toBeInTheDocument()
+  })
+})
+
 describe('object children page — adding under the object', () => {
   beforeEach(() => {
     vi.clearAllMocks()

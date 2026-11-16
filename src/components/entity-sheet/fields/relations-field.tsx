@@ -12,6 +12,7 @@ import {
   Skeleton,
 } from '@/components/ui'
 import { OwnerHint } from '@/components/entity-list'
+import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
 
 import {
   useObjectRelations,
@@ -139,6 +140,8 @@ function RelationList({
   // Only the first page is fetched. Say so rather than presenting a truncated list as the whole
   // answer — a relation count that quietly stops at 25 reads as "that is all of them".
   const hidden = group.total - group.relations.length
+  // The process list counts up to 1,000 and answers 1001 above that: no exact number then.
+  const capped = isCappedTotal(group.total, true)
 
   return (
     <section className="space-y-2" data-testid={`relations-${testId}`}>
@@ -150,7 +153,9 @@ function RelationList({
           data-testid={`relations-${testId}-count`}
           className="h-5 px-1.5"
         >
-          {group.total}
+          {capped
+            ? t('common.totalMoreThan', { count: TOTAL_CAP })
+            : group.total}
         </Badge>
       </div>
       <p className="text-xs text-muted-foreground">{hint}</p>
@@ -167,7 +172,9 @@ function RelationList({
 
       {hidden > 0 && (
         <p className="text-xs text-muted-foreground">
-          {t('objects.relations.more', { count: hidden })}
+          {capped
+            ? t('objects.relations.moreUnknown')
+            : t('objects.relations.more', { count: hidden })}
         </p>
       )}
     </section>

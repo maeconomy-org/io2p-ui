@@ -13,3 +13,11 @@ export function isCappedTotal(
 ): boolean {
   return capped && total === CAPPED_TOTAL
 }
+
+/**
+ * A row's `childCount` is absent when the node did not count it in time: that is "unknown", not
+ * "none", so only an explicit 0 means a leaf.
+ */
+export function mayHaveChildren(childCount: number | undefined): boolean {
+  return childCount !== 0
+}

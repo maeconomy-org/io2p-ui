@@ -4,7 +4,9 @@ import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ObjectListItem } from 'io2p-client'
 
+import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
 import {
+  CountUnavailable,
   OwnerCell,
   actionsColumn,
   coverColumn,
@@ -58,6 +60,11 @@ export function buildObjectColumns({
   isRestoring = false,
 }: BuildObjectColumnsOptions): ColumnDef<ObjectListItem, unknown>[] {
   const cols: ColumnDef<ObjectListItem, unknown>[] = []
+  // The node counts children up to 1,000 and answers 1001 above that.
+  const childCountText = (count: number) =>
+    isCappedTotal(count, true)
+      ? t('common.totalMoreThan', { count: TOTAL_CAP })
+      : String(count)
 
   if (enableSelection) cols.push(selectColumn<ObjectListItem>())
 
@@ -77,16 +84,23 @@ export function buildObjectColumns({
       getChildCount: (o) => o.childCount,
       getDeleted: (o) => o.deleted,
       deletedLabel: t('objects.deletedBadge'),
-      childrenTooltip: (count) => t('objects.childrenTooltip', { count }),
+      childrenTooltip: (count) =>
+        isCappedTotal(count, true)
+          ? t('objects.childrenTooltipMany', { count: TOTAL_CAP })
+          : t('objects.childrenTooltip', { count }),
+      formatChildCount: childCountText,
     }),
     idColumn<ObjectListItem>((o) => o.id, t('objects.fields.uuid')),
-    // `childCount` is populated only because the list asks `withChildCounts`.
-    // It is `0` for a leaf and absent if that flag ever goes away, so `?? '—'`
-    // distinguishes "no children" from "not asked for".
+    // `childCount` is `0` for a leaf and absent when the node did not count it in time.
     textColumn<ObjectListItem>(
       'childCount',
       t('objects.fields.children'),
-      (o) => (o.childCount === undefined ? undefined : String(o.childCount))
+      (o) =>
+        o.childCount === undefined ? (
+          <CountUnavailable label={t('common.countUnavailable')} />
+        ) : (
+          childCountText(o.childCount)
+        )
     ),
     textColumn<ObjectListItem>(
       'createdBy',

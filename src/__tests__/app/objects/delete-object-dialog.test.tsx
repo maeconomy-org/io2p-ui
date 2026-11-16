@@ -71,6 +71,15 @@ describe('DeleteObjectDialog', () => {
     expect(description).toContain('"count":214')
   })
 
+  it('says "more than 1,000" when the node capped the descendant count', () => {
+    useSubtree.mockReturnValue(page(1001))
+    const { description } = renderDialog(object({ childCount: 12 }))
+
+    expect(description).toContain(
+      'objects.deleteConfirmDescriptionMoreThan:{"name":"Blok A","count":1000}'
+    )
+  })
+
   it('uses the plain copy for a leaf', () => {
     useSubtree.mockReturnValue(page(0))
     const { description } = renderDialog(object({ childCount: 0 }))
