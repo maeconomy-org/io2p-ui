@@ -89,7 +89,7 @@ export function ObjectRowPortals({ state }: { state: ObjectListPageState }) {
             {
               uuid: state.duplicateTarget.id,
               name: state.duplicateTarget.name ?? '',
-              childCount: state.duplicateTarget.childCount ?? 0,
+              childCount: state.duplicateTarget.childCount,
             },
           ]}
         />

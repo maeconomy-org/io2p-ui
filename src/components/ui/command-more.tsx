@@ -9,8 +9,6 @@ import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
 export interface FetchedPage {
   data: readonly unknown[]
   page: { totalElements: number }
-  /** The node caps this list's total at 1001 (objects, processes, formulas, constants, templates). */
-  capped?: boolean
 }
 
 /**
@@ -24,9 +22,12 @@ export interface FetchedPage {
  */
 export function CommandMore({
   pages,
+  capped = false,
   className,
 }: {
   pages: readonly (FetchedPage | undefined)[]
+  /** The pages come from lists the node caps at 1001 (objects, processes, formulas, constants, templates). */
+  capped?: boolean
   className?: string
 }) {
   const t = useTranslations()
@@ -36,7 +37,7 @@ export function CommandMore({
   if (total <= shown) return null
   // A capped page makes the sum a lower limit, so no exact number is shown.
   const anyCapped = loaded.some((p) =>
-    isCappedTotal(p.page.totalElements, p.capped ?? false)
+    isCappedTotal(p.page.totalElements, capped)
   )
 
   return (

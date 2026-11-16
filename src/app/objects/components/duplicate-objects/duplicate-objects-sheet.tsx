@@ -48,6 +48,7 @@ import { toast } from 'sonner'
 
 import { SearchMinHint } from '@/components/search-min-hint'
 import { pickerSearch } from '@/lib/search-text'
+import { isCappedTotal, mayHaveChildren, TOTAL_CAP } from '@/lib/list-total'
 
 import {
   DuplicateIntoOwnSubtreeError,
@@ -259,7 +260,7 @@ export function DuplicateObjectsSheet({
         {
           uuid: object.uuid,
           name: object.name,
-          childCount: object.childCount ?? 0,
+          childCount: object.childCount,
         },
       ])
     }
@@ -320,10 +321,19 @@ export function DuplicateObjectsSheet({
     }
   }
 
-  const anyHasChildren = selectedObjects.some((o) => (o.childCount ?? 0) > 0)
+  // An absent count is unknown, not 0: the choice to copy children must still be offered.
+  const anyHasChildren = selectedObjects.some((o) =>
+    mayHaveChildren(o.childCount)
+  )
   const totalChildCount = selectedObjects.reduce(
-    (sum, o) => sum + (o.childCount || 0),
+    (sum, o) => sum + (o.childCount ?? 0),
     0
+  )
+  const anyCountUnknown = selectedObjects.some(
+    (o) => o.childCount === undefined
+  )
+  const anyCountCapped = selectedObjects.some((o) =>
+    isCappedTotal(o.childCount, true)
   )
 
   const isParentLocked = !!defaultParentUuid
@@ -471,9 +481,14 @@ export function DuplicateObjectsSheet({
                                   variant="outline"
                                   className="ml-auto text-xs"
                                 >
-                                  {t('objects.duplicate.childCount', {
-                                    count: object.childCount ?? 0,
-                                  })}
+                                  {isCappedTotal(object.childCount, true)
+                                    ? t(
+                                        'objects.childrenPage.childrenCountMoreThan',
+                                        { count: TOTAL_CAP }
+                                      )
+                                    : t('objects.duplicate.childCount', {
+                                        count: object.childCount ?? 0,
+                                      })}
                                 </Badge>
                               )}
                             </CommandItem>
@@ -481,7 +496,7 @@ export function DuplicateObjectsSheet({
                         })}
                     </CommandGroup>
                   </CommandList>
-                  <CommandMore pages={[sourceSearchPage]} />
+                  <CommandMore pages={[sourceSearchPage]} capped />
                 </Command>
               </PopoverContent>
             </Popover>
@@ -589,18 +604,27 @@ export function DuplicateObjectsSheet({
             )}
 
             {/* Child count info */}
-            {anyHasChildren && includeChildren && totalChildCount > 0 && (
-              <div className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-950/30 p-2">
-                <Badge
-                  variant="secondary"
-                  className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                >
-                  {t('objects.duplicate.childCount', {
-                    count: totalChildCount,
-                  })}
-                </Badge>
-              </div>
-            )}
+            {/* No sum with an unknown count in it: it would read as the whole number. */}
+            {anyHasChildren &&
+              includeChildren &&
+              !anyCountUnknown &&
+              totalChildCount > 0 && (
+                <div className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-950/30 p-2">
+                  <Badge
+                    variant="secondary"
+                    className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                    data-testid="duplicate-child-total"
+                  >
+                    {anyCountCapped
+                      ? t('objects.childrenPage.childrenCountMoreThan', {
+                          count: TOTAL_CAP,
+                        })
+                      : t('objects.duplicate.childCount', {
+                          count: totalChildCount,
+                        })}
+                  </Badge>
+                </div>
+              )}
 
             {/* Copy properties */}
             <div className="flex items-center justify-between gap-4">

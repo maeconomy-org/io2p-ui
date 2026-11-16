@@ -203,7 +203,7 @@ function FormulaSelectList({
           ))}
         </CommandGroup>
       </CommandList>
-      <CommandMore pages={[data]} />
+      <CommandMore pages={[data]} capped />
     </Command>
   )
 }
@@ -796,6 +796,7 @@ function BindingPickerList({
           },
           scope === 'siblings' ? undefined : constantsPage,
         ]}
+        capped
       />
     </Command>
   )
