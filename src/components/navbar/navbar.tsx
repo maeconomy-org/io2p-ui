@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import { Building2, ChevronDown, Search, X } from 'lucide-react'
 
 import { CommandCenter, useCommandCenter } from '@/components/global-search'
+import { searchListTypeOf } from '@/components/global-search/search-parser'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -256,6 +257,7 @@ export default function Navbar() {
         onClear={clearSearch}
         initialQuery={isSearchMode ? searchQuery : ''}
         searchKind={pathname.startsWith('/shares') ? 'substring' : 'words'}
+        listType={searchListTypeOf(pathname)}
       />
     </>
   )

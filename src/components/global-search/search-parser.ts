@@ -420,6 +420,22 @@ function spacedNumber(
 export type SearchListType =
   'objects' | 'processes' | 'templates' | 'formulas' | 'constants' | 'shares'
 
+const OTHER_LISTS: readonly SearchListType[] = [
+  'processes',
+  'templates',
+  'formulas',
+  'constants',
+  'shares',
+]
+
+/**
+ * The list a search started on `pathname` lands on: the list page itself, else objects (the same
+ * rule as the search context; a `template:` token can still move it).
+ */
+export function searchListTypeOf(pathname: string): SearchListType {
+  return OTHER_LISTS.find((type) => pathname === `/${type}`) ?? 'objects'
+}
+
 export interface ListSearchParams {
   q?: string
   property?: string[]

@@ -1258,6 +1258,23 @@
       "folder": "in: needs the id of a folder. Pick it in Add filter.",
       "once": "Use one filter of this kind in a search.",
       "inAndParent": "in: and parent: cannot be used together."
+    },
+    "pill": {
+      "remove": "Remove filter {filter}",
+      "property": "Property: {value}",
+      "value": "Value: {value}",
+      "name": "Name: {value}",
+      "createdBy": "Created by: {value}",
+      "parent": "Parent: {value}",
+      "created": "Created: {value}",
+      "updated": "Updated: {value}",
+      "folder": "Inside {name}",
+      "folderMissing": "Folder not available",
+      "deleted": {
+        "true": "Only deleted",
+        "false": "Deleted hidden",
+        "all": "Deleted shown too"
+      }
     }
   },
   "constants": {
@@ -1788,5 +1805,45 @@
     "property": "Property",
     "nonNumericKey": "This property usually holds text, so the rollup will likely stay empty.",
     "systemKeyExists": "A built-in rule already totals this property. Yours replaces it on your own objects — delete yours and the built-in total comes back."
+  },
+  "filterPanel": {
+    "open": "Add filter",
+    "title": "Add filters to the search",
+    "number": "Number",
+    "numberKey": "Property",
+    "numberFrom": "From (at least)",
+    "numberTo": "To (at most)",
+    "numberUnit": "Unit",
+    "numberHint": "From and to include the value. With a unit, a value that has no unit is not found. Use a point or a comma for decimals, not for thousands.",
+    "property": "Property",
+    "propertyKey": "Name",
+    "propertyValue": "Value (optional)",
+    "created": "Created",
+    "updated": "Updated",
+    "yourTimeZone": "(your time zone)",
+    "dateFrom": "From",
+    "dateTo": "To",
+    "createdBy": "Created by",
+    "anyone": "Anyone",
+    "findPerson": "Find a person...",
+    "noPeople": "No people found.",
+    "deleted": "Deleted items",
+    "deletedDefault": "Hidden (default)",
+    "deletedAll": "Shown too",
+    "deletedOnly": "Only deleted",
+    "deletedNone": "Hidden",
+    "folder": "Inside folder",
+    "folderPlaceholder": "Any folder",
+    "folderHint": "Finds everything inside the folder, at any depth, but not the folder itself.",
+    "clear": "Clear",
+    "apply": "Apply",
+    "applyHint": "Apply writes the filters into the search box. Then press Enter to search.",
+    "error": {
+      "numberKey": "Name the property.",
+      "numberValue": "Write a number, for example 2.5.",
+      "numberReversed": "To must not be less than from.",
+      "quote": "A name or value cannot contain \".",
+      "dateReversed": "To must not be before from."
+    }
   }
 }

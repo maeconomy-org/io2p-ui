@@ -76,3 +76,17 @@ describe('ObjectPicker without requireLinkable', () => {
     expect(onSelect).toHaveBeenCalledWith('read-1', 'Read Box')
   })
 })
+
+describe('ObjectPicker label', () => {
+  it('takes its name from a visible label outside it', () => {
+    render(
+      <>
+        <span id="folder-label">Inside folder</span>
+        <ObjectPicker value="" onSelect={vi.fn()} labelledBy="folder-label" />
+      </>
+    )
+    expect(
+      screen.getByRole('combobox', { name: 'Inside folder' })
+    ).toBeInTheDocument()
+  })
+})
