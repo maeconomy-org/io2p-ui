@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui'
 import {
+  CountUnavailable,
   OwnerHint,
   canDelete,
   permissionWhenKnown,
@@ -32,6 +33,7 @@ import {
 import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { useAuth } from '@/contexts'
 import { copyText } from '@/lib/clipboard'
+import { isCappedTotal, mayHaveChildren, TOTAL_CAP } from '@/lib/list-total'
 import { nextSearch, searchInput } from '@/lib/search-text'
 import { cn, truncateText } from '@/lib/utils'
 import { useObjects } from '@/hooks/api/entities'
@@ -136,6 +138,9 @@ export function MillerColumn({
   const items = data?.data ?? []
   const totalPages = data?.page.totalPages ?? 1
   const totalItems = data?.page.totalElements ?? 0
+  const capped = isCappedTotal(totalItems, true)
+  // A capped total does not say where the column ends; a page with fewer rows than asked does.
+  const isLastPage = capped ? items.length < COLUMN_SIZE : page >= totalPages
 
   return (
     <div className="flex h-full min-w-[250px] max-w-[300px] flex-1 flex-col overflow-hidden border-r">
@@ -144,12 +149,14 @@ export function MillerColumn({
         searchTerm={typed}
         onSearchChange={setTyped}
         itemCount={totalItems}
+        capped={capped}
         pagination={
-          totalPages > 1
+          totalPages > 1 || page > 1
             ? {
                 currentPage: page,
                 totalPages,
                 totalItems,
+                isLastPage,
                 onPageChange: setPage,
               }
             : undefined
@@ -180,8 +187,6 @@ export function MillerColumn({
           ) : (
             items.map((item) => {
               const isSelected = item.id === selectedId
-              const childCount = item.childCount ?? 0
-              const hasChildren = childCount > 0
               const isDeleted = item.deleted
               // Delete and restore are guarded at `admin`. This column lists at `scope: 'all'`,
               // so shared rows sit beside the viewer's own.
@@ -219,10 +224,19 @@ export function MillerColumn({
                       ownerUserId={item.createdBy}
                       ownerName={item.createdByName}
                     />
-                    {hasChildren && (
-                      <span className="inline-flex shrink-0 items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700">
-                        {childCount}
-                      </span>
+                    {item.childCount === undefined ? (
+                      <CountUnavailable label={t('common.countUnavailable')} />
+                    ) : (
+                      item.childCount > 0 && (
+                        <span
+                          className="inline-flex shrink-0 items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700"
+                          data-testid="child-count-badge"
+                        >
+                          {isCappedTotal(item.childCount, true)
+                            ? t('common.totalMoreThan', { count: TOTAL_CAP })
+                            : item.childCount}
+                        </span>
+                      )
                     )}
                   </div>
 
@@ -305,8 +319,11 @@ export function MillerColumn({
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {hasChildren && (
-                      <ChevronRight className="ml-1 h-4 w-4 text-muted-foreground" />
+                    {mayHaveChildren(item.childCount) && (
+                      <ChevronRight
+                        className="ml-1 h-4 w-4 text-muted-foreground"
+                        data-testid="opens-column"
+                      />
                     )}
                   </div>
                 </div>

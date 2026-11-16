@@ -287,6 +287,8 @@
     "nextAria": "Ga naar volgende pagina",
     "more": "Meer pagina's",
     "of": "/ {count}",
+    "ofAtLeast": "/ {count}+",
+    "pageInput": "Pagina",
     "items": "{count} item{count, plural, one {} other {s}}",
     "showing": "Toont {start}-{end} van {total} resultaten",
     "pageOf": "Pagina {page} van {pages}",
@@ -575,7 +577,6 @@
     "noObjectsTitle": "Nog geen objecten",
     "noObjectsDescription": "Een object is alles wat je wilt volgen — een machine, een batch, een document. Geef het eigenschappen, bestanden en een plek in de hiërarchie.",
     "viewDetails": "Details bekijken",
-    "columnCount": "{count} kolom{count, plural, one {} other {men}}",
     "columnSearch": "Zoeken in deze kolom...",
     "noItemsMatch": "Geen items komen overeen met uw zoekopdracht",
     "noItemsColumn": "Geen items in deze kolom",
@@ -769,6 +770,7 @@
       "targetInsideSource": "De bestemming ligt binnen de objecten die u kopieert. Kies een bestemming daarbuiten, of schakel \"inclusief onderliggende objecten\" uit."
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
+    "itemsCountMoreThan": "meer dan {count, number} items",
     "saveError": {
       "conflict": "Dit is elders gewijzigd sinds u het opende. Kopieer uw wijzigingen, open het opnieuw en pas ze opnieuw toe.",
       "invalid": "Opslaan mislukt — {detail}",

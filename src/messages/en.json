@@ -287,6 +287,8 @@
     "nextAria": "Go to next page",
     "more": "More pages",
     "of": "/ {count}",
+    "ofAtLeast": "/ {count}+",
+    "pageInput": "Page",
     "items": "{count} item{count, plural, one {} other {s}}",
     "showing": "Showing {start}-{end} of {total} results",
     "pageOf": "Page {page} of {pages}",
@@ -605,7 +607,6 @@
     "noObjectsTitle": "No objects yet",
     "noObjectsDescription": "An object is anything you want to track — a machine, a batch, a document. Give it properties, files and a place in the hierarchy.",
     "viewDetails": "View Details",
-    "columnCount": "{count} column{count, plural, one {} other {s}}",
     "columnSearch": "Search in this column...",
     "noItemsMatch": "No items match your search",
     "noItemsColumn": "No items in this column",
@@ -769,6 +770,7 @@
       "targetInsideSource": "The destination is inside the objects you are copying. Pick a destination outside them, or turn off \"include children\"."
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
+    "itemsCountMoreThan": "more than {count, number} items",
     "saveError": {
       "conflict": "This changed elsewhere since you opened it. Copy your changes, reopen it, and apply them again.",
       "invalid": "Could not save — {detail}",
