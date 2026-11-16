@@ -61,6 +61,7 @@ export function ObjectPicker({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
   const [pickedName, setPickedName] = useState<string | undefined>()
 
   // Fall back to the raw id rather than showing an empty control: an unresolved ref is still a real
@@ -95,6 +96,7 @@ export function ObjectPicker({
       >
         <ObjectPickerList
           query={query}
+          q={q}
           onQueryChange={setQuery}
           requireLinkable={requireLinkable}
           onPick={(id, name) => {
@@ -114,18 +116,20 @@ export function ObjectPicker({
  */
 function ObjectPickerList({
   query,
+  q,
   onQueryChange,
   requireLinkable,
   onPick,
 }: {
   query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
   onQueryChange: (query: string) => void
   requireLinkable: boolean
   onPick: (id: string, name: string) => void
 }) {
   const t = useTranslations()
   const { userId } = useAuth()
-  const q = useDebouncedSearch(query, 'words')
   const hintId = useId()
 
   const { data, isFetching } = useObjects().useList(

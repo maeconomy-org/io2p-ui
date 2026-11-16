@@ -212,6 +212,7 @@ function ParentPicker({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
@@ -234,6 +235,7 @@ function ParentPicker({
       >
         <ParentPickerList
           query={query}
+          q={q}
           onQueryChange={setQuery}
           selectedIds={selectedIds}
           savedParentIds={savedParentIds}
@@ -248,6 +250,7 @@ function ParentPicker({
 /** The search and its results, inside the popover content: see `ObjectPickerList`. */
 function ParentPickerList({
   query,
+  q,
   onQueryChange,
   selectedIds,
   savedParentIds,
@@ -255,6 +258,8 @@ function ParentPickerList({
   onToggle,
 }: {
   query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
   onQueryChange: (query: string) => void
   selectedIds: string[]
   savedParentIds?: string[]
@@ -263,7 +268,6 @@ function ParentPickerList({
 }) {
   const t = useTranslations()
   const { userId } = useAuth()
-  const q = useDebouncedSearch(query, 'words')
   const hintId = useId()
 
   // `scope` defaults to 'mine', which would hide objects shared with the user.

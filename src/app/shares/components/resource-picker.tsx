@@ -71,6 +71,7 @@ export function ResourcePicker({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
   const [browsing, setBrowsing] = useState<ShareResourceFamily>('data')
 
   return (
@@ -96,6 +97,7 @@ export function ResourcePicker({
           browsing={browsing}
           onBrowse={setBrowsing}
           query={query}
+          q={q}
           onQueryChange={setQuery}
           onPick={(resource) => {
             setOpen(false)
@@ -118,6 +120,7 @@ function ResourcePickerContent({
   browsing,
   onBrowse,
   query,
+  q,
   onQueryChange,
   onPick,
 }: {
@@ -126,6 +129,8 @@ function ResourcePickerContent({
   browsing: ShareResourceFamily
   onBrowse: (family: ShareResourceFamily) => void
   query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
   onQueryChange: (query: string) => void
   onPick: (resource: ShareResource) => void
 }) {
@@ -134,7 +139,6 @@ function ResourcePickerContent({
   // list at all — not even for a moment before the add is rejected.
   const active = family ?? browsing
 
-  const q = useDebouncedSearch(query, 'words')
   const hintId = useId()
   const search = { q, size: PER_TYPE_SIZE, page: 1 }
   const results = { search, selectedIds, onPick }

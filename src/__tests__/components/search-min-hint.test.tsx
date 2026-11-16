@@ -59,6 +59,15 @@ describe('SearchMinHint', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 
+  it('shows too many words as an error, and too short as a quiet hint', () => {
+    const { unmount } = renderHint(NINE_WORDS, 'words')
+    expect(screen.getByRole('status')).toHaveClass('text-red-700')
+    unmount()
+    renderHint('a b c', 'words')
+    expect(screen.getByRole('status')).not.toHaveClass('text-red-700')
+    expect(screen.getByRole('status')).toHaveClass('text-muted-foreground')
+  })
+
   it('carries the id an input points to', () => {
     renderHint('a', 'words')
     expect(screen.getByRole('status')).toHaveAttribute('id', 'hint')

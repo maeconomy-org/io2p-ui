@@ -141,4 +141,17 @@ describe('ObjectPicker list requests', () => {
     expect(calls[0].signal?.aborted).toBe(true)
     expect(calls[1].signal?.aborted).toBe(false)
   })
+
+  it('keeps its last search through a close when the box holds too many words', () => {
+    renderPicker()
+    toggle()
+    type('beton')
+    type('beton a1 b2 c3 d4 e5 f6 g7 h8')
+    toggle()
+    toggle()
+
+    expect(calls.slice(1).map((call) => call.query.q)).toEqual(
+      calls.slice(1).map(() => 'beton')
+    )
+  })
 })

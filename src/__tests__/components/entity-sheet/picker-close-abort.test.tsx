@@ -51,12 +51,15 @@ vi.mock('@/hooks/api/leaves', async (importOriginal) => {
   }
 })
 
-type Call = { resource: string; signal?: AbortSignal }
+type Call = { resource: string; q?: string; signal?: AbortSignal }
 const calls: Call[] = []
 
 const pending =
-  (resource: string) => (_query: unknown, options?: { signal?: AbortSignal }) =>
-    new Promise(() => calls.push({ resource, signal: options?.signal }))
+  (resource: string) =>
+  (query: { q?: string } | undefined, options?: { signal?: AbortSignal }) =>
+    new Promise(() =>
+      calls.push({ resource, q: query?.q, signal: options?.signal })
+    )
 
 vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({
@@ -176,4 +179,40 @@ describe('a closed picker stops its list request', () => {
         .sort()
     ).toEqual(['constants', 'formulas', 'templates'])
   })
+
+  it.each(PICKERS)(
+    '%s keeps its last search through a close with too many words',
+    (_, picker, trigger, resources) => {
+      render(
+        <QueryClientProvider
+          client={
+            new QueryClient({ defaultOptions: { queries: { retry: false } } })
+          }
+        >
+          {picker}
+        </QueryClientProvider>
+      )
+      const input = () =>
+        document.querySelector<HTMLInputElement>('[cmdk-input]')!
+      fireEvent.click(trigger())
+      flush()
+      fireEvent.change(input(), { target: { value: 'beton' } })
+      flush()
+      fireEvent.change(input(), {
+        target: { value: 'beton a1 b2 c3 d4 e5 f6 g7 h8' },
+      })
+      flush()
+      const before = calls.length
+      fireEvent.click(trigger())
+      flush()
+      fireEvent.click(trigger())
+      flush()
+
+      const reopened = calls
+        .slice(before)
+        .filter((call) => resources.includes(call.resource))
+      expect(reopened.length).toBeGreaterThan(0)
+      expect(reopened.every((call) => call.q === 'beton')).toBe(true)
+    }
+  )
 })

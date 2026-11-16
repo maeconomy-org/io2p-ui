@@ -21,6 +21,10 @@ export function SearchMinHint({
 }) {
   const t = useTranslations('search')
   const input = searchInput(query, kind)
+  // Too many words is a refused search, so it reads as an error. Too short is a state typing passes
+  // through, so it stays quiet rather than turn red on the first key.
+  const refused =
+    input.status === 'refused' && input.problem === 'too-many-words'
   const text =
     input.status !== 'refused'
       ? null
@@ -39,7 +43,11 @@ export function SearchMinHint({
       role="status"
       data-testid="search-min-hint"
       className={cn(
-        'text-xs text-muted-foreground',
+        'text-xs',
+        // red-700/400, as the save error strip: `--destructive` text is below 4.5:1.
+        refused
+          ? 'font-medium text-red-700 dark:text-red-400'
+          : 'text-muted-foreground',
         text && 'border-b px-3 py-1.5'
       )}
     >

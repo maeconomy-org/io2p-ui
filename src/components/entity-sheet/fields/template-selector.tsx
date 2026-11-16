@@ -73,6 +73,7 @@ export function TemplateSelector({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
   const choose = (template: TemplateChoice) => {
     onSelect(selected?.id === template.id ? null : template)
     setOpen(false)
@@ -104,6 +105,7 @@ export function TemplateSelector({
       >
         <TemplateSelectorList
           query={query}
+          q={q}
           onQueryChange={setQuery}
           type={type}
           selected={selected}
@@ -117,19 +119,21 @@ export function TemplateSelector({
 /** The search and its results, inside the popover content: see `ObjectPickerList`. */
 function TemplateSelectorList({
   query,
+  q,
   onQueryChange,
   type,
   selected,
   onChoose,
 }: {
   query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
   onQueryChange: (query: string) => void
   type: 'object' | 'process'
   selected: TemplateChoice | null
   onChoose: (template: TemplateChoice) => void
 }) {
   const t = useTranslations()
-  const q = useDebouncedSearch(query, 'words')
   const hintId = useId()
 
   const { data, isFetching } = useTemplates().useList(

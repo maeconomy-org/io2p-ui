@@ -88,6 +88,7 @@ export function FormulaSelect({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
   // The label cannot come from the search list: `q` narrows it, so the selected formula leaves the
   // page as soon as the user searches for anything else.
   const { data: selected } = useFormulas().useGet(formulaId)
@@ -122,6 +123,7 @@ export function FormulaSelect({
       >
         <FormulaSelectList
           query={query}
+          q={q}
           onQueryChange={setQuery}
           onPick={(id) => {
             onSelect(id)
@@ -136,15 +138,17 @@ export function FormulaSelect({
 /** The search and its results, inside the popover content: see `ObjectPickerList`. */
 function FormulaSelectList({
   query,
+  q,
   onQueryChange,
   onPick,
 }: {
   query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
   onQueryChange: (query: string) => void
   onPick: (formulaId: string) => void
 }) {
   const t = useTranslations()
-  const q = useDebouncedSearch(query, 'words')
   const hintId = useId()
 
   const { data, isFetching } = useFormulas().useList(
@@ -559,6 +563,7 @@ function BindingPicker({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
   const [scope, setScope] = useState<BindingScope>('all')
 
   const [kind, ...rest] = value.split(':')
@@ -604,6 +609,7 @@ function BindingPicker({
       >
         <BindingPickerList
           query={query}
+          q={q}
           onQueryChange={setQuery}
           scope={scope}
           onScopeChange={setScope}
@@ -618,6 +624,7 @@ function BindingPicker({
 /** The search and its results, inside the popover content: see `ObjectPickerList`. */
 function BindingPickerList({
   query,
+  q,
   onQueryChange,
   scope,
   onScopeChange,
@@ -625,6 +632,8 @@ function BindingPickerList({
   onChoose,
 }: {
   query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
   onQueryChange: (query: string) => void
   scope: BindingScope
   onScopeChange: (scope: BindingScope) => void
@@ -634,7 +643,6 @@ function BindingPickerList({
   const t = useTranslations()
   const needle = query.trim()
   // The siblings below filter on `needle` at once; only the request waits for typing to stop.
-  const q = useDebouncedSearch(needle, 'words')
   // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
   // constants would be a request for something nothing renders.
   const { data: constantsPage, isFetching } = useConstants().useList(
