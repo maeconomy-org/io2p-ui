@@ -107,14 +107,28 @@ describe('columns view search', () => {
       data: undefined,
       isLoading: false,
       isError: true,
-      error: { status: 422, detail: 'the list took too long' },
+      error: { status: 503 },
       refetch,
     })
     type('beton')
-    expect(screen.getByTestId('list-error')).toHaveTextContent(
-      'the list took too long'
-    )
+    expect(screen.getByTestId('list-error')).toHaveTextContent('listFailed')
     fireEvent.click(screen.getByRole('button', { name: 'listRetry' }))
     expect(refetch).toHaveBeenCalled()
+  })
+
+  it('keeps its rows when a refetch of them fails', () => {
+    useList.mockReturnValue({
+      data: {
+        data: [{ id: 'o-1', name: 'Beton vloer', childCount: 0 }],
+        page: { totalPages: 1, totalElements: 1, number: 1, size: 20 },
+      },
+      isLoading: false,
+      isError: true,
+      error: { status: 503 },
+      refetch: vi.fn(),
+    })
+    type('beton')
+    expect(screen.queryByTestId('list-error')).toBeNull()
+    expect(screen.getByText('vloer', { exact: false })).toBeInTheDocument()
   })
 })

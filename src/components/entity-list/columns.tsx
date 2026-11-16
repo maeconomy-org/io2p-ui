@@ -305,7 +305,7 @@ export function nameColumn<T>(
           <span
             className={cn(
               'max-w-[200px] truncate',
-              // red-700/400: on a search mark, `--destructive` text falls below 4.5:1.
+              // red-700/400: `--destructive` text is below 4.5:1 on white.
               deleted && 'text-red-700 line-through dark:text-red-400'
             )}
           >

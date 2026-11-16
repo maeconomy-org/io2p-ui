@@ -258,4 +258,28 @@ describe('ParentSelector search answers', () => {
     )
     expect(screen.queryByText('objects.parentSelector.noResults')).toBeNull()
   })
+
+  it('drops the old error as soon as a new search starts', async () => {
+    calls.length = 0
+    render(
+      <ParentSelector
+        allowInlineCreate={false}
+        maxSelections={1}
+        onParentsChange={vi.fn()}
+      />
+    )
+    fireEvent.click(screen.getByRole('combobox'))
+    await waitFor(() => expect(calls).toHaveLength(1))
+    await act(async () => calls[0].resolve([]))
+
+    const input = screen.getByRole('combobox', { expanded: true })
+    fireEvent.change(input, { target: { value: 'beton' } })
+    await waitFor(() => expect(calls).toHaveLength(2), { timeout: 2000 })
+    await act(async () => calls[1].reject({ status: 503 } as unknown as Error))
+    expect(screen.getByTestId('picker-list-error')).not.toBeEmptyDOMElement()
+
+    fireEvent.change(input, { target: { value: 'vloer' } })
+    await waitFor(() => expect(calls).toHaveLength(3), { timeout: 2000 })
+    expect(screen.getByTestId('picker-list-error')).toBeEmptyDOMElement()
+  })
 })

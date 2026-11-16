@@ -55,10 +55,26 @@ describe('ListErrorAlert', () => {
     const onRetry = vi.fn()
     inLocale('en', <ListErrorAlert error={{ status: 503 }} onRetry={onRetry} />)
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'The list could not load. Try again.'
+      'The list could not load.'
     )
+    expect(screen.getByRole('alert')).not.toHaveTextContent('load. Try again')
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(onRetry).toHaveBeenCalledTimes(1)
+  })
+
+  it('offers no retry for a list the node refused', () => {
+    inLocale('en', <ListErrorAlert error={refused} onRetry={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+  })
+
+  it('shows a retry that is running as busy', () => {
+    inLocale(
+      'en',
+      <ListErrorAlert error={{ status: 503 }} onRetry={vi.fn()} retrying />
+    )
+    const button = screen.getByRole('button', { name: 'Try again' })
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('aria-busy', 'true')
   })
 })
 
@@ -71,6 +87,13 @@ describe('PickerListError', () => {
   it('says why the list could not load', () => {
     inLocale('en', <PickerListError error={refused} />)
     expect(screen.getByRole('status')).toHaveTextContent(SLOW)
+  })
+
+  it('asks for a retry in words, as it has no button', () => {
+    inLocale('en', <PickerListError error={{ status: 503 }} />)
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'The list could not load. Try again.'
+    )
   })
 })
 
@@ -90,6 +113,21 @@ describe('EntityTable with a failed list', () => {
     )
     expect(screen.getByTestId('list-error')).toHaveTextContent(SLOW)
     expect(screen.queryByText('No objects yet')).toBeNull()
+  })
+
+  it('shows a retry as busy while the table fetches again', () => {
+    inLocale(
+      'en',
+      <EntityTable
+        columns={columns}
+        page={undefined}
+        getRowId={(row) => row.id}
+        error={{ status: 503 }}
+        onRetry={vi.fn()}
+        fetching
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled()
   })
 
   it('shows the empty state when the list answered with no rows', () => {

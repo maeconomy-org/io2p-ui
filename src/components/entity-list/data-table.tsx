@@ -381,7 +381,11 @@ export function DataTable<TData>({
             {error != null && table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={colCount}>
-                  <ListErrorAlert error={error} onRetry={onRetry} />
+                  <ListErrorAlert
+                    error={error}
+                    onRetry={onRetry}
+                    retrying={fetching}
+                  />
                 </TableCell>
               </TableRow>
             ) : fetching && table.getRowModel().rows.length === 0 ? (

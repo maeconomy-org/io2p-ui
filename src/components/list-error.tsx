@@ -1,17 +1,28 @@
 'use client'
 
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { Alert, Button } from '@/components/ui'
 import { listErrorMessage } from '@/lib/list-error'
 import { cn } from '@/lib/utils'
 
-/** The reason a list could not load, in English from the node when it gave one. */
-function ListErrorText({ error }: { error: unknown }) {
+/**
+ * The reason a list could not load, in English from the node when it gave one. `tryAgain` asks
+ * for a retry in words, where no button offers one.
+ */
+function ListErrorText({
+  error,
+  tryAgain = false,
+}: {
+  error: unknown
+  tryAgain?: boolean
+}) {
   const t = useTranslations('common')
   const message = listErrorMessage(error)
-  if (message.key === 'common.listFailed') return <>{t('listFailed')}</>
+  if (message.key === 'common.listFailed') {
+    return <>{t(tryAgain ? 'listFailedTryAgain' : 'listFailed')}</>
+  }
   // `lang`: a screen reader reads the node's English with English sounds inside a Dutch page.
   return (
     <>
@@ -22,18 +33,24 @@ function ListErrorText({ error }: { error: unknown }) {
 
 /**
  * Where a table's rows would be: why they did not load, with a retry. It mounts once per failure,
- * so `role="alert"` announces it once.
+ * so `role="alert"` announces it once. A refused list (400/422) gets no retry: the node answers
+ * the same until the search changes. `retrying` is true while a retry runs, which can take as
+ * long as the client timeout; the alert stays up until the answer.
  */
 export function ListErrorAlert({
   error,
   onRetry,
+  retrying = false,
   className,
 }: {
   error: unknown
   onRetry?: () => void
+  retrying?: boolean
   className?: string
 }) {
   const t = useTranslations('common')
+  const canRetry =
+    onRetry !== undefined && listErrorMessage(error).key === 'common.listFailed'
   return (
     <Alert
       variant="destructive"
@@ -50,8 +67,21 @@ export function ListErrorAlert({
         <span className="min-w-0 flex-1 break-words">
           <ListErrorText error={error} />
         </span>
-        {onRetry && (
-          <Button type="button" size="sm" variant="outline" onClick={onRetry}>
+        {canRetry && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={onRetry}
+            disabled={retrying}
+            aria-busy={retrying}
+          >
+            {retrying && (
+              <Loader2
+                className="mr-1 h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+                aria-hidden
+              />
+            )}
             {t('listRetry')}
           </Button>
         )}
@@ -75,7 +105,7 @@ export function PickerListError({ error }: { error: unknown }) {
         error != null && 'border-b px-3 py-2'
       )}
     >
-      {error != null && <ListErrorText error={error} />}
+      {error != null && <ListErrorText error={error} tryAgain />}
     </p>
   )
 }

@@ -171,6 +171,7 @@ export function DuplicateObjectsSheet({
       sourceSearchAbortRef.current = controller
 
       setIsSourceSearching(true)
+      setSourceSearchError(null)
       try {
         // `q` substring-matches name and description, which is what the old `searchTerm` did.
         // `deleted` defaults to exclude, so the retired `softDeleted: false` filter is implicit.

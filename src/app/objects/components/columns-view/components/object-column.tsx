@@ -108,22 +108,29 @@ export function MillerColumn({
     return () => clearTimeout(id)
   }, [typed])
 
-  const { data, isLoading, isError, error, refetch, isPlaceholderData } =
-    useObjects().useList(
-      {
-        // Verbatim, including the empty string the first column passes: `?parent=` means ROOTS ONLY
-        // to the node, and `|| undefined` dropped the filter instead — so column one listed every
-        // object at any depth, and expanding a row showed children that were already in it.
-        parent: parentId,
-        scope,
-        page,
-        size: COLUMN_SIZE,
-        q,
-        deleted: showDeleted ? 'include' : undefined,
-        withChildCounts: true,
-      },
-      { keepPreviousData: true }
-    )
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    error,
+    refetch,
+    isPlaceholderData,
+  } = useObjects().useList(
+    {
+      // Verbatim, including the empty string the first column passes: `?parent=` means ROOTS ONLY
+      // to the node, and `|| undefined` dropped the filter instead — so column one listed every
+      // object at any depth, and expanding a row showed children that were already in it.
+      parent: parentId,
+      scope,
+      page,
+      size: COLUMN_SIZE,
+      q,
+      deleted: showDeleted ? 'include' : undefined,
+      withChildCounts: true,
+    },
+    { keepPreviousData: true }
+  )
   const shownSearch = useShownSearch(q, isPlaceholderData)
 
   const items = data?.data ?? []
@@ -159,10 +166,11 @@ export function MillerColumn({
                 {t('objects.loadingChildren')}
               </span>
             </div>
-          ) : isError ? (
+          ) : isError && items.length === 0 ? (
             <ListErrorAlert
               error={error}
               onRetry={() => void refetch()}
+              retrying={isFetching}
               className="m-2 w-auto"
             />
           ) : items.length === 0 ? (
@@ -194,7 +202,8 @@ export function MillerColumn({
                     <span
                       className={cn(
                         'select-none truncate text-sm font-medium',
-                        isDeleted && 'text-red-600 line-through'
+                        isDeleted &&
+                          'text-red-700 line-through dark:text-red-400'
                       )}
                     >
                       <SearchHighlight

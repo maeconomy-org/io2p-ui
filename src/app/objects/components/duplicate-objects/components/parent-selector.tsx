@@ -135,6 +135,7 @@ export function ParentSelector({
       searchAbortRef.current = controller
 
       setIsSearching(true)
+      setSearchError(null)
       try {
         // `q` substring-matches name and description; `deleted` excludes by default, so the
         // retired `softDeleted: false` filter is implicit.

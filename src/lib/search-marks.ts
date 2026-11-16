@@ -2,6 +2,10 @@ import { MIN_SEARCH_CHARS } from '@/constants'
 
 import { foldText, searchWords } from './search-text'
 
+const graphemeSegmenter = new Intl.Segmenter(undefined, {
+  granularity: 'grapheme',
+})
+
 /** A part of a name to mark: UTF-16 offsets, end exclusive. */
 export type MarkRange = readonly [start: number, end: number]
 
@@ -22,8 +26,7 @@ export function searchMarks(text: string, q: string | undefined): MarkRange[] {
   // For each folded UTF-16 unit, the grapheme it came from.
   const owner: number[] = []
   const graphemes: MarkRange[] = []
-  const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
-  for (const { segment, index } of segmenter.segment(text)) {
+  for (const { segment, index } of graphemeSegmenter.segment(text)) {
     const part = foldText(segment)
     for (let i = 0; i < part.length; i++) owner.push(graphemes.length)
     graphemes.push([index, index + segment.length])
