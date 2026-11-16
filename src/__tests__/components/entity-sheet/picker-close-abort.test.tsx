@@ -215,4 +215,25 @@ describe('a closed picker stops its list request', () => {
       expect(reopened.every((call) => call.q === 'beton')).toBe(true)
     }
   )
+
+  it('binding picker says why its constants search does not run', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <FormulaBindings
+          calc={{ formulaId: 'f-1', args: [] }}
+          siblings={[]}
+          onChange={vi.fn()}
+        />
+      </QueryClientProvider>
+    )
+    fireEvent.click(screen.getByTestId('formula-bind-co2_factor'))
+    const input = document.querySelector<HTMLInputElement>('[cmdk-input]')!
+    fireEvent.change(input, { target: { value: 'a' } })
+
+    const hint = document.getElementById(
+      input.getAttribute('aria-describedby')!
+    )!
+    expect(hint).toHaveTextContent('minWordChars')
+    expect(hint).toHaveAttribute('role', 'status')
+  })
 })

@@ -104,7 +104,7 @@ export function DuplicateObjectsSheet({
   const [hasSourceLoaded, setHasSourceLoaded] = useState(false)
   const [sourceSearchPage, setSourceSearchPage] = useState<FetchedPage>()
   // The `q` of the last source search sent; `undefined` = the unfiltered list.
-  const lastSourceQRef = useRef<string | undefined>(undefined)
+  const lastSourceQRef = useRef<string | undefined | null>(undefined)
   const sourceHintId = useId()
   // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
   const sourceSearchAbortRef = useRef<AbortController | null>(null)
@@ -188,8 +188,8 @@ export function DuplicateObjectsSheet({
       } catch (error) {
         if (controller.signal.aborted) return
         logger.error('Source search failed:', { err: error })
-        // So the same search runs again on the next key press or reopen.
-        lastSourceQRef.current = undefined
+        // Matches no search, so the next key press or reopen runs one, even back to the full list.
+        lastSourceQRef.current = null
         setSourceSearchResults([])
         setSourceSearchPage(undefined)
       } finally {

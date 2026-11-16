@@ -189,6 +189,11 @@ describe('pickerSearch', () => {
     expect(pickerSearch('', 'beton', true)).toEqual({ q: undefined })
   })
 
+  it('searches after a failed search, even for the same q', () => {
+    expect(pickerSearch('', null, true)).toEqual({ q: undefined })
+    expect(pickerSearch('beton', null, true)).toEqual({ q: 'beton' })
+  })
+
   it('keeps the last q for too many words, with no new search', () => {
     expect(pickerSearch('a1 b2 c3 d4 e5 f6 g7 h8 i9', 'beton', true)).toBeNull()
   })

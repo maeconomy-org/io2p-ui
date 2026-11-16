@@ -41,7 +41,7 @@ export function searchWords(text: string): string[] {
 }
 
 /** `text` cut to the node limit at a code point, so an emoji is never split in half. */
-function capSearch(text: string): string {
+export function capSearch(text: string): string {
   if (text.length <= MAX_SEARCH_CHARS) return text
   let capped = ''
   for (const char of text) {
@@ -102,12 +102,13 @@ export function nextSearch(
 /**
  * For a picker that sends its own requests: the `q` to search after `raw`, or `null` when the last
  * search (`last`) already answered it. Before the first answer (`loaded` false) it always searches.
+ * `last` is `null` when the last search failed, so the next one runs whatever it is.
  */
 export function pickerSearch(
   raw: string,
-  last: string | undefined,
+  last: string | undefined | null,
   loaded: boolean
 ): { q: string | undefined } | null {
-  const q = nextSearch(searchInput(raw, 'words'), last)
+  const q = nextSearch(searchInput(raw, 'words'), last ?? undefined)
   return loaded && q === last ? null : { q }
 }

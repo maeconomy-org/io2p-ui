@@ -23,7 +23,7 @@
  * - 'name:"Clay Tile"' → { q: 'Clay Tile' }
  */
 
-import { type SearchKind, searchInput } from '@/lib/search-text'
+import { capSearch, type SearchKind, searchInput } from '@/lib/search-text'
 
 export interface SearchFilter {
   type:
@@ -438,7 +438,7 @@ export function toListParams(
   // from the URL), and it blocks this. Sending the words lets the node refuse them; dropping them
   // would list rows that look like matches.
   else if (input.status === 'refused' && input.problem === 'too-many-words') {
-    params.q = text
+    params.q = capSearch(text)
   }
   if (property.length > 0) params.property = property
   return { params, unsupported, invalid }

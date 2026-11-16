@@ -65,6 +65,16 @@ interface ParentSelectorProps {
   onCreateInline?: () => void
 }
 
+// "Start typing" fits an empty box or one too short to search; nine words keep the last search,
+// whose empty answer is "no results".
+function needsTyping(query: string): boolean {
+  const input = searchInput(query, 'words')
+  return (
+    input.status === 'empty' ||
+    (input.status === 'refused' && input.problem === 'too-short')
+  )
+}
+
 export function ParentSelector({
   currentObjectUuid,
   excludeUuids,
@@ -98,7 +108,7 @@ export function ParentSelector({
     initialParentUuids.map((uuid) => ({ uuid, name: undefined }))
   const setSelectedParents = setEditedParents
   // The `q` of the last search sent; `undefined` = the unfiltered list.
-  const lastQRef = useRef<string | undefined>(undefined)
+  const lastQRef = useRef<string | undefined | null>(undefined)
   // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
   const searchAbortRef = useRef<AbortController | null>(null)
 
@@ -143,8 +153,8 @@ export function ParentSelector({
       } catch (error) {
         if (controller.signal.aborted) return
         logger.error('Search failed:', { err: error })
-        // So the same search runs again on the next key press or reopen.
-        lastQRef.current = undefined
+        // Matches no search, so the next key press or reopen runs one, even back to the full list.
+        lastQRef.current = null
         setSearchResults([])
       } finally {
         if (!controller.signal.aborted) setIsSearching(false)
@@ -348,8 +358,7 @@ export function ParentSelector({
               <CommandEmpty>
                 {isSearching
                   ? t('objects.parentSelector.searching')
-                  : searchInput(searchQuery, 'words').status !== 'ok' &&
-                      searchResults.length === 0
+                  : needsTyping(searchQuery) && searchResults.length === 0
                     ? t('objects.parentSelector.startTyping')
                     : t('objects.parentSelector.noResults')}
               </CommandEmpty>

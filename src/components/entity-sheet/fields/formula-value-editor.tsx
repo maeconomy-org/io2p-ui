@@ -641,6 +641,7 @@ function BindingPickerList({
   onChoose: (choice: string) => void
 }) {
   const t = useTranslations()
+  const hintId = useId()
   const needle = query.trim()
   // The siblings below filter on `needle` at once; only the request waits for typing to stop.
   // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
@@ -664,6 +665,13 @@ function BindingPickerList({
         placeholder={t('objects.formulaEditor.searchValues')}
         value={query}
         onValueChange={onQueryChange}
+        aria-describedby={hintId}
+      />
+      {/* About the constants search only: the values on the entity filter on every letter. */}
+      <SearchMinHint
+        query={scope === 'siblings' ? '' : query}
+        kind="words"
+        id={hintId}
       />
 
       {/* A radiogroup, not three buttons: the options are mutually exclusive and a screen
