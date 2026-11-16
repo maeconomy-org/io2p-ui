@@ -1206,6 +1206,8 @@
   },
   "search": {
     "minChars": "Typ {count} of meer tekens om te zoeken",
+    "minWordChars": "Typ een woord van {count} of meer tekens om te zoeken",
+    "maxWords": "Gebruik maximaal {count} verschillende woorden om te zoeken",
     "filters": {
       "deleted": {
         "label": "Verwijderd",

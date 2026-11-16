@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useState, useEffect, useId, useMemo, useRef, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { X, Loader2, ChevronsUpDown, Users, Check, Plus } from 'lucide-react'
 
@@ -28,7 +28,8 @@ import {
 import { useAuth } from '@/contexts'
 import { cn, truncateText } from '@/lib/utils'
 import { useIomClient } from '@/lib/io2p'
-import { searchText } from '@/lib/search-text'
+import { SearchMinHint } from '@/components/search-min-hint'
+import { pickerSearch, searchInput } from '@/lib/search-text'
 import type { ParentObject } from '@/types'
 
 const EMPTY_PARENT_UUIDS: string[] = []
@@ -64,6 +65,16 @@ interface ParentSelectorProps {
   onCreateInline?: () => void
 }
 
+// "Start typing" fits an empty box or one too short to search; nine words keep the last search,
+// whose empty answer is "no results".
+function needsTyping(query: string): boolean {
+  const input = searchInput(query, 'words')
+  return (
+    input.status === 'empty' ||
+    (input.status === 'refused' && input.problem === 'too-short')
+  )
+}
+
 export function ParentSelector({
   currentObjectUuid,
   excludeUuids,
@@ -96,7 +107,8 @@ export function ParentSelector({
     editedParents ??
     initialParentUuids.map((uuid) => ({ uuid, name: undefined }))
   const setSelectedParents = setEditedParents
-  const lastSearchQueryRef = useRef('')
+  // The `q` of the last search sent; `undefined` = the unfiltered list.
+  const lastQRef = useRef<string | undefined | null>(undefined)
   // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
   const searchAbortRef = useRef<AbortController | null>(null)
 
@@ -105,10 +117,11 @@ export function ParentSelector({
   // what the compiler lint rejects.
   const client = useIomClient()
   const { userId } = useAuth()
+  const hintId = useId()
 
   // Unified search function
   const performSearch = useCallback(
-    async (query: string = '') => {
+    async (q?: string) => {
       if (!isOpen) return
 
       searchAbortRef.current?.abort()
@@ -121,8 +134,8 @@ export function ParentSelector({
         // retired `softDeleted: false` filter is implicit.
         const results = await client.objects.list(
           {
-            q: searchText(query),
-            size: query ? 20 : 10,
+            q,
+            size: q ? 20 : 10,
             page: 1,
             scope: 'all',
           },
@@ -140,30 +153,43 @@ export function ParentSelector({
       } catch (error) {
         if (controller.signal.aborted) return
         logger.error('Search failed:', { err: error })
+        // Matches no search, so the next key press or reopen runs one, even back to the full list.
+        lastQRef.current = null
         setSearchResults([])
       } finally {
         if (!controller.signal.aborted) setIsSearching(false)
+        if (searchAbortRef.current === controller) searchAbortRef.current = null
       }
     },
     [isOpen, currentObjectUuid, excludedSet, client]
   )
 
+  // Closing aborts a search still open, so its answer cannot land in a closed picker; the next open
+  // asks again.
+  useEffect(() => {
+    if (!isOpen) return
+    return () => {
+      if (!searchAbortRef.current) return
+      searchAbortRef.current.abort()
+      searchAbortRef.current = null
+      setIsSearching(false)
+      setHasInitiallyLoaded(false)
+      setSearchResults([])
+    }
+  }, [isOpen])
+
   // Handle search logic (debounced)
   useEffect(() => {
     if (!isOpen) return
     const timeoutId = setTimeout(() => {
-      const isClearingSearch =
-        lastSearchQueryRef.current.length >= 2 && searchQuery.length < 2
-
-      if (!searchQuery || searchQuery.length < 2) {
-        if (!hasInitiallyLoaded || isClearingSearch) {
-          performSearch()
-        }
-      } else {
-        performSearch(searchQuery)
-      }
-
-      lastSearchQueryRef.current = searchQuery
+      const next = pickerSearch(
+        searchQuery,
+        lastQRef.current,
+        hasInitiallyLoaded
+      )
+      if (!next) return
+      lastQRef.current = next.q
+      void performSearch(next.q)
     }, 300)
 
     return () => clearTimeout(timeoutId)
@@ -298,6 +324,7 @@ export function ParentSelector({
                 placeholder={t('objects.parentSelector.searchPlaceholder')}
                 value={searchQuery}
                 onValueChange={setSearchQuery}
+                aria-describedby={hintId}
                 className="ml-2"
               />
               {isSearching && (
@@ -306,6 +333,7 @@ export function ParentSelector({
                 </div>
               )}
             </div>
+            <SearchMinHint query={searchQuery} kind="words" id={hintId} />
             <CommandList className="max-h-[300px] overflow-y-auto">
               {allowInlineCreate && !disabled && (
                 <>
@@ -330,7 +358,7 @@ export function ParentSelector({
               <CommandEmpty>
                 {isSearching
                   ? t('objects.parentSelector.searching')
-                  : searchQuery.length < 2 && searchResults.length === 0
+                  : needsTyping(searchQuery) && searchResults.length === 0
                     ? t('objects.parentSelector.startTyping')
                     : t('objects.parentSelector.noResults')}
               </CommandEmpty>

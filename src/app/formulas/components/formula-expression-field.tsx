@@ -37,7 +37,7 @@ export function FormulaExpressionField({
   // Caret at the last blur/selection, so a chip inserts where the user was rather than at the end.
   const caret = useRef<{ start: number; end: number } | null>(null)
   const [chipQuery, setChipQuery] = useState('')
-  const q = useDebouncedSearch(chipQuery)
+  const q = useDebouncedSearch(chipQuery, 'words')
 
   // Searched at the node. These names are only ever INSERTED into the expression, so the list needs
   // to reach the constant you are looking for, not hold every constant that exists.

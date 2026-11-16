@@ -23,7 +23,7 @@
  * - 'name:"Clay Tile"' → { q: 'Clay Tile' }
  */
 
-import { searchText } from '@/lib/search-text'
+import { capSearch, type SearchKind, searchInput } from '@/lib/search-text'
 
 export interface SearchFilter {
   type:
@@ -358,6 +358,24 @@ export function templateSearch(parsed: ParsedSearch): boolean | undefined {
   return filter ? filter.value === 'true' : undefined
 }
 
+/** How the node matches `q` on a list of `type`: shares match one substring, the rest the index. */
+export function searchKindOf(type: SearchListType): SearchKind {
+  return type === 'shares' ? 'substring' : 'words'
+}
+
+/** The free text of `parsed`, the part that becomes `q`. */
+export function searchTextOf(parsed: ParsedSearch): string {
+  return parsed.filters
+    .flatMap((filter) =>
+      filter.type === 'text'
+        ? [filter.value.replace(/^"|"$/g, '')]
+        : filter.type === 'name'
+          ? [filter.value]
+          : []
+    )
+    .join(' ')
+}
+
 /** The list query for `parsed` on a list of `type`. */
 export function toListParams(
   parsed: ParsedSearch,
@@ -367,16 +385,12 @@ export function toListParams(
   const unsupported: SearchFilter[] = []
   const invalid: SearchFilter[] = []
   const property: string[] = []
-  const text: string[] = []
 
   for (const filter of parsed.filters) {
     switch (filter.type) {
       case 'text':
-        text.push(filter.value.replace(/^"|"$/g, ''))
-        break
       case 'name':
-        // The node has no name-only filter; `q` matches name or description.
-        text.push(filter.value)
+        // `searchTextOf` below. The node has no name-only filter; `q` matches name or description.
         break
       case 'property':
       case 'propertyLabel':
@@ -417,8 +431,15 @@ export function toListParams(
     }
   }
 
-  const q = searchText(text.join(' '))
-  if (q) params.q = q
+  const text = searchTextOf(parsed)
+  const input = searchInput(text, searchKindOf(type))
+  if (input.status === 'ok') params.q = input.q
+  // Unreachable today: the command center is the only way a search is applied (no list reads `q`
+  // from the URL), and it blocks this. Sending the words lets the node refuse them; dropping them
+  // would list rows that look like matches.
+  else if (input.status === 'refused' && input.problem === 'too-many-words') {
+    params.q = capSearch(text)
+  }
   if (property.length > 0) params.property = property
   return { params, unsupported, invalid }
 }

@@ -30,7 +30,7 @@ import {
 } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 import { copyText } from '@/lib/clipboard'
-import { searchText } from '@/lib/search-text'
+import { nextSearch, searchInput } from '@/lib/search-text'
 import { cn, truncateText } from '@/lib/utils'
 import { useObjects } from '@/hooks/api/entities'
 
@@ -87,20 +87,24 @@ export function MillerColumn({
 }: MillerColumnProps) {
   const t = useTranslations()
   const { userId, authLoading } = useAuth()
-  const [page, setPage] = useState(1)
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
+  const [typed, setTyped] = useState('')
+  // One state, so a new `q` and page 1 land in the same render. As an effect on `q` it was state
+  // syncing state — a render where page 3 was already paired with the new term, and the compiler
+  // lint rejects setState in an effect body. A timer callback is fine.
+  const [{ q, page }, setList] = useState<{ q?: string; page: number }>({
+    page: 1,
+  })
+  const setPage = (next: number) => setList((list) => ({ ...list, page: next }))
 
-  // The page resets INSIDE the debounce, with the search it belongs to. As its own effect on
-  // `search` it was state syncing state — a render where page 3 was already paired with the new
-  // term, and the compiler lint rejects setState in an effect body. A timer callback is fine.
   useEffect(() => {
     const id = setTimeout(() => {
-      setSearch(searchInput)
-      setPage(1)
+      setList((list) => {
+        const next = nextSearch(searchInput(typed, 'words'), list.q)
+        return next === list.q ? list : { q: next, page: 1 }
+      })
     }, 300)
     return () => clearTimeout(id)
-  }, [searchInput])
+  }, [typed])
 
   const { data, isLoading, isError } = useObjects().useList(
     {
@@ -111,7 +115,7 @@ export function MillerColumn({
       scope,
       page,
       size: COLUMN_SIZE,
-      q: searchText(search),
+      q,
       deleted: showDeleted ? 'include' : undefined,
       withChildCounts: true,
     },
@@ -126,8 +130,8 @@ export function MillerColumn({
     <div className="flex h-full min-w-[250px] max-w-[300px] flex-1 flex-col overflow-hidden border-r">
       <ColumnHeader
         title={title}
-        searchTerm={searchInput}
-        onSearchChange={setSearchInput}
+        searchTerm={typed}
+        onSearchChange={setTyped}
         itemCount={totalItems}
         pagination={
           totalPages > 1
@@ -157,7 +161,7 @@ export function MillerColumn({
             </div>
           ) : items.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              {search ? t('objects.noItemsMatch') : t('objects.noItemsColumn')}
+              {q ? t('objects.noItemsMatch') : t('objects.noItemsColumn')}
             </div>
           ) : (
             items.map((item) => {

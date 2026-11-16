@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
 import { AlertTriangle, ChevronsUpDown, Loader2, Sigma } from 'lucide-react'
@@ -88,15 +88,8 @@ export function FormulaSelect({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const q = useDebouncedSearch(query)
-
-  const { data, isFetching } = useFormulas().useList(
-    { page: 1, size: SEARCH_SIZE, q },
-    { enabled: open, keepPreviousData: true }
-  )
-  const formulas = data?.data ?? []
-
-  // The label cannot come from the list above: `q` narrows it, so the selected formula leaves the
+  const q = useDebouncedSearch(query, 'words')
+  // The label cannot come from the search list: `q` narrows it, so the selected formula leaves the
   // page as soon as the user searches for anything else.
   const { data: selected } = useFormulas().useGet(formulaId)
 
@@ -128,53 +121,84 @@ export function FormulaSelect({
         className="w-[--radix-popover-trigger-width] p-0"
         align="start"
       >
-        {/* The node filters server-side, so let Command show whatever came back. */}
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder={t('objects.formulaEditor.searchFormulas')}
-            value={query}
-            onValueChange={setQuery}
-          />
-          <SearchMinHint query={query} />
-          <CommandList>
-            {isFetching && formulas.length === 0 ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <CommandEmpty>
-                {t('objects.formulaEditor.noFormulas')}
-              </CommandEmpty>
-            )}
-            <CommandGroup>
-              {formulas.map((f) => (
-                <CommandItem
-                  key={f.id}
-                  value={f.id}
-                  data-testid={`formula-option-${f.name}`}
-                  onSelect={() => {
-                    onSelect(f.id)
-                    setOpen(false)
-                  }}
-                >
-                  <span className="min-w-0 flex-1 truncate">{f.name}</span>
-                  <OwnerHint
-                    system={f.system}
-                    ownerUserId={f.ownerUserId}
-                    ownerName={f.ownerName}
-                  />
-                  <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
-                    {f.expression}
-                    {f.unit ? ` → ${f.unit}` : ''}
-                  </span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-          <CommandMore pages={[data]} />
-        </Command>
+        <FormulaSelectList
+          query={query}
+          q={q}
+          onQueryChange={setQuery}
+          onPick={(id) => {
+            onSelect(id)
+            setOpen(false)
+          }}
+        />
       </PopoverContent>
     </Popover>
+  )
+}
+
+/** The search and its results, inside the popover content: see `ObjectPickerList`. */
+function FormulaSelectList({
+  query,
+  q,
+  onQueryChange,
+  onPick,
+}: {
+  query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
+  onQueryChange: (query: string) => void
+  onPick: (formulaId: string) => void
+}) {
+  const t = useTranslations()
+  const hintId = useId()
+
+  const { data, isFetching } = useFormulas().useList(
+    { page: 1, size: SEARCH_SIZE, q },
+    { keepPreviousData: true }
+  )
+  const formulas = data?.data ?? []
+
+  // The node filters server-side, so let Command show whatever came back.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('objects.formulaEditor.searchFormulas')}
+        value={query}
+        onValueChange={onQueryChange}
+        aria-describedby={hintId}
+      />
+      <SearchMinHint query={query} kind="words" id={hintId} />
+      <CommandList>
+        {isFetching && formulas.length === 0 ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <CommandEmpty>{t('objects.formulaEditor.noFormulas')}</CommandEmpty>
+        )}
+        <CommandGroup>
+          {formulas.map((f) => (
+            <CommandItem
+              key={f.id}
+              value={f.id}
+              data-testid={`formula-option-${f.name}`}
+              onSelect={() => onPick(f.id)}
+            >
+              <span className="min-w-0 flex-1 truncate">{f.name}</span>
+              <OwnerHint
+                system={f.system}
+                ownerUserId={f.ownerUserId}
+                ownerName={f.ownerName}
+              />
+              <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
+                {f.expression}
+                {f.unit ? ` → ${f.unit}` : ''}
+              </span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+      <CommandMore pages={[data]} />
+    </Command>
   )
 }
 
@@ -539,24 +563,8 @@ function BindingPicker({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
   const [scope, setScope] = useState<BindingScope>('all')
-
-  const needle = query.trim()
-  // The siblings below filter on `needle` at once; only the request waits for typing to stop.
-  const q = useDebouncedSearch(needle)
-  // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
-  // constants would be a request for something nothing renders.
-  const { data: constantsPage, isFetching } = useConstants().useList(
-    { page: 1, size: SEARCH_SIZE, q },
-    { enabled: open && scope !== 'siblings', keepPreviousData: true }
-  )
-  const constants = scope === 'siblings' ? [] : (constantsPage?.data ?? [])
-  const shownSiblings =
-    scope === 'constants'
-      ? []
-      : siblings.filter((s) =>
-          s.label.toLowerCase().includes(needle.toLowerCase())
-        )
 
   const [kind, ...rest] = value.split(':')
   const boundId = rest.join(':')
@@ -599,122 +607,180 @@ function BindingPicker({
         className="w-[--radix-popover-trigger-width] p-0"
         align="start"
       >
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder={t('objects.formulaEditor.searchValues')}
-            value={query}
-            onValueChange={setQuery}
-          />
-
-          {/* A radiogroup, not three buttons: the options are mutually exclusive and a screen
-              reader should hear which one is on. */}
-          <div
-            role="radiogroup"
-            aria-label={t('objects.formulaEditor.filterBindings')}
-            className="flex gap-1 border-b px-2 py-1.5"
-          >
-            {BINDING_SCOPES.map((option) => (
-              <button
-                key={option}
-                type="button"
-                role="radio"
-                aria-checked={scope === option}
-                data-testid={`binding-scope-${option}`}
-                onClick={() => setScope(option)}
-                className={cn(
-                  'rounded px-2 py-0.5 text-xs transition-colors',
-                  scope === option
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {t(`objects.formulaEditor.scope.${option}`)}
-              </button>
-            ))}
-          </div>
-
-          <CommandList>
-            {/* Only when there is nothing at all to show. Gating the spinner on the CONSTANTS
-                alone hid the sibling group on every first open — they are already in memory, and
-                a failed constants fetch left "nothing to bind" on screen beside them. */}
-            {isFetching && !shownSiblings.length && !constants.length ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <CommandEmpty>
-                {/* Naming the filter, not the data: "no numeric values" beside a Constants-only
-                    list describes something the user is not looking at. */}
-                {scope === 'constants'
-                  ? t('objects.formulaEditor.noConstants')
-                  : t('objects.formulaEditor.noNumericValues')}
-              </CommandEmpty>
-            )}
-
-            {shownSiblings.length > 0 && (
-              <CommandGroup heading={t('objects.formulaEditor.siblingValues')}>
-                {shownSiblings.map((s) => (
-                  <CommandItem
-                    key={s.key}
-                    value={`sibling:${s.key}`}
-                    data-testid={`formula-sibling-${s.propertyKey}`}
-                    onSelect={choose}
-                  >
-                    <span className="min-w-0 flex-1 truncate">{s.label}</span>
-                    {s.num !== undefined && (
-                      <span className="ml-1 shrink-0 text-muted-foreground">
-                        ({s.unit ? `${s.num} ${s.unit}` : s.num})
-                      </span>
-                    )}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-
-            {/* Constants are shared, versioned numbers — a CO2 factor rather than something on
-                this entity. The server pins the version at bind time, so the value shown is what
-                this binding will freeze. */}
-            {constants.length > 0 && (
-              <CommandGroup heading={t('objects.formulaEditor.constants')}>
-                {constants.map((c) => {
-                  const current = c.versions.at(-1)
-                  return (
-                    <CommandItem
-                      key={c.id}
-                      value={`constant:${c.id}`}
-                      data-testid={`formula-constant-${c.name}`}
-                      onSelect={choose}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                      <OwnerHint
-                        system={c.system}
-                        ownerUserId={c.ownerUserId}
-                        ownerName={c.ownerName}
-                      />
-                      {current?.data && (
-                        <span className="ml-1 shrink-0 text-muted-foreground">
-                          ({current.data})
-                        </span>
-                      )}
-                    </CommandItem>
-                  )
-                })}
-              </CommandGroup>
-            )}
-          </CommandList>
-          <CommandMore
-            pages={[
-              // Every value on the entity is already here, so it counts as one full page.
-              {
-                data: shownSiblings,
-                page: { totalElements: shownSiblings.length },
-              },
-              scope === 'siblings' ? undefined : constantsPage,
-            ]}
-          />
-        </Command>
+        <BindingPickerList
+          query={query}
+          q={q}
+          onQueryChange={setQuery}
+          scope={scope}
+          onScopeChange={setScope}
+          siblings={siblings}
+          onChoose={choose}
+        />
       </PopoverContent>
     </Popover>
+  )
+}
+
+/** The search and its results, inside the popover content: see `ObjectPickerList`. */
+function BindingPickerList({
+  query,
+  q,
+  onQueryChange,
+  scope,
+  onScopeChange,
+  siblings,
+  onChoose,
+}: {
+  query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
+  onQueryChange: (query: string) => void
+  scope: BindingScope
+  onScopeChange: (scope: BindingScope) => void
+  siblings: FormulaSibling[]
+  onChoose: (choice: string) => void
+}) {
+  const t = useTranslations()
+  const hintId = useId()
+  const needle = query.trim()
+  // The siblings below filter on `needle` at once; only the request waits for typing to stop.
+  // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
+  // constants would be a request for something nothing renders.
+  const { data: constantsPage, isFetching } = useConstants().useList(
+    { page: 1, size: SEARCH_SIZE, q },
+    { enabled: scope !== 'siblings', keepPreviousData: true }
+  )
+  const constants = scope === 'siblings' ? [] : (constantsPage?.data ?? [])
+  const shownSiblings =
+    scope === 'constants'
+      ? []
+      : siblings.filter((s) =>
+          s.label.toLowerCase().includes(needle.toLowerCase())
+        )
+
+  // The node filters server-side, so let Command show whatever came back.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('objects.formulaEditor.searchValues')}
+        value={query}
+        onValueChange={onQueryChange}
+        aria-describedby={hintId}
+      />
+      {/* About the constants search only: the values on the entity filter on every letter. */}
+      <SearchMinHint
+        query={scope === 'siblings' ? '' : query}
+        kind="words"
+        id={hintId}
+      />
+
+      {/* A radiogroup, not three buttons: the options are mutually exclusive and a screen
+          reader should hear which one is on. */}
+      <div
+        role="radiogroup"
+        aria-label={t('objects.formulaEditor.filterBindings')}
+        className="flex gap-1 border-b px-2 py-1.5"
+      >
+        {BINDING_SCOPES.map((option) => (
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={scope === option}
+            data-testid={`binding-scope-${option}`}
+            onClick={() => onScopeChange(option)}
+            className={cn(
+              'rounded px-2 py-0.5 text-xs transition-colors',
+              scope === option
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted'
+            )}
+          >
+            {t(`objects.formulaEditor.scope.${option}`)}
+          </button>
+        ))}
+      </div>
+
+      <CommandList>
+        {/* Only when there is nothing at all to show. Gating the spinner on the CONSTANTS
+            alone hid the sibling group on every first open — they are already in memory, and
+            a failed constants fetch left "nothing to bind" on screen beside them. */}
+        {isFetching && !shownSiblings.length && !constants.length ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <CommandEmpty>
+            {/* Naming the filter, not the data: "no numeric values" beside a Constants-only
+                list describes something the user is not looking at. */}
+            {scope === 'constants'
+              ? t('objects.formulaEditor.noConstants')
+              : t('objects.formulaEditor.noNumericValues')}
+          </CommandEmpty>
+        )}
+
+        {shownSiblings.length > 0 && (
+          <CommandGroup heading={t('objects.formulaEditor.siblingValues')}>
+            {shownSiblings.map((s) => (
+              <CommandItem
+                key={s.key}
+                value={`sibling:${s.key}`}
+                data-testid={`formula-sibling-${s.propertyKey}`}
+                onSelect={onChoose}
+              >
+                <span className="min-w-0 flex-1 truncate">{s.label}</span>
+                {s.num !== undefined && (
+                  <span className="ml-1 shrink-0 text-muted-foreground">
+                    ({s.unit ? `${s.num} ${s.unit}` : s.num})
+                  </span>
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {/* Constants are shared, versioned numbers — a CO2 factor rather than something on
+            this entity. The server pins the version at bind time, so the value shown is what
+            this binding will freeze. */}
+        {constants.length > 0 && (
+          <CommandGroup heading={t('objects.formulaEditor.constants')}>
+            {constants.map((c) => {
+              const current = c.versions.at(-1)
+              return (
+                <CommandItem
+                  key={c.id}
+                  value={`constant:${c.id}`}
+                  data-testid={`formula-constant-${c.name}`}
+                  onSelect={onChoose}
+                >
+                  <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                  <OwnerHint
+                    system={c.system}
+                    ownerUserId={c.ownerUserId}
+                    ownerName={c.ownerName}
+                  />
+                  {current?.data && (
+                    <span className="ml-1 shrink-0 text-muted-foreground">
+                      ({current.data})
+                    </span>
+                  )}
+                </CommandItem>
+              )
+            })}
+          </CommandGroup>
+        )}
+      </CommandList>
+      <CommandMore
+        pages={[
+          // Every value on the entity is already here, so it counts as one full page.
+          {
+            data: shownSiblings,
+            page: { totalElements: shownSiblings.length },
+          },
+          scope === 'siblings' ? undefined : constantsPage,
+        ]}
+      />
+    </Command>
   )
 }
 

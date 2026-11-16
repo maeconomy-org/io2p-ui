@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useId, useRef, useCallback } from 'react'
 import {
   Copy,
   Loader2,
@@ -44,7 +44,8 @@ import { logger } from '@/lib/observability/logger'
 import { useIomClient } from '@/lib/io2p'
 import { toast } from 'sonner'
 
-import { searchText } from '@/lib/search-text'
+import { SearchMinHint } from '@/components/search-min-hint'
+import { pickerSearch } from '@/lib/search-text'
 
 import {
   DuplicateIntoOwnSubtreeError,
@@ -102,7 +103,9 @@ export function DuplicateObjectsSheet({
   const [isSourceSearching, setIsSourceSearching] = useState(false)
   const [hasSourceLoaded, setHasSourceLoaded] = useState(false)
   const [sourceSearchPage, setSourceSearchPage] = useState<FetchedPage>()
-  const lastSourceQueryRef = useRef('')
+  // The `q` of the last source search sent; `undefined` = the unfiltered list.
+  const lastSourceQRef = useRef<string | undefined | null>(undefined)
+  const sourceHintId = useId()
   // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
   const sourceSearchAbortRef = useRef<AbortController | null>(null)
 
@@ -138,6 +141,7 @@ export function DuplicateObjectsSheet({
     setSourceSearchResults([])
     setSourceSearchPage(undefined)
     setHasSourceLoaded(false)
+    lastSourceQRef.current = undefined
   }, [preselectedObjects, defaultParentUuid])
 
   const prevOpenRef = useRef(false)
@@ -150,7 +154,7 @@ export function DuplicateObjectsSheet({
 
   // Source object search
   const performSourceSearch = useCallback(
-    async (query: string = '') => {
+    async (q?: string) => {
       if (!isSourceOpen) return
 
       sourceSearchAbortRef.current?.abort()
@@ -163,7 +167,7 @@ export function DuplicateObjectsSheet({
         // `deleted` defaults to exclude, so the retired `softDeleted: false` filter is implicit.
         const results = await clientRef.current.objects.list(
           {
-            q: searchText(query),
+            q,
             size: SEARCH_SIZE,
             page: 1,
             scope: 'all',
@@ -184,32 +188,46 @@ export function DuplicateObjectsSheet({
       } catch (error) {
         if (controller.signal.aborted) return
         logger.error('Source search failed:', { err: error })
+        // Matches no search, so the next key press or reopen runs one, even back to the full list.
+        lastSourceQRef.current = null
         setSourceSearchResults([])
         setSourceSearchPage(undefined)
       } finally {
         if (!controller.signal.aborted) setIsSourceSearching(false)
+        if (sourceSearchAbortRef.current === controller)
+          sourceSearchAbortRef.current = null
       }
     },
     [isSourceOpen]
   )
+
+  // Closing aborts a search still open, so its answer cannot land in a closed picker; the next open
+  // asks again.
+  useEffect(() => {
+    if (!isSourceOpen) return
+    return () => {
+      if (!sourceSearchAbortRef.current) return
+      sourceSearchAbortRef.current.abort()
+      sourceSearchAbortRef.current = null
+      setIsSourceSearching(false)
+      setHasSourceLoaded(false)
+      setSourceSearchResults([])
+    }
+  }, [isSourceOpen])
 
   // Debounced source search
   useEffect(() => {
     if (!isSourceOpen) return
 
     const timeoutId = setTimeout(() => {
-      const isClearingSearch =
-        lastSourceQueryRef.current.length >= 2 && sourceSearchQuery.length < 2
-
-      if (!sourceSearchQuery || sourceSearchQuery.length < 2) {
-        if (!hasSourceLoaded || isClearingSearch) {
-          performSourceSearch()
-        }
-      } else {
-        performSourceSearch(sourceSearchQuery)
-      }
-
-      lastSourceQueryRef.current = sourceSearchQuery
+      const next = pickerSearch(
+        sourceSearchQuery,
+        lastSourceQRef.current,
+        hasSourceLoaded
+      )
+      if (!next) return
+      lastSourceQRef.current = next.q
+      void performSourceSearch(next.q)
     }, 300)
 
     return () => clearTimeout(timeoutId)
@@ -378,6 +396,7 @@ export function DuplicateObjectsSheet({
                       placeholder={t('objects.duplicate.sourceObjectsHint')}
                       value={sourceSearchQuery}
                       onValueChange={setSourceSearchQuery}
+                      aria-describedby={sourceHintId}
                       className="ml-2"
                     />
                     {isSourceSearching && (
@@ -386,6 +405,11 @@ export function DuplicateObjectsSheet({
                       </div>
                     )}
                   </div>
+                  <SearchMinHint
+                    query={sourceSearchQuery}
+                    kind="words"
+                    id={sourceHintId}
+                  />
                   <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
                     <CommandEmpty>
                       {isSourceSearching

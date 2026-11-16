@@ -19,9 +19,13 @@ import {
 import { useTranslations } from 'next-intl'
 import { useHotkeys } from 'react-hotkeys-hook'
 
+import { SearchMinHint } from '@/components/search-min-hint'
+import { type SearchKind, searchInput } from '@/lib/search-text'
 import { cn } from '@/lib/utils'
 import {
   parseSearchQuery,
+  searchTextOf,
+  templateSearch,
   getFilterSuggestions,
   removeFilter,
   type SearchFilter,
@@ -43,6 +47,8 @@ interface CommandCenterProps {
   /** Ends the active search. Without it, an emptied field only empties the field. */
   onClear?: () => void
   initialQuery?: string
+  /** How the current list matches `q`. */
+  searchKind?: SearchKind
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -85,6 +91,7 @@ export function CommandCenter({
   onSearch,
   onClear,
   initialQuery = '',
+  searchKind = 'words',
 }: CommandCenterProps) {
   const t = useTranslations()
   /**
@@ -116,6 +123,10 @@ export function CommandCenter({
 
   const [showSuggestions] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const hintId = React.useId()
+  // `template:` sends the search to the templates or objects list, whatever page it started on.
+  const kindOf = (parsed: ParsedSearch): SearchKind =>
+    templateSearch(parsed) === undefined ? searchKind : 'words'
 
   // Computed, not stored. As state written by an effect, `parsedSearch` was always one render
   // behind the input it described. `getRecentSearches` is an SSR-safe localStorage read and the
@@ -199,11 +210,15 @@ export function CommandCenter({
       return
     }
 
-    // Save to recent searches
-    saveRecentSearch(inputValue)
-
     // Parse inline to avoid stale state from useEffect
     const freshParsed = parseSearchQuery(inputValue)
+    // The hint under the input says why; the list keeps its last search.
+    const input = searchInput(searchTextOf(freshParsed), kindOf(freshParsed))
+    if (input.status === 'refused' && input.problem === 'too-many-words') {
+      return
+    }
+
+    saveRecentSearch(inputValue)
     onSearch?.(freshParsed)
     onOpenChange?.(false)
   }
@@ -262,6 +277,7 @@ export function CommandCenter({
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
+              aria-describedby={hintId}
             />
             {inputValue && (
               <button
@@ -274,6 +290,12 @@ export function CommandCenter({
               </button>
             )}
           </div>
+
+          <SearchMinHint
+            query={searchTextOf(parsedSearch)}
+            kind={kindOf(parsedSearch)}
+            id={hintId}
+          />
 
           {/* Active Filters Pills */}
           {activeFilters.length > 0 && (

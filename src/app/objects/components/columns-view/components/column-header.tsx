@@ -1,7 +1,9 @@
 'use client'
 
+import { useId } from 'react'
 import { useTranslations } from 'next-intl'
 import { Search, X } from 'lucide-react'
+import { SearchMinHint } from '@/components/search-min-hint'
 import { Button, Input, ColumnPagination } from '@/components/ui'
 
 interface ColumnHeaderProps {
@@ -27,6 +29,7 @@ export function ColumnHeader({
   isLoading = false,
 }: ColumnHeaderProps) {
   const t = useTranslations()
+  const hintId = useId()
   const clearSearch = () => {
     onSearchChange('')
   }
@@ -54,6 +57,7 @@ export function ColumnHeader({
             placeholder={t('objects.columnSearch')}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
+            aria-describedby={hintId}
             className="h-7 pl-7 pr-7 text-xs"
           />
           {searchTerm && (
@@ -67,6 +71,7 @@ export function ColumnHeader({
             </Button>
           )}
         </div>
+        <SearchMinHint query={searchTerm} kind="words" id={hintId} />
       </div>
 
       {/* Compact Pagination */}

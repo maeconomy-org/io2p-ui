@@ -255,6 +255,7 @@ export default function Navbar() {
         onSearch={executeSearchFromParsed}
         onClear={clearSearch}
         initialQuery={isSearchMode ? searchQuery : ''}
+        searchKind={pathname.startsWith('/shares') ? 'substring' : 'words'}
       />
     </>
   )

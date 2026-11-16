@@ -146,23 +146,10 @@ export function LibraryBulkShareSheet({
   const dependencies = useTemplates().useShareDependenciesFor(templateIds)
   const [shareDependencies, setShareDependencies] = useState(false)
 
-  // Recipients are STAGED, never read back, so the name is whatever the picker showed when it was
-  // picked — and the picker searches the server, so it reaches users no directory page would hold.
-  // This used to prefer a cached-directory lookup that never returns falsy, which made the staged
-  // label unreachable: past the directory's page the picker showed a name and the row showed a uuid.
-  const {
-    users,
-    page: usersPage,
-    isFetching: searching,
-  } = useUserSearch(peopleQuery, {
-    enabled: pickerOpen,
-  })
-
   // One read-only resource in the selection pins the whole run to `read`: the grants go out with a
   // single permission, and the node 400s a formula/constant/template given anything else.
   const readOnly = resources.some((r) => isReadOnlyResource(r.type))
 
-  const candidates = users.filter((u) => u.id !== userId && !recipients[u.id])
   const count = Object.keys(recipients).length
 
   const remove = (key: string) =>
@@ -256,7 +243,16 @@ export function LibraryBulkShareSheet({
             )}
           </div>
 
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen} modal>
+          <Popover
+            open={pickerOpen}
+            onOpenChange={(next) => {
+              // Cleared on open, not on a pick: the list stays mounted through the close animation,
+              // and an emptied query there would start an unfiltered search.
+              if (next) setPeopleQuery('')
+              setPickerOpen(next)
+            }}
+            modal
+          >
             <PopoverTrigger asChild>
               <Button type="button" variant="outline" className="w-full">
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -267,52 +263,26 @@ export function LibraryBulkShareSheet({
               className="w-[var(--radix-popover-trigger-width)] p-0"
               align="start"
             >
-              {/* The server already filtered; letting cmdk filter again would hide rows it matched
-                  on a field cmdk cannot see. */}
-              <Command shouldFilter={false}>
-                <CommandInput
-                  placeholder={t('access.searchPeople')}
-                  value={peopleQuery}
-                  onValueChange={setPeopleQuery}
-                />
-                <CommandList>
-                  <CommandEmpty>
-                    {searching ? t('common.loading') : t('access.noPeople')}
-                  </CommandEmpty>
-                  <CommandGroup>
-                    {candidates.map((user) => (
-                      <CommandItem
-                        key={user.id}
-                        value={user.id}
-                        className="cursor-pointer"
-                        onSelect={() => {
-                          setPickerOpen(false)
-                          setPeopleQuery('')
-                          setRecipients((r) => ({
-                            ...r,
-                            [user.id]: {
-                              subject: { kind: 'user', userId: user.id },
-                              label: user.displayName || user.email || user.id,
-                            },
-                          }))
-                        }}
-                      >
-                        <span className="flex min-w-0 flex-col">
-                          <span className="truncate">
-                            {user.displayName || user.email || user.id}
-                          </span>
-                          {user.displayName && user.email && (
-                            <span className="truncate text-xs text-muted-foreground">
-                              {user.email}
-                            </span>
-                          )}
-                        </span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-                <CommandMore pages={[usersPage]} />
-              </Command>
+              {/* Recipients are STAGED, never read back, so the name is whatever the picker showed
+                  when it was picked — and the picker searches the server, so it reaches users no
+                  directory page would hold. This used to prefer a cached-directory lookup that
+                  never returns falsy, which made the staged label unreachable: past the
+                  directory's page the picker showed a name and the row showed a uuid. */}
+              <RecipientPeopleList
+                query={peopleQuery}
+                onQueryChange={setPeopleQuery}
+                isExcluded={(id) => id === userId || !!recipients[id]}
+                onPick={(user) => {
+                  setPickerOpen(false)
+                  setRecipients((r) => ({
+                    ...r,
+                    [user.id]: {
+                      subject: { kind: 'user', userId: user.id },
+                      label: user.displayName || user.email || user.id,
+                    },
+                  }))
+                }}
+              />
             </PopoverContent>
           </Popover>
 
@@ -385,3 +355,64 @@ export function LibraryBulkShareSheet({
 }
 
 export type { ShareResourceType }
+
+type FoundUser = ReturnType<typeof useUserSearch>['users'][number]
+
+/**
+ * The people search and its results. Inside the popover content, which unmounts on close: the
+ * search then loses its last observer and TanStack aborts a request still open.
+ */
+function RecipientPeopleList({
+  query,
+  onQueryChange,
+  isExcluded,
+  onPick,
+}: {
+  query: string
+  onQueryChange: (query: string) => void
+  isExcluded: (userId: string) => boolean
+  onPick: (user: FoundUser) => void
+}) {
+  const t = useTranslations()
+  const { users, page: usersPage, isFetching: searching } = useUserSearch(query)
+  const candidates = users.filter((u) => !isExcluded(u.id))
+
+  // The server already filtered; letting cmdk filter again would hide rows it matched on a field
+  // cmdk cannot see.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('access.searchPeople')}
+        value={query}
+        onValueChange={onQueryChange}
+      />
+      <CommandList>
+        <CommandEmpty>
+          {searching ? t('common.loading') : t('access.noPeople')}
+        </CommandEmpty>
+        <CommandGroup>
+          {candidates.map((user) => (
+            <CommandItem
+              key={user.id}
+              value={user.id}
+              className="cursor-pointer"
+              onSelect={() => onPick(user)}
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate">
+                  {user.displayName || user.email || user.id}
+                </span>
+                {user.displayName && user.email && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
+                )}
+              </span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+      <CommandMore pages={[usersPage]} />
+    </Command>
+  )
+}

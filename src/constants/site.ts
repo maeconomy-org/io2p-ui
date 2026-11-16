@@ -101,8 +101,11 @@ export const MAX_LIST_PAGE_SIZE = 100
  */
 export const SEARCH_SIZE = 20
 
-/** The node answers a shorter `q` on an indexed list with 422. */
+/** The node answers 422 on an indexed list when no word of `q` is this long (core `MIN_Q`). */
 export const MIN_SEARCH_CHARS = 2
+
+/** The node answers 422 on an indexed list for more different words (core `MAX_Q_WORDS`). */
+export const MAX_SEARCH_WORDS = 8
 
 /** The node refuses a `q` over 1,024 UTF-16 units once lower-cased, which can lengthen it. */
 export const MAX_SEARCH_CHARS = 1000

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
@@ -210,29 +210,9 @@ function ParentPicker({
   onToggle: (id: string, name: string) => void
 }) {
   const t = useTranslations()
-  const { userId } = useAuth()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const q = useDebouncedSearch(query)
-
-  // `scope` defaults to 'mine', which would hide objects shared with the user.
-  const { data, isFetching } = useObjects().useList(
-    { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
-    { enabled: open, keepPreviousData: true }
-  )
-
-  const results = useMemo(
-    () => (data?.data ?? []).filter((o) => o.id !== selfId),
-    [data, selfId]
-  )
-  // A SELECTED row stays choosable: clicking it removes that parent, and the node checks write
-  // only on a parent being added — an admin must still be able to unlink a view-only parent.
-  // A SAVED one too, so that a removal can be undone.
-  const refusalOf = (object: (typeof results)[number]) =>
-    selectedIds.includes(object.id) || savedParentIds?.includes(object.id)
-      ? null
-      : linkUnderRefusal(object, userId)
-  const anyRefused = results.some((object) => refusalOf(object))
+  const q = useDebouncedSearch(query, 'words')
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
@@ -253,72 +233,126 @@ function ParentPicker({
         className="w-[--radix-popover-trigger-width] p-0"
         align="start"
       >
-        {/* The node filters server-side, so let Command show whatever came back. */}
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder={t('objects.parentPicker.search')}
-            data-testid="parent-search"
-            value={query}
-            onValueChange={setQuery}
-          />
-          <SearchMinHint query={query} />
-          <CommandList>
-            {isFetching && results.length === 0 ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <CommandEmpty>{t('objects.parentPicker.noResults')}</CommandEmpty>
-            )}
-            <CommandGroup>
-              {results.map((object) => {
-                const refusal = refusalOf(object)
-                return (
-                  <CommandItem
-                    key={object.id}
-                    value={object.id}
-                    data-testid={`parent-option-${object.id}`}
-                    disabled={!!refusal}
-                    onSelect={() => onToggle(object.id, object.name)}
-                  >
-                    <Check
-                      className={cn(
-                        'mr-2 h-4 w-4',
-                        selectedIds.includes(object.id)
-                          ? 'opacity-100'
-                          : 'opacity-0'
-                      )}
-                    />
-                    <span className="min-w-0 flex-1 truncate">
-                      {object.name}
-                    </span>
-                    <OwnerHint
-                      ownerUserId={object.createdBy}
-                      ownerName={object.createdByName}
-                    />
-                    {refusal && (
-                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                        {t(refusal)}
-                      </span>
-                    )}
-                  </CommandItem>
-                )
-              })}
-            </CommandGroup>
-          </CommandList>
-          {/* Outside the list on purpose: cmdk never focuses a disabled row, so a screen reader
-              would not reach the reason printed inside it. */}
-          {anyRefused && (
-            <p
-              data-testid="parent-picker-view-only"
-              className="border-t px-3 py-2 text-xs text-muted-foreground"
-            >
-              {t('objects.viewOnlyNotChoosable')}
-            </p>
-          )}
-          <CommandMore pages={[data]} />
-        </Command>
+        <ParentPickerList
+          query={query}
+          q={q}
+          onQueryChange={setQuery}
+          selectedIds={selectedIds}
+          savedParentIds={savedParentIds}
+          selfId={selfId}
+          onToggle={onToggle}
+        />
       </PopoverContent>
     </Popover>
+  )
+}
+
+/** The search and its results, inside the popover content: see `ObjectPickerList`. */
+function ParentPickerList({
+  query,
+  q,
+  onQueryChange,
+  selectedIds,
+  savedParentIds,
+  selfId,
+  onToggle,
+}: {
+  query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
+  onQueryChange: (query: string) => void
+  selectedIds: string[]
+  savedParentIds?: string[]
+  selfId?: string
+  onToggle: (id: string, name: string) => void
+}) {
+  const t = useTranslations()
+  const { userId } = useAuth()
+  const hintId = useId()
+
+  // `scope` defaults to 'mine', which would hide objects shared with the user.
+  const { data, isFetching } = useObjects().useList(
+    { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
+    { keepPreviousData: true }
+  )
+
+  const results = useMemo(
+    () => (data?.data ?? []).filter((o) => o.id !== selfId),
+    [data, selfId]
+  )
+  // A SELECTED row stays choosable: clicking it removes that parent, and the node checks write
+  // only on a parent being added — an admin must still be able to unlink a view-only parent.
+  // A SAVED one too, so that a removal can be undone.
+  const refusalOf = (object: (typeof results)[number]) =>
+    selectedIds.includes(object.id) || savedParentIds?.includes(object.id)
+      ? null
+      : linkUnderRefusal(object, userId)
+  const anyRefused = results.some((object) => refusalOf(object))
+
+  // The node filters server-side, so let Command show whatever came back.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('objects.parentPicker.search')}
+        data-testid="parent-search"
+        value={query}
+        onValueChange={onQueryChange}
+        aria-describedby={hintId}
+      />
+      <SearchMinHint query={query} kind="words" id={hintId} />
+      <CommandList>
+        {isFetching && results.length === 0 ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <CommandEmpty>{t('objects.parentPicker.noResults')}</CommandEmpty>
+        )}
+        <CommandGroup>
+          {results.map((object) => {
+            const refusal = refusalOf(object)
+            return (
+              <CommandItem
+                key={object.id}
+                value={object.id}
+                data-testid={`parent-option-${object.id}`}
+                disabled={!!refusal}
+                onSelect={() => onToggle(object.id, object.name)}
+              >
+                <Check
+                  className={cn(
+                    'mr-2 h-4 w-4',
+                    selectedIds.includes(object.id)
+                      ? 'opacity-100'
+                      : 'opacity-0'
+                  )}
+                />
+                <span className="min-w-0 flex-1 truncate">{object.name}</span>
+                <OwnerHint
+                  ownerUserId={object.createdBy}
+                  ownerName={object.createdByName}
+                />
+                {refusal && (
+                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                    {t(refusal)}
+                  </span>
+                )}
+              </CommandItem>
+            )
+          })}
+        </CommandGroup>
+      </CommandList>
+      {/* Outside the list on purpose: cmdk never focuses a disabled row, so a screen reader
+          would not reach the reason printed inside it. */}
+      {anyRefused && (
+        <p
+          data-testid="parent-picker-view-only"
+          className="border-t px-3 py-2 text-xs text-muted-foreground"
+        >
+          {t('objects.viewOnlyNotChoosable')}
+        </p>
+      )}
+      <CommandMore pages={[data]} />
+    </Command>
   )
 }

@@ -7,7 +7,7 @@ beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
 
 const render = () =>
-  renderHook(({ raw }) => useDebouncedSearch(raw), {
+  renderHook(({ raw }) => useDebouncedSearch(raw, 'words'), {
     initialProps: { raw: '' },
   })
 
@@ -35,5 +35,24 @@ describe('useDebouncedSearch', () => {
     rerender({ raw: 'a' })
     act(() => vi.advanceTimersByTime(300))
     expect(result.current).toBeUndefined()
+  })
+
+  it('keeps the last q when the text grows past 8 words', () => {
+    const { result, rerender } = render()
+    rerender({ raw: 'beton' })
+    act(() => vi.advanceTimersByTime(300))
+    rerender({ raw: 'a1 b2 c3 d4 e5 f6 g7 h8 i9' })
+    act(() => vi.advanceTimersByTime(300))
+    expect(result.current).toBe('beton')
+  })
+
+  it('sends the words again once there are 8 or fewer', () => {
+    const { result, rerender } = render()
+    rerender({ raw: 'a1 b2 c3 d4 e5 f6 g7 h8 i9' })
+    act(() => vi.advanceTimersByTime(300))
+    expect(result.current).toBeUndefined()
+    rerender({ raw: 'a1 b2 c3 d4 e5 f6 g7 h8' })
+    act(() => vi.advanceTimersByTime(300))
+    expect(result.current).toBe('a1 b2 c3 d4 e5 f6 g7 h8')
   })
 })

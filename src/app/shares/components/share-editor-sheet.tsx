@@ -182,13 +182,6 @@ function ShareForm({
 
   // Absent means unresolved, not blank — the id keeps an unresolvable member visible.
   const nameOf = (userId: string) => memberNames[userId] ?? userId
-  const {
-    users,
-    page: usersPage,
-    isFetching: searching,
-  } = useUserSearch(peopleQuery, {
-    enabled: pickerOpen,
-  })
 
   const family = familyOfBundle(resources)
   const libraryShare = family === 'library'
@@ -210,11 +203,6 @@ function ShareForm({
             permissionRank(m.permission as Permission) > permissionRank(ceiling)
         ).length
       : 0
-
-  const memberIds = new Set(members.map((m) => m.userId))
-  const candidates = users.filter(
-    (u) => u.id !== userId && !memberIds.has(u.id)
-  )
 
   // `POST /shares` requires ≥1 resource AND ≥1 member — unlike every other create here, where a name
   // is enough and you fill the rest in later. Blocking Save with the reason shown beats a draft that
@@ -449,7 +437,16 @@ function ShareForm({
             </p>
           )}
 
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen} modal>
+          <Popover
+            open={pickerOpen}
+            onOpenChange={(next) => {
+              // Cleared on open, not on a pick: the list stays mounted through the close animation,
+              // and an emptied query there would start an unfiltered search.
+              if (next) setPeopleQuery('')
+              setPickerOpen(next)
+            }}
+            modal
+          >
             <PopoverTrigger asChild>
               <Button
                 type="button"
@@ -465,47 +462,24 @@ function ShareForm({
               className="w-[var(--radix-popover-trigger-width)] p-0"
               align="start"
             >
-              <Command shouldFilter={false}>
-                <CommandInput
-                  placeholder={t('access.searchPeople')}
-                  data-testid="member-search"
-                  value={peopleQuery}
-                  onValueChange={setPeopleQuery}
-                />
-                <CommandList>
-                  <CommandEmpty>
-                    {searching ? t('common.loading') : t('access.noPeople')}
-                  </CommandEmpty>
-                  <CommandGroup>
-                    {candidates.map((user) => (
-                      <CommandItem
-                        key={user.id}
-                        value={user.id}
-                        data-testid={`member-option-${user.id}`}
-                        className="cursor-pointer"
-                        onSelect={() => {
-                          setPickerOpen(false)
-                          setPeopleQuery('')
-                          setMemberNames((n) => ({
-                            ...n,
-                            [user.id]:
-                              user.displayName || user.email || user.id,
-                          }))
-                          setMembers((ms) => [
-                            ...ms,
-                            { userId: user.id, permission: 'read' },
-                          ])
-                        }}
-                      >
-                        <span className="truncate">
-                          {user.displayName || user.email || user.id}
-                        </span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-                <CommandMore pages={[usersPage]} />
-              </Command>
+              <MemberPeopleList
+                query={peopleQuery}
+                onQueryChange={setPeopleQuery}
+                isExcluded={(id) =>
+                  id === userId || members.some((m) => m.userId === id)
+                }
+                onPick={(user) => {
+                  setPickerOpen(false)
+                  setMemberNames((n) => ({
+                    ...n,
+                    [user.id]: user.displayName || user.email || user.id,
+                  }))
+                  setMembers((ms) => [
+                    ...ms,
+                    { userId: user.id, permission: 'read' },
+                  ])
+                }}
+              />
             </PopoverContent>
           </Popover>
         </div>
@@ -629,4 +603,60 @@ export function buildDelta(
     }
   }
   return body
+}
+
+type FoundUser = ReturnType<typeof useUserSearch>['users'][number]
+
+/**
+ * The people search and its results. Inside the popover content, which unmounts on close: the
+ * search then loses its last observer and TanStack aborts a request still open.
+ */
+function MemberPeopleList({
+  query,
+  onQueryChange,
+  isExcluded,
+  onPick,
+}: {
+  query: string
+  onQueryChange: (query: string) => void
+  isExcluded: (userId: string) => boolean
+  onPick: (user: FoundUser) => void
+}) {
+  const t = useTranslations()
+  const { users, page: usersPage, isFetching: searching } = useUserSearch(query)
+  const candidates = users.filter((u) => !isExcluded(u.id))
+
+  // The server already filtered; letting cmdk filter again would hide rows it matched on a field
+  // cmdk cannot see.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('access.searchPeople')}
+        data-testid="member-search"
+        value={query}
+        onValueChange={onQueryChange}
+      />
+      <CommandList>
+        <CommandEmpty>
+          {searching ? t('common.loading') : t('access.noPeople')}
+        </CommandEmpty>
+        <CommandGroup>
+          {candidates.map((user) => (
+            <CommandItem
+              key={user.id}
+              value={user.id}
+              data-testid={`member-option-${user.id}`}
+              className="cursor-pointer"
+              onSelect={() => onPick(user)}
+            >
+              <span className="truncate">
+                {user.displayName || user.email || user.id}
+              </span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+      <CommandMore pages={[usersPage]} />
+    </Command>
+  )
 }
