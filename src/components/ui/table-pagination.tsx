@@ -1,12 +1,13 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -23,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DEFAULT_TABLE_PAGE_SIZE_OPTIONS } from '@/constants'
+import { useFormatTotal } from '@/hooks/ui/use-format-total'
 
 interface TablePaginationProps {
   currentPage: number // 0-based
@@ -31,6 +33,10 @@ interface TablePaginationProps {
   pageSize: number
   isFirstPage: boolean
   isLastPage: boolean
+  /** The total is the node's capped 1001: `totalPages` is a lower limit and "last" is unknown. */
+  capped?: boolean
+  /** Rows on this page; the range ends there rather than at the (possibly capped) total. */
+  rowsOnPage?: number
   onPageChange: (page: number) => void
   onFirst: () => void
   onPrevious: () => void
@@ -40,6 +46,8 @@ interface TablePaginationProps {
   pageSizeOptions?: number[]
 }
 
+const MAX_PAGE_NUMBERS = 5
+
 export function TablePagination({
   currentPage,
   totalPages,
@@ -47,6 +55,8 @@ export function TablePagination({
   pageSize,
   isFirstPage,
   isLastPage,
+  capped = false,
+  rowsOnPage,
   onPageChange,
   onFirst,
   onPrevious,
@@ -56,22 +66,43 @@ export function TablePagination({
   pageSizeOptions = DEFAULT_TABLE_PAGE_SIZE_OPTIONS,
 }: TablePaginationProps) {
   const t = useTranslations()
-  if (totalPages <= 1) {
+  const format = useFormatter()
+  const total = useFormatTotal()
+  const previousRef = useRef<HTMLButtonElement>(null)
+  const movedByNext = useRef(false)
+
+  // A disabled button drops focus to <body>: when "next" reached the end, keep the keyboard user
+  // on "previous" instead.
+  useEffect(() => {
+    if (isLastPage && movedByNext.current) previousRef.current?.focus()
+    movedByNext.current = false
+  }, [isLastPage, currentPage])
+
+  // The pages the user can reach: past a capped total that is the next one; past an exact total
+  // that shrank, the page they are on still has to show.
+  const knownPages = Math.max(
+    capped ? currentPage + (isLastPage ? 1 : 2) : totalPages,
+    currentPage + 1
+  )
+  if (knownPages <= 1) {
     return null
   }
 
-  // Calculate display info
+  const rows =
+    rowsOnPage ??
+    Math.max(0, Math.min(pageSize, totalElements - currentPage * pageSize))
   const startItem = currentPage * pageSize + 1
-  const endItem = Math.min((currentPage + 1) * pageSize, totalElements)
+  const endItem = startItem + rows - 1
+  const maxPageNumbers = Math.min(knownPages, MAX_PAGE_NUMBERS)
 
-  // Determine max page numbers to show based on screen size
-  const getMaxPageNumbers = () => {
-    // On mobile (< 640px), show fewer page numbers to prevent overflow
-    // This is handled by CSS classes but we also limit the logic here
-    return totalPages <= 5 ? totalPages : 5 // Show max 5 pages on mobile-first design
-  }
-
-  const maxPageNumbers = getMaxPageNumbers()
+  const pageLine = !capped
+    ? t('pagination.pageOf', { page: currentPage + 1, pages: totalPages })
+    : currentPage + 1 > totalPages
+      ? t('pagination.pageOnly', { page: currentPage + 1 })
+      : t('pagination.pageOfAtLeast', {
+          page: currentPage + 1,
+          pages: totalPages,
+        })
 
   return (
     <div className="flex flex-col gap-3 px-2 py-4">
@@ -81,11 +112,12 @@ export function TablePagination({
           className="text-sm text-muted-foreground"
           data-testid="page-indicator"
         >
-          {t('pagination.showing', {
-            start: startItem,
-            end: endItem,
-            total: totalElements,
-          })}
+          {rows > 0 &&
+            t('pagination.showing', {
+              start: format.number(startItem),
+              end: format.number(endItem),
+              total: total.text(totalElements, capped),
+            })}
         </div>
         {onPageSizeChange && (
           <div className="flex items-center gap-2">
@@ -113,7 +145,6 @@ export function TablePagination({
 
       {/* Main pagination controls */}
       <div className="flex items-center justify-center gap-1 sm:gap-2">
-        {/* First and Previous buttons */}
         <div className="flex items-center gap-1">
           <Button
             variant="outline"
@@ -129,6 +160,7 @@ export function TablePagination({
           </Button>
 
           <Button
+            ref={previousRef}
             size="sm"
             variant="outline"
             onClick={onPrevious}
@@ -142,53 +174,47 @@ export function TablePagination({
           </Button>
         </div>
 
-        {/* Page numbers - responsive design */}
         <div className="flex items-center">
           <Pagination>
             <PaginationContent className="gap-1">
-              {Array.from(
-                { length: Math.min(totalPages, maxPageNumbers) },
-                (_, i) => {
-                  let pageNum: number
+              {Array.from({ length: maxPageNumbers }, (_, i) => {
+                let pageNum: number
 
-                  if (totalPages <= maxPageNumbers) {
-                    // Show all pages if within limit
-                    pageNum = i
-                  } else if (currentPage <= 1) {
-                    // Show first pages
-                    pageNum = i
-                  } else if (currentPage >= totalPages - 2) {
-                    // Show last pages
-                    pageNum = totalPages - maxPageNumbers + i
-                  } else {
-                    // Show pages around current page
-                    pageNum = currentPage - 1 + i
-                  }
-
-                  return (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        onClick={() => onPageChange(pageNum)}
-                        isActive={currentPage === pageNum}
-                        data-testid={`page-number-${pageNum + 1}`}
-                        className="cursor-pointer size-9 p-0 text-xs sm:text-sm"
-                      >
-                        {pageNum + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  )
+                if (knownPages <= maxPageNumbers) {
+                  pageNum = i
+                } else if (currentPage <= 1) {
+                  pageNum = i
+                } else if (currentPage >= knownPages - 2) {
+                  pageNum = knownPages - maxPageNumbers + i
+                } else {
+                  pageNum = currentPage - 1 + i
                 }
-              )}
+
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      onClick={() => onPageChange(pageNum)}
+                      isActive={currentPage === pageNum}
+                      data-testid={`page-number-${pageNum + 1}`}
+                      className="cursor-pointer size-9 p-0 text-xs sm:text-sm"
+                    >
+                      {pageNum + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              })}
             </PaginationContent>
           </Pagination>
         </div>
 
-        {/* Next and Last buttons */}
         <div className="flex items-center gap-1">
           <Button
             variant="outline"
             size="sm"
-            onClick={onNext}
+            onClick={() => {
+              movedByNext.current = true
+              onNext()
+            }}
             disabled={isLastPage}
             className="size-9 p-0"
             title={t('pagination.next')}
@@ -198,27 +224,31 @@ export function TablePagination({
             <ChevronRight className="size-4" />
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onLast}
-            disabled={isLastPage}
-            className="size-9 p-0"
-            title={t('pagination.last')}
-            aria-label={t('pagination.last')}
-            data-testid="page-last"
-          >
-            <ChevronsRight className="size-4" />
-          </Button>
+          {/* No "last" on a capped total: the node does not say which page that is. */}
+          {!capped && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLast}
+              disabled={isLastPage}
+              className="size-9 p-0"
+              title={t('pagination.last')}
+              aria-label={t('pagination.last')}
+              data-testid="page-last"
+            >
+              <ChevronsRight className="size-4" />
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Page info - more compact on mobile */}
-      <div className="text-xs sm:text-sm text-muted-foreground text-center">
-        {t('pagination.pageOf', {
-          page: currentPage + 1,
-          pages: totalPages,
-        })}
+      <div
+        className="text-xs sm:text-sm text-muted-foreground text-center"
+        role="status"
+        aria-live="polite"
+        data-testid="page-of"
+      >
+        {pageLine}
       </div>
     </div>
   )

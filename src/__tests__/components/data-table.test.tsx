@@ -15,6 +15,7 @@ const { mockT } = vi.hoisted(() => ({
 
 vi.mock('next-intl', () => ({
   useTranslations: () => mockT,
+  useFormatter: () => ({ number: (n: number) => String(n) }),
 }))
 
 // ---------- getSelectColumn ----------

@@ -289,6 +289,10 @@
     "items": "{count} item{count, plural, one {} other {s}}",
     "showing": "Toont {start}-{end} van {total} resultaten",
     "pageOf": "Pagina {page} van {pages}",
+    "pageOfAtLeast": "Pagina {page} van {pages}+",
+    "pageOnly": "Pagina {page}",
+    "noMoreRows": "Geen rijen meer",
+    "noMoreRowsDescription": "Deze pagina komt na het einde van de lijst. Ga terug met de knop vorige pagina.",
     "rowsPerPage": "Rijen per pagina"
   },
   "auth": {

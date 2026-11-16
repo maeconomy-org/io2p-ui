@@ -38,15 +38,18 @@ PaginationItem.displayName = 'PaginationItem'
 type PaginationLinkProps = {
   isActive?: boolean
 } & Pick<ButtonProps, 'size'> &
-  React.ComponentProps<'a'>
+  React.ComponentProps<'button'>
 
+// A button, not an `<a>`: the pages are client state with no URL, and an `<a>` without `href`
+// is skipped by Tab and ignores Enter.
 const PaginationLink = ({
   className,
   isActive,
   size = 'icon',
   ...props
 }: PaginationLinkProps) => (
-  <a
+  <button
+    type="button"
     aria-current={isActive ? 'page' : undefined}
     className={cn(
       buttonVariants({

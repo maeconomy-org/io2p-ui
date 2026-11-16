@@ -71,6 +71,12 @@ export interface DataTablePaginationProps {
   pageSize: number
   isFirstPage: boolean
   isLastPage: boolean
+  /** The total is the node's 1001 ("more than 1,000"): `totalPages` is a lower limit. */
+  capped?: boolean
+  /** Rows the node returned for this page (pinned rows not counted). */
+  rowsOnPage?: number
+  /** The node answered this page, after the first, with no rows: it is past the end of the list. */
+  pastEnd?: boolean
 }
 
 export interface DataTableProps<TData> {
@@ -401,13 +407,21 @@ export function DataTable<TData>({
             ) : table.getRowModel().rows.length === 0 && !hasPinnedRows ? (
               <TableRow>
                 <TableCell colSpan={colCount} className="text-center">
-                  <EmptyState
-                    icon={emptyIcon}
-                    title={emptyTitle || t('common.noResults')}
-                    description={emptyDescription}
-                    action={emptyAction}
-                    className="py-8"
-                  />
+                  {pagination?.pastEnd ? (
+                    <EmptyState
+                      title={t('pagination.noMoreRows')}
+                      description={t('pagination.noMoreRowsDescription')}
+                      className="py-8"
+                    />
+                  ) : (
+                    <EmptyState
+                      icon={emptyIcon}
+                      title={emptyTitle || t('common.noResults')}
+                      description={emptyDescription}
+                      action={emptyAction}
+                      className="py-8"
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             ) : (
@@ -462,6 +476,8 @@ export function DataTable<TData>({
           pageSize={pagination.pageSize}
           isFirstPage={pagination.isFirstPage}
           isLastPage={pagination.isLastPage}
+          capped={pagination.capped}
+          rowsOnPage={pagination.rowsOnPage}
           onPageChange={(page) => onPageChange?.(page)}
           onFirst={() => onFirstPage?.()}
           onPrevious={() => onPreviousPage?.()}

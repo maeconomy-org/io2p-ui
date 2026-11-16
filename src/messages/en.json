@@ -289,6 +289,10 @@
     "items": "{count} item{count, plural, one {} other {s}}",
     "showing": "Showing {start}-{end} of {total} results",
     "pageOf": "Page {page} of {pages}",
+    "pageOfAtLeast": "Page {page} of {pages}+",
+    "pageOnly": "Page {page}",
+    "noMoreRows": "No more rows",
+    "noMoreRowsDescription": "This page is after the end of the list. Use the previous page button to go back.",
     "rowsPerPage": "Rows per page"
   },
   "auth": {

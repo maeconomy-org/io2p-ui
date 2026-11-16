@@ -253,6 +253,8 @@ export default function ObjectChildrenPage() {
             columns={state.columns}
             columnVisibility={columnVisibility}
             page={childrenPage}
+            capped
+            requestedPage={listQuery.query.page}
             getRowId={(o) => o.id}
             fetching={isFetching}
             enableRowSelection

@@ -200,6 +200,8 @@ export default function FormulasPage() {
             highlight={shownSearch}
             columns={columns}
             page={formulasPage}
+            capped
+            requestedPage={listQuery.query.page}
             getRowId={(formula) => formula.id}
             fetching={isFetching}
             sort={listQuery.query.sort}

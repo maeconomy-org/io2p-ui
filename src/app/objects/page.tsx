@@ -203,6 +203,8 @@ export default function ObjectsPage() {
             columns={state.columns}
             columnVisibility={columnVisibility}
             page={objectsPage}
+            capped
+            requestedPage={listQuery.query.page}
             getRowId={(o) => o.id}
             fetching={isFetching}
             enableRowSelection
