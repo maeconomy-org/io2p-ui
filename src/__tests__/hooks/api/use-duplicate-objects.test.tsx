@@ -15,6 +15,8 @@ vi.mock('@/lib/io2p', () => ({ useIomClient: () => ({ objects }) }))
 import {
   useDuplicateObjects,
   DuplicateIntoOwnSubtreeError,
+  DuplicateTooDeepError,
+  MAX_DUPLICATE_DEPTH,
 } from '@/hooks/api/use-duplicate-objects'
 
 /** An async generator over a fixed list, matching `client.objects.paginate`. */
@@ -119,13 +121,11 @@ describe('useDuplicateObjects', () => {
     expect(objects.create).toHaveBeenCalledTimes(1151)
   })
 
-  it('refuses a destination past the 1,100th descendant of the source', async () => {
-    const descendants = Array.from({ length: 1150 }, (_, i) =>
+  it('refuses a destination past the 1,100th child of the source', async () => {
+    const children = Array.from({ length: 1150 }, (_, i) =>
       i === 1120 ? 'dest' : `d-${i}`
     )
-    const node = cappedNode((q) =>
-      q.get('ancestor') === 'src' ? descendants : []
-    )
+    const node = cappedNode((q) => (q.get('parent') === 'src' ? children : []))
     objects.paginate.mockImplementation((query) => node.objects.paginate(query))
 
     const { result } = render()
@@ -142,7 +142,13 @@ describe('useDuplicateObjects', () => {
   })
 
   it('refuses a destination inside the subtree being copied', async () => {
-    objects.paginate.mockImplementation(() => pageOf(['a', 'dest', 'b']))
+    objects.paginate.mockImplementation(({ parent }: { parent?: string }) =>
+      parent === 'src'
+        ? pageOf(['a', 'b'])
+        : parent === 'b'
+          ? pageOf(['dest'])
+          : pageOf([])
+    )
 
     const { result } = render()
     await expect(
@@ -159,7 +165,9 @@ describe('useDuplicateObjects', () => {
   it('creates NOTHING when it refuses — the check runs before any write', async () => {
     // Discovering the cycle half-way would leave a partial subtree behind,
     // which is the state the guard exists to prevent.
-    objects.paginate.mockImplementation(() => pageOf(['dest']))
+    objects.paginate.mockImplementation(({ parent }: { parent?: string }) =>
+      parent === 'src' ? pageOf(['dest']) : pageOf([])
+    )
 
     const { result } = render()
     await act(async () => {
@@ -202,6 +210,56 @@ describe('useDuplicateObjects', () => {
       })
     })
 
+    expect(objects.create).toHaveBeenCalledTimes(1)
+  })
+
+  /** A chain `src` → `n1` → … → `n<levels>`: `levels` generations below the source. */
+  function chain(levels: number) {
+    objects.paginate.mockImplementation(({ parent }: { parent?: string }) => {
+      const at = parent === 'src' ? 0 : Number(parent?.slice(1))
+      return at < levels ? pageOf([`n${at + 1}`]) : pageOf([])
+    })
+  }
+
+  it(`copies a tree exactly ${MAX_DUPLICATE_DEPTH} levels deep, all of it`, async () => {
+    chain(MAX_DUPLICATE_DEPTH)
+    const { result } = render()
+    await act(async () => {
+      await result.current.duplicateObjects({
+        sourceIds: ['src'],
+        targetParentIds: ['dest'],
+        includeChildren: true,
+      })
+    })
+    expect(objects.create).toHaveBeenCalledTimes(MAX_DUPLICATE_DEPTH + 1)
+  })
+
+  it('refuses a deeper tree before writing anything, instead of a silent partial copy', async () => {
+    chain(MAX_DUPLICATE_DEPTH + 1)
+    const { result } = render()
+    await expect(
+      act(async () => {
+        await result.current.duplicateObjects({
+          sourceIds: ['src'],
+          targetParentIds: ['dest'],
+          includeChildren: true,
+        })
+      })
+    ).rejects.toThrow(DuplicateTooDeepError)
+    expect(objects.create).not.toHaveBeenCalled()
+  })
+
+  it('does not read the tree at all when children do not travel', async () => {
+    chain(MAX_DUPLICATE_DEPTH + 5)
+    const { result } = render()
+    await act(async () => {
+      await result.current.duplicateObjects({
+        sourceIds: ['src'],
+        targetParentIds: ['dest'],
+        includeChildren: false,
+      })
+    })
+    expect(objects.paginate).not.toHaveBeenCalled()
     expect(objects.create).toHaveBeenCalledTimes(1)
   })
 })

@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 
 import {
   DuplicateIntoOwnSubtreeError,
+  DuplicateTooDeepError,
+  MAX_DUPLICATE_DEPTH,
   useDuplicateObjects,
 } from '@/hooks/api/use-duplicate-objects'
 import { logger } from '@/lib/observability/logger'
@@ -48,10 +50,16 @@ export function useDuplicateSubmit({
       // number of copies already exist. Saying so beats a silent no-op that
       // looks like the click never registered — the list behind the sheet has
       // already been invalidated and will show them.
-      // The cycle guard runs BEFORE any write, so nothing was created and the
+      // Both guards run BEFORE any write, so nothing was created and the
       // generic "some may already exist" warning would be wrong here.
       if (error instanceof DuplicateIntoOwnSubtreeError) {
         toast.error(t('objects.duplicate.targetInsideSource'))
+        return
+      }
+      if (error instanceof DuplicateTooDeepError) {
+        toast.error(
+          t('objects.duplicate.tooDeep', { levels: MAX_DUPLICATE_DEPTH })
+        )
         return
       }
       logger.error('Duplicate objects failed', { err: error })

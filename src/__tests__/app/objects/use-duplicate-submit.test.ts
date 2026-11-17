@@ -16,7 +16,10 @@ vi.mock('@/hooks/api/use-duplicate-objects', async (importOriginal) => ({
   useDuplicateObjects: () => ({ duplicateObjects, isDuplicating: false }),
 }))
 
-import { DuplicateIntoOwnSubtreeError } from '@/hooks/api/use-duplicate-objects'
+import {
+  DuplicateIntoOwnSubtreeError,
+  DuplicateTooDeepError,
+} from '@/hooks/api/use-duplicate-objects'
 import { useDuplicateSubmit } from '@/app/objects/components/duplicate-objects/use-duplicate-submit'
 
 const options = {
@@ -70,6 +73,19 @@ describe('useDuplicateSubmit', () => {
 
     expect(toast.error).toHaveBeenCalledWith(
       'objects.duplicate.targetInsideSource'
+    )
+    expect(onDone).not.toHaveBeenCalled()
+  })
+
+  it('says nothing was copied when the tree is too deep, and stays open', async () => {
+    duplicateObjects.mockRejectedValue(new DuplicateTooDeepError())
+    const onDone = vi.fn()
+    const { result } = renderHook(() => useDuplicateSubmit({ onDone }))
+    await act(() => result.current.submit(options))
+
+    expect(toast.error).toHaveBeenCalledWith('objects.duplicate.tooDeep')
+    expect(toast.error).not.toHaveBeenCalledWith(
+      'objects.duplicate.failedPartial'
     )
     expect(onDone).not.toHaveBeenCalled()
   })
