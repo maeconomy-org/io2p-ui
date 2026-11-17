@@ -108,4 +108,21 @@ describe('useDuplicateSubmit', () => {
 
     expect(toast.error).toHaveBeenCalledWith('objects.duplicate.failedPartial')
   })
+
+  const leave = () => {
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    return event.defaultPrevented
+  }
+
+  it('asks before the tab closes while a copy runs, and not after', () => {
+    const { rerender } = renderHook(
+      ({ isCopying }) => useDuplicateSubmit({ isCopying, onDone: vi.fn() }),
+      { initialProps: { isCopying: true } }
+    )
+    expect(leave()).toBe(true)
+
+    rerender({ isCopying: false })
+    expect(leave()).toBe(false)
+  })
 })

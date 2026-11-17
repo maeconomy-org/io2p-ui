@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 
@@ -75,5 +76,19 @@ export function useDuplicateSubmit({
     }
   }
 
-  return { submit, isCopying: isCopyingProp ?? isDuplicating }
+  const isCopying = isCopyingProp ?? isDuplicating
+
+  // The copy runs object by object in this tab, so leaving mid-way keeps the part already made.
+  // Only while it runs; an always-on guard trains people to ignore it.
+  useEffect(() => {
+    if (!isCopying) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = '' // Chrome only shows the prompt when this is set
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isCopying])
+
+  return { submit, isCopying }
 }
