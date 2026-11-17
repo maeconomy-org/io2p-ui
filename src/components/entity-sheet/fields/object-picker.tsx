@@ -44,6 +44,7 @@ export function ObjectPicker({
   placeholder,
   testId = 'object-picker',
   requireLinkable = false,
+  labelledBy,
 }: {
   value: string
   /** Resolved name for `value`, when the caller knows one. */
@@ -59,6 +60,8 @@ export function ObjectPicker({
    * flow only needs to read its target, and must keep offering view-only objects.
    */
   requireLinkable?: boolean
+  /** The id of the visible label, for a picker that is not inside a labelled form field. */
+  labelledBy?: string
 }) {
   const t = useTranslations()
   const [open, setOpen] = useState(false)
@@ -78,6 +81,7 @@ export function ObjectPicker({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-labelledby={labelledBy}
           disabled={disabled}
           data-testid={testId}
           className={cn(

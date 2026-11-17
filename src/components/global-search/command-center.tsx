@@ -15,11 +15,15 @@ import {
   Clock,
   Command as CommandIcon,
   Hash,
+  SlidersHorizontal,
+  CalendarDays,
+  Ruler,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 import { SearchMinHint } from '@/components/search-min-hint'
+import { useObjects } from '@/hooks/api/entities'
 import { type SearchKind, searchInput } from '@/lib/search-text'
 import { cn } from '@/lib/utils'
 import {
@@ -31,7 +35,9 @@ import {
   type SearchFilter,
   type FilterSuggestion,
   type ParsedSearch,
+  type SearchListType,
 } from './search-parser'
+import { FilterPanel } from './filter-panel'
 import {
   Badge,
   Dialog,
@@ -49,6 +55,8 @@ interface CommandCenterProps {
   initialQuery?: string
   /** How the current list matches `q`. */
   searchKind?: SearchKind
+  /** The list a search from here lands on: numbers, dates and folder are for objects only. */
+  listType?: SearchListType
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -92,6 +100,7 @@ export function CommandCenter({
   onClear,
   initialQuery = '',
   searchKind = 'words',
+  listType = 'objects',
 }: CommandCenterProps) {
   const t = useTranslations()
   /**
@@ -111,19 +120,41 @@ export function CommandCenter({
     value: string
   } | null>(null)
   const inputValue = typed?.session === session ? typed.value : initialQuery
-  const setInputValue = (value: string) => setTyped({ session, value })
 
-  const [highlight, setHighlight] = React.useState({ session, index: 0 })
-  const selectedIndex = highlight.session === session ? highlight.index : 0
+  const [highlight, setHighlight] = React.useState({
+    session,
+    index: 0,
+    moved: false,
+  })
+  const current = highlight.session === session
+  const selectedIndex = current ? highlight.index : 0
+  const highlightMoved = current && highlight.moved
   const setSelectedIndex = (next: number | ((prev: number) => number)) =>
     setHighlight({
       session,
       index: typeof next === 'function' ? next(selectedIndex) : next,
+      moved: true,
     })
+
+  const setInputValue = (value: string) => {
+    setTyped({ session, value })
+    // The suggestions change with the text, so an old arrow choice must not complete on Tab.
+    setHighlight({ session, index: 0, moved: false })
+  }
+
+  const [panel, setPanel] = React.useState({ session, open: false })
+  const panelOpen = panel.session === session && panel.open
+  const panelId = React.useId()
+  const panelButtonRef = React.useRef<HTMLButtonElement>(null)
+  const closePanel = () => {
+    setPanel({ session, open: false })
+    panelButtonRef.current?.focus()
+  }
 
   const [showSuggestions] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const hintId = React.useId()
+  const pillsId = React.useId()
   // `template:` sends the search to the templates or objects list, whatever page it started on.
   const kindOf = (parsed: ParsedSearch): SearchKind =>
     templateSearch(parsed) === undefined ? searchKind : 'words'
@@ -223,12 +254,20 @@ export function CommandCenter({
     onOpenChange?.(false)
   }
 
+  // Tab completes a filter name being typed, or the suggestion the arrows moved to. Otherwise it
+  // moves focus, so a keyboard user can reach "Add filter" without changing the search.
+  const tabCompletes = (e: React.KeyboardEvent) => {
+    if (e.shiftKey || currentSuggestions.length === 0) return false
+    const lastToken = inputValue.split(' ').at(-1) ?? ''
+    return highlightMoved || lastToken !== ''
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
       handleSearch()
     } else if (e.key === 'Escape') {
-      onOpenChange?.(false)
+      // The dialog's onEscapeKeyDown decides; the input itself does nothing more.
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
       setSelectedIndex((prev) =>
@@ -237,7 +276,7 @@ export function CommandCenter({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSelectedIndex((prev) => Math.max(prev - 1, 0))
-    } else if (e.key === 'Tab' && currentSuggestions.length > 0) {
+    } else if (e.key === 'Tab' && tabCompletes(e)) {
       e.preventDefault()
       handleSuggestionClick(currentSuggestions[selectedIndex])
     }
@@ -245,7 +284,16 @@ export function CommandCenter({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-2xl rounded-lg [&>*]:min-w-0 p-0 gap-0 overflow-hidden bg-gradient-to-b from-background to-muted/20 border-border/50 shadow-2xl [&>button]:hidden">
+      <DialogContent
+        onEscapeKeyDown={(event) => {
+          // An open picker inside the panel is its own layer and gets Escape first.
+          if (panelOpen) {
+            event.preventDefault()
+            closePanel()
+          }
+        }}
+        className="w-[calc(100%-2rem)] sm:w-full max-w-2xl rounded-lg [&>*]:min-w-0 p-0 gap-0 overflow-hidden bg-gradient-to-b from-background to-muted/20 border-border/50 shadow-2xl [&>button]:hidden"
+      >
         {/* Visually hidden title and description for accessibility */}
         <DialogTitle className="sr-only">
           {t('commandCenter.title')}
@@ -273,12 +321,29 @@ export function CommandCenter({
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t('commandCenter.placeholder')}
-              className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
+              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
               aria-describedby={hintId}
             />
+            <button
+              ref={panelButtonRef}
+              type="button"
+              aria-expanded={panelOpen}
+              aria-controls={panelOpen ? panelId : undefined}
+              onClick={() =>
+                panelOpen ? closePanel() : setPanel({ session, open: true })
+              }
+              data-testid="add-filter"
+              className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+              {/* A phone has no room for the words beside the input; the name stays. */}
+              <span className="sr-only sm:not-sr-only">
+                {t('filterPanel.open')}
+              </span>
+            </button>
             {inputValue && (
               <button
                 type="button"
@@ -300,9 +365,12 @@ export function CommandCenter({
           {/* Active Filters Pills */}
           {activeFilters.length > 0 && (
             <div className="px-4 pb-3 flex flex-wrap gap-2">
-              {activeFilters.map((filter) => (
+              <span id={`${pillsId}-remove`} hidden>
+                {t('search.pill.remove')}
+              </span>
+              {activeFilters.map((filter, index) => (
                 <Badge
-                  key={`${filter.type}-${filter.value}`}
+                  key={index}
                   variant="secondary"
                   className="pl-2 pr-1 py-1 gap-1.5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 transition-colors text-xs"
                 >
@@ -317,15 +385,24 @@ export function CommandCenter({
                   )}
                   {filter.type === 'name' && <Type className="h-3 w-3" />}
                   {filter.type === 'createdBy' && <User className="h-3 w-3" />}
-                  {filter.type === 'parent' && (
+                  {(filter.type === 'parent' || filter.type === 'folder') && (
                     <FolderTree className="h-3 w-3" />
                   )}
-                  <span className="font-medium">{filter.label}</span>
+                  {filter.type === 'number' && <Ruler className="h-3 w-3" />}
+                  {(filter.type === 'created' || filter.type === 'updated') && (
+                    <CalendarDays className="h-3 w-3" />
+                  )}
+                  <span id={`${pillsId}-${index}`} className="font-medium">
+                    <PillLabel filter={filter} />
+                  </span>
                   <button
+                    type="button"
                     onClick={() => handleRemoveFilter(filter)}
-                    className="ml-0.5 p-0.5 hover:bg-primary/20 rounded"
+                    // Named by the pill text, so an `in:` pill reads its folder, not an id.
+                    aria-labelledby={`${pillsId}-remove ${pillsId}-${index}`}
+                    className="ml-0.5 p-0.5 hover:bg-primary/20 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-3 w-3" aria-hidden />
                   </button>
                 </Badge>
               ))}
@@ -334,9 +411,21 @@ export function CommandCenter({
         </div>
 
         {/* Content Area */}
-        <div className="max-h-[400px] overflow-y-auto">
+        <div className="max-h-[min(400px,60dvh)] overflow-y-auto">
+          {panelOpen && (
+            <FilterPanel
+              id={panelId}
+              query={inputValue}
+              ranges={listType === 'objects'}
+              onApply={(query) => {
+                setInputValue(query)
+                setPanel({ session, open: false })
+                inputRef.current?.focus()
+              }}
+            />
+          )}
           {/* Filter Suggestions */}
-          {showSuggestions && currentSuggestions.length > 0 && (
+          {!panelOpen && showSuggestions && currentSuggestions.length > 0 && (
             <div className="p-2">
               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3" />
@@ -388,7 +477,7 @@ export function CommandCenter({
           )}
 
           {/* Recent Searches */}
-          {!inputValue && recentSearches.length > 0 && (
+          {!panelOpen && !inputValue && recentSearches.length > 0 && (
             <div className="p-2 border-t border-border/50">
               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Clock className="h-3 w-3" />
@@ -408,7 +497,7 @@ export function CommandCenter({
           )}
 
           {/* Quick Actions */}
-          {!inputValue && (
+          {!panelOpen && !inputValue && (
             <div className="p-2 border-t border-border/50">
               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <CommandIcon className="h-3 w-3" />
@@ -477,6 +566,40 @@ export function CommandCenter({
       </DialogContent>
     </Dialog>
   )
+}
+
+const PILL_KEYS: Partial<Record<SearchFilter['type'], string>> = {
+  propertyLabel: 'search.pill.property',
+  propertyValue: 'search.pill.value',
+  name: 'search.pill.name',
+  createdBy: 'search.pill.createdBy',
+  parent: 'search.pill.parent',
+  created: 'search.pill.created',
+  updated: 'search.pill.updated',
+}
+
+function PillLabel({ filter }: { filter: SearchFilter }) {
+  const t = useTranslations()
+  if (filter.type === 'folder' && !filter.problem) {
+    return <FolderPill id={filter.value} />
+  }
+  if (filter.type === 'deleted') {
+    return <>{t(`search.pill.deleted.${filter.value}`)}</>
+  }
+  const key = PILL_KEYS[filter.type]
+  const value =
+    filter.type === 'created' || filter.type === 'updated'
+      ? filter.value
+      : (filter.propertyKey ?? filter.propertyValue ?? filter.value)
+  return <>{key ? t(key, { value }) : filter.label}</>
+}
+
+/** The folder of an `in:` token by name; the token itself keeps only the id. */
+function FolderPill({ id }: { id: string }) {
+  const t = useTranslations()
+  const { data, isError } = useObjects().useGet(id, { enrichFiles: false })
+  if (isError) return <>{t('search.pill.folderMissing')}</>
+  return <>{t('search.pill.folder', { name: data?.name ?? id.slice(0, 8) })}</>
 }
 
 // Hook to manage command center state globally

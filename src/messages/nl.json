@@ -1260,7 +1260,38 @@
     "invalidFilter": "Niet toegepast: {filters}. Een eigenschapsnaam mag geen \":\" bevatten, en createdBy: en parent: hebben een id nodig.",
     "restApplies": "De rest van uw zoekopdracht wordt wel toegepast.",
     "noResultsTitle": "Geen resultaten voor uw zoekopdracht",
-    "noResultsDescription": "Probeer andere woorden of verwijder een filter."
+    "noResultsDescription": "Probeer andere woorden of verwijder een filter.",
+    "deletedSetBySearchAll": "Niet toegepast: uw zoekopdracht toont ook verwijderde items (deleted:all).",
+    "notAppliedBecause": "Niet toegepast: {filter}. {reason}",
+    "problem": {
+      "number": "Schrijf het getal met cijfers, en een punt of een komma voor decimalen: mass>=2.5t.",
+      "equals": "Een getalfilter heeft een bereik nodig: gebruik mass:2..2 of mass>=2.",
+      "reversed": "Het bereik begint na het einde.",
+      "unitOnce": "Schrijf de eenheid één keer, na het bereik: mass:2..5t.",
+      "spaces": "Schrijf het zonder spaties: mass>=2t.",
+      "reservedKey": "Deze eigenschapsnaam is ook een filternaam. Zet hem tussen aanhalingstekens: \"name\">=2.",
+      "date": "Schrijf een dag als JJJJ-MM-DD, vanaf 1970: created:2026-11-01.",
+      "folder": "in: heeft het id van een map nodig. Kies de map in Filter toevoegen.",
+      "once": "Gebruik één filter van deze soort per zoekopdracht.",
+      "inAndParent": "in: en parent: kunnen niet samen worden gebruikt."
+    },
+    "pill": {
+      "remove": "Filter verwijderen:",
+      "property": "Eigenschap: {value}",
+      "value": "Waarde: {value}",
+      "name": "Naam: {value}",
+      "createdBy": "Aangemaakt door: {value}",
+      "parent": "Ouder: {value}",
+      "created": "Aangemaakt: {value}",
+      "updated": "Bijgewerkt: {value}",
+      "folder": "In {name}",
+      "folderMissing": "Map niet beschikbaar",
+      "deleted": {
+        "true": "Alleen verwijderde",
+        "false": "Verwijderde verborgen",
+        "all": "Verwijderde ook getoond"
+      }
+    }
   },
   "constants": {
     "title": "Constanten",
@@ -1790,5 +1821,46 @@
     "property": "Eigenschap",
     "nonNumericKey": "Deze eigenschap bevat meestal tekst, dus de optelling blijft waarschijnlijk leeg.",
     "systemKeyExists": "Een ingebouwde regel telt deze eigenschap al op. Uw regel vervangt die op uw eigen objecten — verwijdert u uw regel, dan komt het ingebouwde totaal terug."
+  },
+  "filterPanel": {
+    "open": "Filter toevoegen",
+    "title": "Filters toevoegen aan de zoekopdracht",
+    "number": "Getal",
+    "numberKey": "Eigenschap",
+    "numberFrom": "Van (minstens)",
+    "numberTo": "Tot (hoogstens)",
+    "numberUnit": "Eenheid",
+    "numberHint": "Van en tot tellen mee. Met een eenheid wordt een waarde zonder eenheid niet gevonden. Gebruik een punt of een komma voor decimalen, niet voor duizendtallen.",
+    "property": "Eigenschap",
+    "propertyKey": "Naam",
+    "propertyValue": "Waarde (optioneel)",
+    "created": "Aangemaakt",
+    "updated": "Bijgewerkt",
+    "yourTimeZone": "(uw tijdzone)",
+    "dateFrom": "Van",
+    "dateTo": "Tot",
+    "createdBy": "Aangemaakt door",
+    "anyone": "Iedereen",
+    "findPerson": "Zoek een persoon...",
+    "noPeople": "Geen personen gevonden.",
+    "deleted": "Verwijderde items",
+    "deletedDefault": "Verborgen (standaard)",
+    "deletedAll": "Ook tonen",
+    "deletedOnly": "Alleen verwijderde",
+    "deletedNone": "Verborgen",
+    "folder": "In map",
+    "folderPlaceholder": "Elke map",
+    "folderHint": "Vindt alles in de map, op elke diepte, maar niet de map zelf.",
+    "clear": "Wissen",
+    "apply": "Toepassen",
+    "applyHint": "Toepassen schrijft de filters in het zoekveld. Druk dan op Enter om te zoeken.",
+    "error": {
+      "numberKey": "Geef de eigenschap een naam.",
+      "numberValue": "Schrijf een getal, bijvoorbeeld 2,5.",
+      "numberUnit": "Schrijf een eenheid die met een letter begint, bijvoorbeeld t of m2.",
+      "numberReversed": "Tot mag niet kleiner zijn dan van.",
+      "quote": "Een naam of waarde mag geen \" bevatten.",
+      "dateReversed": "Tot mag niet voor van liggen."
+    }
   }
 }

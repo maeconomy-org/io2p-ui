@@ -5,7 +5,7 @@
  * a list sends to the node.
  *
  * Supported syntax:
- * - `deleted:true` or `deleted:false` - Filter by soft deleted status
+ * - `deleted:true`, `deleted:false` or `deleted:all` - Only, without or with soft-deleted items
  * - `template:true` or `template:false` - Filter by template status
  * - `prop:label` - Search by property label only (any value)
  * - `prop:label=value` - Search by property label AND value
@@ -13,6 +13,9 @@
  * - `name:value` or `name:"multi word"` - Search by object name (quotes optional)
  * - `createdBy:uuid` - Filter by creator UUID
  * - `parent:uuid` - Filter by parent UUID
+ * - `mass>=2t`, `mass<=5`, `mass:2..5t`, `"total mass">2` - A number range (objects only)
+ * - `created:2026-11-01`, `updated:2026-11-01..2026-11-30` - A day or days (objects only)
+ * - `in:uuid` - Everything inside a folder, at any depth (objects only)
  * - Regular text becomes the searchTerm
  *
  * Examples (as list params):
@@ -25,6 +28,18 @@
 
 import { capSearch, type SearchKind, searchInput } from '@/lib/search-text'
 
+import {
+  type DateRange,
+  isSpacedOperator,
+  isUuid,
+  type NumberRange,
+  numberToken,
+  parseDateValue,
+  parseNumberToken,
+  type SearchProblem,
+  startsWithPrefix,
+} from './search-grammar'
+
 export interface SearchFilter {
   type:
     | 'deleted'
@@ -35,6 +50,10 @@ export interface SearchFilter {
     | 'name'
     | 'createdBy'
     | 'parent'
+    | 'number'
+    | 'created'
+    | 'updated'
+    | 'folder'
     | 'text'
   label: string
   value: string
@@ -42,6 +61,10 @@ export interface SearchFilter {
   // For property filters, store the key and value separately
   propertyKey?: string
   propertyValue?: string
+  number?: NumberRange
+  range?: DateRange
+  /** Set when the token looks like a filter but cannot be applied: it is never sent. */
+  problem?: SearchProblem
 }
 
 export interface ParsedSearch {
@@ -110,18 +133,39 @@ export const FILTER_SUGGESTIONS: FilterSuggestion[] = [
   },
 ]
 
-// Helper to check if a token is a filter prefix
-function isFilterPrefix(token: string): boolean {
-  const lower = token.toLowerCase()
-  return (
-    lower.startsWith('deleted:') ||
-    lower.startsWith('template:') ||
-    lower.startsWith('prop:') ||
-    lower.startsWith('value:') ||
-    lower.startsWith('name:') ||
-    lower.startsWith('createdby:') ||
-    lower.startsWith('parent:')
-  )
+/** Where an unquoted `name:` stops: at any token that is a filter, a near miss included. */
+function isFilterToken(token: string): boolean {
+  return startsWithPrefix(token) || parseNumberToken(token) !== null
+}
+
+const unquote = (text: string) => text.replace(/^"|"$/g, '')
+
+/** `key=value`, where either part may be quoted: `"stainless steel"="grade a"`. */
+function splitProperty(text: string): { key: string; value?: string } {
+  const quotedKey = /^"([^"]*)"(?:=(.*))?$/s.exec(text)
+  if (quotedKey) {
+    return quotedKey[2] === undefined
+      ? { key: quotedKey[1] }
+      : { key: quotedKey[1], value: unquote(quotedKey[2]) }
+  }
+  const eq = text.indexOf('=')
+  return eq > 0
+    ? { key: text.slice(0, eq), value: unquote(text.slice(eq + 1)) }
+    : { key: text }
+}
+
+function numberFilter(token: string, raw = token): SearchFilter | null {
+  const parsed = parseNumberToken(token)
+  if (parsed === null) return null
+  return parsed.kind === 'number'
+    ? {
+        type: 'number',
+        label: numberToken(parsed.range, true),
+        value: numberToken(parsed.range),
+        raw,
+        number: parsed.range,
+      }
+    : { type: 'number', label: raw, value: raw, raw, problem: parsed.problem }
 }
 
 /**
@@ -142,7 +186,7 @@ export function parseSearchQuery(query: string): ParsedSearch {
     // Check for deleted: filter (only true/false)
     if (lowerToken.startsWith('deleted:')) {
       const value = token.slice(8).toLowerCase()
-      if (value === 'true' || value === 'false') {
+      if (value === 'true' || value === 'false' || value === 'all') {
         filters.push({
           type: 'deleted',
           label: `Deleted: ${value}`,
@@ -171,13 +215,9 @@ export function parseSearchQuery(query: string): ParsedSearch {
 
     // Check for prop: filter (format: prop:label or prop:label=value)
     if (lowerToken.startsWith('prop:')) {
-      const propPart = token.slice(5)
-      const eqIndex = propPart.indexOf('=')
+      const { key: label, value } = splitProperty(token.slice(5))
 
-      if (eqIndex > 0) {
-        // Has both label and value: prop:label=value
-        const label = propPart.slice(0, eqIndex)
-        const value = propPart.slice(eqIndex + 1)
+      if (label && value !== undefined) {
         filters.push({
           type: 'property',
           label: `${label}: ${value}`,
@@ -186,15 +226,13 @@ export function parseSearchQuery(query: string): ParsedSearch {
           propertyKey: label,
           propertyValue: value,
         })
-      } else if (propPart.trim()) {
-        // Only label: prop:label (search any object with this property)
-        const label = propPart.trim()
+      } else if (label.trim()) {
         filters.push({
           type: 'propertyLabel',
           label: `Property: ${label}`,
           value: label,
           raw: token,
-          propertyKey: label,
+          propertyKey: label.trim(),
         })
       }
       i++
@@ -203,7 +241,7 @@ export function parseSearchQuery(query: string): ParsedSearch {
 
     // Check for value: filter (search by property value only)
     if (lowerToken.startsWith('value:')) {
-      const value = token.slice(6).trim()
+      const value = unquote(token.slice(6).trim())
       if (value) {
         filters.push({
           type: 'propertyValue',
@@ -232,7 +270,7 @@ export function parseSearchQuery(query: string): ParsedSearch {
       if (!token.slice(5).startsWith('"')) {
         // Not quoted, collect subsequent tokens until we hit another filter
         i++
-        while (i < tokens.length && !isFilterPrefix(tokens[i])) {
+        while (i < tokens.length && !isFilterToken(tokens[i])) {
           nameParts.push(tokens[i].replace(/^"|"$/g, ''))
           nameRaw += ' ' + tokens[i]
           i++
@@ -279,6 +317,53 @@ export function parseSearchQuery(query: string): ParsedSearch {
       continue
     }
 
+    if (
+      lowerToken.startsWith('created:') ||
+      lowerToken.startsWith('updated:')
+    ) {
+      const type = lowerToken.startsWith('created:') ? 'created' : 'updated'
+      const parsed = parseDateValue(token.slice(8))
+      filters.push({
+        type,
+        label: token,
+        value: token.slice(8),
+        raw: token,
+        ...(parsed.kind === 'date'
+          ? { range: parsed.range }
+          : { problem: parsed.problem }),
+      })
+      i++
+      continue
+    }
+
+    if (lowerToken.startsWith('in:')) {
+      const value = token.slice(3)
+      filters.push({
+        type: 'folder',
+        label: token,
+        value,
+        raw: token,
+        ...(!isUuid(value) && { problem: 'folder' as const }),
+      })
+      i++
+      continue
+    }
+
+    const number = numberFilter(token)
+    if (number) {
+      filters.push(number)
+      i++
+      continue
+    }
+
+    // `mass > 2`, `mass> 2`, `mass >2`: the user meant a number filter; say how to write it.
+    const spaced = spacedNumber(tokens, i)
+    if (spaced) {
+      filters.push(spaced.filter)
+      i += spaced.length
+      continue
+    }
+
     // Regular text
     if (token.trim()) {
       textParts.push(token.replace(/^"|"$/g, ''))
@@ -298,22 +383,81 @@ export function parseSearchQuery(query: string): ParsedSearch {
   }
 }
 
+function spacedNumber(
+  tokens: string[],
+  i: number
+): { filter: SearchFilter; length: number } | null {
+  const [a, b = '', c = ''] = tokens.slice(i, i + 3)
+  const split = (word: string) => /^(.*?)(>=|<=|≥|≤|>|<)$/su.exec(word)
+  const lead = /^(>=|<=|≥|≤|>|<)(.+)$/su.exec(b)
+  const candidates: [string, string, string, number][] = [
+    [a, b, c, 3],
+    ...(split(a)
+      ? [[split(a)![1], split(a)![2], b, 2] as [string, string, string, number]]
+      : []),
+    ...(lead
+      ? [[a, lead[1], lead[2], 2] as [string, string, string, number]]
+      : []),
+  ]
+  for (const [word, op, number, length] of candidates) {
+    if (isSpacedOperator(word, op, number)) {
+      const raw = tokens.slice(i, i + length).join(' ')
+      return {
+        filter: {
+          type: 'number',
+          label: raw,
+          value: raw,
+          raw,
+          problem: 'spaces',
+        },
+        length,
+      }
+    }
+  }
+  return null
+}
+
 export type SearchListType =
   'objects' | 'processes' | 'templates' | 'formulas' | 'constants' | 'shares'
+
+const OTHER_LISTS: readonly SearchListType[] = [
+  'processes',
+  'templates',
+  'formulas',
+  'constants',
+  'shares',
+]
+
+/**
+ * The list a search started on `pathname` lands on: the list page itself, else objects (the same
+ * rule as the search context; a `template:` token can still move it).
+ */
+export function searchListTypeOf(pathname: string): SearchListType {
+  return OTHER_LISTS.find((type) => pathname === `/${type}`) ?? 'objects'
+}
 
 export interface ListSearchParams {
   q?: string
   property?: string[]
   createdBy?: string
-  deleted?: 'only' | 'exclude'
+  deleted?: 'only' | 'exclude' | 'include'
   parent?: string
+  ancestor?: string
+  numKey?: string
+  numGte?: number
+  numLte?: number
+  numUnit?: string
+  createdFrom?: number
+  createdTo?: number
+  updatedFrom?: number
+  updatedTo?: number
 }
 
 export interface ListSearch {
   params: ListSearchParams
   /** Filters this list does not take. The node ignores an undeclared param, so they are left out. */
   unsupported: SearchFilter[]
-  /** Filters that cannot be expressed as a list param: a property key with a colon, an empty id. */
+  /** Filters that cannot be applied: a property key with a colon, an empty id, a `problem`. */
   invalid: SearchFilter[]
 }
 
@@ -325,6 +469,8 @@ const TAKES_PROPERTY: ReadonlySet<SearchListType> = new Set([
   'templates',
 ])
 const TAKES_PARENT: ReadonlySet<SearchListType> = new Set(['objects'])
+// The node takes numbers and dates on processes too; the product offers them on objects only.
+const TAKES_RANGES: ReadonlySet<SearchListType> = new Set(['objects'])
 
 /** Whether `search` narrows its list at all. A search whose every filter was left out does not. */
 export function searchApplies(search: ListSearch | null): boolean {
@@ -343,9 +489,7 @@ export function searchKey(search: ListSearch | null): string {
 export function listSearchQuery(
   search: ListSearch | null,
   showDeleted: boolean
-): Omit<ListSearchParams, 'deleted'> & {
-  deleted?: 'only' | 'exclude' | 'include'
-} {
+): ListSearchParams {
   return {
     ...search?.params,
     deleted: search?.params.deleted ?? (showDeleted ? 'include' : undefined),
@@ -386,7 +530,32 @@ export function toListParams(
   const invalid: SearchFilter[] = []
   const property: string[] = []
 
+  const seen = new Set<SearchFilter['type']>()
+  const hasParent = parsed.filters.some(
+    (f) => f.type === 'parent' && !f.problem
+  )
+
   for (const filter of parsed.filters) {
+    const ranged = ['number', 'created', 'updated', 'folder'].includes(
+      filter.type
+    )
+    if (ranged && !TAKES_RANGES.has(type)) {
+      unsupported.push(filter)
+      continue
+    }
+    if (filter.problem) {
+      invalid.push(filter)
+      continue
+    }
+    if (ranged && seen.has(filter.type)) {
+      invalid.push({ ...filter, problem: 'once' })
+      continue
+    }
+    if (filter.type === 'folder' && hasParent) {
+      invalid.push({ ...filter, problem: 'inAndParent' })
+      continue
+    }
+    seen.add(filter.type)
     switch (filter.type) {
       case 'text':
       case 'name':
@@ -418,7 +587,30 @@ export function toListParams(
         else invalid.push(filter)
         break
       case 'deleted':
-        params.deleted = filter.value === 'true' ? 'only' : 'exclude'
+        params.deleted =
+          filter.value === 'true'
+            ? 'only'
+            : filter.value === 'all'
+              ? 'include'
+              : 'exclude'
+        break
+      case 'number': {
+        const range = filter.number!
+        params.numKey = range.key
+        if (range.gte !== undefined) params.numGte = range.gte
+        if (range.lte !== undefined) params.numLte = range.lte
+        if (range.unit) params.numUnit = range.unit
+        break
+      }
+      case 'created':
+      case 'updated': {
+        const { from, to } = filter.range!
+        if (from !== undefined) params[`${filter.type}From`] = from
+        if (to !== undefined) params[`${filter.type}To`] = to
+        break
+      }
+      case 'folder':
+        params.ancestor = filter.value
         break
       case 'parent':
         if (!TAKES_PARENT.has(type)) unsupported.push(filter)
@@ -491,10 +683,41 @@ export function getFilterSuggestions(input: string): FilterSuggestion[] {
 }
 
 /**
+ * The query with the filters `drop` names taken out. A token the parser read as no filter
+ * (`deleted:maybe`, `prop:`) stays as typed, and number filters show as ≥/≤.
+ */
+export function queryWithout(
+  query: string,
+  drop: (filter: SearchFilter) => boolean
+): string {
+  const tokens = tokenizeQuery(query)
+  const kept: string[] = []
+  let i = 0
+  for (const filter of parseSearchQuery(query).filters) {
+    const length = tokenizeQuery(filter.raw).length
+    const at = (n: number) => tokens.slice(n, n + length).join(' ')
+    let start = i
+    while (start < tokens.length && at(start) !== filter.raw) start++
+    // Cannot happen (each raw is its own tokens, in order); kept safe, not lost.
+    if (start === tokens.length) continue
+    kept.push(...tokens.slice(i, start))
+    if (!drop(filter)) kept.push(shown(filter))
+    i = start + length
+  }
+  kept.push(...tokens.slice(i))
+  return kept.join(' ')
+}
+
+/**
  * Build a display string from filters
  */
 export function filtersToDisplayString(filters: SearchFilter[]): string {
-  return filters.map((f) => f.raw).join(' ')
+  return filters.map(shown).join(' ')
+}
+
+/** A number filter as ≥/≤, since its `>` includes the bound; every other token as typed. */
+function shown(filter: SearchFilter): string {
+  return filter.number ? filter.label : filter.raw
 }
 
 /**
@@ -506,6 +729,6 @@ export function removeFilter(
 ): string {
   return filters
     .filter((f) => f !== filterToRemove)
-    .map((f) => f.raw)
+    .map(shown)
     .join(' ')
 }

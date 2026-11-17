@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  filtersToDisplayString,
   listSearchQuery,
   parseSearchQuery,
   searchApplies,
@@ -8,6 +9,7 @@ import {
   toListParams,
   type SearchListType,
 } from '@/components/global-search/search-parser'
+import { numberToken } from '@/components/global-search/search-grammar'
 
 const ALL_TYPES: SearchListType[] = [
   'objects',
@@ -360,6 +362,137 @@ describe('search-parser', () => {
       ['template:false template:true', true],
     ])('%j → %j', (query, expected) => {
       expect(templateSearch(parseSearchQuery(query))).toBe(expected)
+    })
+  })
+
+  describe('number, date and folder tokens', () => {
+    const FOLDER = '0193a5c0-7d1e-7000-8000-000000000001'
+    const NOV_1 = 1793487600000
+    const NOV_2 = 1793574000000
+
+    it.each([
+      ['mass>2t', { numKey: 'mass', numGte: 2, numUnit: 't' }],
+      ['mass<=5', { numKey: 'mass', numLte: 5 }],
+      ['mass:2..5t', { numKey: 'mass', numGte: 2, numLte: 5, numUnit: 't' }],
+      ['"total mass">2', { numKey: 'total mass', numGte: 2 }],
+      ['created:2026-11-01', { createdFrom: NOV_1, createdTo: NOV_2 - 1 }],
+      ['updated:..2026-11-01', { updatedTo: NOV_2 - 1 }],
+      [`in:${FOLDER}`, { ancestor: FOLDER }],
+      ['deleted:all', { deleted: 'include' }],
+      ['beton mass>2', { q: 'beton', numKey: 'mass', numGte: 2 }],
+      ['co2>5', { numKey: 'co2', numGte: 5 }],
+      ['"co2>5"', { q: 'co2>5' }],
+      ['a>b', { q: 'a>b' }],
+      ['1:2', { q: '1:2' }],
+      ['"name":2..5', { numKey: 'name', numGte: 2, numLte: 5 }],
+    ])('%j on objects → %j', (query, expected) => {
+      expect(paramsFor(query)).toEqual(expected)
+    })
+
+    it('stops an unquoted name: before a filter', () => {
+      expect(paramsFor('name:Tile mass>2')).toEqual({
+        q: 'Tile',
+        numKey: 'mass',
+        numGte: 2,
+      })
+      expect(paramsFor(`name:Clay tile in:${FOLDER}`)).toEqual({
+        q: 'Clay tile',
+        ancestor: FOLDER,
+      })
+    })
+
+    it('reads name:2..5 as a name, since the prefix wins', () => {
+      expect(paramsFor('name:2..5')).toEqual({ q: '2..5' })
+    })
+
+    const problems = (query: string, type: SearchListType = 'objects') =>
+      toListParams(parseSearchQuery(query), type).invalid.map((f) => [
+        f.raw,
+        f.problem,
+      ])
+
+    it.each([
+      ['mass > 2', [['mass > 2', 'spaces']]],
+      ['mass> 2', [['mass> 2', 'spaces']]],
+      ['mass >2', [['mass >2', 'spaces']]],
+      ['mass:2', [['mass:2', 'equals']]],
+      ['mass:5..2', [['mass:5..2', 'reversed']]],
+      ['mass:2t..5t', [['mass:2t..5t', 'unitOnce']]],
+      ['mass>1e3', [['mass>1e3', 'number']]],
+      ['created:01-11-2026', [['created:01-11-2026', 'date']]],
+      ['created:today', [['created:today', 'date']]],
+      ['created:2026-02-30', [['created:2026-02-30', 'date']]],
+      ['in:1..3', [['in:1..3', 'folder']]],
+      ['mass>2 mass<5', [['mass<5', 'once']]],
+      [
+        'created:2026-11-01 created:2026-11-02',
+        [['created:2026-11-02', 'once']],
+      ],
+      [`in:${FOLDER} parent:p-1`, [[`in:${FOLDER}`, 'inAndParent']]],
+    ])('%j is not applied, with its reason', (query, expected) => {
+      expect(problems(query)).toEqual(expected)
+    })
+
+    it('sends nothing for a filter it cannot apply', () => {
+      expect(paramsFor('mass:2 created:today')).toEqual({})
+    })
+
+    it('keeps the first of two number filters', () => {
+      expect(paramsFor('mass>2 mass<5')).toEqual({ numKey: 'mass', numGte: 2 })
+    })
+
+    it.each(ALL_TYPES.filter((type) => type !== 'objects'))(
+      'leaves numbers, dates and folders unapplied on %s',
+      (type) => {
+        const search = toListParams(
+          parseSearchQuery(
+            `mass>2 created:2026-11-01 updated:2026-11-01 in:${FOLDER} beton`
+          ),
+          type
+        )
+        expect(search.unsupported.map((f) => f.type)).toEqual([
+          'number',
+          'created',
+          'updated',
+          'folder',
+        ])
+        expect(search.params).toEqual({ q: 'beton' })
+      }
+    )
+
+    it('strips the quotes from a property key and value', () => {
+      expect(paramsFor('prop:"stainless steel"="grade a"')).toEqual({
+        property: ['stainless steel:grade a'],
+      })
+      expect(paramsFor('prop:material="stainless steel"')).toEqual({
+        property: ['material:stainless steel'],
+      })
+      expect(paramsFor('prop:"total mass"')).toEqual({
+        property: ['total mass'],
+      })
+    })
+
+    it.each([
+      { key: 'name', op: 'range', gte: 2, lte: 5 },
+      { key: 'created', op: '>=', gte: 1 },
+      { key: 'total mass', op: '<=', lte: 5, unit: 't' },
+    ] as const)(
+      'writes a number filter on $key that the search reads back',
+      (range) => {
+        expect(paramsFor(numberToken(range))).toEqual({
+          numKey: range.key,
+          ...('gte' in range && { numGte: range.gte }),
+          ...('lte' in range && { numLte: range.lte }),
+          ...('unit' in range && { numUnit: range.unit }),
+        })
+      }
+    )
+
+    it('shows a number filter as ≥ or ≤, and reads that back the same', () => {
+      const parsed = parseSearchQuery('mass>2t beton')
+      const shown = filtersToDisplayString(parsed.filters)
+      expect(shown).toBe('mass≥2t beton')
+      expect(paramsFor(shown)).toEqual(paramsFor('mass>2t beton'))
     })
   })
 })
