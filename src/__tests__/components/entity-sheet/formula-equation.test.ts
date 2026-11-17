@@ -65,4 +65,36 @@ describe('equationText', () => {
       '2 kW × 5 h'
     )
   })
+
+  it('does not bracket a text that fills a whole function argument', () => {
+    const text = (m: Record<string, string>) => (v: string) => m[v]
+    expect(equationText('sqrt(x)', text({ x: '-3' }))).toBe('sqrt(-3)')
+    expect(equationText('max(a, b)', text({ a: '1', b: '-5' }))).toBe(
+      'max(1, -5)'
+    )
+    expect(equationText('max(b, a)', text({ a: '1', b: '-5' }))).toBe(
+      'max(-5, 1)'
+    )
+    // Not the whole argument, so the sign still changes how it reads.
+    expect(equationText('sqrt(x ^ 2)', text({ x: '-3' }))).toBe(
+      'sqrt((-3) ^ 2)'
+    )
+  })
+
+  it('brackets a value with a unit next to ^', () => {
+    const text = (m: Record<string, string>) => (v: string) => m[v]
+    expect(equationText('x ^ 2', text({ x: '3 m' }))).toBe('(3 m) ^ 2')
+    expect(equationText('2 ^ x', text({ x: '3 m' }))).toBe('2 ^ (3 m)')
+    expect(equationText('x^2', text({ x: '3 m' }))).toBe('(3 m)^2')
+  })
+
+  it('fills in a name written in any script', () => {
+    const text = (m: Record<string, string>) => (v: string) => m[v]
+    expect(equationText('ρ * v', text({ ρ: '2 kg/m3', v: '3 m3' }))).toBe(
+      '(2 kg/m3) × 3 m3'
+    )
+    expect(equationText('débit * t', text({ débit: '4', d: 'no' }))).toBe(
+      '4 × t'
+    )
+  })
 })
