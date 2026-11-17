@@ -273,6 +273,32 @@ describe('CommandCenter saved searches', () => {
     )
   })
 
+  it('shows a failure as a toast when the row closed meanwhile', async () => {
+    let fail!: () => void
+    updatePreferences.mockImplementation(
+      () => new Promise((_, reject) => (fail = () => reject({ status: 0 })))
+    )
+    const { user, onOpenChange } = await setup({ initialQuery: 'beton' })
+    await waitFor(() => expect(saveButton()).toBeEnabled())
+    await user.click(saveButton())
+    await user.keyboard('{Enter}')
+    await waitFor(() => expect(updatePreferences).toHaveBeenCalled())
+    await user.keyboard('{Escape}')
+    expect(screen.queryByTestId('save-search-form')).toBeNull()
+    expect(onOpenChange).not.toHaveBeenCalled()
+    fail()
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith('savedSearch.reason.offline')
+    )
+  })
+
+  it('names a row by its name and describes it by its query', async () => {
+    server.search = { 's-a': entry('Heavy', 'beton mass>=2t', 2) }
+    await setup()
+    const run = await screen.findByRole('button', { name: 'Heavy' })
+    expect(run).toHaveAccessibleDescription('beton mass>=2t')
+  })
+
   it('runs a saved search by putting its text in the input', async () => {
     server.search = { 's-a': entry('Heavy', 'beton mass>=2t', 2) }
     const { user } = await setup()
@@ -347,6 +373,7 @@ describe('CommandCenter saved searches', () => {
     expect(within(group).getAllByRole('listitem')).toHaveLength(8)
     await user.click(within(group).getByText('savedSearch.showAll 10'))
     expect(within(group).getAllByRole('listitem')).toHaveLength(10)
+    expect(screen.getByRole('button', { name: 'n1' })).toHaveFocus()
   })
 
   it('lets the user delete an unreadable entry', async () => {

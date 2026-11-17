@@ -179,23 +179,27 @@ export function CommandCenter({
   const savedSearches = useSavedSearches()
   const reasonText = useReasonText()
   const [notice, setNotice] = React.useState({ session, text: '' })
-  // A save can end after the dialog closed; its failure then goes to a toast.
-  const openRef = React.useRef(open)
+  // A save can end after its row closed (Escape, Add filter, an emptied input) or the dialog did;
+  // its failure then has no row to show in and goes to a toast.
+  const shownRowRef = React.useRef<string | null>(null)
+  const shownRow = open && saveOpen ? saveRow.key : null
   React.useEffect(() => {
-    openRef.current = open
-  }, [open])
+    shownRowRef.current = shownRow
+  }, [shownRow])
 
   const saveSearch = async (name: string): Promise<SavedSearchResult> => {
     if (!saveRow) return { ok: false, reason: { code: 'busy' } }
-    const result = await savedSearches.save(saveRow.key, name, inputValue)
+    const { key } = saveRow
+    const result = await savedSearches.save(key, name, inputValue)
+    const rowShown = shownRowRef.current === key
     if (result.ok) {
-      setSaveRow(null)
+      setSaveRow((prev) => (prev?.key === key ? null : prev))
       setNotice({
         session,
         text: t('savedSearch.savedAs', { name: name.trim() }),
       })
-      inputRef.current?.focus()
-    } else if (!openRef.current && result.reason.code !== 'busy') {
+      if (rowShown) inputRef.current?.focus()
+    } else if (!rowShown && result.reason.code !== 'busy') {
       const { text, detail } = reasonText(result.reason)
       toast.error(detail ? `${text} ${detail}` : text)
     }

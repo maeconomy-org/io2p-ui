@@ -95,8 +95,9 @@ export function readSavedSearches(preferences: Preferences | undefined): {
 }
 
 /**
- * The reason a save must not be sent, or null. The count and the total measure the WHOLE raw
- * `search` bag after the patch, unreadable and future keys too, because the node counts them.
+ * The reason a save must not be sent, or null. The count is every `s-` key, unreadable ones too.
+ * The total measures the WHOLE raw `search` bag after the patch, other keys too, because the node
+ * counts them.
  * Saving again under a key that is already stored (a retry after a timeout that landed) is the
  * same write, so it is not a duplicate and adds nothing to the count.
  */

@@ -80,7 +80,10 @@ export const SAVED_SEARCH_LIMITS = {
   totalBytes: 32 * 1024,
 } as const
 
-/** `s-` and 10 base36 characters: inside the node's key rule, and no two tabs pick the same. */
+/**
+ * `s-` and 10 base36 characters: inside the node's key rule, and no two tabs pick the same. (`% 36`
+ * is slightly biased, which does not matter at 36^10 keys.)
+ */
 export function savedSearchKey(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(10))
   return (

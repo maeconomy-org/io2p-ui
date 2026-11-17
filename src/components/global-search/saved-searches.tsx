@@ -165,6 +165,16 @@ export function SavedSearchGroup({
     detail?: string
   } | null>(null)
   const headingId = React.useId()
+  const listRef = React.useRef<HTMLUListElement>(null)
+  // The button unmounts on click, so focus moves to the first row it showed.
+  const focusNewRows = React.useRef(false)
+  React.useEffect(() => {
+    if (!showAll || !focusNewRows.current) return
+    focusNewRows.current = false
+    const rows =
+      listRef.current?.querySelectorAll<HTMLButtonElement>('[data-run]')
+    rows?.item(FIRST_ROWS)?.focus()
+  }, [showAll])
 
   if (saved.length === 0 && unreadable.length === 0) return null
 
@@ -187,12 +197,16 @@ export function SavedSearchGroup({
         <Bookmark className="h-3 w-3" aria-hidden />
         {t('group')}
       </div>
-      <ul aria-labelledby={headingId} className="grid">
+      <ul ref={listRef} aria-labelledby={headingId} className="grid">
         {shown.map((search) => (
           <li key={search.key} className="flex min-w-0 items-center gap-1">
             <button
               type="button"
               onClick={() => onRun(search.query)}
+              data-run
+              // Named by the name only: a long query read on every row would bury the list.
+              aria-labelledby={`${headingId}-${search.key}`}
+              aria-describedby={`${headingId}-${search.key}-q`}
               className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Bookmark
@@ -200,8 +214,14 @@ export function SavedSearchGroup({
                 aria-hidden
               />
               <span className="grid min-w-0">
-                <span className="truncate text-sm">{search.name}</span>
                 <span
+                  id={`${headingId}-${search.key}`}
+                  className="truncate text-sm"
+                >
+                  {search.name}
+                </span>
+                <span
+                  id={`${headingId}-${search.key}-q`}
                   className="truncate font-mono text-xs text-muted-foreground"
                   title={search.query}
                 >
@@ -241,7 +261,10 @@ export function SavedSearchGroup({
       {!showAll && saved.length > FIRST_ROWS && (
         <button
           type="button"
-          onClick={() => setShowAll(true)}
+          onClick={() => {
+            focusNewRows.current = true
+            setShowAll(true)
+          }}
           className="mt-1 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {t('showAll', { count: saved.length })}
