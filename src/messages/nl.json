@@ -640,6 +640,8 @@
       "addFiles": "Bestanden toevoegen",
       "external": "Link",
       "invalidUrl": "Voer een geldige https-URL in",
+      "invalidUrlWithFiles": "De link is geen geldige https-URL. Verbeter hem, of maak hem leeg om de gekozen bestanden toe te voegen.",
+      "labelWithoutUrl": "Een label hoort bij een link. Typ de link, of maak het label leeg.",
       "delete": "Bestand verwijderen",
       "noFiles": "Nog geen bestanden",
       "unavailable": "Dit bestand is niet meer beschikbaar.",

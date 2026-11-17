@@ -557,6 +557,8 @@
       "addFiles": "Add files",
       "external": "Link",
       "invalidUrl": "Enter a valid https URL",
+      "invalidUrlWithFiles": "The link is not a valid https URL. Correct it, or clear it to add the picked files.",
+      "labelWithoutUrl": "A label needs a link. Type the link, or clear the label.",
       "delete": "Delete file",
       "noFiles": "No files yet",
       "unavailable": "This file is no longer available.",

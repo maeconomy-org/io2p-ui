@@ -111,7 +111,17 @@ export function AttachmentModal({
   const done = () => {
     const typed = url.trim()
     if (typed && !isAllowedExternalFileReference(typed)) {
-      setError(t('objects.files.invalidUrl'))
+      setError(
+        t(
+          pending.length
+            ? 'objects.files.invalidUrlWithFiles'
+            : 'objects.files.invalidUrl'
+        )
+      )
+      return
+    }
+    if (!typed && label.trim()) {
+      setError(t('objects.files.labelWithoutUrl'))
       return
     }
     const batch = typed
