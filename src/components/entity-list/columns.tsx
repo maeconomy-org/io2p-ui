@@ -290,6 +290,8 @@ export function nameColumn<T>(
     getDeleted?: (row: T) => boolean
     deletedLabel?: string
     childrenTooltip?: (count: number) => string
+    /** The tooltip of a row whose children the node did not count in time. */
+    uncountedTooltip?: string
     /** The badge text for a child count (a capped count reads "1,000+"). */
     formatChildCount?: (count: number) => string
   } = {}
@@ -300,7 +302,11 @@ export function nameColumn<T>(
     ...headerCell<T>('name', header, options.sortable),
     cell: ({ row }) => {
       const name = getName(row.original)
-      const count = getChildCount?.(row.original) ?? 0
+      const count = getChildCount?.(row.original)
+      const tooltip =
+        count === undefined
+          ? options.uncountedTooltip
+          : options.childrenTooltip?.(count)
       const deleted = getDeleted?.(row.original) ?? false
       return (
         <div className="flex items-center font-medium">
@@ -318,19 +324,19 @@ export function nameColumn<T>(
               {options.deletedLabel}
             </span>
           )}
-          {count > 0 && (
+          {getChildCount && count !== 0 && (
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    {options.formatChildCount?.(count) ?? count}
+                    {count === undefined
+                      ? '—'
+                      : (options.formatChildCount?.(count) ?? count)}
                     <ChevronRight className="h-2.5 w-2.5" />
                   </span>
                 </TooltipTrigger>
-                {options.childrenTooltip && (
-                  <TooltipContent side="right">
-                    {options.childrenTooltip(count)}
-                  </TooltipContent>
+                {tooltip && (
+                  <TooltipContent side="right">{tooltip}</TooltipContent>
                 )}
               </Tooltip>
             </TooltipProvider>

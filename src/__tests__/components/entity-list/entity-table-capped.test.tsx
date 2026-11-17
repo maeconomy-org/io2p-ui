@@ -38,6 +38,7 @@ function renderTable(props: {
   requestedPage?: number
   capped?: boolean
   error?: unknown
+  fetching?: boolean
   onPageChange: (page: number) => void
 }) {
   return render(
@@ -54,6 +55,7 @@ function renderTable(props: {
         page={props.page}
         requestedPage={props.requestedPage}
         error={props.error ?? null}
+        fetching={props.fetching}
         onPageChange={props.onPageChange}
       />
     </NextIntlClientProvider>
@@ -68,14 +70,22 @@ describe('EntityTable on a capped list', () => {
     expect(onPageChange).toHaveBeenCalledWith(52)
   })
 
-  it('asks for page 52 once per click while page 52 is still loading', () => {
+  it('asks for page 52 once, however often next is pressed while it loads', () => {
     // keepPreviousData: the table still shows page 51 until 52 lands.
     const onPageChange = vi.fn()
-    renderTable({ page: answered(51, 20, 1001), onPageChange })
+    renderTable({ page: answered(51, 20, 1001), fetching: true, onPageChange })
     for (let i = 0; i < 3; i++) {
       fireEvent.click(screen.getByTestId('page-next'))
     }
-    expect(onPageChange.mock.calls).toEqual([[52], [52], [52]])
+    expect(onPageChange.mock.calls).toEqual([[52]])
+  })
+
+  it('asks again for a page once the list is idle, so a retry is possible', () => {
+    const onPageChange = vi.fn()
+    renderTable({ page: answered(51, 20, 1001), onPageChange })
+    fireEvent.click(screen.getByTestId('page-next'))
+    fireEvent.click(screen.getByTestId('page-next'))
+    expect(onPageChange.mock.calls).toEqual([[52], [52]])
   })
 
   it('says there are no more rows on an empty page after the end', () => {

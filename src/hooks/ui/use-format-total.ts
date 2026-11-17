@@ -13,6 +13,8 @@ export function useFormatTotal() {
   const format = useFormatter()
 
   return {
+    /** "{count}+" for a lower limit that is not the cap itself, such as a sum over capped lists. */
+    moreThan: (count: number) => t('totalMoreThan', { count }),
     text: (total: number, capped: boolean) =>
       isCappedTotal(total, capped)
         ? t('totalMoreThan', { count: TOTAL_CAP })

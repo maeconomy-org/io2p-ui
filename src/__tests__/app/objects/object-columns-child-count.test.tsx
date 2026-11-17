@@ -91,6 +91,14 @@ describe('the objects table child count', () => {
     expect(onRowClick).not.toHaveBeenCalled()
   })
 
+  it('puts a dash on the name badge of a row the node did not count', () => {
+    expect(cell('name', {})).toHaveTextContent(/^Blok A—$/)
+  })
+
+  it('puts no name badge on a leaf', () => {
+    expect(cell('name', { childCount: 0 })).toHaveTextContent(/^Blok A$/)
+  })
+
   it('puts 1,000+ on the name badge of a capped row', () => {
     expect(cell('name', { childCount: 1001 })).toHaveTextContent('Blok A1,000+')
   })

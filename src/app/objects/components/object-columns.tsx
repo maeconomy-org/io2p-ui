@@ -88,6 +88,7 @@ export function buildObjectColumns({
           ? t('objects.childrenTooltipMany', { count: TOTAL_CAP })
           : t('objects.childrenTooltip', { count }),
       formatChildCount: childCountText,
+      uncountedTooltip: t('common.countUnavailable'),
     }),
     idColumn<ObjectListItem>((o) => o.id, t('objects.fields.uuid')),
     textColumn<ObjectListItem>(

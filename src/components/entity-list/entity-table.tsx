@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, useRef, type ReactNode } from 'react'
 import type {
   ColumnDef,
   OnChangeFn,
@@ -93,8 +93,14 @@ export function EntityTable<T>({
   // lower limit, and with no answer (an error) it is 0.
   const lastKnownPage =
     meta.capped || !page ? Infinity : Math.max(1, meta.totalPages)
+  // While a page loads, `meta` is still the previous page's: repeat clicks would ask again for
+  // the page already on its way.
+  const lastAsked = useRef<number | undefined>(undefined)
   const emit = (page1Based: number) => {
-    onPageChange?.(Math.min(Math.max(1, page1Based), lastKnownPage))
+    const next = Math.min(Math.max(1, page1Based), lastKnownPage)
+    if (fetching && next === lastAsked.current) return
+    lastAsked.current = next
+    onPageChange?.(next)
   }
 
   const onHide = useMemo(() => {

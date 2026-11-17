@@ -32,8 +32,14 @@ describe('CommandMore on a capped list', () => {
 
   it('never adds a capped total into an exact-looking sum', () => {
     const text = footer([page(20, 1001), page(5, 5)], true).textContent
-    expect(text).toContain('of 1,000+.')
-    expect(text).not.toContain('1006')
+    expect(text).toContain('of 1,005+.')
+    expect(text).not.toContain('1,006')
+  })
+
+  it('counts each capped list as more than 1,000 in a merged picker', () => {
+    expect(footer([page(20, 1001), page(20, 1001)], true)).toHaveTextContent(
+      'Showing the first 40 of 2,000+.'
+    )
   })
 
   it('shows 1001 on a list the node counts exactly (users) as the real number', () => {
