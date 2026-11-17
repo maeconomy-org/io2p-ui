@@ -556,7 +556,6 @@
       "onValues": "{count, plural, one {# file on its values} other {# files on its values}}",
       "addFiles": "Add files",
       "external": "Link",
-      "filesCount": "Files ({count})",
       "invalidUrl": "Enter a valid https URL",
       "delete": "Delete file",
       "noFiles": "No files yet",

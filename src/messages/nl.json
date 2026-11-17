@@ -639,7 +639,6 @@
       "onValues": "{count, plural, one {# bestand bij de waarden} other {# bestanden bij de waarden}}",
       "addFiles": "Bestanden toevoegen",
       "external": "Link",
-      "filesCount": "Bestanden ({count})",
       "invalidUrl": "Voer een geldige https-URL in",
       "delete": "Bestand verwijderen",
       "noFiles": "Nog geen bestanden",
