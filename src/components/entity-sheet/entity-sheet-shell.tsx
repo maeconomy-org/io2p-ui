@@ -19,6 +19,7 @@ import {
   TabsTrigger,
 } from '@/components/ui'
 import { Alert } from '@/components/ui/alert'
+import { useUnits } from '@/hooks/api/leaves'
 import { cn } from '@/lib/utils'
 import { anchor } from '@/constants'
 
@@ -123,6 +124,10 @@ export function EntitySheetShell({
   footer,
   saveError,
 }: EntitySheetShellProps) {
+  // Read here, not in the property row: a plain `5` under Quantity counts as pcs only once the
+  // node's count keys arrive, and a row that starts the read previews it unitless first.
+  useUnits({ enabled: open })
+
   // Wrapped in an object because `useState` treats a bare function as a lazy initializer and would
   // call the pending action instead of storing it.
   const [pending, setPending] = useState<{ run: () => void } | null>(null)
