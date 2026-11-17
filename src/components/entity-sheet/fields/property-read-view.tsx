@@ -1033,7 +1033,7 @@ function ValueRow({
           textForValue={textForValue}
           marker={marker}
           trailing={filesToggle}
-          usedAsMultiplier={quantity !== undefined}
+          multiplier={quantity}
         />
       ) : (
         <div className="flex flex-wrap items-center gap-2 text-sm">

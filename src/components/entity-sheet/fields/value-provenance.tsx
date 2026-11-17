@@ -19,6 +19,7 @@ import type {
 import { useCollapsible } from '../collapse-all'
 import { equationText } from './formula-equation'
 import { findValue } from './property-values'
+import type { ResolvedQuantity } from './quantity'
 
 /**
  * Derived values of the loaded entity, keyed by value id. Presence means the value is derived; the
@@ -44,7 +45,7 @@ export function ValueProvenanceDisplay({
   textForValue,
   marker,
   trailing,
-  usedAsMultiplier = false,
+  multiplier,
   className,
 }: {
   provenance: ValueProvenanceData
@@ -60,8 +61,8 @@ export function ValueProvenanceDisplay({
   textForValue?: (valueId: string) => string | undefined
   /** A value marker (the multiplier refusal) placed with the marks, before the toggle. */
   marker?: React.ReactNode
-  /** A rollup rule multiplies by this value, so an unchecked result drops the object from it. */
-  usedAsMultiplier?: boolean
+  /** How a rollup rule that multiplies by this key reads it; an unchecked result drops the object. */
+  multiplier?: ResolvedQuantity
   /** Another row toggle (the value's files), after the formula's. */
   trailing?: React.ReactNode
   className?: string
@@ -193,7 +194,7 @@ export function ValueProvenanceDisplay({
           unchecked={unchecked}
           labelForValue={labelForValue}
           argText={argText}
-          usedAsMultiplier={usedAsMultiplier}
+          multiplier={multiplier}
         />
       )}
     </div>
@@ -211,13 +212,13 @@ function FormulaFacts({
   unchecked,
   labelForValue,
   argText,
-  usedAsMultiplier,
+  multiplier,
 }: {
   id: string
   provenance: ValueProvenanceData
   unit?: string
   unchecked: ReturnType<typeof uncheckedState> | false
-  usedAsMultiplier: boolean
+  multiplier?: ResolvedQuantity
   labelForValue?: (valueId: string) => string | undefined
   argText: (arg: ValueProvenanceData['args'][number]) => string | undefined
 }) {
@@ -269,12 +270,16 @@ function FormulaFacts({
             : 'objects.properties.unitNotCheckedDetail'
         )}
       </p>
-      {usedAsMultiplier && (
+      {multiplier && (
         <p
           className="text-amber-700 dark:text-amber-400"
           data-testid="provenance-multiplier"
         >
-          {t('objects.properties.unitNotCheckedMultiplier')}
+          {t(
+            multiplier.kind === 'ambiguous'
+              ? 'objects.properties.unitNotCheckedMultiplierSeveral'
+              : 'objects.properties.unitNotCheckedMultiplier'
+          )}
         </p>
       )}
     </div>
@@ -379,9 +384,11 @@ function FormulaFacts({
           </dt>
           <dd data-testid="provenance-fix">
             {t(
-              unchecked === 'left-out'
-                ? 'objects.properties.fixNotCounted'
-                : 'objects.properties.fixNoUnit'
+              unchecked !== 'left-out'
+                ? 'objects.properties.fixNoUnit'
+                : provenance.unitSource === 'inherited'
+                  ? 'objects.properties.fixNotCountedInherited'
+                  : 'objects.properties.fixNotCounted'
             )}
           </dd>
         </>

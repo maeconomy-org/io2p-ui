@@ -706,13 +706,14 @@
       "unitNotChecked": "Eenheid niet gecontroleerd",
       "unitNotCountedCauses": "Dit gebeurt bij de logaritme van een waarde met een eenheid, een variabele exponent, if/else-takken in verschillende eenheden, of een invoer die zelf niet is gecontroleerd.",
       "unitNotCheckedMultiplier": "Een totaalregel vermenigvuldigt met deze waarde, dus dat object telt niet mee in dat totaal.",
+      "unitNotCheckedMultiplierSeveral": "Een totaalregel vermenigvuldigt met deze sleutel, en dit object heeft er meerdere waarden onder, dus het telt niet mee in dat totaal.",
       "unitNotCheckedDetail": "Meegeteld in het totaal zonder eenheid.",
       "rollupUnverified": "{count, plural, one {waarvan # gemarkeerd als ‘Niet meegeteld’} other {waarvan # gemarkeerd als ‘Niet meegeteld’}}",
       "rollupMultiValue": "{count, plural, one {# object heeft meerdere waarden} other {# objecten hebben meerdere waarden}}",
       "rollupMultiValueAllCounted": "{count, plural, one {# object heeft meerdere waarden, alle meegeteld} other {# objecten hebben meerdere waarden, alle meegeteld}}",
       "rollupProcessing": "Bijwerken…",
       "rollupSubtreeTooLarge": "Te veel items om te totaliseren",
-      "noUnit": "Geen eenheid",
+      "noUnit": "Geteld zonder eenheid",
       "unitChecked": "Eenheid gecontroleerd",
       "unitNotCountedShort": "De eenheid kon niet worden gecontroleerd, dus deze waarde telt in geen enkel totaal mee.",
       "factsFormula": "Formule",
@@ -720,8 +721,9 @@
       "factsResult": "Resultaat",
       "factsStatus": "Status",
       "factsFix": "Oplossen",
-      "fixNotCounted": "Dupliceer de formule met een andere uitdrukking, of zonder resultaateenheid zodat de waarde meetelt in het totaal zonder eenheid.",
-      "fixNoUnit": "Dupliceer de formule met een resultaateenheid (bijvoorbeeld kWh), of geef een invoer zonder eenheid zijn eenheid (bijvoorbeeld ‘11 pcs’).",
+      "fixNotCounted": "Dupliceert u de formule met een andere uitdrukking, of zonder resultaateenheid, zodat de waarde meetelt in het totaal zonder eenheid.",
+      "fixNotCountedInherited": "Dupliceert u de formule met een andere uitdrukking, of geeft u de invoer eenheden die zij kan controleren.",
+      "fixNoUnit": "Dupliceert u de formule met een resultaateenheid (bijvoorbeeld kWh), of geeft u een invoer zonder eenheid zijn eenheid (bijvoorbeeld ‘11 pcs’).",
       "resultDeclared": "{unit}, ingesteld in de formule",
       "resultInherited": "{unit}, uit de invoer",
       "resultNoUnit": "Geen eenheid",
@@ -1471,7 +1473,7 @@
     },
     "formula": {
       "label": "Wat is een formule?",
-      "body": "Een herbruikbare expressie die aan een waarde is gekoppeld en door de server wordt herberekend. Formules zijn onveranderlijk — om er een te wijzigen dupliceer je hem en koppel je de nieuwe versie, zodat bestaand gebruik zijn betekenis behoudt."
+      "body": "Een herbruikbare expressie die aan een waarde is gekoppeld en door de server wordt herberekend. Formules zijn onveranderlijk — om er een te wijzigen, dupliceert u hem en koppelt u de nieuwe versie, zodat bestaand gebruik zijn betekenis behoudt."
     },
     "constant": {
       "label": "Wat is een constante?",
@@ -1585,7 +1587,7 @@
     },
     "map": {
       "title": "Wat staat er in elke kolom?",
-      "subtitle": "Geraden op basis van je koppen en de waarden zelf — pas aan wat niet klopt.",
+      "subtitle": "Geraden op basis van uw koppen en de waarden zelf — pas aan wat niet klopt.",
       "noValues": "geen waarden in deze kolom",
       "unnamedColumn": "Kolom {index, number}",
       "levelBadge": "Niveau {level, number}",
