@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import type { ObjectListItem } from 'io2p-client'
 
+import { mayHaveChildren } from '@/lib/list-total'
+
 import { MillerColumn, type MillerColumnActions } from './components'
 
 function columnTitle(
@@ -80,7 +82,7 @@ export function ObjectColumnsView({
 
   const handleSelect = (columnIndex: number, item: ObjectListItem) => {
     setSelected((prev) => [...prev.slice(0, columnIndex), item.id])
-    const hasChildren = (item.childCount ?? 0) > 0
+    const hasChildren = mayHaveChildren(item.childCount)
     setOpenPath((prev) =>
       hasChildren
         ? [...prev.slice(0, columnIndex), item.id]

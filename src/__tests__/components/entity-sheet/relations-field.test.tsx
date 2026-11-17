@@ -16,7 +16,7 @@ vi.mock('@/lib/observability/logger', () => ({ logger: { warn: vi.fn() } }))
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
-  useFormatter: () => ({ dateTime: () => '24 Jun 2026' }),
+  useFormatter: () => ({ number: String, dateTime: () => '24 Jun 2026' }),
 }))
 
 const OBJECT_ID = 'obj-1'
@@ -114,6 +114,17 @@ describe('RelationsField', () => {
     // 30 matched, 1 fetched — a count that silently stopped at the page size would read as the whole
     // answer.
     await screen.findByText('objects.relations.more:{"count":29}')
+  })
+
+  it('shows a capped total as more than 1,000, with no exact count of the rest', async () => {
+    respond({ input: page([process('p1', 'inputs')], 1001) })
+    renderField(OBJECT_ID)
+
+    await screen.findByText('objects.relations.moreUnknown')
+    expect(screen.getByTestId('relations-consumed-by-count')).toHaveTextContent(
+      'totalMoreThan:{"count":1000}'
+    )
+    expect(screen.queryByText(/objects\.relations\.more:/)).toBeNull()
   })
 
   it('renders a dash for a flow with no quantity', async () => {

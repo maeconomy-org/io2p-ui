@@ -226,6 +226,8 @@ export default function TemplatesPage() {
             highlight={shownSearch}
             columns={columns}
             page={templatesPage}
+            capped
+            requestedPage={listQuery.query.page}
             getRowId={(template) => template.id}
             fetching={isFetching}
             sort={listQuery.query.sort}

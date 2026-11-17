@@ -376,7 +376,7 @@ function ResourceResults({
           ))}
         </CommandGroup>
       </CommandList>
-      <CommandMore pages={pages} />
+      <CommandMore pages={pages} capped />
     </>
   )
 }

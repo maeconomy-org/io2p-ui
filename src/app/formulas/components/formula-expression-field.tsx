@@ -226,6 +226,7 @@ export function FormulaExpressionField({
           </div>
           <CommandMore
             pages={[constantsPage]}
+            capped
             className="border-t-0 px-0 py-0"
           />
         </div>

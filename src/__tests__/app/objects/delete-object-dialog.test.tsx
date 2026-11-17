@@ -7,6 +7,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
 import type { ObjectListItem } from 'io2p-client'
 
+import en from '@/messages/en.json'
+import nl from '@/messages/nl.json'
+
 const useSubtree = vi.fn()
 
 vi.mock('@/hooks/api/entities', () => ({
@@ -71,6 +74,15 @@ describe('DeleteObjectDialog', () => {
     expect(description).toContain('"count":214')
   })
 
+  it('says "more than 1,000" when the node capped the descendant count', () => {
+    useSubtree.mockReturnValue(page(1001))
+    const { description } = renderDialog(object({ childCount: 12 }))
+
+    expect(description).toContain(
+      'objects.deleteConfirmDescriptionMoreThan:{"name":"Blok A","count":1000}'
+    )
+  })
+
   it('uses the plain copy for a leaf', () => {
     useSubtree.mockReturnValue(page(0))
     const { description } = renderDialog(object({ childCount: 0 }))
@@ -95,4 +107,24 @@ describe('DeleteObjectDialog', () => {
     expect(description).toContain('deleteConfirmDescriptionWithChildren')
     expect(description).toContain('"count":3')
   })
+})
+
+describe('the capped delete copy', () => {
+  it.each([
+    ['en', en, 'more than 1,000 descendants'],
+    ['nl', nl, 'meer dan 1.000 onderliggende objecten'],
+  ] as const)(
+    'reads "more than 1,000" in %s',
+    async (locale, messages, phrase) => {
+      const { createTranslator } =
+        await vi.importActual<typeof import('next-intl')>('next-intl')
+      const t = createTranslator({ locale, messages })
+      expect(
+        t('objects.deleteConfirmDescriptionMoreThan', {
+          name: 'Blok A',
+          count: 1000,
+        })
+      ).toContain(phrase)
+    }
+  )
 })

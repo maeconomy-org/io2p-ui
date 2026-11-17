@@ -12,6 +12,8 @@ import {
   Skeleton,
 } from '@/components/ui'
 import { OwnerHint } from '@/components/entity-list'
+import { useFormatTotal } from '@/hooks/ui/use-format-total'
+import { isCappedCount } from '@/lib/list-total'
 
 import {
   useObjectRelations,
@@ -133,12 +135,14 @@ function RelationList({
   group?: RelationGroup
 }) {
   const t = useTranslations()
+  const formatTotal = useFormatTotal()
 
   if (!group || group.relations.length === 0) return null
 
   // Only the first page is fetched. Say so rather than presenting a truncated list as the whole
   // answer — a relation count that quietly stops at 25 reads as "that is all of them".
   const hidden = group.total - group.relations.length
+  const capped = isCappedCount(group.total)
 
   return (
     <section className="space-y-2" data-testid={`relations-${testId}`}>
@@ -150,7 +154,7 @@ function RelationList({
           data-testid={`relations-${testId}-count`}
           className="h-5 px-1.5"
         >
-          {group.total}
+          {formatTotal.text(group.total, true)}
         </Badge>
       </div>
       <p className="text-xs text-muted-foreground">{hint}</p>
@@ -167,7 +171,9 @@ function RelationList({
 
       {hidden > 0 && (
         <p className="text-xs text-muted-foreground">
-          {t('objects.relations.more', { count: hidden })}
+          {capped
+            ? t('objects.relations.moreUnknown')
+            : t('objects.relations.more', { count: hidden })}
         </p>
       )}
     </section>

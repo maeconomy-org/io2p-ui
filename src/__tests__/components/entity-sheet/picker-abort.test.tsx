@@ -8,6 +8,7 @@ import { SEARCH_SIZE } from '@/constants'
 import { useObjects } from '@/hooks/api/entities'
 
 vi.mock('next-intl', () => ({
+  useFormatter: () => ({ number: String }),
   useTranslations: () => (key: string) => key,
 }))
 

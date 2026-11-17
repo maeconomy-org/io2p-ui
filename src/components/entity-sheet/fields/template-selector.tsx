@@ -210,7 +210,7 @@ function TemplateSelectorList({
           ))}
         </CommandGroup>
       </CommandList>
-      <CommandMore pages={[data]} />
+      <CommandMore pages={[data]} capped />
     </Command>
   )
 }

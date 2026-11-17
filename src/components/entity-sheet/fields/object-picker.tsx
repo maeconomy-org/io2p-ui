@@ -202,7 +202,7 @@ function ObjectPickerList({
           {t('objects.viewOnlyNotChoosable')}
         </p>
       )}
-      <CommandMore pages={[data]} />
+      <CommandMore pages={[data]} capped />
     </Command>
   )
 }

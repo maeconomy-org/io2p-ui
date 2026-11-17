@@ -4,7 +4,9 @@ import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ObjectListItem } from 'io2p-client'
 
+import { isCappedCount, TOTAL_CAP } from '@/lib/list-total'
 import {
+  ChildCount,
   OwnerCell,
   actionsColumn,
   coverColumn,
@@ -58,6 +60,10 @@ export function buildObjectColumns({
   isRestoring = false,
 }: BuildObjectColumnsOptions): ColumnDef<ObjectListItem, unknown>[] {
   const cols: ColumnDef<ObjectListItem, unknown>[] = []
+  const childCountText = (count: number) =>
+    isCappedCount(count)
+      ? t('common.totalMoreThan', { count: TOTAL_CAP })
+      : t('common.number', { count })
 
   if (enableSelection) cols.push(selectColumn<ObjectListItem>())
 
@@ -77,16 +83,18 @@ export function buildObjectColumns({
       getChildCount: (o) => o.childCount,
       getDeleted: (o) => o.deleted,
       deletedLabel: t('objects.deletedBadge'),
-      childrenTooltip: (count) => t('objects.childrenTooltip', { count }),
+      childrenTooltip: (count) =>
+        isCappedCount(count)
+          ? t('objects.childrenTooltipMany', { count: TOTAL_CAP })
+          : t('objects.childrenTooltip', { count }),
+      formatChildCount: childCountText,
+      uncountedTooltip: t('common.countUnavailable'),
     }),
     idColumn<ObjectListItem>((o) => o.id, t('objects.fields.uuid')),
-    // `childCount` is populated only because the list asks `withChildCounts`.
-    // It is `0` for a leaf and absent if that flag ever goes away, so `?? '—'`
-    // distinguishes "no children" from "not asked for".
     textColumn<ObjectListItem>(
       'childCount',
       t('objects.fields.children'),
-      (o) => (o.childCount === undefined ? undefined : String(o.childCount))
+      (o) => <ChildCount count={o.childCount} />
     ),
     textColumn<ObjectListItem>(
       'createdBy',

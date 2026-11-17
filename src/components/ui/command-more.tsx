@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl'
 
 import { cn } from '@/lib/utils'
+import { useFormatTotal } from '@/hooks/ui/use-format-total'
+import { sumTotals } from '@/lib/list-total'
 
 /** One fetched page of a list, as every node list returns it. */
 export interface FetchedPage {
@@ -21,16 +23,23 @@ export interface FetchedPage {
  */
 export function CommandMore({
   pages,
+  capped = false,
   className,
 }: {
   pages: readonly (FetchedPage | undefined)[]
+  /** The pages come from lists the node caps at 1001: see `isCappedTotal`. */
+  capped?: boolean
   className?: string
 }) {
   const t = useTranslations()
+  const formatTotal = useFormatTotal()
   const loaded = pages.filter((p): p is FetchedPage => !!p)
   const shown = loaded.reduce((sum, p) => sum + p.data.length, 0)
-  const total = loaded.reduce((sum, p) => sum + p.page.totalElements, 0)
-  if (total <= shown) return null
+  const sum = sumTotals(
+    loaded.map((p) => p.page.totalElements),
+    capped
+  )
+  if (!sum.capped && sum.total <= shown) return null
 
   return (
     <p
@@ -40,7 +49,12 @@ export function CommandMore({
       )}
       data-testid="command-more"
     >
-      {t('common.pickerMore', { shown, total })}
+      {t('common.pickerMore', {
+        shown,
+        total: sum.capped
+          ? formatTotal.moreThan(sum.total)
+          : formatTotal.text(sum.total, false),
+      })}
     </p>
   )
 }

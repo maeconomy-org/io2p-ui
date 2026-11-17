@@ -118,6 +118,11 @@ describe.each(PAGES)(
       expect(queryOf().property).toBeUndefined()
     })
 
+    it('tells its table whether the node caps this list at 1001', () => {
+      render(<Page />)
+      expect(Boolean(tableProps().capped)).toBe(type !== 'shares')
+    })
+
     it('sends the filters it takes and only the free text as q', () => {
       parsed = parseSearchQuery(
         'prop:material=steel createdBy:u-2 deleted:false beton'

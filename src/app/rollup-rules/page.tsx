@@ -201,6 +201,7 @@ export default function RollupRulesPage() {
               rowSelection={list.rowSelection}
               onRowSelectionChange={list.setRowSelection}
               onPageChange={listQuery.setPage}
+              requestedPage={listQuery.query.page}
               onPageSizeChange={filters.handlePageSizeChange}
               pageSize={filters.pageSize}
               onRowClick={(rule) => setSheet({ mode: 'view', rule })}

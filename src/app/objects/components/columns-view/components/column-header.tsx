@@ -5,16 +5,20 @@ import { useTranslations } from 'next-intl'
 import { Search, X } from 'lucide-react'
 import { SearchMinHint } from '@/components/search-min-hint'
 import { Button, Input, ColumnPagination } from '@/components/ui'
+import { TOTAL_CAP } from '@/lib/list-total'
 
 interface ColumnHeaderProps {
   title: string
   searchTerm: string
   onSearchChange: (term: string) => void
   itemCount: number
+  /** The node capped the item count at 1001 ("more than 1,000"). */
+  capped?: boolean
   pagination?: {
     currentPage: number
     totalPages: number
     totalItems: number
+    isLastPage: boolean
     onPageChange: (page: number) => void
   }
   isLoading?: boolean
@@ -25,6 +29,7 @@ export function ColumnHeader({
   searchTerm,
   onSearchChange,
   itemCount,
+  capped = false,
   pagination,
   isLoading = false,
 }: ColumnHeaderProps) {
@@ -40,12 +45,12 @@ export function ColumnHeader({
         {/* Title and Count */}
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-medium">{title}</h3>
-          <div className="text-xs text-muted-foreground">
-            {pagination
-              ? t('objects.columnCount', {
-                  count: itemCount,
-                  total: pagination.totalItems,
-                })
+          <div
+            className="text-xs text-muted-foreground"
+            data-testid="column-item-count"
+          >
+            {capped
+              ? t('objects.itemsCountMoreThan', { count: TOTAL_CAP })
               : t('objects.itemsCount', { count: itemCount })}
           </div>
         </div>
@@ -75,12 +80,14 @@ export function ColumnHeader({
       </div>
 
       {/* Compact Pagination */}
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && (
         <div className="pb-2">
           <ColumnPagination
             currentPage={pagination.currentPage}
             totalPages={pagination.totalPages}
             totalItems={pagination.totalItems}
+            capped={capped}
+            isLastPage={pagination.isLastPage}
             onPageChange={pagination.onPageChange}
             loading={isLoading}
           />

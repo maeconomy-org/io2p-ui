@@ -178,6 +178,8 @@ export default function ConstantsPage() {
               highlight={shownSearch}
               columns={columns}
               page={constantsPage}
+              capped
+              requestedPage={listQuery.query.page}
               getRowId={(constant) => constant.id}
               fetching={isFetching}
               sort={listQuery.query.sort}

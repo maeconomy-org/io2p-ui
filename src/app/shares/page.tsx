@@ -236,6 +236,7 @@ export default function SharesPage() {
                 rowSelection={rowSelection}
                 onRowSelectionChange={setRowSelection}
                 onPageChange={listQuery.setPage}
+                requestedPage={listQuery.query.page}
                 onPageSizeChange={handlePageSizeChange}
                 pageSize={pageSize}
                 emptyIcon={

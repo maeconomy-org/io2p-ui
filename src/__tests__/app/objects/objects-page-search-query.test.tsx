@@ -112,6 +112,11 @@ describe('objects page — the list query during a search', () => {
     expect(queryOf().q).toBeUndefined()
   })
 
+  it('tells its table that the node caps the total, and which page it asked for', () => {
+    render(<ObjectsPage />)
+    expect(tableProps()).toMatchObject({ capped: true, requestedPage: 1 })
+  })
+
   it('sends each filter as its own param and only the free text as q', () => {
     parsed = parseSearchQuery(
       'prop:material=steel createdBy:u-2 deleted:true beton'

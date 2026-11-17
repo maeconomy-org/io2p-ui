@@ -237,6 +237,8 @@ export default function ProcessesPage() {
               onRowHover={(row) => prefetchDetail(row.id)}
               columns={columns}
               page={processesPage}
+              capped
+              requestedPage={listQuery.query.page}
               getRowId={(process) => process.id}
               fetching={isFetching}
               sort={listQuery.query.sort}

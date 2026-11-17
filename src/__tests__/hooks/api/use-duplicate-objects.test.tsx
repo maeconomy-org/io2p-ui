@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
+import { createClient } from 'io2p-client'
 
 const objects = {
   get: vi.fn(),
@@ -21,6 +22,40 @@ function pageOf(ids: string[]) {
   return (async function* () {
     for (const id of ids) yield { id, name: id }
   })()
+}
+
+/**
+ * A real SDK client over a fake node that answers like the real one: it counts a list up to 1,000
+ * and answers 1001 above that, so `totalPages` is a lower limit.
+ */
+function cappedNode(rowsFor: (query: URLSearchParams) => string[]) {
+  const fetch = async (input: string | URL) => {
+    const url = new URL(String(input))
+    const all = rowsFor(url.searchParams)
+    const page = Number(url.searchParams.get('page') ?? 1)
+    const size = Number(url.searchParams.get('size') ?? 20)
+    const totalElements = all.length > 1000 ? 1001 : all.length
+    const body = {
+      data: all
+        .slice((page - 1) * size, page * size)
+        .map((id) => ({ id, name: id })),
+      page: {
+        number: page,
+        size,
+        totalElements,
+        totalPages: Math.ceil(totalElements / size),
+      },
+    }
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+  return createClient({
+    baseUrl: 'http://node.test',
+    getToken: async () => 'token',
+    fetch: fetch as typeof globalThis.fetch,
+  })
 }
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -65,6 +100,45 @@ describe('useDuplicateObjects', () => {
 
     // 1 root copy + 150 children. A single page would have produced 101.
     expect(objects.create).toHaveBeenCalledTimes(151)
+  })
+
+  it('copies every child of a parent with more than 1,100 children', async () => {
+    const many = Array.from({ length: 1150 }, (_, i) => `child-${i}`)
+    const node = cappedNode((q) => (q.get('parent') === 'src' ? many : []))
+    objects.paginate.mockImplementation((query) => node.objects.paginate(query))
+
+    const { result } = render()
+    await act(async () => {
+      await result.current.duplicateObjects({
+        sourceIds: ['src'],
+        targetParentIds: ['dest'],
+        includeChildren: true,
+      })
+    })
+
+    expect(objects.create).toHaveBeenCalledTimes(1151)
+  })
+
+  it('refuses a destination past the 1,100th descendant of the source', async () => {
+    const descendants = Array.from({ length: 1150 }, (_, i) =>
+      i === 1120 ? 'dest' : `d-${i}`
+    )
+    const node = cappedNode((q) =>
+      q.get('ancestor') === 'src' ? descendants : []
+    )
+    objects.paginate.mockImplementation((query) => node.objects.paginate(query))
+
+    const { result } = render()
+    await expect(
+      act(async () => {
+        await result.current.duplicateObjects({
+          sourceIds: ['src'],
+          targetParentIds: ['dest'],
+          includeChildren: true,
+        })
+      })
+    ).rejects.toThrow(DuplicateIntoOwnSubtreeError)
+    expect(objects.create).not.toHaveBeenCalled()
   })
 
   it('refuses a destination inside the subtree being copied', async () => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, useRef, type ReactNode } from 'react'
 import type {
   ColumnDef,
   OnChangeFn,
@@ -36,6 +36,10 @@ export interface EntityTableProps<T> {
   onPageSizeChange?: (size: number) => void
   /** The chosen size, shown until the first response carries its own. */
   pageSize?: number
+  /** The node caps this list's total at 1001: see `isCappedTotal`. */
+  capped?: boolean
+  /** The page asked for, so the controls stay when the answer is missing (an error). */
+  requestedPage?: number
 
   // Sorting — providing onSortChange enables sortable headers (server-side).
   sort?: EntitySort
@@ -73,6 +77,8 @@ export function EntityTable<T>({
   onPageSizeChange,
   pageSize,
   highlight,
+  capped = false,
+  requestedPage,
   sort,
   onSortChange,
   ...rest
@@ -81,14 +87,20 @@ export function EntityTable<T>({
   // `?? []` minted a fresh array on every render while `page` was undefined —
   // i.e. throughout loading, when the table is already doing the most work.
   const data = useMemo(() => page?.data ?? [], [page])
-  const meta = pageMeta(page, pageSize)
+  const meta = pageMeta(page, pageSize, { capped, requestedPage })
 
+  // `totalPages` bounds a page change only when it is known and exact: a capped total makes it a
+  // lower limit, and with no answer (an error) it is 0.
+  const lastKnownPage =
+    meta.capped || !page ? Infinity : Math.max(1, meta.totalPages)
+  // While a page loads, `meta` is still the previous page's: repeat clicks would ask again for
+  // the page already on its way.
+  const lastAsked = useRef<number | undefined>(undefined)
   const emit = (page1Based: number) => {
-    const clamped = Math.min(
-      Math.max(1, page1Based),
-      Math.max(1, meta.totalPages)
-    )
-    onPageChange?.(clamped)
+    const next = Math.min(Math.max(1, page1Based), lastKnownPage)
+    if (fetching && next === lastAsked.current) return
+    lastAsked.current = next
+    onPageChange?.(next)
   }
 
   const onHide = useMemo(() => {
