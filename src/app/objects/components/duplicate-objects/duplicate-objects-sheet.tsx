@@ -1,17 +1,9 @@
 'use client'
 
-import { PickerListError } from '@/components/list-error'
-import { useState, useEffect, useId, useRef, useCallback } from 'react'
-import {
-  Copy,
-  Loader2,
-  X,
-  Check,
-  ChevronsUpDown,
-  Search,
-  FileText,
-} from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Copy, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 
 import {
   Sheet,
@@ -23,38 +15,21 @@ import {
   Button,
   Label,
   Input,
-  Switch,
-  Badge,
   Separator,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  Command,
-  CommandInput,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-  CommandMore,
-  type FetchedPage,
 } from '@/components/ui'
-import { SearchHighlight } from '@/components/search-highlight'
-import { SEARCH_SIZE } from '@/constants'
-import { OwnerHint } from '@/components/entity-list'
-import { cn } from '@/lib/utils'
 import { logger } from '@/lib/observability/logger'
-import { useIomClient } from '@/lib/io2p'
-import { toast } from 'sonner'
-
-import { SearchMinHint } from '@/components/search-min-hint'
-import { pickerSearch } from '@/lib/search-text'
-import { isCappedTotal, mayHaveChildren, TOTAL_CAP } from '@/lib/list-total'
-
 import {
   DuplicateIntoOwnSubtreeError,
   useDuplicateObjects,
 } from '@/hooks/api/use-duplicate-objects'
-import { ParentSelector } from '@/app/objects/components/duplicate-objects/components'
+import {
+  CopyOptions,
+  ParentSelector,
+  SourcePicker,
+  type CopyOptionValues,
+} from '@/app/objects/components/duplicate-objects/components'
+
+import { useSourceSearch, type SourceSearchRow } from './use-source-search'
 
 const EMPTY_PRESELECTED: DuplicateSourceObject[] = []
 
@@ -64,14 +39,10 @@ export interface DuplicateSourceObject {
   childCount?: number
 }
 
-export interface DuplicateObjectsOptions {
+export interface DuplicateObjectsOptions extends CopyOptionValues {
   sourceObjects: DuplicateSourceObject[]
   targetParentUuids: string[]
   namePrefix: string
-  includeChildren: boolean
-  copyProperties: boolean
-  copyFiles: boolean
-  copyAddress: boolean
 }
 
 interface DuplicateObjectsSheetProps {
@@ -81,6 +52,13 @@ interface DuplicateObjectsSheetProps {
   defaultParentUuid?: string
   onConfirm?: (options: DuplicateObjectsOptions) => Promise<void>
   isCopying?: boolean
+}
+
+const DEFAULT_OPTIONS: CopyOptionValues = {
+  includeChildren: false,
+  copyProperties: true,
+  copyFiles: false,
+  copyAddress: false,
 }
 
 export function DuplicateObjectsSheet({
@@ -96,63 +74,24 @@ export function DuplicateObjectsSheet({
   const isCopying = isCopyingProp ?? isCopyingHook
   const t = useTranslations()
 
-  // Source object selection
   const [selectedObjects, setSelectedObjects] = useState<
     DuplicateSourceObject[]
   >([])
   const [isSourceOpen, setIsSourceOpen] = useState(false)
-  const [sourceSearchQuery, setSourceSearchQuery] = useState('')
-  const [sourceSearchResults, setSourceSearchResults] = useState<any[]>([])
-  // The search the rows on screen answer, for their marks.
-  const [sourceResultsSearch, setSourceResultsSearch] = useState<
-    string | undefined
-  >()
-  // Why the last search did not answer, shown where the rows would be.
-  const [sourceSearchError, setSourceSearchError] = useState<unknown>(null)
-  const [isSourceSearching, setIsSourceSearching] = useState(false)
-  const [hasSourceLoaded, setHasSourceLoaded] = useState(false)
-  const [sourceSearchPage, setSourceSearchPage] = useState<FetchedPage>()
-  // The `q` of the last source search sent; `undefined` = the unfiltered list.
-  const lastSourceQRef = useRef<string | undefined | null>(undefined)
-  const sourceHintId = useId()
-  // A new search aborts the one in flight, so a slow older answer cannot replace a newer one.
-  const sourceSearchAbortRef = useRef<AbortController | null>(null)
+  const sourceSearch = useSourceSearch(isSourceOpen)
+  const resetSourceSearch = sourceSearch.reset
 
-  // Target & options
   const [targetParentUuids, setTargetParentUuids] = useState<string[]>([])
   const [namePrefix, setNamePrefix] = useState('')
-  const [includeChildren, setIncludeChildren] = useState(false)
-  const [copyProperties, setCopyProperties] = useState(true)
-  const [copyFiles, setCopyFiles] = useState(false)
-  const [copyAddress, setCopyAddress] = useState(false)
+  const [options, setOptions] = useState(DEFAULT_OPTIONS)
 
-  // Search API
-  // The search is imperative (debounced, fired from a callback), so it uses the client directly
-  // rather than a query hook — the same shape `use-process-graph` uses for its sweep.
-  const client = useIomClient()
-  const clientRef = useRef(client)
-  // See attachment-section: ref writes belong in an effect, and every reader
-  // here is an event handler that runs after commit.
-  useEffect(() => {
-    clientRef.current = client
-  }, [client])
-
-  // Reset form when sheet opens
   const resetForm = useCallback(() => {
     setSelectedObjects(preselectedObjects)
     setTargetParentUuids(defaultParentUuid ? [defaultParentUuid] : [])
     setNamePrefix('')
-    setIncludeChildren(false)
-    setCopyProperties(true)
-    setCopyFiles(false)
-    setCopyAddress(false)
-    setSourceSearchQuery('')
-    setSourceSearchResults([])
-    setSourceSearchPage(undefined)
-    setHasSourceLoaded(false)
-    lastSourceQRef.current = undefined
-    setSourceSearchError(null)
-  }, [preselectedObjects, defaultParentUuid])
+    setOptions(DEFAULT_OPTIONS)
+    resetSourceSearch()
+  }, [preselectedObjects, defaultParentUuid, resetSourceSearch])
 
   const prevOpenRef = useRef(false)
   useEffect(() => {
@@ -162,93 +101,8 @@ export function DuplicateObjectsSheet({
     prevOpenRef.current = open
   }, [open, resetForm])
 
-  // Source object search
-  const performSourceSearch = useCallback(
-    async (q?: string) => {
-      if (!isSourceOpen) return
-
-      sourceSearchAbortRef.current?.abort()
-      const controller = new AbortController()
-      sourceSearchAbortRef.current = controller
-
-      setIsSourceSearching(true)
-      setSourceSearchError(null)
-      try {
-        // `q` substring-matches name and description, which is what the old `searchTerm` did.
-        // `deleted` defaults to exclude, so the retired `softDeleted: false` filter is implicit.
-        const results = await clientRef.current.objects.list(
-          {
-            q,
-            size: SEARCH_SIZE,
-            page: 1,
-            scope: 'all',
-            // Without this `childCount` is absent on every row, and the
-            // "include children" switch below gates on it — so recursive copy
-            // silently disappeared for anything picked by search.
-            withChildCounts: true,
-          },
-          { signal: controller.signal }
-        )
-        if (controller.signal.aborted) return
-
-        // The list speaks `id`; this picker's markup speaks `uuid`. Mapped here rather than
-        // renaming the markup, because the sheet is due its own rewrite.
-        setSourceSearchResults(results.data.map((o) => ({ ...o, uuid: o.id })))
-        setSourceSearchPage(results)
-        setSourceResultsSearch(q)
-        setSourceSearchError(null)
-        setHasSourceLoaded(true)
-      } catch (error) {
-        if (controller.signal.aborted) return
-        logger.error('Source search failed:', { err: error })
-        setSourceSearchError(error)
-        // Matches no search, so the next key press or reopen runs one, even back to the full list.
-        lastSourceQRef.current = null
-        setSourceSearchResults([])
-        setSourceSearchPage(undefined)
-      } finally {
-        if (!controller.signal.aborted) setIsSourceSearching(false)
-        if (sourceSearchAbortRef.current === controller)
-          sourceSearchAbortRef.current = null
-      }
-    },
-    [isSourceOpen]
-  )
-
-  // Closing aborts a search still open, so its answer cannot land in a closed picker; the next open
-  // asks again.
-  useEffect(() => {
-    if (!isSourceOpen) return
-    return () => {
-      if (!sourceSearchAbortRef.current) return
-      sourceSearchAbortRef.current.abort()
-      sourceSearchAbortRef.current = null
-      setIsSourceSearching(false)
-      setHasSourceLoaded(false)
-      setSourceSearchResults([])
-    }
-  }, [isSourceOpen])
-
-  // Debounced source search
-  useEffect(() => {
-    if (!isSourceOpen) return
-
-    const timeoutId = setTimeout(() => {
-      const next = pickerSearch(
-        sourceSearchQuery,
-        lastSourceQRef.current,
-        hasSourceLoaded
-      )
-      if (!next) return
-      lastSourceQRef.current = next.q
-      void performSourceSearch(next.q)
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [sourceSearchQuery, isSourceOpen, hasSourceLoaded, performSourceSearch])
-
   // Prevent selecting an object that is already the target parent
-  const handleToggleSource = (object: any) => {
+  const handleToggleSource = (object: SourceSearchRow) => {
     if (targetParentUuids.includes(object.uuid)) return
 
     const isSelected = selectedObjects.some((o) => o.uuid === object.uuid)
@@ -284,10 +138,7 @@ export function DuplicateObjectsSheet({
         sourceObjects: selectedObjects,
         targetParentUuids,
         namePrefix,
-        includeChildren,
-        copyProperties,
-        copyFiles,
-        copyAddress,
+        ...options,
       })
     } else {
       try {
@@ -295,10 +146,7 @@ export function DuplicateObjectsSheet({
           sourceIds: selectedObjects.map((o) => o.uuid),
           targetParentIds: targetParentUuids,
           namePrefix,
-          includeChildren,
-          copyProperties,
-          copyFiles,
-          copyAddress,
+          ...options,
         })
         toast.success(
           t('objects.duplicate.copied', { count: selectedObjects.length })
@@ -321,25 +169,8 @@ export function DuplicateObjectsSheet({
     }
   }
 
-  const anyHasChildren = selectedObjects.some((o) =>
-    mayHaveChildren(o.childCount)
-  )
-  const totalChildCount = selectedObjects.reduce(
-    (sum, o) => sum + (o.childCount ?? 0),
-    0
-  )
-  const anyCountUnknown = selectedObjects.some(
-    (o) => o.childCount === undefined
-  )
-  const anyCountCapped = selectedObjects.some((o) =>
-    isCappedTotal(o.childCount, true)
-  )
-
   const isParentLocked = !!defaultParentUuid
   const isSingleMode = preselectedObjects.length === 1
-
-  // Set of source UUIDs for filtering in the source dropdown
-  const selectedSourceUuids = new Set(selectedObjects.map((o) => o.uuid))
 
   return (
     <Sheet
@@ -377,161 +208,16 @@ export function DuplicateObjectsSheet({
         </SheetHeader>
 
         <div className="overflow-y-auto space-y-5 py-4 px-1 -mx-1">
-          {/* Source objects selector */}
-          <div className="grid gap-2">
-            <Label>{t('objects.duplicate.sourceObjects')}</Label>
-            <Popover open={isSourceOpen} onOpenChange={setIsSourceOpen} modal>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={isSourceOpen}
-                  aria-controls="copy-source-listbox"
-                  className="w-full justify-between"
-                  disabled={isCopying}
-                  data-testid="duplicate-source-trigger"
-                >
-                  {selectedObjects.length > 0 ? (
-                    <div className="flex items-center gap-2">
-                      <Search className="h-4 w-4" />
-                      <span className="truncate">
-                        {t('objects.duplicate.selectedCount', {
-                          count: selectedObjects.length,
-                        })}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      {t('objects.duplicate.sourceObjectsHint')}
-                    </span>
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0"
-                align="start"
-              >
-                <Command shouldFilter={false} id="copy-source-listbox">
-                  <div className="relative">
-                    <CommandInput
-                      placeholder={t('objects.duplicate.sourceObjectsHint')}
-                      value={sourceSearchQuery}
-                      onValueChange={setSourceSearchQuery}
-                      aria-describedby={sourceHintId}
-                      className="ml-2"
-                    />
-                    {isSourceSearching && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                  <SearchMinHint
-                    query={sourceSearchQuery}
-                    kind="words"
-                    id={sourceHintId}
-                  />
-                  <PickerListError error={sourceSearchError} />
-                  <CommandList className="max-h-[300px] !overflow-y-auto overflow-x-hidden">
-                    {sourceSearchError == null && (
-                      <CommandEmpty>
-                        {isSourceSearching
-                          ? t('common.loading')
-                          : t('objects.parentSelector.noResults')}
-                      </CommandEmpty>
-                    )}
-                    <CommandGroup>
-                      {sourceSearchResults
-                        .filter(
-                          (object: any) =>
-                            !targetParentUuids.includes(object.uuid)
-                        )
-                        .map((object: any) => {
-                          const isSelected = selectedSourceUuids.has(
-                            object.uuid
-                          )
-                          return (
-                            <CommandItem
-                              key={object.uuid}
-                              value={object.uuid}
-                              onSelect={() => handleToggleSource(object)}
-                              className="cursor-pointer flex items-center gap-2"
-                            >
-                              <Check
-                                className={cn(
-                                  'h-4 w-4',
-                                  isSelected ? 'opacity-100' : 'opacity-0'
-                                )}
-                              />
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium truncate">
-                                <SearchHighlight
-                                  text={object.name || object.uuid}
-                                  q={sourceResultsSearch}
-                                />
-                              </span>
-                              <OwnerHint
-                                ownerUserId={object.createdBy}
-                                ownerName={object.createdByName}
-                              />
-                              {(object.childCount ?? 0) > 0 && (
-                                <Badge
-                                  variant="outline"
-                                  className="ml-auto text-xs"
-                                >
-                                  {isCappedTotal(object.childCount, true)
-                                    ? t(
-                                        'objects.childrenPage.childrenCountMoreThan',
-                                        { count: TOTAL_CAP }
-                                      )
-                                    : t('objects.duplicate.childCount', {
-                                        count: object.childCount ?? 0,
-                                      })}
-                                </Badge>
-                              )}
-                            </CommandItem>
-                          )
-                        })}
-                    </CommandGroup>
-                  </CommandList>
-                  <CommandMore pages={[sourceSearchPage]} capped />
-                </Command>
-              </PopoverContent>
-            </Popover>
-
-            {/* Selected objects badges */}
-            {selectedObjects.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-2 bg-muted/20 rounded-md">
-                {selectedObjects.map((obj) => (
-                  <Badge
-                    key={obj.uuid}
-                    variant="secondary"
-                    className="flex items-center gap-1 pr-1"
-                    title={obj.uuid}
-                  >
-                    <span className="truncate max-w-32">{obj.name}</span>
-                    {!isCopying && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                        onClick={() => handleRemoveSource(obj.uuid)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {selectedObjects.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                {t('objects.duplicate.noObjectsSelected')}
-              </p>
-            )}
-          </div>
+          <SourcePicker
+            search={sourceSearch}
+            open={isSourceOpen}
+            onOpenChange={setIsSourceOpen}
+            selectedObjects={selectedObjects}
+            excludeUuids={targetParentUuids}
+            disabled={isCopying}
+            onToggle={handleToggleSource}
+            onRemove={handleRemoveSource}
+          />
 
           <Separator />
 
@@ -572,103 +258,14 @@ export function DuplicateObjectsSheet({
 
           <Separator />
 
-          {/* Copy options */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">
-              {t('objects.duplicate.options')}
-            </Label>
+          <Separator />
 
-            {/* Include children */}
-            {anyHasChildren && (
-              <div className="flex items-center justify-between gap-4">
-                <div className="space-y-0.5">
-                  <Label
-                    htmlFor="include-children"
-                    className="text-sm font-medium"
-                  >
-                    {t('objects.duplicate.includeChildren')}
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {t('objects.duplicate.includeChildrenHint')}
-                  </p>
-                </div>
-                <Switch
-                  id="include-children"
-                  checked={includeChildren}
-                  onCheckedChange={setIncludeChildren}
-                  disabled={isCopying}
-                  data-testid="duplicate-include-children"
-                />
-              </div>
-            )}
-
-            {/* Child count info */}
-            {/* No sum with an unknown count in it: it would read as the whole number. */}
-            {anyHasChildren &&
-              includeChildren &&
-              !anyCountUnknown &&
-              totalChildCount > 0 && (
-                <div className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-950/30 p-2">
-                  <Badge
-                    variant="secondary"
-                    className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                    data-testid="duplicate-child-total"
-                  >
-                    {anyCountCapped
-                      ? t('objects.childrenPage.childrenCountMoreThan', {
-                          count: TOTAL_CAP,
-                        })
-                      : t('objects.duplicate.childCount', {
-                          count: totalChildCount,
-                        })}
-                  </Badge>
-                </div>
-              )}
-
-            {/* Copy properties */}
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="copy-properties" className="text-sm font-medium">
-                {t('objects.duplicate.copyProperties')}
-              </Label>
-              <Switch
-                id="copy-properties"
-                checked={copyProperties}
-                onCheckedChange={setCopyProperties}
-                disabled={isCopying}
-              />
-            </div>
-
-            {/* Copy files */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <Label htmlFor="copy-files" className="text-sm font-medium">
-                  {t('objects.duplicate.copyFilesReferences')}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {t('objects.duplicate.copyFilesHint')}
-                </p>
-              </div>
-              <Switch
-                id="copy-files"
-                checked={copyFiles}
-                onCheckedChange={setCopyFiles}
-                disabled={isCopying}
-              />
-            </div>
-
-            {/* Copy address */}
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="copy-address" className="text-sm font-medium">
-                {t('objects.duplicate.copyAddress')}
-              </Label>
-              <Switch
-                id="copy-address"
-                checked={copyAddress}
-                onCheckedChange={setCopyAddress}
-                disabled={isCopying}
-              />
-            </div>
-          </div>
+          <CopyOptions
+            sources={selectedObjects}
+            values={options}
+            onChange={setOptions}
+            disabled={isCopying}
+          />
         </div>
 
         <SheetFooter className="flex w-full gap-2 border-t pt-4 mt-auto">
