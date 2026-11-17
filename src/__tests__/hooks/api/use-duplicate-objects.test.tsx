@@ -107,7 +107,6 @@ describe('useDuplicateObjects', () => {
   })
 
   it('refuses a parent with 1,150 children as too large, and writes nothing', async () => {
-    // Before the limit this was the data-loss case: the walk stopped at 1,100 and reported success.
     const many = Array.from({ length: 1150 }, (_, i) => `child-${i}`)
     const node = cappedNode((q) => (q.get('parent') === 'src' ? many : []))
     objects.paginate.mockImplementation((query) => node.objects.paginate(query))
@@ -303,8 +302,21 @@ describe('useDuplicateObjects', () => {
     expect(objects.create).not.toHaveBeenCalled()
   })
 
-  it('counts each destination: 300 objects into two parents is 600 copies', async () => {
-    children(299)
+  it('counts each destination: 250 objects into two parents is 500 copies', async () => {
+    children(249)
+    const { result } = render()
+    await act(async () => {
+      await result.current.duplicateObjects({
+        sourceIds: ['src'],
+        targetParentIds: ['dest-1', 'dest-2'],
+        includeChildren: true,
+      })
+    })
+    expect(objects.create).toHaveBeenCalledTimes(500)
+  })
+
+  it('refuses 251 objects into two parents (502 copies)', async () => {
+    children(250)
     const { result } = render()
     await expect(
       act(async () => {
@@ -312,6 +324,57 @@ describe('useDuplicateObjects', () => {
           sourceIds: ['src'],
           targetParentIds: ['dest-1', 'dest-2'],
           includeChildren: true,
+        })
+      })
+    ).rejects.toThrow(DuplicateTooLargeError)
+    expect(objects.create).not.toHaveBeenCalled()
+  })
+
+  /** Sources `a` and `b`, each with `n` direct children. */
+  function twoTrees(n: number) {
+    objects.paginate.mockImplementation(({ parent }: { parent?: string }) =>
+      parent === 'a' || parent === 'b'
+        ? pageOf(Array.from({ length: n }, (_, i) => `${parent}-${i}`))
+        : pageOf([])
+    )
+  }
+
+  it('shares one limit across all sources: two trees of 250 copy', async () => {
+    twoTrees(249)
+    const { result } = render()
+    await act(async () => {
+      await result.current.duplicateObjects({
+        sourceIds: ['a', 'b'],
+        targetParentIds: ['dest'],
+        includeChildren: true,
+      })
+    })
+    expect(objects.create).toHaveBeenCalledTimes(500)
+  })
+
+  it('shares one limit across all sources: two trees of 251 are refused', async () => {
+    twoTrees(250)
+    const { result } = render()
+    await expect(
+      act(async () => {
+        await result.current.duplicateObjects({
+          sourceIds: ['a', 'b'],
+          targetParentIds: ['dest'],
+          includeChildren: true,
+        })
+      })
+    ).rejects.toThrow(DuplicateTooLargeError)
+    expect(objects.create).not.toHaveBeenCalled()
+  })
+
+  it('refuses more than the limit without children too: 2 sources into 251 parents', async () => {
+    const { result } = render()
+    await expect(
+      act(async () => {
+        await result.current.duplicateObjects({
+          sourceIds: ['a', 'b'],
+          targetParentIds: Array.from({ length: 251 }, (_, i) => `dest-${i}`),
+          includeChildren: false,
         })
       })
     ).rejects.toThrow(DuplicateTooLargeError)
