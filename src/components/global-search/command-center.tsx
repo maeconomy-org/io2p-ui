@@ -18,11 +18,18 @@ import {
   SlidersHorizontal,
   CalendarDays,
   Ruler,
+  Bookmark,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useHotkeys } from 'react-hotkeys-hook'
+import { toast } from 'sonner'
 
 import { SearchMinHint } from '@/components/search-min-hint'
+import { savedSearchKey } from '@/constants/preferences'
+import {
+  type SavedSearchResult,
+  useSavedSearches,
+} from '@/hooks/ui/use-saved-searches'
 import { useObjects } from '@/hooks/api/entities'
 import { type SearchKind, searchInput } from '@/lib/search-text'
 import { cn } from '@/lib/utils'
@@ -38,6 +45,11 @@ import {
   type SearchListType,
 } from './search-parser'
 import { FilterPanel } from './filter-panel'
+import {
+  SavedSearchGroup,
+  SaveSearchForm,
+  useReasonText,
+} from './saved-searches'
 import {
   Badge,
   Dialog,
@@ -149,6 +161,58 @@ export function CommandCenter({
   const closePanel = () => {
     setPanel({ session, open: false })
     panelButtonRef.current?.focus()
+  }
+
+  // The save row and the panel are never open together, so Escape has one order: picker, row or
+  // panel, dialog. The key is minted when the row opens and kept for every retry of that save.
+  const [saveRow, setSaveRow] = React.useState<{
+    session: string
+    key: string
+  } | null>(null)
+  const saveOpen = saveRow?.session === session && inputValue.trim() !== ''
+  const saveRowId = React.useId()
+  const saveButtonRef = React.useRef<HTMLButtonElement>(null)
+  const closeSaveRow = () => {
+    setSaveRow(null)
+    saveButtonRef.current?.focus()
+  }
+  const savedSearches = useSavedSearches()
+  const reasonText = useReasonText()
+  const [notice, setNotice] = React.useState({ session, text: '' })
+  // A save can end after its row closed (Escape, Add filter, an emptied input) or the dialog did;
+  // its failure then has no row to show in and goes to a toast.
+  const shownRowRef = React.useRef<string | null>(null)
+  const shownRow = open && saveOpen ? saveRow.key : null
+  React.useEffect(() => {
+    shownRowRef.current = shownRow
+  }, [shownRow])
+
+  const saveSearch = async (name: string): Promise<SavedSearchResult> => {
+    if (!saveRow) return { ok: false, reason: { code: 'busy' } }
+    const { key } = saveRow
+    const result = await savedSearches.save(key, name, inputValue)
+    const rowShown = shownRowRef.current === key
+    if (result.ok) {
+      setSaveRow((prev) => (prev?.key === key ? null : prev))
+      setNotice({
+        session,
+        text: t('savedSearch.savedAs', { name: name.trim() }),
+      })
+      if (rowShown) inputRef.current?.focus()
+    } else if (!rowShown && result.reason.code !== 'busy') {
+      const { text, detail } = reasonText(result.reason)
+      toast.error(detail ? `${text} ${detail}` : text)
+    }
+    return result
+  }
+
+  const deleteSearch = async (key: string): Promise<SavedSearchResult> => {
+    const result = await savedSearches.remove(key)
+    if (result.ok) {
+      setNotice({ session, text: t('savedSearch.deleted') })
+      inputRef.current?.focus()
+    }
+    return result
   }
 
   const [showSuggestions] = React.useState(true)
@@ -290,6 +354,9 @@ export function CommandCenter({
           if (panelOpen) {
             event.preventDefault()
             closePanel()
+          } else if (saveOpen) {
+            event.preventDefault()
+            closeSaveRow()
           }
         }}
         className="w-[calc(100%-2rem)] sm:w-full max-w-2xl rounded-lg [&>*]:min-w-0 p-0 gap-0 overflow-hidden bg-gradient-to-b from-background to-muted/20 border-border/50 shadow-2xl [&>button]:hidden"
@@ -332,9 +399,11 @@ export function CommandCenter({
               type="button"
               aria-expanded={panelOpen}
               aria-controls={panelOpen ? panelId : undefined}
-              onClick={() =>
-                panelOpen ? closePanel() : setPanel({ session, open: true })
-              }
+              onClick={() => {
+                if (panelOpen) return closePanel()
+                setSaveRow(null)
+                setPanel({ session, open: true })
+              }}
               data-testid="add-filter"
               className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -344,6 +413,28 @@ export function CommandCenter({
                 {t('filterPanel.open')}
               </span>
             </button>
+            {inputValue.trim() && (
+              <button
+                ref={saveButtonRef}
+                type="button"
+                aria-expanded={saveOpen}
+                aria-controls={saveOpen ? saveRowId : undefined}
+                aria-label={t('savedSearch.open')}
+                disabled={!savedSearches.ready}
+                onClick={() => {
+                  if (saveOpen) return closeSaveRow()
+                  setPanel({ session, open: false })
+                  setSaveRow({ session, key: savedSearchKey() })
+                }}
+                data-testid="save-search"
+                className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+              >
+                <Bookmark className="h-3.5 w-3.5" aria-hidden />
+                <span aria-hidden className="hidden sm:inline">
+                  {t('savedSearch.openShort')}
+                </span>
+              </button>
+            )}
             {inputValue && (
               <button
                 type="button"
@@ -412,6 +503,14 @@ export function CommandCenter({
 
         {/* Content Area */}
         <div className="max-h-[min(400px,60dvh)] overflow-y-auto">
+          {saveOpen && (
+            <SaveSearchForm
+              id={saveRowId}
+              query={inputValue}
+              ready={savedSearches.ready}
+              onSave={saveSearch}
+            />
+          )}
           {panelOpen && (
             <FilterPanel
               id={panelId}
@@ -476,6 +575,16 @@ export function CommandCenter({
             </div>
           )}
 
+          {!panelOpen && !inputValue && (
+            <SavedSearchGroup
+              saved={savedSearches.saved}
+              unreadable={savedSearches.unreadable}
+              busy={savedSearches.pending}
+              onRun={handleRecentClick}
+              onDelete={deleteSearch}
+            />
+          )}
+
           {/* Recent Searches */}
           {!panelOpen && !inputValue && recentSearches.length > 0 && (
             <div className="p-2 border-t border-border/50">
@@ -523,6 +632,20 @@ export function CommandCenter({
             </div>
           )}
         </div>
+
+        {/* Always present, so the text is announced; it has no padding while empty. */}
+        <p
+          aria-live="polite"
+          data-testid="search-notice"
+          className={cn(
+            'text-xs text-muted-foreground',
+            notice.session === session &&
+              notice.text &&
+              'border-t border-border/50 px-4 py-2'
+          )}
+        >
+          {notice.session === session ? notice.text : ''}
+        </p>
 
         {/* Footer */}
         <div

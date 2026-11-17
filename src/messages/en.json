@@ -1110,6 +1110,35 @@
     "complete": "Complete",
     "close": "Close"
   },
+  "savedSearch": {
+    "open": "Save search",
+    "openShort": "Save",
+    "formLabel": "Save this search",
+    "nameLabel": "Name of the saved search",
+    "submit": "Save",
+    "saving": "Saving…",
+    "hint": "Saved searches are kept in your account and show on every list.",
+    "savedAs": "Saved as \"{name}\".",
+    "deleted": "Saved search deleted.",
+    "group": "Saved",
+    "delete": "Delete saved search: {name}",
+    "unreadable": "Unreadable saved search",
+    "deleteUnreadable": "Delete unreadable saved search",
+    "showAll": "Show all ({count})",
+    "reason": {
+      "notReady": "Your saved searches are still loading. Try again in a moment.",
+      "name": "Write a name of 1 to 80 characters.",
+      "emptyQuery": "Type a search to save.",
+      "queryTooLong": "This search is too long to save. The limit is 1,000 bytes.",
+      "duplicate": "This search is already saved as \"{name}\".",
+      "full": "You have 50 saved searches, which is the limit. Delete one to save a new one.",
+      "tooBig": "Your saved searches are too large together. Delete one to save a new one.",
+      "offline": "No connection to the server. Try again.",
+      "refused": "The server did not save it:",
+      "failed": "The search could not be saved. Try again.",
+      "deleteFailed": "The saved search could not be deleted. Try again."
+    }
+  },
   "help": {
     "title": "Help Center",
     "back": "Back",

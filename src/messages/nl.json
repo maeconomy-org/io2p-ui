@@ -1110,6 +1110,35 @@
     "viewDeleted": "Verwijderde objecten bekijken",
     "viewDeletedDescription": "Toon alle soft-verwijderde items"
   },
+  "savedSearch": {
+    "open": "Zoekopdracht opslaan",
+    "openShort": "Opslaan",
+    "formLabel": "Deze zoekopdracht opslaan",
+    "nameLabel": "Naam van de opgeslagen zoekopdracht",
+    "submit": "Opslaan",
+    "saving": "Opslaan…",
+    "hint": "Opgeslagen zoekopdrachten staan in je account en zijn op elke lijst te zien.",
+    "savedAs": "Opgeslagen als \"{name}\".",
+    "deleted": "Opgeslagen zoekopdracht verwijderd.",
+    "group": "Opgeslagen",
+    "delete": "Opgeslagen zoekopdracht verwijderen: {name}",
+    "unreadable": "Onleesbare opgeslagen zoekopdracht",
+    "deleteUnreadable": "Onleesbare opgeslagen zoekopdracht verwijderen",
+    "showAll": "Alles tonen ({count})",
+    "reason": {
+      "notReady": "Je opgeslagen zoekopdrachten worden nog geladen. Probeer het zo opnieuw.",
+      "name": "Schrijf een naam van 1 tot 80 tekens.",
+      "emptyQuery": "Typ een zoekopdracht om op te slaan.",
+      "queryTooLong": "Deze zoekopdracht is te lang om op te slaan. De grens is 1.000 bytes.",
+      "duplicate": "Deze zoekopdracht is al opgeslagen als \"{name}\".",
+      "full": "Je hebt 50 opgeslagen zoekopdrachten, het maximum. Verwijder er een om een nieuwe op te slaan.",
+      "tooBig": "Je opgeslagen zoekopdrachten zijn samen te groot. Verwijder er een om een nieuwe op te slaan.",
+      "offline": "Geen verbinding met de server. Probeer het opnieuw.",
+      "refused": "De server heeft het niet opgeslagen:",
+      "failed": "De zoekopdracht kon niet worden opgeslagen. Probeer het opnieuw.",
+      "deleteFailed": "De opgeslagen zoekopdracht kon niet worden verwijderd. Probeer het opnieuw."
+    }
+  },
   "help": {
     "title": "Helpcentrum",
     "back": "Terug",

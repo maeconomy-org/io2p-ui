@@ -5,6 +5,19 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }))
 
+// The saved searches have their own test file; here the dialog needs only an empty list.
+vi.mock('@/hooks/ui/use-saved-searches', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useSavedSearches: () => ({
+    ready: true,
+    saved: [],
+    unreadable: [],
+    save: vi.fn(),
+    remove: vi.fn(),
+    pending: false,
+  }),
+}))
+
 import { CommandCenter } from '@/components/global-search/command-center'
 
 const input = () =>
