@@ -6,6 +6,7 @@ import {
   ChevronDown,
   CircleHelp,
   Paperclip,
+  RefreshCw,
   Sigma,
 } from 'lucide-react'
 
@@ -26,7 +27,8 @@ export function MarksLegend() {
   const t = useTranslations('objects.properties.legend')
   // The marks' own labels, so the legend cannot drift from the rows.
   const mark = useTranslations('objects.properties')
-  const rows: { sample: React.ReactNode; text: string }[] = [
+  // `name` is for a screen reader where the sample is an icon alone, which reads as nothing.
+  const rows: { sample: React.ReactNode; name?: string; text: string }[] = [
     {
       sample: (
         <Badge
@@ -64,13 +66,22 @@ export function MarksLegend() {
     },
     {
       sample: <AlertTriangle className="h-3.5 w-3.5 text-destructive" />,
+      name: t('excludedName'),
       text: t('excluded'),
     },
     {
       sample: (
         <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
       ),
+      name: t('totalIssueName'),
       text: t('totalIssue'),
+    },
+    {
+      sample: (
+        <RefreshCw className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+      ),
+      name: mark('rollupProcessing'),
+      text: t('updating'),
     },
     {
       sample: (
@@ -79,6 +90,7 @@ export function MarksLegend() {
           <ChevronDown className="h-3 w-3" />
         </span>
       ),
+      name: t('formulaName'),
       text: t('formula'),
     },
     {
@@ -88,6 +100,7 @@ export function MarksLegend() {
           <ChevronDown className="h-3 w-3" />
         </span>
       ),
+      name: t('filesName'),
       text: t('files'),
     },
   ]
@@ -114,7 +127,10 @@ export function MarksLegend() {
         <dl className="mt-2 grid grid-cols-[auto_1fr] items-start gap-x-4 gap-y-2.5 text-sm">
           {rows.map((row) => (
             <div key={row.text} className="contents">
-              <dt className="flex items-center pt-0.5">{row.sample}</dt>
+              <dt className="flex items-center pt-0.5">
+                {row.sample}
+                {row.name && <span className="sr-only">{row.name}</span>}
+              </dt>
               <dd className="text-muted-foreground">{row.text}</dd>
             </div>
           ))}

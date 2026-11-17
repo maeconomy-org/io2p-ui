@@ -680,7 +680,12 @@
         "excluded": "Een formule of een totaal leest deze waarde, maar het getal kon niet worden gelezen (bijvoorbeeld een onbekende eenheid), dus het wordt weggelaten.",
         "totalIssue": "Bij een totaal: iets eronder is niet meegeteld. Opent u de kaart in de lijstweergave om te zien hoeveel.",
         "formula": "Toont hoe een formulewaarde is gemaakt: de formule, de invoer en de eenheid.",
-        "files": "Toont de bestanden bij een waarde, of bij de eigenschap via de kop."
+        "files": "Toont de bestanden bij een waarde, of bij de eigenschap via de kop.",
+        "updating": "Bij een totaal: het wordt na een wijziging opnieuw berekend en werkt zichzelf bij.",
+        "excludedName": "Rode waarschuwing",
+        "totalIssueName": "Oranje waarschuwing",
+        "formulaName": "Formule openen",
+        "filesName": "Bestanden openen"
       },
       "gridView": "Rasteroverzicht",
       "collapseAll": "Alles inklappen",

@@ -680,7 +680,12 @@
         "excluded": "A formula or a total reads this value, but its number could not be read (for example an unknown unit), so it is left out.",
         "totalIssue": "On a total: something below was not added in. Open the card in list view to see how many.",
         "formula": "Opens how a formula value is made: the formula, its inputs and its unit.",
-        "files": "Opens the files on a value, or on the property from its header."
+        "files": "Opens the files on a value, or on the property from its header.",
+        "updating": "On a total: it is being recalculated after a change, and updates by itself.",
+        "excludedName": "Red warning mark",
+        "totalIssueName": "Amber warning mark",
+        "formulaName": "Formula toggle",
+        "filesName": "Files toggle"
       },
       "gridView": "Grid Overview",
       "collapseAll": "Collapse all",
