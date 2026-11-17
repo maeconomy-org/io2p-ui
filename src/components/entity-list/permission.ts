@@ -133,14 +133,9 @@ export function permissionOf(
 }
 
 /**
- * The level for a row of the object or process LIST, never "unrestricted": `read` while the viewer
- * is still unknown, and `read` for a row the viewer does not own that came without a level.
- *
- * `useAuth().userId` is undefined until BOTH the session and core's `/me` resolve, so for those
- * commits every row would fall through to the permissive default and flash a full menu on rows the
- * node refuses. And those lists leave the level off a foreign row when the grants read ran out of
- * time, which means unknown, not unrestricted (io2p-core `permissionWave`): such a row offers no
- * write action, and its detail read, which carries the level, decides the rest.
+ * The level for a row of the object or process LIST, never "unrestricted". `useAuth().userId` stays
+ * undefined until the session and core's `/me` resolve, and a foreign row without a level means
+ * unknown (io2p-core `permissionWave`). Both give `read`: no write action on the row.
  */
 export function permissionWhenKnown(
   entity: { permission?: Permission; createdBy?: string },

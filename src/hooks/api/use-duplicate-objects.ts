@@ -31,10 +31,7 @@ export class DuplicateIntoOwnSubtreeError extends Error {
   }
 }
 
-/**
- * The source tree is deeper than `MAX_DUPLICATE_DEPTH`. Thrown before any write, so nothing was
- * copied; the copy used to stop at this depth silently and report success.
- */
+/** The source tree is deeper than `MAX_DUPLICATE_DEPTH`. Thrown before any write. */
 export class DuplicateTooDeepError extends Error {
   constructor() {
     super(
@@ -71,12 +68,8 @@ interface CopyNode {
 }
 
 /**
- * The subtree to copy, read in full BEFORE any write.
- *
- * `?parent=` is the IMMEDIATE children — `?ancestor=` lags behind a write — and `paginate`, not one
- * `list`: a single page silently stopped at 100 children. Reading first means the copy works from a
- * stable snapshot rather than a list its own writes are extending, and a tree that is too deep (or a
- * cycle in the data) is refused before anything exists.
+ * The subtree to copy, read in full BEFORE any write, so the copy works from a snapshot its own
+ * writes do not extend. `?parent=` because `?ancestor=` lags behind a write.
  */
 async function readSubtree(
   client: Io2pClient,
