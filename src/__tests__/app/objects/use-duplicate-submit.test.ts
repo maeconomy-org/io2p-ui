@@ -16,7 +16,11 @@ vi.mock('@/hooks/api/use-duplicate-objects', async (importOriginal) => ({
   useDuplicateObjects: () => ({ duplicateObjects, isDuplicating: false }),
 }))
 
-import { DuplicateIntoOwnSubtreeError } from '@/hooks/api/use-duplicate-objects'
+import {
+  DuplicateIntoOwnSubtreeError,
+  DuplicateTooDeepError,
+  DuplicateTooLargeError,
+} from '@/hooks/api/use-duplicate-objects'
 import { useDuplicateSubmit } from '@/app/objects/components/duplicate-objects/use-duplicate-submit'
 
 const options = {
@@ -74,11 +78,51 @@ describe('useDuplicateSubmit', () => {
     expect(onDone).not.toHaveBeenCalled()
   })
 
+  it('says nothing was copied when the tree is too deep, and stays open', async () => {
+    duplicateObjects.mockRejectedValue(new DuplicateTooDeepError())
+    const onDone = vi.fn()
+    const { result } = renderHook(() => useDuplicateSubmit({ onDone }))
+    await act(() => result.current.submit(options))
+
+    expect(toast.error).toHaveBeenCalledWith('objects.duplicate.tooDeep')
+    expect(toast.error).not.toHaveBeenCalledWith(
+      'objects.duplicate.failedPartial'
+    )
+    expect(onDone).not.toHaveBeenCalled()
+  })
+
+  it('says nothing was copied when the copy is too large, and stays open', async () => {
+    duplicateObjects.mockRejectedValue(new DuplicateTooLargeError())
+    const onDone = vi.fn()
+    const { result } = renderHook(() => useDuplicateSubmit({ onDone }))
+    await act(() => result.current.submit(options))
+
+    expect(toast.error).toHaveBeenCalledWith('objects.duplicate.tooLarge')
+    expect(onDone).not.toHaveBeenCalled()
+  })
+
   it('warns that some copies may exist after a failure part-way', async () => {
     duplicateObjects.mockRejectedValue(new Error('node down'))
     const { result } = renderHook(() => useDuplicateSubmit({ onDone: vi.fn() }))
     await act(() => result.current.submit(options))
 
     expect(toast.error).toHaveBeenCalledWith('objects.duplicate.failedPartial')
+  })
+
+  const leave = () => {
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    return event.defaultPrevented
+  }
+
+  it('asks before the tab closes while a copy runs, and not after', () => {
+    const { rerender } = renderHook(
+      ({ isCopying }) => useDuplicateSubmit({ isCopying, onDone: vi.fn() }),
+      { initialProps: { isCopying: true } }
+    )
+    expect(leave()).toBe(true)
+
+    rerender({ isCopying: false })
+    expect(leave()).toBe(false)
   })
 })

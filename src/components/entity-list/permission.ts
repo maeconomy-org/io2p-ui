@@ -133,19 +133,16 @@ export function permissionOf(
 }
 
 /**
- * The same answer, but `read` rather than "unrestricted" while the viewer is still unknown.
- *
- * `useAuth().userId` is undefined until BOTH the session and core's `/me` resolve, so for those
- * commits every row would fall through to the permissive default and flash a full menu on rows the
- * node refuses. Callers that render write affordances from a LIST should use this: a row carrying
- * its own `permission` is unaffected, and one relying on the owner fallback simply waits.
+ * The level for a row of the object or process LIST, never "unrestricted". `useAuth().userId` stays
+ * undefined until the session and core's `/me` resolve, and a foreign row without a level means
+ * unknown (io2p-core `permissionWave`). Both give `read`: no write action on the row.
  */
 export function permissionWhenKnown(
   entity: { permission?: Permission; createdBy?: string },
   viewerId: string | undefined,
   viewerLoading: boolean
-): Permission | undefined {
+): Permission {
   if (entity.permission) return entity.permission
   if (viewerLoading) return 'read'
-  return permissionOf(entity, viewerId)
+  return permissionOf(entity, viewerId) ?? 'read'
 }
