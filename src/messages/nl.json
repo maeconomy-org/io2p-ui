@@ -1260,7 +1260,7 @@
       "inAndParent": "in: en parent: kunnen niet samen worden gebruikt."
     },
     "pill": {
-      "remove": "Filter {filter} verwijderen",
+      "remove": "Filter verwijderen:",
       "property": "Eigenschap: {value}",
       "value": "Waarde: {value}",
       "name": "Naam: {value}",
@@ -1841,6 +1841,7 @@
     "error": {
       "numberKey": "Geef de eigenschap een naam.",
       "numberValue": "Schrijf een getal, bijvoorbeeld 2,5.",
+      "numberUnit": "Schrijf een eenheid die met een letter begint, bijvoorbeeld t of m2.",
       "numberReversed": "Tot mag niet kleiner zijn dan van.",
       "quote": "Een naam of waarde mag geen \" bevatten.",
       "dateReversed": "Tot mag niet voor van liggen."

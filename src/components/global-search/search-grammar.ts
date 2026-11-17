@@ -60,7 +60,7 @@ export function startsWithPrefix(token: string): boolean {
  * the node's `Number()` reads it: a bound the user did not mean to write.
  */
 export function readNumber(text: string): number | null {
-  if (!/^[+-]?\d[\d.,]*$/.test(text)) return null
+  if (!/^[+-]?[.,]?\d[\d.,]*$/.test(text)) return null
   const finite = (s: string) => {
     const n = Number(s)
     return Number.isFinite(n) ? n : null
@@ -80,9 +80,18 @@ export function readNumber(text: string): number | null {
 
 // The number stops at the first character that is not a digit or a separator, so `10m2` is 10 m2
 // and `1kgCO2e` keeps its unit whole.
-const NUMBER = String.raw`[+-]?\d[\d.,]*`
+const NUMBER = String.raw`[+-]?[.,]?\d[\d.,]*`
 const UNIT = String.raw`[^\s\d.,+\-"<>=:≥≤][^\s"]*`
 const VALUE_RE = new RegExp(`^(${NUMBER})(${UNIT})?$`, 'u')
+const UNIT_RE = new RegExp(`^${UNIT}$`, 'u')
+// The node reads `.5` as 0.5, so a value may start with its decimal mark.
+const STARTS_NUMBER = /^[+-]?[.,]?\d/
+
+/** A unit the grammar reads back whole after a number: not `1e3`, not `"t"`, not `.5`. */
+export function isUnit(text: string): boolean {
+  return UNIT_RE.test(text) && !/^e[+-]?\d/i.test(text)
+}
+
 const HEAD_RE = /^(?:"([^"]+)"|([^\s"<>:=≥≤]+))(>=|<=|≥|≤|>|<|:)(.*)$/su
 
 export type NumberToken =
@@ -112,7 +121,7 @@ export function parseNumberToken(token: string): NumberToken | null {
 
   if (op !== ':') {
     // `a>b`, `x<y`: no number, so it is text.
-    if (!/^[+-]?\d/.test(rest)) return null
+    if (!STARTS_NUMBER.test(rest)) return null
     if (bare !== undefined && RESERVED.has(bare.toLowerCase())) {
       return { kind: 'problem', problem: 'reservedKey' }
     }
@@ -136,11 +145,16 @@ export function parseNumberToken(token: string): NumberToken | null {
   const dots = rest.indexOf('..')
   if (dots < 0) {
     // `mass:2` reads as "equals 2", which the node cannot do; `foo:bar` stays text.
-    return /^[+-]?\d/.test(rest) ? { kind: 'problem', problem: 'equals' } : null
+    return STARTS_NUMBER.test(rest)
+      ? { kind: 'problem', problem: 'equals' }
+      : null
   }
   const left = rest.slice(0, dots)
   const right = rest.slice(dots + 2)
-  if (left === '' && right === '') return { kind: 'problem', problem: 'number' }
+  // `1...5` is a typo, not 1 to .5.
+  if ((left === '' && right === '') || /^[.,]/.test(right)) {
+    return { kind: 'problem', problem: 'number' }
+  }
   if (left !== '' && readNumber(left) === null) {
     const l = value(left)
     return {
@@ -151,7 +165,7 @@ export function parseNumberToken(token: string): NumberToken | null {
   let lte: number | undefined
   let unit: string | undefined
   if (right !== '') {
-    const unitOnly = new RegExp(`^${UNIT}$`, 'u').test(right)
+    const unitOnly = UNIT_RE.test(right)
     if (unitOnly && left !== '') unit = right
     else {
       const r = value(right)
@@ -179,11 +193,12 @@ export function parseNumberToken(token: string): NumberToken | null {
 
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
-/** Local midnight of `YYYY-MM-DD`, or null for a day that does not exist (2026-02-30). */
+/** Local midnight of `YYYY-MM-DD`, or null for a day that does not exist (2026-02-30) or is before 1970. */
 function dayStart(text: string, offsetDays = 0): number | null {
   const match = DAY_RE.exec(text)
   if (!match) return null
   const [y, m, d] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  if (y < 1970) return null
   const date = new Date(y, m - 1, d)
   if (
     date.getFullYear() !== y ||
@@ -215,16 +230,14 @@ export function parseDateValue(
   const end = toText === '' ? undefined : dayStart(toText, 1)
   if (from === null || end === null) return { kind: 'problem', problem: 'date' }
   const to = end === undefined ? undefined : end - 1
-  if ((from ?? 0) < 0 || (to !== undefined && to < 0)) {
-    return { kind: 'problem', problem: 'date' }
-  }
   if (from !== undefined && to !== undefined && from > to) {
     return { kind: 'problem', problem: 'reversed' }
   }
   return {
     kind: 'date',
     range: {
-      ...(from !== undefined && { from }),
+      // East of UTC, 1970-01-01 starts before epoch 0, which the node refuses.
+      ...(from !== undefined && { from: Math.max(from, 0) }),
       ...(to !== undefined && { to }),
     },
   }
@@ -245,7 +258,9 @@ export function isSpacedOperator(
   op: string,
   number: string
 ): boolean {
-  return /\p{L}/u.test(word) && OPERATOR_RE.test(op) && /^[+-]?\d/.test(number)
+  return (
+    /\p{L}/u.test(word) && OPERATOR_RE.test(op) && STARTS_NUMBER.test(number)
+  )
 }
 
 /**

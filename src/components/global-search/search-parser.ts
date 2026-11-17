@@ -683,6 +683,32 @@ export function getFilterSuggestions(input: string): FilterSuggestion[] {
 }
 
 /**
+ * The query with the filters `drop` names taken out. A token the parser read as no filter
+ * (`deleted:maybe`, `prop:`) stays as typed, and number filters show as ≥/≤.
+ */
+export function queryWithout(
+  query: string,
+  drop: (filter: SearchFilter) => boolean
+): string {
+  const tokens = tokenizeQuery(query)
+  const kept: string[] = []
+  let i = 0
+  for (const filter of parseSearchQuery(query).filters) {
+    const length = tokenizeQuery(filter.raw).length
+    const at = (n: number) => tokens.slice(n, n + length).join(' ')
+    let start = i
+    while (start < tokens.length && at(start) !== filter.raw) start++
+    // Cannot happen (each raw is its own tokens, in order); kept safe, not lost.
+    if (start === tokens.length) continue
+    kept.push(...tokens.slice(i, start))
+    if (!drop(filter)) kept.push(shown(filter))
+    i = start + length
+  }
+  kept.push(...tokens.slice(i))
+  return kept.join(' ')
+}
+
+/**
  * Build a display string from filters
  */
 export function filtersToDisplayString(filters: SearchFilter[]): string {

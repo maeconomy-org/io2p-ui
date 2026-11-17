@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  isUnit,
   numberToken,
   parseDateValue,
   parseNumberToken,
@@ -19,11 +20,14 @@ describe('readNumber', () => {
     ['1,000,000', 1_000_000],
     ['1.000,5', 1000.5],
     ['1,000.5', 1000.5],
+    ['.5', 0.5],
+    [',5', 0.5],
+    ['-.5', -0.5],
   ])('reads %s as the node reads a stored value', (text, expected) => {
     expect(readNumber(text)).toBe(expected)
   })
 
-  it.each(['1e3', '.5', '', 'abc', '2t'])('refuses %s', (text) => {
+  it.each(['1e3', '.', '', 'abc', '2t'])('refuses %s', (text) => {
     expect(readNumber(text)).toBeNull()
   })
 })
@@ -48,6 +52,8 @@ describe('parseNumberToken', () => {
     ['mass>=2.5kg', { key: 'mass', op: '>=', gte: 2.5, unit: 'kg' }],
     ['mass>=2,5kg', { key: 'mass', op: '>=', gte: 2.5, unit: 'kg' }],
     ['mass>-1', { key: 'mass', op: '>=', gte: -1 }],
+    ['mass>=.5t', { key: 'mass', op: '>=', gte: 0.5, unit: 't' }],
+    ['mass:,5..2', { key: 'mass', op: 'range', gte: 0.5, lte: 2 }],
     ['area>=10m2', { key: 'area', op: '>=', gte: 10, unit: 'm2' }],
     ['co2>=1kgCO2e', { key: 'co2', op: '>=', gte: 1, unit: 'kgCO2e' }],
     ['"total mass">2', { key: 'total mass', op: '>=', gte: 2 }],
@@ -100,6 +106,17 @@ describe('parseNumberToken', () => {
     expect(range(numberToken(r, true))).toEqual(r)
   })
 
+  it.each(['t', 'm2', 'kgCO2e', '°C'])('takes %s as a unit', (unit) => {
+    expect(isUnit(unit)).toBe(true)
+  })
+
+  it.each(['2t', '.t', '-t', '"t', 'e3', 't"'])(
+    'refuses %s as a unit',
+    (unit) => {
+      expect(isUnit(unit)).toBe(false)
+    }
+  )
+
   it('shows >= as ≥ for people', () => {
     expect(
       numberToken({ key: 'mass', op: '>=', gte: 2, unit: 't' }, true)
@@ -131,6 +148,10 @@ describe('parseDateValue', () => {
     expect(r.to + 1 - r.from).toBe(hours * 3_600_000)
   })
 
+  it('takes 1970-01-01 from epoch 0, which is after its local midnight here', () => {
+    expect(dates('1970-01-01')).toEqual({ from: 0, to: 82_800_000 - 1 })
+  })
+
   it.each([
     ['2026-11-01..2026-11-30', { from: NOV_1, to: DEC_1 - 1 }],
     ['..2026-11-30', { to: DEC_1 - 1 }],
@@ -147,6 +168,7 @@ describe('parseDateValue', () => {
     ['2026-11-1', 'date'],
     ['..', 'date'],
     ['1969-12-31', 'date'],
+    ['1969-12-31..1970-01-02', 'date'],
     ['2026-11-30..2026-11-01', 'reversed'],
   ])('refuses %s', (text, reason) => {
     expect(dates(text)).toBe(reason)

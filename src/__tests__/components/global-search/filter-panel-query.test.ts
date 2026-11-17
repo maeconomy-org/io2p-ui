@@ -22,11 +22,7 @@ const applied = (
   start = '',
   ranges = true
 ): string => {
-  const result = panelQuery(
-    parseSearchQuery(start),
-    { ...EMPTY, ...values },
-    ranges
-  )
+  const result = panelQuery(start, { ...EMPTY, ...values }, ranges)
   if (!('query' in result)) throw new Error(JSON.stringify(result.errors))
   return result.query
 }
@@ -125,6 +121,37 @@ describe('panelQuery', () => {
     ).toBe('created:today mass>=2')
   })
 
+  it('changes only the kinds the user edited in the panel', () => {
+    const start = `mass>=5 deleted:true createdBy:${USER} created:2026-11-01`
+    const values = { ...EMPTY, deleted: 'all' as const }
+    const result = panelQuery(start, values, true, new Set(['deleted']))
+    expect(result).toEqual({
+      query: `mass≥5 createdBy:${USER} created:2026-11-01 deleted:all`,
+    })
+    expect(panelQuery(start, EMPTY, true, new Set())).toEqual({
+      query: `mass≥5 deleted:true createdBy:${USER} created:2026-11-01`,
+    })
+  })
+
+  it('does not check the fields of a kind the user did not edit', () => {
+    const values = { ...EMPTY, numberFrom: '2t', deleted: 'true' as const }
+    expect(panelQuery('', values, true, new Set(['deleted']))).toEqual({
+      query: 'deleted:true',
+    })
+  })
+
+  it('keeps a token the search reads as no filter', () => {
+    expect(
+      applied({ deleted: 'true' }, 'deleted:maybe beton template:x prop:')
+    ).toBe('deleted:maybe beton template:x prop: deleted:true')
+  })
+
+  it('replaces every filter of a kind it writes, also a second one', () => {
+    expect(
+      applied({ numberKey: 'a', numberFrom: '1' }, 'mass>=2 beton length>=3')
+    ).toBe('beton a>=1')
+  })
+
   it('adds a property beside the ones the search has', () => {
     expect(applied({ propertyKey: 'c' }, 'prop:a=b')).toBe('prop:a=b prop:c')
   })
@@ -178,16 +205,27 @@ describe('panelQuery', () => {
       { propertyValue: 'quote' },
     ],
     [
+      'a unit that starts with a digit',
+      { numberKey: 'mass', numberFrom: '2', numberUnit: '2t' },
+      { numberUnit: 'numberUnit' },
+    ],
+    [
+      'a unit with a quote',
+      { numberKey: 'mass', numberFrom: '2', numberUnit: 't"' },
+      { numberUnit: 'numberUnit' },
+    ],
+    [
+      'an exponent as a unit',
+      { numberKey: 'mass', numberFrom: '2', numberUnit: 'e3' },
+      { numberUnit: 'numberUnit' },
+    ],
+    [
       'reversed days',
       { createdFrom: '2026-11-30', createdTo: '2026-11-01' },
       { createdTo: 'dateReversed' },
     ],
   ])('refuses %s', (_, values, errors) => {
-    const result = panelQuery(
-      parseSearchQuery(''),
-      { ...EMPTY, ...values },
-      true
-    )
+    const result = panelQuery('', { ...EMPTY, ...values }, true)
     expect(result).toEqual({ errors })
   })
 })

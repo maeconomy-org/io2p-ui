@@ -25,17 +25,20 @@ import { useUserSearch } from '@/hooks/api/users'
 import { cn } from '@/lib/utils'
 
 import {
+  kindOf,
   type PanelError,
   type PanelField,
+  type PanelKind,
   panelQuery,
   type PanelValues,
   panelValuesOf,
 } from './filter-panel-query'
-import type { ParsedSearch } from './search-parser'
+import { parseSearchQuery } from './search-parser'
 
 interface FilterPanelProps {
   id: string
-  parsed: ParsedSearch
+  /** The search text now. It can change while the panel is open. */
+  query: string
   /** False on a list that takes no numbers, dates or folder. */
   ranges: boolean
   onApply: (query: string) => void
@@ -45,9 +48,14 @@ interface FilterPanelProps {
  * The "Add filter" form. It owns no filter state of its own: Apply writes tokens into the search
  * text, and the parser reads them as if typed.
  */
-export function FilterPanel({ id, parsed, ranges, onApply }: FilterPanelProps) {
+export function FilterPanel({ id, query, ranges, onApply }: FilterPanelProps) {
   const t = useTranslations('filterPanel')
-  const [values, setValues] = React.useState(() => panelValuesOf(parsed))
+  const [values, setValues] = React.useState(() =>
+    panelValuesOf(parseSearchQuery(query))
+  )
+  const [touched, setTouched] = React.useState<ReadonlySet<PanelKind>>(
+    () => new Set()
+  )
   const [errors, setErrors] = React.useState<
     Partial<Record<PanelField, PanelError>>
   >({})
@@ -58,11 +66,13 @@ export function FilterPanel({ id, parsed, ranges, onApply }: FilterPanelProps) {
   const set = <K extends PanelField>(field: K, value: PanelValues[K]) => {
     setValues((prev) => ({ ...prev, [field]: value }))
     setErrors((prev) => ({ ...prev, [field]: undefined }))
+    const kind = kindOf(field)
+    if (kind) setTouched((prev) => new Set(prev).add(kind))
   }
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
-    const result = panelQuery(parsed, values, ranges)
+    const result = panelQuery(query, values, ranges, touched)
     if ('errors' in result) {
       setErrors(result.errors)
       const first = Object.keys(result.errors)[0]

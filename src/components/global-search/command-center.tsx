@@ -120,7 +120,6 @@ export function CommandCenter({
     value: string
   } | null>(null)
   const inputValue = typed?.session === session ? typed.value : initialQuery
-  const setInputValue = (value: string) => setTyped({ session, value })
 
   const [highlight, setHighlight] = React.useState({
     session,
@@ -137,6 +136,12 @@ export function CommandCenter({
       moved: true,
     })
 
+  const setInputValue = (value: string) => {
+    setTyped({ session, value })
+    // The suggestions change with the text, so an old arrow choice must not complete on Tab.
+    setHighlight({ session, index: 0, moved: false })
+  }
+
   const [panel, setPanel] = React.useState({ session, open: false })
   const panelOpen = panel.session === session && panel.open
   const panelId = React.useId()
@@ -149,6 +154,7 @@ export function CommandCenter({
   const [showSuggestions] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const hintId = React.useId()
+  const pillsId = React.useId()
   // `template:` sends the search to the templates or objects list, whatever page it started on.
   const kindOf = (parsed: ParsedSearch): SearchKind =>
     templateSearch(parsed) === undefined ? searchKind : 'words'
@@ -253,7 +259,7 @@ export function CommandCenter({
   const tabCompletes = (e: React.KeyboardEvent) => {
     if (e.shiftKey || currentSuggestions.length === 0) return false
     const lastToken = inputValue.split(' ').at(-1) ?? ''
-    return highlightMoved ? inputValue.trim() !== '' : lastToken !== ''
+    return highlightMoved || lastToken !== ''
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -359,6 +365,9 @@ export function CommandCenter({
           {/* Active Filters Pills */}
           {activeFilters.length > 0 && (
             <div className="px-4 pb-3 flex flex-wrap gap-2">
+              <span id={`${pillsId}-remove`} hidden>
+                {t('search.pill.remove')}
+              </span>
               {activeFilters.map((filter, index) => (
                 <Badge
                   key={index}
@@ -383,13 +392,14 @@ export function CommandCenter({
                   {(filter.type === 'created' || filter.type === 'updated') && (
                     <CalendarDays className="h-3 w-3" />
                   )}
-                  <span className="font-medium">
+                  <span id={`${pillsId}-${index}`} className="font-medium">
                     <PillLabel filter={filter} />
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRemoveFilter(filter)}
-                    aria-label={t('search.pill.remove', { filter: filter.raw })}
+                    // Named by the pill text, so an `in:` pill reads its folder, not an id.
+                    aria-labelledby={`${pillsId}-remove ${pillsId}-${index}`}
                     className="ml-0.5 p-0.5 hover:bg-primary/20 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <X className="h-3 w-3" aria-hidden />
@@ -405,7 +415,7 @@ export function CommandCenter({
           {panelOpen && (
             <FilterPanel
               id={panelId}
-              parsed={parsedSearch}
+              query={inputValue}
               ranges={listType === 'objects'}
               onApply={(query) => {
                 setInputValue(query)

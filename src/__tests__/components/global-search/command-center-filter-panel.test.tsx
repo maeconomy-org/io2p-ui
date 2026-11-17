@@ -152,8 +152,58 @@ describe('CommandCenter filter panel', () => {
     const { user } = await setup({ initialQuery: 'mass>2t deleted:all' })
     expect(screen.getByText('search.pill.deleted.all')).toBeInTheDocument()
     await user.click(
-      screen.getByRole('button', { name: 'search.pill.remove mass>2t' })
+      screen.getByRole('button', { name: 'search.pill.remove mass≥2t' })
     )
     expect(input().value).toBe('deleted:all')
+  })
+
+  it('names the remove button of a folder pill by the folder', async () => {
+    getObject.mockReturnValue({ data: { name: 'Hal A' }, isError: false })
+    await setup({ initialQuery: `in:${FOLDER}` })
+    expect(
+      screen.getByRole('button', {
+        name: 'search.pill.remove search.pill.folder Hal A',
+      })
+    ).toBeInTheDocument()
+  })
+
+  it('keeps a filter typed while the panel is open', async () => {
+    const { user } = await setup({ initialQuery: 'deleted:false' })
+    await user.click(addFilter())
+    await user.clear(input())
+    await user.type(input(), 'deleted:true mass>=5')
+    await user.type(screen.getByLabelText('filterPanel.propertyKey'), 'a')
+    await user.click(screen.getByRole('button', { name: 'filterPanel.apply' }))
+
+    expect(input().value).toBe('deleted:true mass≥5 prop:a')
+  })
+
+  it('replaces a kind the user edited in the panel', async () => {
+    const { user } = await setup({ initialQuery: 'deleted:false beton' })
+    await user.click(addFilter())
+    await user.selectOptions(
+      screen.getByLabelText('filterPanel.deleted'),
+      'all'
+    )
+    await user.click(screen.getByRole('button', { name: 'filterPanel.apply' }))
+
+    expect(input().value).toBe('beton deleted:all')
+  })
+
+  it('forgets the arrow choice when the text changes', async () => {
+    const { user } = await setup()
+    await user.keyboard('{ArrowDown}')
+    await user.type(input(), 'steel ')
+    await user.tab()
+    expect(input().value).toBe('steel ')
+    expect(input()).not.toHaveFocus()
+  })
+
+  it('completes the suggestion the arrows moved to, also on an empty input', async () => {
+    const { user } = await setup()
+    await user.keyboard('{ArrowDown}')
+    await user.tab()
+    expect(input().value).toMatch(/^\w+:$/)
+    expect(input()).toHaveFocus()
   })
 })

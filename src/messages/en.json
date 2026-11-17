@@ -1260,7 +1260,7 @@
       "inAndParent": "in: and parent: cannot be used together."
     },
     "pill": {
-      "remove": "Remove filter {filter}",
+      "remove": "Remove filter:",
       "property": "Property: {value}",
       "value": "Value: {value}",
       "name": "Name: {value}",
@@ -1841,6 +1841,7 @@
     "error": {
       "numberKey": "Name the property.",
       "numberValue": "Write a number, for example 2.5.",
+      "numberUnit": "Write a unit that starts with a letter, for example t or m2.",
       "numberReversed": "To must not be less than from.",
       "quote": "A name or value cannot contain \".",
       "dateReversed": "To must not be before from."
