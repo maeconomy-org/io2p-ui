@@ -214,26 +214,35 @@ export function MillerColumn({
                   onDoubleClick={() => onViewObject?.(item)}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <span
-                      className={cn(
-                        'select-none truncate text-sm font-medium',
-                        isDeleted &&
-                          'text-red-700 line-through dark:text-red-400'
-                      )}
+                    {/* No handler of its own: Enter and Space click it, and the click reaches the
+                        row's, so the keyboard selects exactly as the mouse does. */}
+                    <button
+                      type="button"
+                      aria-current={isSelected ? 'true' : undefined}
+                      data-testid="column-row"
+                      className="flex min-w-0 items-center gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <SearchHighlight
-                        text={truncateText(
-                          item.name || t('objects.unnamed'),
-                          25,
-                          true
+                      <span
+                        className={cn(
+                          'select-none truncate text-sm font-medium',
+                          isDeleted &&
+                            'text-red-700 line-through dark:text-red-400'
                         )}
-                        q={shownSearch}
+                      >
+                        <SearchHighlight
+                          text={truncateText(
+                            item.name || t('objects.unnamed'),
+                            25,
+                            true
+                          )}
+                          q={shownSearch}
+                        />
+                      </span>
+                      <OwnerHint
+                        ownerUserId={item.createdBy}
+                        ownerName={item.createdByName}
                       />
-                    </span>
-                    <OwnerHint
-                      ownerUserId={item.createdBy}
-                      ownerName={item.createdByName}
-                    />
+                    </button>
                     <ChildCount
                       count={item.childCount}
                       className="inline-flex shrink-0 items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700"
@@ -247,8 +256,10 @@ export function MillerColumn({
                         <Button
                           variant="ghost"
                           size="icon"
+                          type="button"
                           className="h-6 w-6 text-muted-foreground"
                           onClick={(e) => e.stopPropagation()}
+                          aria-label={t('common.actions')}
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>

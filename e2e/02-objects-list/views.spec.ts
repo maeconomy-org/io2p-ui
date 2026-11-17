@@ -58,4 +58,27 @@ test.describe('02 - objects list / views', () => {
       .toBeGreaterThan(0)
     await expect(input).toHaveValue(String(past))
   })
+
+  test('L38: the keyboard selects a column row and opens its children', async ({
+    page,
+    api,
+  }) => {
+    await serveObjectList(page, () => ({
+      rows: 2,
+      total: 2,
+      childCounts: [3, 0],
+    }))
+    await page.goto('/objects')
+    await expect(page.getByTestId('data-table-row').first()).toBeVisible()
+    await page.getByTestId('view-option-columns').click()
+
+    const row = page.getByTestId('column-row').first()
+    await row.focus()
+    await page.keyboard.press('Enter')
+
+    await expect(row).toHaveAttribute('aria-current', 'true')
+    await expect
+      .poll(() => api.count(/\/v1\/objects\?.*parent=[0-9a-f-]{36}/))
+      .toBeGreaterThan(0)
+  })
 })

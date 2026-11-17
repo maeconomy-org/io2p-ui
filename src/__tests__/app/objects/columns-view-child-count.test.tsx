@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import type { ObjectListItem } from 'io2p-client'
 
 const useList = vi.fn()
@@ -34,14 +35,14 @@ function answer(rows: Partial<ObjectListItem>[], totalElements: number) {
   })
 }
 
-function renderColumn() {
+function renderColumn(onSelect = vi.fn()) {
   render(
     <MillerColumn
       parentId=""
       title="Objects"
       selectedId={null}
       scope="all"
-      onSelect={vi.fn()}
+      onSelect={onSelect}
       onViewObject={vi.fn()}
       onDelete={vi.fn()}
       onDuplicate={vi.fn()}
@@ -150,5 +151,31 @@ describe('paging a capped column', () => {
     expect(askedPage()).toBe(2)
     expect(screen.getByText('pagination.noMoreRows')).toBeInTheDocument()
     expect(screen.queryByText('objects.noItemsColumn')).toBeNull()
+  })
+})
+
+describe('a column row by keyboard', () => {
+  afterEach(() => vi.clearAllMocks())
+
+  it.each(['{Enter}', ' '])('selects the row with %s', async (key) => {
+    const user = userEvent.setup()
+    const onSelect = vi.fn()
+    answer([{ name: 'Blok A', childCount: 2 }], 1)
+    renderColumn(onSelect)
+
+    const name = within(row('Blok A')).getByTestId('column-row')
+    name.focus()
+    await user.keyboard(key)
+
+    expect(onSelect).toHaveBeenCalledTimes(1)
+    expect(onSelect.mock.calls[0][0]).toMatchObject({ name: 'Blok A' })
+  })
+
+  it('names the row menu for a screen reader', () => {
+    answer([{ name: 'Blok A', childCount: 0 }], 1)
+    renderColumn()
+    expect(
+      within(row('Blok A')).getByRole('button', { name: 'common.actions' })
+    ).toBeInTheDocument()
   })
 })
