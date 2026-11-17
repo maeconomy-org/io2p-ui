@@ -20,7 +20,7 @@ export function ChildCount({
   testId?: string
 }) {
   const t = useTranslations('common')
-  const total = useFormatTotal()
+  const formatTotal = useFormatTotal()
 
   if (count === undefined) {
     return <CountUnavailable label={t('countUnavailable')} />
@@ -29,8 +29,8 @@ export function ChildCount({
 
   return (
     <span className={className} data-testid={testId}>
-      <span aria-hidden="true">{total.text(count, true)}</span>
-      <span className="sr-only">{total.label(count, true)}</span>
+      <span aria-hidden="true">{formatTotal.text(count, true)}</span>
+      <span className="sr-only">{formatTotal.label(count, true)}</span>
     </span>
   )
 }

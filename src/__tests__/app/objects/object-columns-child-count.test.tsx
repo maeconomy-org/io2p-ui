@@ -91,8 +91,23 @@ describe('the objects table child count', () => {
     expect(onRowClick).not.toHaveBeenCalled()
   })
 
-  it('puts a dash on the name badge of a row the node did not count', () => {
-    expect(cell('name', {})).toHaveTextContent(/^Blok A—$/)
+  it('puts a focusable, named dash beside the name of a row the node did not count', async () => {
+    const user = userEvent.setup()
+    const c = cell('name', {})
+    expect(c).toHaveTextContent(/^Blok A—Count not available/)
+    await user.tab()
+    expect(screen.getByTestId('count-unavailable')).toHaveFocus()
+  })
+
+  it('prints exactly 1,000 with the locale separator, not as 1000', () => {
+    expect(cell('name', { childCount: 1000 })).toHaveTextContent('1,000')
+  })
+
+  it('reads a capped name badge as more than 1,000 children', () => {
+    const c = cell('name', { childCount: 1001 })
+    expect(c.querySelector('.sr-only')).toHaveTextContent(
+      /^More than 1,000 children/
+    )
   })
 
   it('puts no name badge on a leaf', () => {

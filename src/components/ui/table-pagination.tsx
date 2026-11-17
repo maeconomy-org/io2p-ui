@@ -69,7 +69,7 @@ export function TablePagination({
 }: TablePaginationProps) {
   const t = useTranslations()
   const format = useFormatter()
-  const total = useFormatTotal()
+  const formatTotal = useFormatTotal()
   const previousRef = useRef<HTMLButtonElement>(null)
   const movedByNext = useRef(false)
 
@@ -109,7 +109,7 @@ export function TablePagination({
             t('pagination.showing', {
               start: format.number(startItem),
               end: format.number(endItem),
-              total: total.text(totalElements, capped),
+              total: formatTotal.text(totalElements, capped),
             })}
         </div>
         {onPageSizeChange && (

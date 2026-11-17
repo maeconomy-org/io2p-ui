@@ -183,6 +183,7 @@
     "charCountOver": "{count, number} / {max, number}, te lang",
     "descriptionTooLong": "De beschrijving is te lang. Maak deze {max, number} tekens of korter.",
     "pickerMore": "De eerste {shown} van {total} worden getoond. Typ om de lijst te verkleinen.",
+    "number": "{count, number}",
     "totalMoreThan": "{count, number}+",
     "totalMoreThanLabel": "meer dan {count, number}",
     "countUnavailable": "Aantal niet beschikbaar: de server heeft het niet op tijd geteld",
@@ -761,6 +762,7 @@
       "copyFilesReferences": "Bestandsreferenties kopiëren",
       "copyAddress": "Adres kopiëren",
       "childCount": "{count, plural, one {# onderliggend} other {# onderliggende}}",
+      "childCountMoreThan": "meer dan {count, number} onderliggende",
       "confirm": "Kopiëren",
       "copying": "Bezig met kopiëren...",
       "action": "Kopiëren",
@@ -771,7 +773,7 @@
       "targetInsideSource": "De bestemming ligt binnen de objecten die u kopieert. Kies een bestemming daarbuiten, of schakel \"inclusief onderliggende objecten\" uit."
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
-    "itemsCountMoreThan": "meer dan {count, number} items",
+    "itemsCountMoreThan": "{count, number}+ items",
     "saveError": {
       "conflict": "Dit is elders gewijzigd sinds u het opende. Kopieer uw wijzigingen, open het opnieuw en pas ze opnieuw toe.",
       "invalid": "Opslaan mislukt — {detail}",

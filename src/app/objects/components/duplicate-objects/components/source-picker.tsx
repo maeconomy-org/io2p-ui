@@ -30,10 +30,10 @@ import { OwnerHint } from '@/components/entity-list'
 import { PickerListError } from '@/components/list-error'
 import { SearchHighlight } from '@/components/search-highlight'
 import { SearchMinHint } from '@/components/search-min-hint'
-import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
+import { isCappedCount, TOTAL_CAP } from '@/lib/list-total'
 import { cn } from '@/lib/utils'
 
-import type { DuplicateSourceObject } from '../duplicate-objects-sheet'
+import type { DuplicateSourceObject } from '../types'
 import type { SourceSearch, SourceSearchRow } from '../use-source-search'
 
 interface SourcePickerProps {
@@ -153,8 +153,8 @@ export function SourcePicker({
                       />
                       {row.childCount !== undefined && row.childCount > 0 && (
                         <Badge variant="outline" className="ml-auto text-xs">
-                          {isCappedTotal(row.childCount, true)
-                            ? t('objects.childrenPage.childrenCountMoreThan', {
+                          {isCappedCount(row.childCount)
+                            ? t('objects.duplicate.childCountMoreThan', {
                                 count: TOTAL_CAP,
                               })
                             : t('objects.duplicate.childCount', {

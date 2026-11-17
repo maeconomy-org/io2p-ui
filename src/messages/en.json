@@ -183,6 +183,7 @@
     "charCountOver": "{count, number} / {max, number}, too long",
     "descriptionTooLong": "The description is too long. Shorten it to {max, number} characters or fewer.",
     "pickerMore": "Showing the first {shown} of {total}. Type to narrow the list.",
+    "number": "{count, number}",
     "totalMoreThan": "{count, number}+",
     "totalMoreThanLabel": "more than {count, number}",
     "countUnavailable": "Count not available: the server did not count it in time",
@@ -761,6 +762,7 @@
       "copyFilesReferences": "Copy file references",
       "copyAddress": "Copy address",
       "childCount": "{count, plural, one {# child} other {# children}}",
+      "childCountMoreThan": "more than {count, number} children",
       "confirm": "Copy",
       "copying": "Copying...",
       "action": "Duplicate",
@@ -771,7 +773,7 @@
       "targetInsideSource": "The destination is inside the objects you are copying. Pick a destination outside them, or turn off \"include children\"."
     },
     "itemsCount": "{count} item{count, plural, one {} other {s}}",
-    "itemsCountMoreThan": "more than {count, number} items",
+    "itemsCountMoreThan": "{count, number}+ items",
     "saveError": {
       "conflict": "This changed elsewhere since you opened it. Copy your changes, reopen it, and apply them again.",
       "invalid": "Could not save — {detail}",

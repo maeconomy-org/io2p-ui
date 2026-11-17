@@ -13,7 +13,7 @@ import {
 } from '@/components/ui'
 import { OwnerHint } from '@/components/entity-list'
 import { useFormatTotal } from '@/hooks/ui/use-format-total'
-import { isCappedTotal } from '@/lib/list-total'
+import { isCappedCount } from '@/lib/list-total'
 
 import {
   useObjectRelations,
@@ -142,7 +142,7 @@ function RelationList({
   // Only the first page is fetched. Say so rather than presenting a truncated list as the whole
   // answer — a relation count that quietly stops at 25 reads as "that is all of them".
   const hidden = group.total - group.relations.length
-  const capped = isCappedTotal(group.total, true)
+  const capped = isCappedCount(group.total)
 
   return (
     <section className="space-y-2" data-testid={`relations-${testId}`}>

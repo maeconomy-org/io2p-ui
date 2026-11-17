@@ -133,6 +133,7 @@ export function SharedByMeTable() {
         getRowId={(item) => item.resource.id}
         fetching={isFetching}
         onPageChange={setPage}
+        requestedPage={page}
         onPageSizeChange={handlePageSizeChange}
         pageSize={pageSize}
         enableRowSelection

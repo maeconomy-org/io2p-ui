@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 
 import { cn } from '@/lib/utils'
 import { useFormatTotal } from '@/hooks/ui/use-format-total'
-import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
+import { sumTotals } from '@/lib/list-total'
 
 /** One fetched page of a list, as every node list returns it. */
 export interface FetchedPage {
@@ -35,20 +35,11 @@ export function CommandMore({
   const formatTotal = useFormatTotal()
   const loaded = pages.filter((p): p is FetchedPage => !!p)
   const shown = loaded.reduce((sum, p) => sum + p.data.length, 0)
-  const total = loaded.reduce((sum, p) => sum + p.page.totalElements, 0)
-  if (total <= shown) return null
-  // A capped page makes the sum a lower limit: each one adds "more than 1,000", never 1001.
-  const anyCapped = loaded.some((p) =>
-    isCappedTotal(p.page.totalElements, capped)
+  const sum = sumTotals(
+    loaded.map((p) => p.page.totalElements),
+    capped
   )
-  const atLeast = loaded.reduce(
-    (sum, p) =>
-      sum +
-      (isCappedTotal(p.page.totalElements, capped)
-        ? TOTAL_CAP
-        : p.page.totalElements),
-    0
-  )
+  if (!sum.capped && sum.total <= shown) return null
 
   return (
     <p
@@ -60,9 +51,9 @@ export function CommandMore({
     >
       {t('common.pickerMore', {
         shown,
-        total: anyCapped
-          ? formatTotal.moreThan(atLeast)
-          : formatTotal.text(total, false),
+        total: sum.capped
+          ? formatTotal.moreThan(sum.total)
+          : formatTotal.text(sum.total, false),
       })}
     </p>
   )

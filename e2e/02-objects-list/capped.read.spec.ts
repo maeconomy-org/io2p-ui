@@ -159,7 +159,8 @@ test.describe('02 - objects list / capped totals', () => {
       rows.nth(i).getByTestId('count-unavailable')
     await expect(rows.nth(0)).toContainText(MORE_THAN_1000)
     await expect(uncounted(0)).toHaveCount(0)
-    await expect(uncounted(1)).toHaveCount(1)
+    // Beside the name and in the Children column, when that column is shown.
+    await expect(uncounted(1).first()).toBeVisible()
     await expect(rows.nth(2)).not.toContainText(MORE_THAN_1000)
     await expect(uncounted(2)).toHaveCount(0)
   })

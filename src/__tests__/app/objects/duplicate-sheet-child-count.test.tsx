@@ -8,7 +8,8 @@ import {
 } from '@/app/objects/components/duplicate-objects/duplicate-objects-sheet'
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
 }))
 
 vi.mock('@/lib/io2p', () => ({
@@ -51,7 +52,19 @@ describe('DuplicateObjectsSheet and the child counts', () => {
     renderSheet([{ uuid: 'a', name: 'A', childCount: 1001 }])
     fireEvent.click(includeChildren()!)
     expect(screen.getByTestId('duplicate-child-total')).toHaveTextContent(
-      'objects.childrenPage.childrenCountMoreThan'
+      'objects.duplicate.childCountMoreThan:{"count":1000}'
+    )
+  })
+
+  it('adds each capped count as more than 1,000, as the picker footer does', () => {
+    renderSheet([
+      { uuid: 'a', name: 'A', childCount: 1001 },
+      { uuid: 'b', name: 'B', childCount: 1001 },
+      { uuid: 'c', name: 'C', childCount: 4 },
+    ])
+    fireEvent.click(includeChildren()!)
+    expect(screen.getByTestId('duplicate-child-total')).toHaveTextContent(
+      'objects.duplicate.childCountMoreThan:{"count":2004}'
     )
   })
 

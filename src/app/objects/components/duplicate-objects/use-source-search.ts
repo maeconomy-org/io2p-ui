@@ -63,9 +63,7 @@ export function useSourceSearch(isOpen: boolean) {
             size: SEARCH_SIZE,
             page: 1,
             scope: 'all',
-            // Without this `childCount` is absent on every row, and the
-            // "include children" switch gates on it — so recursive copy
-            // silently disappeared for anything picked by search.
+            // The "include children" switch depends on `childCount`, which is absent without this.
             withChildCounts: true,
           },
           { signal: controller.signal }

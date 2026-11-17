@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Copy, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { toast } from 'sonner'
 
 import {
   Sheet,
@@ -13,37 +12,25 @@ import {
   SheetHeader,
   SheetTitle,
   Button,
-  Label,
-  Input,
   Separator,
 } from '@/components/ui'
-import { logger } from '@/lib/observability/logger'
-import {
-  DuplicateIntoOwnSubtreeError,
-  useDuplicateObjects,
-} from '@/hooks/api/use-duplicate-objects'
 import {
   CopyOptions,
-  ParentSelector,
   SourcePicker,
-  type CopyOptionValues,
+  TargetFields,
 } from '@/app/objects/components/duplicate-objects/components'
 
+import type {
+  CopyOptionValues,
+  DuplicateObjectsOptions,
+  DuplicateSourceObject,
+} from './types'
+import { useDuplicateSubmit } from './use-duplicate-submit'
 import { useSourceSearch, type SourceSearchRow } from './use-source-search'
 
+export type { DuplicateObjectsOptions, DuplicateSourceObject }
+
 const EMPTY_PRESELECTED: DuplicateSourceObject[] = []
-
-export interface DuplicateSourceObject {
-  uuid: string
-  name: string
-  childCount?: number
-}
-
-export interface DuplicateObjectsOptions extends CopyOptionValues {
-  sourceObjects: DuplicateSourceObject[]
-  targetParentUuids: string[]
-  namePrefix: string
-}
 
 interface DuplicateObjectsSheetProps {
   open: boolean
@@ -69,9 +56,11 @@ export function DuplicateObjectsSheet({
   onConfirm,
   isCopying: isCopyingProp,
 }: DuplicateObjectsSheetProps) {
-  const { duplicateObjects, isDuplicating: isCopyingHook } =
-    useDuplicateObjects()
-  const isCopying = isCopyingProp ?? isCopyingHook
+  const { submit, isCopying } = useDuplicateSubmit({
+    onConfirm,
+    isCopying: isCopyingProp,
+    onDone: () => onOpenChange(false),
+  })
   const t = useTranslations()
 
   const [selectedObjects, setSelectedObjects] = useState<
@@ -132,42 +121,13 @@ export function DuplicateObjectsSheet({
     setTargetParentUuids(parentUuids)
   }
 
-  const handleConfirm = async () => {
-    if (onConfirm) {
-      await onConfirm({
-        sourceObjects: selectedObjects,
-        targetParentUuids,
-        namePrefix,
-        ...options,
-      })
-    } else {
-      try {
-        await duplicateObjects({
-          sourceIds: selectedObjects.map((o) => o.uuid),
-          targetParentIds: targetParentUuids,
-          namePrefix,
-          ...options,
-        })
-        toast.success(
-          t('objects.duplicate.copied', { count: selectedObjects.length })
-        )
-        onOpenChange(false)
-      } catch (error) {
-        // The loop is sequential and stops at the first failure, so an unknown
-        // number of copies already exist. Saying so beats a silent no-op that
-        // looks like the click never registered — the list behind the sheet has
-        // already been invalidated and will show them.
-        // The cycle guard runs BEFORE any write, so nothing was created and the
-        // generic "some may already exist" warning would be wrong here.
-        if (error instanceof DuplicateIntoOwnSubtreeError) {
-          toast.error(t('objects.duplicate.targetInsideSource'))
-          return
-        }
-        logger.error('Duplicate objects failed', { err: error })
-        toast.error(t('objects.duplicate.failedPartial'))
-      }
-    }
-  }
+  const handleConfirm = () =>
+    submit({
+      sourceObjects: selectedObjects,
+      targetParentUuids,
+      namePrefix,
+      ...options,
+    })
 
   const isParentLocked = !!defaultParentUuid
   const isSingleMode = preselectedObjects.length === 1
@@ -221,42 +181,15 @@ export function DuplicateObjectsSheet({
 
           <Separator />
 
-          {/* Target parent — hidden when locked via defaultParentUuid */}
-          {!isParentLocked && (
-            <>
-              <div className="grid gap-2" data-testid="duplicate-target-parent">
-                <Label>{t('objects.duplicate.targetParent')}</Label>
-                <ParentSelector
-                  initialParentUuids={targetParentUuids}
-                  onParentsChange={handleParentsChange}
-                  excludeUuids={selectedObjects.map((o) => o.uuid)}
-                  placeholder={t('objects.parentSearch')}
-                  maxSelections={1}
-                  disabled={isCopying}
-                />
-              </div>
-              <Separator />
-            </>
-          )}
-
-          {/* Name prefix */}
-          <div className="grid gap-2">
-            <Label htmlFor="name-prefix">
-              {t('objects.duplicate.namePrefix')}
-            </Label>
-            <Input
-              id="name-prefix"
-              placeholder={t('objects.duplicate.namePrefixPlaceholder')}
-              value={namePrefix}
-              onChange={(e) => setNamePrefix(e.target.value)}
-              disabled={isCopying}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('objects.duplicate.namePrefixHint')}
-            </p>
-          </div>
-
-          <Separator />
+          <TargetFields
+            showParent={!isParentLocked}
+            targetParentUuids={targetParentUuids}
+            onTargetParentsChange={handleParentsChange}
+            sourceUuids={selectedObjects.map((o) => o.uuid)}
+            namePrefix={namePrefix}
+            onNamePrefixChange={setNamePrefix}
+            disabled={isCopying}
+          />
 
           <Separator />
 

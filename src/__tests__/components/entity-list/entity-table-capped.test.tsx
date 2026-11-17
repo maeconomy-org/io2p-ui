@@ -148,6 +148,20 @@ describe('EntityTable on a list the node counts exactly', () => {
     expect(screen.getByTestId('page-next')).toBeDisabled()
   })
 
+  it('keeps previous and first when page 3 fails (shares, rollup rules)', () => {
+    const onPageChange = vi.fn()
+    renderTable({
+      page: undefined,
+      requestedPage: 3,
+      capped: false,
+      error: new Error('node down'),
+      onPageChange,
+    })
+    fireEvent.click(screen.getByTestId('page-prev'))
+    expect(onPageChange).toHaveBeenCalledWith(2)
+    expect(screen.getByTestId('page-first')).toBeEnabled()
+  })
+
   it('jumps to the exact last page from the last-page control', () => {
     const onPageChange = vi.fn()
     renderTable({ page: answered(50, 20, 1001), capped: false, onPageChange })

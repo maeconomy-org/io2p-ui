@@ -3,16 +3,9 @@
 import { useTranslations } from 'next-intl'
 
 import { Badge, Label, Switch } from '@/components/ui'
-import { isCappedTotal, mayHaveChildren, TOTAL_CAP } from '@/lib/list-total'
+import { mayHaveChildren, sumTotals } from '@/lib/list-total'
 
-import type { DuplicateSourceObject } from '../duplicate-objects-sheet'
-
-export interface CopyOptionValues {
-  includeChildren: boolean
-  copyProperties: boolean
-  copyFiles: boolean
-  copyAddress: boolean
-}
+import type { CopyOptionValues, DuplicateSourceObject } from '../types'
 
 interface CopyOptionsProps {
   sources: DuplicateSourceObject[]
@@ -33,10 +26,9 @@ export function CopyOptions({
 
   const anyHasChildren = sources.some((o) => mayHaveChildren(o.childCount))
   const anyCountUnknown = sources.some((o) => o.childCount === undefined)
-  const anyCountCapped = sources.some((o) => isCappedTotal(o.childCount, true))
-  const totalChildCount = sources.reduce(
-    (sum, o) => sum + (o.childCount ?? 0),
-    0
+  const children = sumTotals(
+    sources.map((o) => o.childCount ?? 0),
+    true
   )
 
   return (
@@ -69,19 +61,19 @@ export function CopyOptions({
       {anyHasChildren &&
         values.includeChildren &&
         !anyCountUnknown &&
-        totalChildCount > 0 && (
+        children.total > 0 && (
           <div className="flex items-center gap-2 rounded-md bg-blue-50 dark:bg-blue-950/30 p-2">
             <Badge
               variant="secondary"
               className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
               data-testid="duplicate-child-total"
             >
-              {anyCountCapped
-                ? t('objects.childrenPage.childrenCountMoreThan', {
-                    count: TOTAL_CAP,
+              {children.capped
+                ? t('objects.duplicate.childCountMoreThan', {
+                    count: children.total,
                   })
                 : t('objects.duplicate.childCount', {
-                    count: totalChildCount,
+                    count: children.total,
                   })}
             </Badge>
           </div>

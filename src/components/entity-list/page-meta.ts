@@ -1,7 +1,7 @@
 import type { Page } from 'io2p-client'
 
 import { DEFAULT_TABLE_PAGE_SIZE } from '@/constants'
-import { isCappedTotal } from '@/lib/list-total'
+import { isCappedTotal, isLastListPage } from '@/lib/list-total'
 
 import type { DataTablePaginationProps } from './data-table'
 
@@ -37,11 +37,12 @@ export function pageMeta(
     rowsOnPage,
     pastEnd: page !== undefined && rowsOnPage === 0 && number > 1,
     isFirstPage: number <= 1,
-    // A capped total does not say where the list ends; a page with fewer rows than asked does.
-    isLastPage: knownCapped
-      ? rowsOnPage < pageSize
-      : totalPages === 0
-        ? true
-        : number >= totalPages,
+    isLastPage: isLastListPage({
+      capped: knownCapped,
+      page: number,
+      totalPages,
+      rows: rowsOnPage,
+      size: pageSize,
+    }),
   }
 }

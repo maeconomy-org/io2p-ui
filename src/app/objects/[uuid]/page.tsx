@@ -8,7 +8,7 @@ import { PlusCircle, Copy, FileText } from 'lucide-react'
 import type { ObjectListItem } from 'io2p-client'
 
 import { cn } from '@/lib/utils'
-import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
+import { isCappedCount, TOTAL_CAP } from '@/lib/list-total'
 import { useBreadcrumbTrail } from '@/hooks/data/use-breadcrumb-trail'
 import { useObjects } from '@/hooks/api/entities'
 import { useColumnVisibility } from '@/hooks/ui/use-column-visibility'
@@ -158,7 +158,7 @@ export default function ObjectChildrenPage() {
               )}
               <p className="text-sm font-medium text-muted-foreground">
                 (
-                {isCappedTotal(childrenPage?.page.totalElements, true)
+                {isCappedCount(childrenPage?.page.totalElements)
                   ? t('objects.childrenPage.childrenCountMoreThan', {
                       count: TOTAL_CAP,
                     })

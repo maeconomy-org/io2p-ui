@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils'
 import { getSelectColumn } from './data-table'
 import type { CoverImage } from 'io2p-client'
 
+import { CountUnavailable } from './count-unavailable'
 import { CoverCell } from './cover-cell'
 import type { EntitySort } from './use-entity-list-query'
 
@@ -304,9 +305,7 @@ export function nameColumn<T>(
       const name = getName(row.original)
       const count = getChildCount?.(row.original)
       const tooltip =
-        count === undefined
-          ? options.uncountedTooltip
-          : options.childrenTooltip?.(count)
+        count === undefined ? undefined : options.childrenTooltip?.(count)
       const deleted = getDeleted?.(row.original) ?? false
       return (
         <div className="flex items-center font-medium">
@@ -324,15 +323,21 @@ export function nameColumn<T>(
               {options.deletedLabel}
             </span>
           )}
-          {getChildCount && count !== 0 && (
+          {getChildCount && count === undefined && options.uncountedTooltip && (
+            <span className="ml-2">
+              <CountUnavailable label={options.uncountedTooltip} />
+            </span>
+          )}
+          {count !== undefined && count > 0 && (
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    {count === undefined
-                      ? '—'
-                      : (options.formatChildCount?.(count) ?? count)}
-                    <ChevronRight className="h-2.5 w-2.5" />
+                    <span aria-hidden={tooltip ? true : undefined}>
+                      {options.formatChildCount?.(count) ?? count}
+                    </span>
+                    {tooltip && <span className="sr-only">{tooltip}</span>}
+                    <ChevronRight className="h-2.5 w-2.5" aria-hidden="true" />
                   </span>
                 </TooltipTrigger>
                 {tooltip && (

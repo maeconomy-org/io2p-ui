@@ -1,55 +1,25 @@
 'use client'
 
-import { ListErrorAlert } from '@/components/list-error'
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { toast } from 'sonner'
-import {
-  ChevronRight,
-  Copy,
-  FileText,
-  MoreHorizontal,
-  QrCode,
-  RotateCcw,
-  Trash2,
-} from 'lucide-react'
 import type { ObjectListItem } from 'io2p-client'
 
-import {
-  Button,
-  ScrollArea,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui'
-import {
-  ChildCount,
-  OwnerHint,
-  canDelete,
-  permissionWhenKnown,
-} from '@/components/entity-list'
-import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
+import { ScrollArea } from '@/components/ui'
+import { permissionWhenKnown } from '@/components/entity-list'
+import { ListErrorAlert } from '@/components/list-error'
+import { useShownSearch } from '@/components/search-highlight'
 import { useAuth } from '@/contexts'
-import { copyText } from '@/lib/clipboard'
-import { isCappedTotal, mayHaveChildren } from '@/lib/list-total'
+import { isCappedCount, isLastListPage } from '@/lib/list-total'
 import { nextSearch, searchInput } from '@/lib/search-text'
-import { cn, truncateText } from '@/lib/utils'
 import { useObjects } from '@/hooks/api/entities'
 
 import { ColumnHeader } from './column-header'
+import { ColumnRow } from './column-row'
+import type { MillerColumnActions } from './column-row-menu'
+
+export type { MillerColumnActions }
 
 const COLUMN_SIZE = 20
-
-export interface MillerColumnActions {
-  onViewObject?: (o: ObjectListItem) => void
-  onDelete?: (o: ObjectListItem) => void
-  onDuplicate?: (o: ObjectListItem) => void
-  onShowQRCode?: (o: ObjectListItem) => void
-  onCreateTemplate?: (o: ObjectListItem) => void
-  onRestore?: (o: ObjectListItem) => void
-}
 
 interface MillerColumnProps extends MillerColumnActions {
   /**
@@ -138,9 +108,14 @@ export function MillerColumn({
   const items = data?.data ?? []
   const totalPages = data?.page.totalPages ?? 1
   const totalItems = data?.page.totalElements ?? 0
-  const capped = isCappedTotal(totalItems, true)
-  // A capped total does not say where the column ends; a page with fewer rows than asked does.
-  const isLastPage = capped ? items.length < COLUMN_SIZE : page >= totalPages
+  const capped = isCappedCount(totalItems)
+  const isLastPage = isLastListPage({
+    capped,
+    page,
+    totalPages,
+    rows: items.length,
+    size: COLUMN_SIZE,
+  })
   // Until the asked page lands, `isLastPage` reads the previous page's rows: a second click on next
   // would skip past the end.
   const changePage = (next: number) => {
@@ -195,152 +170,25 @@ export function MillerColumn({
                   : t('objects.noItemsColumn')}
             </div>
           ) : (
-            items.map((item) => {
-              const isSelected = item.id === selectedId
-              const isDeleted = item.deleted
-              // Delete and restore are guarded at `admin`. This column lists at `scope: 'all'`,
-              // so shared rows sit beside the viewer's own.
-              const permission = permissionWhenKnown(item, userId, authLoading)
-
-              return (
-                <div
-                  key={item.id}
-                  className={cn(
-                    'mb-1 flex cursor-pointer items-center justify-between rounded-md p-2',
-                    isSelected ? 'bg-primary/10' : 'hover:bg-muted/50',
-                    isDeleted && 'border border-red-200 bg-red-50'
-                  )}
-                  onClick={() => onSelect(item)}
-                  onDoubleClick={() => onViewObject?.(item)}
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    {/* No handler of its own: Enter and Space click it, and the click reaches the
-                        row's, so the keyboard selects exactly as the mouse does. */}
-                    <button
-                      type="button"
-                      aria-current={isSelected ? 'true' : undefined}
-                      data-testid="column-row"
-                      className="flex min-w-0 items-center gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <span
-                        className={cn(
-                          'select-none truncate text-sm font-medium',
-                          isDeleted &&
-                            'text-red-700 line-through dark:text-red-400'
-                        )}
-                      >
-                        <SearchHighlight
-                          text={truncateText(
-                            item.name || t('objects.unnamed'),
-                            25,
-                            true
-                          )}
-                          q={shownSearch}
-                        />
-                      </span>
-                      <OwnerHint
-                        ownerUserId={item.createdBy}
-                        ownerName={item.createdByName}
-                      />
-                    </button>
-                    <ChildCount
-                      count={item.childCount}
-                      className="inline-flex shrink-0 items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700"
-                      testId="child-count-badge"
-                    />
-                  </div>
-
-                  <div className="flex items-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          type="button"
-                          className="h-6 w-6 text-muted-foreground"
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={t('common.actions')}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onViewObject?.(item)}>
-                          <FileText className="mr-2 h-4 w-4" />
-                          {t('objects.viewDetails')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={async () => {
-                            const ok = await copyText(item.id)
-                            toast[ok ? 'success' : 'error'](
-                              ok
-                                ? t('copyButton.copiedWithLabel', {
-                                    label: 'UUID',
-                                  })
-                                : t('copyButton.failedToCopy')
-                            )
-                          }}
-                        >
-                          <Copy className="mr-2 h-4 w-4" />
-                          {t('objects.actions.copyUuid')}
-                        </DropdownMenuItem>
-                        {onShowQRCode && (
-                          <DropdownMenuItem onClick={() => onShowQRCode(item)}>
-                            <QrCode className="mr-2 h-4 w-4" />
-                            {t('objects.actions.showQrCode')}
-                          </DropdownMenuItem>
-                        )}
-                        {onDuplicate && !isDeleted && (
-                          <DropdownMenuItem onClick={() => onDuplicate(item)}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            {t('objects.duplicate.action')}
-                          </DropdownMenuItem>
-                        )}
-                        {onCreateTemplate && !isDeleted && (
-                          <DropdownMenuItem
-                            onClick={() => onCreateTemplate(item)}
-                          >
-                            <FileText className="mr-2 h-4 w-4" />
-                            {t('objects.createTemplate')}
-                          </DropdownMenuItem>
-                        )}
-                        {(onDelete || onRestore) && canDelete(permission) && (
-                          <>
-                            <DropdownMenuSeparator />
-                            {isDeleted
-                              ? onRestore && (
-                                  <DropdownMenuItem
-                                    onClick={() => onRestore(item)}
-                                    disabled={isRestoring}
-                                  >
-                                    <RotateCcw className="mr-2 h-4 w-4 text-blue-600" />
-                                    {t('objects.restoreTitle')}
-                                  </DropdownMenuItem>
-                                )
-                              : onDelete && (
-                                  <DropdownMenuItem
-                                    onClick={() => onDelete(item)}
-                                    className="text-destructive focus:text-destructive"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    {t('common.delete')}
-                                  </DropdownMenuItem>
-                                )}
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {mayHaveChildren(item.childCount) && (
-                      <ChevronRight
-                        className="ml-1 h-4 w-4 text-muted-foreground"
-                        data-testid="opens-column"
-                      />
-                    )}
-                  </div>
-                </div>
-              )
-            })
+            items.map((item) => (
+              <ColumnRow
+                key={item.id}
+                item={item}
+                isSelected={item.id === selectedId}
+                // Delete and restore are guarded at `admin`. This column lists at `scope: 'all'`,
+                // so shared rows sit beside the viewer's own.
+                permission={permissionWhenKnown(item, userId, authLoading)}
+                isRestoring={isRestoring}
+                search={shownSearch}
+                onSelect={onSelect}
+                onViewObject={onViewObject}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                onShowQRCode={onShowQRCode}
+                onCreateTemplate={onCreateTemplate}
+                onRestore={onRestore}
+              />
+            ))
           )}
         </div>
       </ScrollArea>

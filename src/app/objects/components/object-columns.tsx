@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ObjectListItem } from 'io2p-client'
 
-import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
+import { isCappedCount, TOTAL_CAP } from '@/lib/list-total'
 import {
   ChildCount,
   OwnerCell,
@@ -61,9 +61,9 @@ export function buildObjectColumns({
 }: BuildObjectColumnsOptions): ColumnDef<ObjectListItem, unknown>[] {
   const cols: ColumnDef<ObjectListItem, unknown>[] = []
   const childCountText = (count: number) =>
-    isCappedTotal(count, true)
+    isCappedCount(count)
       ? t('common.totalMoreThan', { count: TOTAL_CAP })
-      : String(count)
+      : t('common.number', { count })
 
   if (enableSelection) cols.push(selectColumn<ObjectListItem>())
 
@@ -84,7 +84,7 @@ export function buildObjectColumns({
       getDeleted: (o) => o.deleted,
       deletedLabel: t('objects.deletedBadge'),
       childrenTooltip: (count) =>
-        isCappedTotal(count, true)
+        isCappedCount(count)
           ? t('objects.childrenTooltipMany', { count: TOTAL_CAP })
           : t('objects.childrenTooltip', { count }),
       formatChildCount: childCountText,
