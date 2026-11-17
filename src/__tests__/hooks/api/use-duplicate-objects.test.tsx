@@ -15,6 +15,7 @@ vi.mock('@/lib/io2p', () => ({ useIomClient: () => ({ objects }) }))
 import {
   useDuplicateObjects,
   DuplicateIntoOwnSubtreeError,
+  DuplicatePartialError,
   DuplicateTooDeepError,
   DuplicateTooLargeError,
   MAX_DUPLICATE_DEPTH,
@@ -184,6 +185,49 @@ describe('useDuplicateObjects', () => {
     })
 
     expect(objects.create).not.toHaveBeenCalled()
+  })
+
+  /** The error `duplicateObjects` rejects with. */
+  async function failure(
+    params: Parameters<
+      ReturnType<typeof useDuplicateObjects>['duplicateObjects']
+    >[0]
+  ) {
+    const { result } = render()
+    let caught: unknown
+    await act(async () => {
+      await result.current.duplicateObjects(params).catch((e) => {
+        caught = e
+      })
+    })
+    return caught
+  }
+
+  it('reports 0 created, with the cause, when the first write is refused', async () => {
+    const refused = new Error('403')
+    objects.create.mockRejectedValueOnce(refused)
+
+    const error = await failure({
+      sourceIds: ['src'],
+      targetParentIds: ['dest'],
+    })
+
+    expect(error).toBeInstanceOf(DuplicatePartialError)
+    expect((error as DuplicatePartialError).created).toBe(0)
+    expect((error as DuplicatePartialError).cause).toBe(refused)
+  })
+
+  it('counts the copies already made when a later write fails', async () => {
+    objects.create
+      .mockResolvedValueOnce({ id: 'copy-1' })
+      .mockRejectedValueOnce(new Error('403'))
+
+    const error = await failure({
+      sourceIds: ['src'],
+      targetParentIds: ['dest-1', 'dest-2'],
+    })
+
+    expect((error as DuplicatePartialError).created).toBe(1)
   })
 
   it('refuses copying an object into itself', async () => {

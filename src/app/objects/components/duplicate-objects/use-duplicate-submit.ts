@@ -6,12 +6,14 @@ import { toast } from 'sonner'
 
 import {
   DuplicateIntoOwnSubtreeError,
+  DuplicatePartialError,
   DuplicateTooDeepError,
   DuplicateTooLargeError,
   MAX_DUPLICATE_DEPTH,
   MAX_DUPLICATE_OBJECTS,
   useDuplicateObjects,
 } from '@/hooks/api/use-duplicate-objects'
+import { saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 
 import type { DuplicateObjectsOptions } from './types'
@@ -72,6 +74,11 @@ export function useDuplicateSubmit({
         return
       }
       logger.error('Duplicate objects failed', { err: error })
+      if (error instanceof DuplicatePartialError && error.created === 0) {
+        const message = saveErrorMessage(error.cause)
+        toast.error(t(message.key, message.values))
+        return
+      }
       toast.error(t('objects.duplicate.failedPartial'))
     }
   }
