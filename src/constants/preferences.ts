@@ -34,6 +34,7 @@ export const PREF_NS = {
   onboarding: 'onboarding',
   locale: 'locale',
   defaults: 'defaults',
+  search: 'search',
 } as const
 
 /**
@@ -63,6 +64,30 @@ export const flagKey = (family: PrefFlagFamily, id: string) => `${family}-${id}`
 
 export const PREF_KEY_RE = /^[a-zA-Z][\w-]{0,63}$/
 export const PREF_MAX_KEYS_PER_NS = 100
+
+/** Saved searches: one key per search under `PREF_NS.search`, so two tabs never race on one list. */
+export const SAVED_SEARCH_PREFIX = 's-'
+
+/**
+ * The node knows only its own limits (100 keys a namespace, 64 KB for ALL preferences). These are
+ * the UI's own, and soft: a tab with a stale `/me` can pass them. The total is half of the 64 KB,
+ * so a full list never blocks a theme or language change. Bytes are JSON bytes, as the node counts.
+ */
+export const SAVED_SEARCH_LIMITS = {
+  count: 50,
+  nameChars: 80,
+  queryBytes: 1000,
+  totalBytes: 32 * 1024,
+} as const
+
+/** `s-` and 10 base36 characters: inside the node's key rule, and no two tabs pick the same. */
+export function savedSearchKey(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(10))
+  return (
+    SAVED_SEARCH_PREFIX +
+    Array.from(bytes, (b) => (b % 36).toString(36)).join('')
+  )
+}
 
 /** Properties tab list/grid toggle — not part of the view-types config. */
 export type PropertiesViewType = 'detailed' | 'grid'
