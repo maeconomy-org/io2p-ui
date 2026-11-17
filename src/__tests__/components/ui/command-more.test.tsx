@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 import { CommandMore } from '@/components/ui/command-more'
 
 vi.mock('next-intl', () => ({
+  useFormatter: () => ({ number: String }),
   useTranslations:
     () => (key: string, values?: { shown: number; total: number }) =>
       `${key} ${values?.shown}/${values?.total}`,

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { DuplicateObjectsSheet } from '@/app/objects/components/duplicate-objects/duplicate-objects-sheet'
 
 vi.mock('next-intl', () => ({
+  useFormatter: () => ({ number: String }),
   useTranslations: () => (key: string) => key,
 }))
 

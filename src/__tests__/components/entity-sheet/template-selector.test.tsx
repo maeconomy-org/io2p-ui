@@ -13,6 +13,7 @@ vi.mock('@/lib/io2p', () => ({
 }))
 
 vi.mock('next-intl', () => ({
+  useFormatter: () => ({ number: String }),
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
 }))

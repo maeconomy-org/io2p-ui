@@ -26,6 +26,8 @@ import {
 import { DEFAULT_TABLE_PAGE_SIZE_OPTIONS } from '@/constants'
 import { useFormatTotal } from '@/hooks/ui/use-format-total'
 
+import { pageWindow } from '@/components/ui/page-window'
+
 interface TablePaginationProps {
   currentPage: number // 0-based
   totalPages: number
@@ -78,12 +80,13 @@ export function TablePagination({
     movedByNext.current = false
   }, [isLastPage, currentPage])
 
-  // The pages the user can reach: past a capped total that is the next one; past an exact total
-  // that shrank, the page they are on still has to show.
-  const knownPages = Math.max(
-    capped ? currentPage + (isLastPage ? 1 : 2) : totalPages,
-    currentPage + 1
-  )
+  const { knownPages, pageNumbers, pageLine } = pageWindow({
+    currentPage,
+    totalPages,
+    capped,
+    isLastPage,
+    maxButtons: MAX_PAGE_NUMBERS,
+  })
   if (knownPages <= 1) {
     return null
   }
@@ -93,16 +96,6 @@ export function TablePagination({
     Math.max(0, Math.min(pageSize, totalElements - currentPage * pageSize))
   const startItem = currentPage * pageSize + 1
   const endItem = startItem + rows - 1
-  const maxPageNumbers = Math.min(knownPages, MAX_PAGE_NUMBERS)
-
-  const pageLine = !capped
-    ? t('pagination.pageOf', { page: currentPage + 1, pages: totalPages })
-    : currentPage + 1 > totalPages
-      ? t('pagination.pageOnly', { page: currentPage + 1 })
-      : t('pagination.pageOfAtLeast', {
-          page: currentPage + 1,
-          pages: totalPages,
-        })
 
   return (
     <div className="flex flex-col gap-3 px-2 py-4">
@@ -177,32 +170,18 @@ export function TablePagination({
         <div className="flex items-center">
           <Pagination>
             <PaginationContent className="gap-1">
-              {Array.from({ length: maxPageNumbers }, (_, i) => {
-                let pageNum: number
-
-                if (knownPages <= maxPageNumbers) {
-                  pageNum = i
-                } else if (currentPage <= 1) {
-                  pageNum = i
-                } else if (currentPage >= knownPages - 2) {
-                  pageNum = knownPages - maxPageNumbers + i
-                } else {
-                  pageNum = currentPage - 1 + i
-                }
-
-                return (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink
-                      onClick={() => onPageChange(pageNum)}
-                      isActive={currentPage === pageNum}
-                      data-testid={`page-number-${pageNum + 1}`}
-                      className="cursor-pointer size-9 p-0 text-xs sm:text-sm"
-                    >
-                      {pageNum + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                )
-              })}
+              {pageNumbers.map((pageNum) => (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink
+                    onClick={() => onPageChange(pageNum)}
+                    isActive={currentPage === pageNum}
+                    data-testid={`page-number-${pageNum + 1}`}
+                    className="cursor-pointer size-9 p-0 text-xs sm:text-sm"
+                  >
+                    {pageNum + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
             </PaginationContent>
           </Pagination>
         </div>
@@ -248,7 +227,10 @@ export function TablePagination({
         aria-live="polite"
         data-testid="page-of"
       >
-        {pageLine}
+        {t(`pagination.${pageLine}`, {
+          page: currentPage + 1,
+          pages: totalPages,
+        })}
       </div>
     </div>
   )

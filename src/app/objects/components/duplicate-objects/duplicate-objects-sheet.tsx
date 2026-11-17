@@ -321,7 +321,6 @@ export function DuplicateObjectsSheet({
     }
   }
 
-  // An absent count is unknown, not 0: the choice to copy children must still be offered.
   const anyHasChildren = selectedObjects.some((o) =>
     mayHaveChildren(o.childCount)
   )

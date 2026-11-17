@@ -296,6 +296,7 @@
     "pageOnly": "Pagina {page}",
     "noMoreRows": "Geen rijen meer",
     "noMoreRowsDescription": "Deze pagina komt na het einde van de lijst. Ga terug met de knop vorige pagina.",
+    "goToPage": "Naar pagina {page, number}",
     "rowsPerPage": "Rijen per pagina"
   },
   "auth": {

@@ -16,7 +16,7 @@ vi.mock('@/lib/observability/logger', () => ({ logger: { warn: vi.fn() } }))
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
-  useFormatter: () => ({ dateTime: () => '24 Jun 2026' }),
+  useFormatter: () => ({ number: String, dateTime: () => '24 Jun 2026' }),
 }))
 
 const OBJECT_ID = 'obj-1'
@@ -122,7 +122,7 @@ describe('RelationsField', () => {
 
     await screen.findByText('objects.relations.moreUnknown')
     expect(screen.getByTestId('relations-consumed-by-count')).toHaveTextContent(
-      'common.totalMoreThan:{"count":1000}'
+      'totalMoreThan:{"count":1000}'
     )
     expect(screen.queryByText(/objects\.relations\.more:/)).toBeNull()
   })

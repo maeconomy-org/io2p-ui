@@ -5,6 +5,7 @@ import type { FormulaDTO } from 'io2p-client'
 import { FormulaSheet } from '@/app/formulas/components/formula-sheet'
 
 vi.mock('next-intl', () => ({
+  useFormatter: () => ({ number: String }),
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
 }))

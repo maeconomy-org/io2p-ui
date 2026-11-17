@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { ObjectPicker } from '@/components/entity-sheet/fields/object-picker'
 
 vi.mock('next-intl', () => ({
+  useFormatter: () => ({ number: String }),
   useTranslations: () => (key: string) => key,
 }))
 

@@ -296,6 +296,7 @@
     "pageOnly": "Page {page}",
     "noMoreRows": "No more rows",
     "noMoreRowsDescription": "This page is after the end of the list. Use the previous page button to go back.",
+    "goToPage": "Go to page {page, number}",
     "rowsPerPage": "Rows per page"
   },
   "auth": {

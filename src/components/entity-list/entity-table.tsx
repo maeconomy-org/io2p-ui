@@ -36,7 +36,7 @@ export interface EntityTableProps<T> {
   onPageSizeChange?: (size: number) => void
   /** The chosen size, shown until the first response carries its own. */
   pageSize?: number
-  /** The node caps this list's total at 1001 (objects, processes, formulas, constants, templates). */
+  /** The node caps this list's total at 1001: see `isCappedTotal`. */
   capped?: boolean
   /** The page asked for, so the controls stay when the answer is missing (an error). */
   requestedPage?: number

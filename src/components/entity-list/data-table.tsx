@@ -411,6 +411,20 @@ export function DataTable<TData>({
                     <EmptyState
                       title={t('pagination.noMoreRows')}
                       description={t('pagination.noMoreRowsDescription')}
+                      action={
+                        !pagination.capped && pagination.totalPages > 0 ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => onLastPage?.()}
+                            data-testid="page-go-last"
+                          >
+                            {t('pagination.goToPage', {
+                              page: pagination.totalPages,
+                            })}
+                          </Button>
+                        ) : undefined
+                      }
                       className="py-8"
                     />
                   ) : (

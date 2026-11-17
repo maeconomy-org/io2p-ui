@@ -12,7 +12,7 @@ vi.mock('@/contexts', () => ({ useAuth: () => ({ userId: 'me' }) }))
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
-  useFormatter: () => ({ dateTime: () => '' }),
+  useFormatter: () => ({ number: String, dateTime: () => '' }),
 }))
 
 import { MillerColumn } from '@/app/objects/components/columns-view/components/object-column'
@@ -63,7 +63,7 @@ describe('a column row and its child count', () => {
     renderColumn()
     expect(
       within(row('Big')).getByTestId('child-count-badge')
-    ).toHaveTextContent('common.totalMoreThan')
+    ).toHaveTextContent('totalMoreThan')
   })
 
   it('marks a row with no count as unknown, and as one that opens a column', () => {
@@ -120,5 +120,35 @@ describe('a column whose total the node capped', () => {
     answer([{ childCount: 0 }], 1)
     renderColumn()
     expect(screen.getByText('objects.itemsCount')).toBeInTheDocument()
+  })
+})
+
+describe('paging a capped column', () => {
+  afterEach(() => vi.clearAllMocks())
+
+  const fullPage = Array.from({ length: 20 }, () => ({ childCount: 0 }))
+  const askedPage = () => useList.mock.calls.at(-1)![0].page
+
+  it('asks for one page per landed page, however fast next is pressed', () => {
+    answer(fullPage, 1001)
+    renderColumn()
+    // keepPreviousData: page 1's rows stay on screen while page 2 loads.
+    useList.mockReturnValue({
+      ...useList.mock.results.at(-1)!.value,
+      isPlaceholderData: true,
+    })
+    fireEvent.click(screen.getByLabelText('pagination.next'))
+    fireEvent.click(screen.getByLabelText('pagination.next'))
+    expect(askedPage()).toBe(2)
+  })
+
+  it('says there are no more rows on an empty page after the end', () => {
+    answer(fullPage, 1001)
+    renderColumn()
+    answer([], 1001)
+    fireEvent.click(screen.getByLabelText('pagination.next'))
+    expect(askedPage()).toBe(2)
+    expect(screen.getByText('pagination.noMoreRows')).toBeInTheDocument()
+    expect(screen.queryByText('objects.noItemsColumn')).toBeNull()
   })
 })

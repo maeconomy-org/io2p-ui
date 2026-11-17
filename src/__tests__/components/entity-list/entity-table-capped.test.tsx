@@ -104,6 +104,27 @@ describe('EntityTable on a capped list', () => {
     })
     fireEvent.click(screen.getByTestId('page-prev'))
     expect(onPageChange).toHaveBeenCalledWith(59)
+    fireEvent.click(screen.getByTestId('page-first'))
+    expect(onPageChange).toHaveBeenCalledWith(1)
+    expect(screen.getByTestId('page-of')).toHaveTextContent(/^Page 60$/)
+  })
+
+  it('offers the last real page from an empty page 60 when the total is now exact', () => {
+    const onPageChange = vi.fn()
+    renderTable({ page: answered(60, 0, 900), onPageChange })
+    fireEvent.click(screen.getByRole('button', { name: 'Go to page 45' }))
+    expect(onPageChange).toHaveBeenCalledWith(45)
+  })
+
+  it('offers no page to go to from an empty page past a capped total', () => {
+    renderTable({ page: answered(60, 0, 1001), onPageChange: vi.fn() })
+    expect(screen.queryByTestId('page-go-last')).toBeNull()
+  })
+
+  it.each([1, 51])('shows no last-page control on page %i', (n) => {
+    renderTable({ page: answered(n, 20, 1001), onPageChange: vi.fn() })
+    expect(screen.queryByTestId('page-last')).toBeNull()
+    expect(screen.getByTestId('page-next')).toBeEnabled()
   })
 })
 

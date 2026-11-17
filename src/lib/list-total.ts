@@ -1,9 +1,5 @@
-/**
- * The node counts the object, process, formula, constant and template lists (and child counts) up
- * to `TOTAL_CAP` and answers `CAPPED_TOTAL` for "more than 1,000"; `totalPages` is then a lower
- * limit. Other lists (users, shares, access, files, rollup rules, imports) count exactly, so 1001
- * there is a real number: the caller says which kind of list it read.
- */
+// The node answers 1001 for "more than 1,000" on the object, process, formula, constant and
+// template lists and on child counts only; elsewhere 1001 is exact, so the caller names the list.
 export const TOTAL_CAP = 1000
 export const CAPPED_TOTAL = TOTAL_CAP + 1
 
@@ -14,10 +10,7 @@ export function isCappedTotal(
   return capped && total === CAPPED_TOTAL
 }
 
-/**
- * A row's `childCount` is absent when the node did not count it in time: that is "unknown", not
- * "none", so only an explicit 0 means a leaf.
- */
+/** An absent `childCount` means the node ran out of time to count, not that there are none. */
 export function mayHaveChildren(childCount: number | undefined): boolean {
   return childCount !== 0
 }

@@ -6,7 +6,7 @@ import type { ObjectListItem } from 'io2p-client'
 
 import { isCappedTotal, TOTAL_CAP } from '@/lib/list-total'
 import {
-  CountUnavailable,
+  ChildCount,
   OwnerCell,
   actionsColumn,
   coverColumn,
@@ -60,7 +60,6 @@ export function buildObjectColumns({
   isRestoring = false,
 }: BuildObjectColumnsOptions): ColumnDef<ObjectListItem, unknown>[] {
   const cols: ColumnDef<ObjectListItem, unknown>[] = []
-  // The node counts children up to 1,000 and answers 1001 above that.
   const childCountText = (count: number) =>
     isCappedTotal(count, true)
       ? t('common.totalMoreThan', { count: TOTAL_CAP })
@@ -91,16 +90,10 @@ export function buildObjectColumns({
       formatChildCount: childCountText,
     }),
     idColumn<ObjectListItem>((o) => o.id, t('objects.fields.uuid')),
-    // `childCount` is `0` for a leaf and absent when the node did not count it in time.
     textColumn<ObjectListItem>(
       'childCount',
       t('objects.fields.children'),
-      (o) =>
-        o.childCount === undefined ? (
-          <CountUnavailable label={t('common.countUnavailable')} />
-        ) : (
-          childCountText(o.childCount)
-        )
+      (o) => <ChildCount count={o.childCount} />
     ),
     textColumn<ObjectListItem>(
       'createdBy',

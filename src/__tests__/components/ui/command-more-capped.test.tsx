@@ -38,7 +38,7 @@ describe('CommandMore on a capped list', () => {
 
   it('shows 1001 on a list the node counts exactly (users) as the real number', () => {
     expect(footer([page(20, 1001)], false)).toHaveTextContent(
-      'Showing the first 20 of 1001.'
+      'Showing the first 20 of 1,001.'
     )
   })
 })

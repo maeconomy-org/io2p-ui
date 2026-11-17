@@ -50,20 +50,29 @@ function cell(
 }
 
 describe('the objects table child count', () => {
-  it('shows a capped count as 1,000+', () => {
-    expect(cell('childCount', { childCount: 1001 })).toHaveTextContent(
+  it('shows a capped count as 1,000+, read aloud as more than 1,000', () => {
+    const c = cell('childCount', { childCount: 1001 })
+    expect(c.querySelector('[aria-hidden="true"]')).toHaveTextContent(
       /^1,000\+$/
     )
+    expect(c.querySelector('.sr-only')).toHaveTextContent(/^more than 1,000$/)
   })
 
   it('shows a capped count in Dutch format', () => {
-    expect(cell('childCount', { childCount: 1001 }, 'nl')).toHaveTextContent(
+    const c = cell('childCount', { childCount: 1001 }, 'nl')
+    expect(c.querySelector('[aria-hidden="true"]')).toHaveTextContent(
       /^1\.000\+$/
     )
+    expect(c.querySelector('.sr-only')).toHaveTextContent(/^meer dan 1\.000$/)
   })
 
-  it('shows a leaf as 0 and a count up to 1,000 as the number', () => {
-    expect(cell('childCount', { childCount: 0 })).toHaveTextContent(/^0$/)
+  it('shows nothing for a leaf', () => {
+    expect(cell('childCount', { childCount: 0 })).toHaveTextContent(/^$/)
+  })
+
+  it('shows a count up to 1,000 as the number', () => {
+    const c = cell('childCount', { childCount: 999 })
+    expect(c.querySelector('[aria-hidden="true"]')).toHaveTextContent(/^999$/)
   })
 
   it('shows a count the node did not read as a dash a screen reader can explain', () => {
@@ -84,5 +93,18 @@ describe('the objects table child count', () => {
 
   it('puts 1,000+ on the name badge of a capped row', () => {
     expect(cell('name', { childCount: 1001 })).toHaveTextContent('Blok A1,000+')
+  })
+})
+
+describe('the count-not-available tooltip', () => {
+  it('opens when Tab reaches the dash and closes on Escape', async () => {
+    const user = userEvent.setup()
+    cell('childCount', {})
+    await user.tab()
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Count not available'
+    )
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('tooltip')).toBeNull()
   })
 })

@@ -6,6 +6,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { useForm } from 'react-hook-form'
 
 vi.mock('next-intl', () => ({
+  useFormatter: () => ({ number: String }),
   useTranslations: () => (key: string) => key,
 }))
 

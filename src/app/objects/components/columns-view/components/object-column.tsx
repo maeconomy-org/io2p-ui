@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui'
 import {
-  CountUnavailable,
+  ChildCount,
   OwnerHint,
   canDelete,
   permissionWhenKnown,
@@ -33,7 +33,7 @@ import {
 import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
 import { useAuth } from '@/contexts'
 import { copyText } from '@/lib/clipboard'
-import { isCappedTotal, mayHaveChildren, TOTAL_CAP } from '@/lib/list-total'
+import { isCappedTotal, mayHaveChildren } from '@/lib/list-total'
 import { nextSearch, searchInput } from '@/lib/search-text'
 import { cn, truncateText } from '@/lib/utils'
 import { useObjects } from '@/hooks/api/entities'
@@ -141,6 +141,12 @@ export function MillerColumn({
   const capped = isCappedTotal(totalItems, true)
   // A capped total does not say where the column ends; a page with fewer rows than asked does.
   const isLastPage = capped ? items.length < COLUMN_SIZE : page >= totalPages
+  // Until the asked page lands, `isLastPage` reads the previous page's rows: a second click on next
+  // would skip past the end.
+  const changePage = (next: number) => {
+    if (next > page && isPlaceholderData) return
+    setPage(next)
+  }
 
   return (
     <div className="flex h-full min-w-[250px] max-w-[300px] flex-1 flex-col overflow-hidden border-r">
@@ -157,7 +163,7 @@ export function MillerColumn({
                 totalPages,
                 totalItems,
                 isLastPage,
-                onPageChange: setPage,
+                onPageChange: changePage,
               }
             : undefined
         }
@@ -168,7 +174,7 @@ export function MillerColumn({
         <div className="px-1 py-2">
           {isLoading ? (
             <div className="flex items-center justify-center p-8">
-              <div className="mr-2 h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <div className="mr-2 h-6 w-6 animate-spin rounded-full motion-reduce:animate-none border-2 border-primary border-t-transparent" />
               <span className="text-sm text-muted-foreground">
                 {t('objects.loadingChildren')}
               </span>
@@ -182,7 +188,11 @@ export function MillerColumn({
             />
           ) : items.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              {q ? t('objects.noItemsMatch') : t('objects.noItemsColumn')}
+              {page > 1
+                ? t('pagination.noMoreRows')
+                : q
+                  ? t('objects.noItemsMatch')
+                  : t('objects.noItemsColumn')}
             </div>
           ) : (
             items.map((item) => {
@@ -224,20 +234,11 @@ export function MillerColumn({
                       ownerUserId={item.createdBy}
                       ownerName={item.createdByName}
                     />
-                    {item.childCount === undefined ? (
-                      <CountUnavailable label={t('common.countUnavailable')} />
-                    ) : (
-                      item.childCount > 0 && (
-                        <span
-                          className="inline-flex shrink-0 items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700"
-                          data-testid="child-count-badge"
-                        >
-                          {isCappedTotal(item.childCount, true)
-                            ? t('common.totalMoreThan', { count: TOTAL_CAP })
-                            : item.childCount}
-                        </span>
-                      )
-                    )}
+                    <ChildCount
+                      count={item.childCount}
+                      className="inline-flex shrink-0 items-center rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700"
+                      testId="child-count-badge"
+                    />
                   </div>
 
                   <div className="flex items-center">
