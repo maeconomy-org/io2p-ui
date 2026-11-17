@@ -6,12 +6,20 @@ import { ChevronDown, Paperclip } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // The toggle's own look (FilesToggle), and the in-field look beside an input's other buttons.
-const TOGGLE =
-  'flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
-const FIELD =
-  'flex h-8 shrink-0 items-center gap-0.5 border-l px-2.5 text-muted-foreground transition-colors hover:text-foreground'
-const ROW_ATTACH =
-  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
+const FOCUS =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+const TOGGLE = cn(
+  'flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+  FOCUS
+)
+const FIELD = cn(
+  'flex h-8 shrink-0 items-center gap-0.5 border-l px-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground',
+  FOCUS
+)
+const ROW_ATTACH = cn(
+  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+  FOCUS
+)
 
 /**
  * The one files control of a thing that holds files (a property, a value, a flow): with none it

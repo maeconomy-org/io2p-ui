@@ -93,4 +93,25 @@ describe('the one files control', () => {
     expect(toggle).toBe(attach)
     expect(document.activeElement).toBe(toggle)
   })
+
+  it.each([
+    ['field', 0],
+    ['field', 2],
+    ['row', 0],
+    ['row', 2],
+  ] as const)(
+    'shows a focus ring on the %s control with %i files',
+    (variant, count) => {
+      renderControl({ variant, count })
+      expect(screen.getByRole('button')).toHaveClass(
+        'focus-visible:ring-2',
+        'focus-visible:ring-ring'
+      )
+    }
+  )
+
+  it('uses the small text size inside a field, like the other in-field buttons', () => {
+    renderControl({ variant: 'field', count: 2 })
+    expect(screen.getByRole('button')).toHaveClass('text-xs')
+  })
 })
