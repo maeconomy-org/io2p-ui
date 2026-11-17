@@ -123,7 +123,10 @@ test.describe('02 - objects list / capped totals', () => {
 
   test('L35: a deep page that fails keeps first and previous', async ({
     page,
+    consoleGuard,
   }) => {
+    // The crafted 422 is the point of the case, and the client logs every failed request.
+    consoleGuard.expectError(/422/)
     let failing = Infinity
     const list = await serveObjectList(page, (n) =>
       n >= failing ? { status: 422 } : full()
