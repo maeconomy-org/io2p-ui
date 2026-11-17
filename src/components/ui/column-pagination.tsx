@@ -116,8 +116,12 @@ export function ColumnPagination({
               max={capped ? undefined : totalPages}
               disabled={loading}
               aria-label={t('pagination.pageInput')}
+              data-testid="column-page-input"
             />
-            <span className="text-muted-foreground">
+            <span
+              className="text-muted-foreground"
+              data-testid="column-page-of"
+            >
               {capped
                 ? t('pagination.ofAtLeast', { count: totalPages })
                 : t('pagination.of', { count: totalPages })}

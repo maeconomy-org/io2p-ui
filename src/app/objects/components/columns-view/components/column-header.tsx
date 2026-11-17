@@ -45,7 +45,10 @@ export function ColumnHeader({
         {/* Title and Count */}
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-medium">{title}</h3>
-          <div className="text-xs text-muted-foreground">
+          <div
+            className="text-xs text-muted-foreground"
+            data-testid="column-item-count"
+          >
             {capped
               ? t('objects.itemsCountMoreThan', { count: TOTAL_CAP })
               : t('objects.itemsCount', { count: itemCount })}
