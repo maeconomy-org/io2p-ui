@@ -20,7 +20,7 @@ import { ForbiddenError, ValidationError } from 'io2p-client'
 
 import {
   DuplicateIntoOwnSubtreeError,
-  DuplicatePartialError,
+  DuplicateWriteError,
   DuplicateTooDeepError,
   DuplicateTooLargeError,
 } from '@/hooks/api/use-duplicate-objects'
@@ -110,7 +110,7 @@ describe('useDuplicateSubmit', () => {
 
   it('warns that some copies may exist after a failure part-way', async () => {
     duplicateObjects.mockRejectedValue(
-      new DuplicatePartialError(2, new Error('node down'))
+      new DuplicateWriteError(2, new Error('node down'))
     )
     const onDone = vi.fn()
     const { result } = renderHook(() => useDuplicateSubmit({ onDone }))
@@ -122,7 +122,7 @@ describe('useDuplicateSubmit', () => {
 
   it('gives the real reason when the first write is refused, not "some may exist"', async () => {
     duplicateObjects.mockRejectedValue(
-      new DuplicatePartialError(0, new ForbiddenError(problem(403)))
+      new DuplicateWriteError(0, new ForbiddenError(problem(403)))
     )
     const onDone = vi.fn()
     const { result } = renderHook(() => useDuplicateSubmit({ onDone }))
@@ -135,9 +135,20 @@ describe('useDuplicateSubmit', () => {
     expect(onDone).not.toHaveBeenCalled()
   })
 
+  // A timeout can land after the node committed the create, so "nothing was copied" is not known.
+  it('keeps the part-way warning when the first write fails without an answer', async () => {
+    duplicateObjects.mockRejectedValue(
+      new DuplicateWriteError(0, new Error('network down'))
+    )
+    const { result } = renderHook(() => useDuplicateSubmit({ onDone: vi.fn() }))
+    await act(() => result.current.submit(options))
+
+    expect(toast.error).toHaveBeenCalledWith('objects.duplicate.failedPartial')
+  })
+
   it('names a validation refusal on the first write', async () => {
     duplicateObjects.mockRejectedValue(
-      new DuplicatePartialError(0, new ValidationError(problem(422, 'bad')))
+      new DuplicateWriteError(0, new ValidationError(problem(422, 'bad')))
     )
     const { result } = renderHook(() => useDuplicateSubmit({ onDone: vi.fn() }))
     await act(() => result.current.submit(options))

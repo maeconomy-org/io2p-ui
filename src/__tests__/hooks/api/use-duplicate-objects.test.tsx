@@ -15,7 +15,7 @@ vi.mock('@/lib/io2p', () => ({ useIomClient: () => ({ objects }) }))
 import {
   useDuplicateObjects,
   DuplicateIntoOwnSubtreeError,
-  DuplicatePartialError,
+  DuplicateWriteError,
   DuplicateTooDeepError,
   DuplicateTooLargeError,
   MAX_DUPLICATE_DEPTH,
@@ -187,7 +187,6 @@ describe('useDuplicateObjects', () => {
     expect(objects.create).not.toHaveBeenCalled()
   })
 
-  /** The error `duplicateObjects` rejects with. */
   async function failure(
     params: Parameters<
       ReturnType<typeof useDuplicateObjects>['duplicateObjects']
@@ -212,9 +211,9 @@ describe('useDuplicateObjects', () => {
       targetParentIds: ['dest'],
     })
 
-    expect(error).toBeInstanceOf(DuplicatePartialError)
-    expect((error as DuplicatePartialError).created).toBe(0)
-    expect((error as DuplicatePartialError).cause).toBe(refused)
+    expect(error).toBeInstanceOf(DuplicateWriteError)
+    expect((error as DuplicateWriteError).created).toBe(0)
+    expect((error as DuplicateWriteError).cause).toBe(refused)
   })
 
   it('counts the copies already made when a later write fails', async () => {
@@ -227,7 +226,7 @@ describe('useDuplicateObjects', () => {
       targetParentIds: ['dest-1', 'dest-2'],
     })
 
-    expect((error as DuplicatePartialError).created).toBe(1)
+    expect((error as DuplicateWriteError).created).toBe(1)
   })
 
   it('refuses copying an object into itself', async () => {

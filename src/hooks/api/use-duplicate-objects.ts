@@ -54,16 +54,15 @@ export class DuplicateTooLargeError extends Error {
 }
 
 /**
- * A write failed. `created` copies exist already: 0 means the cause is the whole story, more than
- * 0 means part of the copy stays behind.
+ * A write failed after `created` copies. More than 0 means part of the copy stays behind.
  */
-export class DuplicatePartialError extends Error {
+export class DuplicateWriteError extends Error {
   constructor(
     readonly created: number,
     override readonly cause: unknown
   ) {
     super(`The copy stopped after ${created} objects`)
-    this.name = 'DuplicatePartialError'
+    this.name = 'DuplicateWriteError'
   }
 }
 
@@ -207,7 +206,7 @@ export function useDuplicateObjects() {
             }
           }
         } catch (error) {
-          throw new DuplicatePartialError(progress.created, error)
+          throw new DuplicateWriteError(progress.created, error)
         }
       } finally {
         setIsDuplicating(false)
