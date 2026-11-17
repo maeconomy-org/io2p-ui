@@ -16,7 +16,9 @@ import {
   useDuplicateObjects,
   DuplicateIntoOwnSubtreeError,
   DuplicateTooDeepError,
+  DuplicateTooLargeError,
   MAX_DUPLICATE_DEPTH,
+  MAX_DUPLICATE_OBJECTS,
 } from '@/hooks/api/use-duplicate-objects'
 
 /** An async generator over a fixed list, matching `client.objects.paginate`. */
@@ -104,26 +106,28 @@ describe('useDuplicateObjects', () => {
     expect(objects.create).toHaveBeenCalledTimes(151)
   })
 
-  it('copies every child of a parent with more than 1,100 children', async () => {
+  it('refuses a parent with 1,150 children as too large, and writes nothing', async () => {
+    // Before the limit this was the data-loss case: the walk stopped at 1,100 and reported success.
     const many = Array.from({ length: 1150 }, (_, i) => `child-${i}`)
     const node = cappedNode((q) => (q.get('parent') === 'src' ? many : []))
     objects.paginate.mockImplementation((query) => node.objects.paginate(query))
 
     const { result } = render()
-    await act(async () => {
-      await result.current.duplicateObjects({
-        sourceIds: ['src'],
-        targetParentIds: ['dest'],
-        includeChildren: true,
+    await expect(
+      act(async () => {
+        await result.current.duplicateObjects({
+          sourceIds: ['src'],
+          targetParentIds: ['dest'],
+          includeChildren: true,
+        })
       })
-    })
-
-    expect(objects.create).toHaveBeenCalledTimes(1151)
+    ).rejects.toThrow(DuplicateTooLargeError)
+    expect(objects.create).not.toHaveBeenCalled()
   })
 
-  it('refuses a destination past the 1,100th child of the source', async () => {
-    const children = Array.from({ length: 1150 }, (_, i) =>
-      i === 1120 ? 'dest' : `d-${i}`
+  it('refuses a destination deep in a long child list (past several pages)', async () => {
+    const children = Array.from({ length: 480 }, (_, i) =>
+      i === 450 ? 'dest' : `d-${i}`
     )
     const node = cappedNode((q) => (q.get('parent') === 'src' ? children : []))
     objects.paginate.mockImplementation((query) => node.objects.paginate(query))
@@ -261,5 +265,56 @@ describe('useDuplicateObjects', () => {
     })
     expect(objects.paginate).not.toHaveBeenCalled()
     expect(objects.create).toHaveBeenCalledTimes(1)
+  })
+
+  /** `src` with `n` direct children. */
+  function children(n: number) {
+    const ids = Array.from({ length: n }, (_, i) => `c-${i}`)
+    objects.paginate.mockImplementation(({ parent }: { parent?: string }) =>
+      parent === 'src' ? pageOf(ids) : pageOf([])
+    )
+  }
+
+  it(`copies exactly ${MAX_DUPLICATE_OBJECTS} objects`, async () => {
+    children(MAX_DUPLICATE_OBJECTS - 1)
+    const { result } = render()
+    await act(async () => {
+      await result.current.duplicateObjects({
+        sourceIds: ['src'],
+        targetParentIds: ['dest'],
+        includeChildren: true,
+      })
+    })
+    expect(objects.create).toHaveBeenCalledTimes(MAX_DUPLICATE_OBJECTS)
+  })
+
+  it(`refuses ${MAX_DUPLICATE_OBJECTS + 1} objects before writing any`, async () => {
+    children(MAX_DUPLICATE_OBJECTS)
+    const { result } = render()
+    await expect(
+      act(async () => {
+        await result.current.duplicateObjects({
+          sourceIds: ['src'],
+          targetParentIds: ['dest'],
+          includeChildren: true,
+        })
+      })
+    ).rejects.toThrow(DuplicateTooLargeError)
+    expect(objects.create).not.toHaveBeenCalled()
+  })
+
+  it('counts each destination: 300 objects into two parents is 600 copies', async () => {
+    children(299)
+    const { result } = render()
+    await expect(
+      act(async () => {
+        await result.current.duplicateObjects({
+          sourceIds: ['src'],
+          targetParentIds: ['dest-1', 'dest-2'],
+          includeChildren: true,
+        })
+      })
+    ).rejects.toThrow(DuplicateTooLargeError)
+    expect(objects.create).not.toHaveBeenCalled()
   })
 })

@@ -44,8 +44,23 @@ export class DuplicateTooDeepError extends Error {
   }
 }
 
+/**
+ * The copy would create more than `MAX_DUPLICATE_OBJECTS` objects. Thrown before any write: the copy
+ * runs object by object in the browser, so a big one takes minutes and a closed tab leaves part of
+ * it behind.
+ */
+export class DuplicateTooLargeError extends Error {
+  constructor() {
+    super(`The copy would create more than ${MAX_DUPLICATE_OBJECTS} objects`)
+    this.name = 'DuplicateTooLargeError'
+  }
+}
+
 /** A subtree deeper than this is almost certainly a cycle or a mistake, not an intent. */
 export const MAX_DUPLICATE_DEPTH = 10
+
+/** Copies per run: every source and descendant, once per destination. */
+export const MAX_DUPLICATE_OBJECTS = 500
 
 /** Page size for the child walk. `paginate` walks every page, so this only sets the chunk. */
 const CHILD_PAGE_SIZE = 100
@@ -66,8 +81,11 @@ interface CopyNode {
 async function readSubtree(
   client: Io2pClient,
   id: string,
-  depth: number
+  depth: number,
+  budget: { left: number }
 ): Promise<CopyNode> {
+  budget.left -= 1
+  if (budget.left < 0) throw new DuplicateTooLargeError()
   const children: CopyNode[] = []
   for await (const child of client.objects.paginate({
     parent: id,
@@ -75,7 +93,7 @@ async function readSubtree(
     scope: 'all',
   })) {
     if (depth >= MAX_DUPLICATE_DEPTH) throw new DuplicateTooDeepError()
-    children.push(await readSubtree(client, child.id, depth + 1))
+    children.push(await readSubtree(client, child.id, depth + 1, budget))
   }
   return { id, children }
 }
@@ -136,13 +154,24 @@ export function useDuplicateObjects() {
         const destinations = params.targetParentIds.length
           ? params.targetParentIds
           : ['']
+        // Every planned node is copied once per destination. The walk stops as soon as the budget
+        // runs out, so a huge tree is refused without being read to the end.
+        const budget = {
+          left: Math.floor(MAX_DUPLICATE_OBJECTS / destinations.length),
+        }
         const plans: CopyNode[] = []
         for (const sourceId of params.sourceIds) {
           plans.push(
             params.includeChildren
-              ? await readSubtree(client, sourceId, 0)
+              ? await readSubtree(client, sourceId, 0, budget)
               : { id: sourceId, children: [] }
           )
+        }
+        if (
+          !params.includeChildren &&
+          params.sourceIds.length * destinations.length > MAX_DUPLICATE_OBJECTS
+        ) {
+          throw new DuplicateTooLargeError()
         }
         // Checked for EVERY pair before anything is written: discovering it half-way would leave a
         // partial subtree behind. Only when children travel: one flat object landing under a

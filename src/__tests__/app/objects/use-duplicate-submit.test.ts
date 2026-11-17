@@ -19,6 +19,7 @@ vi.mock('@/hooks/api/use-duplicate-objects', async (importOriginal) => ({
 import {
   DuplicateIntoOwnSubtreeError,
   DuplicateTooDeepError,
+  DuplicateTooLargeError,
 } from '@/hooks/api/use-duplicate-objects'
 import { useDuplicateSubmit } from '@/app/objects/components/duplicate-objects/use-duplicate-submit'
 
@@ -87,6 +88,16 @@ describe('useDuplicateSubmit', () => {
     expect(toast.error).not.toHaveBeenCalledWith(
       'objects.duplicate.failedPartial'
     )
+    expect(onDone).not.toHaveBeenCalled()
+  })
+
+  it('says nothing was copied when the copy is too large, and stays open', async () => {
+    duplicateObjects.mockRejectedValue(new DuplicateTooLargeError())
+    const onDone = vi.fn()
+    const { result } = renderHook(() => useDuplicateSubmit({ onDone }))
+    await act(() => result.current.submit(options))
+
+    expect(toast.error).toHaveBeenCalledWith('objects.duplicate.tooLarge')
     expect(onDone).not.toHaveBeenCalled()
   })
 

@@ -6,7 +6,9 @@ import { toast } from 'sonner'
 import {
   DuplicateIntoOwnSubtreeError,
   DuplicateTooDeepError,
+  DuplicateTooLargeError,
   MAX_DUPLICATE_DEPTH,
+  MAX_DUPLICATE_OBJECTS,
   useDuplicateObjects,
 } from '@/hooks/api/use-duplicate-objects'
 import { logger } from '@/lib/observability/logger'
@@ -54,6 +56,12 @@ export function useDuplicateSubmit({
       // generic "some may already exist" warning would be wrong here.
       if (error instanceof DuplicateIntoOwnSubtreeError) {
         toast.error(t('objects.duplicate.targetInsideSource'))
+        return
+      }
+      if (error instanceof DuplicateTooLargeError) {
+        toast.error(
+          t('objects.duplicate.tooLarge', { count: MAX_DUPLICATE_OBJECTS })
+        )
         return
       }
       if (error instanceof DuplicateTooDeepError) {

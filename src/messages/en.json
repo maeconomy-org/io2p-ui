@@ -770,6 +770,7 @@
       "copied": "{count, plural, one {# object copied} other {# objects copied}}",
       "failedPartial": "The copy stopped part-way. Some objects may already have been created — check the list before retrying.",
       "copyFilesHint": "Linked files only. Uploaded files stay with the original.",
+      "tooLarge": "Nothing was copied: this would create more than {count, number} objects. Copy a smaller part of the tree, or fewer destinations at a time.",
       "tooDeep": "Nothing was copied: these objects are nested more than {levels} levels deep. Copy a lower part of the tree.",
       "targetInsideSource": "The destination is inside the objects you are copying. Pick a destination outside them, or turn off \"include children\"."
     },

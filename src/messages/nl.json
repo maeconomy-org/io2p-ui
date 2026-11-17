@@ -770,6 +770,7 @@
       "copied": "{count, plural, one {# object gekopieerd} other {# objecten gekopieerd}}",
       "failedPartial": "Het kopiëren is halverwege gestopt. Sommige objecten zijn mogelijk al aangemaakt — controleer de lijst voordat u het opnieuw probeert.",
       "copyFilesHint": "Alleen gekoppelde bestanden. Geüploade bestanden blijven bij het origineel.",
+      "tooLarge": "Er is niets gekopieerd: dit zou meer dan {count, number} objecten maken. Kopieer een kleiner deel van de boom, of minder bestemmingen tegelijk.",
       "tooDeep": "Er is niets gekopieerd: deze objecten zijn meer dan {levels} niveaus diep genest. Kopieer een lager deel van de boom.",
       "targetInsideSource": "De bestemming ligt binnen de objecten die u kopieert. Kies een bestemming daarbuiten, of schakel \"inclusief onderliggende objecten\" uit."
     },
