@@ -10,6 +10,7 @@ import {
   canRestore,
   linkUnderRefusal,
   permissionOf,
+  permissionWhenKnown,
 } from '@/components/entity-list/permission'
 
 describe('the permission ladder', () => {
@@ -152,5 +153,34 @@ describe('linkUnderRefusal', () => {
     expect(
       linkUnderRefusal({ permission: 'read', createdBy: 'me' }, 'me')
     ).toBe('objects.needsWriteAccess')
+  })
+})
+
+describe('permissionWhenKnown (object and process list rows)', () => {
+  const me = 'user-me'
+
+  it('keeps the level the node sent', () => {
+    expect(
+      permissionWhenKnown(
+        { permission: 'write', createdBy: 'other' },
+        me,
+        false
+      )
+    ).toBe('write')
+  })
+
+  it('reads an owned row with no level as admin', () => {
+    expect(permissionWhenKnown({ createdBy: me }, me, false)).toBe('admin')
+  })
+
+  it('reads a foreign row with no level as read: no write action', () => {
+    const level = permissionWhenKnown({ createdBy: 'other' }, me, false)
+    expect(level).toBe('read')
+    expect(canEdit(level)).toBe(false)
+    expect(canDelete(level)).toBe(false)
+  })
+
+  it('reads every row without a level as read while the viewer loads', () => {
+    expect(permissionWhenKnown({ createdBy: me }, undefined, true)).toBe('read')
   })
 })
