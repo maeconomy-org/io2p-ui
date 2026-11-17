@@ -1619,6 +1619,26 @@ describe('a total in the grid view', () => {
     view = 'detailed'
   })
 
+  it('opens to the breakdown, so the left-out count and other totals can be read', () => {
+    view = 'grid'
+    renderRollupsAtRest(
+      [massProperty()],
+      new Map([['rule-mass', entry({ skippedCount: 2 })]])
+    )
+    expect(screen.queryByTestId('rollup-skipped')).toBeNull()
+
+    fireEvent.click(screen.getByTestId('rollup-toggle'))
+    expect(screen.getByTestId('rollup-skipped')).toBeInTheDocument()
+    view = 'detailed'
+  })
+
+  it('offers Collapse all once a grid card can open', () => {
+    view = 'grid'
+    renderRollupsAtRest([massProperty()], new Map([['rule-mass', entry()]]))
+    expect(screen.getByTestId('collapse-all')).toBeInTheDocument()
+    view = 'detailed'
+  })
+
   it('names its multiplier, as the list card does at rest', () => {
     view = 'grid'
     renderRollupsAtRest(
@@ -1636,6 +1656,50 @@ describe('a total in the grid view', () => {
       'objects.properties.rollupMultipliedBy'
     )
     view = 'detailed'
+  })
+})
+
+describe('the toggle on a total card', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    view = 'detailed'
+  })
+
+  it('points aria-controls only at rendered details', () => {
+    renderRollupsAtRest([massProperty()], new Map([['mass', entry()]]))
+    const toggle = screen.getByTestId('rollup-toggle')
+    expect(toggle).not.toHaveAttribute('aria-controls')
+
+    fireEvent.click(toggle)
+    const id = toggle.getAttribute('aria-controls')
+    expect(id && document.getElementById(id)).toBeInstanceOf(HTMLElement)
+  })
+
+  it('is named by the total and its name, not by the marks beside them', () => {
+    renderRollupsAtRest(
+      [massProperty()],
+      new Map([['mass', entry({ stale: true, skippedCount: 2 })]])
+    )
+    const toggle = screen.getByTestId('rollup-toggle')
+    expect(toggle).toHaveAccessibleName(/mass|Mass/)
+    expect(toggle).toHaveAccessibleName(/4120 kg/)
+    expect(toggle).not.toHaveAccessibleName(/rollupProcessing|rollupSkipped/)
+    expect(toggle).not.toContainElement(screen.getByTestId('rollup-stale'))
+  })
+
+  it('holds no block elements, which a button cannot contain', () => {
+    renderRollupsAtRest([massProperty()], new Map([['mass', entry()]]))
+    const toggle = screen.getByTestId('rollup-toggle')
+    expect(toggle.querySelector('div, p')).toBeNull()
+  })
+
+  it('opens from a click anywhere on the card header, as before', () => {
+    renderRollupsAtRest(
+      [massProperty()],
+      new Map([['mass', entry({ skippedCount: 2 })]])
+    )
+    fireEvent.click(screen.getByTestId('rollup-line'))
+    expect(screen.getByTestId('rollup-skipped')).toBeInTheDocument()
   })
 })
 
