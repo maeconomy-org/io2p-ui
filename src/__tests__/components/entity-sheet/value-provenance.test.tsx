@@ -400,7 +400,7 @@ describe('the details, read in full', () => {
 })
 
 describe('the provenance texts', () => {
-  it('give the counted-without-unit badge its own text, apart from a plain result', () => {
+  it('give the no-unit badge its own text, apart from a plain result', () => {
     for (const messages of [en, nl]) {
       const p = messages.objects.properties
       expect(p.noUnit).not.toBe(p.resultNoUnit)

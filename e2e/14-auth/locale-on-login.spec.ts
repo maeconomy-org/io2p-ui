@@ -77,6 +77,8 @@ test.describe('14 - auth / locale on login', () => {
   test.afterEach(async ({ page }) => {
     await page.goto('/')
     if (!/\/objects$/.test(page.url())) await signIn(page)
+    // The token mint in `patchPreferences` needs the signed-in page, not the redirect.
+    await expect(page).toHaveURL(/\/objects$/)
     await patchPreferences(page, { locale: { app: 'en' } })
   })
 })

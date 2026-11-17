@@ -482,6 +482,9 @@ export function PropertyReadView({
     <h3 className="text-sm font-medium">{heading}</h3>
   )
 
+  // In the grid only the total cards open; a property tile does not.
+  const hasCollapsibles = view !== 'grid' || rollupCards.length > 0
+
   if (properties.length === 0 && rollupCards.length === 0) {
     return (
       <div className="space-y-2">
@@ -499,9 +502,7 @@ export function PropertyReadView({
         {allowViewToggle && (
           <ListToolbar
             heading={headingEl}
-            onCollapse={
-              view !== 'grid' || rollupCards.length > 0 ? collapse : undefined
-            }
+            onCollapse={hasCollapsibles ? collapse : undefined}
           >
             <ViewToggle
               value={view}

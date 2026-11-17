@@ -719,7 +719,7 @@
       "rollupMultiValueAllCounted": "{count, plural, one {# object has several values, all counted} other {# objects have several values, all counted}}",
       "rollupProcessing": "Updating…",
       "rollupSubtreeTooLarge": "Too many items to total",
-      "noUnit": "Counted without unit",
+      "noUnit": "No unit",
       "unitChecked": "Unit checked",
       "unitNotCountedShort": "Its unit could not be checked, so it is in no total.",
       "factsFormula": "Formula",
@@ -732,7 +732,7 @@
       "fixNoUnit": "Duplicate the formula with a result unit (for example kWh), or give a plain-number input its unit (for example “11 pcs”).",
       "resultDeclared": "{unit}, set on the formula",
       "resultInherited": "{unit}, from the inputs",
-      "resultNoUnit": "No unit",
+      "resultNoUnit": "A plain number, nothing to check",
       "constant": "Constant",
       "calcError": {
         "arg-not-numeric": "A value it reads is not a number",
