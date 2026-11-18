@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
 import {
@@ -12,10 +12,15 @@ import type { ResolvedQuantity } from '@/components/entity-sheet/fields/quantity
 import en from '@/messages/en.json'
 import nl from '@/messages/nl.json'
 
+const intl = vi.hoisted(() => ({ locale: 'en' }))
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
-  useFormatter: () => ({ number: (n: number) => String(n) }),
+  useFormatter: () => ({
+    number: (n: number, options?: Intl.NumberFormatOptions) =>
+      new Intl.NumberFormat(intl.locale, options).format(n),
+  }),
 }))
 
 // Only the opened details fetch: the formula's name and the constants' names.
@@ -412,5 +417,46 @@ describe('the provenance texts', () => {
     for (const text of [p.fixNotCounted, p.fixNotCountedInherited, p.fixNoUnit])
       expect(text).toMatch(/^Dupliceert u /)
     expect(p.fixNoUnit).toContain('geeft u ')
+  })
+})
+
+describe('ValueProvenanceDisplay — numbers in the reader’s format', () => {
+  afterEach(() => {
+    intl.locale = 'en'
+  })
+
+  const CONSTANT_ONLY: ValueProvenance = {
+    expression: 'max(b, 1000) * 0.001',
+    evalVersion: 1,
+    args: [
+      {
+        var: 'b',
+        source: { kind: 'constant', constantId: 'const-1', version: 2 },
+        value: 2500,
+      },
+    ],
+  }
+
+  it('writes the formula’s own numbers as the inputs, with one decimal mark', () => {
+    intl.locale = 'nl'
+    renderProvenance({
+      ...CONSTANT_ONLY,
+      args: [{ ...CONSTANT_ONLY.args[0], value: 0.5 }],
+    })
+
+    expect(screen.getByTestId('provenance-equation')).toHaveTextContent(
+      '= max(0,5; 1000) × 0,001'
+    )
+  })
+
+  // `1,000` beside the `, ` that splits arguments reads as two arguments.
+  it('groups no thousands inside the equation, and does in the inputs list', () => {
+    renderProvenance({ ...CONSTANT_ONLY, formulaId: 'f-1' })
+
+    expect(screen.getByTestId('provenance-equation')).toHaveTextContent(
+      '= max(2500, 1000) × 0.001'
+    )
+    openDetails()
+    expect(screen.getByText('2,500')).toBeInTheDocument()
   })
 })

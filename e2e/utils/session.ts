@@ -35,6 +35,18 @@ export function signedOutContext(browser: Browser): Promise<BrowserContext> {
   return browser.newContext({ storageState: { cookies: [], origins: [] } })
 }
 
+/** Fills the sign-in form on the current page; says whether the account stopped at 2FA. */
+export async function submitSignIn(
+  page: Page,
+  who: Credentials
+): Promise<'signed-in' | 'two-factor'> {
+  await page.getByLabel('Email').fill(who.email)
+  await page.getByLabel('Password').fill(who.password)
+  await page.getByTestId('auth-email-submit').click()
+  await page.waitForURL(/\/(objects|two-factor)$/)
+  return page.url().includes('/two-factor') ? 'two-factor' : 'signed-in'
+}
+
 export async function signInAs(page: Page, who: Credentials): Promise<void> {
   // Callers arrive here right after clicking sign-out, which fires its OWN redirect to `/`. A
   // `goto` racing that redirect is cancelled by the browser as `net::ERR_ABORTED`, so let the
@@ -47,15 +59,10 @@ export async function signInAs(page: Page, who: Credentials): Promise<void> {
     await expect(form).toBeVisible()
   }
 
-  await page.getByLabel('Email').fill(who.email)
-  await page.getByLabel('Password').fill(who.password)
-  await page.getByTestId('auth-email-submit').click()
-  await page.waitForURL(/\/(objects|two-factor)$/)
-
   // An account with TOTP on cannot be driven without its secret. Named rather than left to time out
   // sixty seconds later against a page the test never expected to be on.
   test.skip(
-    page.url().includes('/two-factor'),
+    (await submitSignIn(page, who)) === 'two-factor',
     `${who.email} has two-factor enabled — turn it off for the e2e account, or the grantee cannot sign in`
   )
 }

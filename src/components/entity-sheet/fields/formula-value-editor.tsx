@@ -441,6 +441,10 @@ export function FormulaBindings({
   ]
     .filter(Boolean)
     .join(' ')
+  // A live region reads its whole text again on any change. Holding the last answer while the next
+  // is on its way means a pause in typing that ends in the same answer says nothing.
+  const [spoken, setSpoken] = useState(announcement)
+  if (!busy && spoken !== announcement) setSpoken(announcement)
 
   if (!formula) return null
 
@@ -506,11 +510,10 @@ export function FormulaBindings({
       )}
 
       {/* Always mounted: a live region announces what APPEARS in it, and the answers arrive after
-          the settle wait. Busy while one is on its way, or the same warnings are read again after
-          every pause in typing. Text only: the visible lines carry "Why?" buttons, which a live
-          region would read with every line, and read each reason again when it opens. */}
+          the settle wait. Text only: the visible lines carry "Why?" buttons, which a live region
+          would read with every line, and read each reason again when it opens. */}
       <p role="status" aria-live="polite" aria-busy={busy} className="sr-only">
-        {announcement}
+        {spoken}
       </p>
       <div className="space-y-2">
         {/* RED, not amber: the node refuses this outright and writes an error row with no number,
@@ -856,7 +859,7 @@ export function useTemplateEquation(
           formula.variables.includes(variable)
             ? bindingLabel(variable)
             : undefined,
-        format
+        format.equation
       )
     : undefined
 

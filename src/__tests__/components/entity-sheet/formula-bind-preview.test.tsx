@@ -486,6 +486,53 @@ describe('authoring warnings', () => {
     }
   })
 
+  // A live region reads its whole text again on any change, so a pause in typing that ends in the
+  // same answer must leave the text as it was.
+  it('keeps the last answer in the region while the next one is on its way', () => {
+    preview.data = {
+      num: 1.5,
+      unit: 'kg',
+      unitVerified: true,
+      warnings: [
+        {
+          code: 'hand-conversion',
+          detail: 'x',
+          literal: 1000,
+          scales: 'down',
+          unit: 't',
+        },
+      ],
+    }
+    vi.useFakeTimers()
+    try {
+      const { rerender } = render(
+        <FormulaBindings
+          calc={bind('a', 'b')}
+          siblings={[sib('v-a', undefined, undefined, '10 m'), TWO_TONNES[1]]}
+          onChange={vi.fn()}
+        />
+      )
+      const region = screen.getByRole('status')
+      const settled = region.textContent
+      expect(settled).toContain('handConversionDownShort')
+
+      rerender(
+        <FormulaBindings
+          calc={bind('a', 'b')}
+          siblings={[sib('v-a', undefined, undefined, '10 t'), TWO_TONNES[1]]}
+          onChange={vi.fn()}
+        />
+      )
+      expect(region).toHaveAttribute('aria-busy', 'true')
+      expect(region.textContent).toBe(settled)
+
+      act(() => vi.advanceTimersByTime(400))
+      expect(region.textContent).toBe(settled)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('stays busy while the settled question is still being answered', () => {
     preview.isFetching = true
     renderBindings()

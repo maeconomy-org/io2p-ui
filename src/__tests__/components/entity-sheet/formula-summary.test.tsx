@@ -4,7 +4,8 @@ import { render, screen } from '@testing-library/react'
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useFormatter: () => ({
-    number: String,
+    number: (n: number, options?: Intl.NumberFormatOptions) =>
+      new Intl.NumberFormat('nl', options).format(n),
     list: (items: string[]) => items.join(', '),
   }),
 }))
@@ -12,7 +13,7 @@ vi.mock('next-intl', () => ({
 vi.mock('@/hooks/api/leaves', () => ({
   useFormulas: () => ({
     useGet: () => ({
-      data: { name: 'double', expression: 'x * 2', variables: ['x'] },
+      data: { name: 'double', expression: 'x * 2.5', variables: ['x'] },
     }),
   }),
   useConstants: () => ({ useByIds: () => new Map() }),
@@ -20,6 +21,7 @@ vi.mock('@/hooks/api/leaves', () => ({
 
 import { FormulaSummary } from '@/components/entity-sheet/fields/formula-value-editor'
 
+// Dutch, so a number the formula writes raw (`2.5`) shows against the locale's `2,5`.
 describe('a template formula', () => {
   // Nothing is calculated in a template, so the equation names the property each variable reads.
   it('reads as its equation with the bound properties named', () => {
@@ -31,7 +33,7 @@ describe('a template formula', () => {
     )
 
     expect(screen.getByTestId('formula-summary')).toHaveTextContent(
-      '= Width × 2'
+      '= Width × 2,5'
     )
     expect(screen.getByText('double')).toBeInTheDocument()
     expect(screen.getByText('templates.formulaInert')).toBeInTheDocument()
@@ -39,6 +41,6 @@ describe('a template formula', () => {
 
   it('keeps an unbound variable by its own name', () => {
     render(<FormulaSummary calc={{ formulaId: 'f-1', args: [] }} />)
-    expect(screen.getByTestId('formula-summary')).toHaveTextContent('= x × 2')
+    expect(screen.getByTestId('formula-summary')).toHaveTextContent('= x × 2,5')
   })
 })

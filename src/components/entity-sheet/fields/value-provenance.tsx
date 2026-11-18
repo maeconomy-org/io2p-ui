@@ -77,19 +77,22 @@ export function ValueProvenanceDisplay({
 
   // A constant's number is what was read. A sibling's is in its canonical unit (2 kW is 2000), so
   // without the row's own text the variable's name stands in rather than a number nobody typed.
-  const argText = (arg: ValueProvenanceData['args'][number]) =>
+  const argText = (
+    arg: ValueProvenanceData['args'][number],
+    number = format.number
+  ) =>
     arg.source.kind === 'property'
       ? textForValue?.(arg.source.valueId)
       : arg.value === undefined
         ? undefined
-        : format.number(arg.value)
+        : number(arg.value)
   const equation = equationText(
     provenance.expression,
     (name) => {
       const arg = provenance.args.find((a) => a.var === name)
-      return arg && argText(arg)
+      return arg && argText(arg, format.equation.number)
     },
-    format
+    format.equation
   )
   // A code this app does not know reads as the badge already says; repeating it is noise.
   const errorLine = error && calcErrorText(error.code, t)
