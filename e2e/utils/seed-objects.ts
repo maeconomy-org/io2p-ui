@@ -221,16 +221,23 @@ export async function ensureCappedParent(page: Page): Promise<string> {
   const missing = CAPPED_CHILDREN - have
   const stamp = Date.now()
   let next = 0
+  // One failed create rejects the batch; the others stop too, so the setup retry counts a still tree.
+  let failed = false
   const worker = async () => {
-    while (next < missing) {
+    while (next < missing && !failed) {
       const i = next++
-      await call('/objects', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: `QA-capped-${stamp}-${i + 1}`,
-          parents: [parentId],
-        }),
-      })
+      try {
+        await call('/objects', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: `QA-capped-${stamp}-${i + 1}`,
+            parents: [parentId],
+          }),
+        })
+      } catch (err) {
+        failed = true
+        throw err
+      }
     }
   }
   await Promise.all(Array.from({ length: 4 }, worker))
