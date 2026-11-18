@@ -56,7 +56,7 @@ check('the build is made from this tree', async () => {
   )
   expect(
     built,
-    'The build is not from this tree (commit or tracked changes differ; new untracked files ' +
-      'are not checked). Run pnpm run build:e2e again.'
+    'The build is not from this tree: `source` differs after an app change, `sdk` after an ' +
+      'SDK sync. Run pnpm run build:e2e again.'
   ).toEqual(tree)
 })

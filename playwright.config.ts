@@ -142,6 +142,7 @@ export default defineConfig({
   ],
   webServer: {
     // Starts the build `pnpm run build:e2e` made; it never builds, or every run waits for one.
+    // With no build at all it stops first, on an ENOENT for `.next/standalone/server.js`.
     // `preflight.check.ts` refuses a build that is not from this tree. HOSTNAME is pinned so a
     // HOSTNAME from the shell does not move the address the standalone server binds.
     command: `PORT=${port} HOSTNAME=127.0.0.1 pnpm run start:e2e`,
