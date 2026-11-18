@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  QueryClient,
+  QueryClientProvider,
+  onlineManager,
+} from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 import {
@@ -309,6 +313,25 @@ describe('useSavedSearches', () => {
       out = await result.current.save('s-a', 'Heavy', 'beton')
     })
     expect(out).toEqual({ ok: false, reason: { code: 'failed' } })
+  })
+
+  it('sends while the browser is offline, so the save answers offline and does not wait', async () => {
+    onlineManager.setOnline(false)
+    try {
+      updatePreferences.mockRejectedValueOnce({
+        status: 0,
+        name: 'NetworkError',
+      })
+      const { result } = renderHook(() => useSavedSearches(), { wrapper })
+      let out
+      await act(async () => {
+        out = await result.current.save('s-a', 'Heavy', 'beton')
+      })
+      expect(updatePreferences).toHaveBeenCalledTimes(1)
+      expect(out).toEqual({ ok: false, reason: { code: 'offline' } })
+    } finally {
+      onlineManager.setOnline(true)
+    }
   })
 
   it('refuses before sending when a check fails', async () => {

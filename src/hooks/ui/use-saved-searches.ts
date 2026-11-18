@@ -176,6 +176,9 @@ export function useSavedSearches() {
 
   const { mutateAsync, isPending } = useMutation({
     scope: { id: 'saved-searches' },
+    // The default 'online' mode pauses the write while the browser is offline: the dialog stays on
+    // "Saving…" and the save lands later, unasked. 'always' sends it, so the user sees "offline".
+    networkMode: 'always',
     mutationFn: (patch: Preferences) => iom.users.updatePreferences(patch),
     // Only OUR patch goes into the cache, never the node's whole bag: with an optimistic theme
     // toggle in flight, an older full bag landing last would put the old theme back.
