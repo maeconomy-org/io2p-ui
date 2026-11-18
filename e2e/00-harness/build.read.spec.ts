@@ -11,8 +11,8 @@ test.describe('00 - harness / build', () => {
     ).toBeAttached()
   })
 
-  // `reuseExistingServer` takes whatever holds :3000, and a dev server keeps its test ids, so the
-  // flag check above passes against one. Four cases assert on deployment limits the dev server
+  // With E2E_REUSE the run takes whatever holds the port, and a dev server keeps its test ids, so
+  // the flag check above passes against one. Four cases assert on deployment limits the dev server
   // serves defaults for, and the React Compiler only runs in a production build — which is the
   // only place bugs #2, #3 and #7 were visible.
   test('the server under test is a production build', async ({ page }) => {
