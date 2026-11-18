@@ -1,7 +1,7 @@
 import { expect, test as setup } from '@playwright/test'
 
 import { resetPreferences } from '../utils/preferences'
-import { ensureRootObjects } from '../utils/seed-objects'
+import { ensureCappedParent, ensureListRows } from '../utils/seed-objects'
 import { signedOutContext, submitSignIn } from '../utils/session'
 import {
   AUTH_STATE,
@@ -24,8 +24,13 @@ setup('authenticate', async ({ page, browser }) => {
     try {
       const grantee = await context.newPage()
       await grantee.goto('/')
-      if ((await submitSignIn(grantee, second)) === 'signed-in')
+      if ((await submitSignIn(grantee, second)) === 'signed-in') {
         await resetPreferences(grantee)
+        // Here, before the primary signs in: a later sign-in of this account would end that
+        // session. The first run creates about 1,000 objects; later runs read one count.
+        setup.setTimeout(600_000)
+        await ensureCappedParent(grantee)
+      }
     } finally {
       await context.close()
     }
@@ -47,7 +52,7 @@ setup('authenticate', async ({ page, browser }) => {
   // Setup already owns the account's preconditions, and this is one: half the suite opens on a
   // `data-table-row`, and L1/L2 need MORE THAN ONE PAGE of them. Writes nothing when the account
   // already has enough.
-  await ensureRootObjects(page)
+  await ensureListRows(page)
 
   // The reset lands on the node; the tab still holds the old values in its `/me` cache.
   await page.goto('/objects')

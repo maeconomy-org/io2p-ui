@@ -30,7 +30,7 @@
     "pretest:e2e": "node e2e/fixtures/generate.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "build:e2e": "E2E_KEEP_TEST_IDS=true next build && cp -R public .next/standalone/ && cp -R .next/static .next/standalone/.next/",
+    "build:e2e": "E2E_KEEP_TEST_IDS=true next build && cp -R public .next/standalone/ && cp -R .next/static .next/standalone/.next/ && node e2e/setup/build-stamp.mjs",
     "start:e2e": "EMAIL_LOGIN_ENABLED=true MAX_IMPORT_FILE_SIZE_MB=1 MAX_OBJECTS_PER_IMPORT=200 node -r dotenv/config .next/standalone/server.js dotenv_config_path=.env.local",
     "analyze": "ANALYZE=true next build",
     "typecheck": "tsc --noEmit",

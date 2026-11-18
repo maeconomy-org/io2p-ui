@@ -9,6 +9,10 @@ dotenv.config({ path: '.env.local' })
 
 const viewport = { width: 1800, height: 1169 }
 
+// Not 3000: `pnpm dev` holds it, and the suite needs the production build (`00-harness/build`).
+const port = Number(process.env.E2E_PORT || 3001)
+const origin = `http://localhost:${port}`
+
 // Resolve certificate paths to absolute paths
 const certsDir = './certs'
 
@@ -73,7 +77,7 @@ export default defineConfig({
     timeout: 10000, // 10 second timeout for assertions
   },
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: origin,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -98,8 +102,14 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
+      // Its own project, so a dead service or a stale build stops the run before the sign-in.
+      name: 'preflight',
+      testMatch: /preflight\.check\.ts/,
+    },
+    {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
+      dependencies: ['preflight'],
       teardown: 'session-teardown',
       // Retried even locally, where everything else is not. Setup is one cheap idempotent step
       // that every other project declares a dependency on, so a single transient network blip
@@ -131,13 +141,17 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
-    // Reuses whatever is already on :3000. If that is a PRODUCTION build, it must have been made
-    // with `E2E_KEEP_TEST_IDS=true` — `next.config.mjs` strips `data-testid` in production, so
-    // every locator silently resolves to nothing. `00-harness/build.read.spec.ts` fails loudly on
-    // that rather than letting 200 specs time out one by one.
-    reuseExistingServer: true,
+    // Starts the build `pnpm run build:e2e` made; it never builds, or every run waits for one.
+    // With no build at all it stops first, on an ENOENT for `.next/standalone/server.js`.
+    // `preflight.check.ts` refuses a build that is not from this tree. HOSTNAME is pinned so a
+    // HOSTNAME from the shell does not move the address the standalone server binds.
+    command: `PORT=${port} HOSTNAME=127.0.0.1 pnpm run start:e2e`,
+    url: origin,
+    // Off by default: a server already on the port (an old build, a `next dev`) would be tested
+    // without a word. Playwright then stops with "already used"; free the port by its number,
+    // `kill $(lsof -tiTCP:3001 -sTCP:LISTEN)`, because the standalone server renames its process.
+    // E2E_REUSE=1 takes the server that is there.
+    reuseExistingServer: !!process.env.E2E_REUSE,
     timeout: 180 * 1000,
   },
 })
