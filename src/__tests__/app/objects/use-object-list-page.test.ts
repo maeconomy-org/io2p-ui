@@ -6,15 +6,23 @@ import { useObjectListPage } from '@/app/objects/components/use-object-list-page
 
 const remove = vi.fn().mockResolvedValue({})
 const restore = vi.fn().mockResolvedValue({})
+const bulkRemove = vi.fn()
+const bulkRestore = vi.fn()
+const toast = vi.hoisted(() => ({ error: vi.fn() }))
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
+  useFormatter: () => ({ list: (items: string[]) => items.join(', ') }),
 }))
+vi.mock('sonner', () => ({ toast }))
 
 vi.mock('@/hooks/api/entities', () => ({
   useObjects: () => ({
     useRemove: () => ({ mutateAsync: remove, isPending: false }),
     useRestore: () => ({ mutateAsync: restore, isPending: false }),
+    useBulkRemove: () => ({ mutateAsync: bulkRemove, isPending: false }),
+    useBulkRestore: () => ({ mutateAsync: bulkRestore, isPending: false }),
   }),
 }))
 
@@ -43,8 +51,9 @@ const pageOf = (...rows: ObjectListItem[]) =>
 
 describe('useObjectListPage', () => {
   beforeEach(() => {
-    remove.mockClear()
-    restore.mockClear()
+    vi.clearAllMocks()
+    bulkRemove.mockResolvedValue({ failures: [] })
+    bulkRestore.mockResolvedValue({ failures: [] })
   })
 
   const renderWith = (page?: Page<ObjectListItem>) =>
@@ -138,9 +147,8 @@ describe('useObjectListPage', () => {
         await result.current.runBulkDelete()
       })
 
-      expect(remove).toHaveBeenCalledTimes(2)
-      expect(remove).toHaveBeenCalledWith({ id: 'a' })
-      expect(remove).toHaveBeenCalledWith({ id: 'b' })
+      expect(bulkRemove).toHaveBeenCalledWith(['a', 'b'])
+      expect(toast.error).not.toHaveBeenCalled()
       expect(result.current.confirmBulkDelete).toBe(false)
       expect(result.current.selectedIds).toEqual([])
     })
@@ -160,8 +168,7 @@ describe('useObjectListPage', () => {
         await result.current.runBulkDelete()
       })
 
-      expect(remove).toHaveBeenCalledTimes(1)
-      expect(remove).toHaveBeenCalledWith({ id: 'mine' })
+      expect(bulkRemove).toHaveBeenCalledWith(['mine'])
     })
 
     it('offers Set parent only for the rows the viewer may move', () => {
@@ -207,12 +214,52 @@ describe('useObjectListPage', () => {
         await result.current.runBulkRestore()
       })
 
-      expect(restore).toHaveBeenCalledTimes(2)
+      expect(bulkRestore).toHaveBeenCalledWith(['a', 'b'])
       expect(result.current.selectedIds).toEqual([])
     })
 
+    it('names the objects that were not deleted', async () => {
+      bulkRemove.mockResolvedValue({
+        failures: [{ id: 'b', error: new Error('403') }],
+      })
+      const { result } = renderWith(pageOf(row('a'), row('b')))
+
+      act(() => result.current.setRowSelection({ a: true, b: true }))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'objects.bulk.deleteFailed:{"count":1,"names":"Object b"}'
+      )
+    })
+
+    // A toast listing 80 names cannot be read; the first few and a count can.
+    it('names the first three that were not restored, and counts the rest', async () => {
+      const ids = ['a', 'b', 'c', 'd', 'e']
+      bulkRestore.mockResolvedValue({
+        failures: ids.map((id) => ({ id, error: new Error('x') })),
+      })
+      const { result } = renderWith(pageOf(...ids.map((id) => row(id, true))))
+
+      act(() =>
+        result.current.setRowSelection(
+          Object.fromEntries(ids.map((id) => [id, true]))
+        )
+      )
+      await act(async () => {
+        await result.current.runBulkRestore()
+      })
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'objects.bulk.restoreFailed:{"count":5,"names":"Object a, Object b, Object c, objects.bulk.andMore:{\\"count\\":2}"}'
+      )
+    })
+
     it('clears the selection even when one row fails', async () => {
-      remove.mockRejectedValueOnce(new Error('nope'))
+      bulkRemove.mockResolvedValue({
+        failures: [{ id: 'a', error: new Error('nope') }],
+      })
       const { result } = renderWith(pageOf(row('a'), row('b')))
 
       act(() => result.current.setRowSelection({ a: true, b: true }))

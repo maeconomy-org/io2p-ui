@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import {
   ROLLUP_POLL_MS,
+  ROLLUP_SLOW_POLL_MS,
   rollupPollInterval,
   useObjects,
   useProcesses,
@@ -57,6 +58,8 @@ describe('entities hooks', () => {
         'useGet',
         'useList',
         'usePrefetchDetail',
+        'useBulkRemove',
+        'useBulkRestore',
         'useRemove',
         'useRestore',
         'useRollups',
@@ -231,9 +234,11 @@ describe('entities hooks', () => {
     expect(rollupPollInterval({ data: [notYet] }, 99)).toBe(false)
   })
 
-  it('a stale entry that HAS computed before is polled without a bound', () => {
+  it('a stale entry that HAS computed before is never given up on, but slows down', () => {
     // A `computedAt` proves a row exists, so this is a known recompute of a real total —
-    // it is definitely moving, and giving up on it would strand the number mid-update.
+    // it is definitely moving, and giving up on it would strand the number mid-update. A busy
+    // root is re-armed by every write below it, so it can stay stale for as long as the writes
+    // go on: a sheet left open asks every five minutes, not every thirty seconds.
     const recomputing = {
       ruleId: 'r1',
       propertyKey: 'mass',
@@ -243,8 +248,12 @@ describe('entities hooks', () => {
       computedAt: 1_700_000,
     }
 
+    expect(rollupPollInterval({ data: [recomputing] }, 39)).toBe(ROLLUP_POLL_MS)
+    expect(rollupPollInterval({ data: [recomputing] }, 40)).toBe(
+      ROLLUP_SLOW_POLL_MS
+    )
     expect(rollupPollInterval({ data: [recomputing] }, 500)).toBe(
-      ROLLUP_POLL_MS
+      ROLLUP_SLOW_POLL_MS
     )
   })
 })

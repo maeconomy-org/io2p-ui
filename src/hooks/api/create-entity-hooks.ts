@@ -25,6 +25,39 @@ import { useIomClient } from '@/lib/io2p'
 
 const DEFAULT_STALE_TIME = 30_000
 
+/** A full page at once is a hundred write transactions on the node in the same moment. */
+const BULK_CONCURRENCY = 4
+
+export interface BulkOutcome {
+  failures: { id: string; error: unknown }[]
+}
+
+/** Runs `write` once per id, at most BULK_CONCURRENCY at a time; a failure stops nothing. */
+async function writeEach(
+  ids: readonly string[],
+  write: (id: string) => Promise<unknown>
+): Promise<BulkOutcome> {
+  const failures: BulkOutcome['failures'] = []
+  let next = 0
+  const lane = async () => {
+    while (next < ids.length) {
+      const id = ids[next++]
+      try {
+        await write(id)
+      } catch (error) {
+        failures.push({ id, error })
+      }
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(BULK_CONCURRENCY, ids.length) }, lane)
+  )
+  // In selection order, not in the order the requests happened to finish.
+  return {
+    failures: failures.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id)),
+  }
+}
+
 /**
  * `ListDto` is SEPARATE from `Dto` because the node's lists are LEAN by default: a row carries
  * identity, attributes and thin refs, while `properties` — and a process flow's own data — arrive
@@ -258,6 +291,30 @@ export function createEntityHooks<
     )
   }
 
+  /** One write per id, then ONE refresh of the lists for the whole batch. */
+  function useBulk(action: 'delete' | 'restore') {
+    const client = useIomClient()
+    const qc = useQueryClient()
+    return useMutation({
+      mutationFn: (ids: readonly string[]) =>
+        writeEach(ids, (id) => select(client)[action](id)),
+      onSettled: (_outcome, _error, ids) => {
+        for (const id of ids) {
+          qc.invalidateQueries({ queryKey: keys.detail(id) })
+        }
+        qc.invalidateQueries({ queryKey: keys.lists() })
+      },
+    })
+  }
+
+  function useBulkRemove() {
+    return useBulk('delete')
+  }
+
+  function useBulkRestore() {
+    return useBulk('restore')
+  }
+
   return {
     useList,
     useGet,
@@ -265,6 +322,8 @@ export function createEntityHooks<
     useUpdate,
     useRemove,
     useRestore,
+    useBulkRemove,
+    useBulkRestore,
     usePrefetchDetail,
   }
 }

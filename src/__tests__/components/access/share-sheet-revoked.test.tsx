@@ -22,10 +22,24 @@ const revoke = vi.fn()
 const shareList = vi.fn()
 const shareUpdate = vi.fn()
 
+// The SDK's `paginate` asks `list` page by page until `totalPages`; this does the same, so the
+// `list` mocks below decide what every page holds.
+async function* paginate(
+  resource: unknown,
+  query: Record<string, unknown>,
+  options?: unknown
+) {
+  for (let page = 1, total = 1; page <= total; page += 1) {
+    const res = await list(resource, { ...query, page }, options)
+    total = res.page.totalPages
+    yield* res.data
+  }
+}
+
 vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({
     access: {
-      grants: { list, grant, revoke },
+      grants: { list, paginate, grant, revoke },
       shares: { list: shareList, update: shareUpdate },
     },
     users: { list: vi.fn().mockResolvedValue({ data: [], page: {} }) },
@@ -89,6 +103,10 @@ function renderSheet(
       page: { number: 1, size: 20, totalElements: rows.length, totalPages: 1 },
     })
   }
+  return mountSheet(canViewGrants)
+}
+
+function mountSheet(canViewGrants = true) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -133,6 +151,32 @@ describe('ShareSheet revoked history', () => {
     await waitFor(() => expect(list).toHaveBeenCalled())
     expect(list.mock.calls[0][1]).toMatchObject({ revoked: 'include' })
     expect(list).toHaveBeenCalledTimes(1)
+  })
+
+  // The form seeds its editable list from these rows: a member on a later page would be missing.
+  it('shows a member the node returns on a later page', async () => {
+    list.mockImplementation(
+      (_resource: unknown, query: { page: number; size: number }) =>
+        Promise.resolve({
+          data: [
+            grantRow({
+              id: `g${query.page}`,
+              subject: { kind: 'user', userId: `u${query.page}` },
+            }),
+          ],
+          page: {
+            number: query.page,
+            size: query.size,
+            totalElements: 2,
+            totalPages: 2,
+          },
+        })
+    )
+    mountSheet()
+
+    expect(await screen.findByText('name:u2')).toBeInTheDocument()
+    expect(screen.getByText('name:u1')).toBeInTheDocument()
+    expect(list.mock.calls[0][1]).toMatchObject({ size: 100 })
   })
 
   it('renders the name the node resolved onto the grant', async () => {

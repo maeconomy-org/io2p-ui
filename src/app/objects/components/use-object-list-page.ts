@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import type { RowSelectionState } from '@tanstack/react-table'
 import type { ObjectListItem, Page } from 'io2p-client'
 
@@ -13,10 +14,14 @@ import {
 } from '@/components/entity-list'
 import { useAuth } from '@/contexts'
 import { useObjects } from '@/hooks/api/entities'
+import type { BulkOutcome } from '@/hooks/api/create-entity-hooks'
 import { logger } from '@/lib/observability/logger'
 
 import { buildObjectColumns } from './object-columns'
 import { useCreateTemplateFromObject } from './use-create-template-from-object'
+
+/** A toast can name a few objects; past that, it counts them. */
+const NAMED_FAILURES = 3
 
 interface UseObjectListPageOptions {
   /** The page on screen. Selection resolves row ids against it, so it must be the rendered one. */
@@ -39,6 +44,7 @@ interface UseObjectListPageOptions {
  */
 export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
   const t = useTranslations()
+  const format = useFormatter()
   const { userId } = useAuth()
 
   // Row-action targets. Each is its own state rather than one tagged union because they are
@@ -60,9 +66,11 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
   const [bulkParentOpen, setBulkParentOpen] = useState(false)
   const [shareBundleOpen, setShareBundleOpen] = useState(false)
 
-  const { useRemove, useRestore } = useObjects()
+  const { useRemove, useRestore, useBulkRemove, useBulkRestore } = useObjects()
   const removeMutation = useRemove()
   const restoreMutation = useRestore()
+  const bulkRemove = useBulkRemove()
+  const bulkRestore = useBulkRestore()
 
   const templateFromObject = useCreateTemplateFromObject()
   const setTemplateSource = templateFromObject.setSource
@@ -127,37 +135,65 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
     }
   }, [objectToDelete, removeMutation])
 
-  // Sequentially would show the rows vanishing one by one; in parallel the list settles once. A
-  // partial failure is logged and the rest still go — the alternative is stopping halfway with no
-  // way to tell the user which half.
-  const runBulkDelete = useCallback(async () => {
-    try {
-      await Promise.all(
-        deletableObjects
-          .filter((o) => !o.deleted)
-          .map((o) => removeMutation.mutateAsync({ id: o.id }))
+  // A failure stops nothing: the rest still go, and the toast names what did not, so the user
+  // knows which rows to look at instead of retrying the whole batch.
+  const reportFailures = useCallback(
+    (
+      failures: BulkOutcome['failures'],
+      rows: ObjectListItem[],
+      key: 'deleteFailed' | 'restoreFailed'
+    ) => {
+      if (failures.length === 0) return
+      logger.error('Bulk write error:', {
+        err: failures[0].error,
+        failed: failures.length,
+      })
+      const nameOf = new Map(rows.map((o) => [o.id, o.name]))
+      const shown = failures
+        .slice(0, NAMED_FAILURES)
+        .map(({ id }) => nameOf.get(id) ?? id)
+      const rest = failures.length - shown.length
+      toast.error(
+        t(`objects.bulk.${key}`, {
+          count: failures.length,
+          names: format.list(
+            rest > 0
+              ? [...shown, t('objects.bulk.andMore', { count: rest })]
+              : shown,
+            { type: 'unit' }
+          ),
+        })
       )
-    } catch (error) {
-      logger.error('Bulk delete error:', { err: error })
+    },
+    [t, format]
+  )
+
+  const runBulkDelete = useCallback(async () => {
+    const rows = deletableObjects.filter((o) => !o.deleted)
+    try {
+      reportFailures(
+        (await bulkRemove.mutateAsync(rows.map((o) => o.id))).failures,
+        rows,
+        'deleteFailed'
+      )
     } finally {
       setConfirmBulkDelete(false)
       clearSelection()
     }
-  }, [deletableObjects, removeMutation, clearSelection])
+  }, [deletableObjects, bulkRemove, reportFailures, clearSelection])
 
   const runBulkRestore = useCallback(async () => {
+    const rows = deletableObjects.filter((o) => o.deleted)
     try {
-      await Promise.all(
-        deletableObjects
-          .filter((o) => o.deleted)
-          .map((o) => restoreMutation.mutateAsync({ id: o.id }))
+      reportFailures(
+        (await bulkRestore.mutateAsync(rows.map((o) => o.id))).failures,
+        rows,
+        'restoreFailed'
       )
-    } catch (error) {
-      logger.error('Bulk restore error:', { err: error })
     } finally {
       clearSelection()
     }
-  }, [deletableObjects, restoreMutation, clearSelection])
+  }, [deletableObjects, bulkRestore, reportFailures, clearSelection])
 
   const columns = useMemo(
     () =>

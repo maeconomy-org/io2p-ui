@@ -121,13 +121,21 @@ export const ROLLUP_POLL_MS = 30_000
 const NEVER_COMPUTED_TICKS = 10 // 10 x 30s = 5 minutes
 
 /**
+ * A KNOWN recompute is definitely moving, so it is never given up on: that would leave a total
+ * half updated on screen. But a busy root is re-armed by every write below it and can stay stale
+ * while the writes go on, so after a while it is asked for less often.
+ */
+const RECOMPUTE_TICKS = 40 // 40 x 30s = 20 minutes
+export const ROLLUP_SLOW_POLL_MS = 5 * 60_000
+
+/**
  * Keep polling while any rule's recompute is still queued. One stale entry is enough — the
  * others being settled says nothing about that one.
  *
- * An entry with a `computedAt` is a KNOWN recompute of an existing row: it is definitely
- * moving, so it is polled without limit. An entry that has never computed is polled only
- * while `ticks` is inside the bound above — see `NEVER_COMPUTED_TICKS` for why the two
- * cannot be told apart any other way.
+ * An entry with a `computedAt` is a KNOWN recompute of an existing row: polled at the normal
+ * rate for `RECOMPUTE_TICKS`, then slowly. An entry that has never computed is polled only
+ * while `ticks` is inside `NEVER_COMPUTED_TICKS` — see there for why it cannot be told apart
+ * any other way. Reopening the sheet starts both windows again.
  */
 export function rollupPollInterval(
   data: { data: EntityRollupEntry[] } | undefined,
@@ -135,7 +143,9 @@ export function rollupPollInterval(
 ): number | false {
   const stale = data?.data.filter((entry) => entry.stale) ?? []
   if (stale.length === 0) return false
-  if (stale.some((entry) => entry.computedAt !== null)) return ROLLUP_POLL_MS
+  if (stale.some((entry) => entry.computedAt !== null)) {
+    return ticks < RECOMPUTE_TICKS ? ROLLUP_POLL_MS : ROLLUP_SLOW_POLL_MS
+  }
   return ticks < NEVER_COMPUTED_TICKS ? ROLLUP_POLL_MS : false
 }
 
