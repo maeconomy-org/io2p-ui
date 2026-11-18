@@ -1,15 +1,17 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import {
   ROLLUP_POLL_MS,
+  ROLLUP_SLOW_POLL_MS,
   rollupPollInterval,
   useObjects,
   useProcesses,
   useTemplates,
 } from '@/hooks/api/entities'
+import { queryKeys } from '@/lib/query-keys'
 
 const objects = {
   list: vi.fn(),
@@ -42,7 +44,7 @@ function makeWrapper() {
   })
   const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children)
-  return { wrapper }
+  return { wrapper, queryClient }
 }
 
 describe('entities hooks', () => {
@@ -57,6 +59,8 @@ describe('entities hooks', () => {
         'useGet',
         'useList',
         'usePrefetchDetail',
+        'useBulkRemove',
+        'useBulkRestore',
         'useRemove',
         'useRestore',
         'useRollups',
@@ -146,6 +150,46 @@ describe('entities hooks', () => {
     expect(templates.delete).toHaveBeenCalledWith('t1')
   })
 
+  // The cache keeps a closed sheet's query (and its fetch count) for minutes; reopening the
+  // sheet must start the poll windows again, not resume them.
+  it('useRollups counts its poll windows from when the sheet opens', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const busy = {
+        data: [
+          {
+            ruleId: 'r1',
+            propertyKey: 'mass',
+            buckets: [],
+            skippedCount: 0,
+            stale: true,
+            computedAt: 1_700_000,
+          },
+        ],
+      }
+      objects.rollups.mockResolvedValue(busy)
+      const { wrapper, queryClient } = makeWrapper()
+      // An earlier opening of the sheet fetched it 50 times.
+      for (let i = 0; i < 50; i += 1) {
+        queryClient.setQueryData(queryKeys.objects.rollups('o1'), busy)
+      }
+
+      expect(
+        queryClient.getQueryState(queryKeys.objects.rollups('o1'))
+          ?.dataUpdateCount
+      ).toBe(50)
+      renderHook(() => useObjects().useRollups('o1'), { wrapper })
+      await waitFor(() => expect(objects.rollups).toHaveBeenCalledTimes(1))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ROLLUP_POLL_MS)
+      })
+
+      expect(objects.rollups).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('useRollups is disabled until an id AND ownership are known', async () => {
     objects.rollups.mockResolvedValue({ data: [] })
     const { wrapper } = makeWrapper()
@@ -231,9 +275,11 @@ describe('entities hooks', () => {
     expect(rollupPollInterval({ data: [notYet] }, 99)).toBe(false)
   })
 
-  it('a stale entry that HAS computed before is polled without a bound', () => {
+  it('a stale entry that HAS computed before is never given up on, but slows down', () => {
     // A `computedAt` proves a row exists, so this is a known recompute of a real total —
-    // it is definitely moving, and giving up on it would strand the number mid-update.
+    // it is definitely moving, and giving up on it would strand the number mid-update. A busy
+    // root is re-armed by every write below it, so it can stay stale for as long as the writes
+    // go on: a sheet left open asks every five minutes, not every thirty seconds.
     const recomputing = {
       ruleId: 'r1',
       propertyKey: 'mass',
@@ -243,8 +289,12 @@ describe('entities hooks', () => {
       computedAt: 1_700_000,
     }
 
+    expect(rollupPollInterval({ data: [recomputing] }, 39)).toBe(ROLLUP_POLL_MS)
+    expect(rollupPollInterval({ data: [recomputing] }, 40)).toBe(
+      ROLLUP_SLOW_POLL_MS
+    )
     expect(rollupPollInterval({ data: [recomputing] }, 500)).toBe(
-      ROLLUP_POLL_MS
+      ROLLUP_SLOW_POLL_MS
     )
   })
 })

@@ -574,7 +574,10 @@
       "setParentTitle": "Bovenliggend object kiezen",
       "setParentDescription": "Verplaats {count, plural, one {# geselecteerd item} other {# geselecteerde items}} onder één bovenliggend object. Bestaande bovenliggende objecten blijven behouden.",
       "parentSkipsSelf": "Het gekozen bovenliggende object staat ook in uw selectie — het wordt overgeslagen.",
-      "parentSkipsUnmovable": "{count, plural, one {# geselecteerd item kan niet worden verplaatst en wordt overgeslagen: het is verwijderd, of u heeft Beheer-toegang nodig om het te verplaatsen.} other {# geselecteerde items kunnen niet worden verplaatst en worden overgeslagen: ze zijn verwijderd, of u heeft Beheer-toegang nodig om ze te verplaatsen.}}"
+      "parentSkipsUnmovable": "{count, plural, one {# geselecteerd item kan niet worden verplaatst en wordt overgeslagen: het is verwijderd, of u heeft Beheer-toegang nodig om het te verplaatsen.} other {# geselecteerde items kunnen niet worden verplaatst en worden overgeslagen: ze zijn verwijderd, of u heeft Beheer-toegang nodig om ze te verplaatsen.}}",
+      "deleteFailed": "{count, plural, one {# item is niet verwijderd} other {# items zijn niet verwijderd}}: {names}",
+      "restoreFailed": "{count, plural, one {# item is niet hersteld} other {# items zijn niet hersteld}}: {names}",
+      "andMore": "nog {count, number}"
     },
     "noObjectsTitle": "Nog geen objecten",
     "noObjectsDescription": "Een object is alles wat je wilt volgen — een machine, een batch, een document. Geef het eigenschappen, bestanden en een plek in de hiërarchie.",

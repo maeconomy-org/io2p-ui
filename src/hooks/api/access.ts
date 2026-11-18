@@ -12,6 +12,7 @@ import {
 import type {
   CreateShareBody,
   GrantBody,
+  GrantDTO,
   ListGrantsQuery,
   ListSharedByMeQuery,
   ListSharesQuery,
@@ -32,8 +33,15 @@ const ACCESS_STALE_TIME = 30_000
 
 // ── grants ──────────────────────────────────────────────────────────────────
 
+/** The node's page-size cap: the fewest requests for one resource's grants. */
+const GRANTS_PAGE_SIZE = 100
+
 /**
- * The grants on one resource — active only unless `query.revoked` says otherwise.
+ * EVERY grant on one resource — active only unless `query.revoked` says otherwise.
+ *
+ * All pages, because the share form seeds its editable member list from these rows, and a member
+ * left on a later page would be missing from it. A resource holds at most one row per subject and
+ * source, so the count is bounded by the node's users.
  *
  * Owner/admin only — the node 403s anyone else, which is correct and means a `write` sharee opening
  * an entity must not see this at all. Callers gate on ownership rather than swallowing the error,
@@ -42,7 +50,7 @@ const ACCESS_STALE_TIME = 30_000
  * `query` reaches the cache key, not just the request: `revoked` changes which ROWS come back, so a
  * key without it would hand the active-only response to a caller asking for revoked ones.
  */
-function useGrantList(
+function useAllGrants(
   resource: WhoCanAccessInput | undefined,
   query?: ListGrantsQuery,
   options?: { enabled?: boolean }
@@ -54,8 +62,17 @@ function useGrantList(
       resource?.resourceId ?? '',
       query
     ),
-    queryFn: ({ signal }) =>
-      client.access.grants.list(resource!, query, { signal }),
+    queryFn: async ({ signal }) => {
+      const grants: GrantDTO[] = []
+      for await (const grant of client.access.grants.paginate(
+        resource!,
+        { ...query, size: GRANTS_PAGE_SIZE },
+        { signal }
+      )) {
+        grants.push(grant)
+      }
+      return grants
+    },
     enabled: !!resource?.resourceId && options?.enabled !== false,
     staleTime: ACCESS_STALE_TIME,
   })
@@ -113,7 +130,7 @@ function useRevoke() {
 
 export function useGrants() {
   return {
-    useList: useGrantList,
+    useAll: useAllGrants,
     useSharedByMe,
     useGrant,
     useRevoke,

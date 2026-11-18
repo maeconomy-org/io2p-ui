@@ -17,7 +17,8 @@ const emptyPage = () =>
 vi.mock('@/lib/io2p', () => ({
   useIomClient: () => ({
     access: {
-      grants: { list: emptyPage },
+      // No grants: the SDK's `paginate` over an empty list yields nothing.
+      grants: { paginate: async function* () {} },
       shares: { list: emptyPage },
     },
     templates: {

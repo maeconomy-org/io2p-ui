@@ -165,7 +165,7 @@ export function ShareSheet({
 }) {
   const t = useTranslations()
 
-  const { useList } = useGrants()
+  const { useAll } = useGrants()
   const resource = useMemo(
     () => ({ resourceType: target.type, resourceId: target.id }),
     [target.type, target.id]
@@ -178,11 +178,11 @@ export function ShareSheet({
   // section below (members, revoked history, the bundle group) reads the same narrowed set and
   // cannot disagree about what is on screen.
   const {
-    data: grantsPage,
+    data: grants,
     isLoading,
     isError,
     error: grantsError,
-  } = useList(
+  } = useAll(
     resource,
     { revoked: 'include', source: directOnly ? 'direct' : 'all' },
     { enabled: open && canViewGrants }
@@ -251,7 +251,7 @@ export function ShareSheet({
         {canViewGrants && !isLoading && !isError && (
           <ShareForm
             target={target}
-            grants={grantsPage?.data ?? []}
+            grants={grants ?? []}
             onDone={() => onOpenChange(false)}
           />
         )}

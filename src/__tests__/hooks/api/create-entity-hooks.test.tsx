@@ -195,4 +195,79 @@ describe('createEntityHooks', () => {
       })
     })
   })
+
+  describe('useBulkRemove / useBulkRestore', () => {
+    const ids = Array.from({ length: 10 }, (_, i) => `id-${i}`)
+
+    // Every request in flight at once (100 on a full page) is what the node's rate limit refuses.
+    it('sends at most four requests at a time, and every id once', async () => {
+      let inFlight = 0
+      let most = 0
+      resource.delete.mockImplementation(async () => {
+        inFlight += 1
+        most = Math.max(most, inFlight)
+        await new Promise((resolve) => setTimeout(resolve, 1))
+        inFlight -= 1
+      })
+      const { wrapper } = makeWrapper()
+      const { result } = renderHook(() => things.useBulkRemove(), { wrapper })
+
+      await act(async () => {
+        await result.current.mutateAsync(ids)
+      })
+
+      expect(most).toBe(4)
+      expect(resource.delete.mock.calls.map(([id]) => id).sort()).toEqual(
+        [...ids].sort()
+      )
+    })
+
+    it('goes on past a failure and names every id that failed, in selection order', async () => {
+      const refused = new Error('403')
+      // id-2 fails last, so the order of finishing is not the order of selecting.
+      resource.delete.mockImplementation(async (id: string) => {
+        if (id === 'id-2') {
+          await new Promise((resolve) => setTimeout(resolve, 5))
+          throw refused
+        }
+        if (id === 'id-7') throw refused
+      })
+      const { wrapper } = makeWrapper()
+      const { result } = renderHook(() => things.useBulkRemove(), { wrapper })
+
+      let outcome: Awaited<ReturnType<typeof result.current.mutateAsync>>
+      await act(async () => {
+        outcome = await result.current.mutateAsync(ids)
+      })
+
+      expect(resource.delete).toHaveBeenCalledTimes(10)
+      expect(outcome!.failures).toEqual([
+        { id: 'id-2', error: refused },
+        { id: 'id-7', error: refused },
+      ])
+    })
+
+    it('refreshes the lists once for the whole batch, and each written row', async () => {
+      resource.restore.mockResolvedValue({})
+      const { wrapper, invalidateSpy } = makeWrapper()
+      const { result } = renderHook(() => things.useBulkRestore(), { wrapper })
+
+      await act(async () => {
+        await result.current.mutateAsync(ids)
+      })
+
+      expect(resource.restore).toHaveBeenCalledTimes(10)
+      const listRefreshes = invalidateSpy.mock.calls.filter(
+        ([filters]) =>
+          JSON.stringify(filters?.queryKey) ===
+          JSON.stringify(['things', 'list'])
+      )
+      expect(listRefreshes).toHaveLength(1)
+      for (const id of ids) {
+        expect(invalidateSpy).toHaveBeenCalledWith({
+          queryKey: ['things', 'detail', id],
+        })
+      }
+    })
+  })
 })
