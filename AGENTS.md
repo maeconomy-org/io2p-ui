@@ -1,6 +1,6 @@
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
@@ -125,6 +125,7 @@ Providers (providers.tsx)
 - Add keys to both `src/messages/en.json` and `src/messages/nl.json`.
 - Use `useTranslations()` in client components, `getTranslations()` in server components.
 - Group keys by feature/page (e.g., `auth.*`, `objects.*`, `nav.*`).
+- **Numbers in one text use one formatter.** A sentence or an equation that mixes `format.number()` with raw numbers prints `0,5` beside `0.001` in Dutch. Where the decimal mark is a comma, separate list or function arguments with `;` (`max(0,5; 2)`), as Dutch spreadsheets do.
 
 ### Components
 
@@ -133,6 +134,9 @@ Providers (providers.tsx)
 - Keep components focused — extract sub-components when a file exceeds ~200 lines.
 - Use `lucide-react` for icons.
 - **Always add `type="button"`** to `<Button>` and `<button>` elements inside forms that are NOT the submit button. Without it, buttons default to `type="submit"` and trigger form submission on click.
+- **One source per fact.** When the same lines show in two places (on screen and in a live region, in a list and in a count), build ONE list of line objects (`{ key, text, tone, ... }`) and render both from it. A flag beside its text as two values forces double guards (`flag && text && <Line text={text} />`) and a second code path that drifts; that shape is the sign to restructure.
+- **A pure function gets its inputs, it does not probe for them.** Pass the decimal mark, the locale or the clock as a parameter; read them in the hook that calls it.
+- **A hook two components share lives in its own `use-*.ts`**, not inside one consumer's component file — another consumer should not import a component module to reach a hook.
 
 ### Comments
 
@@ -178,6 +182,7 @@ signature, or it is not written.
 - Don't rely on color alone to convey state — pair red/green with an icon, text, or `aria-*` attribute.
 - Custom interactive elements (clickable `<div>`s) need `role`, `tabIndex={0}`, and keyboard handlers — prefer `<Button>` / `<a>` instead.
 - Dialogs/sheets must have a `DialogTitle` (use `<VisuallyHidden>` if it's not shown).
+- **A live region (`role="status"`, `aria-live`) holds text only.** No buttons or disclosures inside it: a screen reader reads a button's name with every update and reads an opened disclosure again. Keep the visible block out of the region and mirror its lines into an always-mounted `sr-only` region built from the same list (see "One source per fact").
 
 ### Error Handling
 
@@ -425,6 +430,15 @@ that is doing nothing. It dies this way whenever the worker is started before Re
 This cost 2026-09-03 to 09-07. L18 (`cover-thumb` never renders) and DD2 ("1 descendant" for a
 three-deep chain) were both called product bugs and were neither; both passed unchanged after a
 `pnpm worker` restart, with no spec edit. **Both specs were right both times.**
+
+#### A second account is unknown to core until it signs in
+
+io2p-core creates a user row on that user's FIRST signed-in request, and the share member picker
+searches those rows only. On a fresh database a second account that has never signed in is "No one
+left to add", and the spec fails at the picker for a reason the spec cannot see. `e2e/setup/auth.setup.ts`
+signs the second account in once (and resets its preferences, which marks its tours seen) BEFORE the
+primary sign-in, because io2p-auth keeps one session per origin. A new account a spec relies on
+goes through the same setup step.
 
 ### What Does NOT Need Tests
 

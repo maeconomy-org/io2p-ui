@@ -1,21 +1,17 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { AlertTriangle, Info } from 'lucide-react'
 import type { FormulaPreviewWarning } from 'io2p-client'
 
 import { cn } from '@/lib/utils'
+import { type FormulaFormat, useFormulaFormat } from './use-formula-format'
 
 type Translate = (
   key: string,
   values?: Record<string, string | number>
 ) => string
-
-type Format = {
-  number: (n: number) => string
-  list: (items: string[]) => string
-}
 
 /**
  * A preview warning in the reader's language, built from its fields. `detail` is English by
@@ -26,10 +22,10 @@ type Format = {
  * formula. `scales` is the net effect, not the operator (`* 0.001` has no division to remove); a
  * node that predates it gets the sentence naming both directions.
  */
-export function warningText(
+function warningText(
   warning: FormulaPreviewWarning,
   t: Translate,
-  format: Format
+  format: FormulaFormat
 ): string {
   const { code, literal, scales, unit, vars = [], per } = warning
   const key = 'objects.formulaEditor.warning'
@@ -71,10 +67,10 @@ export function warningText(
  * The one line a warning shows before "Why?". `undefined` means the full text is already one line
  * (a factor reading) or the code is unknown, so the full text is the line and there is no "Why?".
  */
-export function warningShort(
+function warningShort(
   warning: FormulaPreviewWarning,
   t: Translate,
-  format: Format
+  format: FormulaFormat
 ): string | undefined {
   const { code, literal, scales, unit, vars = [] } = warning
   const key = 'objects.formulaEditor.warning'
@@ -113,13 +109,13 @@ const toneOf = (warning: FormulaPreviewWarning): MessageTone =>
   warning.code === 'factor' || warning.code === 'declare-unit' ? 'info' : 'warn'
 
 /** One line, with the longer reason behind "Why?" when there is one. */
-export function FormulaMessage({
+function FormulaMessage({
   tone,
   text,
   why,
   'data-testid': testId,
 }: {
-  tone: MessageTone | 'error'
+  tone: MessageTone
   text: string
   why?: string
   'data-testid'?: string
@@ -136,8 +132,7 @@ export function FormulaMessage({
       className={cn(
         'text-xs',
         tone === 'info' && 'text-muted-foreground',
-        tone === 'warn' && 'text-amber-700 dark:text-amber-400',
-        tone === 'error' && 'text-destructive'
+        tone === 'warn' && 'text-amber-700 dark:text-amber-400'
       )}
     >
       <span className="flex items-start gap-1.5">
@@ -170,35 +165,42 @@ export function FormulaMessage({
   )
 }
 
-export function FormulaWarnings({
-  warnings,
-}: {
+/** A line of the formula panel, with the longer reason behind its "Why?" when there is one. */
+export type FormulaNote = {
+  key: string
+  testId: string
+  tone: MessageTone
+  text: string
+  why?: string
+}
+
+/** The node's warnings as panel lines, in the reader's language. */
+export function useWarningNotes(
   warnings: readonly FormulaPreviewWarning[]
-}) {
+): FormulaNote[] {
   const t = useTranslations()
-  const format = useFormatter()
-  if (warnings.length === 0) return null
-  // A conversion constant can be 0.000001, which the default three decimals print as 0.
-  const text: Format = {
-    number: (n) => format.number(n, { maximumSignificantDigits: 12 }),
-    list: (items) => format.list(items, { type: 'conjunction' }),
-  }
+  const format = useFormulaFormat()
+  return warnings.map((warning) => {
+    const full = warningText(warning, t, format)
+    const short = warningShort(warning, t, format)
+    return {
+      // By its text, not its place: an index hands an open "Why?" to the next warning.
+      key: `${warning.code}-${full}`,
+      testId: `formula-warning-${warning.code}`,
+      tone: toneOf(warning),
+      text: short ?? full,
+      why: short ? full : undefined,
+    }
+  })
+}
+
+export function FormulaNotes({ notes }: { notes: readonly FormulaNote[] }) {
+  if (notes.length === 0) return null
   return (
-    <ul className="space-y-1" data-testid="formula-warnings">
-      {warnings.map((warning) => {
-        const full = warningText(warning, t, text)
-        const short = warningShort(warning, t, text)
-        return (
-          <FormulaMessage
-            // By its text, not its place: an index hands an open "Why?" to the next warning.
-            key={`${warning.code}-${full}`}
-            data-testid={`formula-warning-${warning.code}`}
-            tone={toneOf(warning)}
-            text={short ?? full}
-            why={short ? full : undefined}
-          />
-        )
-      })}
+    <ul className="space-y-1">
+      {notes.map(({ key, testId, ...note }) => (
+        <FormulaMessage key={key} data-testid={testId} {...note} />
+      ))}
     </ul>
   )
 }

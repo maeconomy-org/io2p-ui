@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import type { CalcInput } from 'io2p-client'
 import type { FormulaSibling } from '@/components/entity-sheet/fields/formula-value-editor'
 
@@ -486,6 +486,53 @@ describe('authoring warnings', () => {
     }
   })
 
+  // A live region reads its whole text again on any change, so a pause in typing that ends in the
+  // same answer must leave the text as it was.
+  it('keeps the last answer in the region while the next one is on its way', () => {
+    preview.data = {
+      num: 1.5,
+      unit: 'kg',
+      unitVerified: true,
+      warnings: [
+        {
+          code: 'hand-conversion',
+          detail: 'x',
+          literal: 1000,
+          scales: 'down',
+          unit: 't',
+        },
+      ],
+    }
+    vi.useFakeTimers()
+    try {
+      const { rerender } = render(
+        <FormulaBindings
+          calc={bind('a', 'b')}
+          siblings={[sib('v-a', undefined, undefined, '10 m'), TWO_TONNES[1]]}
+          onChange={vi.fn()}
+        />
+      )
+      const region = screen.getByRole('status')
+      const settled = region.textContent
+      expect(settled).toContain('handConversionDownShort')
+
+      rerender(
+        <FormulaBindings
+          calc={bind('a', 'b')}
+          siblings={[sib('v-a', undefined, undefined, '10 t'), TWO_TONNES[1]]}
+          onChange={vi.fn()}
+        />
+      )
+      expect(region).toHaveAttribute('aria-busy', 'true')
+      expect(region.textContent).toBe(settled)
+
+      act(() => vi.advanceTimersByTime(400))
+      expect(region.textContent).toBe(settled)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('stays busy while the settled question is still being answered', () => {
     preview.isFetching = true
     renderBindings()
@@ -529,6 +576,38 @@ describe('authoring warnings', () => {
     expect(screen.getByTestId('formula-warning-factor')).toBeInTheDocument()
   })
 
+  // A screen reader reads the region as text. "Why?" in it would be read after every line, and
+  // the reason read a second time when it opens.
+  it('announces each warning line without its "Why?" button or reason', () => {
+    preview.data = {
+      num: 1.5,
+      unit: 'kg',
+      unitVerified: true,
+      warnings: [
+        {
+          code: 'hand-conversion',
+          detail: 'x',
+          literal: 1000,
+          scales: 'down',
+          unit: 't',
+        },
+      ],
+    }
+    renderBindings()
+    const region = screen.getByRole('status')
+
+    expect(region).toHaveTextContent(
+      'objects.formulaEditor.warning.handConversionDownShort'
+    )
+    expect(within(region).queryByRole('button')).toBeNull()
+
+    const before = region.textContent
+    fireEvent.click(
+      screen.getByRole('button', { name: 'objects.formulaEditor.why' })
+    )
+    expect(region.textContent).toBe(before)
+  })
+
   // The declare-unit warning is the precise version of the plain unchecked line: one, not both.
   it('replaces the plain unchecked line when the node asks for a unit', () => {
     preview.data = {
@@ -552,13 +631,16 @@ describe('authoring warnings', () => {
  * any more, so there is no in-flight state to show and no failure to report — a request that
  * never arrives simply means one fewer warning, never a refusal the author did not earn.
  */
+// The status region repeats the line for a screen reader; these read the line on screen.
+const VISIBLE = { ignore: '[role=status], script, style' }
+
 describe('what it says instead of a result', () => {
   it('says the value will be calculated on save', () => {
     preview.data = { num: 20000, data: '20 t', warnings: [] }
     renderBindings()
 
     expect(
-      screen.getByText('objects.formulaEditor.calculatedOnSave')
+      screen.getByText('objects.formulaEditor.calculatedOnSave', VISIBLE)
     ).toBeInTheDocument()
   })
 
@@ -593,7 +675,7 @@ describe('what it says instead of a result', () => {
     renderBindings()
 
     expect(
-      screen.getByText('objects.formulaEditor.calculatedOnSave')
+      screen.getByText('objects.formulaEditor.calculatedOnSave', VISIBLE)
     ).toBeInTheDocument()
     expect(screen.queryByTestId('formula-dimension-problem')).toBeNull()
   })
@@ -605,7 +687,7 @@ describe('what it says instead of a result', () => {
     })
 
     expect(
-      screen.getByText('objects.formulaEditor.calculatedOnSave')
+      screen.getByText('objects.formulaEditor.calculatedOnSave', VISIBLE)
     ).toBeInTheDocument()
   })
 })

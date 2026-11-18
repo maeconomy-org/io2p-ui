@@ -2,8 +2,9 @@
 // the `e` of `2.5e-3` and the `x10` of `0x10` are part of the number. A name may start with `$`,
 // as the node allows (`$CO2`), and use any script (`ρ`, `débit`).
 const TOKEN =
-  /0[xX][0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?|[\p{L}_$][\p{L}\p{N}_$]*|\*|\//gu
+  /0[xX][0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?|[\p{L}_$][\p{L}\p{N}_$]*|\*|\/|,/gu
 const NUMBER = /^[\d.]/
+const HEX = /^0[xX]/
 const OPERATOR: Record<string, string> = { '*': ' × ', '/': ' ÷ ' }
 
 // Text that would change how the expression reads if written in bare: a sign (`-3 ^ 2` reads -9),
@@ -31,26 +32,42 @@ function bracketed(text: string, before?: string, after?: string) {
     : text
 }
 
+export type EquationNumbers = {
+  number: (n: number) => string
+  /** The decimal mark `number` writes: `.` or `,`. */
+  decimal: string
+}
+
 /**
  * A formula with its inputs written in: `p * t` over `2 kW` and `5 h` reads `2 kW × 5 h`.
  *
  * A name with no text (an unbound variable, a function such as `log`) stays as written, so the
  * result is always the whole expression.
+ *
+ * With `numbers`, the formula's own numbers are written as the inputs are. Where the decimal mark
+ * is a comma, arguments are split by `;`, so `max(0,5; 2)` cannot read as three arguments.
  */
 export function equationText(
   expression: string,
-  textFor: (variable: string) => string | undefined
+  textFor: (variable: string) => string | undefined,
+  numbers?: EquationNumbers
 ): string {
+  const separator = numbers?.decimal === ',' ? '; ' : ', '
   return expression
     .replace(TOKEN, (token, offset: number, src: string) => {
       if (OPERATOR[token]) return OPERATOR[token]
-      if (NUMBER.test(token)) return token
+      if (token === ',') return separator
+      if (NUMBER.test(token))
+        return numbers && !HEX.test(token)
+          ? numbers.number(Number(token))
+          : token
       const text = textFor(token)
       if (text === undefined) return token
       const { before, after } = neighbours(src, offset, offset + token.length)
       return bracketed(text, before, after)
     })
     .replace(/\s+/g, ' ')
+    .replace(/\s([,;])/g, '$1')
     .replace(/\(\s/g, '(')
     .replace(/\s\)/g, ')')
     .trim()

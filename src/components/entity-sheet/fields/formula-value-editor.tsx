@@ -37,7 +37,12 @@ import { SearchMinHint } from '@/components/search-min-hint'
 
 import { calcErrorText, uncheckedState } from './value-provenance'
 import { equationText } from './formula-equation'
-import { FormulaMessage, FormulaWarnings } from './formula-warnings'
+import {
+  type FormulaNote,
+  FormulaNotes,
+  useWarningNotes,
+} from './formula-warnings'
+import { useFormulaFormat } from './use-formula-format'
 import { UnitsHelp } from './units-help'
 
 /**
@@ -242,6 +247,49 @@ export function argFromChoice(
     : { var: variable, ref: value }
 }
 
+/**
+ * The lines about the result itself, before the node's warnings. `unchecked` comes from
+ * `unitVerified === false` only: the node sends nothing when there was nothing to check, which is
+ * the commonest case and means an ordinary number. Grey when the value is still counted (no unit),
+ * amber when it leaves every total.
+ */
+function resultNotes(
+  unchecked: 'left-out' | 'plain' | undefined,
+  countedTwice: FormulaSibling | undefined,
+  t: ReturnType<typeof useTranslations>
+): FormulaNote[] {
+  const notes: FormulaNote[] = []
+  if (unchecked) {
+    const leftOut = unchecked === 'left-out'
+    notes.push({
+      key: 'unit-unverified',
+      testId: 'formula-unit-unverified',
+      tone: leftOut ? 'warn' : 'info',
+      text: t(
+        leftOut
+          ? 'objects.formulaEditor.unitUnverifiedShort'
+          : 'objects.formulaEditor.unitUnverifiedPlainShort'
+      ),
+      why: t(
+        leftOut
+          ? 'objects.formulaEditor.unitUnverified'
+          : 'objects.formulaEditor.unitUnverifiedPlain'
+      ),
+    })
+  }
+  if (countedTwice) {
+    const quantity = countedTwice.label
+    notes.push({
+      key: 'counted-twice',
+      testId: 'formula-counted-twice',
+      tone: 'warn',
+      text: t('objects.formulaEditor.countedTwiceShort', { quantity }),
+      why: t('objects.formulaEditor.countedTwice', { quantity }),
+    })
+  }
+  return notes
+}
+
 // Variable binding for the chosen formula, and what the node says about it. Below the value row.
 export function FormulaBindings({
   calc,
@@ -355,11 +403,12 @@ export function FormulaBindings({
   const preview = settledKey === bodyKey ? settledAnswer : undefined
   const busy = settledKey !== bodyKey || !!isFetching
   const warnings = preview?.warnings ?? []
+  const warningNotes = useWarningNotes(warnings)
   // The declare-unit warning says the same thing as the plain unchecked line, and more precisely.
   const unchecked =
-    preview &&
-    !warnings.some((w) => w.code === 'declare-unit') &&
-    uncheckedState(preview, preview.unit)
+    preview && !warnings.some((w) => w.code === 'declare-unit')
+      ? uncheckedState(preview, preview.unit)
+      : undefined
 
   // The rule already scales this property's totals by that quantity, so a formula reading it too
   // puts it in the total twice. Known here, before any answer: it is the binding, not the result.
@@ -374,6 +423,28 @@ export function FormulaBindings({
               countedBy && calc.args.some((arg) => arg.ref === sibling.key)
         )
       : undefined
+
+  const notes = [...resultNotes(unchecked, countedTwice, t), ...warningNotes]
+  const errorLine = preview?.error && calcErrorText(preview.error.code, t)
+  // No result figure: the value row shows what was stored. "Calculated on save" only when nothing
+  // else is said, so a problem is not followed by a line that reads like an all-clear, and not
+  // while an answer is on its way: it would flash, then give way to the warnings.
+  const closingLine = preview?.error
+    ? t('objects.formulaEditor.errorOnSave')
+    : !busy && notes.length === 0
+      ? t('objects.formulaEditor.calculatedOnSave')
+      : undefined
+  const announcement = [
+    errorLine,
+    ...notes.map((note) => note.text),
+    closingLine,
+  ]
+    .filter(Boolean)
+    .join(' ')
+  // A live region reads its whole text again on any change. Holding the last answer while the next
+  // is on its way means a pause in typing that ends in the same answer says nothing.
+  const [spoken, setSpoken] = useState(announcement)
+  if (!busy && spoken !== announcement) setSpoken(announcement)
 
   if (!formula) return null
 
@@ -438,16 +509,13 @@ export function FormulaBindings({
         </>
       )}
 
-      {/* Always mounted: a live region announces what APPEARS in it, and these answers arrive
-          after the settle wait, with nothing else to tell a screen reader they came. */}
-      {/* Busy while an answer is on its way: the old one is hidden meanwhile, and without this a
-          screen reader would read the same warnings again after every pause in typing. */}
-      <div
-        role="status"
-        aria-live="polite"
-        aria-busy={busy}
-        className="space-y-2"
-      >
+      {/* Always mounted: a live region announces what APPEARS in it, and the answers arrive after
+          the settle wait. Text only: the visible lines carry "Why?" buttons, which a live region
+          would read with every line, and read each reason again when it opens. */}
+      <p role="status" aria-live="polite" aria-busy={busy} className="sr-only">
+        {spoken}
+      </p>
+      <div className="space-y-2">
         {/* RED, not amber: the node refuses this outright and writes an error row with no number,
             so it is not advice — it is what will happen. It arrives INSIDE a successful preview,
             which is what keeps it distinct from not having reached the node at all. */}
@@ -461,7 +529,7 @@ export function FormulaBindings({
                 so it is demoted, not dropped: for a code this app does not know, it is the only
                 thing that says what went wrong. */}
             <span>
-              {calcErrorText(preview.error.code, t)}
+              {errorLine}
               {preview.error.detail && (
                 <span className="mt-0.5 block text-[10px] opacity-80">
                   {preview.error.detail}
@@ -471,63 +539,10 @@ export function FormulaBindings({
           </p>
         )}
 
-        {/* Read as `=== false` and never as falsy: the node sends `true` when it checked the unit,
-            `false` when it could not, and NOTHING when there was nothing to check — which is the
-            commonest case and means an ordinary number. Collapsing absent into false would put this
-            line on almost every derived value. Grey when the value is still counted (no unit),
-            amber when it leaves every total. */}
-        {(unchecked || countedTwice) && (
-          <ul className="space-y-1">
-            {unchecked && (
-              <FormulaMessage
-                data-testid="formula-unit-unverified"
-                tone={unchecked === 'left-out' ? 'warn' : 'info'}
-                text={t(
-                  unchecked === 'left-out'
-                    ? 'objects.formulaEditor.unitUnverifiedShort'
-                    : 'objects.formulaEditor.unitUnverifiedPlainShort'
-                )}
-                why={t(
-                  unchecked === 'left-out'
-                    ? 'objects.formulaEditor.unitUnverified'
-                    : 'objects.formulaEditor.unitUnverifiedPlain'
-                )}
-              />
-            )}
-            {countedTwice && (
-              <FormulaMessage
-                data-testid="formula-counted-twice"
-                tone="warn"
-                text={t('objects.formulaEditor.countedTwiceShort', {
-                  quantity: countedTwice.label,
-                })}
-                why={t('objects.formulaEditor.countedTwice', {
-                  quantity: countedTwice.label,
-                })}
-              />
-            )}
-          </ul>
-        )}
+        <FormulaNotes notes={notes} />
 
-        <FormulaWarnings warnings={warnings} />
-
-        {/* No result figure: the value row shows what was stored. The panel keeps only what the
-            row cannot tell the author in time. "Calculated on save" only when nothing else is said,
-            so a problem is not followed by a line that reads like an all-clear. */}
-        {preview?.error ? (
-          <p className="text-xs text-muted-foreground">
-            {t('objects.formulaEditor.errorOnSave')}
-          </p>
-        ) : (
-          // Not while an answer is on its way: it would flash, then give way to the warnings.
-          !busy &&
-          !unchecked &&
-          !countedTwice &&
-          warnings.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              {t('objects.formulaEditor.calculatedOnSave')}
-            </p>
-          )
+        {closingLine && (
+          <p className="text-xs text-muted-foreground">{closingLine}</p>
         )}
       </div>
 
@@ -811,6 +826,7 @@ export function useTemplateEquation(
   labelForValue?: (ref: string) => string | undefined
 ): { equation?: string; formulaName?: string } {
   const t = useTranslations()
+  const format = useFormulaFormat()
   const { data: formula } = useFormulas().useGet(calc.formulaId)
 
   // A calc carries the constant's id, not its name, so the name has to be fetched — otherwise this
@@ -837,10 +853,13 @@ export function useTemplateEquation(
 
   // Until the formula record loads there is no expression to write out.
   const equation = formula?.expression
-    ? equationText(formula.expression, (variable) =>
-        formula.variables.includes(variable)
-          ? bindingLabel(variable)
-          : undefined
+    ? equationText(
+        formula.expression,
+        (variable) =>
+          formula.variables.includes(variable)
+            ? bindingLabel(variable)
+            : undefined,
+        format.equation
       )
     : undefined
 
