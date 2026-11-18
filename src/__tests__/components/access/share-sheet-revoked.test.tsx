@@ -179,6 +179,29 @@ describe('ShareSheet revoked history', () => {
     expect(list.mock.calls[0][1]).toMatchObject({ size: 100 })
   })
 
+  // Pages are by offset: a grant written between two page reads shifts a row onto the next page.
+  it('lists a row that shifted onto the next page once', async () => {
+    const shifted = grantRow({
+      id: 'g-same',
+      subject: { kind: 'user', userId: 'u9' },
+    })
+    list.mockImplementation(
+      (_resource: unknown, query: { page: number; size: number }) =>
+        Promise.resolve({
+          data: [shifted],
+          page: {
+            number: query.page,
+            size: query.size,
+            totalElements: 2,
+            totalPages: 2,
+          },
+        })
+    )
+    mountSheet()
+
+    expect(await screen.findAllByText('name:u9')).toHaveLength(1)
+  })
+
   it('renders the name the node resolved onto the grant', async () => {
     renderSheet([
       grantRow({ subject: { kind: 'user', userId: 'u1', name: 'Anna Roos' } }),

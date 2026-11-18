@@ -9,6 +9,7 @@ const restore = vi.fn().mockResolvedValue({})
 const bulkRemove = vi.fn()
 const bulkRestore = vi.fn()
 const toast = vi.hoisted(() => ({ error: vi.fn() }))
+const pending = vi.hoisted(() => ({ bulkRemove: false, bulkRestore: false }))
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
@@ -21,8 +22,14 @@ vi.mock('@/hooks/api/entities', () => ({
   useObjects: () => ({
     useRemove: () => ({ mutateAsync: remove, isPending: false }),
     useRestore: () => ({ mutateAsync: restore, isPending: false }),
-    useBulkRemove: () => ({ mutateAsync: bulkRemove, isPending: false }),
-    useBulkRestore: () => ({ mutateAsync: bulkRestore, isPending: false }),
+    useBulkRemove: () => ({
+      mutateAsync: bulkRemove,
+      isPending: pending.bulkRemove,
+    }),
+    useBulkRestore: () => ({
+      mutateAsync: bulkRestore,
+      isPending: pending.bulkRestore,
+    }),
   }),
 }))
 
@@ -52,6 +59,8 @@ const pageOf = (...rows: ObjectListItem[]) =>
 describe('useObjectListPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    pending.bulkRemove = false
+    pending.bulkRestore = false
     bulkRemove.mockResolvedValue({ failures: [] })
     bulkRestore.mockResolvedValue({ failures: [] })
   })
@@ -253,6 +262,47 @@ describe('useObjectListPage', () => {
 
       expect(toast.error).toHaveBeenCalledWith(
         'objects.bulk.restoreFailed:{"count":5,"names":"Object a, Object b, Object c, objects.bulk.andMore:{\\"count\\":2}"}'
+      )
+    })
+
+    // The confirm dialog closes on click and the selection stays, so the buttons must wait.
+    it('is busy while a bulk delete or restore runs', () => {
+      pending.bulkRemove = true
+      expect(renderWith(pageOf(row('a'))).result.current.isBusy).toBe(true)
+      pending.bulkRemove = false
+      pending.bulkRestore = true
+      expect(renderWith(pageOf(row('a'))).result.current.isBusy).toBe(true)
+    })
+
+    it('logs and clears the selection when the bulk call itself fails', async () => {
+      bulkRemove.mockRejectedValue(new Error('down'))
+      const { result } = renderWith(pageOf(row('a')))
+
+      act(() => result.current.setRowSelection({ a: true }))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      expect(result.current.selectedIds).toEqual([])
+      const { logger } = await import('@/lib/observability/logger')
+      expect(logger.error).toHaveBeenCalled()
+    })
+
+    it('names an object without a name by its id', async () => {
+      bulkRemove.mockResolvedValue({
+        failures: [{ id: 'x', error: new Error('403') }],
+      })
+      const { result } = renderWith(
+        pageOf({ ...row('x'), name: '' } as ObjectListItem)
+      )
+
+      act(() => result.current.setRowSelection({ x: true }))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'objects.bulk.deleteFailed:{"count":1,"names":"x"}'
       )
     })
 

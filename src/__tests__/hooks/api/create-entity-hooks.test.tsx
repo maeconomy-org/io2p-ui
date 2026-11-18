@@ -222,10 +222,15 @@ describe('createEntityHooks', () => {
       )
     })
 
-    it('goes on past a failure and names every id that failed', async () => {
+    it('goes on past a failure and names every id that failed, in selection order', async () => {
       const refused = new Error('403')
+      // id-2 fails last, so the order of finishing is not the order of selecting.
       resource.delete.mockImplementation(async (id: string) => {
-        if (id === 'id-2' || id === 'id-7') throw refused
+        if (id === 'id-2') {
+          await new Promise((resolve) => setTimeout(resolve, 5))
+          throw refused
+        }
+        if (id === 'id-7') throw refused
       })
       const { wrapper } = makeWrapper()
       const { result } = renderHook(() => things.useBulkRemove(), { wrapper })
@@ -242,8 +247,7 @@ describe('createEntityHooks', () => {
       ])
     })
 
-    // One refresh after the batch: a refresh per row refetched the list once for every delete.
-    it('refreshes the lists once for the whole batch', async () => {
+    it('refreshes the lists once for the whole batch, and each written row', async () => {
       resource.restore.mockResolvedValue({})
       const { wrapper, invalidateSpy } = makeWrapper()
       const { result } = renderHook(() => things.useBulkRestore(), { wrapper })
@@ -259,6 +263,11 @@ describe('createEntityHooks', () => {
           JSON.stringify(['things', 'list'])
       )
       expect(listRefreshes).toHaveLength(1)
+      for (const id of ids) {
+        expect(invalidateSpy).toHaveBeenCalledWith({
+          queryKey: ['things', 'detail', id],
+        })
+      }
     })
   })
 })

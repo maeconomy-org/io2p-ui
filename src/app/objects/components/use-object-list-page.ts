@@ -84,8 +84,7 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
     [page, rowSelection]
   )
   // The rows a lifecycle verb may actually touch. Selection itself stays whole — the user picked
-  // those rows — but sending the rest would 403 each one, and Promise.all swallows that into a
-  // single logged line the user never sees.
+  // those rows — but sending the rest would only 403 each one.
   const deletableObjects = useMemo(
     () => selectedObjects.filter((o) => canDelete(permissionOf(o, userId))),
     [selectedObjects, userId]
@@ -151,7 +150,7 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
       const nameOf = new Map(rows.map((o) => [o.id, o.name]))
       const shown = failures
         .slice(0, NAMED_FAILURES)
-        .map(({ id }) => nameOf.get(id) ?? id)
+        .map(({ id }) => nameOf.get(id) || id)
       const rest = failures.length - shown.length
       toast.error(
         t(`objects.bulk.${key}`, {
@@ -176,6 +175,8 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
         rows,
         'deleteFailed'
       )
+    } catch (error) {
+      logger.error('Bulk delete error:', { err: error })
     } finally {
       setConfirmBulkDelete(false)
       clearSelection()
@@ -190,6 +191,8 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
         rows,
         'restoreFailed'
       )
+    } catch (error) {
+      logger.error('Bulk restore error:', { err: error })
     } finally {
       clearSelection()
     }
@@ -238,9 +241,13 @@ export function useObjectListPage({ page, onShare }: UseObjectListPageOptions) {
     movableObjects,
     clearSelection,
 
-    isDeleting: removeMutation.isPending,
-    isRestoring: restoreMutation.isPending,
-    isBusy: removeMutation.isPending || restoreMutation.isPending,
+    isDeleting: removeMutation.isPending || bulkRemove.isPending,
+    isRestoring: restoreMutation.isPending || bulkRestore.isPending,
+    isBusy:
+      removeMutation.isPending ||
+      restoreMutation.isPending ||
+      bulkRemove.isPending ||
+      bulkRestore.isPending,
 
     openDetails,
     handleRestore,

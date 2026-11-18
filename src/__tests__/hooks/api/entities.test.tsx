@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import {
@@ -11,6 +11,7 @@ import {
   useProcesses,
   useTemplates,
 } from '@/hooks/api/entities'
+import { queryKeys } from '@/lib/query-keys'
 
 const objects = {
   list: vi.fn(),
@@ -43,7 +44,7 @@ function makeWrapper() {
   })
   const wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children)
-  return { wrapper }
+  return { wrapper, queryClient }
 }
 
 describe('entities hooks', () => {
@@ -147,6 +148,46 @@ describe('entities hooks', () => {
 
     await result.current.mutateAsync({ id: 't1' })
     expect(templates.delete).toHaveBeenCalledWith('t1')
+  })
+
+  // The cache keeps a closed sheet's query (and its fetch count) for minutes; reopening the
+  // sheet must start the poll windows again, not resume them.
+  it('useRollups counts its poll windows from when the sheet opens', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const busy = {
+        data: [
+          {
+            ruleId: 'r1',
+            propertyKey: 'mass',
+            buckets: [],
+            skippedCount: 0,
+            stale: true,
+            computedAt: 1_700_000,
+          },
+        ],
+      }
+      objects.rollups.mockResolvedValue(busy)
+      const { wrapper, queryClient } = makeWrapper()
+      // An earlier opening of the sheet fetched it 50 times.
+      for (let i = 0; i < 50; i += 1) {
+        queryClient.setQueryData(queryKeys.objects.rollups('o1'), busy)
+      }
+
+      expect(
+        queryClient.getQueryState(queryKeys.objects.rollups('o1'))
+          ?.dataUpdateCount
+      ).toBe(50)
+      renderHook(() => useObjects().useRollups('o1'), { wrapper })
+      await waitFor(() => expect(objects.rollups).toHaveBeenCalledTimes(1))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ROLLUP_POLL_MS)
+      })
+
+      expect(objects.rollups).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('useRollups is disabled until an id AND ownership are known', async () => {
