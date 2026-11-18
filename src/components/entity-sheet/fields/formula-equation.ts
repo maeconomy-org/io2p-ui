@@ -32,28 +32,34 @@ function bracketed(text: string, before?: string, after?: string) {
     : text
 }
 
+export type EquationNumbers = {
+  number: (n: number) => string
+  /** The decimal mark `number` writes: `.` or `,`. */
+  decimal: string
+}
+
 /**
  * A formula with its inputs written in: `p * t` over `2 kW` and `5 h` reads `2 kW × 5 h`.
  *
  * A name with no text (an unbound variable, a function such as `log`) stays as written, so the
  * result is always the whole expression.
  *
- * `formatNumber` writes the formula's own numbers as the inputs are written. Where it gives a
- * decimal comma, arguments are split by `;`, so `max(0,5; 2)` cannot read as three arguments.
+ * With `numbers`, the formula's own numbers are written as the inputs are. Where the decimal mark
+ * is a comma, arguments are split by `;`, so `max(0,5; 2)` cannot read as three arguments.
  */
 export function equationText(
   expression: string,
   textFor: (variable: string) => string | undefined,
-  formatNumber?: (n: number) => string
+  numbers?: EquationNumbers
 ): string {
-  const separator = formatNumber?.(1.5).includes(',') ? '; ' : ', '
+  const separator = numbers?.decimal === ',' ? '; ' : ', '
   return expression
     .replace(TOKEN, (token, offset: number, src: string) => {
       if (OPERATOR[token]) return OPERATOR[token]
       if (token === ',') return separator
       if (NUMBER.test(token))
-        return formatNumber && !HEX.test(token)
-          ? formatNumber(Number(token))
+        return numbers && !HEX.test(token)
+          ? numbers.number(Number(token))
           : token
       const text = textFor(token)
       if (text === undefined) return token

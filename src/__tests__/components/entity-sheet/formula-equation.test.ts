@@ -100,10 +100,13 @@ describe('equationText', () => {
 })
 
 describe('equationText with the reader’s number format', () => {
-  const nl = (n: number) =>
-    new Intl.NumberFormat('nl', { maximumSignificantDigits: 12 }).format(n)
-  const en = (n: number) =>
-    new Intl.NumberFormat('en', { maximumSignificantDigits: 12 }).format(n)
+  const style = (locale: string, decimal: string) => ({
+    number: (n: number) =>
+      new Intl.NumberFormat(locale, { maximumSignificantDigits: 12 }).format(n),
+    decimal,
+  })
+  const nl = style('nl', ',')
+  const en = style('en', '.')
   const text = (m: Record<string, string>) => (v: string) => m[v]
 
   it('writes the formula’s own numbers as the inputs are written', () => {

@@ -18,7 +18,7 @@ import type {
 
 import { useCollapsible } from '../collapse-all'
 import { equationText } from './formula-equation'
-import { useFormulaFormat } from './formula-warnings'
+import { useFormulaFormat } from './use-formula-format'
 import { findValue } from './property-values'
 import type { ResolvedQuantity } from './quantity'
 
@@ -89,7 +89,7 @@ export function ValueProvenanceDisplay({
       const arg = provenance.args.find((a) => a.var === name)
       return arg && argText(arg)
     },
-    format.number
+    format
   )
   // A code this app does not know reads as the badge already says; repeating it is noise.
   const errorLine = error && calcErrorText(error.code, t)

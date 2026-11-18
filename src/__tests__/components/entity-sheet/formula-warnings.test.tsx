@@ -5,7 +5,14 @@ import type { FormulaPreviewWarning } from 'io2p-client'
 
 import en from '@/messages/en.json'
 import nl from '@/messages/nl.json'
-import { FormulaWarnings } from '@/components/entity-sheet/fields/formula-warnings'
+import {
+  FormulaNotes,
+  useWarningNotes,
+} from '@/components/entity-sheet/fields/formula-warnings'
+
+function Warnings({ warnings }: { warnings: FormulaPreviewWarning[] }) {
+  return <FormulaNotes notes={useWarningNotes(warnings)} />
+}
 
 const w = (over: Partial<FormulaPreviewWarning>): FormulaPreviewWarning => ({
   code: 'hand-conversion',
@@ -19,7 +26,7 @@ function textOf(warning: FormulaPreviewWarning, locale: 'en' | 'nl' = 'en') {
       locale={locale}
       messages={locale === 'en' ? en : nl}
     >
-      <FormulaWarnings warnings={[warning]} />
+      <Warnings warnings={[warning]} />
     </NextIntlClientProvider>
   )
   const item = screen.getByTestId(`formula-warning-${warning.code}`)
@@ -29,7 +36,7 @@ function textOf(warning: FormulaPreviewWarning, locale: 'en' | 'nl' = 'en') {
   return item.textContent
 }
 
-describe('FormulaWarnings', () => {
+describe('formula warnings', () => {
   // The number is the product of every scaling literal, inverted below 1: `* 0.001` sends 1000.
   // The sentence must not claim the formula contains it.
   it('names the scale of a hand conversion without claiming it is written there', () => {
@@ -122,7 +129,7 @@ describe('FormulaWarnings', () => {
   it('shows a factor and a result without a unit as information, a conversion as a warning', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <FormulaWarnings
+        <Warnings
           warnings={[
             w({ literal: 1000, unit: 't' }),
             w({ code: 'factor', vars: ['f'], unit: 'kg' }),
@@ -147,7 +154,7 @@ describe('FormulaWarnings', () => {
   it('shows one short line, and the full sentence only behind "Why?"', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <FormulaWarnings
+        <Warnings
           warnings={[w({ literal: 1000, scales: 'down', unit: 't' })]}
         />
       </NextIntlClientProvider>
@@ -170,7 +177,7 @@ describe('FormulaWarnings', () => {
   function renderWarnings(warnings: FormulaPreviewWarning[]) {
     return render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <FormulaWarnings warnings={warnings} />
+        <Warnings warnings={warnings} />
       </NextIntlClientProvider>
     )
   }
@@ -199,7 +206,7 @@ describe('FormulaWarnings', () => {
 
     rerender(
       <NextIntlClientProvider locale="en" messages={en}>
-        <FormulaWarnings warnings={[twoConversions[1]]} />
+        <Warnings warnings={[twoConversions[1]]} />
       </NextIntlClientProvider>
     )
     expect(screen.getByRole('button', { name: 'Why?' })).toHaveAttribute(
@@ -212,9 +219,7 @@ describe('FormulaWarnings', () => {
   it('offers no "Why?" for a factor reading', () => {
     render(
       <NextIntlClientProvider locale="en" messages={en}>
-        <FormulaWarnings
-          warnings={[w({ code: 'factor', vars: ['f'], unit: 'kg' })]}
-        />
+        <Warnings warnings={[w({ code: 'factor', vars: ['f'], unit: 'kg' })]} />
       </NextIntlClientProvider>
     )
     expect(
