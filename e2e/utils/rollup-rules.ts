@@ -11,7 +11,7 @@ import type { Page } from '@playwright/test'
  * A live rule is not a catalogue entry: while it exists, every write to a matching key computes
  * it and every sweep fans out over it, node-wide and forever.
  *
- * Runs in the page for the same reason `ensureRootObjects` does — `page.request` carries the
+ * Runs in the page for the same reason `ensureListRows` does — `page.request` carries the
  * session cookie but cannot mint the short-lived core token the node wants.
  *
  * Never throws: a rejection inside `afterAll` loses the page context and says nothing useful.
