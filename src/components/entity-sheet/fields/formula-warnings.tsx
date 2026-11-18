@@ -170,19 +170,33 @@ export function FormulaMessage({
   )
 }
 
+/** Numbers and lists as the formula texts write them, in the app locale. */
+export function useFormulaFormat(): Format {
+  const format = useFormatter()
+  // A conversion constant can be 0.000001, which the default three decimals print as 0.
+  return {
+    number: (n) => format.number(n, { maximumSignificantDigits: 12 }),
+    list: (items) => format.list(items, { type: 'conjunction' }),
+  }
+}
+
+/** The line a warning reads as, without its "Why?" reason. */
+export function warningLine(
+  warning: FormulaPreviewWarning,
+  t: Translate,
+  format: Format
+): string {
+  return warningShort(warning, t, format) ?? warningText(warning, t, format)
+}
+
 export function FormulaWarnings({
   warnings,
 }: {
   warnings: readonly FormulaPreviewWarning[]
 }) {
   const t = useTranslations()
-  const format = useFormatter()
+  const text = useFormulaFormat()
   if (warnings.length === 0) return null
-  // A conversion constant can be 0.000001, which the default three decimals print as 0.
-  const text: Format = {
-    number: (n) => format.number(n, { maximumSignificantDigits: 12 }),
-    list: (items) => format.list(items, { type: 'conjunction' }),
-  }
   return (
     <ul className="space-y-1" data-testid="formula-warnings">
       {warnings.map((warning) => {

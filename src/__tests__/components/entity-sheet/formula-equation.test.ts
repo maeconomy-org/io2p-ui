@@ -98,3 +98,35 @@ describe('equationText', () => {
     )
   })
 })
+
+describe('equationText with the reader’s number format', () => {
+  const nl = (n: number) =>
+    new Intl.NumberFormat('nl', { maximumSignificantDigits: 12 }).format(n)
+  const en = (n: number) =>
+    new Intl.NumberFormat('en', { maximumSignificantDigits: 12 }).format(n)
+  const text = (m: Record<string, string>) => (v: string) => m[v]
+
+  it('writes the formula’s own numbers as the inputs are written', () => {
+    expect(equationText('x * 0.001', text({ x: '0,5' }), nl)).toBe(
+      '0,5 × 0,001'
+    )
+    expect(equationText('x * 2.5e-3', text({ x: '4' }), nl)).toBe('4 × 0,0025')
+  })
+
+  it('keeps a hex number as written', () => {
+    expect(equationText('x * 0x10', text({ x: '4' }), nl)).toBe('4 × 0x10')
+  })
+
+  it('separates arguments with a semicolon where the decimal mark is a comma', () => {
+    expect(equationText('max(a, 1.5)', text({ a: '0,5' }), nl)).toBe(
+      'max(0,5; 1,5)'
+    )
+    expect(equationText('max(a,1.5)', text({ a: '0.5' }), en)).toBe(
+      'max(0.5, 1.5)'
+    )
+  })
+
+  it('leaves the numbers as written without a format', () => {
+    expect(equationText('x * 0.001', text({ x: '0,5' }))).toBe('0,5 × 0.001')
+  })
+})

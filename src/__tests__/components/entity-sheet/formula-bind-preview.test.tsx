@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import type { CalcInput } from 'io2p-client'
 import type { FormulaSibling } from '@/components/entity-sheet/fields/formula-value-editor'
 
@@ -529,6 +529,38 @@ describe('authoring warnings', () => {
     expect(screen.getByTestId('formula-warning-factor')).toBeInTheDocument()
   })
 
+  // A screen reader reads the region as text. "Why?" in it would be read after every line, and
+  // the reason read a second time when it opens.
+  it('announces each warning line without its "Why?" button or reason', () => {
+    preview.data = {
+      num: 1.5,
+      unit: 'kg',
+      unitVerified: true,
+      warnings: [
+        {
+          code: 'hand-conversion',
+          detail: 'x',
+          literal: 1000,
+          scales: 'down',
+          unit: 't',
+        },
+      ],
+    }
+    renderBindings()
+    const region = screen.getByRole('status')
+
+    expect(region).toHaveTextContent(
+      'objects.formulaEditor.warning.handConversionDownShort'
+    )
+    expect(within(region).queryByRole('button')).toBeNull()
+
+    const before = region.textContent
+    fireEvent.click(
+      screen.getByRole('button', { name: 'objects.formulaEditor.why' })
+    )
+    expect(region.textContent).toBe(before)
+  })
+
   // The declare-unit warning is the precise version of the plain unchecked line: one, not both.
   it('replaces the plain unchecked line when the node asks for a unit', () => {
     preview.data = {
@@ -552,13 +584,16 @@ describe('authoring warnings', () => {
  * any more, so there is no in-flight state to show and no failure to report — a request that
  * never arrives simply means one fewer warning, never a refusal the author did not earn.
  */
+// The status region repeats the line for a screen reader; these read the line on screen.
+const VISIBLE = { ignore: '[role=status], script, style' }
+
 describe('what it says instead of a result', () => {
   it('says the value will be calculated on save', () => {
     preview.data = { num: 20000, data: '20 t', warnings: [] }
     renderBindings()
 
     expect(
-      screen.getByText('objects.formulaEditor.calculatedOnSave')
+      screen.getByText('objects.formulaEditor.calculatedOnSave', VISIBLE)
     ).toBeInTheDocument()
   })
 
@@ -593,7 +628,7 @@ describe('what it says instead of a result', () => {
     renderBindings()
 
     expect(
-      screen.getByText('objects.formulaEditor.calculatedOnSave')
+      screen.getByText('objects.formulaEditor.calculatedOnSave', VISIBLE)
     ).toBeInTheDocument()
     expect(screen.queryByTestId('formula-dimension-problem')).toBeNull()
   })
@@ -605,7 +640,7 @@ describe('what it says instead of a result', () => {
     })
 
     expect(
-      screen.getByText('objects.formulaEditor.calculatedOnSave')
+      screen.getByText('objects.formulaEditor.calculatedOnSave', VISIBLE)
     ).toBeInTheDocument()
   })
 })

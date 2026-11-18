@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useFormatter: () => ({
+    number: String,
+    list: (items: string[]) => items.join(', '),
+  }),
 }))
 
 vi.mock('@/hooks/api/leaves', () => ({

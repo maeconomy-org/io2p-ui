@@ -1,7 +1,7 @@
 'use client'
 
 import { Fragment, useId, useMemo } from 'react'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { AlertTriangle, Check, ChevronDown, Sigma } from 'lucide-react'
 
 import { Badge } from '@/components/ui'
@@ -18,6 +18,7 @@ import type {
 
 import { useCollapsible } from '../collapse-all'
 import { equationText } from './formula-equation'
+import { useFormulaFormat } from './formula-warnings'
 import { findValue } from './property-values'
 import type { ResolvedQuantity } from './quantity'
 
@@ -68,7 +69,7 @@ export function ValueProvenanceDisplay({
   className?: string
 }) {
   const t = useTranslations()
-  const format = useFormatter()
+  const format = useFormulaFormat()
   const [open, setOpen] = useCollapsible()
   const detailsId = useId()
   const { error } = provenance
@@ -82,10 +83,14 @@ export function ValueProvenanceDisplay({
       : arg.value === undefined
         ? undefined
         : format.number(arg.value)
-  const equation = equationText(provenance.expression, (name) => {
-    const arg = provenance.args.find((a) => a.var === name)
-    return arg && argText(arg)
-  })
+  const equation = equationText(
+    provenance.expression,
+    (name) => {
+      const arg = provenance.args.find((a) => a.var === name)
+      return arg && argText(arg)
+    },
+    format.number
+  )
   // A code this app does not know reads as the badge already says; repeating it is noise.
   const errorLine = error && calcErrorText(error.code, t)
   const reason =
