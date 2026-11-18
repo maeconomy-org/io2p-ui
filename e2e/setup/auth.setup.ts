@@ -2,11 +2,29 @@ import { expect, test as setup } from '@playwright/test'
 
 import { resetPreferences } from '../utils/preferences'
 import { ensureRootObjects } from '../utils/seed-objects'
-import { AUTH_STATE, requireCredentials } from './credentials'
+import { signInAs } from '../utils/session'
+import {
+  AUTH_STATE,
+  requireCredentials,
+  secondCredentials,
+} from './credentials'
 
 /** Signs in once and saves the state every other project reuses. See §4.8 of the e2e plan. */
-setup('authenticate', async ({ page }) => {
+setup('authenticate', async ({ page, browser }) => {
   const { email, password } = requireCredentials()
+
+  // The node creates its user row on a first signed-in request, and the share member picker
+  // searches those rows only. On a fresh database the grantee is then not found until it signs in
+  // once. FIRST, because io2p-auth keeps one session per origin and this sign-in ends the previous.
+  // The reset marks its tours seen: a fresh account opens on a tour that swallows the first click.
+  const second = secondCredentials()
+  if (second) {
+    const context = await browser.newContext()
+    const grantee = await context.newPage()
+    await signInAs(grantee, second)
+    await resetPreferences(grantee)
+    await context.close()
+  }
 
   await page.goto('/')
 
