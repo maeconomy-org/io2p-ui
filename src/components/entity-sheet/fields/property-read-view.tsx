@@ -482,6 +482,9 @@ export function PropertyReadView({
     <h3 className="text-sm font-medium">{heading}</h3>
   )
 
+  // In the grid only the total cards open; a property tile does not.
+  const hasCollapsibles = view !== 'grid' || rollupCards.length > 0
+
   if (properties.length === 0 && rollupCards.length === 0) {
     return (
       <div className="space-y-2">
@@ -499,7 +502,7 @@ export function PropertyReadView({
         {allowViewToggle && (
           <ListToolbar
             heading={headingEl}
-            onCollapse={view !== 'grid' ? collapse : undefined}
+            onCollapse={hasCollapsibles ? collapse : undefined}
           >
             <ViewToggle
               value={view}
@@ -618,13 +621,15 @@ function RollupCard({
   ownValues?: NumericValues
   multiplierValues?: NumericValues
   ownUnit?: string
-  /** Grid tile: the name and the total only; the breakdown and the marks are in the list view. */
+  /** Grid tile: tighter, and without the Total badge. */
   compact?: boolean
   'data-testid'?: string
 }) {
   const t = useTranslations()
   const [open, setOpen] = useCollapsible()
   const detailsId = useId()
+  const nameId = useId()
+  const valueId = useId()
 
   const updating = entry.stale && !entry.error
   // Something below was not added in. At rest the card says only that there is something to look
@@ -659,37 +664,7 @@ function RollupCard({
     />
   )
 
-  if (compact) {
-    return (
-      <div
-        className="rounded-md border border-dashed bg-muted/20 p-2.5"
-        data-testid={testId}
-      >
-        <div className="flex items-center gap-1.5">
-          <Calculator
-            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <span className="truncate text-sm font-medium">
-            {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
-          </span>
-          <span className="ml-auto flex shrink-0 items-center gap-1.5">
-            {multiplierNote}
-            {issueIcon}
-            {updating && <RollupStaleBadge />}
-          </span>
-        </div>
-        <RollupLine
-          entry={entry}
-          ownUnit={unit}
-          ownValues={ownValues}
-          multiplierValues={multiplierValues}
-          part="value"
-          className={cn('mt-0.5', updating && 'opacity-60')}
-        />
-      </div>
-    )
-  }
+  const label = resolvePropertyLabel(entry.propertyKey, undefined, locale)
 
   return (
     <div
@@ -701,13 +676,14 @@ function RollupCard({
       )}
       data-testid={testId}
     >
-      <button
-        type="button"
+      {/* The whole header opens the card for a mouse. The chevron is the control a keyboard and a
+          screen reader use: it has no handler of its own, and its click reaches this one. */}
+      <div
         onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-controls={detailsId}
-        data-testid="rollup-toggle"
-        className="flex w-full items-start gap-1.5 rounded-md px-3 py-1.5 text-left hover:bg-muted/40"
+        className={cn(
+          'flex cursor-pointer items-start gap-1.5 rounded-md hover:bg-muted/40',
+          compact ? 'p-2.5' : 'px-3 py-1.5'
+        )}
       >
         {/* The number and its name dim TOGETHER, in their own wrapper: opacity does not
             compose upward, so dimming the card would take the badges down with them. */}
@@ -722,38 +698,51 @@ function RollupCard({
               className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
               aria-hidden="true"
             />
-            <span className="truncate text-sm font-medium">
-              {resolvePropertyLabel(entry.propertyKey, undefined, locale)}
+            <span id={nameId} className="truncate text-sm font-medium">
+              {label}
             </span>
-            <Badge
-              variant="secondary"
-              className="h-4 shrink-0 px-1 text-[10px] font-normal"
-            >
-              {t('objects.properties.rollupTotal')}
-            </Badge>
+            {!compact && (
+              <Badge
+                variant="secondary"
+                className="h-4 shrink-0 px-1 text-[10px] font-normal"
+              >
+                {t('objects.properties.rollupTotal')}
+              </Badge>
+            )}
             {multiplierNote}
           </div>
-          <RollupLine
-            entry={entry}
-            ownUnit={unit}
-            ownValues={ownValues}
-            multiplierValues={multiplierValues}
-            part="value"
-            className="mt-0.5"
-          />
+          <div id={valueId}>
+            <RollupLine
+              entry={entry}
+              ownUnit={unit}
+              ownValues={ownValues}
+              multiplierValues={multiplierValues}
+              part="value"
+              className="mt-0.5"
+            />
+          </div>
         </div>
         <span className="flex shrink-0 items-center gap-1.5 pt-0.5">
           {issueIcon}
           {updating && <RollupStaleBadge />}
-          <ChevronDown
-            className={cn(
-              'h-3.5 w-3.5 text-muted-foreground transition-transform motion-reduce:transition-none',
-              open && 'rotate-180'
-            )}
-            aria-hidden="true"
-          />
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={open ? detailsId : undefined}
+            aria-labelledby={`${nameId} ${valueId}`}
+            data-testid="rollup-toggle"
+            className="-m-0.5 rounded-sm p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronDown
+              className={cn(
+                'h-3.5 w-3.5 text-muted-foreground transition-transform motion-reduce:transition-none',
+                open && 'rotate-180'
+              )}
+              aria-hidden="true"
+            />
+          </button>
         </span>
-      </button>
+      </div>
 
       {open && (
         <div
@@ -1033,7 +1022,7 @@ function ValueRow({
           textForValue={textForValue}
           marker={marker}
           trailing={filesToggle}
-          usedAsMultiplier={quantity !== undefined}
+          multiplier={quantity}
         />
       ) : (
         <div className="flex flex-wrap items-center gap-2 text-sm">

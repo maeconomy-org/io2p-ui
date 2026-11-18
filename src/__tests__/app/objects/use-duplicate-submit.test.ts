@@ -16,12 +16,19 @@ vi.mock('@/hooks/api/use-duplicate-objects', async (importOriginal) => ({
   useDuplicateObjects: () => ({ duplicateObjects, isDuplicating: false }),
 }))
 
+import { ForbiddenError, ValidationError } from 'io2p-client'
+
 import {
   DuplicateIntoOwnSubtreeError,
+  DuplicateWriteError,
   DuplicateTooDeepError,
   DuplicateTooLargeError,
 } from '@/hooks/api/use-duplicate-objects'
 import { useDuplicateSubmit } from '@/app/objects/components/duplicate-objects/use-duplicate-submit'
+
+function problem(status: number, detail?: string) {
+  return { type: 'about:blank', title: 'Error', status, detail }
+}
 
 const options = {
   sourceObjects: [{ uuid: 'a', name: 'A' }],
@@ -102,11 +109,51 @@ describe('useDuplicateSubmit', () => {
   })
 
   it('warns that some copies may exist after a failure part-way', async () => {
-    duplicateObjects.mockRejectedValue(new Error('node down'))
+    duplicateObjects.mockRejectedValue(
+      new DuplicateWriteError(2, new Error('node down'))
+    )
+    const onDone = vi.fn()
+    const { result } = renderHook(() => useDuplicateSubmit({ onDone }))
+    await act(() => result.current.submit(options))
+
+    expect(toast.error).toHaveBeenCalledWith('objects.duplicate.failedPartial')
+    expect(onDone).not.toHaveBeenCalled()
+  })
+
+  it('gives the real reason when the first write is refused, not "some may exist"', async () => {
+    duplicateObjects.mockRejectedValue(
+      new DuplicateWriteError(0, new ForbiddenError(problem(403)))
+    )
+    const onDone = vi.fn()
+    const { result } = renderHook(() => useDuplicateSubmit({ onDone }))
+    await act(() => result.current.submit(options))
+
+    expect(toast.error).toHaveBeenCalledWith('objects.permissionDenied')
+    expect(toast.error).not.toHaveBeenCalledWith(
+      'objects.duplicate.failedPartial'
+    )
+    expect(onDone).not.toHaveBeenCalled()
+  })
+
+  // A timeout can land after the node committed the create, so "nothing was copied" is not known.
+  it('keeps the part-way warning when the first write fails without an answer', async () => {
+    duplicateObjects.mockRejectedValue(
+      new DuplicateWriteError(0, new Error('network down'))
+    )
     const { result } = renderHook(() => useDuplicateSubmit({ onDone: vi.fn() }))
     await act(() => result.current.submit(options))
 
     expect(toast.error).toHaveBeenCalledWith('objects.duplicate.failedPartial')
+  })
+
+  it('names a validation refusal on the first write', async () => {
+    duplicateObjects.mockRejectedValue(
+      new DuplicateWriteError(0, new ValidationError(problem(422, 'bad')))
+    )
+    const { result } = renderHook(() => useDuplicateSubmit({ onDone: vi.fn() }))
+    await act(() => result.current.submit(options))
+
+    expect(toast.error).toHaveBeenCalledWith('objects.saveError.invalid')
   })
 
   const leave = () => {

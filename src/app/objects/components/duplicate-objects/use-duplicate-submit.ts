@@ -6,15 +6,28 @@ import { toast } from 'sonner'
 
 import {
   DuplicateIntoOwnSubtreeError,
+  DuplicateWriteError,
   DuplicateTooDeepError,
   DuplicateTooLargeError,
   MAX_DUPLICATE_DEPTH,
   MAX_DUPLICATE_OBJECTS,
   useDuplicateObjects,
 } from '@/hooks/api/use-duplicate-objects'
+import { iomStatus, saveErrorMessage } from '@/lib/io2p-errors'
 import { logger } from '@/lib/observability/logger'
 
 import type { DuplicateObjectsOptions } from './types'
+
+/**
+ * Nothing was copied: the node refused the first write. A timeout or a lost connection is not a
+ * refusal, because the node can commit a create whose answer never arrives.
+ */
+function isRefusal(error: DuplicateWriteError) {
+  const status = iomStatus(error.cause)
+  return (
+    error.created === 0 && status !== undefined && status >= 400 && status < 500
+  )
+}
 
 /**
  * The duplicate sheet's confirm. A caller's `onConfirm` replaces the built-in copy, and its
@@ -72,6 +85,11 @@ export function useDuplicateSubmit({
         return
       }
       logger.error('Duplicate objects failed', { err: error })
+      if (error instanceof DuplicateWriteError && isRefusal(error)) {
+        const message = saveErrorMessage(error.cause)
+        toast.error(t(message.key, message.values))
+        return
+      }
       toast.error(t('objects.duplicate.failedPartial'))
     }
   }

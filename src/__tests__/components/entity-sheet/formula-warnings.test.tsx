@@ -162,6 +162,52 @@ describe('FormulaWarnings', () => {
     expect(item).toHaveTextContent('duplicate this one')
   })
 
+  const twoConversions = [
+    w({ literal: 1000, scales: 'down', unit: 't' }),
+    w({ literal: 100, scales: 'down', unit: 'm' }),
+  ]
+
+  function renderWarnings(warnings: FormulaPreviewWarning[]) {
+    return render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <FormulaWarnings warnings={warnings} />
+      </NextIntlClientProvider>
+    )
+  }
+
+  it('tells each "Why?" apart by the warning it explains', () => {
+    renderWarnings(twoConversions)
+    const [first, second] = screen.getAllByRole('button', { name: 'Why?' })
+
+    expect(first).toHaveAccessibleDescription(/to t by hand/)
+    expect(second).toHaveAccessibleDescription(/to m by hand/)
+  })
+
+  it('points aria-controls only at a rendered explanation', () => {
+    renderWarnings(twoConversions)
+    const [why] = screen.getAllByRole('button', { name: 'Why?' })
+    expect(why).not.toHaveAttribute('aria-controls')
+
+    fireEvent.click(why)
+    const id = why.getAttribute('aria-controls')
+    expect(id && document.getElementById(id)).toBeInstanceOf(HTMLElement)
+  })
+
+  it('keeps an open explanation with its own warning when one above goes', () => {
+    const { rerender } = renderWarnings(twoConversions)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Why?' })[1])
+
+    rerender(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <FormulaWarnings warnings={[twoConversions[1]]} />
+      </NextIntlClientProvider>
+    )
+    expect(screen.getByRole('button', { name: 'Why?' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    )
+  })
+
   // A factor sentence is already one line; a "Why?" there would repeat it.
   it('offers no "Why?" for a factor reading', () => {
     render(

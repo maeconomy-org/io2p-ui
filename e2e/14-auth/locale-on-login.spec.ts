@@ -1,6 +1,7 @@
 import { expect, test } from '../fixtures/app'
 import { requireCredentials } from '../setup/credentials'
 import { PREF_COOKIE, localeOnlyCookie, setLanguage } from '../utils/language'
+import { patchPreferences } from '../utils/preferences'
 
 /**
  * The account language must survive a sign-in, on a browser whose cookie
@@ -70,10 +71,14 @@ test.describe('14 - auth / locale on login', () => {
 
   // Account state outlives the run, and an inline reset only runs when the test PASSES — the run
   // where it matters is the run where it failed, which then hands Dutch to every later spec. The
-  // session is signed in here rather than reused: this file clears its own cookies.
+  // session is signed in here rather than reused: this file clears its own cookies. The API, not
+  // `setLanguage`: after `clearCookies` the page first-paints English, so that helper would read
+  // "already English" and leave the account Dutch.
   test.afterEach(async ({ page }) => {
     await page.goto('/')
     if (!/\/objects$/.test(page.url())) await signIn(page)
-    await setLanguage(page, 'en')
+    // The token mint in `patchPreferences` needs the signed-in page, not the redirect.
+    await expect(page).toHaveURL(/\/objects$/)
+    await patchPreferences(page, { locale: { app: 'en' } })
   })
 })

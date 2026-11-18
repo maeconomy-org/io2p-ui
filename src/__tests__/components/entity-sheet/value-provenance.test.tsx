@@ -8,6 +8,9 @@ import {
   uncheckedState,
 } from '@/components/entity-sheet/fields/value-provenance'
 import type { DraftProperty, ValueProvenance } from '@/lib/entity'
+import type { ResolvedQuantity } from '@/components/entity-sheet/fields/quantity'
+import en from '@/messages/en.json'
+import nl from '@/messages/nl.json'
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
@@ -43,7 +46,7 @@ function renderProvenance(
   unit?: string,
   textForValue: (id: string) => string | undefined = (id) =>
     id === 'val-1' ? '3 m' : undefined,
-  usedAsMultiplier = false
+  multiplier?: ResolvedQuantity
 ) {
   return render(
     React.createElement(ValueProvenanceDisplay, {
@@ -52,7 +55,7 @@ function renderProvenance(
       display: '1.5 m',
       labelForValue: (id: string) => (id === 'val-1' ? 'Height' : undefined),
       textForValue,
-      usedAsMultiplier,
+      multiplier,
     })
   )
 }
@@ -356,7 +359,10 @@ describe('the details, read in full', () => {
 
   it('warns when a rule multiplies by an unchecked result, and only then', () => {
     const unchecked = { ...PROVENANCE, unitVerified: false }
-    const { unmount } = renderProvenance(unchecked, undefined, undefined, true)
+    const { unmount } = renderProvenance(unchecked, undefined, undefined, {
+      kind: 'unusable',
+      reason: 'unitNotChecked',
+    })
     openDetails()
     expect(screen.getByTestId('provenance-multiplier')).toHaveTextContent(
       'objects.properties.unitNotCheckedMultiplier'
@@ -366,5 +372,45 @@ describe('the details, read in full', () => {
     renderProvenance(unchecked)
     openDetails()
     expect(screen.queryByTestId('provenance-multiplier')).toBeNull()
+  })
+
+  it('names several values as the reason, not this value, when the key has several', () => {
+    renderProvenance(
+      { ...PROVENANCE, unitVerified: false },
+      undefined,
+      undefined,
+      { kind: 'ambiguous' }
+    )
+    openDetails()
+    expect(screen.getByTestId('provenance-multiplier')).toHaveTextContent(
+      'objects.properties.unitNotCheckedMultiplierSeveral'
+    )
+  })
+
+  it('does not offer to drop a result unit the formula only inherited', () => {
+    renderProvenance(
+      { ...PROVENANCE, unitVerified: false, unitSource: 'inherited' },
+      'kg'
+    )
+    openDetails()
+    expect(screen.getByTestId('provenance-fix')).toHaveTextContent(
+      'objects.properties.fixNotCountedInherited'
+    )
+  })
+})
+
+describe('the provenance texts', () => {
+  it('give the no-unit badge its own text, apart from a plain result', () => {
+    for (const messages of [en, nl]) {
+      const p = messages.objects.properties
+      expect(p.noUnit).not.toBe(p.resultNoUnit)
+    }
+  })
+
+  it('address the reader formally in the Dutch fix texts', () => {
+    const p = nl.objects.properties
+    for (const text of [p.fixNotCounted, p.fixNotCountedInherited, p.fixNoUnit])
+      expect(text).toMatch(/^Dupliceert u /)
+    expect(p.fixNoUnit).toContain('geeft u ')
   })
 })

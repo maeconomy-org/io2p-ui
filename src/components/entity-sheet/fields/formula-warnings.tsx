@@ -127,6 +127,7 @@ export function FormulaMessage({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const whyId = useId()
+  const textId = useId()
   const Icon = tone === 'info' ? Info : AlertTriangle
   return (
     <li
@@ -142,14 +143,15 @@ export function FormulaMessage({
       <span className="flex items-start gap-1.5">
         <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span>
-          {text}
+          <span id={textId}>{text}</span>
           {why && (
             <>
               {' '}
               <button
                 type="button"
                 aria-expanded={open}
-                aria-controls={whyId}
+                aria-controls={open ? whyId : undefined}
+                aria-describedby={textId}
                 onClick={() => setOpen((v) => !v)}
                 className="text-primary underline underline-offset-2"
               >
@@ -183,12 +185,13 @@ export function FormulaWarnings({
   }
   return (
     <ul className="space-y-1" data-testid="formula-warnings">
-      {warnings.map((warning, i) => {
+      {warnings.map((warning) => {
         const full = warningText(warning, t, text)
         const short = warningShort(warning, t, text)
         return (
           <FormulaMessage
-            key={`${warning.code}-${i}`}
+            // By its text, not its place: an index hands an open "Why?" to the next warning.
+            key={`${warning.code}-${full}`}
             data-testid={`formula-warning-${warning.code}`}
             tone={toneOf(warning)}
             text={short ?? full}

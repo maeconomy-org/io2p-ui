@@ -53,6 +53,19 @@ export class DuplicateTooLargeError extends Error {
   }
 }
 
+/**
+ * A write failed after `created` copies. More than 0 means part of the copy stays behind.
+ */
+export class DuplicateWriteError extends Error {
+  constructor(
+    readonly created: number,
+    override readonly cause: unknown
+  ) {
+    super(`The copy stopped after ${created} objects`)
+    this.name = 'DuplicateWriteError'
+  }
+}
+
 /** A subtree deeper than this is almost certainly a cycle or a mistake, not an intent. */
 export const MAX_DUPLICATE_DEPTH = 10
 
@@ -105,7 +118,8 @@ async function duplicateNode(
   client: Io2pClient,
   node: CopyNode,
   parentIds: string[],
-  params: DuplicateObjectsParams
+  params: DuplicateObjectsParams,
+  progress: { created: number }
 ): Promise<void> {
   const source = await client.objects.get(node.id)
   const created = await client.objects.create(
@@ -117,10 +131,11 @@ async function duplicateNode(
       copyAddress: params.copyAddress,
     })
   )
+  progress.created += 1
 
   for (const child of node.children) {
     // The COPY's id, so the subtree hangs off the new branch rather than back onto the original.
-    await duplicateNode(client, child, [created.id], params)
+    await duplicateNode(client, child, [created.id], params, progress)
   }
 }
 
@@ -177,10 +192,21 @@ export function useDuplicateObjects() {
           }
         }
 
-        for (const target of destinations) {
-          for (const plan of plans) {
-            await duplicateNode(client, plan, target ? [target] : [], params)
+        const progress = { created: 0 }
+        try {
+          for (const target of destinations) {
+            for (const plan of plans) {
+              await duplicateNode(
+                client,
+                plan,
+                target ? [target] : [],
+                params,
+                progress
+              )
+            }
           }
+        } catch (error) {
+          throw new DuplicateWriteError(progress.created, error)
         }
       } finally {
         setIsDuplicating(false)

@@ -29,7 +29,7 @@ export function CollapseAllButton({ onClick }: { onClick: () => void }) {
 
 /**
  * The toolbar over a list of things that open: an optional heading on the left, then Collapse all
- * (left out where nothing opens, as in the grid), the marks legend, and anything else, such as the
+ * (left out where nothing opens, as in a grid without totals), the marks legend, and anything else, such as the
  * view toggle.
  */
 export function ListToolbar({

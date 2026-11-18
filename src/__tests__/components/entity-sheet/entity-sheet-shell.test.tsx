@@ -14,6 +14,9 @@ vi.mock('next-intl', () => ({
   useFormatter: () => ({ number: (n: number) => String(n) }),
 }))
 
+const useUnits = vi.hoisted(() => vi.fn())
+vi.mock('@/hooks/api/leaves', () => ({ useUnits }))
+
 const TABS: SheetTab[] = [
   {
     value: 'properties',
@@ -344,5 +347,16 @@ describe('EntitySheetShell — a failed save', () => {
     renderShell({ saveError: undefined })
 
     expect(screen.queryByTestId('save-error')).toBeNull()
+  })
+
+  it('starts the units read when the sheet opens, before any property row', () => {
+    render(shell({ tabs: TABS }))
+    expect(useUnits).toHaveBeenCalledWith({ enabled: true })
+  })
+
+  it('does not read the units while the sheet is closed', () => {
+    useUnits.mockClear()
+    render(shell({ tabs: TABS, open: false }))
+    expect(useUnits).not.toHaveBeenCalledWith({ enabled: true })
   })
 })
