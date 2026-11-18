@@ -165,6 +165,10 @@ test.describe('11 - shares / lifecycle', () => {
     // The refusal below is the POINT of the case, so it is declared rather than tolerated — an
     // undeclared 500 would fail this at teardown, and a blanket ignore would hide a real one.
     consoleGuard.expectError(/500 \(Internal Server Error\)/)
+    // The app's own record of the same failure; only a dev server prints the logger to the console.
+    consoleGuard.expectError(
+      /\[ERROR\] (io2p request failed .*status: 500|Bulk delete shares failed)/
+    )
 
     const tag = stamp()
     await createObjectWithId(page, `${tag}-res`)

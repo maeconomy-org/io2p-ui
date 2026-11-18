@@ -55,6 +55,10 @@ test.describe('11 - shares / a partly-failed save', () => {
     // bought back positively at the end of the case instead — exactly one 500 is expected, and a
     // second from any other route fails on the count.
     consoleGuard.expectError(/500 \(Internal Server Error\)/)
+    // The app's own record of the same failure; only a dev server prints the logger to the console.
+    consoleGuard.expectError(
+      /\[ERROR\] (io2p request failed .*status: 500|Access change failed)/
+    )
     const consoleErrors = collectConsoleErrors(page)
 
     const objectName = `e2e-${Date.now()}-s13`
