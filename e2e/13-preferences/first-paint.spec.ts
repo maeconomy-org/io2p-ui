@@ -58,25 +58,54 @@ test.describe('13 - preferences / first paint', () => {
     await expect(page.locator('html')).toHaveClass(/dark/)
   })
 
+  // The claim is about the ACCOUNT read: with the cookie, nothing waits for `/me` to paint. `/me`
+  // is held until the list has drawn rows, and an observer records every DOM change from the first
+  // paint until `/me` has answered, so a skeleton that flashes for one frame still counts. A hard load also streams the
+  // route's `loading.tsx` ahead of the page, before any account read; that is before the first
+  // paint of the page and not what this asserts.
   test('no page skeleton appears while the account loads', async ({
     page,
     context,
   }) => {
     await context.addCookies([{ ...COOKIE, value: '1.t.t.20.y.en' }])
+    await page.addInitScript(() => {
+      const flags = { painted: false, skeletonAfterPaint: false }
+      ;(window as unknown as { __firstPaint: typeof flags }).__firstPaint =
+        flags
+      new MutationObserver(() => {
+        const skeleton = document.querySelector('[data-testid="page-skeleton"]')
+        // Streaming parks the page in a hidden div beside the fallback until React swaps them, so
+        // the page has painted only once its table is there AND the fallback is gone.
+        if (document.querySelector('[data-testid="data-table"]') && !skeleton) {
+          flags.painted = true
+        }
+        if (flags.painted && skeleton) flags.skeletonAfterPaint = true
+      }).observe(document, { childList: true, subtree: true })
+    })
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    let meAsked = false
+    await page.route(/\/v1\/me$/, async (route) => {
+      meAsked = true
+      await held
+      await route.continue()
+    })
 
-    let skeletonSeen = false
-    await page.goto('/objects', { waitUntil: 'commit' })
-    // `page-skeleton` is the ROUTE boundary specifically. A bare `.animate-pulse`
-    // would also match DataTable's own loading rows, which are correct and
-    // expected — the point is that nothing covers the heading and the filters.
-    for (let i = 0; i < 20; i++) {
-      if ((await page.getByTestId('page-skeleton').count()) > 0)
-        skeletonSeen = true
-      await page.waitForTimeout(50)
-    }
+    await page.goto('/objects')
+    // Held until the list has answered and drawn its rows: proof the page did not wait for `/me`.
+    await expect(page.getByTestId('data-table-row').first()).toBeVisible()
+    expect(meAsked).toBe(true)
 
-    expect(skeletonSeen).toBe(false)
+    const answered = page.waitForResponse((r) => /\/v1\/me$/.test(r.url()))
+    release()
+    await answered
     await expect(page.getByTestId('data-table')).toBeVisible()
+    const flags = await page.evaluate(
+      () =>
+        (window as unknown as { __firstPaint: Record<string, boolean> })
+          .__firstPaint
+    )
+    expect(flags).toEqual({ painted: true, skeletonAfterPaint: false })
   })
 
   // A returning user whose account and cookie both say 50. `/me` is HELD until the list has asked,
