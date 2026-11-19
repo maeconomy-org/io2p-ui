@@ -41,6 +41,7 @@ test.describe('17 - search / filters that cannot apply', () => {
     ['mass>2 t', 'numKey'],
     ['created:2026-02-30', 'createdFrom'],
     ['created:2026-03-01..2026-01-01', 'createdFrom'],
+    ['mass>=2,000kg', 'numKey'],
     ['parent:abc', 'parent'],
   ] as const) {
     test(`SE4: ${token} gets a note on the list and sends no ${param}`, async ({
