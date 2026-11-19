@@ -622,3 +622,15 @@ describe('search-parser: what the node would refuse, or read another way', () =>
     ])
   })
 })
+
+describe('parseSearchQuery reads numbers in the locale it is given', () => {
+  it('marks 2.000 as a problem in a comma locale and sends no bound', () => {
+    const parsed = parseSearchQuery('mass>=2.000kg', {
+      units: null,
+      decimalMark: ',',
+    })
+    expect(parsed.filters).toEqual([
+      expect.objectContaining({ type: 'number', problem: 'grouping' }),
+    ])
+  })
+})

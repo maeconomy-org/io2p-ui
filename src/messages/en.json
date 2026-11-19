@@ -1322,7 +1322,8 @@
       "property": "prop: needs a property name before the =: prop:colour=red.",
       "deleted": "deleted: takes true, false or all.",
       "template": "template: takes true or false.",
-      "parent": "parent: needs the id of an object."
+      "parent": "parent: needs the id of an object.",
+      "grouping": "Write the number without a thousands separator: mass>=2000kg."
     },
     "pill": {
       "remove": "Remove filter:",
@@ -1909,7 +1910,8 @@
       "numberUnit": "Use a unit the system knows, for example t, kg, km or MJ.",
       "numberReversed": "To must not be less than from.",
       "quote": "A name or value cannot contain \".",
-      "dateReversed": "To must not be before from."
+      "dateReversed": "To must not be before from.",
+      "numberGrouping": "Write the number without a thousands separator, for example 2000."
     }
   }
 }
