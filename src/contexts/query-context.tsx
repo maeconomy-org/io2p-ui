@@ -1,9 +1,16 @@
 'use client'
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from 'react'
 import dynamic from 'next/dynamic'
 import {
   MutationCache,
+  onlineManager,
   QueryCache,
   QueryClient,
   QueryClientProvider,
@@ -87,6 +94,23 @@ export const QUERY_DEFAULTS = {
   networkMode: 'always',
 } as const
 
+/**
+ * On reconnect, loads again every shown query that failed with no answer from the node.
+ * refetchOnReconnect skips a query in the error state, so an offline list kept its error. A list
+ * the node refused (a 4xx) would only be refused again.
+ */
+export function refetchFailedOnReconnect(client: QueryClient): () => void {
+  return onlineManager.subscribe((online) => {
+    if (!online) return
+    void client.refetchQueries({
+      type: 'active',
+      // No status, or the SDK's 0 for a request that got no answer.
+      predicate: (query) =>
+        query.state.status === 'error' && !iomStatus(query.state.error),
+    })
+  })
+}
+
 export function QueryProvider({ children, config }: QueryProviderProps) {
   const queryClient = useMemo(
     () =>
@@ -136,6 +160,8 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
       }),
     []
   )
+
+  useEffect(() => refetchFailedOnReconnect(queryClient), [queryClient])
 
   return (
     <ConfigContext.Provider value={config}>
