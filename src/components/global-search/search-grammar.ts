@@ -16,6 +16,35 @@ export type SearchProblem =
   | 'folder'
   | 'once'
   | 'inAndParent'
+  | 'unit'
+  | 'property'
+  | 'deleted'
+  | 'template'
+  | 'parent'
+
+/**
+ * What the parser needs from the page: the units the node knows (null until the list arrives; the
+ * node then decides) and the decimal mark pills are shown with.
+ */
+export interface SearchGrammar {
+  units: ReadonlySet<string> | null
+  decimalMark: '.' | ','
+}
+
+export const PLAIN_GRAMMAR: SearchGrammar = { units: null, decimalMark: '.' }
+
+// The node's normKey: case and spaces do not count, nor trailing dots (`t.`).
+export function unitKey(unit: string): string {
+  return unit.toLowerCase().replaceAll(/\s+/g, '').replace(/\.+$/, '')
+}
+
+export function unitKeys(units: Iterable<string>): ReadonlySet<string> {
+  return new Set(Array.from(units, unitKey))
+}
+
+export function knowsUnit(grammar: SearchGrammar, unit: string): boolean {
+  return grammar.units === null || grammar.units.has(unitKey(unit))
+}
 
 export type NumberOp = '>=' | '<=' | 'range'
 
@@ -267,7 +296,11 @@ export function isSpacedOperator(
  * The number filter as text the parser reads back to the same filter (the menu writes this). With
  * `forPeople`, ≥ and ≤ in place of `>=` and `<=`: `>` here includes the bound. The parser reads both.
  */
-export function numberToken(range: NumberRange, forPeople = false): string {
+export function numberToken(
+  range: NumberRange,
+  forPeople = false,
+  decimalMark: '.' | ',' = '.'
+): string {
   const key =
     /^[^\s"<>:=≥≤]+$/.test(range.key) &&
     /\p{L}/u.test(range.key) &&
@@ -275,9 +308,21 @@ export function numberToken(range: NumberRange, forPeople = false): string {
       ? range.key
       : `"${range.key}"`
   const unit = range.unit ?? ''
+  const n = (value: number | undefined) =>
+    value === undefined ? '' : plainNumber(value, decimalMark)
   if (range.op === '>=')
-    return `${key}${forPeople ? '≥' : '>='}${range.gte}${unit}`
+    return `${key}${forPeople ? '≥' : '>='}${n(range.gte)}${unit}`
   if (range.op === '<=')
-    return `${key}${forPeople ? '≤' : '<='}${range.lte}${unit}`
-  return `${key}:${range.gte ?? ''}..${range.lte ?? ''}${unit}`
+    return `${key}${forPeople ? '≤' : '<='}${n(range.lte)}${unit}`
+  return `${key}:${n(range.gte)}..${n(range.lte)}${unit}`
+}
+
+// `String(1e-7)` is "1e-7", which `readNumber` refuses: a pill rewritten into the query would turn
+// into a problem. No grouping either, since the parser reads a lone separator as the decimal mark.
+function plainNumber(value: number, decimalMark: '.' | ','): string {
+  const text = value.toLocaleString('en-US', {
+    useGrouping: false,
+    maximumFractionDigits: 20,
+  })
+  return decimalMark === ',' ? text.replace('.', ',') : text
 }

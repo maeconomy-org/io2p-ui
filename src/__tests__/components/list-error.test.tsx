@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { onlineManager } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 
@@ -30,6 +31,20 @@ describe('listErrorMessage', () => {
     ['a plain error', new Error('boom')],
   ])('asks for a retry for %s', (_, error) => {
     expect(listErrorMessage(error)).toEqual({ key: 'common.listFailed' })
+  })
+})
+
+describe('listErrorMessage while offline', () => {
+  it('says there is no connection for a list that got no answer', () => {
+    expect(listErrorMessage(new TypeError('Failed to fetch'), false)).toEqual({
+      key: 'common.listOffline',
+    })
+  })
+
+  it('keeps the general text while online', () => {
+    expect(listErrorMessage(new TypeError('Failed to fetch'), true)).toEqual({
+      key: 'common.listFailed',
+    })
   })
 })
 
@@ -146,5 +161,26 @@ describe('EntityTable with a failed list', () => {
     )
     expect(screen.getByText('No objects yet')).toBeInTheDocument()
     expect(screen.queryByTestId('list-error')).toBeNull()
+  })
+})
+
+describe('ListErrorAlert while offline', () => {
+  afterEach(() => onlineManager.setOnline(true))
+
+  it('says there is no connection, and still offers a retry', () => {
+    onlineManager.setOnline(false)
+    const onRetry = vi.fn()
+    inLocale(
+      'en',
+      <ListErrorAlert
+        error={new TypeError('Failed to fetch')}
+        onRetry={onRetry}
+      />
+    )
+    expect(screen.getByTestId('list-error')).toHaveTextContent(
+      en.common.listOffline
+    )
+    fireEvent.click(screen.getByRole('button', { name: en.common.listRetry }))
+    expect(onRetry).toHaveBeenCalledTimes(1)
   })
 })

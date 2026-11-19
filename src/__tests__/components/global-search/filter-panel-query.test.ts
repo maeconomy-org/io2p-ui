@@ -5,6 +5,7 @@ import {
   panelQuery,
   panelValuesOf,
 } from '@/components/global-search/filter-panel-query'
+import { unitKeys } from '@/components/global-search/search-grammar'
 import {
   parseSearchQuery,
   toListParams,
@@ -140,10 +141,10 @@ describe('panelQuery', () => {
     })
   })
 
-  it('keeps a token the search reads as no filter', () => {
+  it('replaces a broken filter of a kind it writes, and keeps the rest as typed', () => {
     expect(
       applied({ deleted: 'true' }, 'deleted:maybe beton template:x prop:')
-    ).toBe('deleted:maybe beton template:x prop: deleted:true')
+    ).toBe('beton template:x prop: deleted:true')
   })
 
   it('replaces every filter of a kind it writes, also a second one', () => {
@@ -227,5 +228,28 @@ describe('panelQuery', () => {
   ])('refuses %s', (_, values, errors) => {
     const result = panelQuery('', { ...EMPTY, ...values }, true)
     expect(result).toEqual({ errors })
+  })
+})
+
+describe('panelQuery and the units the node knows', () => {
+  const grammar = {
+    units: unitKeys(['t', 'kg', 'kgCO2e']),
+    decimalMark: '.' as const,
+  }
+  const run = (numberUnit: string) =>
+    panelQuery(
+      '',
+      { ...EMPTY, numberKey: 'mass', numberFrom: '2', numberUnit },
+      true,
+      undefined,
+      grammar
+    )
+
+  it('refuses a unit the node does not know, before any request', () => {
+    expect(run('°C')).toEqual({ errors: { numberUnit: 'numberUnit' } })
+  })
+
+  it('takes a known unit in any case, with spaces removed', () => {
+    expect(run('KG CO2e')).toEqual({ query: 'mass>=2KGCO2e' })
   })
 })

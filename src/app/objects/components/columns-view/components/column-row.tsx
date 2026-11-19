@@ -36,6 +36,7 @@ export function ColumnRow({
 }: ColumnRowProps) {
   const t = useTranslations()
   const isDeleted = item.deleted
+  const opensColumn = mayHaveChildren(item.childCount)
 
   return (
     <div
@@ -54,6 +55,7 @@ export function ColumnRow({
         <button
           type="button"
           aria-current={isSelected ? 'true' : undefined}
+          aria-expanded={opensColumn ? isSelected : undefined}
           data-testid="column-row"
           className="flex min-w-0 items-center gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -87,7 +89,7 @@ export function ColumnRow({
           isRestoring={isRestoring}
           {...actions}
         />
-        {mayHaveChildren(item.childCount) && (
+        {opensColumn && (
           <ChevronRight
             className="ml-1 h-4 w-4 text-muted-foreground"
             data-testid="opens-column"

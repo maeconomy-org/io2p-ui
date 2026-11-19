@@ -1,9 +1,16 @@
 'use client'
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from 'react'
 import dynamic from 'next/dynamic'
 import {
   MutationCache,
+  onlineManager,
   QueryCache,
   QueryClient,
   QueryClientProvider,
@@ -67,6 +74,43 @@ export function retryQuery(failureCount: number, error: unknown): boolean {
   return permanent ? false : failureCount < 1
 }
 
+export const QUERY_DEFAULTS = {
+  // Deliberately conservative: these apply to every hook that does NOT
+  // set its own staleTime. The previous `Infinity` default meant any
+  // such query was cached for the session and never refetched — safe
+  // for the hooks that opted in explicitly, silently stale for the
+  // ones that never thought about it.
+  staleTime: 30_000,
+  gcTime: 1000 * 60 * 10,
+  // `true` means "refetch on mount IF STALE", not "always refetch" — fresh data still
+  // comes from cache with no request. `false` broke invalidation across pages:
+  // `invalidateQueries` marks an INACTIVE query stale but cannot refetch it, so creating
+  // a template from /objects left /templates serving its cached list until a hard reload.
+  // Every create or delete performed from another page had the same hole.
+  refetchOnMount: true,
+  refetchOnWindowFocus: false,
+  // Offline, the default `online` mode PAUSES a query: no error, so a list showed "Loading" with
+  // no end. A failed query shows why and offers a retry; refetchOnReconnect loads it again.
+  networkMode: 'always',
+} as const
+
+/**
+ * On reconnect, loads again every shown query that failed with no answer from the node.
+ * refetchOnReconnect skips a query in the error state, so an offline list kept its error. A list
+ * the node refused (a 4xx) would only be refused again.
+ */
+export function refetchFailedOnReconnect(client: QueryClient): () => void {
+  return onlineManager.subscribe((online) => {
+    if (!online) return
+    void client.refetchQueries({
+      type: 'active',
+      // No status, or the SDK's 0 for a request that got no answer.
+      predicate: (query) =>
+        query.state.status === 'error' && !iomStatus(query.state.error),
+    })
+  })
+}
+
 export function QueryProvider({ children, config }: QueryProviderProps) {
   const queryClient = useMemo(
     () =>
@@ -111,27 +155,13 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
           },
         }),
         defaultOptions: {
-          queries: {
-            // Deliberately conservative: these apply to every hook that does NOT
-            // set its own staleTime. The previous `Infinity` default meant any
-            // such query was cached for the session and never refetched — safe
-            // for the hooks that opted in explicitly, silently stale for the
-            // ones that never thought about it.
-            staleTime: 30_000,
-            gcTime: 1000 * 60 * 10,
-            // `true` means "refetch on mount IF STALE", not "always refetch" — fresh data still
-            // comes from cache with no request. `false` broke invalidation across pages:
-            // `invalidateQueries` marks an INACTIVE query stale but cannot refetch it, so creating
-            // a template from /objects left /templates serving its cached list until a hard reload.
-            // Every create or delete performed from another page had the same hole.
-            refetchOnMount: true,
-            refetchOnWindowFocus: false,
-            retry: retryQuery,
-          },
+          queries: { ...QUERY_DEFAULTS, retry: retryQuery },
         },
       }),
     []
   )
+
+  useEffect(() => refetchFailedOnReconnect(queryClient), [queryClient])
 
   return (
     <ConfigContext.Provider value={config}>

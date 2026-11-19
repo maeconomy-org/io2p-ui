@@ -182,6 +182,7 @@
     "charCount": "{count, number} / {max, number}",
     "charCountOver": "{count, number} / {max, number}, te lang",
     "descriptionTooLong": "De beschrijving is te lang. Maak deze {max, number} tekens of korter.",
+    "nameTooLong": "De naam is te lang. Maak deze {max, number} tekens of korter.",
     "pickerMore": "De eerste {shown} van {total} worden getoond. Typ om de lijst te verkleinen.",
     "number": "{count, number}",
     "totalMoreThan": "{count, number}+",
@@ -217,6 +218,7 @@
     "listRefused": "Deze lijst kon niet laden:",
     "listFailed": "De lijst kon niet laden.",
     "listFailedTryAgain": "De lijst kon niet laden. Probeer het opnieuw.",
+    "listOffline": "Geen verbinding. De lijst laadt opnieuw zodra u weer online bent.",
     "listRetry": "Opnieuw proberen",
     "sessionExpired": "Uw sessie is verlopen. Meld u opnieuw aan om op te slaan.",
     "restore": "Herstellen",
@@ -1315,7 +1317,12 @@
       "date": "Schrijf een dag als JJJJ-MM-DD, vanaf 1970: created:2026-11-01.",
       "folder": "in: heeft het id van een map nodig. Kies de map in Filter toevoegen.",
       "once": "Gebruik één filter van deze soort per zoekopdracht.",
-      "inAndParent": "in: en parent: kunnen niet samen worden gebruikt."
+      "inAndParent": "in: en parent: kunnen niet samen worden gebruikt.",
+      "unit": "Deze eenheid is onbekend. Gebruik er een zoals t, kg, km of MJ: mass>=2t.",
+      "property": "prop: heeft een eigenschapsnaam nodig vóór de =: prop:kleur=rood.",
+      "deleted": "deleted: neemt true, false of all.",
+      "template": "template: neemt true of false.",
+      "parent": "parent: heeft het id van een object nodig."
     },
     "pill": {
       "remove": "Filter verwijderen:",
@@ -1899,7 +1906,7 @@
     "error": {
       "numberKey": "Geef de eigenschap een naam.",
       "numberValue": "Schrijf een getal, bijvoorbeeld 2,5.",
-      "numberUnit": "Schrijf een eenheid die met een letter begint, bijvoorbeeld t of m2.",
+      "numberUnit": "Gebruik een bekende eenheid, bijvoorbeeld t, kg, km of MJ.",
       "numberReversed": "Tot mag niet kleiner zijn dan van.",
       "quote": "Een naam of waarde mag geen \" bevatten.",
       "dateReversed": "Tot mag niet voor van liggen."

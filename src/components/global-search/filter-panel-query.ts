@@ -1,8 +1,11 @@
 import {
   isUnit,
+  knowsUnit,
   type NumberRange,
   numberToken,
+  PLAIN_GRAMMAR,
   readNumber,
+  type SearchGrammar,
 } from './search-grammar'
 import {
   parseSearchQuery,
@@ -124,7 +127,8 @@ export function panelQuery(
   query: string,
   values: PanelValues,
   ranges: boolean,
-  touched: ReadonlySet<PanelKind> = PANEL_KINDS
+  touched: ReadonlySet<PanelKind> = PANEL_KINDS,
+  grammar: SearchGrammar = PLAIN_GRAMMAR
 ): { query: string } | { errors: Partial<Record<PanelField, PanelError>> } {
   const errors: Partial<Record<PanelField, PanelError>> = {}
   const tokens: string[] = []
@@ -148,7 +152,9 @@ export function panelQuery(
       if (gte === null) errors.numberFrom = 'numberValue'
       if (lte === null) errors.numberTo = 'numberValue'
       if (!hasNumber) errors.numberFrom = 'numberValue'
-      if (unit && !isUnit(unit)) errors.numberUnit = 'numberUnit'
+      if (unit && (!isUnit(unit) || !knowsUnit(grammar, unit))) {
+        errors.numberUnit = 'numberUnit'
+      }
       if (typeof gte === 'number' && typeof lte === 'number' && gte > lte) {
         errors.numberTo = 'numberReversed'
       }
@@ -201,10 +207,10 @@ export function panelQuery(
   // A token the panel could not show (`mass:2`) stays as typed, with its note, unless the panel
   // writes one of its kind: Apply never deletes text the user did not see.
   const written = new Set(
-    parseSearchQuery(tokens.join(' ')).filters.map((f) => f.type)
+    parseSearchQuery(tokens.join(' '), grammar).filters.map((f) => f.type)
   )
   const replaced = (f: SearchFilter) =>
     edits(f.type as PanelKind) && (!f.problem || written.has(f.type))
-  const kept = queryWithout(query, replaced)
+  const kept = queryWithout(query, replaced, grammar)
   return { query: [kept, ...tokens].filter(Boolean).join(' ') }
 }

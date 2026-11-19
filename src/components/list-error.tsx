@@ -4,6 +4,7 @@ import { AlertCircle, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { Alert, Button } from '@/components/ui'
+import { useOnline } from '@/hooks/ui/use-online'
 import { listErrorMessage } from '@/lib/list-error'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +20,8 @@ function ListErrorText({
   tryAgain?: boolean
 }) {
   const t = useTranslations('common')
-  const message = listErrorMessage(error)
+  const message = listErrorMessage(error, useOnline())
+  if (message.key === 'common.listOffline') return <>{t('listOffline')}</>
   if (message.key === 'common.listFailed') {
     return <>{t(tryAgain ? 'listFailedTryAgain' : 'listFailed')}</>
   }

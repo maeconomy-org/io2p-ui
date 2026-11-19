@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Ruler,
   Bookmark,
+  TriangleAlert,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useHotkeys } from 'react-hotkeys-hook'
@@ -44,7 +45,8 @@ import {
   type ParsedSearch,
   type SearchListType,
 } from './search-parser'
-import { FilterPanel } from './filter-panel'
+import { FilterPanel, type FilterPanelHandle } from './filter-panel'
+import { useSearchGrammar } from './use-search-grammar'
 import {
   SavedSearchGroup,
   SaveSearchForm,
@@ -218,6 +220,8 @@ export function CommandCenter({
   const [showSuggestions] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const hintId = React.useId()
+  const panelRef = React.useRef<FilterPanelHandle>(null)
+  const problemsId = React.useId()
   const pillsId = React.useId()
   // `template:` sends the search to the templates or objects list, whatever page it started on.
   const kindOf = (parsed: ParsedSearch): SearchKind =>
@@ -228,9 +232,10 @@ export function CommandCenter({
   // list only renders while the dialog is open, so reading it here costs nothing and cannot be
   // stale after a search is saved.
   const recentSearches = open ? getRecentSearches() : EMPTY_RECENT
+  const grammar = useSearchGrammar()
   const parsedSearch: ParsedSearch = React.useMemo(
-    () => parseSearchQuery(inputValue),
-    [inputValue]
+    () => parseSearchQuery(inputValue, grammar),
+    [inputValue, grammar]
   )
 
   // A real side effect: moving focus is something only the DOM can do.
@@ -260,6 +265,7 @@ export function CommandCenter({
 
   // Active filters (non-text filters)
   const activeFilters = parsedSearch.filters.filter((f) => f.type !== 'text')
+  const problems = activeFilters.filter((f) => f.problem)
 
   const handleRemoveFilter = (filter: SearchFilter) => {
     const newQuery = removeFilter(parsedSearch.filters, filter)
@@ -298,22 +304,33 @@ export function CommandCenter({
   }
 
   const handleSearch = () => {
+    // Values typed in the open panel count as applied: Enter must not drop them unseen.
+    const pending = panelOpen
+      ? (panelRef.current?.pendingQuery() ?? null)
+      : null
+    if (pending === 'invalid') return
+    const query = pending ?? inputValue
+    if (pending !== null) {
+      setInputValue(query)
+      setPanel({ session, open: false })
+    }
+
     // An empty submit is the way back to the unfiltered list, not a no-op.
-    if (!inputValue.trim()) {
+    if (!query.trim()) {
       onClear?.()
       onOpenChange?.(false)
       return
     }
 
     // Parse inline to avoid stale state from useEffect
-    const freshParsed = parseSearchQuery(inputValue)
+    const freshParsed = parseSearchQuery(query, grammar)
     // The hint under the input says why; the list keeps its last search.
     const input = searchInput(searchTextOf(freshParsed), kindOf(freshParsed))
     if (input.status === 'refused' && input.problem === 'too-many-words') {
       return
     }
 
-    saveRecentSearch(inputValue)
+    saveRecentSearch(query)
     onSearch?.(freshParsed)
     onOpenChange?.(false)
   }
@@ -392,7 +409,9 @@ export function CommandCenter({
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
-              aria-describedby={hintId}
+              aria-describedby={
+                problems.length > 0 ? `${hintId} ${problemsId}` : hintId
+              }
             />
             <button
               ref={panelButtonRef}
@@ -463,8 +482,15 @@ export function CommandCenter({
                 <Badge
                   key={index}
                   variant="secondary"
-                  className="pl-2 pr-1 py-1 gap-1.5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 transition-colors text-xs"
+                  className={cn(
+                    'pl-2 pr-1 py-1 gap-1.5 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 transition-colors text-xs',
+                    filter.problem &&
+                      'bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/15'
+                  )}
                 >
+                  {filter.problem && (
+                    <TriangleAlert className="h-3 w-3" aria-hidden />
+                  )}
                   {filter.type === 'deleted' && <Trash2 className="h-3 w-3" />}
                   {filter.type === 'template' && <Layout className="h-3 w-3" />}
                   {filter.type === 'property' && <Tag className="h-3 w-3" />}
@@ -499,6 +525,22 @@ export function CommandCenter({
               ))}
             </div>
           )}
+          {problems.length > 0 && (
+            <ul
+              id={problemsId}
+              data-testid="command-center-problems"
+              className="px-4 pb-3 space-y-0.5 text-xs text-destructive"
+            >
+              {problems.map((filter, index) => (
+                <li key={index}>
+                  {t('search.notAppliedBecause', {
+                    filter: filter.raw,
+                    reason: t(`search.problem.${filter.problem}`),
+                  })}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Content Area */}
@@ -513,6 +555,7 @@ export function CommandCenter({
           )}
           {panelOpen && (
             <FilterPanel
+              ref={panelRef}
               id={panelId}
               query={inputValue}
               ranges={listType === 'objects'}
@@ -703,7 +746,8 @@ const PILL_KEYS: Partial<Record<SearchFilter['type'], string>> = {
 
 function PillLabel({ filter }: { filter: SearchFilter }) {
   const t = useTranslations()
-  if (filter.type === 'folder' && !filter.problem) {
+  if (filter.problem) return <>{filter.raw}</>
+  if (filter.type === 'folder') {
     return <FolderPill id={filter.value} />
   }
   if (filter.type === 'deleted') {

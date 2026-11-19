@@ -37,7 +37,7 @@ describe('the search a list receives', () => {
 
     act(() =>
       result.current.search.executeSearchFromParsed(
-        parseSearchQuery('prop:material value:steel beton')
+        parseSearchQuery('beton prop:material value:steel')
       )
     )
 
@@ -50,7 +50,7 @@ describe('the search a list receives', () => {
   // The search box reopens with this string, and Enter parses it again.
   it('keeps the tokens as typed, so a second Enter parses to the same filters', () => {
     const { result } = renderHook(useBoth, { wrapper })
-    const typed = 'prop:material value:steel beton'
+    const typed = 'beton prop:material value:steel'
 
     act(() =>
       result.current.search.executeSearchFromParsed(parseSearchQuery(typed))

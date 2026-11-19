@@ -43,9 +43,13 @@ export type SavedSearchResult =
 const jsonBytes = (value: unknown) =>
   new TextEncoder().encode(JSON.stringify(value)).length
 
-/** The tokenizer reads `a  b` as `a b`, so a duplicate is the same text with runs of spaces folded. */
-export const sameQuery = (a: string, b: string) =>
-  a.trim().replace(/\s+/g, ' ') === b.trim().replace(/\s+/g, ' ')
+/**
+ * The tokenizer reads `a  b` as `a b`, and the node matches without case, so a duplicate is the same
+ * text with runs of spaces folded and case ignored.
+ */
+const foldQuery = (query: string) =>
+  query.trim().replace(/\s+/g, ' ').toLocaleLowerCase()
+export const sameQuery = (a: string, b: string) => foldQuery(a) === foldQuery(b)
 
 /** Code points, not UTF-16 units: a cut never splits a surrogate pair. */
 export const nameLength = (name: string) => Array.from(name).length

@@ -186,7 +186,7 @@ export default function SharesPage() {
                 <h2 className="text-2xl font-semibold">{t('shares.title')}</h2>
                 <PageHelp concept="share" tour="share-objects" />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <TabsList {...anchor('sharesTabs')}>
                   <TabsTrigger value="shares" data-testid="shares-tab-shares">
                     {t('shares.tabShares')}

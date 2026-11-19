@@ -7,9 +7,13 @@ import { iomDetail, iomStatus } from './io2p-errors'
  * else (no answer, 5xx) is worth a retry.
  */
 export function listErrorMessage(
-  error: unknown
+  error: unknown,
+  online = true
 ):
-  { key: 'common.listRefused'; detail: string } | { key: 'common.listFailed' } {
+  | { key: 'common.listRefused'; detail: string }
+  | { key: 'common.listFailed' }
+  | { key: 'common.listOffline' } {
+  if (!online) return { key: 'common.listOffline' }
   const status = iomStatus(error)
   const detail = iomDetail(error)
   if ((status === 400 || status === 422) && detail) {

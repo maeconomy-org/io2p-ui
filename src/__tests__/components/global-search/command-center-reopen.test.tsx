@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 
+vi.mock('@/hooks/api/leaves', () => ({ useUnits: () => ({ data: undefined }) }))
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
   useTranslations: () => (key: string) => key,
 }))
 
@@ -48,5 +50,33 @@ describe('CommandCenter reopened', () => {
     )
 
     expect(input().value).toBe('mixing')
+  })
+
+  it.each([
+    'deleted:yes',
+    'template:maybe',
+    'parent:abc',
+    'created:2026-02-30',
+  ])(
+    'shows %s as typed on its pill: a filter that cannot apply has no label',
+    (query) => {
+      render(<CommandCenter open onOpenChange={vi.fn()} initialQuery={query} />)
+      expect(
+        screen.getByRole('button', { name: `search.pill.remove ${query}` })
+      ).toBeInTheDocument()
+    }
+  )
+
+  it('says under the pills why a filter cannot apply, and the input points at it', () => {
+    render(<CommandCenter open onOpenChange={vi.fn()} initialQuery="mass:2" />)
+    const note = screen.getByTestId('command-center-problems')
+    expect(note).toHaveTextContent('search.notAppliedBecause')
+    const input = screen.getByPlaceholderText('commandCenter.placeholder')
+    expect(input.getAttribute('aria-describedby')).toContain(note.id)
+  })
+
+  it('shows no problem note for a filter that applies', () => {
+    render(<CommandCenter open onOpenChange={vi.fn()} initialQuery="mass>=2" />)
+    expect(screen.queryByTestId('command-center-problems')).toBeNull()
   })
 })
