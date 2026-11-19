@@ -1315,7 +1315,12 @@
       "date": "Write a day as YYYY-MM-DD, from 1970: created:2026-11-01.",
       "folder": "in: needs the id of a folder. Pick it in Add filter.",
       "once": "Use one filter of this kind in a search.",
-      "inAndParent": "in: and parent: cannot be used together."
+      "inAndParent": "in: and parent: cannot be used together.",
+      "unit": "This unit is not known. Use one like t, kg, km or MJ: mass>=2t.",
+      "property": "prop: needs a property name before the =: prop:colour=red.",
+      "deleted": "deleted: takes true, false or all.",
+      "template": "template: takes true or false.",
+      "parent": "parent: needs the id of an object."
     },
     "pill": {
       "remove": "Remove filter:",
@@ -1899,7 +1904,7 @@
     "error": {
       "numberKey": "Name the property.",
       "numberValue": "Write a number, for example 2.5.",
-      "numberUnit": "Write a unit that starts with a letter, for example t or m2.",
+      "numberUnit": "Use a unit the system knows, for example t, kg, km or MJ.",
       "numberReversed": "To must not be less than from.",
       "quote": "A name or value cannot contain \".",
       "dateReversed": "To must not be before from."

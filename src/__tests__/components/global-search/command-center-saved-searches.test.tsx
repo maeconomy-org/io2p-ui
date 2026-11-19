@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
   useTranslations:
     (ns?: string) => (key: string, values?: Record<string, string>) =>
       `${ns ? `${ns}.` : ''}${key}${values ? ` ${Object.values(values).join(' ')}` : ''}`,

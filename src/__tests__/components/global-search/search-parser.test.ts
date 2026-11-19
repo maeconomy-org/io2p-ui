@@ -3,13 +3,19 @@ import {
   filtersToDisplayString,
   listSearchQuery,
   parseSearchQuery,
+  queryWithout,
   searchApplies,
   searchKey,
   templateSearch,
   toListParams,
   type SearchListType,
 } from '@/components/global-search/search-parser'
-import { numberToken } from '@/components/global-search/search-grammar'
+import {
+  numberToken,
+  unitKeys,
+} from '@/components/global-search/search-grammar'
+
+const PARENT = '0192f1d2-7c3a-7b1e-9a4f-123456789abc'
 
 const ALL_TYPES: SearchListType[] = [
   'objects',
@@ -177,7 +183,7 @@ describe('search-parser', () => {
       ['createdBy:abc-123', { createdBy: 'abc-123' }],
       ['deleted:true', { deleted: 'only' }],
       ['deleted:false', { deleted: 'exclude' }],
-      ['parent:p-1', { parent: 'p-1' }],
+      [`parent:${PARENT}`, { parent: PARENT }],
       ['name:Clay Tile', { q: 'Clay Tile' }],
       ['name:"Clay Tile"', { q: 'Clay Tile' }],
       ['template:true', {}],
@@ -250,7 +256,7 @@ describe('search-parser', () => {
     it('leaves out a property filter on a list that does not take it', () => {
       for (const type of ['formulas', 'constants', 'shares'] as const) {
         const result = toListParams(
-          parseSearchQuery('prop:material=steel value:red beton'),
+          parseSearchQuery('beton prop:material=steel value:red'),
           type
         )
         expect(result.params).toEqual({ q: 'beton' })
@@ -263,7 +269,7 @@ describe('search-parser', () => {
 
     it('leaves out a parent filter everywhere but objects', () => {
       for (const type of ALL_TYPES.filter((t) => t !== 'objects')) {
-        const result = toListParams(parseSearchQuery('parent:p-1'), type)
+        const result = toListParams(parseSearchQuery(`parent:${PARENT}`), type)
         expect(result.params).toEqual({})
         expect(result.unsupported).toEqual([
           expect.objectContaining({ type: 'parent' }),
@@ -280,8 +286,7 @@ describe('search-parser', () => {
       ['constants', ['q', 'createdBy', 'deleted']],
       ['shares', ['q', 'createdBy', 'deleted']],
     ] as const)('%s gets only the params it declares', (type, declared) => {
-      const every =
-        'prop:k=v value:x createdBy:u-1 deleted:true parent:p-1 name:N text'
+      const every = `prop:k=v value:x createdBy:u-1 deleted:true parent:${PARENT} name:N text`
       expect(Object.keys(paramsFor(every, type)).sort()).toEqual(
         [...declared].sort()
       )
@@ -335,7 +340,9 @@ describe('search-parser', () => {
 
     it('is false for a filter the list does not take', () => {
       expect(
-        searchApplies(toListParams(parseSearchQuery('parent:p-1'), 'formulas'))
+        searchApplies(
+          toListParams(parseSearchQuery(`parent:${PARENT}`), 'formulas')
+        )
       ).toBe(false)
     })
   })
@@ -428,7 +435,7 @@ describe('search-parser', () => {
         'created:2026-11-01 created:2026-11-02',
         [['created:2026-11-02', 'once']],
       ],
-      [`in:${FOLDER} parent:p-1`, [[`in:${FOLDER}`, 'inAndParent']]],
+      [`in:${FOLDER} parent:${PARENT}`, [[`in:${FOLDER}`, 'inAndParent']]],
     ])('%j is not applied, with its reason', (query, expected) => {
       expect(problems(query)).toEqual(expected)
     })
@@ -494,5 +501,124 @@ describe('search-parser', () => {
       expect(shown).toBe('mass≥2t beton')
       expect(paramsFor(shown)).toEqual(paramsFor('mass>2t beton'))
     })
+  })
+})
+
+describe('search-parser: what the node would refuse, or read another way', () => {
+  const grammar = (decimalMark: '.' | ',' = '.') => ({
+    units: unitKeys(['t', 'kg', 'g', 'km', 'm2', 'MJ', 'tonne']),
+    decimalMark,
+  })
+  const problems = (query: string, decimalMark: '.' | ',' = '.') =>
+    parseSearchQuery(query, grammar(decimalMark)).filters.map(
+      (f) => f.problem ?? null
+    )
+
+  it.each(['temp>20°C', 'mass>2tons', 'mass:2..5xyz'])(
+    'refuses %s: the node does not know the unit',
+    (query) => {
+      expect(problems(query)).toEqual(['unit'])
+    }
+  )
+
+  it.each(['mass>2t', 'mass>=2T', 'mass:2..5kg', 'area<=3m2', 'mass>1tonne.'])(
+    'takes %s: the node knows the unit, in any case',
+    (query) => {
+      expect(problems(query)).toEqual([null])
+    }
+  )
+
+  it('takes any unit before the unit list has arrived: the node decides', () => {
+    expect(
+      parseSearchQuery('temp>20°C', { units: null, decimalMark: '.' })
+        .filters[0].problem
+    ).toBeUndefined()
+  })
+
+  it.each([
+    ['mass>2 t', 'mass>2 t'],
+    ['mass:2..5 kg', 'mass:2..5 kg'],
+  ])('says "no spaces" for %s, and does not drop the unit', (query, raw) => {
+    const [filter, ...rest] = parseSearchQuery(query, grammar()).filters
+    expect(filter).toMatchObject({ problem: 'spaces', raw })
+    expect(rest).toEqual([])
+  })
+
+  it('keeps a word after a number filter as text when it is no unit', () => {
+    const result = parseSearchQuery('mass>2 steel', grammar())
+    expect(result.filters.map((f) => f.type)).toEqual(['number', 'text'])
+    expect(result.searchTerm).toBe('steel')
+  })
+
+  it.each(['pipe 2" steel mass>2t', '"steel mass>2t', 'steel" mass>2t'])(
+    'reads the filters after an unmatched quote in %s',
+    (query) => {
+      const result = parseSearchQuery(query, grammar())
+      expect(result.filters.filter((f) => f.type === 'number')).toEqual([
+        expect.objectContaining({ value: 'mass>=2t' }),
+      ])
+    }
+  )
+
+  it('keeps a matched quote as one phrase', () => {
+    const result = parseSearchQuery('"stainless steel" mass>2t', grammar())
+    expect(result.searchTerm).toBe('stainless steel')
+    expect(result.filters.map((f) => f.type)).toEqual(['text', 'number'])
+  })
+
+  it('shows a number pill with the decimal mark of the page', () => {
+    const [filter] = parseSearchQuery('gewicht>1,5t', grammar(',')).filters
+    expect(filter.label).toBe('gewicht≥1,5t')
+    expect(filter.value).toBe('gewicht>=1.5t')
+  })
+
+  it('keeps the comma in the query when another pill is removed', () => {
+    expect(
+      queryWithout('gewicht>1,5t steel', (f) => f.type === 'text', grammar(','))
+    ).toBe('gewicht≥1,5t')
+  })
+
+  it.each([
+    ['mass>0,0000001 steel', 'mass≥0.0000001'],
+    ['mass>1000000000000000000000 steel', 'mass≥1000000000000000000000'],
+  ])(
+    'keeps a very small or large number when another pill is removed: %s',
+    (query, kept) => {
+      const rewritten = queryWithout(query, (f) => f.type === 'text', grammar())
+      expect(rewritten).toBe(kept)
+      expect(problems(rewritten)).toEqual([null])
+    }
+  )
+
+  it.each([
+    ['value:stainless steel', 'stainless steel'],
+    ['value:"stainless steel"', 'stainless steel'],
+  ])('reads all the words of %s as the value', (query, value) => {
+    const result = parseSearchQuery(query, grammar())
+    expect(result.filters).toEqual([
+      expect.objectContaining({ type: 'propertyValue', propertyValue: value }),
+    ])
+    expect(result.searchTerm).toBe('')
+  })
+
+  it('keeps prop:key=value one word: more words are text, quotes hold spaces', () => {
+    const result = parseSearchQuery('prop:material=steel battery', grammar())
+    expect(result.filters.map((f) => f.type)).toEqual(['property', 'text'])
+    expect(result.searchTerm).toBe('battery')
+  })
+
+  it.each([
+    ['prop:=steel', 'property'],
+    ['deleted:yes', 'deleted'],
+    ['template:maybe', 'template'],
+    ['parent:abc', 'parent'],
+  ])('says why %s cannot be applied', (query, problem) => {
+    expect(problems(query)).toEqual([problem])
+  })
+
+  it('takes parent: with an object id', () => {
+    expect(problems('parent:0192f1d2-7c3a-7b1e-9a4f-123456789abc')).toEqual([
+      null,
+    ])
   })
 })

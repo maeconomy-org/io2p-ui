@@ -34,6 +34,7 @@ import {
   panelValuesOf,
 } from './filter-panel-query'
 import { parseSearchQuery } from './search-parser'
+import { useSearchGrammar } from './use-search-grammar'
 
 interface FilterPanelProps {
   id: string
@@ -50,8 +51,9 @@ interface FilterPanelProps {
  */
 export function FilterPanel({ id, query, ranges, onApply }: FilterPanelProps) {
   const t = useTranslations('filterPanel')
+  const grammar = useSearchGrammar()
   const [values, setValues] = React.useState(() =>
-    panelValuesOf(parseSearchQuery(query))
+    panelValuesOf(parseSearchQuery(query, grammar))
   )
   const [touched, setTouched] = React.useState<ReadonlySet<PanelKind>>(
     () => new Set()
@@ -72,7 +74,7 @@ export function FilterPanel({ id, query, ranges, onApply }: FilterPanelProps) {
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
-    const result = panelQuery(query, values, ranges, touched)
+    const result = panelQuery(query, values, ranges, touched, grammar)
     if ('errors' in result) {
       setErrors(result.errors)
       const first = Object.keys(result.errors)[0]

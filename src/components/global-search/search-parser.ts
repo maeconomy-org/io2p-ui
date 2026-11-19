@@ -32,12 +32,16 @@ import {
   type DateRange,
   isSpacedOperator,
   isUuid,
+  knowsUnit,
   type NumberRange,
   numberToken,
   parseDateValue,
   parseNumberToken,
+  PLAIN_GRAMMAR,
+  type SearchGrammar,
   type SearchProblem,
   startsWithPrefix,
+  unitKey,
 } from './search-grammar'
 
 export interface SearchFilter {
@@ -154,24 +158,61 @@ function splitProperty(text: string): { key: string; value?: string } {
     : { key: text }
 }
 
-function numberFilter(token: string, raw = token): SearchFilter | null {
+function numberFilter(
+  token: string,
+  grammar: SearchGrammar,
+  raw = token
+): SearchFilter | null {
   const parsed = parseNumberToken(token)
   if (parsed === null) return null
-  return parsed.kind === 'number'
-    ? {
-        type: 'number',
-        label: numberToken(parsed.range, true),
-        value: numberToken(parsed.range),
-        raw,
-        number: parsed.range,
-      }
-    : { type: 'number', label: raw, value: raw, raw, problem: parsed.problem }
+  if (parsed.kind !== 'number') {
+    return {
+      type: 'number',
+      label: raw,
+      value: raw,
+      raw,
+      problem: parsed.problem,
+    }
+  }
+  const { unit } = parsed.range
+  if (unit !== undefined && !knowsUnit(grammar, unit)) {
+    return { type: 'number', label: raw, value: raw, raw, problem: 'unit' }
+  }
+  return {
+    type: 'number',
+    label: numberToken(parsed.range, true, grammar.decimalMark),
+    value: numberToken(parsed.range),
+    raw,
+    number: parsed.range,
+  }
+}
+
+// The words after `name:` or `value:` up to the next filter, unless the value is quoted.
+function collectWords(
+  tokens: string[],
+  i: number,
+  first: string
+): { words: string[]; raw: string; next: number } {
+  const words = first ? [first.replace(/^"|"$/g, '')] : []
+  let raw = tokens[i]
+  let next = i + 1
+  if (!first.startsWith('"')) {
+    while (next < tokens.length && !isFilterToken(tokens[next])) {
+      words.push(tokens[next].replace(/^"|"$/g, ''))
+      raw += ' ' + tokens[next]
+      next++
+    }
+  }
+  return { words, raw, next }
 }
 
 /**
  * Parse a search query into structured parts
  */
-export function parseSearchQuery(query: string): ParsedSearch {
+export function parseSearchQuery(
+  query: string,
+  grammar: SearchGrammar = PLAIN_GRAMMAR
+): ParsedSearch {
   const filters: SearchFilter[] = []
   const textParts: string[] = []
 
@@ -186,14 +227,15 @@ export function parseSearchQuery(query: string): ParsedSearch {
     // Check for deleted: filter (only true/false)
     if (lowerToken.startsWith('deleted:')) {
       const value = token.slice(8).toLowerCase()
-      if (value === 'true' || value === 'false' || value === 'all') {
-        filters.push({
-          type: 'deleted',
-          label: `Deleted: ${value}`,
-          value,
-          raw: token,
-        })
-      }
+      filters.push({
+        type: 'deleted',
+        label: `Deleted: ${value}`,
+        value,
+        raw: token,
+        ...(!['true', 'false', 'all'].includes(value) && {
+          problem: 'deleted' as const,
+        }),
+      })
       i++
       continue
     }
@@ -201,14 +243,15 @@ export function parseSearchQuery(query: string): ParsedSearch {
     // Check for template: filter (only true/false)
     if (lowerToken.startsWith('template:')) {
       const value = token.slice(9).toLowerCase()
-      if (value === 'true' || value === 'false') {
-        filters.push({
-          type: 'template',
-          label: `Template: ${value}`,
-          value,
-          raw: token,
-        })
-      }
+      filters.push({
+        type: 'template',
+        label: `Template: ${value}`,
+        value,
+        raw: token,
+        ...(!['true', 'false'].includes(value) && {
+          problem: 'template' as const,
+        }),
+      })
       i++
       continue
     }
@@ -217,7 +260,15 @@ export function parseSearchQuery(query: string): ParsedSearch {
     if (lowerToken.startsWith('prop:')) {
       const { key: label, value } = splitProperty(token.slice(5))
 
-      if (label && value !== undefined) {
+      if (token.slice(5).startsWith('=')) {
+        filters.push({
+          type: 'property',
+          label: token,
+          value: token,
+          raw: token,
+          problem: 'property',
+        })
+      } else if (label && value !== undefined) {
         filters.push({
           type: 'property',
           label: `${label}: ${value}`,
@@ -241,17 +292,22 @@ export function parseSearchQuery(query: string): ParsedSearch {
 
     // Check for value: filter (search by property value only)
     if (lowerToken.startsWith('value:')) {
-      const value = unquote(token.slice(6).trim())
+      const { words, raw, next } = collectWords(
+        tokens,
+        i,
+        token.slice(6).trim()
+      )
+      const value = words.join(' ').trim()
       if (value) {
         filters.push({
           type: 'propertyValue',
           label: `Value: ${value}`,
           value: value,
-          raw: token,
+          raw,
           propertyValue: value,
         })
       }
-      i++
+      i = next
       continue
     }
 
@@ -312,6 +368,7 @@ export function parseSearchQuery(query: string): ParsedSearch {
         label: `Parent: ${value.slice(0, 8)}...`,
         value,
         raw: token,
+        ...(!isUuid(value) && { problem: 'parent' as const }),
       })
       i++
       continue
@@ -349,8 +406,27 @@ export function parseSearchQuery(query: string): ParsedSearch {
       continue
     }
 
-    const number = numberFilter(token)
+    const number = numberFilter(token, grammar)
     if (number) {
+      // `mass>2 t` would apply without its unit: a 2 kg row would match.
+      const next = tokens[i + 1]
+      if (
+        number.number &&
+        number.number.unit === undefined &&
+        next !== undefined &&
+        grammar.units?.has(unitKey(next))
+      ) {
+        const raw = `${token} ${next}`
+        filters.push({
+          type: 'number',
+          label: raw,
+          value: raw,
+          raw,
+          problem: 'spaces',
+        })
+        i += 2
+        continue
+      }
       filters.push(number)
       i++
       continue
@@ -643,11 +719,14 @@ function tokenizeQuery(query: string): string[] {
   const tokens: string[] = []
   let current = ''
   let inQuotes = false
+  // An odd quote (an inch mark, a typo) would otherwise swallow every filter after it as text.
+  const quotes = [...query.matchAll(/"/g)].map((m) => m.index)
+  const unmatched = quotes.length % 2 === 1 ? quotes.at(-1) : -1
 
   for (let i = 0; i < query.length; i++) {
     const char = query[i]
 
-    if (char === '"') {
+    if (char === '"' && i !== unmatched) {
       inQuotes = !inQuotes
       current += char
     } else if (char === ' ' && !inQuotes) {
@@ -688,12 +767,13 @@ export function getFilterSuggestions(input: string): FilterSuggestion[] {
  */
 export function queryWithout(
   query: string,
-  drop: (filter: SearchFilter) => boolean
+  drop: (filter: SearchFilter) => boolean,
+  grammar: SearchGrammar = PLAIN_GRAMMAR
 ): string {
   const tokens = tokenizeQuery(query)
   const kept: string[] = []
   let i = 0
-  for (const filter of parseSearchQuery(query).filters) {
+  for (const filter of parseSearchQuery(query, grammar).filters) {
     const length = tokenizeQuery(filter.raw).length
     const at = (n: number) => tokens.slice(n, n + length).join(' ')
     let start = i

@@ -128,6 +128,7 @@ describe('helpers', () => {
   it('folds spaces and trims for a duplicate', () => {
     expect(sameQuery('a  b ', ' a b')).toBe(true)
     expect(sameQuery('a b', 'a  c')).toBe(false)
+    expect(sameQuery('Steel mass>2T', 'steel MASS>2t')).toBe(true)
   })
 
   it('cuts a name by code points', () => {

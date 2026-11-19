@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
   useTranslations:
     (ns?: string) => (key: string, values?: Record<string, string>) =>
       `${ns ? `${ns}.` : ''}${key}${values ? ` ${Object.values(values).join(' ')}` : ''}`,

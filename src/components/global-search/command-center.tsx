@@ -45,6 +45,7 @@ import {
   type SearchListType,
 } from './search-parser'
 import { FilterPanel } from './filter-panel'
+import { useSearchGrammar } from './use-search-grammar'
 import {
   SavedSearchGroup,
   SaveSearchForm,
@@ -228,9 +229,10 @@ export function CommandCenter({
   // list only renders while the dialog is open, so reading it here costs nothing and cannot be
   // stale after a search is saved.
   const recentSearches = open ? getRecentSearches() : EMPTY_RECENT
+  const grammar = useSearchGrammar()
   const parsedSearch: ParsedSearch = React.useMemo(
-    () => parseSearchQuery(inputValue),
-    [inputValue]
+    () => parseSearchQuery(inputValue, grammar),
+    [inputValue, grammar]
   )
 
   // A real side effect: moving focus is something only the DOM can do.
@@ -306,7 +308,7 @@ export function CommandCenter({
     }
 
     // Parse inline to avoid stale state from useEffect
-    const freshParsed = parseSearchQuery(inputValue)
+    const freshParsed = parseSearchQuery(inputValue, grammar)
     // The hint under the input says why; the list keeps its last search.
     const input = searchInput(searchTextOf(freshParsed), kindOf(freshParsed))
     if (input.status === 'refused' && input.problem === 'too-many-words') {

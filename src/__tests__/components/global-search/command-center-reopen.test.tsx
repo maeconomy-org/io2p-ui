@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 
+vi.mock('@/hooks/api/leaves', () => ({ useUnits: () => ({ data: undefined }) }))
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
   useTranslations: () => (key: string) => key,
 }))
 

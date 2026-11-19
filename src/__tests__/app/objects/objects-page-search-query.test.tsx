@@ -36,7 +36,9 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/objects',
 }))
 
+vi.mock('@/hooks/api/leaves', () => ({ useUnits: () => ({ data: undefined }) }))
 vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
   useTranslations: () => (key: string) => key,
   useFormatter: () => ({ dateTime: () => '' }),
 }))
@@ -134,9 +136,11 @@ describe('objects page — the list query during a search', () => {
   })
 
   it('sends a parent: filter as the parent param', () => {
-    parsed = parseSearchQuery('parent:p-1')
+    parsed = parseSearchQuery('parent:0192f1d2-7c3a-7b1e-9a4f-123456789abc')
     render(<ObjectsPage />)
-    expect(queryOf()).toMatchObject({ parent: 'p-1' })
+    expect(queryOf()).toMatchObject({
+      parent: '0192f1d2-7c3a-7b1e-9a4f-123456789abc',
+    })
   })
 
   it('stays the top-level list when no filter of the search applies', () => {

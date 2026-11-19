@@ -5,6 +5,11 @@ import type { ReactNode } from 'react'
 const push = vi.fn()
 let pathname = '/objects'
 
+vi.mock('@/components/global-search/use-search-grammar', async () => {
+  const { PLAIN_GRAMMAR } =
+    await import('@/components/global-search/search-grammar')
+  return { useSearchGrammar: () => PLAIN_GRAMMAR }
+})
 vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
   useRouter: () => ({ push }),
@@ -37,7 +42,7 @@ describe('the search a list receives', () => {
 
     act(() =>
       result.current.search.executeSearchFromParsed(
-        parseSearchQuery('prop:material value:steel beton')
+        parseSearchQuery('beton prop:material value:steel')
       )
     )
 
@@ -50,7 +55,7 @@ describe('the search a list receives', () => {
   // The search box reopens with this string, and Enter parses it again.
   it('keeps the tokens as typed, so a second Enter parses to the same filters', () => {
     const { result } = renderHook(useBoth, { wrapper })
-    const typed = 'prop:material value:steel beton'
+    const typed = 'beton prop:material value:steel'
 
     act(() =>
       result.current.search.executeSearchFromParsed(parseSearchQuery(typed))
