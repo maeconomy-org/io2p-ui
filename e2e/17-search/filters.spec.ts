@@ -5,6 +5,7 @@ import { gotoList } from '../utils/sheet'
 import {
   createObject,
   deleteObjects,
+  nodeCall,
   OBJECT_LIST,
   openSearch,
   property,
@@ -20,6 +21,7 @@ import {
 const STAMP = String(Date.now())
 const created: string[] = []
 let folderId = ''
+let myId = ''
 
 test.describe.configure({ mode: 'serial' })
 
@@ -39,6 +41,10 @@ test.beforeAll(async ({ browser }) => {
       properties: [property('mass', '1 t'), property('colour', 'blue')],
     })
   )
+  // Deleted on purpose and left deleted: the one row `deleted:true` must find.
+  const gone = await createObject(page, { name: `QA-e2e-${STAMP} gone` })
+  await deleteObjects(page, [gone])
+  myId = (await nodeCall<{ id: string }>(page, 'GET', '/me')).id
   await page.close()
 })
 
@@ -147,6 +153,42 @@ test.describe('17 - search / filters, typed and from the panel', () => {
     expect(b.params).toEqual(a.params)
     expect(b.rows).toEqual(a.rows)
     expect(a.rows).toEqual(['heavy'])
+  })
+
+  test('SF8: a created date range', async ({ page }) => {
+    const a = await typed(page, `${STAMP} created:2020-01-01..2099-12-31`)
+    const b = await fromPanel(page, async () => {
+      await field(page, 'createdFrom').fill('2020-01-01')
+      await field(page, 'createdTo').fill('2099-12-31')
+    })
+    expect(b).toEqual(a)
+    expect(a.rows).toEqual(['folder', 'heavy', 'light'])
+  })
+
+  test('SF9: deleted rows only', async ({ page }) => {
+    const a = await typed(page, `${STAMP} deleted:true`)
+    const b = await fromPanel(page, async () => {
+      await page
+        .getByTestId('filter-panel')
+        .locator('select')
+        .selectOption('true')
+    })
+    expect(b).toEqual(a)
+    expect(a.rows).toEqual(['gone'])
+  })
+
+  test('SF10: created by a person', async ({ page }) => {
+    const a = await typed(page, `${STAMP} createdBy:${myId}`)
+    const b = await fromPanel(page, async () => {
+      await page
+        .getByTestId('filter-panel')
+        .locator('[aria-labelledby$="-createdBy-label"]')
+        .click()
+      await page.locator(`[cmdk-item][data-value="${myId}"]`).click()
+    })
+    expect(b.params).toEqual(a.params)
+    expect(b.rows).toEqual(a.rows)
+    expect(a.rows).toEqual(['folder', 'heavy', 'light'])
   })
 
   test('SF7: a number filter on /processes is left out, with a note', async ({

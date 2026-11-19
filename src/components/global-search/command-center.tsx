@@ -579,6 +579,7 @@ export function CommandCenter({
                 return (
                   <button
                     key={suggestion.type}
+                    data-testid={`search-suggestion-${suggestion.type}`}
                     onClick={() => handleSuggestionClick(suggestion)}
                     className={cn(
                       'w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors',
@@ -639,6 +640,7 @@ export function CommandCenter({
               {recentSearches.map((query) => (
                 <button
                   key={query}
+                  data-testid="recent-search"
                   onClick={() => handleRecentClick(query)}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left hover:bg-muted/50 transition-colors"
                 >
@@ -657,6 +659,7 @@ export function CommandCenter({
                 {t('commandCenter.quickActions')}
               </div>
               <button
+                data-testid="quick-view-deleted"
                 onClick={() => setInputValue('deleted:true ')}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left hover:bg-muted/50 transition-colors"
               >

@@ -1,6 +1,7 @@
 import { expect, test } from '../fixtures/app'
 import { secondCredentials } from '../setup/credentials'
 import { restoreSession, signedOutContext, signInAs } from '../utils/session'
+import { tour } from '../utils/selectors'
 import { gotoList, openCreateSheet } from '../utils/sheet'
 import {
   createObject,
@@ -42,6 +43,10 @@ test.describe('17 - search / find', () => {
     const row = page.getByTestId('data-table-row').filter({ hasText: NAME })
     await expect(row).toHaveCount(1)
     await expect(row.locator('mark')).toHaveCount(2)
+
+    await runSearch(page, `ideeen ${STAMP}`)
+    await expect(row).toHaveCount(1)
+    await expect(row.locator('mark')).toHaveCount(2)
   })
 
   test('SF2: the parents picker finds it by the same two words', async ({
@@ -54,6 +59,20 @@ test.describe('17 - search / find', () => {
     await expect(
       page.getByRole('option').filter({ hasText: NAME })
     ).toBeVisible()
+  })
+
+  test('SF2b: the share resource picker finds it by the same two words', async ({
+    page,
+  }) => {
+    await gotoList(page, '/shares')
+    await tour(page, 'sharesCreate').click()
+    await page.getByTestId('resource-picker').click()
+    await page.getByTestId('resource-search').fill(QUERY)
+    await expect(
+      page
+        .locator('[data-testid^="resource-option-"]')
+        .filter({ hasText: NAME })
+    ).toHaveCount(1)
   })
 
   test('SF3: another account does not find it', async ({ browser }) => {
