@@ -400,6 +400,7 @@ export function CommandCenter({
           <div className="flex items-center px-4 py-3 pr-12">
             <Search className="h-5 w-5 text-muted-foreground mr-3 shrink-0" />
             <input
+              data-testid="command-center-input"
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
