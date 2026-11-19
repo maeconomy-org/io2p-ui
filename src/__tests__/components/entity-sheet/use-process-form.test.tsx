@@ -4,6 +4,7 @@ import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ValidationError, type ProcessDTO } from 'io2p-client'
 
+import { MAX_NAME_CHARS } from '@/constants'
 import { useProcessForm } from '@/components/entity-sheet/hooks/use-process-form'
 
 const { processUpdate } = vi.hoisted(() => ({ processUpdate: vi.fn() }))
@@ -166,6 +167,37 @@ describe('useProcessForm', () => {
     expect(processUpdate).toHaveBeenCalledTimes(1)
     expect(result.current.form.formState.errors.root?.save?.message).toBe(
       'objects.saveError.invalid:{"detail":"a flow needs an object"}'
+    )
+  })
+
+  it('refuses a name over the limit without sending it', async () => {
+    processUpdate.mockClear()
+    const { result } = renderHook(
+      () => {
+        const r = useProcessForm(
+          process({
+            inputs: [{ id: 'f-in', ref: 'obj-in', properties: [] }],
+            outputs: [{ id: 'f-out', ref: 'obj-out', properties: [] }],
+          } as unknown as Partial<ProcessDTO>)
+        )
+        void r.form.formState.errors
+        return r
+      },
+      { wrapper }
+    )
+
+    act(() =>
+      result.current.form.setValue('name', 'x'.repeat(MAX_NAME_CHARS + 1), {
+        shouldDirty: true,
+      })
+    )
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(processUpdate).not.toHaveBeenCalled()
+    expect(result.current.form.formState.errors.name?.message).toBe(
+      'common.nameTooLong'
     )
   })
 })

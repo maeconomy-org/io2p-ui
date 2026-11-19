@@ -19,6 +19,7 @@ import {
   buildUpdateTemplateBody,
 } from '@/lib/entity'
 import { refuseLongDescription } from './refuse-long-description'
+import { refuseLongName } from './refuse-long-name'
 
 /**
  * The starting draft per kind. A process template opens with one slot on each side; an object
@@ -100,6 +101,7 @@ export function useTemplateForm(
       return
     }
 
+    if (refuseLongName(form, draft, !template, t)) return
     if (refuseLongDescription(form, draft, !template, t)) return
 
     // `properties()` at `template.ts:235` filters out anything with a blank key, so without this

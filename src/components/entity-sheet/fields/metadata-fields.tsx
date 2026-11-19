@@ -6,7 +6,7 @@ import { useWatch, type UseFormReturn } from 'react-hook-form'
 
 import { CharCounter } from '@/components/char-counter'
 import { Button, Input, Label, Textarea } from '@/components/ui'
-import { MAX_DESCRIPTION_CHARS } from '@/constants'
+import { MAX_DESCRIPTION_CHARS, MAX_NAME_CHARS } from '@/constants'
 import type { EntityDraft } from '@/lib/entity'
 import { charCount, cn } from '@/lib/utils'
 
@@ -116,7 +116,7 @@ export function MetadataFields({
             role="alert"
             className="text-sm font-medium text-destructive"
           >
-            {t(nameError.message || NAME_REQUIRED)}
+            {t(nameError.message || NAME_REQUIRED, { max: MAX_NAME_CHARS })}
           </p>
         )}
       </div>

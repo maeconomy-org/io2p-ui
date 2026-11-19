@@ -182,6 +182,7 @@
     "charCount": "{count, number} / {max, number}",
     "charCountOver": "{count, number} / {max, number}, te lang",
     "descriptionTooLong": "De beschrijving is te lang. Maak deze {max, number} tekens of korter.",
+    "nameTooLong": "De naam is te lang. Maak deze {max, number} tekens of korter.",
     "pickerMore": "De eerste {shown} van {total} worden getoond. Typ om de lijst te verkleinen.",
     "number": "{count, number}",
     "totalMoreThan": "{count, number}+",

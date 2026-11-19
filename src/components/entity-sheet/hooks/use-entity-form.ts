@@ -25,6 +25,7 @@ import {
   buildUpdateObjectBody,
 } from '@/lib/entity'
 import { refuseLongDescription } from './refuse-long-description'
+import { refuseLongName } from './refuse-long-name'
 
 const EMPTY_DRAFT: EntityDraft = {
   name: '',
@@ -155,6 +156,7 @@ export function useEntityForm(
       return
     }
 
+    if (refuseLongName(form, draft, !entity, t)) return
     if (refuseLongDescription(form, draft, !entity, t)) return
 
     // A property with content but no key is dropped by the builders, so saving would silently lose

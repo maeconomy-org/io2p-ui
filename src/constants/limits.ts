@@ -18,3 +18,6 @@ export const MAX_FILES_PER_DROP = 100
 
 /** The node refuses a longer description (object, process, template, property) with 400. */
 export const MAX_DESCRIPTION_CHARS = 2000
+
+/** The node refuses a longer name (object, process, template) with 400. */
+export const MAX_NAME_CHARS = 1024

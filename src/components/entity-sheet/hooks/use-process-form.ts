@@ -26,6 +26,7 @@ import {
   resolveProcessUploadTargets,
 } from '@/lib/entity'
 import { refuseLongDescription } from './refuse-long-description'
+import { refuseLongName } from './refuse-long-name'
 
 export interface UseProcessFormOptions {
   onSaved?: (id: string) => void
@@ -95,6 +96,7 @@ export function useProcessForm(
       return
     }
 
+    if (refuseLongName(form, draft, !process, t)) return
     if (refuseLongDescription(form, draft, !process, t)) return
 
     const nameless = findEmptyPropertyKey(draft)
