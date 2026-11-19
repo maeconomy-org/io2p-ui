@@ -158,7 +158,7 @@ export default function FormulasPage() {
               <h2 className="text-2xl font-semibold">{t('formulas.title')}</h2>
               <PageHelp concept="formula" tour="write-formula" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <FilterMenu
                 sections={[
                   scopeSection(t, scope, setScope, defaultScope),

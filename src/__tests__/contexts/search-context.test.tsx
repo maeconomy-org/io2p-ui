@@ -5,11 +5,6 @@ import type { ReactNode } from 'react'
 const push = vi.fn()
 let pathname = '/objects'
 
-vi.mock('@/components/global-search/use-search-grammar', async () => {
-  const { PLAIN_GRAMMAR } =
-    await import('@/components/global-search/search-grammar')
-  return { useSearchGrammar: () => PLAIN_GRAMMAR }
-})
 vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
   useRouter: () => ({ push }),

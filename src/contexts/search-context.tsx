@@ -14,7 +14,6 @@ import {
   templateSearch,
   toListParams,
 } from '@/components/global-search/search-parser'
-import { useSearchGrammar } from '@/components/global-search/use-search-grammar'
 import { MIN_SEARCH_CHARS } from '@/constants'
 
 interface SearchContextType {
@@ -104,8 +103,6 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     return target
   }
 
-  const grammar = useSearchGrammar()
-
   const applySearch = (parsed: ParsedSearch, displayQuery: string) => {
     setSearchQuery(displayQuery)
     setParsedSearch(parsed)
@@ -118,7 +115,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
       clearSearch()
       return
     }
-    applySearch(parseSearchQuery(query, grammar), query)
+    applySearch(parseSearchQuery(query), query)
   }
 
   const executeSearchFromParsed = (parsed: ParsedSearch) => {
