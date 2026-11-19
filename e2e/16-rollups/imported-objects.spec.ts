@@ -135,13 +135,7 @@ test.describe('16 - rollups / imported objects', () => {
     })
   })
 
-  /**
-   * Fails on some runs with a total of 12 kg instead of 20: a node race, not this spec. The
-   * compute reads subtree membership from the ancestors index, which lands after the write; a
-   * sibling's compute in that gap is then taken as "done" for the second floor. Card: "core:
-   * rollup total misses a sibling written in the same batch". Make this a plain test once fixed.
-   */
-  test.fixme('RU29: the rule totals the imported value onto the parent', async ({
+  test('RU29: the rule totals the imported value onto the parent', async ({
     page,
   }) => {
     // ~70s to settle by contract (a 30s cooldown, then a reaper scanning every 30s). The parent
