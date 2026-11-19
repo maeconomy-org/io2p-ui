@@ -4,7 +4,7 @@ import { nextUntil, onPage } from '../utils/capped-list'
 import { CAPPED_PARENT } from '../utils/seed-objects'
 import { restoreSession, signedOutContext, signInAs } from '../utils/session'
 import { gotoList } from '../utils/sheet'
-import { OBJECT_LIST, runSearch } from './search'
+import { OBJECT_LIST, runSearch } from '../utils/search'
 
 /**
  * A real capped list, end to end: the second account's "Capped parent" holds 1,060 children (the

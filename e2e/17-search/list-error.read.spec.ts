@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/app'
-import { OBJECT_LIST, openSearch, qOf } from './search'
+import { OBJECT_LIST, openSearch, qOf } from '../utils/search'
 
 /**
  * A list that cannot load says why, and a refused search never reads as "no results". Every

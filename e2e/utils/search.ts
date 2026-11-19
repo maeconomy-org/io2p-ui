@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-import { tour } from '../utils/selectors'
+import { tour } from './selectors'
 
 export const searchInput = (page: Page) =>
   page.getByTestId('command-center-input')

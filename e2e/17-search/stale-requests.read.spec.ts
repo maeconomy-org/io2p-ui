@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/app'
-import { OBJECT_LIST, qOf, runSearch } from './search'
+import { OBJECT_LIST, qOf, runSearch } from '../utils/search'
 
 /**
  * An answer to an older search never replaces the newer one. The first answer is held on a

@@ -8,7 +8,7 @@ import {
   qOf,
   searchInput,
   sweepSavedSearches,
-} from './search'
+} from '../utils/search'
 
 /**
  * Saved searches on the main account. Saved searches are ACCOUNT state, so this suite's entries

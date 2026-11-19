@@ -7,7 +7,7 @@ import {
   qOf,
   searchInput,
   sweepSavedSearches,
-} from './search'
+} from '../utils/search'
 
 /**
  * Search on the Dutch page: a comma decimal in a filter, its pill and note, and a saved search. The

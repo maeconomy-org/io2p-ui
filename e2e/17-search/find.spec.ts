@@ -8,7 +8,7 @@ import {
   OBJECT_LIST,
   qOf,
   runSearch,
-} from './search'
+} from '../utils/search'
 
 /**
  * A search finds an object by words without their accents, from the list and from a picker, and

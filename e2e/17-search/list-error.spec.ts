@@ -1,6 +1,6 @@
 import { expect, test } from '../fixtures/app'
 import { selectView } from '../utils/views'
-import { OBJECT_LIST } from './search'
+import { OBJECT_LIST } from '../utils/search'
 
 /**
  * The column view's error and retry. Not `.read.`: the view is an account preference, so this

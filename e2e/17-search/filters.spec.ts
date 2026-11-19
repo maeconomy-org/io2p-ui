@@ -10,7 +10,7 @@ import {
   property,
   qOf,
   searchInput,
-} from './search'
+} from '../utils/search'
 
 /**
  * Each filter, typed and from the Add filter panel, gives the same pills, the same request and the

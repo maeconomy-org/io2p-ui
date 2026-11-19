@@ -1,6 +1,12 @@
 import { expect, test } from '../fixtures/app'
 import type { ApiRecorder } from '../fixtures/app'
-import { OBJECT_LIST, openSearch, qOf, runSearch, searchInput } from './search'
+import {
+  OBJECT_LIST,
+  openSearch,
+  qOf,
+  runSearch,
+  searchInput,
+} from '../utils/search'
 
 /**
  * A filter the node would refuse, or read another way, gets a note and sends no request. "Sent
