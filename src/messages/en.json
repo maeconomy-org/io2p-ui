@@ -1279,11 +1279,11 @@
       },
       "property": {
         "label": "Property",
-        "description": "Search by property (label or label=value)"
+        "description": "Has the property, or the property with this whole value: prop:colour=red. Quote a value with spaces."
       },
       "value": {
         "label": "Value",
-        "description": "Search by property value (any property)"
+        "description": "The whole value, under any property: value:2500 kg. For a range, use mass>=2t."
       },
       "name": {
         "label": "Name",
@@ -1291,7 +1291,7 @@
       },
       "createdBy": {
         "label": "Created By",
-        "description": "Filter by creator UUID"
+        "description": "Made by one person. Pick the person in Add filter."
       },
       "parent": {
         "label": "Parent",
@@ -1883,7 +1883,7 @@
     "numberHint": "From and to include the value. With a unit, a value that has no unit is not found. Use a point or a comma for decimals, not for thousands.",
     "property": "Property",
     "propertyKey": "Name",
-    "propertyValue": "Value (optional)",
+    "propertyValue": "Whole value (optional)",
     "created": "Created",
     "updated": "Updated",
     "yourTimeZone": "(your time zone)",
