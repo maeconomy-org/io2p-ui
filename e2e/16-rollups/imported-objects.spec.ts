@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { openWizard, statValue } from '../utils/import'
-import { openObjectSheet, sheet } from '../utils/sheet'
+import { gotoList, openObjectSheet, sheet } from '../utils/sheet'
 import { rowActions, tour } from '../utils/selectors'
 
 /**
@@ -161,8 +161,7 @@ test.describe('16 - rollups / imported objects', () => {
     testInfo.setTimeout(300_000)
 
     for (let attempt = 0; attempt < 8; attempt++) {
-      await page.goto('/objects')
-      await expect(page.getByTestId('data-table')).toBeVisible()
+      await gotoList(page, '/objects')
 
       const parent = rowFor(page, PARENT)
       if ((await parent.count()) > 0) {
