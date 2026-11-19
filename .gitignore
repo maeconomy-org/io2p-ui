@@ -1,3 +1,6 @@
+### JetBrains ###
+.idea
+
 # Created by https://www.toptal.com/developers/gitignore/api/node,windows,macos,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=node,windows,macos,linux
 
@@ -248,6 +251,10 @@ next-env.d.ts
 
 e2e/.auth/
 e2e/fixtures/uploads/
+e2e/fixtures/sheets/huge.csv
+e2e/fixtures/sheets/many.csv
+e2e/fixtures/sheets/oversize.csv
+e2e/fixtures/sheets/*.xlsx
 playwright-report/
 test-results/
 docs/
@@ -262,10 +269,11 @@ dump.rdb
 deploy/.env
 deploy/.previous
 deploy/certs/
-deploy/redis-data/
 deploy/logs/
 deploy/certbot/
 
 .claude/**.local.json
 
 .sentry-projects
+
+internal-docs/

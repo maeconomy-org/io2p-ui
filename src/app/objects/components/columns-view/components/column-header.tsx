@@ -1,0 +1,98 @@
+'use client'
+
+import { useId } from 'react'
+import { useTranslations } from 'next-intl'
+import { Search, X } from 'lucide-react'
+import { SearchMinHint } from '@/components/search-min-hint'
+import { Button, Input, ColumnPagination } from '@/components/ui'
+import { TOTAL_CAP } from '@/lib/list-total'
+
+interface ColumnHeaderProps {
+  title: string
+  searchTerm: string
+  onSearchChange: (term: string) => void
+  itemCount: number
+  /** The node capped the item count at 1001 ("more than 1,000"). */
+  capped?: boolean
+  pagination?: {
+    currentPage: number
+    totalPages: number
+    totalItems: number
+    isLastPage: boolean
+    onPageChange: (page: number) => void
+  }
+  isLoading?: boolean
+}
+
+export function ColumnHeader({
+  title,
+  searchTerm,
+  onSearchChange,
+  itemCount,
+  capped = false,
+  pagination,
+  isLoading = false,
+}: ColumnHeaderProps) {
+  const t = useTranslations()
+  const hintId = useId()
+  const clearSearch = () => {
+    onSearchChange('')
+  }
+
+  return (
+    <div className="border-b bg-muted/20">
+      <div className="p-2">
+        {/* Title and Count */}
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-medium">{title}</h3>
+          <div
+            className="text-xs text-muted-foreground"
+            data-testid="column-item-count"
+          >
+            {capped
+              ? t('objects.itemsCountMoreThan', { count: TOTAL_CAP })
+              : t('objects.itemsCount', { count: itemCount })}
+          </div>
+        </div>
+
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          <Input
+            placeholder={t('objects.columnSearch')}
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            aria-describedby={hintId}
+            className="h-7 pl-7 pr-7 text-xs"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearSearch}
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        <SearchMinHint query={searchTerm} kind="words" id={hintId} />
+      </div>
+
+      {/* Compact Pagination */}
+      {pagination && (
+        <div className="pb-2">
+          <ColumnPagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            capped={capped}
+            isLastPage={pagination.isLastPage}
+            onPageChange={pagination.onPageChange}
+            loading={isLoading}
+          />
+        </div>
+      )}
+    </div>
+  )
+}

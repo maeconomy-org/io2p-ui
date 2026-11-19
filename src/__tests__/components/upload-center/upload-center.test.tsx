@@ -1,4 +1,3 @@
-import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
@@ -24,7 +23,7 @@ const mockUpload = {
 }
 let uploadReturnValue: typeof mockUpload | null = mockUpload
 
-vi.mock('@/contexts', () => ({
+vi.mock('@/contexts/upload-queue-context', () => ({
   useOptionalUploadQueue: () => uploadReturnValue,
 }))
 
@@ -81,7 +80,7 @@ describe('UploadCenter', () => {
     expect(screen.queryByTestId('upload-center-idle')).not.toBeInTheDocument()
     // Count label rendered
     expect(
-      screen.getByText(/uploadCenterInProgress.*done.*0.*total.*2/)
+      screen.getByText(/centerInProgress.*done.*0.*total.*2/)
     ).toBeInTheDocument()
     // Clear button hidden until idle
     expect(screen.queryByTestId('upload-center-clear')).not.toBeInTheDocument()
@@ -101,7 +100,7 @@ describe('UploadCenter', () => {
     })
     render(<UploadCenter />)
 
-    expect(screen.getByText(/uploadCenterFailed.*count.*1/)).toBeInTheDocument()
+    expect(screen.getByText(/centerFailed.*count.*1/)).toBeInTheDocument()
     // Per component: idle sentinel is suppressed when failures exist
     expect(screen.queryByTestId('upload-center-idle')).not.toBeInTheDocument()
   })

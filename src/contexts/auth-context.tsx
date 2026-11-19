@@ -1,19 +1,28 @@
 'use client'
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  ReactNode,
-} from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useQueryClient } from '@tanstack/react-query'
-import type { AuthResponse as BaseAuthResponse, Client } from 'iom-sdk'
-import { PUBLIC_PAGES_SET } from '@/constants'
-import { clearLegacyDrafts } from '@/components/object-sheets/hooks/use-object-drafts'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+
+import {
+  PENDING_APPROVAL_PATH,
+  PUBLIC_PAGES_SET,
+  clearPreferenceMirrors,
+  getCachedConfig,
+  type SocialProviderId,
+} from '@/constants'
+import { clearLegacyDrafts } from '@/hooks/drafts/use-object-drafts'
+import { isPendingApproval } from '@/lib/auth/approval'
+import { authClient, clearCoreToken, useSession } from '@/lib/auth/client'
+import {
+  type CertificateErrorKey,
+  type SignInError,
+  type SignInErrorKey,
+  signInErrorKey,
+} from '@/lib/auth/sign-in-error'
+import { useIomClient } from '@/lib/io2p'
+import { logger } from '@/lib/observability/logger'
+import { queryKeys } from '@/lib/query-keys'
 
 export interface CertificateInfo {
   certificateSha256?: string
@@ -25,176 +34,302 @@ export interface CertificateInfo {
   validTo?: string
 }
 
-export type AuthResponse = BaseAuthResponse & {
+// Personal account details, surfaced from the auth session. The OPERATIONAL id
+// (core userUUID) is exposed separately as useAuth().id — not part of this bag.
+// Field mapping is intentionally minimal and will be refined as consumers
+// migrate; certificateInfo comes from the issuer's /mtls/credential (deferred).
+export interface AuthResponse {
+  username?: string
+  email?: string
+  emailVerified?: boolean
+  identifier?: string
+  identifierType?: string
+  credentials?: string
+  credentialValue?: string
+  createdAt?: string
   certificateInfo?: CertificateInfo
 }
 
-interface AuthContextType {
-  isAuthenticated: boolean
-  authLoading: boolean
-  isRefreshing: boolean
-  userUUID: string | undefined
-  userInfo: AuthResponse | null
-  logout: () => void
-  handleAuth: () => Promise<{ success: boolean; error?: string }>
-  handleEmailLogin: (
+// Minimal shape of the better-auth session user we rely on.
+type SignInResult =
+  | { success: true }
+  | {
+      success: false
+      errorKey: SignInErrorKey | CertificateErrorKey
+    }
+
+function signInFailure(error: SignInError | undefined): SignInResult {
+  const errorKey = signInErrorKey(error)
+  // The fallback hides causes the user cannot fix (a wrong TRUSTED_ORIGINS
+  // answers 403 INVALID_ORIGIN), so support needs them in the log.
+  if (errorKey === 'auth.errors.authFailed') {
+    logger.warn('sign_in_failed', { status: error?.status, code: error?.code })
+  }
+  return { success: false, errorKey }
+}
+
+interface SessionUser {
+  id: string
+  email?: string | null
+  emailVerified?: boolean | null
+  name?: string | null
+  createdAt?: string | Date | null
+  origin?: string | null
+  status?: string | null
+}
+
+function mapAccount(user: SessionUser): AuthResponse {
+  const email = user.email ?? undefined
+  return {
+    // The auth session's `name` — shown as-is; no email fallback so the
+    // Username row only appears when the account actually has a name.
+    username: user.name ?? undefined,
+    email,
+    emailVerified: user.emailVerified ?? undefined,
+    identifier: email,
+    // TODO: derive from the last-used login method (cert vs email) once the
+    // issuer's lastLoginMethod plugin is wired. Until then, treat as UP.
+    identifierType: 'UserAuthUP',
+    createdAt: user.createdAt
+      ? new Date(user.createdAt).toISOString()
+      : undefined,
+  }
+}
+
+/**
+ * Set for the gap between "the user clicked log out" and "the session is gone".
+ *
+ * Module scope rather than a ref, because `useAuth` is a plain hook every
+ * consumer calls independently — a ref inside it would be one flag per caller,
+ * and the one that matters is whichever instance owns the `/me` query.
+ * `AuthEffects` clears it once the session has actually resolved to nobody.
+ */
+let signingOut = false
+
+/**
+ * The single user hook. Combines the two identity sources:
+ *  - the better-auth session (personal account: name/email/cert) → `account`
+ *  - io2p-core `/v1/me` (operational identity) → `id` (the core userUUID used
+ *    everywhere: ownership, shares, scoping). Fetched inline here so there's
+ *    ONE user hook; the /me query is cached app-wide under `users.current`.
+ * New code should prefer better-auth's `useSession`/`authClient` directly.
+ */
+export function useAuth() {
+  const pathname = usePathname()
+  const queryClient = useQueryClient()
+  const iom = useIomClient()
+
+  const { data: session, isPending } = useSession()
+  const sessionUser = (session?.user as SessionUser | undefined) ?? null
+  const isAuthenticated = !!sessionUser
+  const pendingApproval = isPendingApproval(sessionUser)
+
+  // Strictly ADDITIVE to the old `enabled: isAuthenticated`: it never removes a
+  // fetch, it only starts one earlier. `users.me()` needs a core token, which
+  // needs the session *cookie* — not the resolved session *object*. On a
+  // protected route the proxy already guaranteed that cookie exists, so firing
+  // while the session is still pending runs /me in PARALLEL with it instead of
+  // after it, removing a serial round trip from every protected page load.
+  const onProtectedRoute = !PUBLIC_PAGES_SET.has(pathname)
+  const { data: coreUser, isPending: mePending } = useQuery({
+    queryKey: queryKeys.users.current,
+    // `signal` is not optional here: `useAuth()` mounts an observer in every
+    // component that calls it, and a navigation unmounts them mid-flight. Without
+    // it the fetch — and the core-token mint underneath it — outlive the page and
+    // reject as an unhandled "Failed to fetch", which is what `cancelQueries()` in
+    // `logout` was already trying to prevent.
+    queryFn: ({ signal }) => iom.users.me({ signal }),
+    // `!signingOut` is what stops the logout 401. `queryClient.clear()` removes
+    // the cached user, and React Query immediately REFETCHES for any observer
+    // still mounted and enabled — so `/me` fired against a session the issuer
+    // was already tearing down, and the failed token mint surfaced as a console
+    // error on every logout.
+    // A pending account gets 403 from the token mint, so it never asks core.
+    enabled:
+      !signingOut &&
+      !pendingApproval &&
+      pathname !== PENDING_APPROVAL_PATH &&
+      (isAuthenticated || (isPending && onProtectedRoute)),
+    staleTime: Infinity,
+  })
+
+  const logout = async () => {
+    // Clear cached server state synchronously so the login screen can't flash
+    // the previous user's data, then sign out at the issuer.
+    signingOut = true
+    // `clear()` drops the DATA but leaves observers subscribed, so every mounted
+    // query on the page refetches against the session being torn down. Cancelling
+    // first, and leaving via a full document load rather than `router.push`, means
+    // there is nothing mounted to refetch — the `signingOut` guard only ever
+    // covered `/me`, and each new protected query would need its own.
+    await queryClient.cancelQueries()
+    clearCoreToken()
+    queryClient.clear()
+    clearPreferenceMirrors()
+    try {
+      await authClient.signOut()
+    } catch (err) {
+      logger.warn('logout_signout_failed', { err })
+    }
+    window.location.assign('/')
+  }
+
+  const handleEmailLogin = async (
     email: string,
     password: string
-  ) => Promise<{ success: boolean; error?: string }>
+  ): Promise<SignInResult> => {
+    try {
+      const { error } = await authClient.signIn.email({ email, password })
+      return error ? signInFailure(error) : { success: true }
+    } catch (err) {
+      // A fetch that never got an answer throws instead of returning an error.
+      logger.warn('email_login_unreachable', { err })
+      return signInFailure(undefined)
+    }
+  }
+
+  // Resolves ONLY on failure. The success path is a full-page redirect to the
+  // provider, so a caller must not clear its loading state in a `finally`.
+  const handleSocialLogin = async (
+    provider: SocialProviderId
+  ): Promise<SignInResult> => {
+    try {
+      // ABSOLUTE, both of them. better-auth stores these verbatim in the OAuth
+      // state and emits them verbatim as the callback's Location header — it
+      // never prefixes an origin. A relative path therefore resolves against
+      // whoever issues the redirect, which is the ISSUER (:8081), not the app:
+      // '/objects' became http://localhost:8081/objects and 404'd on Fastify.
+      const returnTo = window.location.origin
+      const { error } = await authClient.signIn.social({
+        provider,
+        callbackURL: `${returnTo}/objects`,
+        errorCallbackURL: `${returnTo}/`,
+      })
+      return error ? signInFailure(error) : { success: true }
+    } catch (err) {
+      logger.error('social_login_failed', { err, provider })
+      return signInFailure(undefined)
+    }
+  }
+
+  const handleAuth = async (): Promise<SignInResult> => {
+    // No fallback to authBaseUrl or the app origin: neither asks the browser
+    // for a client certificate, so the call could only ever be refused.
+    const base = getCachedConfig()?.mtlsBaseUrl
+    if (!base) {
+      return { success: false, errorKey: 'auth.errors.authFailed' }
+    }
+    try {
+      const res = await fetch(`${base}/api/auth/mtls/login`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        return { success: false, errorKey: 'auth.errors.certificateFailed' }
+      }
+      // A plain fetch, so better-auth does not know a session now exists.
+      // getSession() asks the server but leaves useSession's cache empty, and
+      // the route guard in AuthEffects then sends the user back to '/'. The
+      // signal refetches the cache, and keeps it pending until the session is in.
+      authClient.$store.notify('$sessionSignal')
+      return { success: true }
+    } catch (err) {
+      // DNS, CORS, or a browser that refused to send the certificate.
+      logger.warn('certificate_login_failed', { err })
+      return { success: false, errorKey: 'auth.errors.authFailed' }
+    }
+  }
+
+  // Deliberately NOT memoized. Every consumer destructures a primitive
+  // (`userId`, `userInfo`, `authLoading`) or calls a handler from an event —
+  // none put the bag or the handlers in a dependency array. Memoizing would buy
+  // nothing and cost a hand-maintained dep list, which is a stale-closure risk
+  // while `react-hooks/exhaustive-deps` is off. The React Compiler does this
+  // correctly and automatically once it's enabled.
+  return {
+    isAuthenticated,
+    // Auth is "ready" only once BOTH the session and the core identity resolve,
+    // so consumers never see an authenticated user without an `id`.
+    authLoading:
+      isPending || (isAuthenticated && !pendingApproval && mePending),
+    pendingApproval,
+    isRefreshing: false,
+    // The core user id (io2p-core /me.id) — the operational id used everywhere.
+    userId: coreUser?.id,
+    // Server-stored UI preferences, already on this response — no second
+    // request. `usePreference` reads them from here and writes through
+    // `users.updatePreferences`.
+    preferences: coreUser?.preferences,
+    // Personal account details from the auth session.
+    userInfo: sessionUser ? mapAccount(sessionUser) : null,
+    logout,
+    handleAuth,
+    handleEmailLogin,
+    handleSocialLogin,
+  }
 }
 
-const AuthContext = createContext<AuthContextType>({
-  isAuthenticated: false,
-  authLoading: true,
-  isRefreshing: false,
-  userUUID: undefined,
-  userInfo: null,
-  logout: () => {},
-  handleAuth: async () => ({ success: false }),
-  handleEmailLogin: async () => ({ success: false }),
-})
-
-interface AuthProviderProps {
-  children: ReactNode
-  client: Client | null
-}
-
-export function AuthProvider({ children, client }: AuthProviderProps) {
+/**
+ * Mounts the app-level auth side effects exactly once (renders nothing):
+ *  - wipes the React Query cache on any identity transition (logout / switch),
+ *    keyed on the instant session id (not the lagging core id)
+ *  - client-side route protection for non-public pages
+ *  - clears legacy local drafts after the first resolved session
+ * Kept out of useAuth so these fire once, not per-consumer.
+ */
+export function AuthEffects() {
   const router = useRouter()
   const pathname = usePathname()
   const queryClient = useQueryClient()
 
-  const [authLoading, setAuthLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [userInfo, setUserInfo] = useState<AuthResponse | null>(null)
-
-  // Tracks the last observed authenticated user so we can detect identity
-  // switches (e.g. user A logs out, user B auto-logs in with a browser-cached
-  // certificate) and wipe the shared React Query cache before user B renders.
-  const prevUserUUIDRef = useRef<string | undefined>(undefined)
-
-  const handleAuthStateChange = useCallback(
-    (state: {
-      isAuthenticated: boolean
-      isRefreshing: boolean
-      user: AuthResponse | null
-    }) => {
-      const nextUUID = state.user?.userUUID
-      const prevUUID = prevUserUUIDRef.current
-
-      // Wipe the query cache on any identity transition: logout (had user,
-      // now null) and user switch (had user A, now user B). Login from a
-      // cold start (prev undefined → defined) is a no-op since there is
-      // nothing cached yet.
-      if (prevUUID && prevUUID !== nextUUID) {
-        queryClient.clear()
-      }
-      prevUserUUIDRef.current = nextUUID
-
-      setIsAuthenticated(state.isAuthenticated)
-      setIsRefreshing(state.isRefreshing)
-      setUserInfo(state.user)
-      if (!state.isRefreshing) {
-        setAuthLoading(false)
-      }
-
-      if (!state.isAuthenticated && !PUBLIC_PAGES_SET.has(pathname)) {
-        router.replace('/')
-      }
-    },
-    [pathname, router, queryClient]
+  const { data: session, isPending } = useSession()
+  const sessionUserId = (session?.user as SessionUser | undefined)?.id
+  const isAuthenticated = !!sessionUserId
+  const pendingApproval = isPendingApproval(
+    session?.user as SessionUser | undefined
   )
+
+  const prevUserIdRef = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    const prev = prevUserIdRef.current
+    if (prev && prev !== sessionUserId) {
+      clearCoreToken()
+      queryClient.clear()
+      // Also covers a USER SWITCH and a session EXPIRY, neither of which goes
+      // through `logout()`. Both are the shared-machine case: without this the
+      // next person's first paint is the previous person's theme and views.
+      clearPreferenceMirrors()
+    }
+    prevUserIdRef.current = sessionUserId
+    // The teardown is over the moment the session resolves to nobody. Leaving
+    // the flag set would keep `/me` disabled for the NEXT sign-in on this tab.
+    if (!isPending && !sessionUserId) signingOut = false
+  }, [sessionUserId, isPending, queryClient])
+
+  const clearedDraftsRef = useRef(false)
+  useEffect(() => {
+    if (!isPending && !clearedDraftsRef.current) {
+      clearedDraftsRef.current = true
+      clearLegacyDrafts()
+    }
+  }, [isPending])
 
   useEffect(() => {
-    if (!client) return
-
-    let unsubscribe: (() => void) | undefined
-
-    const init = async () => {
-      unsubscribe = client.onAuthStateChange(handleAuthStateChange)
-
-      await client.ready
-      clearLegacyDrafts()
-      setAuthLoading(false)
+    if (isPending) return
+    if (!isAuthenticated && !PUBLIC_PAGES_SET.has(pathname)) {
+      router.replace('/')
+      return
     }
-
-    init()
-
-    return () => {
-      unsubscribe?.()
+    if (pendingApproval && pathname !== PENDING_APPROVAL_PATH) {
+      router.replace(PENDING_APPROVAL_PATH)
+    } else if (
+      isAuthenticated &&
+      !pendingApproval &&
+      pathname === PENDING_APPROVAL_PATH
+    ) {
+      router.replace('/objects')
     }
-  }, [client, handleAuthStateChange])
+  }, [isPending, isAuthenticated, pendingApproval, pathname, router])
 
-  const logout = () => {
-    if (!client) return
-    // Clear cached server state immediately so the login screen (and any
-    // briefly rendered protected page) can't show data from the previous
-    // user. `handleAuthStateChange` also clears on identity transitions,
-    // but doing it here guarantees the wipe happens synchronously even if
-    // the SDK's state-change notification is delayed.
-    queryClient.clear()
-    router.push('/')
-    client.logout()
-  }
-
-  const handleAuth = async () => {
-    if (!client) {
-      return { success: false, error: 'SDK client not initialized' }
-    }
-
-    const result = await client.login()
-
-    if (result.success) {
-      return { success: true }
-    }
-
-    return {
-      success: false,
-      error:
-        'Authentication failed. Please ensure you have a valid certificate selected.',
-    }
-  }
-
-  const handleEmailLogin = async (email: string, password: string) => {
-    if (!client) {
-      return { success: false, error: 'SDK client not initialized' }
-    }
-
-    const result = await client.loginWithEmailPassword({ email, password })
-
-    if (result.success) {
-      return { success: true }
-    }
-
-    return {
-      success: false,
-      error: 'Authentication failed. Please check your credentials.',
-    }
-  }
-
-  return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        authLoading,
-        isRefreshing,
-        userUUID: userInfo?.userUUID,
-        userInfo,
-        logout,
-        handleAuth,
-        handleEmailLogin,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
+  return null
 }

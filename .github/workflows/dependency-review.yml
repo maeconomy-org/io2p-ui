@@ -1,0 +1,22 @@
+# Fails a PR that introduces a dependency with a known vulnerability, or one whose
+# licence is incompatible with shipping under MIT. Only runs on pull_request — it
+# diffs the base against the head, so there is nothing to compare on a push.
+name: dependency-review
+
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+          # Copyleft licences would force the whole project's terms to change.
+          deny-licenses: AGPL-3.0, AGPL-3.0-only, AGPL-3.0-or-later, GPL-3.0, GPL-3.0-only, GPL-3.0-or-later

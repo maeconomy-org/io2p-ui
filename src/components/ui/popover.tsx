@@ -5,6 +5,14 @@ import * as PopoverPrimitive from '@radix-ui/react-popover'
 
 import { cn } from '@/lib/utils'
 
+/**
+ * Pass `modal` when the popover opens inside a Sheet or Dialog.
+ *
+ * The dialog locks scrolling with react-remove-scroll, which lets wheel and touch scroll through
+ * only inside the dialog's own DOM. The content here is portalled to `body`, outside it, so a long
+ * list still answers the arrow keys but ignores the wheel. A modal popover sets up its own lock
+ * that allows its content to scroll.
+ */
 const Popover = PopoverPrimitive.Root
 
 const PopoverTrigger = PopoverPrimitive.Trigger

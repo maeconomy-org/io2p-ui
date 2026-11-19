@@ -16,6 +16,10 @@ interface ColumnPaginationProps {
   totalPages: number
   totalItems: number
   onPageChange: (page: number) => void
+  /** The total is the node's capped 1001: `totalPages` is a lower limit and "last" is unknown. */
+  capped?: boolean
+  /** Defaults to `currentPage >= totalPages`; a capped list ends at a short page instead. */
+  isLastPage?: boolean
   className?: string
   loading?: boolean
 }
@@ -25,22 +29,31 @@ export function ColumnPagination({
   totalPages,
   totalItems,
   onPageChange,
+  capped = false,
+  isLastPage = currentPage >= totalPages,
   className = '',
   loading = false,
 }: ColumnPaginationProps) {
   const t = useTranslations()
   const [pageInput, setPageInput] = useState(() => currentPage.toString())
+  // The box follows the page when something else moves it (a new search goes to page 1). Set
+  // during render rather than in an effect, so no frame shows the old number.
+  const [shownPage, setShownPage] = useState(currentPage)
+  if (shownPage !== currentPage) {
+    setShownPage(currentPage)
+    setPageInput(currentPage.toString())
+  }
 
-  const handleInputChange = (value: string) => {
-    setPageInput(value)
+  const goTo = (page: number) => {
+    onPageChange(page)
+    setPageInput(page.toString())
   }
 
   const handleInputSubmit = () => {
     const pageNum = parseInt(pageInput, 10)
-    if (pageNum >= 1 && pageNum <= totalPages) {
+    if (pageNum >= 1 && (capped || pageNum <= totalPages)) {
       onPageChange(pageNum)
     } else {
-      // Reset to current page if invalid
       setPageInput(currentPage.toString())
     }
   }
@@ -54,8 +67,8 @@ export function ColumnPagination({
     }
   }
 
-  // Always show info, but hide navigation buttons if only 1 page
-  const showNavigation = totalPages > 1
+  // A page after the first keeps its controls even with no total (an error), so the user can go back.
+  const showNavigation = totalPages > 1 || currentPage > 1
 
   return (
     <div
@@ -64,28 +77,25 @@ export function ColumnPagination({
         className
       )}
     >
-      {/* Show navigation buttons only if multiple pages */}
       {showNavigation && (
         <>
           <Button
             variant="ghost"
-            onClick={() => {
-              onPageChange(1)
-              setPageInput('1')
-            }}
+            onClick={() => goTo(1)}
             disabled={currentPage <= 1 || loading}
             className="size-8 p-0"
+            aria-label={t('pagination.first')}
+            title={t('pagination.first')}
           >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
-            onClick={() => {
-              onPageChange(currentPage - 1)
-              setPageInput((currentPage - 1).toString())
-            }}
+            onClick={() => goTo(currentPage - 1)}
             disabled={currentPage <= 1 || loading}
             className="size-8 p-0"
+            aria-label={t('pagination.previous')}
+            title={t('pagination.previous')}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -94,25 +104,30 @@ export function ColumnPagination({
 
       <div className="flex items-center gap-1 text-xs">
         {showNavigation ? (
-          // Show full pagination input when multiple pages
           <>
             <Input
               value={pageInput}
-              onChange={(e) => handleInputChange(e.target.value)}
+              onChange={(e) => setPageInput(e.target.value)}
               onBlur={handleInputSubmit}
               onKeyDown={handleKeyDown}
               className="h-8 w-20 text-center text-xs"
               type="number"
               min="1"
-              max={totalPages}
+              max={capped ? undefined : totalPages}
               disabled={loading}
+              aria-label={t('pagination.pageInput')}
+              data-testid="column-page-input"
             />
-            <span className="text-muted-foreground">
-              {t('pagination.of', { count: totalPages })}
+            <span
+              className="text-muted-foreground"
+              data-testid="column-page-of"
+            >
+              {capped
+                ? t('pagination.ofAtLeast', { count: totalPages })
+                : t('pagination.of', { count: totalPages })}
             </span>
           </>
         ) : (
-          // Show simple page info when only 1 page
           <span className="text-muted-foreground">
             {t('pagination.items', { count: totalItems })}
           </span>
@@ -120,36 +135,36 @@ export function ColumnPagination({
 
         {loading && (
           <div className="ml-1">
-            <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent motion-reduce:animate-none"></div>
           </div>
         )}
       </div>
 
-      {/* Show navigation buttons only if multiple pages */}
       {showNavigation && (
         <>
           <Button
             variant="ghost"
-            onClick={() => {
-              onPageChange(currentPage + 1)
-              setPageInput((currentPage + 1).toString())
-            }}
-            disabled={currentPage >= totalPages || loading}
+            onClick={() => goTo(currentPage + 1)}
+            disabled={isLastPage || loading}
             className="size-8 p-0"
+            aria-label={t('pagination.next')}
+            title={t('pagination.next')}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              onPageChange(totalPages)
-              setPageInput(totalPages.toString())
-            }}
-            disabled={currentPage >= totalPages || loading}
-            className="size-8 p-0"
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
+          {/* No "last" on a capped total: the node does not say which page that is. */}
+          {!capped && (
+            <Button
+              variant="ghost"
+              onClick={() => goTo(totalPages)}
+              disabled={isLastPage || loading}
+              className="size-8 p-0"
+              aria-label={t('pagination.last')}
+              title={t('pagination.last')}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          )}
         </>
       )}
     </div>

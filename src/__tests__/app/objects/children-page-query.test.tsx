@@ -1,0 +1,251 @@
+// Regression test for a scope filter that was never sent.
+//
+// The node defaults `GET /objects` to `scope: 'mine'`, so a bare children query returns only
+// the rows the VIEWER created. On a shared parent that is none of them — while the row's
+// `childCount` honours access rather than scope and still reports the real number. The recipient
+// saw "1119 children" on a parent that opened empty.
+//
+// The assertions pin the QUERY, not the render: `scope` has to reach the wire. The last group
+// reuses the same page to pin who is offered "Add child".
+
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+
+const { tables } = vi.hoisted(() => ({
+  tables: [] as Record<string, unknown>[],
+}))
+
+const useList = vi.fn()
+const useGet = vi.fn()
+const mutation = () => ({
+  mutate: vi.fn(),
+  mutateAsync: vi.fn(),
+  isPending: false,
+})
+
+vi.mock('@/hooks/api/entities', () => ({
+  useObjects: () => ({
+    useList,
+    useGet,
+    useRemove: mutation,
+    useRestore: mutation,
+  }),
+}))
+
+vi.mock('next/navigation', () => ({
+  useParams: () => ({ uuid: 'parent-1' }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  usePathname: () => '/objects/parent-1',
+}))
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+  useFormatter: () => ({ dateTime: () => '' }),
+}))
+
+vi.mock('next/dynamic', () => ({ default: () => () => null }))
+
+// The page reads two account preferences (view type, hidden columns). Both reach
+// `useAuth`, which needs a QueryClient this test deliberately does not build —
+// the subject here is the QUERY, not preference plumbing.
+vi.mock('@/hooks/ui/use-preference', () => ({
+  usePreference: () => ['table', vi.fn(), true],
+}))
+
+vi.mock('@/hooks/ui/use-column-visibility', () => ({
+  useColumnVisibility: () => [{}, vi.fn()],
+}))
+
+vi.mock('@/hooks/data/use-breadcrumb-trail', () => ({
+  useBreadcrumbTrail: () => ({
+    ancestors: [],
+    pushAncestor: vi.fn(),
+    navigateToAncestor: vi.fn(),
+    clearTrail: vi.fn(),
+  }),
+}))
+
+// `useEntityListFilters` resolves the page size from an account preference, which reaches
+// useAuth and the whole client stack. `useEntityListQuery` stays REAL — it builds the query.
+vi.mock('@/components/entity-list', async () => {
+  const actual = await vi.importActual<
+    typeof import('@/components/entity-list')
+  >('@/components/entity-list')
+  return {
+    ...actual,
+    EntityTable: (props: Record<string, unknown>) => {
+      tables.push(props)
+      return null
+    },
+    useEntityListFilters: () => ({
+      pageSize: 20,
+      handlePageSizeChange: vi.fn(),
+      showDeleted: false,
+      setShowDeleted: vi.fn(),
+    }),
+  }
+})
+
+vi.mock('@/app/objects/components/object-bulk-bar', () => ({
+  ObjectBulkBar: () => null,
+}))
+vi.mock('@/app/objects/components/object-row-portals', () => ({
+  ObjectRowPortals: () => null,
+}))
+
+// The row/sheet plumbing the root list shares. It reaches templates, drafts and uploads, and
+// none of it touches the children query.
+vi.mock('@/app/objects/components/use-object-list-page', () => ({
+  useObjectListPage: () => ({
+    columns: [],
+    rowSelection: {},
+    setRowSelection: vi.fn(),
+    selectedObjects: [],
+  }),
+}))
+
+import ObjectChildrenPage from '@/app/objects/[uuid]/page'
+
+const queryOf = () => useList.mock.calls.at(-1)?.[0]
+
+describe('object children page — the children query', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useGet.mockReturnValue({
+      data: { id: 'parent-1', name: 'Materials' },
+      isLoading: false,
+    })
+    useList.mockReturnValue({ data: undefined, isFetching: false })
+  })
+
+  it('hands the list error and a retry to the table', () => {
+    const error = { status: 422, detail: 'too slow' }
+    const refetch = vi.fn()
+    useList.mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      error,
+      refetch,
+    })
+    render(<ObjectChildrenPage />)
+
+    const table = tables.at(-1)!
+    expect(table.error).toBe(error)
+    act(() => (table.onRetry as () => void)())
+    expect(refetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks for every child the viewer can see, not only their own', () => {
+    render(<ObjectChildrenPage />)
+    // Without this the node applies `scope: 'mine'` and a shared parent opens empty.
+    expect(queryOf()).toHaveProperty('scope', 'all')
+  })
+
+  it('filters to the direct children of the routed object', () => {
+    render(<ObjectChildrenPage />)
+    expect(queryOf()).toHaveProperty('parent', 'parent-1')
+  })
+
+  it('asks for child counts', () => {
+    render(<ObjectChildrenPage />)
+    expect(queryOf()).toHaveProperty('withChildCounts', true)
+  })
+})
+
+describe('object children page — the children count', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useGet.mockReturnValue({
+      data: { id: 'parent-1', name: 'Materials' },
+      isLoading: false,
+    })
+  })
+
+  const answered = (totalElements: number) => ({
+    data: {
+      data: [],
+      page: {
+        number: 1,
+        size: 20,
+        totalElements,
+        totalPages: Math.ceil(totalElements / 20),
+      },
+    },
+    isFetching: false,
+  })
+
+  const countLine = (text: string) =>
+    screen.queryByText(
+      (_, el) => el?.tagName === 'P' && el.textContent === `(${text})`
+    )
+
+  it('says "more than 1,000 children" when the node capped the count', () => {
+    useList.mockReturnValue(answered(1001))
+    render(<ObjectChildrenPage />)
+    expect(
+      countLine('objects.childrenPage.childrenCountMoreThan')
+    ).toBeInTheDocument()
+  })
+
+  it('names the exact count up to 1,000', () => {
+    useList.mockReturnValue(answered(1000))
+    render(<ObjectChildrenPage />)
+    expect(countLine('objects.childrenPage.childrenCount')).toBeInTheDocument()
+  })
+})
+
+describe('object children page — adding under the object', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    useList.mockReturnValue({ data: undefined, isFetching: false })
+  })
+
+  const renderWith = (permission?: string, deleted = false) => {
+    useGet.mockReturnValue({
+      data: { id: 'parent-1', name: 'Materials', permission, deleted },
+      isLoading: false,
+    })
+    render(<ObjectChildrenPage />)
+  }
+
+  const addChild = () => screen.getByTestId('page-header-add-child-button')
+  const why = () =>
+    screen.queryByRole('button', {
+      name: 'objects.childrenPage.addChildWhyLabel',
+    })
+
+  it('disables Add child on an object the viewer can only read, and offers the reason', () => {
+    renderWith('read')
+
+    expect(addChild()).toBeDisabled()
+    expect(why()).toBeInTheDocument()
+    // The hover card is never announced, so the reason must also be page text.
+    expect(screen.getByTestId('page-add-child-reason')).toHaveTextContent(
+      'objects.childrenPage.addChildUnavailable'
+    )
+  })
+
+  it('offers Add child to a viewer who may write', () => {
+    renderWith('write')
+
+    expect(addChild()).toBeEnabled()
+    expect(why()).toBeNull()
+  })
+
+  it('offers Add child when the node sends no verdict', () => {
+    renderWith(undefined)
+
+    expect(addChild()).toBeEnabled()
+  })
+
+  it('disables Add child on a deleted object, even for an admin', () => {
+    renderWith('admin', true)
+
+    expect(addChild()).toBeDisabled()
+    expect(why()).toBeInTheDocument()
+    expect(screen.getByTestId('page-add-child-reason')).toHaveTextContent(
+      'objects.childrenPage.addChildDeleted'
+    )
+    expect(screen.getByTestId('parent-deleted-hint')).toBeInTheDocument()
+  })
+})

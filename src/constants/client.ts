@@ -7,8 +7,16 @@ export interface ClientConfig {
   // Optional mTLS certificate port (default: 553)
   certPort?: number
 
+  // io2p backend (new): storage-node origin consumed by io2p-client.
+  // authBaseUrl (below) doubles as the better-auth issuer origin.
+  coreBaseUrl?: string
+
   // Optional per-service URL overrides (when services live on different hosts)
   authBaseUrl?: string
+  // Certificate sign-in origin. Not authBaseUrl: the edge refuses mTLS login on
+  // the auth host, and asks for a client certificate only on this one. Unset
+  // hides certificate sign-in.
+  mtlsBaseUrl?: string
   registryBaseUrl?: string
   nodeBaseUrl?: string
   userBaseUrl?: string
@@ -29,12 +37,16 @@ export interface ClientConfig {
   sentryEnabled: string
   sentryRelease: string
 
+  // Logging (browser reads these via __IOM_CONFIG__ — process.env compiles
+  // away client-side, so an env read in browser code is always undefined)
+  // logLevel: browser console emit gate outside production ('' = default)
+  logLevel: string
+  // logShipLevel: minimum level shipped to /api/telemetry ('' = default)
+  logShipLevel: string
+
   // Environment
   nodeEnv: string
   emailLoginEnabled: string
-
-  // Feature flags
-  processDashboardEnabled: string
 
   // App information
   appName: string
@@ -59,9 +71,10 @@ export const DEFAULT_CLIENT_CONFIG: ClientConfig = {
   sentryDsn: '',
   sentryEnabled: 'false',
   sentryRelease: '',
+  logLevel: '',
+  logShipLevel: '',
   nodeEnv: 'development',
-  emailLoginEnabled: 'false',
-  processDashboardEnabled: 'false',
+  emailLoginEnabled: 'true',
   appName: 'Internet of Materials',
   appDescription: 'Material Management System',
   appAcronym: 'IoM',
@@ -85,7 +98,10 @@ export function buildRuntimeConfig(): ClientConfig {
     certPort: process.env.CERT_PORT
       ? parseInt(process.env.CERT_PORT)
       : undefined,
+    coreBaseUrl:
+      process.env.CORE_BASE_URL || process.env.NODE_BASE_URL || undefined,
     authBaseUrl: process.env.AUTH_BASE_URL || undefined,
+    mtlsBaseUrl: process.env.MTLS_AUTH_URL || undefined,
     registryBaseUrl: process.env.REGISTRY_BASE_URL || undefined,
     nodeBaseUrl: process.env.NODE_BASE_URL || undefined,
     userBaseUrl: process.env.USER_BASE_URL || undefined,
@@ -112,9 +128,10 @@ export function buildRuntimeConfig(): ClientConfig {
     sentryDsn: process.env.SENTRY_DSN || '',
     sentryEnabled: process.env.SENTRY_ENABLED || 'false',
     sentryRelease: process.env.SENTRY_RELEASE || process.env.APP_VERSION || '',
+    logLevel: process.env.LOG_LEVEL || '',
+    logShipLevel: process.env.LOG_SHIP_LEVEL || '',
     nodeEnv: process.env.NODE_ENV || 'development',
-    emailLoginEnabled: process.env.EMAIL_LOGIN_ENABLED || 'false',
-    processDashboardEnabled: process.env.PROCESS_DASHBOARD_ENABLED || 'false',
+    emailLoginEnabled: process.env.EMAIL_LOGIN_ENABLED || 'true',
     appName: process.env.APP_NAME || 'Internet of Materials',
     appDescription: process.env.APP_DESCRIPTION || 'Material Management System',
     appAcronym: process.env.APP_ACRONYM || 'IoM',
@@ -141,8 +158,7 @@ function sanitizeForInlineScript(json: string): string {
  * Build a safe inline script that sets window.__IOM_CONFIG__.
  * Sanitizes the output to prevent script-tag breakout from env vars.
  */
-export function buildInlineConfigScript(): string {
-  const config = buildRuntimeConfig()
+export function buildInlineConfigScript(config = buildRuntimeConfig()): string {
   const safeJson = sanitizeForInlineScript(JSON.stringify(config))
   return `window.__IOM_CONFIG__=${safeJson};`
 }
@@ -154,11 +170,13 @@ const CONFIG_CACHE_VERSION = 'v1' // Increment to invalidate cache
 export function getCachedConfig(): ClientConfig | null {
   if (typeof window === 'undefined') return null
 
-  // Prefer server-injected inline config (zero network requests)
+  // Prefer server-injected inline config (zero network requests). Gate on
+  // the OBJECT being present, not on any one field — a deployment without
+  // BASE_URL must not lose every other inline value (logLevel, sentryDsn…)
+  // to the stale-localStorage path.
   const inlineConfig = (window as any).__IOM_CONFIG__ as
-    | ClientConfig
-    | undefined
-  if (inlineConfig && inlineConfig.baseUrl) {
+    ClientConfig | undefined
+  if (inlineConfig && typeof inlineConfig === 'object') {
     return inlineConfig
   }
 

@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Check, Languages } from 'lucide-react'
 
+import { useSetLocale } from '@/hooks/ui/use-set-locale'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,18 +25,15 @@ export const LOCALES = [
 
 export type LocaleValue = (typeof LOCALES)[number]['value']
 
-export function setLocaleCookie(locale: LocaleValue) {
-  document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=${60 * 60 * 24 * 365}`
-}
-
 export function LanguageSelect({ className }: { className?: string }) {
   const t = useTranslations()
   const locale = useLocale() as LocaleValue
+  const setLocale = useSetLocale()
 
-  const handleChange = useCallback((value: string) => {
-    setLocaleCookie(value as LocaleValue)
-    window.location.reload()
-  }, [])
+  const handleChange = useCallback(
+    (value: string) => setLocale(value as LocaleValue),
+    [setLocale]
+  )
 
   return (
     <DropdownMenu>
@@ -44,6 +42,10 @@ export function LanguageSelect({ className }: { className?: string }) {
           variant="ghost"
           size="icon"
           className={className}
+          // The aria-label is TRANSLATED, so a locator built on it stops
+          // matching the moment the page is in Dutch — which is the state half
+          // the language cases put it in.
+          data-testid="language-select"
           aria-label={t('footer.language')}
         >
           <Languages className="h-4 w-4" />
@@ -68,11 +70,12 @@ export function LanguageSelect({ className }: { className?: string }) {
 export function LanguageDropdownItem() {
   const t = useTranslations()
   const locale = useLocale() as LocaleValue
+  const setLocale = useSetLocale()
 
-  const handleChange = useCallback((value: string) => {
-    setLocaleCookie(value as LocaleValue)
-    window.location.reload()
-  }, [])
+  const handleChange = useCallback(
+    (value: string) => setLocale(value as LocaleValue),
+    [setLocale]
+  )
 
   return (
     <DropdownMenuSub>
@@ -88,10 +91,7 @@ export function LanguageDropdownItem() {
               value={item.value}
               className="cursor-pointer"
             >
-              <span className="flex items-center gap-2 justify-between w-full">
-                {item.label}
-                {locale === item.value && <Check className="h-3 w-3" />}
-              </span>
+              {item.label}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

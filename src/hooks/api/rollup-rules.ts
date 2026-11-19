@@ -1,0 +1,198 @@
+'use client'
+
+import { useMemo } from 'react'
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query'
+import type {
+  RollupRuleDTO,
+  CreateRollupRuleBody,
+  ListRollupRulesQuery,
+  UpdateRollupRuleBody,
+} from 'io2p-client'
+
+import { useIomClient } from '@/lib/io2p'
+import { queryKeys } from '@/lib/query-keys'
+import { MAX_LIST_PAGE_SIZE } from '@/constants'
+
+const ROLLUP_STALE_TIME = 30_000
+
+function useRollupRuleList(
+  query: ListRollupRulesQuery,
+  options?: { enabled?: boolean; keepPreviousData?: boolean }
+) {
+  const client = useIomClient()
+  return useQuery({
+    queryKey: queryKeys.rollupRules.list(query),
+    queryFn: ({ signal }) => client.rollupRules.list(query, { signal }),
+    enabled: options?.enabled ?? true,
+    placeholderData: options?.keepPreviousData ? keepPreviousData : undefined,
+    staleTime: ROLLUP_STALE_TIME,
+  })
+}
+
+/**
+ * Every rule the caller owns — the create form's duplicate check.
+ *
+ * `system: false` IS "mine": another account's rules 404 on every route, so the tier filter is the
+ * whole scope. The per-user cap is env-tunable on the node, so a deployment allowing more than
+ * `MAX_LIST_PAGE_SIZE` rules would leave this page short. For the duplicate check that is benign —
+ * the node's 409 is what actually enforces it. The rules list reads the same query to mark a
+ * built-in its owner has replaced, and THAT failure is silent: the mark simply does not appear,
+ * and nothing downstream catches it.
+ */
+function useOwnRollupRules(options?: { enabled?: boolean }) {
+  const query: ListRollupRulesQuery = {
+    page: 1,
+    size: MAX_LIST_PAGE_SIZE,
+    system: false,
+  }
+  return useRollupRuleList(query, options)
+}
+
+/**
+ * The built-in rules, for the create form's replacement warning.
+ *
+ * A user rule on a seeded key is accepted and REPLACES the built-in on that user's own objects,
+ * so the totals there move. `useOwnRollupRules` cannot see a built-in — `system: false` is the
+ * whole scope of "mine" — which is why this is a second query rather than a filter on the first.
+ */
+function useSystemRollupRules(options?: { enabled?: boolean }) {
+  const query: ListRollupRulesQuery = {
+    page: 1,
+    size: MAX_LIST_PAGE_SIZE,
+    system: true,
+  }
+  return useRollupRuleList(query, options)
+}
+
+type MultiplyingRule = Pick<RollupRuleDTO, 'propertyKey' | 'multiplyBy'>
+
+/**
+ * Which key each rule multiplies its total by, keyed by the rule's property key (lower case). A
+ * user's own rule REPLACES the built-in on the same key for that user's objects, so it wins here
+ * too, including when it multiplies by nothing.
+ */
+export function ruleMultipliers(
+  own: readonly MultiplyingRule[],
+  system: readonly MultiplyingRule[]
+): Map<string, string> {
+  const byKey = new Map<string, MultiplyingRule>()
+  for (const rule of system) byKey.set(rule.propertyKey.toLowerCase(), rule)
+  for (const rule of own) byKey.set(rule.propertyKey.toLowerCase(), rule)
+  const out = new Map<string, string>()
+  for (const [key, rule] of byKey) {
+    const by = rule.multiplyBy?.propertyKey
+    if (by) out.set(key, by.toLowerCase())
+  }
+  return out
+}
+
+/**
+ * The multipliers the node would apply to an object the caller is creating. A saved object's own
+ * rollup entries say what the node actually applied, so this is for the create form only. Reads
+ * page 1, like the duplicate check: a deployment whose per-user cap exceeds a page misses the rest,
+ * and the warning then simply does not appear.
+ */
+function useRuleMultipliers(enabled: boolean) {
+  const { data: own } = useOwnRollupRules({ enabled })
+  const { data: system } = useSystemRollupRules({ enabled })
+  return useMemo(
+    () =>
+      enabled
+        ? ruleMultipliers(own?.data ?? [], system?.data ?? [])
+        : undefined,
+    [enabled, own, system]
+  )
+}
+
+function useRollupRuleCreate() {
+  const client = useIomClient()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { body: CreateRollupRuleBody }) =>
+      client.rollupRules.create(vars.body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.rollupRules.lists() })
+    },
+  })
+}
+
+/**
+ * The only PATCH this resource has: `multiplyBy`, and `null` clears it.
+ *
+ * `propertyKey` and `aggregation` stay immutable — every stored total pins the ruleId, so changing
+ * a key is still delete-then-create. Changing the multiplier re-arms every entity holding the key
+ * on the node, which is why the totals cannot keep their old meaning and need no invalidation here
+ * beyond the rule itself.
+ */
+function useRollupRuleUpdate() {
+  const client = useIomClient()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string; body: UpdateRollupRuleBody }) =>
+      client.rollupRules.update(vars.id, vars.body),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.rollupRules.detail(vars.id) })
+      qc.invalidateQueries({ queryKey: queryKeys.rollupRules.lists() })
+    },
+  })
+}
+
+function useRollupRuleRemove() {
+  const client = useIomClient()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string }) => client.rollupRules.delete(vars.id),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.rollupRules.detail(vars.id) })
+      qc.invalidateQueries({ queryKey: queryKeys.rollupRules.lists() })
+    },
+  })
+}
+
+function useRollupRuleRestore() {
+  const client = useIomClient()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { id: string }) => client.rollupRules.restore(vars.id),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.rollupRules.detail(vars.id) })
+      qc.invalidateQueries({ queryKey: queryKeys.rollupRules.lists() })
+    },
+  })
+}
+
+/**
+ * Queue a recompute across every entity holding the rule's key, plus their ancestors.
+ *
+ * The node answers 202 the moment the job is enqueued, so this resolving means QUEUED, never
+ * done — the totals land as the lane drains. Nothing here can be invalidated on success for the
+ * same reason: the rule itself did not change, and the entity rollups it will move are keyed per
+ * object and refetched by their own poll.
+ */
+function useRollupRuleRecompute() {
+  const client = useIomClient()
+  return useMutation({
+    mutationFn: (vars: { id: string }) => client.rollupRules.recompute(vars.id),
+  })
+}
+
+const rollupRuleBundle = {
+  useList: useRollupRuleList,
+  useOwnRules: useOwnRollupRules,
+  useSystemRules: useSystemRollupRules,
+  useMultipliers: useRuleMultipliers,
+  useCreate: useRollupRuleCreate,
+  useUpdate: useRollupRuleUpdate,
+  useRemove: useRollupRuleRemove,
+  useRestore: useRollupRuleRestore,
+  useRecompute: useRollupRuleRecompute,
+}
+
+export function useRollupRules() {
+  return rollupRuleBundle
+}

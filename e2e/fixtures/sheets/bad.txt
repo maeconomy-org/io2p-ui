@@ -1,0 +1,1 @@
+This is not a spreadsheet. The wizard accepts .csv and .xlsx only.

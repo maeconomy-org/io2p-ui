@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import {
@@ -23,18 +23,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   CopyButton,
+  Skeleton,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from '@/components/ui'
 import { useAuth } from '@/contexts'
+import { useMounted } from '@/hooks/ui/use-mounted'
 import {
-  DEMO_TOUR_START_EVENT,
+  TOUR_START_EVENT,
   USER_MENU_TOGGLE_EVENT,
 } from '@/components/onboarding/constants'
+import { groupedTours } from '@/components/onboarding/tour-registry'
+import { tourIcon } from './nav-icons'
 import { LanguageDropdownItem } from '@/components/language-switcher'
 import { ThemeDropdownItem } from '@/components/ui/theme-toggle'
+import { anchor } from '@/constants'
 
 export function UserProfileDropdown() {
   const t = useTranslations()
-  const { userInfo, logout } = useAuth()
+  const { userInfo, logout, userId, authLoading } = useAuth()
+  const mounted = useMounted()
+  // See account-details: branching on session state without `mounted` mismatches
+  // between the server render and the client's first one.
+  const identityUnknown = !mounted || (authLoading && !userInfo)
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
@@ -68,13 +80,21 @@ export function UserProfileDropdown() {
         <Button
           variant="outline"
           className="flex items-center gap-2 px-3 h-auto hover:bg-muted/50 transition-colors"
-          data-tour="user-menu-trigger"
+          {...anchor('userMenuTrigger')}
         >
           <User className="h-4 w-4 text-primary" />
           <div className="flex flex-col items-start text-left">
-            <span className="text-sm font-medium max-w-32 truncate leading-tight">
-              {displayIdentity}
-            </span>
+            {/* While the session is resolving there is no identity yet, and the
+                `t('nav.user')` fallback would render a plausible-but-wrong name
+                that swaps once /me lands. A skeleton says "not known yet"
+                instead of asserting something false. */}
+            {identityUnknown ? (
+              <Skeleton className="h-4 w-16" />
+            ) : (
+              <span className="text-sm font-medium max-w-32 truncate leading-tight">
+                {displayIdentity}
+              </span>
+            )}
           </div>
           <ChevronDown className="h-3 w-3 text-muted-foreground ml-1" />
         </Button>
@@ -116,8 +136,8 @@ export function UserProfileDropdown() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {/* User UUID */}
-        {userInfo?.userUUID && (
+        {/* User id */}
+        {userId && (
           <DropdownMenuItem
             className="flex flex-col items-start p-3 hover:bg-muted/50"
             onSelect={(e) => e.preventDefault()}
@@ -129,26 +149,65 @@ export function UserProfileDropdown() {
                   {t('nav.userUuid')}
                 </span>
               </div>
-              <CopyButton text={userInfo.userUUID} className="h-6 w-6 p-0" />
+              <CopyButton text={userId} className="h-6 w-6 p-0" />
             </div>
             <code className="text-xs bg-muted/30 py-1 rounded w-full block truncate font-mono">
-              {userInfo.userUUID}
+              {userId}
             </code>
           </DropdownMenuItem>
         )}
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem
-          data-tour="demo-tour"
-          onClick={() =>
-            window.dispatchEvent(new CustomEvent(DEMO_TOUR_START_EVENT))
-          }
-          className="cursor-pointer"
-        >
-          <RocketIcon className="h-4 w-4 mr-2" />
-          <span>{t('nav.demoWalkthrough')}</span>
-        </DropdownMenuItem>
+        {/* A submenu rather than one item: the product outgrew having a single
+            thing worth walking someone through, and the registry is the list. */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger
+            {...anchor('demoTour')}
+            className="cursor-pointer"
+          >
+            <RocketIcon className="h-4 w-4 mr-2" />
+            <span>{t('nav.demoWalkthrough')}</span>
+          </DropdownMenuSubTrigger>
+          {/* Grouped, and each row carries the icon of the page it runs on —
+              the same mark as the navbar, so the row says where as well as
+              what. Nine flat labels read as one wall and named no destination. */}
+          <DropdownMenuSubContent className="min-w-56">
+            {groupedTours().map((group, index) => (
+              <Fragment key={group.key}>
+                {index > 0 && <DropdownMenuSeparator />}
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                  {t(`onboarding.tourGroups.${group.key}`)}
+                </DropdownMenuLabel>
+                {group.tours.map((tour) => {
+                  const Icon = tourIcon(tour.route, tour.icon)
+                  return (
+                    <DropdownMenuItem
+                      key={tour.id}
+                      data-testid={`tour-${tour.id}`}
+                      className="cursor-pointer"
+                      onClick={() =>
+                        window.dispatchEvent(
+                          new CustomEvent(TOUR_START_EVENT, {
+                            detail: { id: tour.id },
+                          })
+                        )
+                      }
+                    >
+                      {Icon && (
+                        <Icon
+                          className="mr-2 h-4 w-4 text-muted-foreground"
+                          aria-hidden
+                        />
+                      )}
+                      <span>{t(`onboarding.tours.${tour.id}`)}</span>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </Fragment>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
         <DropdownMenuSeparator />
         <LanguageDropdownItem />
@@ -166,6 +225,7 @@ export function UserProfileDropdown() {
 
         <DropdownMenuItem
           onClick={logout}
+          data-testid="nav-sign-out"
           className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 focus:bg-red-50 dark:focus:bg-red-950/30 cursor-pointer hover:bg-red-50/50 dark:hover:bg-red-950/20 transition-colors"
         >
           <LogOut className="h-4 w-4 mr-2" />

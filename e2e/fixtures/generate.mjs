@@ -6,9 +6,12 @@
 // Binaries are intentionally not committed — they're regenerated on each
 // `pnpm test:e2e` via the `pretest:e2e` npm script.
 
-import { mkdir, stat, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { generateSheets } from './sheets/generate.mjs'
+import { writeUnlessSize } from './write-unless-size.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = resolve(here, 'uploads')
@@ -43,7 +46,14 @@ function randomBytes(seed, size) {
 const KB = 1024
 const MB = 1024 * KB
 
-// [filename, seed, byteSize, content?]. If `content` is set, use it verbatim.
+// A real 8x8 PNG, not random bytes: a cover image has to DECODE. The browser renders it, the node
+// derives a thumbnail from it, and `cover-thumb` only appears for something the pipeline accepted.
+// Solid teal so a human reading a failure screenshot sees a deliberate square rather than noise.
+const TINY_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR42mMQ2bEUK2IYWhIA55VcQX2PZw4AAAAASUVORK5CYII='
+
+// [filename, seed, byteSize, content?]. If `content` is set, use it verbatim; a `Buffer` is written
+// as-is, a string as UTF-8.
 const fixtures = [
   ['tiny-1kb.txt', 1, 1 * KB, 'tiny fixture\n'.repeat(64).slice(0, 1 * KB)],
   ['small-100kb.pdf', 2, 100 * KB],
@@ -53,34 +63,40 @@ const fixtures = [
   ['weird-name (1) — café.pdf', 6, 50 * KB],
   ['no-extension', 7, 50 * KB],
   ['EMPTY.txt', 8, 0, ''],
+  ['cover-8px.png', 9, 0, Buffer.from(TINY_PNG_BASE64, 'base64')],
 ]
 
 async function ensureFile(name, seed, size, content) {
   const path = resolve(outDir, name)
   // For content-defined fixtures, the source-of-truth size is the byte length
   // of the encoded content, not the nominal `size` (which acts as a label).
-  const data = typeof content === 'string' ? Buffer.from(content, 'utf8') : null
+  const data = Buffer.isBuffer(content)
+    ? content
+    : typeof content === 'string'
+      ? Buffer.from(content, 'utf8')
+      : null
   const expectedSize = data ? data.length : size
 
-  try {
-    const s = await stat(path)
-    if (s.size === expectedSize) return { name, status: 'ok' }
-  } catch {
-    // missing — fall through to write
-  }
-
-  const buf = data ?? randomBytes(seed, size)
-  await writeFile(path, buf)
-  return { name, status: 'written', bytes: buf.length }
+  const written = await writeUnlessSize(
+    path,
+    expectedSize,
+    () => data ?? randomBytes(seed, size)
+  )
+  return written === null
+    ? { name, status: 'ok' }
+    : { name, status: 'written', bytes: written }
 }
 
 async function main() {
   await mkdir(outDir, { recursive: true })
-  const results = await Promise.all(
-    fixtures.map(([name, seed, size, content]) =>
-      ensureFile(name, seed, size, content)
-    )
-  )
+  const results = [
+    ...(await Promise.all(
+      fixtures.map(([name, seed, size, content]) =>
+        ensureFile(name, seed, size, content)
+      )
+    )),
+    ...(await generateSheets()),
+  ]
   const written = results.filter((r) => r.status === 'written')
   if (written.length === 0) {
     process.stdout.write('e2e fixtures up to date\n')

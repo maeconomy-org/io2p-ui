@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useLocale } from 'next-intl'
 
 import { useTheme } from '@/hooks/use-theme'
-
-const SUPPORTED_LOCALES = ['en', 'nl'] as const
+import { useSetLocale } from '@/hooks/ui/use-set-locale'
+import { routing } from '@/i18n/routing'
 
 /**
  * Global keyboard shortcuts (ignored when focused on inputs/dialogs):
@@ -13,6 +14,8 @@ const SUPPORTED_LOCALES = ['en', 'nl'] as const
  */
 export function useKeyboardShortcuts() {
   const { resolvedTheme, setTheme } = useTheme()
+  const locale = useLocale()
+  const setLocale = useSetLocale()
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -39,24 +42,14 @@ export function useKeyboardShortcuts() {
 
       if (e.key === 'l') {
         e.preventDefault()
-        const current =
-          document.cookie
-            .split('; ')
-            .find((c) => c.startsWith('NEXT_LOCALE='))
-            ?.split('=')[1] ||
-          document.documentElement.lang ||
-          'en'
-        const currentIndex = SUPPORTED_LOCALES.indexOf(
-          current as (typeof SUPPORTED_LOCALES)[number]
-        )
-        const next =
-          SUPPORTED_LOCALES[(currentIndex + 1) % SUPPORTED_LOCALES.length]
-        document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=${60 * 60 * 24 * 365}`
-        window.location.reload()
+        // `findIndex`, not `indexOf`: next-intl types `useLocale()` as a plain
+        // string. A miss gives -1, which wraps to the first locale.
+        const index = routing.locales.findIndex((known) => known === locale)
+        setLocale(routing.locales[(index + 1) % routing.locales.length])
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [resolvedTheme, setTheme])
+  }, [resolvedTheme, setTheme, locale, setLocale])
 }

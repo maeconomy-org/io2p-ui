@@ -1,8 +1,17 @@
 import { defineConfig, devices } from '@playwright/test'
+import { existsSync } from 'fs'
 import * as dotenv from 'dotenv'
 import path from 'path'
 
+import { AUTH_STATE } from './e2e/setup/credentials'
+
 dotenv.config({ path: '.env.local' })
+
+const viewport = { width: 1800, height: 1169 }
+
+// Not 3000: `pnpm dev` holds it, and the suite needs the production build (`00-harness/build`).
+const port = Number(process.env.E2E_PORT || 3001)
+const origin = `http://localhost:${port}`
 
 // Resolve certificate paths to absolute paths
 const certsDir = './certs'
@@ -16,8 +25,47 @@ function getCertAuthOrigin(): string {
   return url.origin
 }
 
+/**
+ * Empty unless a real key pair is on this machine.
+ *
+ * `certs/` is gitignored, so the file NAMES vary per checkout — this config named one that only
+ * ever existed on the author's machine, and Playwright reads `certPath` while building the browser
+ * context, so an absent file fails `setup`, which every other project depends on. One missing file
+ * cancelled the whole run with an ENOENT that named neither mTLS nor the config.
+ *
+ * The only specs that need the pair are `14-auth/certificate.spec.ts`, and those already skip on
+ * `E2E_MTLS_ORIGIN`. Override the names with `E2E_CLIENT_CERT` / `E2E_CLIENT_KEY`.
+ */
+function getClientCertificates() {
+  const origin = getCertAuthOrigin()
+  if (!origin) return []
+
+  const certPath = path.join(
+    certsDir,
+    process.env.E2E_CLIENT_CERT || 'client1.crt'
+  )
+  const keyPath = path.join(
+    certsDir,
+    process.env.E2E_CLIENT_KEY || 'client1.key'
+  )
+  if (!existsSync(certPath) || !existsSync(keyPath)) return []
+
+  return [
+    {
+      origin,
+      certPath,
+      keyPath,
+      passphrase: process.env.CLIENT_CERT_PASSPHRASE || '',
+    },
+  ]
+}
+
 export default defineConfig({
   testDir: './e2e',
+
+  // The generated fixtures, before any spec can ENOENT on one. `pretest:e2e` only covers
+  // `pnpm test:e2e`, and every documented run command is a bare `npx playwright test`.
+  globalSetup: './e2e/setup/generate-fixtures.ts',
 
   fullyParallel: false, // Run tests serially for stability
   forbidOnly: !!process.env.CI,
@@ -29,45 +77,81 @@ export default defineConfig({
     timeout: 10000, // 10 second timeout for assertions
   },
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: origin,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     ignoreHTTPSErrors: true,
+    // Chrome denies `clipboard.writeText` when the tab is not focused, which a
+    // serial run triggers constantly — without the grant, copy specs fail on the
+    // harness rather than on the product.
+    permissions: ['clipboard-read', 'clipboard-write'],
     launchOptions: {
       // Slow down actions for better visibility (set to 0 for fast execution)
       slowMo: process.env.SLOW_MO ? parseInt(process.env.SLOW_MO) : 0,
     },
     // Certificate for API servers (mTLS)
-    clientCertificates: [
-      {
-        origin: getCertAuthOrigin(),
-        certPath: path.join(certsDir, 'client_1_2.crt'),
-        keyPath: path.join(certsDir, 'client_1_2.key'),
-        passphrase: process.env.CLIENT_CERT_PASSPHRASE || '',
-      },
-    ],
+    clientCertificates: getClientCertificates(),
   },
   projects: [
     {
-      name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      // Runs after every other project, whatever the run selected — see the file for why a
+      // file-local `afterAll` cannot do this job.
+      name: 'session-teardown',
+      testMatch: /.*\.teardown\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        storageState: 'e2e/.auth/user.json',
-        viewport: { width: 1800, height: 1169 },
-      },
+      // Its own project, so a dead service or a stale build stops the run before the sign-in.
+      name: 'preflight',
+      testMatch: /preflight\.check\.ts/,
+    },
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+      dependencies: ['preflight'],
+      teardown: 'session-teardown',
+      // Retried even locally, where everything else is not. Setup is one cheap idempotent step
+      // that every other project declares a dependency on, so a single transient network blip
+      // here does not fail one test — it cancels the entire run.
+      retries: 2,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      // Naming a spec `*.read.spec.ts` is an ASSERTION that it creates nothing on the node, which
+      // is what makes running four at once safe. Smoke, i18n, a11y, navigation and empty-state
+      // specs all qualify — roughly a third of the suite.
+      name: 'read',
+      testMatch: /.*\.read\.spec\.ts/,
+      fullyParallel: true,
+      workers: 4,
       dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE, viewport },
+    },
+    {
+      // Everything else mutates shared server state, so it stays serial. Runs after `read` so a
+      // failure in the cheap parallel third reports before the slow half starts.
+      name: 'write',
+      testMatch: /.*\.spec\.ts/,
+      testIgnore: /.*\.read\.spec\.ts/,
+      fullyParallel: false,
+      workers: 1,
+      dependencies: ['setup', 'read'],
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE, viewport },
     },
   ],
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
+    // Starts the build `pnpm run build:e2e` made; it never builds, or every run waits for one.
+    // With no build at all it stops first, on an ENOENT for `.next/standalone/server.js`.
+    // `preflight.check.ts` refuses a build that is not from this tree. HOSTNAME is pinned so a
+    // HOSTNAME from the shell does not move the address the standalone server binds.
+    command: `PORT=${port} HOSTNAME=127.0.0.1 pnpm run start:e2e`,
+    url: origin,
+    // Off by default: a server already on the port (an old build, a `next dev`) would be tested
+    // without a word. Playwright then stops with "already used"; free the port by its number,
+    // `kill $(lsof -tiTCP:3001 -sTCP:LISTEN)`, because the standalone server renames its process.
+    // E2E_REUSE=1 takes the server that is there.
+    reuseExistingServer: !!process.env.E2E_REUSE,
     timeout: 180 * 1000,
   },
 })

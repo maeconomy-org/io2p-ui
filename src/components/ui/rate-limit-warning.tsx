@@ -1,6 +1,9 @@
+'use client'
+
 import { AlertTriangle, Clock, Info } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { useNow } from '@/hooks/ui/use-now'
 
 interface RateLimitInfo {
   current: number
@@ -20,6 +23,9 @@ export function RateLimitWarning({
   warning,
   className,
 }: RateLimitWarningProps) {
+  // Before the early return — hooks must run on every render.
+  const now = useNow()
+
   if (!rateLimitInfo && !warning) {
     return null
   }
@@ -28,7 +34,7 @@ export function RateLimitWarning({
     rateLimitInfo && rateLimitInfo.current >= rateLimitInfo.max * 0.8
   const resetDate = rateLimitInfo ? new Date(rateLimitInfo.resetTime) : null
   const minutesUntilReset = resetDate
-    ? Math.ceil((resetDate.getTime() - Date.now()) / (1000 * 60))
+    ? Math.ceil((resetDate.getTime() - now) / (1000 * 60))
     : 0
 
   return (

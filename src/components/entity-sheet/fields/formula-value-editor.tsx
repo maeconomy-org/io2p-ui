@@ -1,0 +1,908 @@
+'use client'
+
+import { useEffect, useId, useMemo, useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
+import { AlertTriangle, ChevronsUpDown, Loader2, Sigma } from 'lucide-react'
+import {
+  previewArgFromValue,
+  type CalcArgInput,
+  type CalcInput,
+  type ConstantDTO,
+  type PreviewArg,
+  type PreviewFormulaInput,
+} from 'io2p-client'
+
+import {
+  Button,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandMore,
+  Label,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui'
+import { cn } from '@/lib/utils'
+import { PickerListError } from '@/components/list-error'
+import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
+import { OwnerHint } from '@/components/entity-list'
+import { useConstants, useFormulas } from '@/hooks/api/leaves'
+import { SEARCH_SIZE } from '@/constants'
+import { SearchMinHint } from '@/components/search-min-hint'
+
+import { calcErrorText, uncheckedState } from './value-provenance'
+import { equationText } from './formula-equation'
+import {
+  type FormulaNote,
+  FormulaNotes,
+  useWarningNotes,
+} from './formula-warnings'
+import { useFormulaFormat } from './use-formula-format'
+import { UnitsHelp } from './units-help'
+
+/**
+ * A sibling value a formula variable can bind to. `key` = existing id ?? client ref.
+ *
+ * `num` is OPTIONAL because a bindable value is not always filled in yet — a template preset arrives
+ * blank but already bound. Such a sibling can be selected and displayed; the node is asked about the
+ * formula only once every bound value holds something.
+ */
+export interface FormulaSibling {
+  key: string
+  /**
+   * The PROPERTY's stable key, as distinct from `key` above — which is the value's id.
+   *
+   * Carried only so the option can be addressed by something that does not move: the testid used to
+   * be minted from `label`, and `label` is `resolvePropertyLabel(...)`, so `width` rendered as
+   * `formula-sibling-Width` in English and `formula-sibling-Breedte` in Dutch. Three spec files were
+   * silently coupled to the account's language that way.
+   */
+  propertyKey: string
+  label: string
+  /** The CANONICAL number (`10 t` -> 10000), because that is what the node computes with. */
+  num?: number
+  /** The canonical unit `num` is expressed in. Absent on a unitless value. */
+  unit?: string
+  /**
+   * What the author actually typed, for a value the node has not normalized yet.
+   *
+   * Sent ONLY when there is no `num`. A stored value's text is display text — a derived one reads
+   * "0.02 MWh" while its number is 20 in kWh — so reading it as typed would change the scale. A
+   * just-typed "10 t" has no number yet, and its text is the only truth there is.
+   */
+  data?: string
+  /** The key a rollup rule matches this value's property by — see `ruleKey`. */
+  ruleKey?: string
+  /** A saved formula value's `provenance.unitVerified`, present only when `false`. */
+  unitVerified?: false
+}
+
+// The formula chooser — sits inline in the value row (replaces the text input in formula mode).
+export function FormulaSelect({
+  formulaId,
+  onSelect,
+  className,
+}: {
+  formulaId?: string
+  onSelect: (formulaId: string) => void
+  className?: string
+}) {
+  const t = useTranslations()
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
+  // The label cannot come from the search list: `q` narrows it, so the selected formula leaves the
+  // page as soon as the user searches for anything else.
+  const { data: selected } = useFormulas().useGet(formulaId)
+
+  return (
+    // `modal`: this renders inside the entity sheet, a Radix Dialog that sets
+    // `pointer-events: none` on the body. A portalled popover inherits it, and its list stops
+    // answering a wheel while still responding to the arrow keys.
+    <Popover open={open} onOpenChange={setOpen} modal>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          data-testid="formula-select"
+          className={cn(
+            'h-8 w-full justify-between font-normal',
+            !selected && 'text-muted-foreground',
+            className
+          )}
+        >
+          <span className="truncate">
+            {selected?.name ?? t('objects.formulaEditor.selectFormula')}
+          </span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
+        <FormulaSelectList
+          query={query}
+          q={q}
+          onQueryChange={setQuery}
+          onPick={(id) => {
+            onSelect(id)
+            setOpen(false)
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/** The search and its results, inside the popover content: see `ObjectPickerList`. */
+function FormulaSelectList({
+  query,
+  q,
+  onQueryChange,
+  onPick,
+}: {
+  query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
+  onQueryChange: (query: string) => void
+  onPick: (formulaId: string) => void
+}) {
+  const t = useTranslations()
+  const hintId = useId()
+
+  const { data, isFetching, isPlaceholderData, error } = useFormulas().useList(
+    { page: 1, size: SEARCH_SIZE, q },
+    { keepPreviousData: true }
+  )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
+  const formulas = data?.data ?? []
+
+  // The node filters server-side, so let Command show whatever came back.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('objects.formulaEditor.searchFormulas')}
+        value={query}
+        onValueChange={onQueryChange}
+        aria-describedby={hintId}
+      />
+      <SearchMinHint query={query} kind="words" id={hintId} />
+      <PickerListError error={error ?? null} />
+      <CommandList>
+        {error != null ? null : isFetching && formulas.length === 0 ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <CommandEmpty>{t('objects.formulaEditor.noFormulas')}</CommandEmpty>
+        )}
+        <CommandGroup>
+          {formulas.map((f) => (
+            <CommandItem
+              key={f.id}
+              value={f.id}
+              data-testid={`formula-option-${f.name}`}
+              onSelect={() => onPick(f.id)}
+            >
+              <span className="min-w-0 flex-1 truncate">
+                <SearchHighlight text={f.name} q={shownSearch} />
+              </span>
+              <OwnerHint
+                system={f.system}
+                ownerUserId={f.ownerUserId}
+                ownerName={f.ownerName}
+              />
+              <span className="ml-2 shrink-0 font-mono text-xs text-muted-foreground">
+                {f.expression}
+                {f.unit ? ` → ${f.unit}` : ''}
+              </span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+      <CommandMore pages={[data]} capped />
+    </Command>
+  )
+}
+
+/**
+ * One control, two kinds of binding.
+ *
+ * A calc arg binds a variable to a sibling value (`ref`) XOR a constant (`constantId`) — never both,
+ * never neither. So the picker prefixes each option with its kind instead of putting a mode switch
+ * beside it: choosing is one gesture, and the exclusivity is structural rather than something the UI
+ * has to remember to enforce.
+ *
+ * Both sides are ids, which contain no `:` — but splitting on the FIRST separator costs nothing and
+ * keeps this correct if either ever carries one.
+ */
+export function choiceOf(arg?: CalcArgInput): string {
+  if (arg?.constantId) return `constant:${arg.constantId}`
+  if (arg?.ref) return `sibling:${arg.ref}`
+  return ''
+}
+
+export function argFromChoice(
+  variable: string,
+  choice: string
+): CalcArgInput | null {
+  if (!choice) return null
+  const separator = choice.indexOf(':')
+  if (separator === -1) return null
+
+  const kind = choice.slice(0, separator)
+  const value = choice.slice(separator + 1)
+  if (!value) return null
+
+  return kind === 'constant'
+    ? { var: variable, constantId: value }
+    : { var: variable, ref: value }
+}
+
+/**
+ * The lines about the result itself, before the node's warnings. `unchecked` comes from
+ * `unitVerified === false` only: the node sends nothing when there was nothing to check, which is
+ * the commonest case and means an ordinary number. Grey when the value is still counted (no unit),
+ * amber when it leaves every total.
+ */
+function resultNotes(
+  unchecked: 'left-out' | 'plain' | undefined,
+  countedTwice: FormulaSibling | undefined,
+  t: ReturnType<typeof useTranslations>
+): FormulaNote[] {
+  const notes: FormulaNote[] = []
+  if (unchecked) {
+    const leftOut = unchecked === 'left-out'
+    notes.push({
+      key: 'unit-unverified',
+      testId: 'formula-unit-unverified',
+      tone: leftOut ? 'warn' : 'info',
+      text: t(
+        leftOut
+          ? 'objects.formulaEditor.unitUnverifiedShort'
+          : 'objects.formulaEditor.unitUnverifiedPlainShort'
+      ),
+      why: t(
+        leftOut
+          ? 'objects.formulaEditor.unitUnverified'
+          : 'objects.formulaEditor.unitUnverifiedPlain'
+      ),
+    })
+  }
+  if (countedTwice) {
+    const quantity = countedTwice.label
+    notes.push({
+      key: 'counted-twice',
+      testId: 'formula-counted-twice',
+      tone: 'warn',
+      text: t('objects.formulaEditor.countedTwiceShort', { quantity }),
+      why: t('objects.formulaEditor.countedTwice', { quantity }),
+    })
+  }
+  return notes
+}
+
+// Variable binding for the chosen formula, and what the node says about it. Below the value row.
+export function FormulaBindings({
+  calc,
+  siblings,
+  onChange,
+  countedBy,
+}: {
+  calc: CalcInput
+  siblings: FormulaSibling[]
+  onChange: (calc: CalcInput) => void
+  /**
+   * The key a rollup rule multiplies this property's totals by (lower case) — passed only when
+   * the object's quantity under it is one the rule can use.
+   */
+  countedBy?: string
+}) {
+  const t = useTranslations()
+  const { data: formula } = useFormulas().useGet(calc.formulaId)
+
+  // Every constant this recipe already binds, fetched BY ID rather than looked up in the picker's
+  // search page — a bound constant has to keep its label and its number whatever the user
+  // last typed into the search box, and it may not be on that page at all.
+  const boundIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          calc.args.map((a) => a.constantId).filter((id): id is string => !!id)
+        )
+      ),
+    [calc.args]
+  )
+  const boundConstants = useConstants().useByIds(boundIds)
+
+  const bindingFor = (variable: string) =>
+    choiceOf(calc.args.find((a) => a.var === variable))
+
+  const bindVariable = (variable: string, choice: string) => {
+    const others = calc.args.filter((a) => a.var !== variable)
+    const arg = argFromChoice(variable, choice)
+    onChange({ ...calc, args: arg ? [...others, arg] : others })
+  }
+
+  /**
+   * The request, or `undefined` while there is nothing honest to ask about.
+   *
+   * Every variable must be bound and every binding must carry something the node can read — a
+   * number, a typed string, or a constant id. A half-made binding is not a smaller question, it
+   * is a different one, and answering it would describe a formula nobody is writing.
+   */
+  const previewBody = useMemo((): PreviewFormulaInput | undefined => {
+    if (!formula) return undefined
+    const args: PreviewArg[] = []
+    for (const variable of formula.variables) {
+      const arg = calc.args.find((a) => a.var === variable)
+      if (!arg) return undefined
+
+      if (arg.constantId) {
+        // No version: the node pins one at bind time, so the preview shows what binding NOW would
+        // produce, which is what the user is deciding.
+        args.push({ var: variable, constantId: arg.constantId })
+        continue
+      }
+
+      const sibling = siblings.find((sib) => sib.key === arg.ref)
+      if (!sibling) return undefined
+      // `previewArgFromValue` is the SDK's own rule for this and returns `undefined` with no
+      // number, which is exactly when the typed text is the only truth there is.
+      const stored = previewArgFromValue(variable, {
+        num: sibling.num,
+        unit: sibling.unit,
+        provenance: { unitVerified: sibling.unitVerified },
+      })
+      if (stored) {
+        args.push(stored)
+      } else if (sibling.data) {
+        // The key lets the node read a plain number under a count key as pcs, as it will store it.
+        args.push({
+          var: variable,
+          data: sibling.data,
+          key: sibling.propertyKey,
+        })
+      } else {
+        return undefined
+      }
+    }
+    return {
+      expression: formula.expression,
+      ...(formula.unit ? { unit: formula.unit } : {}),
+      args,
+    }
+  }, [formula, calc.args, siblings])
+
+  /**
+   * Settled bindings only. `siblings` carries each value's typed TEXT, so typing into a
+   * neighbouring field changes this body on every keystroke. No figure waits on the answer, only
+   * advice about the formula, so a short wait costs nothing.
+   */
+  const [settledBody, setSettledBody] = useState(previewBody)
+  const bodyKey = previewBody === undefined ? '' : JSON.stringify(previewBody)
+  useEffect(() => {
+    const id = setTimeout(() => setSettledBody(previewBody), 400)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the body's VALUE, not its identity
+  }, [bodyKey])
+
+  const { data: settledAnswer, isFetching } =
+    useFormulas().usePreview(settledBody)
+  // Until the wait ends, the answer is about the previous binding.
+  const settledKey =
+    settledBody === undefined ? '' : JSON.stringify(settledBody)
+  const preview = settledKey === bodyKey ? settledAnswer : undefined
+  const busy = settledKey !== bodyKey || !!isFetching
+  const warnings = preview?.warnings ?? []
+  const warningNotes = useWarningNotes(warnings)
+  // The declare-unit warning says the same thing as the plain unchecked line, and more precisely.
+  const unchecked =
+    preview && !warnings.some((w) => w.code === 'declare-unit')
+      ? uncheckedState(preview, preview.unit)
+      : undefined
+
+  // The rule already scales this property's totals by that quantity, so a formula reading it too
+  // puts it in the total twice. Known here, before any answer: it is the binding, not the result.
+  // `countedBy` arrives only when the rule can use the quantity (or cannot tell yet); a refused one
+  // counts the object zero times. A result the node refuses or leaves out of totals is not
+  // counted even once.
+  const countedTwice =
+    countedBy && !preview?.error && unchecked !== 'left-out'
+      ? siblings.find(
+          (sibling) =>
+            (sibling.ruleKey ?? sibling.propertyKey.toLowerCase()) ===
+              countedBy && calc.args.some((arg) => arg.ref === sibling.key)
+        )
+      : undefined
+
+  const notes = [...resultNotes(unchecked, countedTwice, t), ...warningNotes]
+  const errorLine = preview?.error && calcErrorText(preview.error.code, t)
+  // No result figure: the value row shows what was stored. "Calculated on save" only when nothing
+  // else is said, so a problem is not followed by a line that reads like an all-clear, and not
+  // while an answer is on its way: it would flash, then give way to the warnings.
+  const closingLine = preview?.error
+    ? t('objects.formulaEditor.errorOnSave')
+    : !busy && notes.length === 0
+      ? t('objects.formulaEditor.calculatedOnSave')
+      : undefined
+  const announcement = [
+    errorLine,
+    ...notes.map((note) => note.text),
+    closingLine,
+  ]
+    .filter(Boolean)
+    .join(' ')
+  // A live region reads its whole text again on any change. Holding the last answer while the next
+  // is on its way means a pause in typing that ends in the same answer says nothing.
+  const [spoken, setSpoken] = useState(announcement)
+  if (!busy && spoken !== announcement) setSpoken(announcement)
+
+  if (!formula) return null
+
+  return (
+    <div
+      data-testid="formula-bindings"
+      className="space-y-2 rounded-md border bg-muted/30 p-3"
+    >
+      {/* Free: `formula` is already fetched for the variable list and the preview. The node lets a
+          superseded formula bind — the status is a signal, never a gate — so this warns and offers
+          the correction rather than swapping or blocking anything. */}
+      {formula.supersededBy && (
+        <div
+          data-testid="formula-superseded"
+          className="flex flex-wrap items-center gap-1.5 text-xs text-destructive"
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>{t('formulas.supersededWarning')}</span>
+          <button
+            type="button"
+            className="underline underline-offset-2"
+            data-testid="formula-use-correction"
+            onClick={() =>
+              onChange({ formulaId: formula.supersededBy!, args: [] })
+            }
+          >
+            {t('formulas.useCorrection')}
+          </button>
+        </div>
+      )}
+
+      {formula.variables.length === 0 ? (
+        <p
+          data-testid="formula-no-variables"
+          className="text-xs text-muted-foreground"
+        >
+          {t('objects.formulaEditor.noVariables')}
+        </p>
+      ) : (
+        <>
+          <Label className="text-xs text-muted-foreground">
+            {t('objects.formulaEditor.bindVariables')}
+          </Label>
+          {formula.variables.map((variable) => (
+            <div
+              key={variable}
+              data-testid={`formula-var-${variable}`}
+              className="flex items-center gap-2"
+            >
+              <code className="w-16 shrink-0 text-sm font-medium">
+                {variable}
+              </code>
+              <BindingPicker
+                variable={variable}
+                value={bindingFor(variable)}
+                siblings={siblings}
+                boundConstants={boundConstants}
+                onChange={(choice) => bindVariable(variable, choice)}
+              />
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Always mounted: a live region announces what APPEARS in it, and the answers arrive after
+          the settle wait. Text only: the visible lines carry "Why?" buttons, which a live region
+          would read with every line, and read each reason again when it opens. */}
+      <p role="status" aria-live="polite" aria-busy={busy} className="sr-only">
+        {spoken}
+      </p>
+      <div className="space-y-2">
+        {/* RED, not amber: the node refuses this outright and writes an error row with no number,
+            so it is not advice — it is what will happen. It arrives INSIDE a successful preview,
+            which is what keeps it distinct from not having reached the node at all. */}
+        {preview?.error && (
+          <p
+            data-testid="formula-dimension-problem"
+            className="flex items-start gap-1.5 text-xs text-destructive"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            {/* The same sentences the value row shows. The node's `detail` is English by contract,
+                so it is demoted, not dropped: for a code this app does not know, it is the only
+                thing that says what went wrong. */}
+            <span>
+              {errorLine}
+              {preview.error.detail && (
+                <span className="mt-0.5 block text-[10px] opacity-80">
+                  {preview.error.detail}
+                </span>
+              )}
+            </span>
+          </p>
+        )}
+
+        <FormulaNotes notes={notes} />
+
+        {closingLine && (
+          <p className="text-xs text-muted-foreground">{closingLine}</p>
+        )}
+      </div>
+
+      <UnitsHelp />
+    </div>
+  )
+}
+
+/**
+ * One variable's binding: a sibling value XOR a constant.
+ *
+ * The two halves search differently on purpose. Siblings are this entity's own values, already in
+ * memory and never more than a handful, so they filter locally. Constants come from the node and
+ * there is no ceiling on how many exist, so the search term goes to `q` — which is why the trigger's
+ * label comes from `boundConstants` (fetched by id) rather than from the page on screen.
+ */
+/**
+ * Which side of the picker to show. `all` is the default because most bindings are a value on this
+ * entity and the rest are a constant — the filter exists for the case where one side has enough
+ * entries to push the other off screen.
+ */
+type BindingScope = 'all' | 'siblings' | 'constants'
+
+const BINDING_SCOPES: BindingScope[] = ['all', 'siblings', 'constants']
+
+function BindingPicker({
+  variable,
+  value,
+  siblings,
+  boundConstants,
+  onChange,
+}: {
+  variable: string
+  value: string
+  siblings: FormulaSibling[]
+  boundConstants: ReadonlyMap<string, ConstantDTO>
+  onChange: (choice: string) => void
+}) {
+  const t = useTranslations()
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
+  const [scope, setScope] = useState<BindingScope>('all')
+
+  const [kind, ...rest] = value.split(':')
+  const boundId = rest.join(':')
+  const label = value
+    ? kind === 'constant'
+      ? boundConstants.get(boundId)?.name
+      : siblings.find((s) => s.key === boundId)?.label
+    : undefined
+
+  const choose = (choice: string) => {
+    onChange(choice)
+    setOpen(false)
+    setQuery('')
+  }
+
+  return (
+    // `modal`: this renders inside the entity sheet, a Radix Dialog that sets
+    // `pointer-events: none` on the body. A portalled popover inherits it, and its list stops
+    // answering a wheel while still responding to the arrow keys.
+    <Popover open={open} onOpenChange={setOpen} modal>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          data-testid={`formula-bind-${variable}`}
+          className={cn(
+            'h-8 w-full justify-between font-normal',
+            !label && 'text-muted-foreground'
+          )}
+        >
+          <span className="truncate">
+            {label ?? t('objects.formulaEditor.selectValue')}
+          </span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
+        <BindingPickerList
+          query={query}
+          q={q}
+          onQueryChange={setQuery}
+          scope={scope}
+          onScopeChange={setScope}
+          siblings={siblings}
+          onChoose={choose}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/** The search and its results, inside the popover content: see `ObjectPickerList`. */
+function BindingPickerList({
+  query,
+  q,
+  onQueryChange,
+  scope,
+  onScopeChange,
+  siblings,
+  onChoose,
+}: {
+  query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
+  onQueryChange: (query: string) => void
+  scope: BindingScope
+  onScopeChange: (scope: BindingScope) => void
+  siblings: FormulaSibling[]
+  onChoose: (choice: string) => void
+}) {
+  const t = useTranslations()
+  const hintId = useId()
+  const needle = query.trim()
+  // The siblings below filter on `needle` at once; only the request waits for typing to stop.
+  // Not fetched at all while the user is looking at values only — the group is hidden, so a page of
+  // constants would be a request for something nothing renders.
+  const {
+    data: constantsPage,
+    isFetching,
+    isPlaceholderData,
+    error,
+  } = useConstants().useList(
+    { page: 1, size: SEARCH_SIZE, q },
+    { enabled: scope !== 'siblings', keepPreviousData: true }
+  )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
+  const constants = scope === 'siblings' ? [] : (constantsPage?.data ?? [])
+  const shownSiblings =
+    scope === 'constants'
+      ? []
+      : siblings.filter((s) =>
+          s.label.toLowerCase().includes(needle.toLowerCase())
+        )
+
+  // The node filters server-side, so let Command show whatever came back.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('objects.formulaEditor.searchValues')}
+        value={query}
+        onValueChange={onQueryChange}
+        aria-describedby={hintId}
+      />
+      {/* About the constants search only: the values on the entity filter on every letter. */}
+      <SearchMinHint
+        query={scope === 'siblings' ? '' : query}
+        kind="words"
+        id={hintId}
+      />
+      <PickerListError error={error ?? null} />
+
+      {/* A radiogroup, not three buttons: the options are mutually exclusive and a screen
+          reader should hear which one is on. */}
+      <div
+        role="radiogroup"
+        aria-label={t('objects.formulaEditor.filterBindings')}
+        className="flex gap-1 border-b px-2 py-1.5"
+      >
+        {BINDING_SCOPES.map((option) => (
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={scope === option}
+            data-testid={`binding-scope-${option}`}
+            onClick={() => onScopeChange(option)}
+            className={cn(
+              'rounded px-2 py-0.5 text-xs transition-colors',
+              scope === option
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted'
+            )}
+          >
+            {t(`objects.formulaEditor.scope.${option}`)}
+          </button>
+        ))}
+      </div>
+
+      <CommandList>
+        {/* Only when there is nothing at all to show. Gating the spinner on the CONSTANTS
+            alone hid the sibling group on every first open — they are already in memory, and
+            a failed constants fetch left "nothing to bind" on screen beside them. */}
+        {error != null ? null : isFetching &&
+          !shownSiblings.length &&
+          !constants.length ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <CommandEmpty>
+            {/* Naming the filter, not the data: "no numeric values" beside a Constants-only
+                list describes something the user is not looking at. */}
+            {scope === 'constants'
+              ? t('objects.formulaEditor.noConstants')
+              : t('objects.formulaEditor.noNumericValues')}
+          </CommandEmpty>
+        )}
+
+        {shownSiblings.length > 0 && (
+          <CommandGroup heading={t('objects.formulaEditor.siblingValues')}>
+            {shownSiblings.map((s) => (
+              <CommandItem
+                key={s.key}
+                value={`sibling:${s.key}`}
+                data-testid={`formula-sibling-${s.propertyKey}`}
+                onSelect={onChoose}
+              >
+                <span className="min-w-0 flex-1 truncate">{s.label}</span>
+                {s.num !== undefined && (
+                  <span className="ml-1 shrink-0 text-muted-foreground">
+                    ({s.unit ? `${s.num} ${s.unit}` : s.num})
+                  </span>
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {/* Constants are shared, versioned numbers — a CO2 factor rather than something on
+            this entity. The server pins the version at bind time, so the value shown is what
+            this binding will freeze. */}
+        {constants.length > 0 && (
+          <CommandGroup heading={t('objects.formulaEditor.constants')}>
+            {constants.map((c) => {
+              const current = c.versions.at(-1)
+              return (
+                <CommandItem
+                  key={c.id}
+                  value={`constant:${c.id}`}
+                  data-testid={`formula-constant-${c.name}`}
+                  onSelect={onChoose}
+                >
+                  <span className="min-w-0 flex-1 truncate">
+                    <SearchHighlight text={c.name} q={shownSearch} />
+                  </span>
+                  <OwnerHint
+                    system={c.system}
+                    ownerUserId={c.ownerUserId}
+                    ownerName={c.ownerName}
+                  />
+                  {current?.data && (
+                    <span className="ml-1 shrink-0 text-muted-foreground">
+                      ({current.data})
+                    </span>
+                  )}
+                </CommandItem>
+              )
+            })}
+          </CommandGroup>
+        )}
+      </CommandList>
+      <CommandMore
+        pages={[
+          // Every value on the entity is already here, so it counts as one full page.
+          {
+            data: shownSiblings,
+            page: { totalElements: shownSiblings.length },
+          },
+          scope === 'siblings' ? undefined : constantsPage,
+        ]}
+        capped
+      />
+    </Command>
+  )
+}
+
+/**
+ * A template formula written out with its inputs NAMED (`Width × 2`): a template holds no numbers
+ * yet, only which property each variable will read. Undefined until the formula record loads.
+ */
+export function useTemplateEquation(
+  calc: CalcInput,
+  labelForValue?: (ref: string) => string | undefined
+): { equation?: string; formulaName?: string } {
+  const t = useTranslations()
+  const format = useFormulaFormat()
+  const { data: formula } = useFormulas().useGet(calc.formulaId)
+
+  // A calc carries the constant's id, not its name, so the name has to be fetched — otherwise this
+  // read-only summary would print a uuid where the author wrote `co2_factor`.
+  const boundIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          calc.args.map((a) => a.constantId).filter((id): id is string => !!id)
+        )
+      ),
+    [calc.args]
+  )
+  const boundConstants = useConstants().useByIds(boundIds)
+
+  // An unbound variable keeps its own name in the equation: "Unbound × Unbound" says nothing.
+  const bindingLabel = (variable: string): string | undefined => {
+    const arg = calc.args.find((a) => a.var === variable)
+    if (arg?.constantId)
+      return boundConstants.get(arg.constantId)?.name ?? t('common.unknown')
+    if (arg?.ref) return labelForValue?.(arg.ref) ?? t('common.unknown')
+    return undefined
+  }
+
+  // Until the formula record loads there is no expression to write out.
+  const equation = formula?.expression
+    ? equationText(
+        formula.expression,
+        (variable) =>
+          formula.variables.includes(variable)
+            ? bindingLabel(variable)
+            : undefined,
+        format.equation
+      )
+    : undefined
+
+  return { equation, formulaName: formula?.name }
+}
+
+/**
+ * A bound recipe, read-only: which formula, and what each variable is bound to.
+ *
+ * This is what a TEMPLATE formula looks like. A template stores its recipe INERT — `source:'derived'`
+ * plus `calc`, with no `num` and no `provenance`, because it computes only when the template is
+ * applied to a real entity (E-2). So there is no trace to render and no result to show; without this
+ * the value reads as an empty string, which looks like nothing was ever configured.
+ */
+export function FormulaSummary({
+  calc,
+  labelForValue,
+}: {
+  calc: CalcInput
+  labelForValue?: (ref: string) => string | undefined
+}) {
+  const t = useTranslations()
+  const { equation, formulaName } = useTemplateEquation(calc, labelForValue)
+
+  // The same row a calculated value reads as, with the inputs NAMED instead of valued: a template
+  // holds no numbers yet, only which property each variable will read.
+  return (
+    <div className="space-y-0.5 text-sm" data-testid="formula-summary">
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          className="min-w-0 truncate text-muted-foreground"
+          title={equation}
+        >
+          {equation ? `= ${equation}` : '—'}
+        </span>
+        <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+          <Sigma className="h-3.5 w-3.5" />
+          {formulaName ?? t('objects.propertyEditor.derived')}
+        </span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        {t('templates.formulaInert')}
+      </p>
+    </div>
+  )
+}

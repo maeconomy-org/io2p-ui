@@ -1,15 +1,28 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Shield, AlertTriangle, Mail, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, Shield, AlertTriangle, Loader2, Mail } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import { logger, cn } from '@/lib'
+import { logger } from '@/lib/observability/logger'
+import { cn } from '@/lib/utils'
 import { useAuth, useAppConfig } from '@/contexts'
-import { loginSchema, type LoginFormData } from '@/lib/validations/auth'
+import { useSignInOptions } from '@/hooks/api/use-sign-in-options'
+import {
+  createLandingErrorStore,
+  useLandingError,
+} from '@/hooks/use-landing-error'
+import {
+  PENDING_APPROVAL_PATH,
+  SOCIAL_PROVIDERS,
+  enabledSocialProviders,
+  type SocialProviderId,
+} from '@/constants'
+import { loginSchema, type LoginFormData } from '@/lib/auth/schemas'
 import {
   Badge,
   Button,
@@ -23,20 +36,63 @@ import {
   FormControl,
   PasswordInput,
 } from '@/components/ui'
-import { BrickLoader } from '@/components/brick-loader'
+
+/** Remembers which sign-in the user reached for last, so that path is highlighted next time. */
+const LAST_AUTH_METHOD_KEY = 'iom-last-auth-method'
+
+type AuthMethod = 'certificate' | 'email' | SocialProviderId
+
+const AUTH_METHODS = new Set<AuthMethod>([
+  'certificate',
+  'email',
+  ...SOCIAL_PROVIDERS.map((p) => p.id),
+])
+
+// `?error=` codes the issuer appends when an OAuth sign-in ends on this page.
+const OAUTH_ERROR_KEYS: Record<string, string> = {
+  signup_disabled: 'auth.errors.signupDisabled',
+  account_not_linked: 'auth.errors.accountNotLinked',
+  BANNED_USER: 'auth.errors.banned',
+  email_not_found: 'auth.errors.socialNoEmail',
+  access_denied: 'auth.errors.socialCancelled',
+  // Not OAuth: a reset link whose callbackURL was empty lands here with this code
+  // until the token expires (sent before io2p-auth filled in a missing redirectTo).
+  INVALID_TOKEN: 'auth.resetPassword.invalidToken',
+}
+
+const landingOAuthError = createLandingErrorStore()
 
 export default function LoginPage() {
   const router = useRouter()
   const t = useTranslations()
-  const { isAuthenticated, authLoading, handleAuth, handleEmailLogin } =
-    useAuth()
+  const {
+    isAuthenticated,
+    authLoading,
+    pendingApproval,
+    handleAuth,
+    handleEmailLogin,
+    handleSocialLogin,
+  } = useAuth()
   const config = useAppConfig()
   const [submitting, setSubmitting] = useState(false)
   const [certLoading, setCertLoading] = useState(false)
+  const [socialLoading, setSocialLoading] = useState<SocialProviderId | null>(
+    null
+  )
   const [error, setError] = useState<string | null>(null)
-  const [lastAuthMethod, setLastAuthMethod] = useState<
-    'certificate' | 'email' | null
-  >(null)
+  // localStorage IS an external store, so read it as one. As state seeded by an effect it could
+  // only ever be null on the first paint, so the "last used" hint flickered in a render late.
+  // `subscribe` is a no-op: nothing rewrites the key while this page is mounted.
+  const lastAuthMethod = useSyncExternalStore(
+    () => () => {},
+    () => {
+      const stored = localStorage.getItem(LAST_AUTH_METHOD_KEY)
+      return stored && AUTH_METHODS.has(stored as AuthMethod)
+        ? (stored as AuthMethod)
+        : null
+    },
+    () => null
+  )
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -44,56 +100,36 @@ export default function LoginPage() {
     mode: 'onChange',
   })
 
-  const isLoading = submitting || certLoading
-
-  useEffect(() => {
-    const stored = localStorage.getItem('iom-last-auth-method')
-    if (stored === 'certificate' || stored === 'email') {
-      setLastAuthMethod(stored)
-    }
-  }, [])
+  const signInOptions = useSignInOptions()
+  const socialProviders = enabledSocialProviders(signInOptions.providers)
+  // Certificate is the primary action only when it is the ONLY one.
+  const hasOtherSignIn =
+    config.emailLoginEnabled === 'true' || socialProviders.length > 0
+  const certSignInEnabled = Boolean(config.mtlsBaseUrl)
+  const isLoading = submitting || certLoading || socialLoading !== null
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.replace('/objects')
+      router.replace(pendingApproval ? PENDING_APPROVAL_PATH : '/objects')
     }
-  }, [isAuthenticated, authLoading, router])
+  }, [isAuthenticated, authLoading, pendingApproval, router])
 
-  if (authLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
+  const oauthErrorCode = useLandingError(landingOAuthError)
+  const [oauthErrorDismissed, setOAuthErrorDismissed] = useState(false)
+  const shownError =
+    error ??
+    (oauthErrorCode && !oauthErrorDismissed
+      ? t(OAUTH_ERROR_KEYS[oauthErrorCode] ?? 'auth.errors.socialFailed')
+      : null)
 
-  const mapError = (errorMessage: string): string => {
-    if (errorMessage.includes('credentials')) {
-      return t('auth.errors.invalidCredentials')
-    }
-    if (errorMessage.includes('certificate')) {
-      return t('auth.errors.certificateFailed')
-    }
-    if (
-      errorMessage.includes('network') ||
-      errorMessage.includes('connection')
-    ) {
-      return t('auth.errors.networkFailed')
-    }
-    if (errorMessage.includes('timeout')) {
-      return t('auth.errors.timeout')
-    }
-    if (
-      errorMessage.includes('unauthorized') ||
-      errorMessage.includes('forbidden')
-    ) {
-      return t('auth.errors.unauthorized')
-    }
-    if (errorMessage.includes('expired')) {
-      return t('auth.errors.expired')
-    }
-    return t('auth.errors.authFailed')
-  }
+  // No auth gate here on purpose. This page used to render a full-page spinner
+  // until the session resolved, so EVERY visitor waited a round trip to be told
+  // what they came for. The only case it protected was an already-signed-in
+  // user landing on `/`, who now sees the form for one tick before the effect
+  // above redirects them — a rare, self-correcting flash traded for an instant
+  // form in the common case. It also removes a hydration branch: the session
+  // resolves only on the client, so gating render on it made the server and the
+  // client's first render disagree.
 
   const onEmailSubmit = async (data: LoginFormData) => {
     // check if emaillogin is enabled
@@ -104,40 +140,63 @@ export default function LoginPage() {
 
     setSubmitting(true)
     setError(null)
+    setOAuthErrorDismissed(true)
 
     try {
       const result = await handleEmailLogin(data.email, data.password)
       if (!result.success) {
-        throw new Error(result.error)
+        setError(t(result.errorKey))
+        return
       }
-      localStorage.setItem('iom-last-auth-method', 'email')
+      localStorage.setItem(LAST_AUTH_METHOD_KEY, 'email')
       router.replace('/objects')
     } catch (err) {
-      logger.error('Email Login Error:', err)
-      const msg =
-        err instanceof Error ? err.message : 'Unknown authentication error'
-      setError(mapError(msg))
+      // Last resort: the handlers catch their own failures.
+      logger.error('login_page_unexpected_error', { err, method: 'email' })
+      setError(t('auth.errors.authFailed'))
     } finally {
       setSubmitting(false)
     }
   }
 
+  const onSocialClick = async (provider: SocialProviderId) => {
+    setSocialLoading(provider)
+    setError(null)
+    setOAuthErrorDismissed(true)
+
+    // Written before the redirect, not after: on success this browsing context
+    // is gone, so there is no "after" to write it in.
+    localStorage.setItem(LAST_AUTH_METHOD_KEY, provider)
+
+    const result = await handleSocialLogin(provider)
+    if (!result.success) {
+      localStorage.removeItem(LAST_AUTH_METHOD_KEY)
+      setError(t(result.errorKey))
+      setSocialLoading(null)
+    }
+    // No success branch and no `finally`: the provider redirect is already
+    // underway, and dropping the overlay here would flash the form back.
+  }
+
   const handleCertificateAuth = async () => {
     setCertLoading(true)
     setError(null)
+    setOAuthErrorDismissed(true)
 
     try {
       const result = await handleAuth()
       if (!result.success) {
-        throw new Error(result.error)
+        setError(t(result.errorKey))
+        return
       }
-      localStorage.setItem('iom-last-auth-method', 'certificate')
+      localStorage.setItem(LAST_AUTH_METHOD_KEY, 'certificate')
       router.replace('/objects')
     } catch (err) {
-      logger.error('Certificate Authentication Error:', err)
-      const msg =
-        err instanceof Error ? err.message : 'Unknown authentication error'
-      setError(mapError(msg))
+      logger.error('login_page_unexpected_error', {
+        err,
+        method: 'certificate',
+      })
+      setError(t('auth.errors.authFailed'))
     } finally {
       setCertLoading(false)
     }
@@ -166,13 +225,12 @@ export default function LoginPage() {
               : 'pointer-events-none opacity-0'
           )}
         >
-          <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
-            <div className="relative">
-              <BrickLoader />
-              {/* <div className="h-16 w-16 rounded-full border-4 border-primary/0" /> */}
-              {/* <Loader2 className="absolute top-0 h-16 w-16 animate-spin text-primary" /> */}
-            </div>
-            <p className="text-sm font-medium animate-pulse text-muted-foreground">
+          <div className="flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300">
+            <Loader2
+              className="h-10 w-10 animate-spin text-primary motion-reduce:animate-none"
+              aria-hidden
+            />
+            <p className="text-sm font-medium text-muted-foreground">
               {t('auth.loading')}
             </p>
           </div>
@@ -186,10 +244,14 @@ export default function LoginPage() {
               : 'scale-100 opacity-100'
           )}
         >
-          {error && (
-            <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive animate-in slide-in-from-top-2 duration-300">
+          {shownError && (
+            <div
+              data-testid="auth-error"
+              role="alert"
+              className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive animate-in slide-in-from-top-2 duration-300"
+            >
               <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
+              <span>{shownError}</span>
             </div>
           )}
 
@@ -206,18 +268,25 @@ export default function LoginPage() {
                     render={({ field }) => (
                       <FormItem className="text-left">
                         <FormLabel>{t('auth.email.label')}</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        {/* The icon wrapper sits OUTSIDE FormControl: it is a Radix Slot, so it
+                            puts `id` on its immediate child — with the div inside, the id landed
+                            there and FormLabel's `htmlFor` pointed at a div, leaving the input
+                            with no label at all. */}
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <FormControl>
                             <Input
                               placeholder={t('auth.email.placeholder')}
                               className="pl-10"
                               disabled={isLoading}
                               {...field}
                             />
-                          </div>
-                        </FormControl>
-                        <p className="text-red-500 text-sm">
+                          </FormControl>
+                        </div>
+                        <p
+                          data-testid="auth-email-error"
+                          className="text-red-500 text-sm"
+                        >
                           {form.formState.errors.email?.message &&
                             (form.formState.errors.email.message.startsWith(
                               'auth.'
@@ -234,7 +303,15 @@ export default function LoginPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem className="text-left">
-                        <FormLabel>{t('auth.password.label')}</FormLabel>
+                        <div className="flex items-center justify-between">
+                          <FormLabel>{t('auth.password.label')}</FormLabel>
+                          <Link
+                            href="/forgot-password"
+                            className="text-sm text-primary transition-colors hover:text-primary/80"
+                          >
+                            {t('auth.forgotPassword.link')}
+                          </Link>
+                        </div>
                         <FormControl>
                           <PasswordInput
                             placeholder={t('auth.password.placeholder')}
@@ -242,7 +319,10 @@ export default function LoginPage() {
                             {...field}
                           />
                         </FormControl>
-                        <p className="text-red-500 text-sm">
+                        <p
+                          data-testid="auth-password-error"
+                          className="text-red-500 text-sm"
+                        >
                           {form.formState.errors.password?.message &&
                             (form.formState.errors.password.message.startsWith(
                               'auth.'
@@ -257,16 +337,18 @@ export default function LoginPage() {
                   <div className="relative">
                     <Button
                       type="submit"
-                      className="w-full py-6 text-base"
+                      data-testid="auth-email-submit"
+                      className="w-full"
                       disabled={isLoading}
                     >
-                      {!isLoading && <Mail className="mr-2 h-5 w-5" />}
+                      {!isLoading && <Mail className="mr-2 h-4 w-4" />}
                       {t('auth.email.signIn')}
                       {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
                     </Button>
                     {lastAuthMethod === 'email' && (
                       <Badge
                         variant="outline"
+                        data-testid="auth-last-used-email"
                         className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
                       >
                         {t('auth.lastUsed')}
@@ -275,38 +357,80 @@ export default function LoginPage() {
                   </div>
                 </form>
               </Form>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator className="w-full" />
+              {(certSignInEnabled || socialProviders.length > 0) && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      {t('auth.orContinueWith')}
+                    </span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    {t('auth.orContinueWith')}
-                  </span>
-                </div>
-              </div>
+              )}
             </>
           )}
 
-          <div className="relative">
-            <Button
-              onClick={handleCertificateAuth}
-              variant={
-                config.emailLoginEnabled === 'true' ? 'outline' : 'default'
-              }
-              className="w-full py-6 text-base transition-colors"
-              disabled={isLoading}
-            >
-              {!isLoading && <Shield className="mr-2 h-5 w-5" />}
-              {t('auth.certificate.signIn')}
-            </Button>
-            {lastAuthMethod === 'certificate' && (
-              <Badge
-                variant="outline"
-                className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+          <div className="space-y-2">
+            {certSignInEnabled && (
+              <div className="relative">
+                <Button
+                  type="button"
+                  onClick={handleCertificateAuth}
+                  data-testid="auth-certificate"
+                  variant={hasOtherSignIn ? 'outline' : 'default'}
+                  className="w-full transition-colors"
+                  disabled={isLoading}
+                >
+                  {!isLoading && <Shield className="mr-2 h-4 w-4" />}
+                  {t('auth.certificate.signIn')}
+                </Button>
+                {lastAuthMethod === 'certificate' && (
+                  <Badge
+                    variant="outline"
+                    data-testid="auth-last-used-certificate"
+                    className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+                  >
+                    {t('auth.lastUsed')}
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {socialProviders.map(({ id, Icon, labelKey }) => (
+              <div key={id} className="relative">
+                <Button
+                  type="button"
+                  onClick={() => onSocialClick(id)}
+                  data-testid={`auth-social-${id}`}
+                  variant="outline"
+                  className="w-full transition-colors"
+                  disabled={isLoading}
+                >
+                  {!isLoading && <Icon className="mr-2 h-4 w-4" />}
+                  {t(`auth.social.${labelKey}`)}
+                </Button>
+                {lastAuthMethod === id && (
+                  <Badge
+                    variant="outline"
+                    data-testid={`auth-last-used-${id}`}
+                    className="absolute -top-2.5 -right-3 rounded-md border-primary bg-background text-[10px] px-1.5 py-0.5 font-medium pointer-events-none text-primary"
+                  >
+                    {t('auth.lastUsed')}
+                  </Badge>
+                )}
+              </div>
+            ))}
+
+            {!certSignInEnabled && (
+              <p
+                data-testid="auth-certificate-unavailable"
+                className="flex items-center justify-center gap-2 pt-2 text-sm text-muted-foreground"
               >
-                {t('auth.lastUsed')}
-              </Badge>
+                <Shield className="h-4 w-4 shrink-0" aria-hidden />
+                {t('auth.certificate.unavailable')}
+              </p>
             )}
           </div>
         </div>

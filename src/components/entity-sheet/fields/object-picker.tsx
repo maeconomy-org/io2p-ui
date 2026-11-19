@@ -1,0 +1,212 @@
+'use client'
+
+import { useId, useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { useDebouncedSearch } from '@/hooks/ui/use-debounced-search'
+import { ChevronsUpDown, Loader2 } from 'lucide-react'
+
+import {
+  Button,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandMore,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui'
+import { SEARCH_SIZE } from '@/constants'
+import { PickerListError } from '@/components/list-error'
+import { SearchHighlight, useShownSearch } from '@/components/search-highlight'
+import { linkUnderRefusal, OwnerHint } from '@/components/entity-list'
+import { useAuth } from '@/contexts'
+import { useObjects } from '@/hooks/api/entities'
+import { cn } from '@/lib/utils'
+import { SearchMinHint } from '@/components/search-min-hint'
+
+/**
+ * Pick ONE existing object. Used by process flows, where the target must already exist — io2p
+ * validates a flow `ref` against the registry and additionally requires the caller to be able to READ
+ * it, so there is no inline-create path here.
+ *
+ * `refName` comes from the read model for a saved flow; a freshly picked one only knows what the
+ * search returned, so the chosen name is held locally rather than re-fetched.
+ */
+export function ObjectPicker({
+  value,
+  displayName,
+  onSelect,
+  disabled,
+  className,
+  placeholder,
+  testId = 'object-picker',
+  requireLinkable = false,
+  labelledBy,
+}: {
+  value: string
+  /** Resolved name for `value`, when the caller knows one. */
+  displayName?: string
+  onSelect: (id: string, name: string) => void
+  disabled?: boolean
+  className?: string
+  /** Empty-state label. A template flow's target is optional, so "select" would overstate it. */
+  placeholder?: string
+  testId?: string
+  /**
+   * The pick becomes a PARENT, so the viewer needs `write` on it (D135). Off by default: a process
+   * flow only needs to read its target, and must keep offering view-only objects.
+   */
+  requireLinkable?: boolean
+  /** The id of the visible label, for a picker that is not inside a labelled form field. */
+  labelledBy?: string
+}) {
+  const t = useTranslations()
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const q = useDebouncedSearch(query, 'words')
+  const [pickedName, setPickedName] = useState<string | undefined>()
+
+  // Fall back to the raw id rather than showing an empty control: an unresolved ref is still a real
+  // target, and hiding it would read as "nothing selected".
+  const label = pickedName ?? displayName ?? value
+
+  return (
+    <Popover open={open} onOpenChange={setOpen} modal>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          aria-labelledby={labelledBy}
+          disabled={disabled}
+          data-testid={testId}
+          className={cn(
+            'h-8 justify-between font-normal',
+            !value && 'text-muted-foreground',
+            className
+          )}
+        >
+          <span className="truncate">
+            {value ? label : (placeholder ?? t('processes.flows.selectObject'))}
+          </span>
+          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
+        <ObjectPickerList
+          query={query}
+          q={q}
+          onQueryChange={setQuery}
+          requireLinkable={requireLinkable}
+          onPick={(id, name) => {
+            setPickedName(name)
+            onSelect(id, name)
+            setOpen(false)
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/**
+ * The search and its results. Inside the popover content, which unmounts on close: the list query
+ * then loses its last observer and TanStack aborts a request still open.
+ */
+function ObjectPickerList({
+  query,
+  q,
+  onQueryChange,
+  requireLinkable,
+  onPick,
+}: {
+  query: string
+  /** The search, debounced in the parent so its last value outlives a close. */
+  q: string | undefined
+  onQueryChange: (query: string) => void
+  requireLinkable: boolean
+  onPick: (id: string, name: string) => void
+}) {
+  const t = useTranslations()
+  const { userId } = useAuth()
+  const hintId = useId()
+
+  const { data, isFetching, isPlaceholderData, error } = useObjects().useList(
+    { q, size: SEARCH_SIZE, page: 1, scope: 'all' },
+    { keepPreviousData: true }
+  )
+  const shownSearch = useShownSearch(q, isPlaceholderData)
+  const objects = data?.data ?? []
+  const refusalOf = (object: (typeof objects)[number]) =>
+    requireLinkable ? linkUnderRefusal(object, userId) : null
+  const anyRefused = objects.some((object) => refusalOf(object))
+
+  // The node filters server-side, so let Command show whatever came back.
+  return (
+    <Command shouldFilter={false}>
+      <CommandInput
+        placeholder={t('processes.flows.searchObjects')}
+        data-testid="object-picker-search"
+        value={query}
+        onValueChange={onQueryChange}
+        aria-describedby={hintId}
+      />
+      <SearchMinHint query={query} kind="words" id={hintId} />
+      <PickerListError error={error ?? null} />
+      <CommandList>
+        {error != null ? null : isFetching && objects.length === 0 ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <CommandEmpty>{t('processes.flows.noObjects')}</CommandEmpty>
+        )}
+        <CommandGroup>
+          {objects.map((object) => {
+            const refusal = refusalOf(object)
+            return (
+              <CommandItem
+                key={object.id}
+                value={object.id}
+                data-testid={`object-option-${object.id}`}
+                disabled={!!refusal}
+                onSelect={() => onPick(object.id, object.name)}
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  <SearchHighlight text={object.name} q={shownSearch} />
+                </span>
+                <OwnerHint
+                  ownerUserId={object.createdBy}
+                  ownerName={object.createdByName}
+                />
+                {refusal && (
+                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                    {t(refusal)}
+                  </span>
+                )}
+              </CommandItem>
+            )
+          })}
+        </CommandGroup>
+      </CommandList>
+      {/* Outside the list on purpose: cmdk never focuses a disabled row, so a screen reader
+          would not reach the reason printed inside it. */}
+      {anyRefused && (
+        <p
+          data-testid="object-picker-view-only"
+          className="border-t px-3 py-2 text-xs text-muted-foreground"
+        >
+          {t('objects.viewOnlyNotChoosable')}
+        </p>
+      )}
+      <CommandMore pages={[data]} capped />
+    </Command>
+  )
+}

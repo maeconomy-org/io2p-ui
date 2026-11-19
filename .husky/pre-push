@@ -1,1 +1,15 @@
+# A push that only deletes remote refs sends no new code, so skip the checks.
+# Git sends one line per ref: <local ref> <local sha> <remote ref> <remote sha>.
+# A delete has an all-zero <local sha>.
+only_deletes=true
+while read -r _ local_sha _ _; do
+  case "$local_sha" in
+    *[!0]*) only_deletes=false ;;
+  esac
+done
+if [ "$only_deletes" = true ]; then
+  echo "pre-push: skipped, this push sends no new commits."
+  exit 0
+fi
+
 pnpm typecheck

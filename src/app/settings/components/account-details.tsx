@@ -5,15 +5,20 @@ import { useLocale, useTranslations } from 'next-intl'
 import { AlertTriangle, Mail, Shield, ShieldCheck } from 'lucide-react'
 
 import {
+  Badge,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
   CopyButton,
+  Skeleton,
 } from '@/components/ui'
+import { describeCredential } from '@/constants'
 import { useAuth } from '@/contexts'
-import { cn } from '@/lib'
+import { useLinkedAccounts } from '@/hooks/api/use-linked-accounts'
+import { useMounted } from '@/hooks/ui/use-mounted'
+import { cn } from '@/lib/utils'
 
 /** Locale-aware date format; returns null for missing/invalid input. */
 function formatDate(value: string | undefined, locale: string): string | null {
@@ -75,13 +80,39 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
+function SocialMark({ providerId }: { providerId: string }) {
+  const credential = describeCredential(providerId)
+  if (!credential.branded) return null
+  return <credential.Icon className="h-3.5 w-3.5" />
+}
+
 export function AccountDetails() {
   const t = useTranslations('settings.account')
+  const tProviders = useTranslations(
+    'settings.security.connectedAccounts.providers'
+  )
   const locale = useLocale()
-  const { userInfo } = useAuth()
+  const { userInfo, userId, authLoading } = useAuth()
+  const { data: linkedAccounts } = useLinkedAccounts()
+  const mounted = useMounted()
 
-  const isEmailAuth = userInfo?.identifierType === 'UserAuthUP'
+  // `!mounted` is load-bearing, not belt-and-braces: better-auth resolves the
+  // session on the client but never on the server, so a branch on `authLoading`
+  // alone renders the skeleton server-side and the real rows on the client's
+  // first render — a hydration mismatch that throws away the whole subtree.
+  // Gating on `mounted` makes the server and the first client render agree on
+  // the skeleton; the real content arrives on the render after.
+  const identityUnknown = !mounted || (authLoading && !userInfo)
+
   const cert = userInfo?.certificateInfo
+  const isEmailAuth = userInfo?.identifierType === 'UserAuthUP'
+
+  // A certificate is NOT a linked account — mTLS stores its credential in its
+  // own collection, so `list-accounts` never returns one. Only reach for the
+  // social provider when this isn't a cert identity.
+  const socialAccount = cert
+    ? undefined
+    : linkedAccounts?.find((a) => describeCredential(a.providerId).branded)
   const certName = cert?.subjectFields?.CN || cert?.issuerFields?.CN
   const issuer = cert?.issuerFields?.CN
   const createdAt = formatDate(userInfo?.createdAt, locale)
@@ -96,63 +127,114 @@ export function AccountDetails() {
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent className="divide-y">
-        {userInfo?.userUUID && (
-          <Row label={t('userId')}>
-            <span className="flex items-center gap-2">
-              <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs">
-                {userInfo.userUUID}
-              </code>
-              <CopyButton text={userInfo.userUUID} className="h-6 w-6 p-0" />
-            </span>
-          </Row>
-        )}
-
-        <Row label={t('authType')}>
-          <span className="inline-flex items-center gap-1.5">
-            {isEmailAuth ? (
-              <>
-                <Mail className="h-3.5 w-3.5 text-blue-600" aria-hidden />
-                {t('email')}
-              </>
-            ) : (
-              <>
-                <Shield className="h-3.5 w-3.5 text-green-600" aria-hidden />
-                {t('certificate')}
-              </>
+        {/* Until the session resolves, `userInfo` is null — which makes
+            `isEmailAuth` false and renders the CERTIFICATE branch as though it
+            were known, then flips to Email. Rows also appear one by one as
+            their data arrives, growing the card. Hold the whole body until the
+            identity is known: one honest wait instead of a wrong answer plus
+            three layout shifts. */}
+        {identityUnknown ? (
+          <div className="space-y-4 py-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center justify-between gap-4">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-44" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {userId && (
+              <Row label={t('userId')}>
+                <span className="flex items-center gap-2">
+                  <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs">
+                    {userId}
+                  </code>
+                  <CopyButton text={userId} className="h-6 w-6 p-0" />
+                </span>
+              </Row>
             )}
-          </span>
-        </Row>
 
-        {isEmailAuth && userInfo?.username && (
-          <Row label={t('username')}>{userInfo.username}</Row>
-        )}
-        {!isEmailAuth && certName && (
-          <Row label={t('certificateName')}>{certName}</Row>
-        )}
-        {!isEmailAuth && issuer && <Row label={t('issuer')}>{issuer}</Row>}
-        {!isEmailAuth && validFrom && (
-          <Row label={t('validFrom')}>{validFrom}</Row>
-        )}
-        {!isEmailAuth && validTo && <Row label={t('validTo')}>{validTo}</Row>}
-        {!isEmailAuth && expiry && (
-          <Row label={t('expiresIn')}>
-            <span
-              className={cn(
-                'inline-flex items-center gap-1.5 font-semibold',
-                EXPIRY_CLASS[expiry.severity]
-              )}
-            >
-              {expiry.severity === 'ok' ? (
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-              ) : (
-                <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-              )}
-              {expiry.text}
-            </span>
-          </Row>
-        )}
+            <Row label={t('authType')}>
+              <span className="inline-flex items-center gap-1.5">
+                {socialAccount ? (
+                  <>
+                    <SocialMark providerId={socialAccount.providerId} />
+                    {tProviders(
+                      describeCredential(socialAccount.providerId).labelKey
+                    )}
+                  </>
+                ) : isEmailAuth ? (
+                  <>
+                    <Mail className="h-3.5 w-3.5 text-blue-600" aria-hidden />
+                    {t('email')}
+                  </>
+                ) : (
+                  <>
+                    <Shield
+                      className="h-3.5 w-3.5 text-green-600"
+                      aria-hidden
+                    />
+                    {t('certificate')}
+                  </>
+                )}
+              </span>
+            </Row>
 
-        <Row label={t('createdAt')}>{createdAt ?? t('notAvailable')}</Row>
+            {userInfo?.email && (
+              <Row label={t('emailAddress')}>
+                <span className="flex items-center gap-2">
+                  {userInfo.email}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px]',
+                      userInfo.emailVerified
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-amber-600 dark:text-amber-400'
+                    )}
+                  >
+                    {userInfo.emailVerified ? t('verified') : t('unverified')}
+                  </Badge>
+                </span>
+              </Row>
+            )}
+
+            {userInfo?.username && (
+              <Row label={t('username')}>{userInfo.username}</Row>
+            )}
+
+            <Row label={t('createdAt')}>{createdAt ?? t('notAvailable')}</Row>
+
+            {!isEmailAuth && certName && (
+              <Row label={t('certificateName')}>{certName}</Row>
+            )}
+            {!isEmailAuth && issuer && <Row label={t('issuer')}>{issuer}</Row>}
+            {!isEmailAuth && validFrom && (
+              <Row label={t('validFrom')}>{validFrom}</Row>
+            )}
+            {!isEmailAuth && validTo && (
+              <Row label={t('validTo')}>{validTo}</Row>
+            )}
+            {!isEmailAuth && expiry && (
+              <Row label={t('expiresIn')}>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 font-semibold',
+                    EXPIRY_CLASS[expiry.severity]
+                  )}
+                >
+                  {expiry.severity === 'ok' ? (
+                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                  ) : (
+                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+                  )}
+                  {expiry.text}
+                </span>
+              </Row>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   )

@@ -1,0 +1,346 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
+import type { ObjectListItem, Page } from 'io2p-client'
+
+import { useObjectListPage } from '@/app/objects/components/use-object-list-page'
+
+const remove = vi.fn().mockResolvedValue({})
+const restore = vi.fn().mockResolvedValue({})
+const bulkRemove = vi.fn()
+const bulkRestore = vi.fn()
+const toast = vi.hoisted(() => ({ error: vi.fn() }))
+const pending = vi.hoisted(() => ({ bulkRemove: false, bulkRestore: false }))
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
+  useFormatter: () => ({ list: (items: string[]) => items.join(', ') }),
+}))
+vi.mock('sonner', () => ({ toast }))
+
+vi.mock('@/hooks/api/entities', () => ({
+  useObjects: () => ({
+    useRemove: () => ({ mutateAsync: remove, isPending: false }),
+    useRestore: () => ({ mutateAsync: restore, isPending: false }),
+    useBulkRemove: () => ({
+      mutateAsync: bulkRemove,
+      isPending: pending.bulkRemove,
+    }),
+    useBulkRestore: () => ({
+      mutateAsync: bulkRestore,
+      isPending: pending.bulkRestore,
+    }),
+  }),
+}))
+
+// The template flow has its own tests; here it only has to exist so the hook can hold its state.
+vi.mock('@/app/objects/components/use-create-template-from-object', () => ({
+  useCreateTemplateFromObject: () => ({
+    source: null,
+    setSource: vi.fn(),
+    initialData: { name: '', description: '', version: '1.0' },
+    confirm: vi.fn(),
+    isCreating: false,
+  }),
+}))
+
+vi.mock('@/lib/observability/logger', () => ({ logger: { error: vi.fn() } }))
+vi.mock('@/contexts', () => ({ useAuth: () => ({ userId: 'me' }) }))
+
+const row = (id: string, deleted = false) =>
+  ({ id, name: `Object ${id}`, deleted }) as unknown as ObjectListItem
+
+const pageOf = (...rows: ObjectListItem[]) =>
+  ({
+    data: rows,
+    page: { totalElements: rows.length },
+  }) as unknown as Page<ObjectListItem>
+
+describe('useObjectListPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    pending.bulkRemove = false
+    pending.bulkRestore = false
+    bulkRemove.mockResolvedValue({ failures: [] })
+    bulkRestore.mockResolvedValue({ failures: [] })
+  })
+
+  const renderWith = (page?: Page<ObjectListItem>) =>
+    renderHook(() => useObjectListPage({ page }))
+
+  describe('selection', () => {
+    it('resolves selected ids against the rendered page', () => {
+      const { result } = renderWith(pageOf(row('a'), row('b'), row('c')))
+
+      act(() => result.current.setRowSelection({ a: true, c: true }))
+
+      expect(result.current.selectedIds).toEqual(['a', 'c'])
+      expect(
+        result.current.selectedObjects.map((o: ObjectListItem) => o.id)
+      ).toEqual(['a', 'c'])
+    })
+
+    it('ignores ids that are not on this page', () => {
+      // Paging away leaves stale keys in TanStack's selection map. Resolving against the CURRENT
+      // page is what stops a bulk action touching a row the user can no longer see.
+      const { result } = renderWith(pageOf(row('a')))
+
+      act(() => result.current.setRowSelection({ a: true, gone: true }))
+
+      expect(
+        result.current.selectedObjects.map((o: ObjectListItem) => o.id)
+      ).toEqual(['a'])
+    })
+
+    it('reports both halves of a mixed selection', () => {
+      const { result } = renderWith(pageOf(row('a'), row('b', true)))
+
+      act(() => result.current.setRowSelection({ a: true, b: true }))
+
+      // A selection spanning live and deleted rows has no single verb, so the bar offers both.
+      expect(result.current.canDeleteSelection).toBe(true)
+      expect(result.current.anySelectedDeleted).toBe(true)
+    })
+
+    it('clears', () => {
+      const { result } = renderWith(pageOf(row('a')))
+      act(() => result.current.setRowSelection({ a: true }))
+      act(() => result.current.clearSelection())
+      expect(result.current.selectedIds).toEqual([])
+    })
+  })
+
+  describe('delete', () => {
+    it('does nothing without a target', async () => {
+      const { result } = renderWith(pageOf(row('a')))
+      await act(async () => {
+        await result.current.confirmDelete()
+      })
+      expect(remove).not.toHaveBeenCalled()
+    })
+
+    it('deletes the target and drops it, closing the dialog', async () => {
+      const { result } = renderWith(pageOf(row('a')))
+
+      act(() => result.current.setObjectToDelete(row('a')))
+      await act(async () => {
+        await result.current.confirmDelete()
+      })
+
+      expect(remove).toHaveBeenCalledWith({ id: 'a' })
+      expect(result.current.objectToDelete).toBeNull()
+    })
+
+    it('still closes the dialog when the delete fails', async () => {
+      remove.mockRejectedValueOnce(new Error('nope'))
+      const { result } = renderWith(pageOf(row('a')))
+
+      act(() => result.current.setObjectToDelete(row('a')))
+      await act(async () => {
+        await result.current.confirmDelete()
+      })
+
+      // The `finally` matters: leaving the confirm open over a failed delete invites a second click
+      // that fails the same way, with no explanation either time.
+      expect(result.current.objectToDelete).toBeNull()
+    })
+  })
+
+  describe('bulk', () => {
+    it('deletes every selected id and clears', async () => {
+      const { result } = renderWith(pageOf(row('a'), row('b')))
+
+      act(() => result.current.setRowSelection({ a: true, b: true }))
+      act(() => result.current.setConfirmBulkDelete(true))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      expect(bulkRemove).toHaveBeenCalledWith(['a', 'b'])
+      expect(toast.error).not.toHaveBeenCalled()
+      expect(result.current.confirmBulkDelete).toBe(false)
+      expect(result.current.selectedIds).toEqual([])
+    })
+
+    it('sends only the rows the viewer may delete, not the whole selection', async () => {
+      // The button appears because ONE row is actionable; sending the rest would 403 each of them,
+      // and Promise.all turns that into a single logged line the user never sees.
+      const { result } = renderWith(
+        pageOf(
+          { ...row('mine'), permission: 'admin' } as ObjectListItem,
+          { ...row('theirs'), permission: 'read' } as ObjectListItem
+        )
+      )
+
+      act(() => result.current.setRowSelection({ mine: true, theirs: true }))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      expect(bulkRemove).toHaveBeenCalledWith(['mine'])
+    })
+
+    it('offers Set parent only for the rows the viewer may move', () => {
+      // Mixed on purpose: with only admin rows the filter could be removed and this stays green.
+      const { result } = renderWith(
+        pageOf(
+          { ...row('admin'), permission: 'admin' } as ObjectListItem,
+          { ...row('share'), permission: 'share' } as ObjectListItem,
+          { ...row('write'), permission: 'write' } as ObjectListItem
+        )
+      )
+
+      act(() =>
+        result.current.setRowSelection({
+          admin: true,
+          share: true,
+          write: true,
+        })
+      )
+
+      expect(result.current.movableObjects.map((o) => o.id)).toEqual(['admin'])
+    })
+
+    it('leaves a deleted object out of Set parent, even for an admin', () => {
+      // The node refuses to PATCH a deleted object (409) before it checks the parents.
+      const { result } = renderWith(
+        pageOf(
+          { ...row('live'), permission: 'admin' } as ObjectListItem,
+          { ...row('gone', true), permission: 'admin' } as ObjectListItem
+        )
+      )
+
+      act(() => result.current.setRowSelection({ live: true, gone: true }))
+
+      expect(result.current.movableObjects.map((o) => o.id)).toEqual(['live'])
+    })
+
+    it('restores every selected id and clears', async () => {
+      const { result } = renderWith(pageOf(row('a', true), row('b', true)))
+
+      act(() => result.current.setRowSelection({ a: true, b: true }))
+      await act(async () => {
+        await result.current.runBulkRestore()
+      })
+
+      expect(bulkRestore).toHaveBeenCalledWith(['a', 'b'])
+      expect(result.current.selectedIds).toEqual([])
+    })
+
+    it('names the objects that were not deleted', async () => {
+      bulkRemove.mockResolvedValue({
+        failures: [{ id: 'b', error: new Error('403') }],
+      })
+      const { result } = renderWith(pageOf(row('a'), row('b')))
+
+      act(() => result.current.setRowSelection({ a: true, b: true }))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'objects.bulk.deleteFailed:{"count":1,"names":"Object b"}'
+      )
+    })
+
+    // A toast listing 80 names cannot be read; the first few and a count can.
+    it('names the first three that were not restored, and counts the rest', async () => {
+      const ids = ['a', 'b', 'c', 'd', 'e']
+      bulkRestore.mockResolvedValue({
+        failures: ids.map((id) => ({ id, error: new Error('x') })),
+      })
+      const { result } = renderWith(pageOf(...ids.map((id) => row(id, true))))
+
+      act(() =>
+        result.current.setRowSelection(
+          Object.fromEntries(ids.map((id) => [id, true]))
+        )
+      )
+      await act(async () => {
+        await result.current.runBulkRestore()
+      })
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'objects.bulk.restoreFailed:{"count":5,"names":"Object a, Object b, Object c, objects.bulk.andMore:{\\"count\\":2}"}'
+      )
+    })
+
+    // The confirm dialog closes on click and the selection stays, so the buttons must wait.
+    it('is busy while a bulk delete or restore runs', () => {
+      pending.bulkRemove = true
+      expect(renderWith(pageOf(row('a'))).result.current.isBusy).toBe(true)
+      pending.bulkRemove = false
+      pending.bulkRestore = true
+      expect(renderWith(pageOf(row('a'))).result.current.isBusy).toBe(true)
+    })
+
+    it('logs and clears the selection when the bulk call itself fails', async () => {
+      bulkRemove.mockRejectedValue(new Error('down'))
+      const { result } = renderWith(pageOf(row('a')))
+
+      act(() => result.current.setRowSelection({ a: true }))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      expect(result.current.selectedIds).toEqual([])
+      const { logger } = await import('@/lib/observability/logger')
+      expect(logger.error).toHaveBeenCalled()
+    })
+
+    it('names an object without a name by its id', async () => {
+      bulkRemove.mockResolvedValue({
+        failures: [{ id: 'x', error: new Error('403') }],
+      })
+      const { result } = renderWith(
+        pageOf({ ...row('x'), name: '' } as ObjectListItem)
+      )
+
+      act(() => result.current.setRowSelection({ x: true }))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'objects.bulk.deleteFailed:{"count":1,"names":"x"}'
+      )
+    })
+
+    it('clears the selection even when one row fails', async () => {
+      bulkRemove.mockResolvedValue({
+        failures: [{ id: 'a', error: new Error('nope') }],
+      })
+      const { result } = renderWith(pageOf(row('a'), row('b')))
+
+      act(() => result.current.setRowSelection({ a: true, b: true }))
+      await act(async () => {
+        await result.current.runBulkDelete()
+      })
+
+      // Keeping a half-applied selection would let the user retry the whole batch, re-deleting the
+      // rows that already went.
+      expect(result.current.selectedIds).toEqual([])
+    })
+  })
+
+  describe('row targets', () => {
+    it('opens details against the clicked row', () => {
+      const { result } = renderWith(pageOf(row('a')))
+
+      act(() => result.current.openDetails(row('a')))
+
+      expect(result.current.isDetailsOpen).toBe(true)
+      expect(result.current.selectedObject?.id).toBe('a')
+    })
+
+    // The regression this guards: /objects gated the Duplicate sheet on a SECOND boolean that
+    // nothing ever set, so the row action silently did nothing while the children page worked.
+    it('needs only the target to open Duplicate', () => {
+      const { result } = renderWith(pageOf(row('a')))
+
+      act(() => result.current.setDuplicateTarget(row('a')))
+
+      expect(result.current.duplicateTarget?.id).toBe('a')
+    })
+  })
+})

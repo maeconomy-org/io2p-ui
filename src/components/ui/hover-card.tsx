@@ -26,4 +26,30 @@ const HoverCardContent = React.forwardRef<
 ))
 HoverCardContent.displayName = HoverCardPrimitive.Content.displayName
 
-export { HoverCard, HoverCardTrigger, HoverCardContent }
+/**
+ * A hover card whose content is an IMAGE rather than text.
+ *
+ * Dark and tightly padded on purpose: a picture needs a neutral surround to read against, and the
+ * default light popover puts a white frame around white-ish images. Sized by its child, not `w-64`.
+ */
+const HoverCardMediaContent = React.forwardRef<
+  React.ElementRef<typeof HoverCardPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content>
+>(({ className, align = 'center', sideOffset = 8, ...props }, ref) => (
+  <HoverCardPrimitive.Content
+    ref={ref}
+    align={align}
+    sideOffset={sideOffset}
+    className={cn(
+      'z-50 w-auto rounded-xl border-0 bg-neutral-800 p-2 shadow-xl outline-none',
+      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+      'data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1',
+      'motion-reduce:animate-none',
+      className
+    )}
+    {...props}
+  />
+))
+HoverCardMediaContent.displayName = 'HoverCardMediaContent'
+
+export { HoverCard, HoverCardTrigger, HoverCardContent, HoverCardMediaContent }

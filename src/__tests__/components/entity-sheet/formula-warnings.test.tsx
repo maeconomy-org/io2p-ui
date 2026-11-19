@@ -1,0 +1,229 @@
+import { describe, it, expect } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import type { FormulaPreviewWarning } from 'io2p-client'
+
+import en from '@/messages/en.json'
+import nl from '@/messages/nl.json'
+import {
+  FormulaNotes,
+  useWarningNotes,
+} from '@/components/entity-sheet/fields/formula-warnings'
+
+function Warnings({ warnings }: { warnings: FormulaPreviewWarning[] }) {
+  return <FormulaNotes notes={useWarningNotes(warnings)} />
+}
+
+const w = (over: Partial<FormulaPreviewWarning>): FormulaPreviewWarning => ({
+  code: 'hand-conversion',
+  detail: 'english detail',
+  ...over,
+})
+
+function textOf(warning: FormulaPreviewWarning, locale: 'en' | 'nl' = 'en') {
+  render(
+    <NextIntlClientProvider
+      locale={locale}
+      messages={locale === 'en' ? en : nl}
+    >
+      <Warnings warnings={[warning]} />
+    </NextIntlClientProvider>
+  )
+  const item = screen.getByTestId(`formula-warning-${warning.code}`)
+  // The full sentence waits behind "Why?"; open it so the whole text is asserted.
+  const why = within(item).queryByRole('button')
+  if (why) fireEvent.click(why)
+  return item.textContent
+}
+
+describe('formula warnings', () => {
+  // The number is the product of every scaling literal, inverted below 1: `* 0.001` sends 1000.
+  // The sentence must not claim the formula contains it.
+  it('names the scale of a hand conversion without claiming it is written there', () => {
+    const text = textOf(w({ literal: 1000, unit: 't' }))
+    expect(text).toContain('multiply or divide the result by 1,000')
+    expect(text).toContain('duplicate this one')
+  })
+
+  // The net effect, not the operator: `* 0.001` scales down too, and has no division to remove.
+  it('names the effect when the node sends it', () => {
+    const text = textOf(w({ literal: 1000, scales: 'down', unit: 't' }))
+    expect(text).toContain('makes the result 1,000 times smaller')
+    expect(text).toContain('without that conversion')
+  })
+
+  it('names a result made larger too', () => {
+    expect(textOf(w({ literal: 3600000, scales: 'up', unit: 'J' }))).toContain(
+      'makes the result 3,600,000 times larger'
+    )
+  })
+
+  it('writes the effect the Dutch way', () => {
+    expect(
+      textOf(w({ literal: 1000, scales: 'down', unit: 't' }), 'nl')
+    ).toContain('maakt het resultaat 1.000 keer kleiner')
+  })
+
+  it('names the variable a conversion constant is bound to', () => {
+    expect(
+      textOf(w({ literal: 1000, scales: 'down', unit: 't', vars: ['k'] }))
+    ).toContain('The constant bound to k (1,000)')
+  })
+
+  it('prints a small conversion constant in full, not as 0', () => {
+    expect(
+      textOf(w({ literal: 0.000001, scales: 'down', unit: 'mg', vars: ['k'] }))
+    ).toContain('(0.000001)')
+  })
+
+  it('lists several factor variables as a sentence, in the reader’s language', () => {
+    expect(
+      textOf(w({ code: 'factor', vars: ['f', 'g'], unit: 'kg', per: 'kWh' }))
+    ).toContain('f and g are read in kg per kWh')
+  })
+
+  it('reads a count partner as "per item", not the symbol', () => {
+    expect(
+      textOf(w({ code: 'factor', vars: ['f'], unit: 'kg', per: 'pcs' }))
+    ).toContain('per item')
+  })
+
+  it('falls back to a general sentence when the factor has no named "per" unit', () => {
+    expect(textOf(w({ code: 'factor', vars: ['f'], unit: 'kg' }))).toContain(
+      'per standard unit of what it multiplies'
+    )
+  })
+
+  // Advising a unit the node is not sure of could move the value out of every total.
+  it('suggests a unit only when the node names one', () => {
+    expect(textOf(w({ code: 'declare-unit', unit: 'kgCO2e' }))).toContain(
+      'set kgCO2e as the result unit'
+    )
+  })
+
+  it('says a unit-less result still counts, and what a multiplier does with it', () => {
+    const text = textOf(w({ code: 'declare-unit' }))
+    expect(text).toContain('counts in the total without a unit')
+    expect(text).toContain('left out of the total')
+    expect(text).toContain('set its real unit as the result unit')
+  })
+
+  // The set is open: a new code must still say something, and the English detail is all there is.
+  it('shows the node’s own text for a code it does not know', () => {
+    expect(textOf(w({ code: 'something-new' }))).toBe('english detail')
+  })
+
+  it('shows the node’s own text when a known code lacks the fields its sentence needs', () => {
+    expect(textOf(w({ unit: 't' }))).toBe('english detail')
+  })
+
+  it('shows the node’s own text for a factor with no variables or no unit', () => {
+    expect(textOf(w({ code: 'factor', unit: 'kg' }))).toBe('english detail')
+  })
+
+  it('writes the number and the list the Dutch way', () => {
+    expect(textOf(w({ literal: 1000, unit: 't' }), 'nl')).toContain('met 1.000')
+  })
+
+  // Grey when the value is stored and counted; amber when a number is probably wrong.
+  it('shows a factor and a result without a unit as information, a conversion as a warning', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <Warnings
+          warnings={[
+            w({ literal: 1000, unit: 't' }),
+            w({ code: 'factor', vars: ['f'], unit: 'kg' }),
+            w({ code: 'declare-unit' }),
+          ]}
+        />
+      </NextIntlClientProvider>
+    )
+    expect(screen.getByTestId('formula-warning-factor')).toHaveAttribute(
+      'data-tone',
+      'info'
+    )
+    expect(screen.getByTestId('formula-warning-declare-unit')).toHaveAttribute(
+      'data-tone',
+      'info'
+    )
+    expect(
+      screen.getByTestId('formula-warning-hand-conversion')
+    ).toHaveAttribute('data-tone', 'warn')
+  })
+
+  it('shows one short line, and the full sentence only behind "Why?"', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <Warnings
+          warnings={[w({ literal: 1000, scales: 'down', unit: 't' })]}
+        />
+      </NextIntlClientProvider>
+    )
+    const item = screen.getByTestId('formula-warning-hand-conversion')
+    expect(item).toHaveTextContent(
+      'Looks like a conversion to t by hand: the result is 1,000 times smaller.'
+    )
+    expect(item).not.toHaveTextContent('duplicate this one')
+
+    fireEvent.click(within(item).getByRole('button', { name: 'Why?' }))
+    expect(item).toHaveTextContent('duplicate this one')
+  })
+
+  const twoConversions = [
+    w({ literal: 1000, scales: 'down', unit: 't' }),
+    w({ literal: 100, scales: 'down', unit: 'm' }),
+  ]
+
+  function renderWarnings(warnings: FormulaPreviewWarning[]) {
+    return render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <Warnings warnings={warnings} />
+      </NextIntlClientProvider>
+    )
+  }
+
+  it('tells each "Why?" apart by the warning it explains', () => {
+    renderWarnings(twoConversions)
+    const [first, second] = screen.getAllByRole('button', { name: 'Why?' })
+
+    expect(first).toHaveAccessibleDescription(/to t by hand/)
+    expect(second).toHaveAccessibleDescription(/to m by hand/)
+  })
+
+  it('points aria-controls only at a rendered explanation', () => {
+    renderWarnings(twoConversions)
+    const [why] = screen.getAllByRole('button', { name: 'Why?' })
+    expect(why).not.toHaveAttribute('aria-controls')
+
+    fireEvent.click(why)
+    const id = why.getAttribute('aria-controls')
+    expect(id && document.getElementById(id)).toBeInstanceOf(HTMLElement)
+  })
+
+  it('keeps an open explanation with its own warning when one above goes', () => {
+    const { rerender } = renderWarnings(twoConversions)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Why?' })[1])
+
+    rerender(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <Warnings warnings={[twoConversions[1]]} />
+      </NextIntlClientProvider>
+    )
+    expect(screen.getByRole('button', { name: 'Why?' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    )
+  })
+
+  // A factor sentence is already one line; a "Why?" there would repeat it.
+  it('offers no "Why?" for a factor reading', () => {
+    render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <Warnings warnings={[w({ code: 'factor', vars: ['f'], unit: 'kg' })]} />
+      </NextIntlClientProvider>
+    )
+    expect(
+      within(screen.getByTestId('formula-warning-factor')).queryByRole('button')
+    ).toBeNull()
+  })
+})
