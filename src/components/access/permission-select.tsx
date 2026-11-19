@@ -64,7 +64,11 @@ export function PermissionSelect({
           0,
           max ? PERMISSIONS.indexOf(max) + 1 : undefined
         ).map((permission) => (
-          <SelectItem key={permission} value={permission}>
+          <SelectItem
+            key={permission}
+            value={permission}
+            data-testid={`permission-option-${permission}`}
+          >
             <span className="flex flex-col items-start">
               <span>{t(`access.permission.${permission}`)}</span>
               <span className="text-xs text-muted-foreground">
