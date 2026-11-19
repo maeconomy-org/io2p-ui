@@ -45,7 +45,7 @@ import {
   type ParsedSearch,
   type SearchListType,
 } from './search-parser'
-import { FilterPanel } from './filter-panel'
+import { FilterPanel, type FilterPanelHandle } from './filter-panel'
 import { useSearchGrammar } from './use-search-grammar'
 import {
   SavedSearchGroup,
@@ -220,6 +220,7 @@ export function CommandCenter({
   const [showSuggestions] = React.useState(true)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const hintId = React.useId()
+  const panelRef = React.useRef<FilterPanelHandle>(null)
   const problemsId = React.useId()
   const pillsId = React.useId()
   // `template:` sends the search to the templates or objects list, whatever page it started on.
@@ -303,22 +304,33 @@ export function CommandCenter({
   }
 
   const handleSearch = () => {
+    // Values typed in the open panel count as applied: Enter must not drop them unseen.
+    const pending = panelOpen
+      ? (panelRef.current?.pendingQuery() ?? null)
+      : null
+    if (pending === 'invalid') return
+    const query = pending ?? inputValue
+    if (pending !== null) {
+      setInputValue(query)
+      setPanel({ session, open: false })
+    }
+
     // An empty submit is the way back to the unfiltered list, not a no-op.
-    if (!inputValue.trim()) {
+    if (!query.trim()) {
       onClear?.()
       onOpenChange?.(false)
       return
     }
 
     // Parse inline to avoid stale state from useEffect
-    const freshParsed = parseSearchQuery(inputValue, grammar)
+    const freshParsed = parseSearchQuery(query, grammar)
     // The hint under the input says why; the list keeps its last search.
     const input = searchInput(searchTextOf(freshParsed), kindOf(freshParsed))
     if (input.status === 'refused' && input.problem === 'too-many-words') {
       return
     }
 
-    saveRecentSearch(inputValue)
+    saveRecentSearch(query)
     onSearch?.(freshParsed)
     onOpenChange?.(false)
   }
@@ -543,6 +555,7 @@ export function CommandCenter({
           )}
           {panelOpen && (
             <FilterPanel
+              ref={panelRef}
               id={panelId}
               query={inputValue}
               ranges={listType === 'objects'}

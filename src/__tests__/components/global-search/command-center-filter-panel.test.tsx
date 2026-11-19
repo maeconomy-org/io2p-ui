@@ -112,6 +112,45 @@ describe('CommandCenter filter panel', () => {
     expect(input().value).toBe('')
   })
 
+  it('applies complete panel values on Enter in the search box, never drops them', async () => {
+    const onSearch = vi.fn()
+    const { user } = await setup({ initialQuery: 'beton', onSearch })
+    await user.click(addFilter())
+    await user.type(screen.getByLabelText('filterPanel.numberKey'), 'mass')
+    await user.type(screen.getByLabelText('filterPanel.numberFrom'), '2')
+    await user.click(input())
+    await user.keyboard('{Enter}')
+
+    expect(onSearch).toHaveBeenCalledTimes(1)
+    expect(
+      onSearch.mock.calls[0][0].filters.map((f: { value: string }) => f.value)
+    ).toEqual(['beton', 'mass>=2'])
+    expect(input().value).toBe('beton mass>=2')
+  })
+
+  it('keeps the dialog open on Enter when the panel values are not complete', async () => {
+    const onSearch = vi.fn()
+    const { user, onOpenChange } = await setup({ onSearch })
+    await user.click(addFilter())
+    await user.type(screen.getByLabelText('filterPanel.numberFrom'), '2')
+    await user.click(input())
+    await user.keyboard('beton{Enter}')
+
+    expect(onSearch).not.toHaveBeenCalled()
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
+    expect(screen.getByText('filterPanel.error.numberKey')).toBeInTheDocument()
+  })
+
+  it('searches as before on Enter when the open panel has nothing typed', async () => {
+    const onSearch = vi.fn()
+    const { user } = await setup({ onSearch })
+    await user.click(addFilter())
+    await user.click(input())
+    await user.keyboard('beton{Enter}')
+
+    expect(onSearch).toHaveBeenCalledTimes(1)
+  })
+
   it('closes only the panel on Escape, then the dialog on a second one', async () => {
     const { user, onOpenChange } = await setup()
     await user.click(addFilter())

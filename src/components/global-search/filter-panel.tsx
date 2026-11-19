@@ -43,13 +43,28 @@ interface FilterPanelProps {
   /** False on a list that takes no numbers, dates or folder. */
   ranges: boolean
   onApply: (query: string) => void
+  ref?: React.Ref<FilterPanelHandle>
+}
+
+export interface FilterPanelHandle {
+  /**
+   * The search with the values typed here but not applied: null when nothing was typed, 'invalid'
+   * after the panel showed why it cannot apply them.
+   */
+  pendingQuery(): string | null | 'invalid'
 }
 
 /**
  * The "Add filter" form. It owns no filter state of its own: Apply writes tokens into the search
  * text, and the parser reads them as if typed.
  */
-export function FilterPanel({ id, query, ranges, onApply }: FilterPanelProps) {
+export function FilterPanel({
+  id,
+  query,
+  ranges,
+  onApply,
+  ref,
+}: FilterPanelProps) {
   const t = useTranslations('filterPanel')
   const grammar = useSearchGrammar()
   const [values, setValues] = React.useState(() =>
@@ -72,8 +87,7 @@ export function FilterPanel({ id, query, ranges, onApply }: FilterPanelProps) {
     if (kind) setTouched((prev) => new Set(prev).add(kind))
   }
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault()
+  const check = (): string | 'invalid' => {
     const result = panelQuery(query, values, ranges, touched, grammar)
     if ('errors' in result) {
       setErrors(result.errors)
@@ -81,10 +95,20 @@ export function FilterPanel({ id, query, ranges, onApply }: FilterPanelProps) {
       formRef.current
         ?.querySelector<HTMLElement>(`[data-field="${first}"]`)
         ?.focus()
-      return
+      return 'invalid'
     }
-    onApply(result.query)
+    return result.query
   }
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault()
+    const result = check()
+    if (result !== 'invalid') onApply(result)
+  }
+
+  React.useImperativeHandle(ref, () => ({
+    pendingQuery: () => (touched.size === 0 ? null : check()),
+  }))
 
   const field = (name: PanelField, label: string, input: React.ReactNode) => (
     <div className="grid min-w-0 gap-1">
