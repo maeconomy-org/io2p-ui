@@ -217,6 +217,7 @@
     "listRefused": "This list could not load:",
     "listFailed": "The list could not load.",
     "listFailedTryAgain": "The list could not load. Try again.",
+    "listOffline": "No connection. The list loads again when you are back online.",
     "listRetry": "Try again",
     "sessionExpired": "Your session expired. Sign in again to save.",
     "restore": "Restore",

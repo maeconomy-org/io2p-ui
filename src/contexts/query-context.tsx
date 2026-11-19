@@ -67,6 +67,26 @@ export function retryQuery(failureCount: number, error: unknown): boolean {
   return permanent ? false : failureCount < 1
 }
 
+export const QUERY_DEFAULTS = {
+  // Deliberately conservative: these apply to every hook that does NOT
+  // set its own staleTime. The previous `Infinity` default meant any
+  // such query was cached for the session and never refetched — safe
+  // for the hooks that opted in explicitly, silently stale for the
+  // ones that never thought about it.
+  staleTime: 30_000,
+  gcTime: 1000 * 60 * 10,
+  // `true` means "refetch on mount IF STALE", not "always refetch" — fresh data still
+  // comes from cache with no request. `false` broke invalidation across pages:
+  // `invalidateQueries` marks an INACTIVE query stale but cannot refetch it, so creating
+  // a template from /objects left /templates serving its cached list until a hard reload.
+  // Every create or delete performed from another page had the same hole.
+  refetchOnMount: true,
+  refetchOnWindowFocus: false,
+  // Offline, the default `online` mode PAUSES a query: no error, so a list showed "Loading" with
+  // no end. A failed query shows why and offers a retry; refetchOnReconnect loads it again.
+  networkMode: 'always',
+} as const
+
 export function QueryProvider({ children, config }: QueryProviderProps) {
   const queryClient = useMemo(
     () =>
@@ -111,23 +131,7 @@ export function QueryProvider({ children, config }: QueryProviderProps) {
           },
         }),
         defaultOptions: {
-          queries: {
-            // Deliberately conservative: these apply to every hook that does NOT
-            // set its own staleTime. The previous `Infinity` default meant any
-            // such query was cached for the session and never refetched — safe
-            // for the hooks that opted in explicitly, silently stale for the
-            // ones that never thought about it.
-            staleTime: 30_000,
-            gcTime: 1000 * 60 * 10,
-            // `true` means "refetch on mount IF STALE", not "always refetch" — fresh data still
-            // comes from cache with no request. `false` broke invalidation across pages:
-            // `invalidateQueries` marks an INACTIVE query stale but cannot refetch it, so creating
-            // a template from /objects left /templates serving its cached list until a hard reload.
-            // Every create or delete performed from another page had the same hole.
-            refetchOnMount: true,
-            refetchOnWindowFocus: false,
-            retry: retryQuery,
-          },
+          queries: { ...QUERY_DEFAULTS, retry: retryQuery },
         },
       }),
     []
