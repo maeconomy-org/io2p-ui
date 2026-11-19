@@ -5,6 +5,7 @@ import {
   numberToken,
   parseDateValue,
   parseNumberToken,
+  isGroupedNumber,
   readNumber,
 } from '@/components/global-search/search-grammar'
 
@@ -172,5 +173,46 @@ describe('parseDateValue', () => {
     ['2026-11-30..2026-11-01', 'reversed'],
   ])('refuses %s', (text, reason) => {
     expect(dates(text)).toBe(reason)
+  })
+})
+
+describe('a number grouped in thousands with the other mark', () => {
+  const comma = (token: string) => parseNumberToken(token, ',')
+  const point = (token: string) => parseNumberToken(token, '.')
+
+  it.each([
+    ['mass>=2.000kg', comma],
+    ['mass<=1.500', comma],
+    ['mass:1.000..2t', comma],
+    ['mass:1..2.000kg', comma],
+    ['mass>=2,000kg', point],
+  ])(
+    'refuses %s, which reads as a decimal but means thousands',
+    (token, parse) => {
+      expect(parse(token)).toEqual({ kind: 'problem', problem: 'grouping' })
+    }
+  )
+
+  it.each([
+    ['mass>=2,000kg', comma, 2],
+    ['mass>=2.000kg', point, 2],
+    ['mass>=2.5t', comma, 2.5],
+    ['mass>=2,5t', point, 2.5],
+    ['mass>=1.000.000kg', comma, 1_000_000],
+    ['mass>=2.000,5kg', comma, 2000.5],
+    ['mass>=12.5', comma, 12.5],
+  ])('reads %s as the node does', (token, parse, gte) => {
+    expect(parse(token)).toMatchObject({ kind: 'number', range: { gte } })
+  })
+
+  it.each([
+    ['2.000', ',', true],
+    ['2,000', '.', true],
+    ['2,000', ',', false],
+    ['2.5', ',', false],
+    ['1.000.000', ',', false],
+    ['2.000,5', ',', false],
+  ] as const)('isGroupedNumber(%s, %s) is %s', (text, mark, grouped) => {
+    expect(isGroupedNumber(text, mark)).toBe(grouped)
   })
 })

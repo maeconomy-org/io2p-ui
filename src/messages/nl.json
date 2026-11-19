@@ -1279,11 +1279,11 @@
       },
       "property": {
         "label": "Eigenschap",
-        "description": "Zoeken op eigenschap (label of label=waarde)"
+        "description": "Heeft de eigenschap, of de eigenschap met deze hele waarde: prop:kleur=rood. Zet een waarde met spaties tussen aanhalingstekens."
       },
       "value": {
         "label": "Waarde",
-        "description": "Zoeken op eigenschapswaarde (elke eigenschap)"
+        "description": "De hele waarde, onder elke eigenschap: value:2500 kg. Gebruik voor een bereik mass>=2t."
       },
       "name": {
         "label": "Naam",
@@ -1291,7 +1291,7 @@
       },
       "createdBy": {
         "label": "Aangemaakt door",
-        "description": "Filteren op maker UUID"
+        "description": "Gemaakt door één persoon. Kies de persoon bij Filter toevoegen."
       },
       "parent": {
         "label": "Bovenliggend",
@@ -1322,7 +1322,8 @@
       "property": "prop: heeft een eigenschapsnaam nodig vóór de =: prop:kleur=rood.",
       "deleted": "deleted: neemt true, false of all.",
       "template": "template: neemt true of false.",
-      "parent": "parent: heeft het id van een object nodig."
+      "parent": "parent: heeft het id van een object nodig.",
+      "grouping": "Schrijf het getal zonder scheidingsteken voor duizendtallen: mass>=2000kg."
     },
     "pill": {
       "remove": "Filter verwijderen:",
@@ -1882,7 +1883,7 @@
     "numberHint": "Van en tot tellen mee. Met een eenheid wordt een waarde zonder eenheid niet gevonden. Gebruik een punt of een komma voor decimalen, niet voor duizendtallen.",
     "property": "Eigenschap",
     "propertyKey": "Naam",
-    "propertyValue": "Waarde (optioneel)",
+    "propertyValue": "Hele waarde (optioneel)",
     "created": "Aangemaakt",
     "updated": "Bijgewerkt",
     "yourTimeZone": "(uw tijdzone)",
@@ -1909,7 +1910,8 @@
       "numberUnit": "Gebruik een bekende eenheid, bijvoorbeeld t, kg, km of MJ.",
       "numberReversed": "Tot mag niet kleiner zijn dan van.",
       "quote": "Een naam of waarde mag geen \" bevatten.",
-      "dateReversed": "Tot mag niet voor van liggen."
+      "dateReversed": "Tot mag niet voor van liggen.",
+      "numberGrouping": "Schrijf het getal zonder scheidingsteken voor duizendtallen, bijvoorbeeld 2000."
     }
   }
 }

@@ -116,7 +116,11 @@ export function ChangePasswordCard() {
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={submitting}>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  data-testid="change-password-submit"
+                >
                   {submitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (

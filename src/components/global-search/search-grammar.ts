@@ -21,6 +21,7 @@ export type SearchProblem =
   | 'deleted'
   | 'template'
   | 'parent'
+  | 'grouping'
 
 /**
  * What the parser needs from the page: the units the node knows (null until the list arrives; the
@@ -107,6 +108,15 @@ export function readNumber(text: string): number | null {
   return finite(parts.length > 2 ? parts.join('') : parts.join('.'))
 }
 
+/**
+ * `2.000` where the decimal mark is a comma (`2,000` where it is a point): the node reads a lone
+ * separator as the decimal mark, so this is 2, but the person typing it meant two thousand.
+ */
+export function isGroupedNumber(text: string, decimalMark: '.' | ','): boolean {
+  const other = decimalMark === ',' ? '\\.' : ','
+  return new RegExp(`^[+-]?\\d{1,3}${other}\\d{3}$`).test(text)
+}
+
 // The number stops at the first character that is not a digit or a separator, so `10m2` is 10 m2
 // and `1kgCO2e` keeps its unit whole.
 const NUMBER = String.raw`[+-]?[.,]?\d[\d.,]*`
@@ -127,10 +137,14 @@ export type NumberToken =
   | { kind: 'number'; range: NumberRange }
   | { kind: 'problem'; problem: SearchProblem }
 
-function value(text: string): { n: number; unit?: string } | 'exponent' | null {
+function value(
+  text: string,
+  decimalMark: '.' | ','
+): { n: number; unit?: string } | 'exponent' | 'grouped' | null {
   const match = VALUE_RE.exec(text)
   if (!match) return null
   if (match[2] && /^e[+-]?\d/i.test(match[2])) return 'exponent'
+  if (isGroupedNumber(match[1], decimalMark)) return 'grouped'
   const n = readNumber(match[1])
   return n === null ? null : { n, unit: match[2] }
 }
@@ -140,7 +154,10 @@ function value(text: string): { n: number; unit?: string } | 'exponent' | null {
  * or null for plain text. A token quoted as a whole is text. A bare key needs a letter, so `1:2` and
  * `12:30` stay text.
  */
-export function parseNumberToken(token: string): NumberToken | null {
+export function parseNumberToken(
+  token: string,
+  decimalMark: '.' | ',' = '.'
+): NumberToken | null {
   const head = HEAD_RE.exec(token)
   if (!head) return null
   const [, quoted, bare, rawOp, rest] = head
@@ -154,7 +171,8 @@ export function parseNumberToken(token: string): NumberToken | null {
     if (bare !== undefined && RESERVED.has(bare.toLowerCase())) {
       return { kind: 'problem', problem: 'reservedKey' }
     }
-    const v = value(rest)
+    const v = value(rest, decimalMark)
+    if (v === 'grouped') return { kind: 'problem', problem: 'grouping' }
     if (v === null || v === 'exponent')
       return { kind: 'problem', problem: 'number' }
     // `>` reads as "at least": the node's bounds are inclusive, and the pill says ≥.
@@ -184,11 +202,15 @@ export function parseNumberToken(token: string): NumberToken | null {
   if ((left === '' && right === '') || /^[.,]/.test(right)) {
     return { kind: 'problem', problem: 'number' }
   }
+  if (left !== '' && isGroupedNumber(left, decimalMark)) {
+    return { kind: 'problem', problem: 'grouping' }
+  }
   if (left !== '' && readNumber(left) === null) {
-    const l = value(left)
+    const l = value(left, decimalMark)
     return {
       kind: 'problem',
-      problem: l !== null && l !== 'exponent' && l.unit ? 'unitOnce' : 'number',
+      problem:
+        l !== null && typeof l !== 'string' && l.unit ? 'unitOnce' : 'number',
     }
   }
   let lte: number | undefined
@@ -197,7 +219,8 @@ export function parseNumberToken(token: string): NumberToken | null {
     const unitOnly = UNIT_RE.test(right)
     if (unitOnly && left !== '') unit = right
     else {
-      const r = value(right)
+      const r = value(right, decimalMark)
+      if (r === 'grouped') return { kind: 'problem', problem: 'grouping' }
       if (r === null || r === 'exponent')
         return { kind: 'problem', problem: 'number' }
       lte = r.n

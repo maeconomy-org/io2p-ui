@@ -411,6 +411,7 @@ function ShareForm({
                 value={effectiveMembers[index].permission}
                 max={ceiling}
                 disabled={libraryShare}
+                testId={`share-member-permission-${member.userId}`}
                 aria-describedby={showCeilingNote ? ceilingNoteId : undefined}
                 aria-label={t('access.permissionFor', {
                   name: nameOf(member.userId),
@@ -488,6 +489,7 @@ function ShareForm({
         <div className="space-y-2 border-t pt-4">
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <Checkbox
+              data-testid="share-cascade"
               checked={effectiveCascade}
               disabled={!cascadeAllowed}
               onCheckedChange={(checked) => setCascade(checked === true)}

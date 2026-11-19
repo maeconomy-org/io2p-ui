@@ -129,6 +129,7 @@ export function ActiveSessionsCard() {
               <Button
                 variant="outline"
                 size="sm"
+                data-testid="sessions-revoke-others"
                 onClick={revokeOthers}
                 disabled={revokingOthers}
               >
@@ -151,6 +152,8 @@ export function ActiveSessionsCard() {
               return (
                 <div
                   key={s.id}
+                  data-testid="session-row"
+                  data-current={isCurrent || undefined}
                   className="flex items-start gap-3 rounded-lg border p-3"
                 >
                   <Monitor className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -181,6 +184,7 @@ export function ActiveSessionsCard() {
                     className={cn('h-7 w-7 shrink-0', isCurrent && 'invisible')}
                     aria-label={t('sessions.revoke')}
                     disabled={isCurrent || revoking === s.token}
+                    data-testid="session-revoke"
                     onClick={() => revokeOne(s.token)}
                   >
                     {revoking === s.token ? (

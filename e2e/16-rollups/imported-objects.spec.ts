@@ -2,7 +2,8 @@ import type { Page } from '@playwright/test'
 
 import { expect, test } from '../fixtures/app'
 import { openWizard, statValue } from '../utils/import'
-import { openObjectSheet, sheet } from '../utils/sheet'
+import { gotoList, openObjectSheet, sheet } from '../utils/sheet'
+import { runSearch } from '../utils/search'
 import { rowActions, tour } from '../utils/selectors'
 
 /**
@@ -134,55 +135,24 @@ test.describe('16 - rollups / imported objects', () => {
     })
   })
 
-  /**
-   * ⏸ STILL DEFERRED, but for a different reason than before — the original one is fixed.
-   *
-   * It was deferred because the parent's `/rollups` carried every seed rule and no entry for this
-   * run's user rule: the arming gap, where a rule created after the last write computed never.
-   * That is fixed, and measured here rather than assumed — during a run of this file the node held
-   * the live rule, 4 holders of its key, and SIX computed state rows covering both buildings. The
-   * totals exist.
-   *
-   * What still fails is this fixture's reach. The poll looks for the building by name in the ROOT
-   * list, and the account accumulates objects across the suite, so the row is not reliably on the
-   * page it examines — the loop then inspects nothing and reports the total as missing. Driving
-   * the search dialog instead did not survive headless either.
-   *
-   * To finish it: give the objects list a `?q=` the spec can navigate to, or seed this file its own
-   * account. Do NOT re-enable it by lengthening the poll — the wait was never the problem.
-   *
-   * Renamed from RU22, which `cross-user.spec.ts` already uses.
-   */
-  test.fixme('RU27: the rule totals the imported value onto the parent', async ({
+  test('RU29: the rule totals the imported value onto the parent', async ({
     page,
-  }, testInfo) => {
-    // ~70s to settle by contract (a 30s cooldown, then a reaper scanning every 30s), so this
-    // polls rather than comparing arithmetic across the write.
-    testInfo.setTimeout(300_000)
-
-    for (let attempt = 0; attempt < 8; attempt++) {
-      await page.goto('/objects')
-      await expect(page.getByTestId('data-table')).toBeVisible()
-
-      const parent = rowFor(page, PARENT)
-      if ((await parent.count()) > 0) {
-        await openObjectSheet(page, parent)
-        await page.waitForTimeout(4_000)
-        const card = page.getByTestId('rollup-card').filter({ hasText: KEY })
-        if ((await card.count()) > 0) {
-          // 12 + 8, from the two floors imported under this building. The parent authored no
-          // property under this key, so the number can only have come from the imported children
-          // via a rule that was typed by hand — which is the whole seam.
-          await expect(card).toContainText('20')
-          return
-        }
-        await page.keyboard.press('Escape')
-      }
-      await page.waitForTimeout(25_000)
-    }
-    throw new Error(
-      `no rollup card for ${KEY} on the imported parent — the importer and the rule disagree on the key`
-    )
+  }) => {
+    // ~70s to settle by contract (a 30s cooldown, then a reaper scanning every 30s). The parent
+    // is found through search: the account's root list grows across the suite, so it may not be
+    // on the first page.
+    test.setTimeout(300_000)
+    await expect(async () => {
+      await gotoList(page, '/objects')
+      await runSearch(page, PARENT)
+      await openObjectSheet(page, rowFor(page, PARENT))
+      // 12 + 8, from the two floors imported under this building. The parent authored no
+      // property under this key, so the number can only have come from the imported children
+      // via a rule that was typed by hand — which is the whole seam.
+      await expect(
+        page.getByTestId('rollup-card').filter({ hasText: KEY })
+      ).toContainText('20', { timeout: 5_000 })
+    }).toPass({ intervals: [20_000], timeout: 240_000 })
   })
 
   test('RU23: the imported property reads as a label, never as its key', async ({

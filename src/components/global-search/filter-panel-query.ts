@@ -4,6 +4,7 @@ import {
   type NumberRange,
   numberToken,
   PLAIN_GRAMMAR,
+  isGroupedNumber,
   readNumber,
   type SearchGrammar,
 } from './search-grammar'
@@ -36,6 +37,7 @@ export type PanelField = keyof PanelValues
 export type PanelError =
   | 'numberKey'
   | 'numberValue'
+  | 'numberGrouping'
   | 'numberUnit'
   | 'numberReversed'
   | 'quote'
@@ -139,18 +141,22 @@ export function panelQuery(
     const hasNumber = values.numberFrom.trim() || values.numberTo.trim()
     const key = values.numberKey.trim()
     if (hasNumber || key) {
-      const gte = values.numberFrom.trim()
-        ? readNumber(values.numberFrom.trim())
-        : undefined
-      const lte = values.numberTo.trim()
-        ? readNumber(values.numberTo.trim())
-        : undefined
+      const from = values.numberFrom.trim()
+      const to = values.numberTo.trim()
+      const gte = from ? readNumber(from) : undefined
+      const lte = to ? readNumber(to) : undefined
       // The node removes spaces from a unit, so `kg CO2e` is `kgCO2e`.
       const unit = values.numberUnit.replace(/\s+/g, '') || undefined
       if (!key) errors.numberKey = 'numberKey'
       else if (key.includes('"')) errors.numberKey = 'quote'
       if (gte === null) errors.numberFrom = 'numberValue'
       if (lte === null) errors.numberTo = 'numberValue'
+      if (isGroupedNumber(from, grammar.decimalMark)) {
+        errors.numberFrom = 'numberGrouping'
+      }
+      if (isGroupedNumber(to, grammar.decimalMark)) {
+        errors.numberTo = 'numberGrouping'
+      }
       if (!hasNumber) errors.numberFrom = 'numberValue'
       if (unit && (!isUnit(unit) || !knowsUnit(grammar, unit))) {
         errors.numberUnit = 'numberUnit'

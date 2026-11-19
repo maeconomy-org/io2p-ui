@@ -253,3 +253,21 @@ describe('panelQuery and the units the node knows', () => {
     expect(run('KG CO2e')).toEqual({ query: 'mass>=2KGCO2e' })
   })
 })
+
+describe('panelQuery and a number grouped in thousands', () => {
+  const dutch = { units: null, decimalMark: ',' } as const
+
+  it('refuses 2.000 in a comma locale, which would be read as 2', () => {
+    const values = { ...EMPTY, numberKey: 'mass', numberFrom: '2.000' }
+    expect(panelQuery('', values, true, undefined, dutch)).toEqual({
+      errors: { numberFrom: 'numberGrouping' },
+    })
+  })
+
+  it('reads 2,000 in a comma locale as the decimal it is', () => {
+    const values = { ...EMPTY, numberKey: 'mass', numberTo: '2,000' }
+    expect(panelQuery('', values, true, undefined, dutch)).toEqual({
+      query: 'mass<=2',
+    })
+  })
+})

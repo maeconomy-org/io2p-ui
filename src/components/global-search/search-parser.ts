@@ -163,7 +163,7 @@ function numberFilter(
   grammar: SearchGrammar,
   raw = token
 ): SearchFilter | null {
-  const parsed = parseNumberToken(token)
+  const parsed = parseNumberToken(token, grammar.decimalMark)
   if (parsed === null) return null
   if (parsed.kind !== 'number') {
     return {

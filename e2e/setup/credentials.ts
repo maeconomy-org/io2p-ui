@@ -42,5 +42,16 @@ export function secondCredentials(): Credentials | null {
   return email && password ? { email, password } : null
 }
 
+/**
+ * A THROWAWAY account for Settings > Security, which changes the password, turns 2FA on and ends
+ * sessions. Never the first or second account: a failed restore there would break every spec.
+ * The io2p-auth dev seed (`pnpm seed`) resets it.
+ */
+export function securityCredentials(): Credentials | null {
+  const email = process.env.E2E_EMAIL_3
+  const password = process.env.E2E_PASSWORD_3
+  return email && password ? { email, password } : null
+}
+
 /** Where the authenticated browser state is cached between runs. Gitignored. */
 export const AUTH_STATE = 'e2e/.auth/user.json'
