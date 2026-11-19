@@ -82,6 +82,7 @@ export function MobileMenu({ onSearchOpen }: MobileMenuProps) {
         className="md:hidden"
         onClick={onSearchOpen}
         aria-label={t('common.search')}
+        data-testid="mobile-search"
       >
         <Search className="h-5 w-5" />
       </Button>

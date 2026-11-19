@@ -5,10 +5,17 @@ import { tour } from '../utils/selectors'
 export const searchInput = (page: Page) =>
   page.getByTestId('command-center-input')
 
+/** Below Tailwind's `md` the navbar shows a search icon in place of the search field. */
+const MD_BREAKPOINT = 768
+
 /** Opens the search box. Retried: the navbar button renders before it is hydrated. */
 export async function openSearch(page: Page): Promise<void> {
+  const narrow = (page.viewportSize()?.width ?? MD_BREAKPOINT) < MD_BREAKPOINT
+  const button = narrow
+    ? page.getByTestId('mobile-search')
+    : tour(page, 'searchButton')
   await expect(async () => {
-    await tour(page, 'searchButton').click()
+    await button.click()
     await expect(searchInput(page)).toBeFocused({ timeout: 2_000 })
   }).toPass({ timeout: 20_000 })
 }
