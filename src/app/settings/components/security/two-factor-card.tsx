@@ -153,17 +153,27 @@ export function TwoFactorCard() {
         <div className="flex-1">
           {enabled ? (
             <div className="space-y-3">
-              <span className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+              <span
+                data-testid="tfa-enabled"
+                className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400"
+              >
                 <ShieldCheck className="h-4 w-4" />
                 {t('twoFactor.enabledLabel')}
               </span>
-              <Button variant="outline" onClick={() => setMode('disable')}>
+              <Button
+                variant="outline"
+                data-testid="tfa-disable"
+                onClick={() => setMode('disable')}
+              >
                 <ShieldOff className="mr-2 h-4 w-4" />
                 {t('twoFactor.disable')}
               </Button>
             </div>
           ) : (
-            <Button onClick={() => setMode('enable-password')}>
+            <Button
+              data-testid="tfa-enable"
+              onClick={() => setMode('enable-password')}
+            >
               <ShieldCheck className="mr-2 h-4 w-4" />
               {t('twoFactor.enable')}
             </Button>
@@ -194,6 +204,7 @@ export function TwoFactorCard() {
           </div>
           <DialogFooter className="mt-2">
             <Button
+              data-testid="tfa-continue"
               onClick={startEnable}
               disabled={busy || !password}
               className="w-full"
@@ -226,7 +237,10 @@ export function TwoFactorCard() {
               <TotpQr uri={totpUri} />
               {secret && (
                 <div className="flex items-center justify-center gap-2">
-                  <code className="break-all rounded bg-muted/40 px-2 py-1 font-mono text-xs">
+                  <code
+                    data-testid="tfa-secret"
+                    className="break-all rounded bg-muted/40 px-2 py-1 font-mono text-xs"
+                  >
                     {secret}
                   </code>
                   <CopyButton text={secret} className="h-6 w-6 p-0" />
@@ -261,6 +275,7 @@ export function TwoFactorCard() {
           </div>
           <DialogFooter className="mt-2">
             <Button
+              data-testid="tfa-verify"
               onClick={verify}
               disabled={busy || code.length !== 6}
               className="w-full"
@@ -297,6 +312,7 @@ export function TwoFactorCard() {
           <DialogFooter className="mt-2">
             <Button
               variant="destructive"
+              data-testid="tfa-disable-confirm"
               onClick={disable}
               disabled={busy || !password}
               className="w-full"
