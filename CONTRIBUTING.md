@@ -72,10 +72,10 @@ it before a first substantial change.
 
 ## A note on CI
 
-`.github/workflows/ci.yml` is currently **`workflow_dispatch` only — deliberately dormant.** The
-steps are correct, but `io2p-client` is consumed as a `file:` dependency that a GitHub runner cannot
-resolve. Until that is fixed, `pnpm fullcheck` on your machine is the only gate, which makes running
-it non-optional.
+`.github/workflows/ci.yml` runs `pnpm fullcheck`'s steps on every PR and every push to `main` or
+`dev`. Run `pnpm fullcheck` on your machine first anyway: the pre-commit hook does not run the tests
+or the build. Playwright is not in CI. It needs a reachable `io2p-core` and real accounts, so run
+`pnpm test:e2e` yourself when you change a user flow.
 
 ## Branches and commits
 
