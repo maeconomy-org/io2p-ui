@@ -1,8 +1,12 @@
-# Docker Build & Push to GitHub Container Registry
-# - main branch: builds on every push -> latest, main, sha-xxx
-# - dev branch: builds only on version tags -> 1.0.0-dev, dev, sha-xxx
-# - version tags on main: -> 1.0.0, 1.0, latest
-
+# Docker Build & Push: builds the production image and pushes it to GHCR.
+#
+# Runs: on every push to main, and on a pushed v* tag.
+# Not here: the PR-time build check is docker-check.yml (D144). Nothing deploys.
+# This workflow does not run the tests, so tag only a commit whose CI is green.
+#
+# - push to main   -> latest, main, sha-xxx
+# - tag v1.0.0-dev -> 1.0.0-dev, dev, sha-xxx
+# - tag v1.0.0     -> 1.0.0, 1.0, latest, sha-xxx
 name: Docker Build & Push
 
 on:

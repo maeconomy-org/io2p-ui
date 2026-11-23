@@ -1,6 +1,6 @@
 # io2p-ui
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![ci](https://github.com/maeconomy-org/io2p-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/maeconomy-org/io2p-ui/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 The web application for [io2p](https://io2p.org) — the Internet of Objects Protocol.
 
@@ -19,18 +19,6 @@ outputs).
 **Why a separate repository:** io2p is meant to be implementable by anyone. Keeping the protocol
 (`io2p-core`) apart from one particular interface to it is what makes that claim real rather than
 aspirational — this application is _an_ io2p client, not _the_ io2p.
-
-## The rest of the project
-
-| Repository                                                                | What it is                                                   |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| [io2p-core](https://github.com/maeconomy-org/io2p-core)                   | The storage node — event-sourced, hash-chained, one REST API |
-| [io2p-auth](https://github.com/maeconomy-org/io2p-auth)                   | Token issuance and JWKS publication                          |
-| [io2p-client](https://github.com/maeconomy-org/io2p-client)               | TypeScript client library — what this app talks through      |
-| [io2p-ui](https://github.com/maeconomy-org/io2p-ui)                       | **This repository**                                          |
-| [io2p-auth-admin-ui](https://github.com/maeconomy-org/io2p-auth-admin-ui) | Administrative interface for `io2p-auth`                     |
-| [io2p-iac](https://github.com/maeconomy-org/io2p-iac)                     | Terraform to deploy a node into your own Azure subscription  |
-| [io2p-website](https://github.com/maeconomy-org/io2p-website)             | The source of io2p.org                                       |
 
 ## What it does
 
@@ -54,9 +42,9 @@ Authentication is mTLS client certificates or email/password, issued as JWTs by 
 tracking is browser-only Sentry, tunnelled through `/monitoring`; server-side observability is
 structured NDJSON logging with optional OpenTelemetry.
 
-## Getting started
+## Run it
 
-**Prerequisites:** Node.js 22 or newer, pnpm 11 (`corepack enable`), and a reachable `io2p-auth` and
+**Prerequisites:** Node.js 24.22.1 or newer (see `.nvmrc`), pnpm 11 (`corepack enable`), and a reachable `io2p-auth` and
 `io2p-core`.
 
 ```bash
@@ -82,7 +70,7 @@ The practical consequence for contributors: a bare `process.env.X` read in clien
 to nothing and silently does something other than what you intended. New browser-visible config goes
 through `buildRuntimeConfig()`.
 
-## Development
+## Commands
 
 ```bash
 pnpm dev            # dev server
@@ -94,13 +82,11 @@ pnpm test:e2e       # Playwright (needs the dev server running)
 `pnpm fullcheck` must be green before every commit. Note the name — the other io2p repositories call
 their equivalent `pnpm verify`.
 
-> **CI is currently dormant here.** `.github/workflows/ci.yml` is `workflow_dispatch` only, because
-> `io2p-client` is consumed as a `file:` dependency that a GitHub runner cannot resolve. The steps
-> are correct and ready; only the triggers are withheld. Until that is fixed, the local gate is the
-> only gate, so running it is not optional. CodeQL and dependency review do run on every PR —
-> neither needs a dependency install.
+CI (`ci.yml`) runs the same gate on every PR and every push to `main` or `dev`. CodeQL and
+dependency review run on every PR too. Playwright is not in CI: it needs a reachable `io2p-core`
+and real accounts.
 
-## Project structure
+## Folder structure
 
 ```
 src/
@@ -116,6 +102,40 @@ src/
 
 Feature-specific code lives with its feature, not in `lib/`. `AGENTS.md` is the full architectural
 reference and the house rules — read it before a first substantial change.
+
+## Release
+
+An image is built from a tag you push, and from every push to `main`.
+
+```bash
+git tag -a v1.2.0-dev -m v1.2.0-dev && git push origin v1.2.0-dev   # a dev build, usually from dev
+git tag -a v1.2.0 -m v1.2.0 && git push origin v1.2.0               # a release, from main
+```
+
+| What you push    | Image tags in `ghcr.io/maeconomy-org/io2p-ui` |
+| ---------------- | --------------------------------------------- |
+| a push to `main` | `latest`, `main`, `sha-<short>`               |
+| `v1.2.0-dev`     | `1.2.0-dev`, `dev`, `sha-<short>`             |
+| `v1.2.0`         | `1.2.0`, `1.2`, `latest`, `sha-<short>`       |
+
+- `.github/workflows/docker-build.yml` builds and pushes the image. It does not run the tests, so
+  tag only a commit whose CI is green.
+- `.github/workflows/docker-check.yml` builds the image on a PR that changes the Dockerfile or the
+  dependencies. It never pushes.
+- Nothing here deploys. A deploy sets `image_tags.ui` in
+  [io2p-iac](https://github.com/maeconomy-org/io2p-iac) and is applied by hand.
+
+## The rest of the project
+
+| Repository                                                                | What it is                                                   |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [io2p-core](https://github.com/maeconomy-org/io2p-core)                   | The storage node — event-sourced, hash-chained, one REST API |
+| [io2p-auth](https://github.com/maeconomy-org/io2p-auth)                   | Token issuance and JWKS publication                          |
+| [io2p-client](https://github.com/maeconomy-org/io2p-client)               | TypeScript client library — what this app talks through      |
+| [io2p-ui](https://github.com/maeconomy-org/io2p-ui)                       | **This repository**                                          |
+| [io2p-auth-admin-ui](https://github.com/maeconomy-org/io2p-auth-admin-ui) | Administrative interface for `io2p-auth`                     |
+| [io2p-iac](https://github.com/maeconomy-org/io2p-iac)                     | Terraform to deploy a node into your own Azure subscription  |
+| [io2p-website](https://github.com/maeconomy-org/io2p-website)             | The source of io2p.org                                       |
 
 ## Contributing
 
