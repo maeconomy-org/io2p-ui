@@ -1,6 +1,7 @@
 name: ci
 # PR gate: typecheck / lint / format / tests / production build.
 # Docker publishing lives in docker-build.yml (main + version tags only).
+# The PR-time image build check lives in docker-check.yml (D144).
 #
 # E2E is deliberately NOT here: it needs a reachable io2p-core, a production
 # build made with E2E_KEEP_TEST_IDS=true, and two real accounts.
