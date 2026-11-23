@@ -1,7 +1,10 @@
-# GitHub's first-party static analysis. Free on public repositories.
-# JS/TS is analysed from source — no dependency install and no build step — so this
-# runs even where the main CI gate cannot.
-name: codeql
+# CodeQL: GitHub's static analysis for JavaScript and TypeScript.
+#
+# Runs: on a PR into main or dev, on every push to main or dev, and weekly, so a new query
+# also checks old code.
+# Not here: tests and the build are ci.yml. CodeQL reads the source only: no
+# install, no build. It is free on public repositories only.
+name: CodeQL
 
 on:
   push:

@@ -1,7 +1,10 @@
-# Fails a PR that introduces a dependency with a known vulnerability, or one whose
-# licence is incompatible with shipping under MIT. Only runs on pull_request — it
-# diffs the base against the head, so there is nothing to compare on a push.
-name: dependency-review
+# Dependency Review: fails a PR that adds a dependency with a known vulnerability,
+# or one whose licence cannot ship under MIT.
+#
+# Runs: on every PR. It compares the base with the head, so a push has nothing to
+# compare.
+# Not here: an audit of the whole lockfile. io2p-ui has no audit job yet.
+name: Dependency Review
 
 on: pull_request
 

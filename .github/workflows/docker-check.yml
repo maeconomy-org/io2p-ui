@@ -1,10 +1,11 @@
-# Docker Build Check: does the production image still build?
+# Docker Build Check: proves the production image still builds. Never pushes.
 #
-# Runs on a PR into main or dev, and only when a file that shapes the image changes.
-# It never pushes and never logs in. Publishing is docker-build.yml, on a pushed v* tag.
-# Why a separate file, and why the path filter: DECISIONS.md D144 in io2p-docs.
+# Runs: on a PR into main or dev, only when a file that shapes the image changes.
+# Not here: publishing is docker-build.yml, on a pushed v* tag. Why a separate file
+# and a path filter: D144 in io2p-docs.
 #
-# Do not make this a required check: a PR that skips it would wait forever.
+# Do not make this a required check. A PR that skips it never reports, so the PR
+# would wait forever.
 name: Docker Build Check
 
 on:
