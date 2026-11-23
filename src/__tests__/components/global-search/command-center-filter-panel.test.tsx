@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event'
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'en',
+  // A day as YYYY-MM-DD in local time, so a test can name the day it picked.
+  useFormatter: () => ({
+    dateTime: (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+  }),
   useTranslations:
     (ns?: string) => (key: string, values?: Record<string, string>) =>
       `${ns ? `${ns}.` : ''}${key}${values ? ` ${Object.values(values).join(' ')}` : ''}`,
@@ -234,9 +239,11 @@ describe('CommandCenter filter panel', () => {
   it('replaces a kind the user edited in the panel', async () => {
     const { user } = await setup({ initialQuery: 'deleted:false beton' })
     await user.click(addFilter())
-    await user.selectOptions(
-      screen.getByLabelText('filterPanel.deleted'),
-      'all'
+    await user.click(
+      screen.getByRole('combobox', { name: 'filterPanel.deleted' })
+    )
+    await user.click(
+      screen.getByRole('option', { name: 'filterPanel.deletedAll' })
     )
     await user.click(screen.getByRole('button', { name: 'filterPanel.apply' }))
 

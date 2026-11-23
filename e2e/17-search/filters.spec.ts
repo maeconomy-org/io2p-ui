@@ -68,13 +68,25 @@ const pillTexts = (page: Page) =>
       )
     )
 
-/** Runs the search in the box now, and gives back its request and this run's rows. */
-async function searchAndRead(page: Page) {
+/**
+ * Runs the search, and gives back its pills, its request and this run's rows. Enter in the box
+ * closes the dialog, so its pills are read before it; Apply in the panel keeps the dialog open, so
+ * they are read after, once Apply wrote them.
+ */
+async function searchAndRead(page: Page, apply?: () => Promise<void>) {
+  // Exactly the run word: the folder picker's own search (`<stamp> folder`) must not count.
   const answered = page.waitForResponse(
-    (r) => OBJECT_LIST.test(r.url()) && (qOf(r.url()) ?? '').includes(STAMP)
+    (r) => OBJECT_LIST.test(r.url()) && qOf(r.url()) === STAMP
   )
-  const pills = await pillTexts(page)
-  await searchInput(page).press('Enter')
+  let pills: string[]
+  if (apply) {
+    await apply()
+    await expect(page.getByTestId('filter-panel')).toHaveCount(0)
+    pills = await pillTexts(page)
+  } else {
+    pills = await pillTexts(page)
+    await searchInput(page).press('Enter')
+  }
   const response = await answered
   const params = new URL(response.url()).searchParams
   params.delete('page')
@@ -99,11 +111,10 @@ async function fromPanel(page: Page, fill: (panel: Page) => Promise<void>) {
   await searchInput(page).fill(STAMP)
   await page.getByTestId('add-filter').click()
   await fill(page)
-  await page
-    .getByTestId('filter-panel')
-    .locator('button[type="submit"]')
-    .click()
-  return searchAndRead(page)
+  // Apply runs the search; the dialog stays open with the pills.
+  return searchAndRead(page, () =>
+    page.getByTestId('filter-panel').locator('button[type="submit"]').click()
+  )
 }
 
 const field = (page: Page, name: string) =>
@@ -156,10 +167,12 @@ test.describe('17 - search / filters, typed and from the panel', () => {
   })
 
   test('SF8: a created date range', async ({ page }) => {
-    const a = await typed(page, `${STAMP} created:2020-01-01..2099-12-31`)
+    // The rows are created by this run, so this year holds them all.
+    const year = new Date().getFullYear()
+    const a = await typed(page, `${STAMP} created:${year}-01-01..${year}-12-31`)
     const b = await fromPanel(page, async () => {
-      await field(page, 'createdFrom').fill('2020-01-01')
-      await field(page, 'createdTo').fill('2099-12-31')
+      await field(page, 'createdFrom').click()
+      await page.locator('[data-preset="thisYear"]').click()
     })
     expect(b).toEqual(a)
     expect(a.rows).toEqual(['folder', 'heavy', 'light'])
@@ -168,10 +181,8 @@ test.describe('17 - search / filters, typed and from the panel', () => {
   test('SF9: deleted rows only', async ({ page }) => {
     const a = await typed(page, `${STAMP} deleted:true`)
     const b = await fromPanel(page, async () => {
-      await page
-        .getByTestId('filter-panel')
-        .locator('select')
-        .selectOption('true')
+      await field(page, 'deleted').click()
+      await page.getByRole('option', { name: 'Only deleted' }).click()
     })
     expect(b).toEqual(a)
     expect(a.rows).toEqual(['gone'])

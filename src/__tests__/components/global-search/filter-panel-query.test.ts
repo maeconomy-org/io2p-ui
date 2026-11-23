@@ -271,3 +271,39 @@ describe('panelQuery and a number grouped in thousands', () => {
     })
   })
 })
+
+describe('panelQuery changes the property a pill opened', () => {
+  const pill = (query: string) =>
+    parseSearchQuery(query).filters.find((f) => f.type === 'property')!
+
+  it('replaces that token and keeps the other properties', () => {
+    const start = 'prop:colour=red prop:size=big beton'
+    const result = panelQuery(
+      start,
+      { ...EMPTY, propertyKey: 'colour', propertyValue: 'blue' },
+      true,
+      new Set(),
+      undefined,
+      { replaceProperty: pill(start) }
+    )
+    expect(result).toEqual({ query: 'prop:size=big beton prop:colour=blue' })
+  })
+
+  it('removes that token when its fields are emptied', () => {
+    const start = 'prop:colour=red beton'
+    const result = panelQuery(start, EMPTY, true, new Set(), undefined, {
+      replaceProperty: pill(start),
+    })
+    expect(result).toEqual({ query: 'beton' })
+  })
+
+  it('adds a property and removes none without a pill', () => {
+    const result = panelQuery(
+      'prop:colour=red',
+      { ...EMPTY, propertyKey: 'colour', propertyValue: 'blue' },
+      true,
+      new Set()
+    )
+    expect(result).toEqual({ query: 'prop:colour=red prop:colour=blue' })
+  })
+})

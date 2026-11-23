@@ -3,6 +3,9 @@ import { fireEvent, render, screen } from '@testing-library/react'
 
 vi.mock('@/hooks/api/leaves', () => ({ useUnits: () => ({ data: undefined }) }))
 vi.mock('next-intl', () => ({
+  useFormatter: () => ({
+    dateTime: (d: Date) => d.toISOString().slice(0, 10),
+  }),
   useLocale: () => 'en',
   useTranslations: () => (key: string) => key,
 }))

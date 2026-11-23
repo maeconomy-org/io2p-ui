@@ -78,22 +78,30 @@ export interface ParsedSearch {
 
 export interface FilterSuggestion {
   type: SearchFilter['type']
+  /** Empty for a filter that has no prefix to type (a number is `mass>=2t`). */
   prefix: string
   labelKey: string
   descriptionKey: string
+  /** No example for a filter whose value is an id: the panel picks it. */
   examples: string[]
   icon: string
+  /** The panel field this filter is picked in. Picking the suggestion opens the panel there. */
+  opens?: 'numberKey' | 'createdFrom' | 'updatedFrom' | 'createdBy' | 'folder'
+  /** Numbers, dates and folder apply to objects only. */
+  ranged?: boolean
 }
 
 // Available filter suggestions - uses translation keys for i18n
 export const FILTER_SUGGESTIONS: FilterSuggestion[] = [
   {
-    type: 'deleted',
-    prefix: 'deleted:',
-    labelKey: 'search.filters.deleted.label',
-    descriptionKey: 'search.filters.deleted.description',
-    examples: ['deleted:true', 'deleted:false'],
-    icon: 'Trash2',
+    type: 'number',
+    prefix: '',
+    labelKey: 'search.filters.number.label',
+    descriptionKey: 'search.filters.number.description',
+    examples: ['mass>=2t', 'mass:2..3t'],
+    icon: 'Ruler',
+    opens: 'numberKey',
+    ranged: true,
   },
   {
     type: 'property',
@@ -102,6 +110,45 @@ export const FILTER_SUGGESTIONS: FilterSuggestion[] = [
     descriptionKey: 'search.filters.property.description',
     examples: ['prop:material=steel', 'prop:status'],
     icon: 'Tag',
+  },
+  {
+    type: 'created',
+    prefix: 'created:',
+    labelKey: 'search.filters.created.label',
+    descriptionKey: 'search.filters.created.description',
+    examples: ['created:2026-01-01..'],
+    icon: 'CalendarDays',
+    opens: 'createdFrom',
+    ranged: true,
+  },
+  {
+    type: 'updated',
+    prefix: 'updated:',
+    labelKey: 'search.filters.updated.label',
+    descriptionKey: 'search.filters.updated.description',
+    examples: ['updated:2026-11-01..'],
+    icon: 'CalendarDays',
+    opens: 'updatedFrom',
+    ranged: true,
+  },
+  {
+    type: 'createdBy',
+    prefix: 'createdBy:',
+    labelKey: 'search.filters.createdBy.label',
+    descriptionKey: 'search.filters.createdBy.description',
+    examples: [],
+    icon: 'User',
+    opens: 'createdBy',
+  },
+  {
+    type: 'folder',
+    prefix: 'in:',
+    labelKey: 'search.filters.folder.label',
+    descriptionKey: 'search.filters.folder.description',
+    examples: [],
+    icon: 'FolderTree',
+    opens: 'folder',
+    ranged: true,
   },
   {
     type: 'propertyValue',
@@ -116,23 +163,31 @@ export const FILTER_SUGGESTIONS: FilterSuggestion[] = [
     prefix: 'name:',
     labelKey: 'search.filters.name.label',
     descriptionKey: 'search.filters.name.description',
-    examples: ['name:Battery', 'name:Clay Tile'],
+    examples: ['name:Battery', 'name:"Clay Tile"'],
     icon: 'Type',
   },
   {
-    type: 'createdBy',
-    prefix: 'createdBy:',
-    labelKey: 'search.filters.createdBy.label',
-    descriptionKey: 'search.filters.createdBy.description',
-    examples: ['createdBy:abc-123-def'],
-    icon: 'User',
+    type: 'deleted',
+    prefix: 'deleted:',
+    labelKey: 'search.filters.deleted.label',
+    descriptionKey: 'search.filters.deleted.description',
+    examples: ['deleted:true', 'deleted:all'],
+    icon: 'Trash2',
+  },
+  {
+    type: 'template',
+    prefix: 'template:',
+    labelKey: 'search.filters.template.label',
+    descriptionKey: 'search.filters.template.description',
+    examples: ['template:true'],
+    icon: 'Layout',
   },
   {
     type: 'parent',
     prefix: 'parent:',
     labelKey: 'search.filters.parent.label',
     descriptionKey: 'search.filters.parent.description',
-    examples: ['parent:abc-123-def'],
+    examples: [],
     icon: 'FolderTree',
   },
 ]
@@ -749,15 +804,16 @@ function tokenizeQuery(query: string): string[] {
 /**
  * Get matching filter suggestions based on current input
  */
-export function getFilterSuggestions(input: string): FilterSuggestion[] {
-  if (!input) return FILTER_SUGGESTIONS
-
+export function getFilterSuggestions(
+  input: string,
+  ranges = true
+): FilterSuggestion[] {
+  const offered = FILTER_SUGGESTIONS.filter((s) => ranges || !s.ranged)
+  if (!input) return offered
   const lowerInput = input.toLowerCase()
-
-  // Check if user is typing a filter prefix
   // Note: labelKey matching is handled in the UI component with translations
-  return FILTER_SUGGESTIONS.filter((suggestion) =>
-    suggestion.prefix.startsWith(lowerInput)
+  return offered.filter(
+    (s) => s.prefix !== '' && s.prefix.toLowerCase().startsWith(lowerInput)
   )
 }
 

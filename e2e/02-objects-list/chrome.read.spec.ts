@@ -139,7 +139,8 @@ test.describe('02 - objects list / chrome', () => {
     expect(box!.x).toBeGreaterThanOrEqual(0)
     expect(box!.x + box!.width).toBeLessThanOrEqual(390)
     await expect(
-      dialog.locator('code:visible', { hasText: 'deleted:true' })
+      // The first suggestion's example: on a phone it moves under its description.
+      dialog.locator('code:visible', { hasText: 'mass>=2t' })
     ).toBeInViewport({ ratio: 1 })
     await dialog
       .getByRole('combobox')
