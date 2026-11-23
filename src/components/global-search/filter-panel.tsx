@@ -19,11 +19,17 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui'
 import { useUnits } from '@/hooks/api/leaves'
 import { useUserSearch } from '@/hooks/api/users'
 import { cn } from '@/lib/utils'
 
+import { DateRangeField } from './date-range-field'
 import {
   kindOf,
   type PanelError,
@@ -33,7 +39,8 @@ import {
   type PanelValues,
   panelValuesOf,
 } from './filter-panel-query'
-import { parseSearchQuery } from './search-parser'
+import { parseSearchQuery, type SearchFilter } from './search-parser'
+import { UnitInput } from './unit-input'
 import { useSearchGrammar } from './use-search-grammar'
 
 interface FilterPanelProps {
@@ -42,6 +49,10 @@ interface FilterPanelProps {
   query: string
   /** False on a list that takes no numbers, dates or folder. */
   ranges: boolean
+  /** The field to focus when the panel opens, for a pill or a suggestion that opened it. */
+  focusField?: PanelField
+  /** A property pill that opened the panel: Apply changes that filter instead of adding one. */
+  editProperty?: SearchFilter
   onApply: (query: string) => void
   ref?: React.Ref<FilterPanelHandle>
 }
@@ -54,6 +65,8 @@ export interface FilterPanelHandle {
   pendingQuery(): string | null | 'invalid'
 }
 
+const DELETED_DEFAULT = 'default'
+
 /**
  * The "Add filter" form. It owns no filter state of its own: Apply writes tokens into the search
  * text, and the parser reads them as if typed.
@@ -62,33 +75,58 @@ export function FilterPanel({
   id,
   query,
   ranges,
+  focusField,
+  editProperty,
   onApply,
   ref,
 }: FilterPanelProps) {
   const t = useTranslations('filterPanel')
   const grammar = useSearchGrammar()
-  const [values, setValues] = React.useState(() =>
-    panelValuesOf(parseSearchQuery(query, grammar))
-  )
+  const [values, setValues] = React.useState<PanelValues>(() => ({
+    ...panelValuesOf(parseSearchQuery(query, grammar)),
+    ...(editProperty && {
+      propertyKey: editProperty.propertyKey ?? editProperty.value,
+      propertyValue: editProperty.propertyValue ?? '',
+    }),
+  }))
   const [touched, setTouched] = React.useState<ReadonlySet<PanelKind>>(
     () => new Set()
   )
+  const [propertyTouched, setPropertyTouched] = React.useState(false)
   const [errors, setErrors] = React.useState<
     Partial<Record<PanelField, PanelError>>
   >({})
   const formRef = React.useRef<HTMLFormElement>(null)
   const units = useUnits({ enabled: ranges })
-  const unitsListId = `${id}-units`
 
-  const set = <K extends PanelField>(field: K, value: PanelValues[K]) => {
-    setValues((prev) => ({ ...prev, [field]: value }))
-    setErrors((prev) => ({ ...prev, [field]: undefined }))
-    const kind = kindOf(field)
-    if (kind) setTouched((prev) => new Set(prev).add(kind))
+  React.useEffect(() => {
+    if (!focusField) return
+    formRef.current
+      ?.querySelector<HTMLElement>(
+        `[data-field="${focusField}"], [data-field-group="${focusField}"] button`
+      )
+      ?.focus()
+  }, [focusField])
+
+  const set = (patch: Partial<PanelValues>) => {
+    setValues((prev) => ({ ...prev, ...patch }))
+    setErrors((prev) => {
+      const next = { ...prev }
+      for (const field of Object.keys(patch)) delete next[field as PanelField]
+      return next
+    })
+    for (const field of Object.keys(patch) as PanelField[]) {
+      const kind = kindOf(field)
+      if (kind) setTouched((prev) => new Set(prev).add(kind))
+      else setPropertyTouched(true)
+    }
   }
 
   const check = (): string | 'invalid' => {
-    const result = panelQuery(query, values, ranges, touched, grammar)
+    const result = panelQuery(query, values, ranges, touched, grammar, {
+      replaceProperty:
+        editProperty && propertyTouched ? editProperty : undefined,
+    })
     if ('errors' in result) {
       setErrors(result.errors)
       const first = Object.keys(result.errors)[0]
@@ -107,20 +145,29 @@ export function FilterPanel({
   }
 
   React.useImperativeHandle(ref, () => ({
-    pendingQuery: () => (touched.size === 0 ? null : check()),
+    pendingQuery: () =>
+      touched.size === 0 && !propertyTouched ? null : check(),
   }))
 
+  const errorId = (name: PanelField) => `${id}-${name}-error`
+  const errorOf = (...names: PanelField[]) => {
+    const name = names.find((n) => errors[n])
+    return (
+      name && (
+        <p id={errorId(name)} className="text-xs text-destructive">
+          {t(`error.${errors[name]}`)}
+        </p>
+      )
+    )
+  }
+
   const field = (name: PanelField, label: string, input: React.ReactNode) => (
-    <div className="grid min-w-0 gap-1">
+    <div className="grid min-w-0 gap-1.5">
       <Label htmlFor={`${id}-${name}`} className="text-xs">
         {label}
       </Label>
       {input}
-      {errors[name] && (
-        <p id={`${id}-${name}-error`} className="text-xs text-destructive">
-          {t(`error.${errors[name]}`)}
-        </p>
-      )}
+      {errorOf(name)}
     </div>
   )
 
@@ -132,13 +179,41 @@ export function FilterPanel({
       id={`${id}-${name}`}
       data-field={name}
       value={values[name] as string}
-      onChange={(e) => set(name, e.target.value as never)}
+      onChange={(e) => set({ [name]: e.target.value })}
       aria-invalid={errors[name] ? true : undefined}
-      aria-describedby={errors[name] ? `${id}-${name}-error` : undefined}
-      className="h-8"
+      aria-describedby={errors[name] ? errorId(name) : undefined}
+      className="h-9"
+      autoComplete="off"
       {...extra}
     />
   )
+
+  const dateField = (kind: 'created' | 'updated') => {
+    const fromName = `${kind}From` as const
+    const toName = `${kind}To` as const
+    const labelId = `${id}-${kind}-label`
+    const invalid = Boolean(errors[fromName] || errors[toName])
+    return (
+      <div className="grid min-w-0 gap-1.5">
+        <span id={labelId} className="text-xs font-medium">
+          {t(kind)}
+        </span>
+        <DateRangeField
+          id={`${id}-${kind}`}
+          field={fromName}
+          labelledBy={labelId}
+          from={values[fromName]}
+          to={values[toName]}
+          invalid={invalid}
+          describedBy={
+            invalid ? errorId(errors[toName] ? toName : fromName) : undefined
+          }
+          onChange={({ from, to }) => set({ [fromName]: from, [toName]: to })}
+        />
+        {errorOf(fromName, toName)}
+      </div>
+    )
+  }
 
   return (
     <form
@@ -147,142 +222,190 @@ export function FilterPanel({
       onSubmit={submit}
       aria-label={t('title')}
       data-testid="filter-panel"
-      className="grid gap-4 p-4"
+      className="flex flex-col"
       noValidate
     >
-      {ranges && (
-        <fieldset className="grid gap-2">
-          <legend className="mb-1 text-sm font-medium">{t('number')}</legend>
-          <div className="grid gap-2 sm:grid-cols-4">
-            {field('numberKey', t('numberKey'), textInput('numberKey'))}
+      <div className="grid gap-4 p-4">
+        {ranges && (
+          <fieldset className="grid min-w-0 gap-1.5">
+            <legend className="mb-1.5 text-sm font-medium">
+              {t('number')}
+            </legend>
+            <div className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr]">
+              {field(
+                'numberKey',
+                t('numberKey'),
+                textInput('numberKey', {
+                  placeholder: t('numberKeyPlaceholder'),
+                })
+              )}
+              {field(
+                'numberFrom',
+                t('numberFrom'),
+                textInput('numberFrom', { inputMode: 'decimal' })
+              )}
+              {field(
+                'numberTo',
+                t('numberTo'),
+                textInput('numberTo', { inputMode: 'decimal' })
+              )}
+              {field(
+                'numberUnit',
+                t('numberUnit'),
+                <UnitInput
+                  id={`${id}-numberUnit`}
+                  data-field="numberUnit"
+                  value={values.numberUnit}
+                  units={units.data ?? []}
+                  onValueChange={(numberUnit) => set({ numberUnit })}
+                  aria-invalid={errors.numberUnit ? true : undefined}
+                  aria-describedby={
+                    errors.numberUnit ? errorId('numberUnit') : undefined
+                  }
+                  className="h-9"
+                />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">{t('numberHint')}</p>
+          </fieldset>
+        )}
+
+        <fieldset className="grid min-w-0 gap-1.5">
+          <legend className="mb-1.5 text-sm font-medium">
+            {t('property')}{' '}
+            <span className="font-normal text-muted-foreground">
+              {editProperty
+                ? t('propertyChanges', {
+                    name: editProperty.propertyKey ?? editProperty.value,
+                  })
+                : t('propertyAdds')}
+            </span>
+          </legend>
+          <div className="grid gap-2 sm:grid-cols-2">
             {field(
-              'numberFrom',
-              t('numberFrom'),
-              textInput('numberFrom', { inputMode: 'decimal' })
+              'propertyKey',
+              t('propertyKey'),
+              textInput('propertyKey', {
+                placeholder: t('propertyKeyPlaceholder'),
+              })
             )}
             {field(
-              'numberTo',
-              t('numberTo'),
-              textInput('numberTo', { inputMode: 'decimal' })
-            )}
-            {field(
-              'numberUnit',
-              t('numberUnit'),
-              textInput('numberUnit', { list: unitsListId })
+              'propertyValue',
+              t('propertyValue'),
+              textInput('propertyValue', {
+                placeholder: t('propertyValuePlaceholder'),
+              })
             )}
           </div>
-          <datalist id={unitsListId}>
-            {units.data?.map((unit) => (
-              <option key={unit.symbol} value={unit.symbol} />
-            ))}
-          </datalist>
-          <p className="text-xs text-muted-foreground">{t('numberHint')}</p>
+          <p className="text-xs text-muted-foreground">{t('propertyHint')}</p>
         </fieldset>
-      )}
 
-      <fieldset className="grid gap-2">
-        <legend className="mb-1 text-sm font-medium">{t('property')}</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {field('propertyKey', t('propertyKey'), textInput('propertyKey'))}
-          {field(
-            'propertyValue',
-            t('propertyValue'),
-            textInput('propertyValue')
-          )}
-        </div>
-      </fieldset>
-
-      {ranges &&
-        (['created', 'updated'] as const).map((kind) => (
-          <fieldset key={kind} className="grid gap-2">
-            <legend className="mb-1 text-sm font-medium">
-              {t(kind)}{' '}
+        {ranges && (
+          <fieldset className="grid min-w-0 gap-1.5">
+            <legend className="mb-1.5 text-sm font-medium">
+              {t('dates')}{' '}
               <span className="font-normal text-muted-foreground">
                 {t('yourTimeZone')}
               </span>
             </legend>
             <div className="grid gap-2 sm:grid-cols-2">
-              {field(
-                `${kind}From`,
-                t('dateFrom'),
-                textInput(`${kind}From`, { type: 'date', min: '1970-01-01' })
-              )}
-              {field(
-                `${kind}To`,
-                t('dateTo'),
-                textInput(`${kind}To`, { type: 'date', min: '1970-01-01' })
-              )}
+              {dateField('created')}
+              {dateField('updated')}
             </div>
           </fieldset>
-        ))}
+        )}
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="grid min-w-0 gap-1">
-          <Label id={`${id}-createdBy-label`} className="text-xs">
-            {t('createdBy')}
-          </Label>
-          <UserPicker
-            labelledBy={`${id}-createdBy-label`}
-            value={values.createdBy}
-            onChange={(user) => set('createdBy', user)}
-          />
-        </div>
-        <div className="grid min-w-0 gap-1">
-          <Label htmlFor={`${id}-deleted`} className="text-xs">
-            {t('deleted')}
-          </Label>
-          <select
-            id={`${id}-deleted`}
-            value={values.deleted}
-            onChange={(e) =>
-              set('deleted', e.target.value as PanelValues['deleted'])
-            }
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">{t('deletedDefault')}</option>
-            <option value="all">{t('deletedAll')}</option>
-            <option value="true">{t('deletedOnly')}</option>
-            <option value="false">{t('deletedNone')}</option>
-          </select>
+        <div
+          className={cn(
+            'grid gap-2',
+            ranges ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+          )}
+        >
+          <div className="grid min-w-0 content-start gap-1.5">
+            <Label id={`${id}-createdBy-label`} className="text-xs">
+              {t('createdBy')}
+            </Label>
+            <UserPicker
+              labelledBy={`${id}-createdBy-label`}
+              value={values.createdBy}
+              onChange={(createdBy) => set({ createdBy })}
+            />
+          </div>
+          <div className="grid min-w-0 content-start gap-1.5">
+            <Label id={`${id}-deleted-label`} className="text-xs">
+              {t('deleted')}
+            </Label>
+            <Select
+              value={values.deleted || DELETED_DEFAULT}
+              onValueChange={(v) =>
+                set({
+                  deleted: (v === DELETED_DEFAULT
+                    ? ''
+                    : v) as PanelValues['deleted'],
+                })
+              }
+            >
+              <SelectTrigger
+                id={`${id}-deleted`}
+                data-field="deleted"
+                aria-labelledby={`${id}-deleted-label`}
+                className="h-9"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={DELETED_DEFAULT}>
+                  {t('deletedDefault')}
+                </SelectItem>
+                <SelectItem value="all">{t('deletedAll')}</SelectItem>
+                <SelectItem value="true">{t('deletedOnly')}</SelectItem>
+                <SelectItem value="false">{t('deletedNone')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {ranges && (
+            <div
+              className="grid min-w-0 content-start gap-1.5"
+              data-field-group="folder"
+            >
+              <span id={`${id}-folder-label`} className="text-xs font-medium">
+                {t('folder')}
+              </span>
+              <div className="flex min-w-0 items-center gap-1">
+                <div className="min-w-0 flex-1">
+                  <ObjectPicker
+                    value={values.folder?.id ?? ''}
+                    displayName={values.folder?.name || undefined}
+                    onSelect={(folderId, name) =>
+                      set({ folder: { id: folderId, name } })
+                    }
+                    placeholder={t('folderPlaceholder')}
+                    testId="filter-panel-folder"
+                    labelledBy={`${id}-folder-label`}
+                    className="h-9 w-full px-3"
+                  />
+                </div>
+                {values.folder && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-2"
+                    onClick={() => set({ folder: null })}
+                  >
+                    {t('clear')}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">{t('folderHint')}</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {ranges && (
-        <div className="grid min-w-0 gap-1">
-          <span id={`${id}-folder-label`} className="text-xs font-medium">
-            {t('folder')}
-          </span>
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <ObjectPicker
-                value={values.folder?.id ?? ''}
-                displayName={values.folder?.name || undefined}
-                onSelect={(folderId, name) =>
-                  set('folder', { id: folderId, name })
-                }
-                placeholder={t('folderPlaceholder')}
-                testId="filter-panel-folder"
-                labelledBy={`${id}-folder-label`}
-              />
-            </div>
-            {values.folder && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => set('folder', null)}
-              >
-                {t('clear')}
-              </Button>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">{t('folderHint')}</p>
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="sticky bottom-0 flex items-center justify-between gap-2 border-t border-border/50 bg-background px-4 py-2.5">
         <p className="text-xs text-muted-foreground">{t('applyHint')}</p>
-        <Button type="submit" size="sm">
+        <Button type="submit" size="sm" className="h-8">
           {t('apply')}
         </Button>
       </div>
@@ -316,14 +439,13 @@ function UserPicker({
         <Button
           type="button"
           variant="outline"
-          size="sm"
           role="combobox"
           aria-expanded={open}
           aria-labelledby={labelledBy}
-          className="h-8 w-full justify-between font-normal"
+          className="h-9 w-full justify-between px-3 font-normal"
           data-field="createdBy"
         >
-          <span className="truncate">
+          <span className={cn('truncate', !value && 'text-muted-foreground')}>
             {value ? value.name || value.id : t('anyone')}
           </span>
           <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" aria-hidden />

@@ -1290,12 +1290,32 @@
         "description": "Search by object name"
       },
       "createdBy": {
-        "label": "Created By",
+        "label": "Created by",
         "description": "Made by one person. Pick the person in Add filter."
       },
       "parent": {
         "label": "Parent",
-        "description": "Filter by parent object UUID"
+        "description": "The direct children of one object. Needs the object id."
+      },
+      "number": {
+        "label": "Number",
+        "description": "A number in a range, with a unit. Pick it in Add filter, or type mass>=2t."
+      },
+      "created": {
+        "label": "Created date",
+        "description": "Created on a day or in a range, in your time zone."
+      },
+      "updated": {
+        "label": "Updated date",
+        "description": "Changed on a day or in a range, in your time zone."
+      },
+      "folder": {
+        "label": "Inside folder",
+        "description": "Everything inside a folder, at any depth. Pick the folder in Add filter."
+      },
+      "template": {
+        "label": "Templates",
+        "description": "Search the templates instead of the objects."
       }
     },
     "deletedSetBySearchOnly": "Not applied: your search shows only deleted items (deleted:true).",
@@ -1340,7 +1360,10 @@
         "true": "Only deleted",
         "false": "Deleted hidden",
         "all": "Deleted shown too"
-      }
+      },
+      "edit": "Change this filter",
+      "rangeFrom": "from {day}",
+      "rangeUntil": "until {day}"
     }
   },
   "constants": {
@@ -1880,15 +1903,13 @@
     "numberFrom": "From (at least)",
     "numberTo": "To (at most)",
     "numberUnit": "Unit",
-    "numberHint": "From and to include the value. With a unit, a value that has no unit is not found. Use a point or a comma for decimals, not for thousands.",
+    "numberHint": "From and to count. With a unit, a value without one is not found.",
     "property": "Property",
     "propertyKey": "Name",
     "propertyValue": "Whole value (optional)",
     "created": "Created",
     "updated": "Updated",
     "yourTimeZone": "(your time zone)",
-    "dateFrom": "From",
-    "dateTo": "To",
     "createdBy": "Created by",
     "anyone": "Anyone",
     "findPerson": "Find a person...",
@@ -1900,10 +1921,10 @@
     "deletedNone": "Hidden",
     "folder": "Inside folder",
     "folderPlaceholder": "Any folder",
-    "folderHint": "Finds everything inside the folder, at any depth, but not the folder itself.",
+    "folderHint": "At any depth, not the folder itself.",
     "clear": "Clear",
     "apply": "Apply",
-    "applyHint": "Apply writes the filters into the search box. Then press Enter to search.",
+    "applyHint": "Apply, or Enter in a field, searches at once.",
     "error": {
       "numberKey": "Name the property.",
       "numberValue": "Write a number, for example 2.5.",
@@ -1912,6 +1933,29 @@
       "quote": "A name or value cannot contain \".",
       "dateReversed": "To must not be before from.",
       "numberGrouping": "Write the number without a thousands separator, for example 2000."
+    },
+    "numberKeyPlaceholder": "for example mass",
+    "propertyAdds": "(adds one)",
+    "propertyChanges": "(changes {name})",
+    "propertyKeyPlaceholder": "for example material",
+    "propertyValuePlaceholder": "Any value",
+    "propertyHint": "Write the name and the value as they are in your data.",
+    "dates": "Dates",
+    "anyDate": "Any date",
+    "dateFromOnly": "From {day}",
+    "dateToOnly": "Until {day}",
+    "ranges": "Ranges",
+    "rangeHint": "Pick the first day, then the last. One day only: from that day.",
+    "done": "Done",
+    "preset": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisYear": "This year",
+      "lastYear": "Last year"
     }
   }
 }

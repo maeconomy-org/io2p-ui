@@ -46,6 +46,8 @@ import {
   type SearchListType,
 } from './search-parser'
 import { FilterPanel, type FilterPanelHandle } from './filter-panel'
+import type { PanelField } from './filter-panel-query'
+import { useDayText } from './use-day-text'
 import { useSearchGrammar } from './use-search-grammar'
 import {
   SavedSearchGroup,
@@ -81,7 +83,27 @@ const ICON_MAP: Record<string, React.ElementType> = {
   User,
   FolderTree,
   Hash,
+  Ruler,
+  CalendarDays,
 }
+
+/** The panel field a pill opens, or none when the panel cannot show that filter. */
+const PILL_FIELD: Partial<Record<SearchFilter['type'], PanelField>> = {
+  number: 'numberKey',
+  created: 'createdFrom',
+  updated: 'updatedFrom',
+  folder: 'folder',
+  createdBy: 'createdBy',
+  deleted: 'deleted',
+  property: 'propertyKey',
+  propertyLabel: 'propertyKey',
+}
+const RANGED_PILLS: ReadonlySet<SearchFilter['type']> = new Set([
+  'number',
+  'created',
+  'updated',
+  'folder',
+])
 
 const EMPTY_RECENT: string[] = []
 
@@ -156,8 +178,25 @@ export function CommandCenter({
     setHighlight({ session, index: 0, moved: false })
   }
 
-  const [panel, setPanel] = React.useState({ session, open: false })
+  const [panel, setPanel] = React.useState<{
+    session: string
+    open: boolean
+    /** Counted, so a pill clicked while the panel is open starts it again with that filter. */
+    n?: number
+    focus?: PanelField
+    edit?: SearchFilter
+  }>({ session, open: false })
   const panelOpen = panel.session === session && panel.open
+  const openPanel = (focus?: PanelField, edit?: SearchFilter) => {
+    setSaveRow(null)
+    setPanel((prev) => ({
+      session,
+      open: true,
+      n: (prev.n ?? 0) + 1,
+      focus,
+      edit,
+    }))
+  }
   const panelId = React.useId()
   const panelButtonRef = React.useRef<HTMLButtonElement>(null)
   const closePanel = () => {
@@ -260,8 +299,30 @@ export function CommandCenter({
       return [] // Already has a value, don't suggest
     }
 
-    return getFilterSuggestions(lastToken)
-  }, [inputValue])
+    return getFilterSuggestions(lastToken, listType === 'objects')
+  }, [inputValue, listType])
+
+  const suggestionsShown =
+    !panelOpen && showSuggestions ? currentSuggestions : []
+  const contentRef = React.useRef<HTMLDivElement>(null)
+  // One arrow order over every row the list shows: suggestions, saved, recent, quick actions.
+  const listRows = () => [
+    ...(contentRef.current?.querySelectorAll<HTMLElement>('[data-cc-row]') ??
+      []),
+  ]
+  const listId = React.useId()
+  React.useLayoutEffect(() => {
+    const rows = listRows()
+    rows.forEach((row, i) => {
+      if (!row.id) row.id = `${listId}-row-${i}`
+      row.toggleAttribute('data-active', highlightMoved && i === selectedIndex)
+    })
+    const active = rows[selectedIndex]
+    if (highlightMoved && active) {
+      inputRef.current?.setAttribute('aria-activedescendant', active.id)
+      active.scrollIntoView?.({ block: 'nearest' })
+    } else inputRef.current?.removeAttribute('aria-activedescendant')
+  })
 
   // Active filters (non-text filters)
   const activeFilters = parsedSearch.filters.filter((f) => f.type !== 'text')
@@ -276,6 +337,17 @@ export function CommandCenter({
     // Append the filter prefix to input
     const tokens = inputValue.trim().split(' ')
     const lastToken = tokens[tokens.length - 1] || ''
+
+    if (suggestion.opens) {
+      // A person, a folder, a number or a date is picked in the panel, not typed as an id.
+      const typing =
+        lastToken &&
+        !lastToken.includes(':') &&
+        suggestion.prefix.toLowerCase().startsWith(lastToken.toLowerCase())
+      if (typing) setInputValue(tokens.slice(0, -1).join(' '))
+      openPanel(suggestion.opens)
+      return
+    }
 
     // If last token is partial match of the suggestion, replace it
     if (
@@ -314,11 +386,15 @@ export function CommandCenter({
       setInputValue(query)
       setPanel({ session, open: false })
     }
+    runSearch(query, true)
+  }
 
+  /** Runs `query`. Apply in the panel keeps the dialog open; Enter closes it. */
+  const runSearch = (query: string, close: boolean) => {
     // An empty submit is the way back to the unfiltered list, not a no-op.
     if (!query.trim()) {
       onClear?.()
-      onOpenChange?.(false)
+      if (close) onOpenChange?.(false)
       return
     }
 
@@ -332,34 +408,48 @@ export function CommandCenter({
 
     saveRecentSearch(query)
     onSearch?.(freshParsed)
-    onOpenChange?.(false)
+    if (close) onOpenChange?.(false)
   }
 
   // Tab completes a filter name being typed, or the suggestion the arrows moved to. Otherwise it
   // moves focus, so a keyboard user can reach "Add filter" without changing the search.
   const tabCompletes = (e: React.KeyboardEvent) => {
-    if (e.shiftKey || currentSuggestions.length === 0) return false
+    if (e.shiftKey || selectedIndex >= suggestionsShown.length) return false
     const lastToken = inputValue.split(' ').at(-1) ?? ''
     return highlightMoved || lastToken !== ''
   }
 
+  const rowCount = () => listRows().length
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      handleSearch()
+      // A row the arrows moved to runs; otherwise Enter searches, as it always did.
+      const row =
+        highlightMoved && !panelOpen ? listRows()[selectedIndex] : undefined
+      if (row && selectedIndex < suggestionsShown.length) {
+        handleSuggestionClick(suggestionsShown[selectedIndex])
+      } else if (row) row.click()
+      else handleSearch()
     } else if (e.key === 'Escape') {
       // The dialog's onEscapeKeyDown decides; the input itself does nothing more.
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedIndex((prev) =>
-        Math.min(prev + 1, currentSuggestions.length - 1)
-      )
+      setSelectedIndex((prev) => Math.min(prev + 1, rowCount() - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSelectedIndex((prev) => Math.max(prev - 1, 0))
     } else if (e.key === 'Tab' && tabCompletes(e)) {
       e.preventDefault()
-      handleSuggestionClick(currentSuggestions[selectedIndex])
+      handleSuggestionClick(suggestionsShown[selectedIndex])
+    } else if (e.key === 'Delete' && highlightMoved) {
+      const row = listRows().at(selectedIndex)
+      const remove = row
+        ?.closest('li')
+        ?.querySelector<HTMLButtonElement>('[data-cc-delete]')
+      if (remove) {
+        e.preventDefault()
+        remove.click()
+      }
     }
   }
 
@@ -376,7 +466,8 @@ export function CommandCenter({
             closeSaveRow()
           }
         }}
-        className="w-[calc(100%-2rem)] sm:w-full max-w-2xl rounded-lg [&>*]:min-w-0 p-0 gap-0 overflow-hidden bg-gradient-to-b from-background to-muted/20 border-border/50 shadow-2xl [&>button]:hidden"
+        // Anchored near the top: centred, the dialog jumped each time the list changed height.
+        className="top-[12dvh] translate-y-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 w-[calc(100%-2rem)] sm:w-full max-w-2xl rounded-lg [&>*]:min-w-0 p-0 gap-0 overflow-hidden bg-gradient-to-b from-background to-muted/20 border-border/50 shadow-2xl [&>button]:hidden"
       >
         {/* Visually hidden title and description for accessibility */}
         <DialogTitle className="sr-only">
@@ -421,8 +512,7 @@ export function CommandCenter({
               aria-controls={panelOpen ? panelId : undefined}
               onClick={() => {
                 if (panelOpen) return closePanel()
-                setSaveRow(null)
-                setPanel({ session, open: true })
+                openPanel()
               }}
               data-testid="add-filter"
               className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -479,6 +569,9 @@ export function CommandCenter({
               <span id={`${pillsId}-remove`} hidden>
                 {t('search.pill.remove')}
               </span>
+              <span id={`${pillsId}-edit`} hidden>
+                {t('search.pill.edit')}
+              </span>
               {activeFilters.map((filter, index) => (
                 <Badge
                   key={index}
@@ -510,9 +603,31 @@ export function CommandCenter({
                   {(filter.type === 'created' || filter.type === 'updated') && (
                     <CalendarDays className="h-3 w-3" />
                   )}
-                  <span id={`${pillsId}-${index}`} className="font-medium">
-                    <PillLabel filter={filter} />
-                  </span>
+                  {PILL_FIELD[filter.type] &&
+                  !filter.problem &&
+                  (listType === 'objects' || !RANGED_PILLS.has(filter.type)) ? (
+                    <button
+                      type="button"
+                      id={`${pillsId}-${index}`}
+                      onClick={() =>
+                        openPanel(
+                          PILL_FIELD[filter.type],
+                          filter.type === 'property' ||
+                            filter.type === 'propertyLabel'
+                            ? filter
+                            : undefined
+                        )
+                      }
+                      aria-describedby={`${pillsId}-edit`}
+                      className="rounded font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <PillLabel filter={filter} />
+                    </button>
+                  ) : (
+                    <span id={`${pillsId}-${index}`} className="font-medium">
+                      <PillLabel filter={filter} />
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleRemoveFilter(filter)}
@@ -545,7 +660,15 @@ export function CommandCenter({
         </div>
 
         {/* Content Area */}
-        <div className="max-h-[min(400px,60dvh)] overflow-y-auto">
+        <div
+          ref={contentRef}
+          className={cn(
+            'overflow-y-auto',
+            panelOpen
+              ? 'max-h-[min(640px,calc(80dvh-9rem))]'
+              : 'max-h-[min(400px,60dvh)]'
+          )}
+        >
           {saveOpen && (
             <SaveSearchForm
               id={saveRowId}
@@ -556,14 +679,18 @@ export function CommandCenter({
           )}
           {panelOpen && (
             <FilterPanel
+              key={panel.n}
               ref={panelRef}
               id={panelId}
               query={inputValue}
               ranges={listType === 'objects'}
+              focusField={panel.focus}
+              editProperty={panel.edit}
               onApply={(query) => {
                 setInputValue(query)
                 setPanel({ session, open: false })
                 inputRef.current?.focus()
+                runSearch(query, false)
               }}
             />
           )}
@@ -579,6 +706,8 @@ export function CommandCenter({
                 return (
                   <button
                     key={suggestion.type}
+                    type="button"
+                    data-cc-row
                     data-testid={`search-suggestion-${suggestion.type}`}
                     onClick={() => handleSuggestionClick(suggestion)}
                     className={cn(
@@ -607,13 +736,24 @@ export function CommandCenter({
                       </div>
                       {/* On a phone the example moves under the description: beside it, it does not
                           fit, and it is the only place the filter's syntax shows. */}
-                      <code className="sm:hidden mt-1 inline-block max-w-full truncate px-1.5 py-0.5 bg-muted rounded text-xs font-mono">
+                      {suggestion.examples[0] && (
+                        <code className="sm:hidden mt-1 inline-block max-w-full truncate px-1.5 py-0.5 bg-muted rounded text-xs font-mono">
+                          {suggestion.examples[0]}
+                        </code>
+                      )}
+                    </div>
+                    {suggestion.examples[0] ? (
+                      <code className="hidden sm:inline-block shrink-0 px-2 py-1 bg-muted rounded text-xs font-mono">
                         {suggestion.examples[0]}
                       </code>
-                    </div>
-                    <code className="hidden sm:inline-block shrink-0 px-2 py-1 bg-muted rounded text-xs font-mono">
-                      {suggestion.examples[0]}
-                    </code>
+                    ) : (
+                      suggestion.opens && (
+                        <SlidersHorizontal
+                          className="h-4 w-4 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
+                      )
+                    )}
                   </button>
                 )
               })}
@@ -640,9 +780,11 @@ export function CommandCenter({
               {recentSearches.map((query) => (
                 <button
                   key={query}
+                  type="button"
+                  data-cc-row
                   data-testid="recent-search"
                   onClick={() => handleRecentClick(query)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left hover:bg-muted/50 transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left hover:bg-muted/50 transition-colors data-[active]:bg-accent data-[active]:text-accent-foreground"
                 >
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm truncate">{query}</span>
@@ -659,9 +801,11 @@ export function CommandCenter({
                 {t('commandCenter.quickActions')}
               </div>
               <button
+                type="button"
+                data-cc-row
                 data-testid="quick-view-deleted"
                 onClick={() => setInputValue('deleted:true ')}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left hover:bg-muted/50 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-left hover:bg-muted/50 transition-colors data-[active]:bg-accent data-[active]:text-accent-foreground"
               >
                 <div className="w-8 h-8 rounded-md bg-red-500/10 text-red-500 flex items-center justify-center">
                   <Trash2 className="h-4 w-4" />
@@ -750,7 +894,22 @@ const PILL_KEYS: Partial<Record<SearchFilter['type'], string>> = {
 
 function PillLabel({ filter }: { filter: SearchFilter }) {
   const t = useTranslations()
+  const day = useDayText()
   if (filter.problem) return <>{filter.raw}</>
+  if (filter.type === 'created' || filter.type === 'updated') {
+    const [from, to] = filter.value.includes('..')
+      ? filter.value.split('..')
+      : [filter.value, filter.value]
+    const value =
+      from && to
+        ? from === to
+          ? day(from)
+          : `${day(from)} – ${day(to)}`
+        : from
+          ? t('search.pill.rangeFrom', { day: day(from) })
+          : t('search.pill.rangeUntil', { day: day(to) })
+    return <>{t(`search.pill.${filter.type}`, { value })}</>
+  }
   if (filter.type === 'folder') {
     return <FolderPill id={filter.value} />
   }
@@ -758,10 +917,7 @@ function PillLabel({ filter }: { filter: SearchFilter }) {
     return <>{t(`search.pill.deleted.${filter.value}`)}</>
   }
   const key = PILL_KEYS[filter.type]
-  const value =
-    filter.type === 'created' || filter.type === 'updated'
-      ? filter.value
-      : (filter.propertyKey ?? filter.propertyValue ?? filter.value)
+  const value = filter.propertyKey ?? filter.propertyValue ?? filter.value
   return <>{key ? t(key, { value }) : filter.label}</>
 }
 

@@ -5,6 +5,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'en',
+  // A day as YYYY-MM-DD in local time, so a test can name the day it picked.
+  useFormatter: () => ({
+    dateTime: (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+  }),
   useTranslations:
     (ns?: string) => (key: string, values?: Record<string, string>) =>
       `${ns ? `${ns}.` : ''}${key}${values ? ` ${Object.values(values).join(' ')}` : ''}`,

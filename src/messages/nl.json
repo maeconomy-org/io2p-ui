@@ -1295,7 +1295,27 @@
       },
       "parent": {
         "label": "Bovenliggend",
-        "description": "Filteren op bovenliggend object UUID"
+        "description": "De directe onderliggende objecten van één object. Heeft het object-id nodig."
+      },
+      "number": {
+        "label": "Getal",
+        "description": "Een getal in een bereik, met een eenheid. Kies het bij Filter toevoegen, of typ mass>=2t."
+      },
+      "created": {
+        "label": "Aanmaakdatum",
+        "description": "Aangemaakt op een dag of in een periode, in uw tijdzone."
+      },
+      "updated": {
+        "label": "Wijzigingsdatum",
+        "description": "Gewijzigd op een dag of in een periode, in uw tijdzone."
+      },
+      "folder": {
+        "label": "In map",
+        "description": "Alles in een map, op elke diepte. Kies de map bij Filter toevoegen."
+      },
+      "template": {
+        "label": "Sjablonen",
+        "description": "Zoek in de sjablonen in plaats van de objecten."
       }
     },
     "deletedSetBySearchOnly": "Niet toegepast: uw zoekopdracht toont alleen verwijderde items (deleted:true).",
@@ -1340,7 +1360,10 @@
         "true": "Alleen verwijderde",
         "false": "Verwijderde verborgen",
         "all": "Verwijderde ook getoond"
-      }
+      },
+      "edit": "Dit filter wijzigen",
+      "rangeFrom": "vanaf {day}",
+      "rangeUntil": "tot en met {day}"
     }
   },
   "constants": {
@@ -1880,15 +1903,13 @@
     "numberFrom": "Van (minstens)",
     "numberTo": "Tot (hoogstens)",
     "numberUnit": "Eenheid",
-    "numberHint": "Van en tot tellen mee. Met een eenheid wordt een waarde zonder eenheid niet gevonden. Gebruik een punt of een komma voor decimalen, niet voor duizendtallen.",
+    "numberHint": "Van en tot tellen mee. Met een eenheid wordt een waarde zonder eenheid niet gevonden.",
     "property": "Eigenschap",
     "propertyKey": "Naam",
     "propertyValue": "Hele waarde (optioneel)",
     "created": "Aangemaakt",
     "updated": "Bijgewerkt",
     "yourTimeZone": "(uw tijdzone)",
-    "dateFrom": "Van",
-    "dateTo": "Tot",
     "createdBy": "Aangemaakt door",
     "anyone": "Iedereen",
     "findPerson": "Zoek een persoon...",
@@ -1900,10 +1921,10 @@
     "deletedNone": "Verborgen",
     "folder": "In map",
     "folderPlaceholder": "Elke map",
-    "folderHint": "Vindt alles in de map, op elke diepte, maar niet de map zelf.",
+    "folderHint": "Op elke diepte, niet de map zelf.",
     "clear": "Wissen",
     "apply": "Toepassen",
-    "applyHint": "Toepassen schrijft de filters in het zoekveld. Druk dan op Enter om te zoeken.",
+    "applyHint": "Toepassen, of Enter in een veld, zoekt meteen.",
     "error": {
       "numberKey": "Geef de eigenschap een naam.",
       "numberValue": "Schrijf een getal, bijvoorbeeld 2,5.",
@@ -1912,6 +1933,29 @@
       "quote": "Een naam of waarde mag geen \" bevatten.",
       "dateReversed": "Tot mag niet voor van liggen.",
       "numberGrouping": "Schrijf het getal zonder scheidingsteken voor duizendtallen, bijvoorbeeld 2000."
+    },
+    "numberKeyPlaceholder": "bijvoorbeeld massa",
+    "propertyAdds": "(voegt er een toe)",
+    "propertyChanges": "(wijzigt {name})",
+    "propertyKeyPlaceholder": "bijvoorbeeld materiaal",
+    "propertyValuePlaceholder": "Elke waarde",
+    "propertyHint": "Schrijf de naam en de waarde zoals ze in uw gegevens staan.",
+    "dates": "Datums",
+    "anyDate": "Elke datum",
+    "dateFromOnly": "Vanaf {day}",
+    "dateToOnly": "Tot en met {day}",
+    "ranges": "Periodes",
+    "rangeHint": "Kies de eerste dag, dan de laatste. Eén dag: vanaf die dag.",
+    "done": "Klaar",
+    "preset": {
+      "today": "Vandaag",
+      "yesterday": "Gisteren",
+      "last7": "Laatste 7 dagen",
+      "last30": "Laatste 30 dagen",
+      "thisMonth": "Deze maand",
+      "lastMonth": "Vorige maand",
+      "thisYear": "Dit jaar",
+      "lastYear": "Vorig jaar"
     }
   }
 }

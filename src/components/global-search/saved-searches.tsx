@@ -204,10 +204,11 @@ export function SavedSearchGroup({
               type="button"
               onClick={() => onRun(search.query)}
               data-run
+              data-cc-row
               // Named by the name only: a long query read on every row would bury the list.
               aria-labelledby={`${headingId}-${search.key}`}
               aria-describedby={`${headingId}-${search.key}-q`}
-              className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active]:bg-accent data-[active]:text-accent-foreground"
             >
               <Bookmark
                 className="h-4 w-4 shrink-0 text-muted-foreground"
@@ -232,6 +233,7 @@ export function SavedSearchGroup({
             <button
               type="button"
               onClick={() => remove(search.key)}
+              data-cc-delete
               aria-label={t('delete', { name: search.name })}
               aria-disabled={busy || undefined}
               className="shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -249,9 +251,11 @@ export function SavedSearchGroup({
             <button
               type="button"
               onClick={() => remove(key)}
+              data-cc-row
+              data-cc-delete
               aria-label={t('deleteUnreadable')}
               aria-disabled={busy || undefined}
-              className="shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active]:bg-accent"
             >
               <Trash2 className="h-4 w-4" aria-hidden />
             </button>
@@ -265,7 +269,8 @@ export function SavedSearchGroup({
             focusNewRows.current = true
             setShowAll(true)
           }}
-          className="mt-1 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          data-cc-row
+          className="mt-1 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[active]:bg-accent"
         >
           {t('showAll', { count: saved.length })}
         </button>

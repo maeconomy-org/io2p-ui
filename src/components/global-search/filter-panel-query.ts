@@ -124,13 +124,16 @@ function dayToken(prefix: string, from: string, to: string): string | null {
  * editable while the panel is open, so a token typed after it opened is not in `values`: replacing
  * an untouched kind would delete it unseen. The parser reads the result back, so the menu and a
  * typed token are one request. `ranges` is false on a list that takes no numbers, dates or folder.
+ * `replaceProperty` is the property filter a pill opened the panel on: the property fields replace
+ * it, and emptied fields remove it.
  */
 export function panelQuery(
   query: string,
   values: PanelValues,
   ranges: boolean,
   touched: ReadonlySet<PanelKind> = PANEL_KINDS,
-  grammar: SearchGrammar = PLAIN_GRAMMAR
+  grammar: SearchGrammar = PLAIN_GRAMMAR,
+  { replaceProperty }: { replaceProperty?: SearchFilter } = {}
 ): { query: string } | { errors: Partial<Record<PanelField, PanelError>> } {
   const errors: Partial<Record<PanelField, PanelError>> = {}
   const tokens: string[] = []
@@ -216,7 +219,8 @@ export function panelQuery(
     parseSearchQuery(tokens.join(' '), grammar).filters.map((f) => f.type)
   )
   const replaced = (f: SearchFilter) =>
-    edits(f.type as PanelKind) && (!f.problem || written.has(f.type))
+    (edits(f.type as PanelKind) && (!f.problem || written.has(f.type))) ||
+    f.raw === replaceProperty?.raw
   const kept = queryWithout(query, replaced, grammar)
   return { query: [kept, ...tokens].filter(Boolean).join(' ') }
 }
